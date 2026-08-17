@@ -55,7 +55,7 @@ export function PhotoUploader({ onRecognized, disabled }: PhotoUploaderProps) {
         <div>
           <h2 className="text-xl font-bold">Добавить приём пищи</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Загрузите фото еды — приложение предложит блюдо и калорийность для подтверждения.
+            Сфотографируйте блюдо, заводскую упаковку, этикетку с КБЖУ или штрихкод.
           </p>
         </div>
 
@@ -70,7 +70,7 @@ export function PhotoUploader({ onRecognized, disabled }: PhotoUploaderProps) {
           <span className="mt-3 font-semibold text-teal-900">
             {loading ? "Распознаём..." : "Нажмите или перетащите фото"}
           </span>
-          <span className="mt-1 text-sm text-slate-500">JPG, PNG, WEBP</span>
+          <span className="mt-1 text-sm text-slate-500">Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP</span>
           <input
             ref={inputRef}
             type="file"

@@ -9,6 +9,7 @@ import {
 } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 
 type NutritionFields = {
   dishName: string;
@@ -17,6 +18,7 @@ type NutritionFields = {
   fat?: number;
   carbs?: number;
   portionGrams?: number;
+  source?: string;
 };
 
 type ConfirmationCardProps = {
@@ -171,7 +173,10 @@ export function ConfirmationCard({
       }
 
       applyNutrition(data.recognition);
-      setLookupMessage("Калорийность и БЖУ обновлены по названию блюда");
+      const sourceLabel = data.recognition.source
+        ? RECOGNITION_SOURCE_LABELS[data.recognition.source]
+        : undefined;
+      setLookupMessage(sourceLabel ?? "Калорийность и БЖУ обновлены по названию блюда");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка поиска");
     } finally {
@@ -248,7 +253,13 @@ export function ConfirmationCard({
 
           <div className="flex flex-col gap-4">
             <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
-              Уверенность модели: {Math.round(recognition.confidence * 100)}%
+              <p>
+                {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
+              </p>
+              <p className="mt-1 text-xs text-teal-800">
+                Уверенность: {Math.round(recognition.confidence * 100)}%
+                {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

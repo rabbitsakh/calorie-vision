@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <AppShell
       title="Добавить приём пищи"
-      description="Загрузите фото еды — GigaChat определит блюдо и калорийность."
+      description="Фото блюда, упаковки, этикетки или штрихкода — калории и БЖУ для подтверждения."
       date={date}
     >
       <AuthGate>

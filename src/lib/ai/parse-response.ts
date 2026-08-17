@@ -1,7 +1,12 @@
-import type { FoodRecognitionResult } from "@/lib/food-recognition";
+type PhotoKind = "meal" | "package" | "label" | "barcode";
+
+const PHOTO_KINDS = new Set<PhotoKind>(["meal", "package", "label", "barcode"]);
 
 type RawRecognition = {
   dishName?: unknown;
+  brand?: unknown;
+  barcode?: unknown;
+  photoKind?: unknown;
   calories?: unknown;
   protein?: unknown;
   fat?: unknown;
@@ -9,6 +14,7 @@ type RawRecognition = {
   portionGrams?: unknown;
   confidence?: unknown;
   alternatives?: unknown;
+  per100g?: unknown;
 };
 
 function toNumber(value: unknown): number | undefined {
@@ -17,7 +23,7 @@ function toNumber(value: unknown): number | undefined {
   }
 
   if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
+    const parsed = Number(value.replace(",", "."));
     if (Number.isFinite(parsed)) {
       return parsed;
     }
@@ -42,7 +48,29 @@ function extractJson(text: string): string {
   return trimmed;
 }
 
-export function parseFoodRecognitionResponse(text: string): FoodRecognitionResult {
+function parsePer100g(value: unknown): {
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+} | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const raw = value as Record<string, unknown>;
+  const calories = toNumber(raw.calories);
+  if (calories === undefined || calories <= 0) {
+    return undefined;
+  }
+  return {
+    calories,
+    protein: toNumber(raw.protein),
+    fat: toNumber(raw.fat),
+    carbs: toNumber(raw.carbs),
+  };
+}
+
+export function parseFoodRecognitionResponse(text: string) {
   let parsed: RawRecognition;
 
   try {
@@ -59,6 +87,11 @@ export function parseFoodRecognitionResponse(text: string): FoodRecognitionResul
   const calories = Math.max(0, Math.round(toNumber(parsed.calories) ?? 0));
   const confidenceRaw = toNumber(parsed.confidence) ?? 0.5;
   const confidence = Math.min(1, Math.max(0, confidenceRaw));
+  const photoKind = typeof parsed.photoKind === "string" && PHOTO_KINDS.has(parsed.photoKind as PhotoKind)
+    ? (parsed.photoKind as PhotoKind)
+    : undefined;
+  const barcode = typeof parsed.barcode === "string" ? parsed.barcode.trim() : undefined;
+  const brand = typeof parsed.brand === "string" && parsed.brand.trim() ? parsed.brand.trim() : undefined;
 
   const alternatives = Array.isArray(parsed.alternatives)
     ? parsed.alternatives
@@ -88,5 +121,9 @@ export function parseFoodRecognitionResponse(text: string): FoodRecognitionResul
       : undefined,
     confidence,
     alternatives: alternatives?.length ? alternatives : undefined,
+    photoKind,
+    barcode: barcode || undefined,
+    brand,
+    per100g: parsePer100g(parsed.per100g),
   };
 }

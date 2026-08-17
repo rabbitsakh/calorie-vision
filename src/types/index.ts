@@ -1,18 +1,10 @@
 import type { GoalPace, NutrientComparison, WeightGoal } from "@/lib/diet";
+import type { FoodRecognitionResult } from "@/lib/food-types";
 
 export type RecognitionResponse = {
   imagePath: string;
   previewUrl?: string;
-  recognition: {
-    dishName: string;
-    calories: number;
-    protein?: number;
-    fat?: number;
-    carbs?: number;
-    portionGrams?: number;
-    confidence: number;
-    alternatives?: Array<{ dishName: string; calories: number }>;
-  };
+  recognition: FoodRecognitionResult;
 };
 
 export type MealEntry = {
