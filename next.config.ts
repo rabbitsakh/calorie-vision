@@ -1,16 +1,18 @@
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { versionFromCommitCount } from "./src/lib/app-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as { version: string };
 
-function gitSha(): string {
+function gitCommitCount(): number {
   try {
-    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
+    return Number.parseInt(
+      execSync("git rev-list --count HEAD", { stdio: ["ignore", "pipe", "ignore"] })
+        .toString()
+        .trim(),
+      10,
+    );
   } catch {
-    return "dev";
+    return 0;
   }
 }
 
@@ -21,8 +23,7 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
-    NEXT_PUBLIC_APP_VERSION: packageJson.version,
-    NEXT_PUBLIC_GIT_SHA: gitSha(),
+    NEXT_PUBLIC_APP_VERSION: versionFromCommitCount(gitCommitCount()),
   },
 };
 
