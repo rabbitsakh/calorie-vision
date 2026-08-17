@@ -1,10 +1,55 @@
 export type WeightGoal = "LOSE" | "GAIN" | "MAINTAIN";
+export type GoalPace = "SIMPLE" | "HEALTHY" | "FAST";
+
+type DietCoeff = {
+  kcal: number;
+  protein: number;
+  fat: number;
+};
 
 export const GOAL_OPTIONS: Array<{ value: WeightGoal; label: string; hint: string }> = [
   { value: "LOSE", label: "Похудеть", hint: "Дефицит калорий" },
   { value: "GAIN", label: "Набрать вес", hint: "Профицит калорий" },
   { value: "MAINTAIN", label: "Удержать вес", hint: "Баланс калорий" },
 ];
+
+export const PACE_OPTIONS: Array<{ value: GoalPace; label: string }> = [
+  { value: "SIMPLE", label: "Как можно проще" },
+  { value: "HEALTHY", label: "Здоровым способом" },
+  { value: "FAST", label: "Как можно быстрее" },
+];
+
+const PACE_HINTS: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, string>> = {
+  LOSE: {
+    SIMPLE: "Небольшой дефицит, привычная еда",
+    HEALTHY: "Умеренный дефицит и больше белка",
+    FAST: "Сильный дефицит, быстрее минус вес",
+  },
+  GAIN: {
+    SIMPLE: "Небольшой профицит, привычная еда",
+    HEALTHY: "Умеренный профицит и больше белка",
+    FAST: "Большой профицит, быстрее плюс вес",
+  },
+};
+
+const MAINTAIN_COEFF: DietCoeff = { kcal: 30, protein: 1.6, fat: 1 };
+
+const GOAL_PACE_COEFF: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, DietCoeff>> = {
+  LOSE: {
+    SIMPLE: { kcal: 27, protein: 1.6, fat: 1 },
+    HEALTHY: { kcal: 25, protein: 2, fat: 0.8 },
+    FAST: { kcal: 21, protein: 2.2, fat: 0.7 },
+  },
+  GAIN: {
+    SIMPLE: { kcal: 33, protein: 1.6, fat: 1 },
+    HEALTHY: { kcal: 37, protein: 1.8, fat: 1 },
+    FAST: { kcal: 42, protein: 2, fat: 1.2 },
+  },
+};
+
+export function goalNeedsPace(goal: WeightGoal): boolean {
+  return goal === "LOSE" || goal === "GAIN";
+}
 
 export function goalLabel(goal: WeightGoal): string {
   return GOAL_OPTIONS.find((option) => option.value === goal)?.label ?? goal;
@@ -14,23 +59,30 @@ export function goalHint(goal: WeightGoal): string {
   return GOAL_OPTIONS.find((option) => option.value === goal)?.hint ?? "";
 }
 
-const KCAL_PER_KG: Record<WeightGoal, number> = {
-  LOSE: 25,
-  MAINTAIN: 30,
-  GAIN: 37,
-};
+export function paceLabel(pace: GoalPace): string {
+  return PACE_OPTIONS.find((option) => option.value === pace)?.label ?? pace;
+}
 
-const PROTEIN_PER_KG: Record<WeightGoal, number> = {
-  LOSE: 2,
-  MAINTAIN: 1.6,
-  GAIN: 1.8,
-};
+export function paceHint(goal: WeightGoal, pace: GoalPace): string {
+  if (!goalNeedsPace(goal)) {
+    return goalHint(goal);
+  }
+  return PACE_HINTS[goal][pace];
+}
 
-const FAT_PER_KG: Record<WeightGoal, number> = {
-  LOSE: 0.8,
-  MAINTAIN: 1,
-  GAIN: 1,
-};
+export function formatGoalChoice(goal: WeightGoal, pace: GoalPace | null | undefined): string {
+  if (!goalNeedsPace(goal) || !pace) {
+    return goalLabel(goal);
+  }
+  return `${goalLabel(goal)} · ${paceLabel(pace).toLowerCase()}`;
+}
+
+export function savedGoalHint(goal: WeightGoal, pace: GoalPace | null | undefined): string {
+  if (!goalNeedsPace(goal) || !pace) {
+    return goalHint(goal);
+  }
+  return paceHint(goal, pace);
+}
 
 export type DietTarget = {
   calories: number;
@@ -54,10 +106,26 @@ export function isWeightGoal(value: unknown): value is WeightGoal {
   return value === "LOSE" || value === "GAIN" || value === "MAINTAIN";
 }
 
-export function recommendDiet(weightKg: number, goal: WeightGoal): DietTarget {
-  const calories = Math.round(weightKg * KCAL_PER_KG[goal]);
-  const protein = round1(weightKg * PROTEIN_PER_KG[goal]);
-  const fat = round1(weightKg * FAT_PER_KG[goal]);
+export function isGoalPace(value: unknown): value is GoalPace {
+  return value === "SIMPLE" || value === "HEALTHY" || value === "FAST";
+}
+
+function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoeff {
+  if (goal === "MAINTAIN") {
+    return MAINTAIN_COEFF;
+  }
+  return GOAL_PACE_COEFF[goal][pace ?? "HEALTHY"];
+}
+
+export function recommendDiet(
+  weightKg: number,
+  goal: WeightGoal,
+  pace: GoalPace | null | undefined = null,
+): DietTarget {
+  const coeff = dietCoeff(goal, pace);
+  const calories = Math.round(weightKg * coeff.kcal);
+  const protein = round1(weightKg * coeff.protein);
+  const fat = round1(weightKg * coeff.fat);
   const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));
 
   return { calories, protein, fat, carbs };

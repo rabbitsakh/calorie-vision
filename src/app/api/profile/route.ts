@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
-import { isWeightGoal } from "@/lib/diet";
+import { goalNeedsPace, isGoalPace, isWeightGoal, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const [user, first, current, selected] = await Promise.all([
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true },
+        select: { goal: true, goalPace: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       goal: user?.goal ?? null,
+      goalPace: user?.goalPace ?? null,
       firstWeightKg: first?.weightKg ?? null,
       firstWeightDate: first?.date ?? null,
       currentWeightKg: current?.weightKg ?? null,
@@ -66,18 +67,33 @@ export async function PUT(request: NextRequest) {
       return response;
     }
 
-    const body = (await request.json()) as { goal?: string | null };
+    const body = (await request.json()) as { goal?: string | null; goalPace?: string | null };
     if (body.goal !== null && body.goal !== undefined && !isWeightGoal(body.goal)) {
       return NextResponse.json({ error: "Выберите цель: похудеть, набрать или удержать вес" }, { status: 400 });
     }
 
+    const goal = (body.goal ?? null) as WeightGoal | null;
+    if (body.goalPace !== undefined && body.goalPace !== null && !isGoalPace(body.goalPace)) {
+      return NextResponse.json({ error: "Выберите способ: проще, здорово или быстрее" }, { status: 400 });
+    }
+
+    const goalPace =
+      goal && goalNeedsPace(goal)
+        ? isGoalPace(body.goalPace)
+          ? body.goalPace
+          : null
+        : null;
+    if (goal && goalNeedsPace(goal) && !goalPace) {
+      return NextResponse.json({ error: "Для этой цели выберите способ" }, { status: 400 });
+    }
+
     const user = await prisma.user.update({
       where: { id: session.user.id },
-      data: { goal: body.goal ?? null },
-      select: { goal: true },
+      data: { goal, goalPace },
+      select: { goal: true, goalPace: true },
     });
 
-    return NextResponse.json({ goal: user.goal });
+    return NextResponse.json({ goal: user.goal, goalPace: user.goalPace });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось сохранить цель" }, { status: 500 });

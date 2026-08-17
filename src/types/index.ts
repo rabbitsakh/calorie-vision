@@ -1,4 +1,4 @@
-import type { NutrientComparison, WeightGoal } from "@/lib/diet";
+import type { GoalPace, NutrientComparison, WeightGoal } from "@/lib/diet";
 
 export type RecognitionResponse = {
   imagePath: string;
@@ -46,6 +46,8 @@ export type DayMealsResponse = {
   totalFat: number;
   totalCarbs: number;
   goal: WeightGoal | null;
+  goalPace: GoalPace | null;
+  dietLabel: string | null;
   weightKg: number | null;
   target: DietTarget | null;
   comparison: {

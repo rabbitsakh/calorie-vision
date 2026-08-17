@@ -9,6 +9,7 @@ type DietTargetsProps = {
   };
   calorieTone: "good" | "warn" | "ok";
   weightKg: number;
+  dietLabel?: string | null;
 };
 
 function Meter({
@@ -43,12 +44,12 @@ function Meter({
   );
 }
 
-export function DietTargets({ comparison, calorieTone, weightKg }: DietTargetsProps) {
+export function DietTargets({ comparison, calorieTone, weightKg, dietLabel }: DietTargetsProps) {
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-sm font-semibold text-slate-700">Рацион на сегодня</p>
+      <p className="text-sm font-semibold text-slate-700">Планируемый рацион на день</p>
       <p className="mt-1 text-xs text-slate-500">
-        Норма рассчитана по весу {weightKg} кг и выбранной цели
+        Норма для {weightKg} кг{dietLabel ? ` · ${dietLabel}` : ""}
       </p>
       <div className="mt-4 flex flex-col gap-3">
         <Meter label="Калории" unit="ккал" comparison={comparison.calories} tone={calorieTone} />

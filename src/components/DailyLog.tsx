@@ -15,10 +15,13 @@ type DailyLogProps = {
 export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
-  const [daySummary, setDaySummary] = useState<Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg">>({
+  const [daySummary, setDaySummary] = useState<
+    Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg" | "dietLabel">
+  >({
     comparison: null,
     calorieTone: null,
     weightKg: null,
+    dietLabel: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +49,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
         comparison: data.comparison ?? null,
         calorieTone: data.calorieTone ?? null,
         weightKg: data.weightKg ?? null,
+        dietLabel: data.dietLabel ?? null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -90,6 +94,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
             comparison={daySummary.comparison}
             calorieTone={daySummary.calorieTone}
             weightKg={daySummary.weightKg}
+            dietLabel={daySummary.dietLabel}
           />
         ) : (
           <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
