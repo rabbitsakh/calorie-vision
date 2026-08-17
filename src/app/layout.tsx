@@ -8,6 +8,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Calorie Vision",
   description: "Распознавание еды по фото и учёт калорий по дням",
+  applicationName: "Calorie Vision",
 };
 
 export default function RootLayout({
