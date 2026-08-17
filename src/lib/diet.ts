@@ -47,7 +47,7 @@ const GOAL_PACE_COEFF: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, 
   },
 };
 
-export function goalNeedsPace(goal: WeightGoal): boolean {
+export function goalNeedsPace(goal: WeightGoal): goal is Exclude<WeightGoal, "MAINTAIN"> {
   return goal === "LOSE" || goal === "GAIN";
 }
 
@@ -64,10 +64,10 @@ export function paceLabel(pace: GoalPace): string {
 }
 
 export function paceHint(goal: WeightGoal, pace: GoalPace): string {
-  if (!goalNeedsPace(goal)) {
-    return goalHint(goal);
+  if (goalNeedsPace(goal)) {
+    return PACE_HINTS[goal][pace];
   }
-  return PACE_HINTS[goal][pace];
+  return goalHint(goal);
 }
 
 export function formatGoalChoice(goal: WeightGoal, pace: GoalPace | null | undefined): string {
