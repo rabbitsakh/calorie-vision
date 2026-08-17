@@ -1,3 +1,5 @@
+import type { NutrientComparison, WeightGoal } from "@/lib/diet";
+
 export type RecognitionResponse = {
   imagePath: string;
   previewUrl?: string;
@@ -30,7 +32,27 @@ export type MealEntry = {
   createdAt: string;
 };
 
+export type DietTarget = {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+};
+
 export type DayMealsResponse = {
   entries: MealEntry[];
   totalCalories: number;
+  totalProtein: number;
+  totalFat: number;
+  totalCarbs: number;
+  goal: WeightGoal | null;
+  weightKg: number | null;
+  target: DietTarget | null;
+  comparison: {
+    calories: NutrientComparison;
+    protein: NutrientComparison;
+    fat: NutrientComparison;
+    carbs: NutrientComparison;
+  } | null;
+  calorieTone: "good" | "warn" | "ok" | null;
 };
