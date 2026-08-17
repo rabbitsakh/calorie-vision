@@ -6,7 +6,9 @@ import { useState } from "react";
 import { AuthPanel } from "@/components/AuthPanel";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { DailyLog } from "@/components/DailyLog";
+import { DayCalendar } from "@/components/DayCalendar";
 import { PhotoUploader } from "@/components/PhotoUploader";
+import { WeightGoalCard } from "@/components/WeightGoalCard";
 import { formatDateInput } from "@/lib/dates";
 import type { RecognitionResponse } from "@/types";
 
@@ -16,6 +18,10 @@ export default function HomePage() {
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const isAuthenticated = status === "authenticated";
+
+  function bumpRefresh() {
+    setRefreshKey((value) => value + 1);
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-8">
@@ -31,20 +37,7 @@ export default function HomePage() {
               Проверьте результат и сохраните в дневник.
             </p>
           </div>
-
-          <div className="flex flex-col items-stretch gap-4 sm:items-end">
-            <AuthPanel />
-            <div className="field min-w-52">
-              <label htmlFor="date">Дата</label>
-              <input
-                id="date"
-                type="date"
-                value={selectedDate}
-                onChange={(event) => setSelectedDate(event.target.value)}
-                disabled={!isAuthenticated}
-              />
-            </div>
-          </div>
+          <AuthPanel />
         </div>
       </header>
 
@@ -59,28 +52,48 @@ export default function HomePage() {
           </Link>
         </section>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="flex flex-col gap-6">
-            <PhotoUploader
-              disabled={Boolean(pendingResult) || !isAuthenticated}
-              onRecognized={(result) => setPendingResult(result)}
-            />
-
-            {pendingResult ? (
-              <ConfirmationCard
-                result={pendingResult}
-                selectedDate={selectedDate}
-                onCancel={() => setPendingResult(null)}
-                onSaved={() => {
-                  setPendingResult(null);
-                  setRefreshKey((value) => value + 1);
-                }}
-              />
-            ) : null}
+        <>
+          <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+            <section className="card p-6">
+              <h2 className="text-xl font-bold">Календарь</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Точки отмечают дни с едой или записанным весом.
+              </p>
+              <div className="mt-4">
+                <DayCalendar
+                  selectedDate={selectedDate}
+                  onSelect={setSelectedDate}
+                  refreshKey={refreshKey}
+                  disabled={!isAuthenticated}
+                />
+              </div>
+            </section>
+            <WeightGoalCard selectedDate={selectedDate} refreshKey={refreshKey} onChanged={bumpRefresh} />
           </div>
 
-          <DailyLog selectedDate={selectedDate} refreshKey={refreshKey} />
-        </div>
+          <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <div className="flex flex-col gap-6">
+              <PhotoUploader
+                disabled={Boolean(pendingResult) || !isAuthenticated}
+                onRecognized={(result) => setPendingResult(result)}
+              />
+
+              {pendingResult ? (
+                <ConfirmationCard
+                  result={pendingResult}
+                  selectedDate={selectedDate}
+                  onCancel={() => setPendingResult(null)}
+                  onSaved={() => {
+                    setPendingResult(null);
+                    bumpRefresh();
+                  }}
+                />
+              ) : null}
+            </div>
+
+            <DailyLog selectedDate={selectedDate} refreshKey={refreshKey} onChanged={bumpRefresh} />
+          </div>
+        </>
       )}
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { formatDisplayDate } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
@@ -8,11 +9,17 @@ import { getImageUrl, withBasePath } from "@/lib/paths";
 type DailyLogProps = {
   selectedDate: string;
   refreshKey: number;
+  onChanged?: () => void;
 };
 
-export function DailyLog({ selectedDate, refreshKey }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
-  const [totalCalories, setTotalCalories] = useState(0);
+  const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
+  const [daySummary, setDaySummary] = useState<Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg">>({
+    comparison: null,
+    calorieTone: null,
+    weightKg: null,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +36,17 @@ export function DailyLog({ selectedDate, refreshKey }: DailyLogProps) {
       }
 
       setEntries(data.entries);
-      setTotalCalories(data.totalCalories);
+      setTotals({
+        calories: data.totalCalories,
+        protein: data.totalProtein ?? 0,
+        fat: data.totalFat ?? 0,
+        carbs: data.totalCarbs ?? 0,
+      });
+      setDaySummary({
+        comparison: data.comparison ?? null,
+        calorieTone: data.calorieTone ?? null,
+        weightKg: data.weightKg ?? null,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
@@ -45,6 +62,7 @@ export function DailyLog({ selectedDate, refreshKey }: DailyLogProps) {
     const response = await fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" });
     if (response.ok) {
       await loadEntries();
+      onChanged?.();
     }
   }
 
@@ -60,9 +78,24 @@ export function DailyLog({ selectedDate, refreshKey }: DailyLogProps) {
           </div>
           <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
             <div className="text-xs uppercase tracking-wide text-teal-100">Итого</div>
-            <div className="text-2xl font-bold">{totalCalories} ккал</div>
+            <div className="text-2xl font-bold">{totals.calories} ккал</div>
+            <div className="text-xs text-teal-100">
+              Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
+            </div>
           </div>
         </div>
+
+        {daySummary.comparison && daySummary.calorieTone && daySummary.weightKg != null ? (
+          <DietTargets
+            comparison={daySummary.comparison}
+            calorieTone={daySummary.calorieTone}
+            weightKg={daySummary.weightKg}
+          />
+        ) : (
+          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+            Чтобы увидеть рекомендуемый рацион и дефицит/профицит, укажите вес и выберите цель.
+          </p>
+        )}
 
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
