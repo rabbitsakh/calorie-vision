@@ -4,6 +4,10 @@ import { randomUUID } from "crypto";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "public/uploads";
 
+function getUploadDirectory(): string {
+  return path.join(process.cwd(), UPLOAD_DIR);
+}
+
 export async function saveUploadedImage(file: File): Promise<string> {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
@@ -12,18 +16,52 @@ export async function saveUploadedImage(file: File): Promise<string> {
     ? ext.toLowerCase()
     : ".jpg";
 
-  const uploadPath = path.join(process.cwd(), UPLOAD_DIR);
+  const uploadPath = getUploadDirectory();
   await fs.mkdir(uploadPath, { recursive: true });
 
-  const filename = `${randomUUID()}${safeExt}`;
-  const fullPath = path.join(uploadPath, filename);
-  await fs.writeFile(fullPath, buffer);
+  const id = randomUUID();
+  const filename = `${id}${safeExt}`;
+  await fs.writeFile(path.join(uploadPath, filename), buffer);
 
-  return `/${UPLOAD_DIR.replace(/^public\//, "")}/${filename}`;
+  return `/api/uploads/${id}`;
 }
 
-export async function readUploadedImage(relativePath: string): Promise<Buffer> {
-  const normalized = relativePath.replace(/^\//, "");
-  const fullPath = path.join(process.cwd(), "public", normalized.replace(/^uploads\//, "uploads/"));
-  return fs.readFile(fullPath);
+export async function readUploadedImageById(id: string): Promise<{
+  buffer: Buffer;
+  mimeType: string;
+}> {
+  const uploadPath = getUploadDirectory();
+  const files = await fs.readdir(uploadPath);
+  const match = files.find((file) => file.startsWith(`${id}.`));
+
+  if (!match) {
+    throw new Error("Image not found");
+  }
+
+  const ext = path.extname(match).toLowerCase();
+  const mimeType =
+    ext === ".png"
+      ? "image/png"
+      : ext === ".webp"
+        ? "image/webp"
+        : ext === ".gif"
+          ? "image/gif"
+          : "image/jpeg";
+
+  const buffer = await fs.readFile(path.join(uploadPath, match));
+  return { buffer, mimeType };
+}
+
+export function resolveLegacyImageId(imagePath: string): string | null {
+  const apiMatch = imagePath.match(/\/api\/uploads\/([^/?]+)/);
+  if (apiMatch?.[1]) {
+    return apiMatch[1];
+  }
+
+  const uploadsMatch = imagePath.match(/\/uploads\/([^/?]+)/);
+  if (uploadsMatch?.[1]) {
+    return uploadsMatch[1].replace(/\.[^.]+$/, "");
+  }
+
+  return null;
 }

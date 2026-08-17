@@ -216,7 +216,7 @@ export async function recognizeWithGigaChat(
 
   const payload = JSON.stringify({
     model,
-    temperature: 0.2,
+    temperature: 0.35,
     messages: [
       {
         role: "user",

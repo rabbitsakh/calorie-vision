@@ -1,5 +1,6 @@
 export type RecognitionResponse = {
   imagePath: string;
+  previewUrl?: string;
   recognition: {
     dishName: string;
     calories: number;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { RecognitionResponse } from "@/types";
-import { withBasePath } from "@/lib/paths";
+import { getImageUrl, withBasePath } from "@/lib/paths";
 
 type ConfirmationCardProps = {
   result: RecognitionResponse;
@@ -17,7 +17,7 @@ export function ConfirmationCard({
   onCancel,
   onSaved,
 }: ConfirmationCardProps) {
-  const { recognition, imagePath } = result;
+  const { recognition, imagePath, previewUrl } = result;
   const [dishName, setDishName] = useState(recognition.dishName);
   const [calories, setCalories] = useState(String(recognition.calories));
   const [protein, setProtein] = useState(String(recognition.protein ?? ""));
@@ -26,6 +26,14 @@ export function ConfirmationCard({
   const [portionGrams, setPortionGrams] = useState(String(recognition.portionGrams ?? ""));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   useEffect(() => {
     setDishName(recognition.dishName);
@@ -97,7 +105,7 @@ export function ConfirmationCard({
           <div className="overflow-hidden rounded-2xl bg-slate-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={withBasePath(imagePath)}
+              src={previewUrl ?? getImageUrl(imagePath)}
               alt="Загруженная еда"
               className="h-full min-h-52 w-full object-cover"
             />

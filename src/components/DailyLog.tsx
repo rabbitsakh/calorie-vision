@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { formatDisplayDate } from "@/lib/dates";
-import { withBasePath } from "@/lib/paths";
+import { getImageUrl, withBasePath } from "@/lib/paths";
 
 type DailyLogProps = {
   selectedDate: string;
@@ -83,7 +83,7 @@ export function DailyLog({ selectedDate, refreshKey }: DailyLogProps) {
                 <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl bg-white md:w-28">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={withBasePath(entry.imagePath)}
+                    src={getImageUrl(entry.imagePath)}
                     alt={entry.dishName}
                     className="h-full w-full object-cover"
                   />
