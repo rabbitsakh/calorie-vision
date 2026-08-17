@@ -7,6 +7,7 @@ import { resolveAuthRedirect } from "@/lib/auth-url";
 import { verifyPhoneOtp } from "@/lib/otp";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { createVkIdProvider } from "@/lib/vk-auth";
 
 const providers: NextAuthOptions["providers"] = [
   CredentialsProvider({
@@ -66,6 +67,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
+    }),
+  );
+}
+
+if (process.env.VK_CLIENT_ID) {
+  providers.push(
+    createVkIdProvider({
+      clientId: process.env.VK_CLIENT_ID,
+      clientSecret: process.env.VK_CLIENT_SECRET,
     }),
   );
 }
