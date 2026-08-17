@@ -57,7 +57,7 @@ NEXT_PUBLIC_BASE_PATH=/calorie-vision
 
 # Секрет для сессий (PowerShell: [Convert]::ToBase64String((1..32|%{Get-Random -Max 256})))
 NEXTAUTH_SECRET=ваш-секрет
-NEXTAUTH_URL=http://localhost:3000/calorie-vision/api/auth
+NEXTAUTH_URL=http://localhost:3000/calorie-vision
 
 EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
 EMAIL_FROM=noreply@calorievision.ru
@@ -131,8 +131,10 @@ npm run start
 ### Телефон (SMS)
 
 1. Зарегистрируйтесь на [sms.ru](https://sms.ru/) и получите `api_id`.
-2. Добавьте в `.env`: `SMS_RU_API_ID=ваш-ключ`.
-3. Без ключа код выводится в лог сервера (режим разработки).
+2. Пополните баланс. На тестовом аккаунте SMS часто уходит только на номер, указанный в кабинете.
+3. Добавьте в `.env`: `SMS_RU_API_ID=ваш-ключ`.
+4. Без ключа код показывается на экране входа и пишется в лог сервера (режим разработки).
+5. Если код «отправился», но SMS нет — на экране теперь будет текст ошибки sms.ru (нет денег, номер не разрешён, неверный `api_id`).
 
 ### Email (magic link)
 
@@ -147,10 +149,14 @@ npm run start
 
 1. Откройте [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 2. Создайте OAuth 2.0 Client ID (тип «Web application»).
-3. Добавьте **Authorized redirect URIs**:
-   - `http://localhost:3000/calorie-vision/api/auth/callback/google`
-   - `http://localhost/calorie-vision/api/auth/callback/google` (если через Apache)
-4. Скопируйте Client ID и Client Secret в `.env`.
+3. Добавьте **Authorized JavaScript origins**:
+   - `https://calorievision.ru`
+   - `http://localhost:3000`
+4. Добавьте **Authorized redirect URIs**:
+   - `https://calorievision.ru/api/auth/callback/google`
+   - `http://localhost:3000/api/auth/callback/google`
+   - `http://localhost:3000/calorie-vision/api/auth/callback/google` (локально с `NEXT_PUBLIC_BASE_PATH`)
+5. Скопируйте Client ID и Client Secret в `.env` и перезапустите сервер. Без этих переменных кнопка Google скрывается.
 
 После обновления схемы БД (поля `phone`, `phoneVerified` у `User`) выполните:
 
@@ -200,9 +206,10 @@ DATABASE_URL="mysql://calorie:пароль%40@localhost:3306/calorie_vision"
 UPLOAD_DIR="public/uploads"
 NEXT_PUBLIC_BASE_PATH=
 NEXTAUTH_SECRET=...
-NEXTAUTH_URL=https://calorievision.ru/api/auth
+NEXTAUTH_URL=https://calorievision.ru
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+SMS_RU_API_ID=...
 GIGACHAT_CREDENTIALS=...
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 GIGACHAT_MODEL=GigaChat-2-Max
@@ -241,6 +248,14 @@ certbot --nginx -d calorievision.ru -d www.calorievision.ru
 
 - **Origins:** `https://calorievision.ru`
 - **Redirect URI:** `https://calorievision.ru/api/auth/callback/google`
+- `NEXTAUTH_URL` должен быть `https://calorievision.ru` **без** суффикса `/api/auth`.
+
+После обновления nginx (`www` → основной домен) снова примените конфиг и при необходимости перевыпустите сертификат:
+
+```bash
+cp deploy/nginx-calorievision.ru.conf /etc/nginx/sites-available/calorievision.ru
+nginx -t && systemctl reload nginx
+```
 
 **Важно:**
 - Используйте `npm run db:push`, а не `npx prisma` — `npx` может подтянуть Prisma 7.
