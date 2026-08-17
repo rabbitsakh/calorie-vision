@@ -67,13 +67,10 @@ export function versionFromCommitCount(
   return versionFromSequence(Math.max(1, commitCount - epochCommits));
 }
 
-export function formatAppVersion(version: string, sha: string): string {
-  return `v${version} · ${sha}`;
+export function formatAppVersion(version: string): string {
+  return `v${version}`;
 }
 
 export function getAppVersionLabel(): string {
-  return formatAppVersion(
-    process.env.NEXT_PUBLIC_APP_VERSION ?? APP_VERSION_BASE,
-    process.env.NEXT_PUBLIC_GIT_SHA ?? "dev",
-  );
+  return formatAppVersion(process.env.NEXT_PUBLIC_APP_VERSION ?? APP_VERSION_BASE);
 }

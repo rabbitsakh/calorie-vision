@@ -8,8 +8,8 @@ import {
   versionFromSequence,
 } from "./app-version.ts";
 
-test("formats a visible app version and build sha", () => {
-  assert.equal(formatAppVersion("0.4.0", "f54c747"), "v0.4.0 · f54c747");
+test("formats a visible app version without a build hash", () => {
+  assert.equal(formatAppVersion("0.4.0"), "v0.4.0");
 });
 
 test("increments patch until 9, then bumps minor", () => {

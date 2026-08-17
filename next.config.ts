@@ -3,16 +3,6 @@ import { versionFromCommitCount } from "./src/lib/app-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
-function gitSha(): string {
-  try {
-    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
-  } catch {
-    return "dev";
-  }
-}
-
 function gitCommitCount(): number {
   try {
     return Number.parseInt(
@@ -34,7 +24,6 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_APP_VERSION: versionFromCommitCount(gitCommitCount()),
-    NEXT_PUBLIC_GIT_SHA: gitSha(),
   },
 };
 
