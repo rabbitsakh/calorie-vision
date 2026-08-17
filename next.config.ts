@@ -1,20 +1,11 @@
-import { execSync } from "node:child_process";
+import { countGitCommits } from "./src/lib/git-commit-count";
 import { versionFromCommitCount } from "./src/lib/app-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const commitCount = countGitCommits();
+const appVersion = versionFromCommitCount(commitCount);
 
-function gitCommitCount(): number {
-  try {
-    return Number.parseInt(
-      execSync("git rev-list --count HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-        .toString()
-        .trim(),
-      10,
-    );
-  } catch {
-    return 0;
-  }
-}
+console.info(`Calorie Vision v${appVersion} (${commitCount} commits)`);
 
 const nextConfig = {
   ...(basePath ? { basePath } : {}),
@@ -23,7 +14,7 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
-    NEXT_PUBLIC_APP_VERSION: versionFromCommitCount(gitCommitCount()),
+    NEXT_PUBLIC_APP_VERSION: appVersion,
   },
 };
 
