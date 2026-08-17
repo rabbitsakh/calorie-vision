@@ -9,13 +9,13 @@
 - экран подтверждения с возможностью исправить название и калории;
 - сохранение приёмов пищи в MySQL по дням;
 - дневник с итогом калорий за выбранный день;
-- вход по телефону (SMS-код), email (magic link) или Google — у каждого пользователя свой дневник.
+- вход по телефону (SMS-код), email (magic link), Google или VK — у каждого пользователя свой дневник.
 
 ## Стек
 
 - **Frontend + API:** Next.js 15 (App Router), React, TypeScript, Tailwind CSS
 - **База данных:** MySQL + Prisma ORM
-- **Авторизация:** NextAuth.js (телефон, email, Google)
+- **Авторизация:** NextAuth.js (телефон, email, Google, VK)
 - **Распознавание:** GigaChat API (Сбер, поддержка фото)
 
 ## Расположение проекта
@@ -119,7 +119,7 @@ npm run start
 
 ## Как это работает
 
-1. Вы входите по телефону, email или Google.
+1. Вы входите по телефону, email, Google или VK.
 2. Выбираете дату и загружаете фото.
 3. API `/api/recognize` сохраняет фото и возвращает предполагаемое блюдо.
 4. Вы подтверждаете или исправляете данные.
@@ -157,6 +157,20 @@ npm run start
    - `http://localhost:3000/api/auth/callback/google`
    - `http://localhost:3000/calorie-vision/api/auth/callback/google` (локально с `NEXT_PUBLIC_BASE_PATH`)
 5. Скопируйте Client ID и Client Secret в `.env` и перезапустите сервер. Без этих переменных кнопка Google скрывается.
+
+### VK (опционально)
+
+1. Откройте [кабинет VK ID](https://id.vk.com/about/business/go) и создайте приложение типа «Веб-сайт».
+2. Укажите базовый домен: `calorievision.ru`.
+3. Добавьте доверенный Redirect URL:
+   - `https://calorievision.ru/api/auth/callback/vk`
+   - `http://localhost:3000/api/auth/callback/vk` (для локальной разработки)
+4. Скопируйте ID приложения и защищённый ключ в `.env`:
+   ```env
+   VK_CLIENT_ID=...
+   VK_CLIENT_SECRET=...
+   ```
+5. Перезапустите сервер. Без `VK_CLIENT_ID` кнопка VK скрывается.
 
 После обновления схемы БД (поля `phone`, `phoneVerified` у `User`) выполните:
 
@@ -209,6 +223,8 @@ NEXTAUTH_SECRET=...
 NEXTAUTH_URL=https://calorievision.ru
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+VK_CLIENT_ID=...
+VK_CLIENT_SECRET=...
 SMS_RU_API_ID=...
 GIGACHAT_CREDENTIALS=...
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
@@ -249,6 +265,11 @@ certbot --nginx -d calorievision.ru -d www.calorievision.ru
 - **Origins:** `https://calorievision.ru`
 - **Redirect URI:** `https://calorievision.ru/api/auth/callback/google`
 - `NEXTAUTH_URL` должен быть `https://calorievision.ru` **без** суффикса `/api/auth`.
+
+### 7. VK ID
+
+- **Redirect URL:** `https://calorievision.ru/api/auth/callback/vk`
+- В `.env` на сервере: `VK_CLIENT_ID` и `VK_CLIENT_SECRET`, затем `bash deploy/deploy.sh`.
 
 После обновления nginx (`www` → основной домен) снова примените конфиг и при необходимости перевыпустите сертификат:
 
