@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthPanel } from "@/components/AuthPanel";
+import { BrandMark } from "@/components/BrandMark";
 import { formatDateWords } from "@/lib/dates";
 import { withDateQuery } from "@/lib/use-selected-date";
 
@@ -29,9 +30,15 @@ export function AppShell({ title, description, date, children }: AppShellProps) 
       <header className="card p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
-              Calorie Vision
-            </p>
+            <Link
+              href={date ? withDateQuery("/", date) : "/"}
+              className="inline-flex items-center gap-3"
+            >
+              <BrandMark size={48} />
+              <span className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
+                Calorie Vision
+              </span>
+            </Link>
             <h1 className="mt-2 text-3xl font-bold">{title}</h1>
             {description ? <p className="mt-2 max-w-2xl text-slate-600">{description}</p> : null}
             {date ? (

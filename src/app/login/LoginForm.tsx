@@ -4,6 +4,7 @@ import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
 import { withBasePath } from "@/lib/paths";
 
 type AuthTab = "phone" | "email";
@@ -160,9 +161,12 @@ export default function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <div className="card p-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
-          Calorie Vision
-        </p>
+        <div className="flex items-center gap-3">
+          <BrandMark size={48} />
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
+            Calorie Vision
+          </p>
+        </div>
         <h1 className="mt-3 text-2xl font-bold">Вход в аккаунт</h1>
         <p className="mt-2 text-slate-600">
           Войдите по телефону, email, Google или VK, чтобы сохранять дневник питания.
