@@ -1,12 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GOAL_OPTIONS, formatSignedKg, goalHint, goalLabel, isWeightGoal, type WeightGoal } from "@/lib/diet";
+import {
+  GOAL_OPTIONS,
+  PACE_OPTIONS,
+  formatGoalChoice,
+  formatSignedKg,
+  goalNeedsPace,
+  isGoalPace,
+  isWeightGoal,
+  paceHint,
+  savedGoalHint,
+  type GoalPace,
+  type WeightGoal,
+} from "@/lib/diet";
 import { formatDateWords } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 
 type ProfileResponse = {
   goal: WeightGoal | null;
+  goalPace: GoalPace | null;
   firstWeightKg: number | null;
   firstWeightDate: string | null;
   currentWeightKg: number | null;
@@ -24,6 +37,9 @@ type WeightGoalCardProps = {
 
 export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGoalCardProps) {
   const [goal, setGoal] = useState<WeightGoal | null>(null);
+  const [goalPace, setGoalPace] = useState<GoalPace | null>(null);
+  const [draftGoal, setDraftGoal] = useState<WeightGoal | null>(null);
+  const [draftPace, setDraftPace] = useState<GoalPace | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
@@ -44,8 +60,13 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
         throw new Error(data.error ?? "Не удалось загрузить профиль");
       }
 
-      setGoal(data.goal);
-      if (!data.goal) {
+      const nextGoal = isWeightGoal(data.goal) ? data.goal : null;
+      const nextPace = isGoalPace(data.goalPace) ? data.goalPace : null;
+      setGoal(nextGoal);
+      setGoalPace(nextPace);
+      setDraftGoal(nextGoal);
+      setDraftPace(nextPace);
+      if (!nextGoal || (goalNeedsPace(nextGoal) && !nextPace)) {
         setEditingGoal(true);
       }
       setCurrentWeightKg(data.currentWeightKg);
@@ -63,21 +84,24 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
     void loadProfile();
   }, [loadProfile, refreshKey]);
 
-  async function saveGoal(nextGoal: WeightGoal) {
+  async function saveGoal(nextGoal: WeightGoal, nextPace: GoalPace | null) {
     setSaving(true);
     setError(null);
     try {
       const response = await fetch(withBasePath("/api/profile"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: nextGoal }),
+        body: JSON.stringify({ goal: nextGoal, goalPace: nextPace }),
       });
-      const data = (await response.json()) as { goal?: WeightGoal; error?: string };
+      const data = (await response.json()) as { goal?: WeightGoal; goalPace?: GoalPace | null; error?: string };
       if (!response.ok) {
         throw new Error(data.error ?? "Не удалось сохранить цель");
       }
       if (isWeightGoal(data.goal)) {
         setGoal(data.goal);
+        setGoalPace(isGoalPace(data.goalPace) ? data.goalPace : null);
+        setDraftGoal(data.goal);
+        setDraftPace(isGoalPace(data.goalPace) ? data.goalPace : null);
         setEditingGoal(false);
       }
       onChanged();
@@ -85,6 +109,25 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       setError(err instanceof Error ? err.message : "Ошибка сохранения цели");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function pickGoal(nextGoal: WeightGoal) {
+    setDraftGoal(nextGoal);
+    if (!goalNeedsPace(nextGoal)) {
+      setDraftPace(null);
+      void saveGoal(nextGoal, null);
+      return;
+    }
+    if (draftPace) {
+      void saveGoal(nextGoal, draftPace);
+    }
+  }
+
+  function pickPace(nextPace: GoalPace) {
+    setDraftPace(nextPace);
+    if (draftGoal && goalNeedsPace(draftGoal)) {
+      void saveGoal(draftGoal, nextPace);
     }
   }
 
@@ -111,6 +154,8 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       setSaving(false);
     }
   }
+
+  const showPace = Boolean(draftGoal && goalNeedsPace(draftGoal));
 
   return (
     <section className="card p-6">
@@ -157,54 +202,90 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
         </form>
 
         {!loading ? (
-        <div>
-          <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
-          {goal && !editingGoal ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
-              <div>
-                <p className="font-semibold text-teal-900">{goalLabel(goal)}</p>
-                <p className="text-xs text-teal-800">{goalHint(goal)}</p>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
+            {goal && !editingGoal ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
+                <div>
+                  <p className="font-semibold text-teal-900">{formatGoalChoice(goal, goalPace)}</p>
+                  <p className="text-xs text-teal-800">{savedGoalHint(goal, goalPace)}</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={saving}
+                  onClick={() => {
+                    setDraftGoal(goal);
+                    setDraftPace(goalPace);
+                    setEditingGoal(true);
+                  }}
+                >
+                  Изменить цель
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={saving}
-                onClick={() => setEditingGoal(true)}
-              >
-                Изменить цель
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-            <div className="grid gap-2 sm:grid-cols-3">
-              {GOAL_OPTIONS.map((option) => {
-                const active = goal === option.value;
-                return (
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {GOAL_OPTIONS.map((option) => {
+                    const active = draftGoal === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => pickGoal(option.value)}
+                        className={`rounded-2xl border px-3 py-3 text-left ${
+                          active
+                            ? "border-teal-600 bg-teal-50 text-teal-900"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">{option.label}</span>
+                        <span className="mt-1 block text-xs text-slate-500">{option.hint}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {showPace ? (
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-slate-600">Как именно</p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {PACE_OPTIONS.map((option) => {
+                        const active = draftPace === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            disabled={saving}
+                            onClick={() => pickPace(option.value)}
+                            className={`rounded-2xl border px-3 py-3 text-left ${
+                              active
+                                ? "border-teal-600 bg-teal-50 text-teal-900"
+                                : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                            }`}
+                          >
+                            <span className="block text-sm font-semibold">{option.label}</span>
+                            <span className="mt-1 block text-xs text-slate-500">
+                              {draftGoal && goalNeedsPace(draftGoal) ? paceHint(draftGoal, option.value) : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+                {goal ? (
                   <button
-                    key={option.value}
                     type="button"
-                    disabled={saving}
-                    onClick={() => void saveGoal(option.value)}
-                    className={`rounded-2xl border px-3 py-3 text-left ${
-                      active
-                        ? "border-teal-600 bg-teal-50 text-teal-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
-                    }`}
+                    className="text-sm text-teal-700 hover:underline"
+                    onClick={() => setEditingGoal(false)}
                   >
-                    <span className="block text-sm font-semibold">{option.label}</span>
-                    <span className="mt-1 block text-xs text-slate-500">{option.hint}</span>
+                    Отмена
                   </button>
-                );
-              })}
-            </div>
-            {goal ? (
-              <button type="button" className="text-sm text-teal-700 hover:underline" onClick={() => setEditingGoal(false)}>
-                Отмена
-              </button>
-            ) : null}
-            </div>
-          )}
-        </div>
+                ) : null}
+              </div>
+            )}
+          </div>
         ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
