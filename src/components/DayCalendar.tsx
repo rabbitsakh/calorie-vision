@@ -15,7 +15,7 @@ const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 type DayCalendarProps = {
   selectedDate: string;
   onSelect: (date: string) => void;
-  refreshKey: number;
+  refreshKey?: number;
   disabled?: boolean;
 };
 

@@ -6,6 +6,14 @@ export const GOAL_OPTIONS: Array<{ value: WeightGoal; label: string; hint: strin
   { value: "MAINTAIN", label: "Удержать вес", hint: "Баланс калорий" },
 ];
 
+export function goalLabel(goal: WeightGoal): string {
+  return GOAL_OPTIONS.find((option) => option.value === goal)?.label ?? goal;
+}
+
+export function goalHint(goal: WeightGoal): string {
+  return GOAL_OPTIONS.find((option) => option.value === goal)?.hint ?? "";
+}
+
 const KCAL_PER_KG: Record<WeightGoal, number> = {
   LOSE: 25,
   MAINTAIN: 30,

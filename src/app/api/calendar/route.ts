@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { parseYearMonth } from "@/lib/dates";
+import { monthDateRange, parseYearMonth, toDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Укажите month=YYYY-MM" }, { status: 400 });
     }
 
-    const start = new Date(Date.UTC(parsed.year, parsed.monthIndex, 1));
-    const end = new Date(Date.UTC(parsed.year, parsed.monthIndex + 1, 0));
+    const { start, end } = monthDateRange(parsed.year, parsed.monthIndex);
 
     const [meals, weights] = await Promise.all([
       prisma.mealEntry.findMany({
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const dates = [...new Set([...meals, ...weights].map((item) => item.date.toISOString().slice(0, 10)))].sort();
+    const dates = [...new Set([...meals, ...weights].map((item) => toDateKey(item.date)))].sort();
 
     return NextResponse.json({ dates });
   } catch (error) {

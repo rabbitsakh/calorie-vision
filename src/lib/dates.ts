@@ -1,6 +1,4 @@
-export function toDateOnly(date: Date): Date {
-  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-}
+const DATE_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -9,18 +7,53 @@ export function formatDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function parseDateInput(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
+export function isDateKey(value: string): boolean {
+  const match = DATE_KEY.exec(value);
+  if (!match) {
+    return false;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }
 
-export function formatDisplayDate(date: Date): string {
-  return new Intl.DateTimeFormat("ru-RU", {
-    weekday: "long",
+export function requireDateKey(value: string | null | undefined): string | null {
+  if (!value || !isDateKey(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+export function toDateKey(value: Date | string): string {
+  if (typeof value === "string") {
+    return value.slice(0, 10);
+  }
+
+  return value.toISOString().slice(0, 10);
+}
+
+export function parseDateInput(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function formatDateWords(dateKey: string): string {
+  if (!isDateKey(dateKey)) {
+    return dateKey;
+  }
+
+  const formatted = new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(date);
+  }).format(parseDateInput(dateKey));
+
+  return `${formatted.replace(/\s*г\.?\s*$/u, "")} г.`;
 }
 
 export function parseYearMonth(value: string): { year: number; monthIndex: number } | null {
@@ -51,10 +84,20 @@ export function shiftYearMonth(year: number, monthIndex: number, delta: number):
 }
 
 export function formatMonthTitle(year: number, monthIndex: number): string {
-  return new Intl.DateTimeFormat("ru-RU", {
+  const title = new Intl.DateTimeFormat("ru-RU", {
     month: "long",
     year: "numeric",
   }).format(new Date(year, monthIndex, 1));
+
+  return `${title.replace(/\s*г\.?\s*$/u, "")} г.`;
+}
+
+export function monthDateRange(year: number, monthIndex: number): { start: string; end: string } {
+  const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+  return {
+    start: `${formatYearMonth(year, monthIndex)}-01`,
+    end: `${formatYearMonth(year, monthIndex)}-${String(lastDay).padStart(2, "0")}`,
+  };
 }
 
 export function getMonthGrid(year: number, monthIndex: number): Array<string | null> {

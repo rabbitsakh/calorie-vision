@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { parseDateInput } from "@/lib/dates";
+import { requireDateKey } from "@/lib/dates";
 import { calorieTone, compareNutrient, recommendDiet, round1, type WeightGoal } from "@/lib/diet";
 
 type SaveMealBody = {
@@ -27,8 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as SaveMealBody;
+    const date = requireDateKey(body.date);
 
-    if (!body.date || !body.dishName || !Number.isFinite(body.calories)) {
+    if (!date || !body.dishName || !Number.isFinite(body.calories)) {
       return NextResponse.json(
         { error: "Укажите дату, блюдо и калорийность" },
         { status: 400 },
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     const entry = await prisma.mealEntry.create({
       data: {
         userId: session.user.id,
-        date: parseDateInput(body.date),
+        date,
         dishName: body.dishName.trim(),
         calories: Math.round(body.calories),
         protein: body.protein,
@@ -70,13 +71,12 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    const dateParam = request.nextUrl.searchParams.get("date");
+    const date = requireDateKey(request.nextUrl.searchParams.get("date"));
 
-    if (!dateParam) {
+    if (!date) {
       return NextResponse.json({ error: "Укажите date=YYYY-MM-DD" }, { status: 400 });
     }
 
-    const date = parseDateInput(dateParam);
     const [entries, user, weight] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date },
