@@ -50,16 +50,34 @@ export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecogniti
   };
 }
 
+function pickPortionGrams(
+  vision: FoodRecognitionResult,
+  off: PackNutrition,
+): number {
+  if (off.explicitPackGrams) {
+    return off.portionGrams;
+  }
+
+  const visionGrams = vision.portionGrams;
+  if (
+    visionGrams !== undefined &&
+    visionGrams > 0 &&
+    visionGrams <= 500 &&
+    visionGrams !== 100
+  ) {
+    return visionGrams;
+  }
+
+  return off.portionGrams;
+}
+
 function mergeOffNutrition(
   vision: FoodRecognitionResult,
   off: PackNutrition,
   source: "openfoodfacts-barcode" | "openfoodfacts-search",
   barcode?: string | null,
 ): FoodRecognitionResult {
-  const preferredGrams =
-    vision.portionGrams && vision.portionGrams > 0 && vision.portionGrams <= 500
-      ? vision.portionGrams
-      : off.portionGrams;
+  const preferredGrams = pickPortionGrams(vision, off);
   const scaled =
     preferredGrams !== off.portionGrams && off.calories > 0 && off.portionGrams > 0
       ? nutritionFromPer100g(
@@ -121,6 +139,19 @@ export async function enrichPackagedProduct(
     if (off && offMatchesQuery(query, off.dishName)) {
       return mergeOffNutrition(vision, off, "openfoodfacts-search", barcode);
     }
+  }
+
+  if (
+    (vision.photoKind === "package" ||
+      vision.photoKind === "barcode" ||
+      vision.photoKind === "label") &&
+    vision.per100g &&
+    vision.per100g.calories > 0 &&
+    vision.portionGrams &&
+    vision.portionGrams > 0 &&
+    vision.portionGrams !== 100
+  ) {
+    return nutritionFromLabel(vision);
   }
 
   return {

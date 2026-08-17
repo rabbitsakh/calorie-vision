@@ -5,6 +5,8 @@ export type PackNutrition = {
   fat?: number;
   carbs?: number;
   portionGrams: number;
+  /** True when pack/serving weight came from product data, not a 100 g default. */
+  explicitPackGrams?: boolean;
   barcode?: string;
   brand?: string;
 };
@@ -24,6 +26,8 @@ type OffProduct = {
   brands?: string;
   quantity?: string;
   product_quantity?: number | string;
+  serving_size?: string;
+  serving_quantity?: number | string;
   nutriments?: OffNutriments;
 };
 
@@ -66,6 +70,34 @@ export function parsePackGrams(value: string | number | null | undefined): numbe
   return undefined;
 }
 
+/** Pick net/serving weight from Open Food Facts fields (quantity first, then serving). */
+export function resolvePackGrams(
+  product: OffProduct,
+  preferredGrams?: number,
+): { grams: number; explicit: boolean } {
+  if (preferredGrams !== undefined && preferredGrams > 0) {
+    return { grams: preferredGrams, explicit: true };
+  }
+
+  const fromNet =
+    parsePackGrams(product.product_quantity) ?? parsePackGrams(product.quantity);
+  if (fromNet !== undefined) {
+    return { grams: fromNet, explicit: true };
+  }
+
+  const fromServing =
+    parsePackGrams(product.serving_quantity) ?? parsePackGrams(product.serving_size);
+  if (fromServing !== undefined) {
+    return { grams: fromServing, explicit: true };
+  }
+
+  return { grams: 100, explicit: false };
+}
+
+export function portionGramsForPack(packGrams: number): number {
+  return packGrams > 500 ? 100 : packGrams;
+}
+
 export function nutritionFromPer100g(
   per100g: { calories: number; protein?: number; fat?: number; carbs?: number },
   grams: number,
@@ -98,12 +130,8 @@ export function offProductToNutrition(
     return null;
   }
 
-  const packGrams =
-    preferredGrams ??
-    parsePackGrams(product.product_quantity) ??
-    parsePackGrams(product.quantity) ??
-    100;
-  const grams = packGrams > 500 ? 100 : packGrams;
+  const { grams: packGrams, explicit } = resolvePackGrams(product, preferredGrams);
+  const grams = portionGramsForPack(packGrams);
   const scaled = nutritionFromPer100g(
     {
       calories: kcal100,
@@ -126,6 +154,7 @@ export function offProductToNutrition(
     dishName,
     barcode: product.code,
     brand,
+    explicitPackGrams: explicit,
   };
 }
 
