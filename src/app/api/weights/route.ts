@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { parseDateInput } from "@/lib/dates";
+import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +17,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = (await request.json()) as { date?: string; weightKg?: number };
-    if (!body.date || !isValidWeight(Number(body.weightKg))) {
+    const date = requireDateKey(body.date);
+    if (!date || !isValidWeight(Number(body.weightKg))) {
       return NextResponse.json({ error: "Укажите дату и вес от 20 до 300 кг" }, { status: 400 });
     }
 
-    const date = parseDateInput(body.date);
     const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
 
     const entry = await prisma.weightEntry.upsert({
@@ -31,7 +31,7 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json({
-      date: entry.date.toISOString().slice(0, 10),
+      date: entry.date,
       weightKg: entry.weightKg,
     });
   } catch (error) {
@@ -47,13 +47,13 @@ export async function DELETE(request: NextRequest) {
       return response;
     }
 
-    const dateParam = request.nextUrl.searchParams.get("date");
-    if (!dateParam) {
+    const date = requireDateKey(request.nextUrl.searchParams.get("date"));
+    if (!date) {
       return NextResponse.json({ error: "Укажите date=YYYY-MM-DD" }, { status: 400 });
     }
 
     await prisma.weightEntry.deleteMany({
-      where: { userId: session.user.id, date: parseDateInput(dateParam) },
+      where: { userId: session.user.id, date },
     });
 
     return NextResponse.json({ ok: true });

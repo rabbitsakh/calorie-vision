@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
-import { formatDisplayDate } from "@/lib/dates";
+import { formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
 type DailyLogProps = {
@@ -66,7 +66,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
     }
   }
 
-  const displayDate = formatDisplayDate(new Date(`${selectedDate}T00:00:00`));
+  const displayDate = formatDateWords(selectedDate);
 
   return (
     <section className="card p-6">
@@ -74,7 +74,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold">Дневник за день</h2>
-            <p className="mt-1 text-sm capitalize text-slate-500">{displayDate}</p>
+            <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
           </div>
           <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
             <div className="text-xs uppercase tracking-wide text-teal-100">Итого</div>

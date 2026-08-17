@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { parseDateInput } from "@/lib/dates";
+import { requireDateKey } from "@/lib/dates";
 import { isWeightGoal } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 
@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     }
 
     const dateParam = request.nextUrl.searchParams.get("date");
-    const selectedDate = dateParam ? parseDateInput(dateParam) : null;
-    if (dateParam && Number.isNaN(selectedDate?.getTime() ?? Number.NaN)) {
+    const selectedDate = dateParam ? requireDateKey(dateParam) : null;
+    if (dateParam && !selectedDate) {
       return NextResponse.json({ error: "Некорректная дата" }, { status: 400 });
     }
 
@@ -47,9 +47,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       goal: user?.goal ?? null,
       firstWeightKg: first?.weightKg ?? null,
-      firstWeightDate: first?.date.toISOString().slice(0, 10) ?? null,
+      firstWeightDate: first?.date ?? null,
       currentWeightKg: current?.weightKg ?? null,
-      currentWeightDate: current?.date.toISOString().slice(0, 10) ?? null,
+      currentWeightDate: current?.date ?? null,
       weightChangeKg: changeKg,
       selectedWeightKg: selected?.weightKg ?? null,
     });

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AppVersion } from "@/components/AppVersion";
+import { PageFallback } from "@/components/AppShell";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -16,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense fallback={<PageFallback />}>{children}</Suspense>
+        </Providers>
         <AppVersion />
       </body>
     </html>

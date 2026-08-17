@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GOAL_OPTIONS, formatSignedKg, isWeightGoal, type WeightGoal } from "@/lib/diet";
+import { GOAL_OPTIONS, formatSignedKg, goalHint, goalLabel, isWeightGoal, type WeightGoal } from "@/lib/diet";
+import { formatDateWords } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 
 type ProfileResponse = {
@@ -23,6 +24,7 @@ type WeightGoalCardProps = {
 
 export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGoalCardProps) {
   const [goal, setGoal] = useState<WeightGoal | null>(null);
+  const [editingGoal, setEditingGoal] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
   const [weightChangeKg, setWeightChangeKg] = useState<number | null>(null);
@@ -43,6 +45,9 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       }
 
       setGoal(data.goal);
+      if (!data.goal) {
+        setEditingGoal(true);
+      }
       setCurrentWeightKg(data.currentWeightKg);
       setWeightChangeKg(data.weightChangeKg);
       setFirstWeightDate(data.firstWeightDate);
@@ -73,6 +78,7 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       }
       if (isWeightGoal(data.goal)) {
         setGoal(data.goal);
+        setEditingGoal(false);
       }
       onChanged();
     } catch (err) {
@@ -109,13 +115,6 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
   return (
     <section className="card p-6">
       <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="text-xl font-bold">Вес и цель</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Вес сохраняется на выбранный день. По нему считается рекомендуемый рацион.
-          </p>
-        </div>
-
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -131,14 +130,14 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
               {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
             </div>
             {firstWeightDate ? (
-              <p className="mt-1 text-xs text-slate-500">первая запись {firstWeightDate}</p>
+              <p className="mt-1 text-xs text-slate-500">первая запись {formatDateWords(firstWeightDate)}</p>
             ) : null}
           </div>
         </div>
 
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
           <div className="field flex-1">
-            <label htmlFor="weightKg">Вес на выбранный день, кг</label>
+            <label htmlFor="weightKg">Вес на {formatDateWords(selectedDate)}, кг</label>
             <input
               id="weightKg"
               type="number"
@@ -157,30 +156,56 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
           </button>
         </form>
 
+        {!loading ? (
         <div>
           <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {GOAL_OPTIONS.map((option) => {
-              const active = goal === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void saveGoal(option.value)}
-                  className={`rounded-2xl border px-3 py-3 text-left ${
-                    active
-                      ? "border-teal-600 bg-teal-50 text-teal-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
-                  }`}
-                >
-                  <span className="block text-sm font-semibold">{option.label}</span>
-                  <span className="mt-1 block text-xs text-slate-500">{option.hint}</span>
-                </button>
-              );
-            })}
-          </div>
+          {goal && !editingGoal ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
+              <div>
+                <p className="font-semibold text-teal-900">{goalLabel(goal)}</p>
+                <p className="text-xs text-teal-800">{goalHint(goal)}</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={saving}
+                onClick={() => setEditingGoal(true)}
+              >
+                Изменить цель
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+            <div className="grid gap-2 sm:grid-cols-3">
+              {GOAL_OPTIONS.map((option) => {
+                const active = goal === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void saveGoal(option.value)}
+                    className={`rounded-2xl border px-3 py-3 text-left ${
+                      active
+                        ? "border-teal-600 bg-teal-50 text-teal-900"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold">{option.label}</span>
+                    <span className="mt-1 block text-xs text-slate-500">{option.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {goal ? (
+              <button type="button" className="text-sm text-teal-700 hover:underline" onClick={() => setEditingGoal(false)}>
+                Отмена
+              </button>
+            ) : null}
+            </div>
+          )}
         </div>
+        ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
       </div>

@@ -72,7 +72,7 @@ model VerificationToken {
 model WeightEntry {
   id        String   @id @default(cuid())
   userId    String
-  date      DateTime @db.Date
+  date      String   @db.VarChar(10)
   weightKg  Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -86,7 +86,7 @@ model WeightEntry {
 model MealEntry {
   id               String   @id @default(cuid())
   userId           String
-  date             DateTime @db.Date
+  date             String   @db.VarChar(10)
   dishName         String
   calories         Int
   protein          Float?
