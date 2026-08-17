@@ -181,6 +181,24 @@ calorie-vision/
 └── public/uploads/           # загруженные фото
 ```
 
+## Деплой на VPS (calorievision.ru)
+
+```bash
+cd /var/www/calorie-vision
+git pull
+npm install
+npm run db:generate
+npm run db:push
+npm run build
+pm2 restart calorie-vision
+```
+
+**Важно:**
+- Используйте `npm run db:push`, а не `npx prisma` — на сервере `npx` может подтянуть Prisma 7, несовместимую с проектом.
+- Версии Prisma зафиксированы в `package.json` (6.19.3).
+- Если в пароле MySQL есть `@`, `#`, `%` — закодируйте их в `DATABASE_URL` (`@` → `%40`).
+- На продакшене: `NEXT_PUBLIC_BASE_PATH=` (пусто), `NEXTAUTH_URL=https://calorievision.ru/api/auth`.
+
 ## Полезные команды
 
 ```powershell
