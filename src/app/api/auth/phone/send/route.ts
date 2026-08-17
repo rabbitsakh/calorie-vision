@@ -3,6 +3,13 @@ import { generateOtpCode, savePhoneOtp } from "@/lib/otp";
 import { normalizePhone } from "@/lib/phone";
 import { assertSmsReady, sendSmsOtp } from "@/lib/sms";
 
+export const dynamic = "force-dynamic";
+
+function clientIp(request: NextRequest): string | null {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || request.headers.get("x-real-ip");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { phone?: string };
@@ -16,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const code = generateOtpCode();
     await savePhoneOtp(phone, code);
-    await sendSmsOtp(phone, code);
+    await sendSmsOtp(phone, code, clientIp(request));
 
     return NextResponse.json({
       ok: true,
