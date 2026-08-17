@@ -1,30 +1,45 @@
-# Создание репозитория на GitHub и загрузка проекта
-# Запуск: powershell -ExecutionPolicy Bypass -File scripts/push-to-github.ps1
+# Create GitHub repo and push project
+# Run: powershell -ExecutionPolicy Bypass -File scripts/push-to-github.ps1
 
 $ErrorActionPreference = "Stop"
 $gh = "C:\Program Files\GitHub CLI\gh.exe"
 $git = "C:\Program Files\Git\cmd\git.exe"
-$root = Split-Path -Parent $PSScriptRoot
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 Set-Location $root
+Write-Host "Working directory: $root"
+
+if (-not (Test-Path (Join-Path $root ".git"))) {
+    throw "Git repository not found in $root"
+}
 
 & $gh auth status
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Сначала войдите в GitHub:"
-  & $gh auth login -h github.com -p https -w
+    Write-Host "Login to GitHub first:"
+    & $gh auth login -h github.com -p https -w
 }
 
 $repoName = "calorie-vision"
-$exists = & $gh repo view $repoName 2>$null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "Репозиторий $repoName уже существует, добавляем remote и пушим..."
+$user = & $gh api user -q .login
+
+$prevErrorAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+& $gh repo view "$user/$repoName" 2>$null | Out-Null
+$repoExists = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = $prevErrorAction
+
+if ($repoExists) {
+    Write-Host "Repo $repoName already exists, setting remote and pushing..."
     & $git remote remove origin 2>$null
-    $user = (& $gh api user -q .login)
     & $git remote add origin "https://github.com/$user/$repoName.git"
 } else {
-    Write-Host "Создаём репозиторий $repoName..."
-    & $gh repo create $repoName --public --source=. --remote=origin --description "Учёт калорий по фото (Next.js, GigaChat, MySQL)"
+    Write-Host "Creating repo $repoName..."
+    & $gh repo create $repoName --public --source=. --remote=origin --description "Calorie Vision - Next.js, GigaChat, MySQL"
+    if ($LASTEXITCODE -ne 0) { throw "Failed to create repository" }
 }
 
 & $git push -u origin main
-Write-Host "Готово! URL: https://github.com/$( & $gh api user -q .login )/$repoName"
+if ($LASTEXITCODE -ne 0) { throw "Failed to push to GitHub" }
+
+$url = "https://github.com/$user/$repoName"
+Write-Host "Done! $url"
