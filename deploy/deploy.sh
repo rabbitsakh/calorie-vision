@@ -16,7 +16,7 @@ npm run db:generate
 npm run db:push
 
 echo "==> Version"
-node --experimental-strip-types scripts/sync-app-version.ts
+node scripts/sync-app-version.cjs
 
 echo "==> Build"
 npm run build
