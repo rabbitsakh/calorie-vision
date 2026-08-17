@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  formatMacro,
+  nutritionBaseline,
+  scaleNutritionByPortion,
+  type NutritionValues,
+} from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
@@ -42,10 +48,44 @@ export function ConfirmationCard({
   const [fat, setFat] = useState(String(recognition.fat ?? ""));
   const [carbs, setCarbs] = useState(String(recognition.carbs ?? ""));
   const [portionGrams, setPortionGrams] = useState(String(recognition.portionGrams ?? ""));
+  const [baseline, setBaseline] = useState<NutritionValues | null>(() =>
+    nutritionBaseline(recognition),
+  );
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function parseOptionalNumber(value: string): number | undefined {
+    if (value.trim() === "") {
+      return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  function captureBaseline(
+    next: Partial<{
+      calories: string;
+      protein: string;
+      fat: string;
+      carbs: string;
+      portionGrams: string;
+    }>,
+  ) {
+    const grams = Number(next.portionGrams ?? portionGrams);
+    const kcal = Number(next.calories ?? calories);
+    setBaseline(
+      nutritionBaseline({
+        calories: kcal,
+        protein: parseOptionalNumber(next.protein ?? protein),
+        fat: parseOptionalNumber(next.fat ?? fat),
+        carbs: parseOptionalNumber(next.carbs ?? carbs),
+        portionGrams: grams,
+      }),
+    );
+  }
 
   useEffect(() => {
     return () => {
@@ -62,6 +102,7 @@ export function ConfirmationCard({
     setFat(String(recognition.fat ?? ""));
     setCarbs(String(recognition.carbs ?? ""));
     setPortionGrams(String(recognition.portionGrams ?? ""));
+    setBaseline(nutritionBaseline(recognition));
   }, [recognition]);
 
   function applyNutrition(data: NutritionFields) {
@@ -71,6 +112,31 @@ export function ConfirmationCard({
     setFat(data.fat !== undefined ? String(data.fat) : "");
     setCarbs(data.carbs !== undefined ? String(data.carbs) : "");
     setPortionGrams(data.portionGrams !== undefined ? String(data.portionGrams) : "");
+    setBaseline(nutritionBaseline(data));
+  }
+
+  function handlePortionChange(value: string) {
+    setPortionGrams(value);
+    const grams = Number(value);
+    if (!baseline) {
+      return;
+    }
+
+    const scaled = scaleNutritionByPortion(baseline, grams);
+    if (!scaled) {
+      return;
+    }
+
+    setCalories(String(scaled.calories));
+    if (scaled.protein !== undefined) {
+      setProtein(formatMacro(scaled.protein));
+    }
+    if (scaled.fat !== undefined) {
+      setFat(formatMacro(scaled.fat));
+    }
+    if (scaled.carbs !== undefined) {
+      setCarbs(formatMacro(scaled.carbs));
+    }
   }
 
   async function handleLookup(nameOverride?: string) {
@@ -166,7 +232,7 @@ export function ConfirmationCard({
         <div>
           <h2 className="text-xl font-bold">Проверьте распознавание</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Исправьте название при необходимости и нажмите поиск, чтобы обновить калории и БЖУ.
+            Измените порцию — калории и БЖУ пересчитаются сразу. Название можно уточнить поиском.
           </p>
         </div>
 
@@ -228,7 +294,11 @@ export function ConfirmationCard({
                   type="number"
                   min="1"
                   value={calories}
-                  onChange={(event) => setCalories(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setCalories(value);
+                    captureBaseline({ calories: value });
+                  }}
                 />
               </div>
 
@@ -239,8 +309,9 @@ export function ConfirmationCard({
                   type="number"
                   min="1"
                   value={portionGrams}
-                  onChange={(event) => setPortionGrams(event.target.value)}
+                  onChange={(event) => handlePortionChange(event.target.value)}
                 />
+                <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
               </div>
 
               <div className="field">
@@ -251,7 +322,11 @@ export function ConfirmationCard({
                   min="0"
                   step="0.1"
                   value={protein}
-                  onChange={(event) => setProtein(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setProtein(value);
+                    captureBaseline({ protein: value });
+                  }}
                 />
               </div>
 
@@ -263,7 +338,11 @@ export function ConfirmationCard({
                   min="0"
                   step="0.1"
                   value={fat}
-                  onChange={(event) => setFat(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setFat(value);
+                    captureBaseline({ fat: value });
+                  }}
                 />
               </div>
 
@@ -275,7 +354,11 @@ export function ConfirmationCard({
                   min="0"
                   step="0.1"
                   value={carbs}
-                  onChange={(event) => setCarbs(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setCarbs(value);
+                    captureBaseline({ carbs: value });
+                  }}
                 />
               </div>
             </div>
