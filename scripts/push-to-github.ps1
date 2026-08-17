@@ -4,6 +4,7 @@
 $ErrorActionPreference = "Stop"
 $gh = "C:\Program Files\GitHub CLI\gh.exe"
 $git = "C:\Program Files\Git\cmd\git.exe"
+$env:PATH = "C:\Program Files\Git\cmd;" + $env:PATH
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 Set-Location $root
