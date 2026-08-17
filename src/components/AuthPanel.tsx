@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { withBasePath } from "@/lib/paths";
 
 export function AuthPanel() {
@@ -35,14 +36,16 @@ export function AuthPanel() {
         />
       ) : (
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800">
-          {(session.user.name ?? session.user.email ?? "?").charAt(0).toUpperCase()}
+          {(session.user.name ?? session.user.email ?? session.user.phone ?? "?").charAt(0).toUpperCase()}
         </div>
       )}
       <div className="min-w-0 text-right">
         <p className="truncate text-sm font-medium text-slate-900">
           {session.user.name ?? "Пользователь"}
         </p>
-        {session.user.email ? (
+        {session.user.phone ? (
+          <p className="truncate text-xs text-slate-500">{formatPhoneDisplay(session.user.phone)}</p>
+        ) : session.user.email ? (
           <p className="truncate text-xs text-slate-500">{session.user.email}</p>
         ) : null}
       </div>

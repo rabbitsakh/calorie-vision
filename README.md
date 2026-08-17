@@ -9,13 +9,13 @@
 - экран подтверждения с возможностью исправить название и калории;
 - сохранение приёмов пищи в MySQL по дням;
 - дневник с итогом калорий за выбранный день;
-- вход через Google и Apple — у каждого пользователя свой дневник.
+- вход по телефону (SMS-код), email (magic link) или Google — у каждого пользователя свой дневник.
 
 ## Стек
 
 - **Frontend + API:** Next.js 15 (App Router), React, TypeScript, Tailwind CSS
 - **База данных:** MySQL + Prisma ORM
-- **Авторизация:** NextAuth.js (Google, Apple)
+- **Авторизация:** NextAuth.js (телефон, email, Google)
 - **Распознавание:** GigaChat API (Сбер, поддержка фото)
 
 ## Расположение проекта
@@ -59,10 +59,12 @@ NEXT_PUBLIC_BASE_PATH=/calorie-vision
 NEXTAUTH_SECRET=ваш-секрет
 NEXTAUTH_URL=http://localhost:3000/calorie-vision/api/auth
 
+EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
+EMAIL_FROM=noreply@calorievision.ru
+SMS_RU_API_ID=
+
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-APPLE_ID=
-APPLE_SECRET=
 ```
 
 ### 3. Установите зависимости
@@ -117,7 +119,7 @@ npm run start
 
 ## Как это работает
 
-1. Вы входите через Google или Apple.
+1. Вы входите по телефону, email или Google.
 2. Выбираете дату и загружаете фото.
 3. API `/api/recognize` сохраняет фото и возвращает предполагаемое блюдо.
 4. Вы подтверждаете или исправляете данные.
@@ -126,26 +128,31 @@ npm run start
 
 ## Настройка авторизации
 
-### Google
+### Телефон (SMS)
+
+1. Зарегистрируйтесь на [sms.ru](https://sms.ru/) и получите `api_id`.
+2. Добавьте в `.env`: `SMS_RU_API_ID=ваш-ключ`.
+3. Без ключа код выводится в лог сервера (режим разработки).
+
+### Email (magic link)
+
+1. Настройте SMTP в `.env`:
+   ```env
+   EMAIL_SERVER=smtp://user:pass@smtp.yandex.ru:465
+   EMAIL_FROM=noreply@calorievision.ru
+   ```
+2. Пользователь вводит email → получает ссылку для входа.
+
+### Google (опционально)
 
 1. Откройте [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 2. Создайте OAuth 2.0 Client ID (тип «Web application»).
 3. Добавьте **Authorized redirect URIs**:
    - `http://localhost:3000/calorie-vision/api/auth/callback/google`
    - `http://localhost/calorie-vision/api/auth/callback/google` (если через Apache)
-4. Скопируйте Client ID и Client Secret в `.env` как `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET`.
+4. Скопируйте Client ID и Client Secret в `.env`.
 
-### Apple
-
-1. Нужен [Apple Developer Program](https://developer.apple.com/programs/) ($99/год).
-2. Создайте App ID с capability **Sign In with Apple**.
-3. Создайте Services ID и ключ `.p8` для генерации client secret (JWT).
-4. Укажите `APPLE_ID` (Services ID) и `APPLE_SECRET` (JWT) в `.env`.
-5. Redirect URI: `https://ваш-домен/calorie-vision/api/auth/callback/apple`
-
-> Apple можно подключить позже — достаточно Google для начала.
-
-После обновления схемы БД (таблицы `User`, `Account`, `Session`) записи питания привязаны к `userId`. Старые записи без пользователя будут удалены при миграции:
+После обновления схемы БД (поля `phone`, `phoneVerified` у `User`) выполните:
 
 ```powershell
 npm run db:generate
@@ -175,7 +182,7 @@ npm run dev
 ```text
 calorie-vision/
 ├── prisma/schema.prisma      # User, Account, Session, MealEntry
-├── src/app/api/auth/         # NextAuth (Google, Apple)
+├── src/app/api/auth/         # NextAuth + SMS OTP
 ├── src/components/           # UI-компоненты
 ├── src/lib/                  # Prisma, распознавание, даты
 └── public/uploads/           # загруженные фото
