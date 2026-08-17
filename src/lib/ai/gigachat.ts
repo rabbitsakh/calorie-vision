@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "@/lib/food-recognition";
-import { FOOD_RECOGNITION_PROMPT } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 
@@ -205,25 +205,17 @@ async function uploadImage(
   return data.id;
 }
 
-export async function recognizeWithGigaChat(
-  imageBuffer: Buffer,
-  filename: string,
-): Promise<FoodRecognitionResult> {
-  const prepared = await prepareImageForVision(imageBuffer);
+async function completeChat(
+  messages: Array<{ role: string; content: string; attachments?: string[] }>,
+  temperature = 0.35,
+): Promise<string> {
   const token = await getAccessToken();
-  const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
   const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
 
   const payload = JSON.stringify({
     model,
-    temperature: 0.35,
-    messages: [
-      {
-        role: "user",
-        content: `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`,
-        attachments: [fileId],
-      },
-    ],
+    temperature,
+    messages,
   });
 
   const response = await httpsRequest(`${API_BASE}/chat/completions`, {
@@ -252,6 +244,36 @@ export async function recognizeWithGigaChat(
   if (!text) {
     throw new Error("GigaChat не вернул текст ответа");
   }
+
+  return text;
+}
+
+export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodRecognitionResult> {
+  const text = await completeChat([
+    {
+      role: "user",
+      content: buildFoodLookupPrompt(dishName.trim()),
+    },
+  ]);
+
+  return parseFoodRecognitionResponse(text);
+}
+
+export async function recognizeWithGigaChat(
+  imageBuffer: Buffer,
+  filename: string,
+): Promise<FoodRecognitionResult> {
+  const prepared = await prepareImageForVision(imageBuffer);
+  const token = await getAccessToken();
+  const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
+
+  const text = await completeChat([
+    {
+      role: "user",
+      content: `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`,
+      attachments: [fileId],
+    },
+  ]);
 
   return parseFoodRecognitionResponse(text);
 }

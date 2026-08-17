@@ -1,4 +1,4 @@
-import { recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 
 export type FoodRecognitionResult = {
   dishName: string;
@@ -27,4 +27,19 @@ export async function recognizeFoodWithAI(
 
   const result = await recognizeWithGigaChat(imageBuffer, filename);
   return { ...result, source: "gigachat" };
+}
+
+export async function lookupFoodByName(dishName: string): Promise<FoodRecognitionResult> {
+  if (!process.env.GIGACHAT_CREDENTIALS) {
+    throw new Error(
+      "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
+    );
+  }
+
+  if (!dishName.trim()) {
+    throw new Error("Укажите название блюда");
+  }
+
+  const result = await lookupFoodWithGigaChat(dishName);
+  return { ...result, source: "gigachat-lookup" };
 }

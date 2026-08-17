@@ -4,12 +4,30 @@ import { useEffect, useState } from "react";
 import type { RecognitionResponse } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
+type NutritionFields = {
+  dishName: string;
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  portionGrams?: number;
+};
+
 type ConfirmationCardProps = {
   result: RecognitionResponse;
   selectedDate: string;
   onCancel: () => void;
   onSaved: () => void;
 };
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export function ConfirmationCard({
   result,
@@ -25,6 +43,8 @@ export function ConfirmationCard({
   const [carbs, setCarbs] = useState(String(recognition.carbs ?? ""));
   const [portionGrams, setPortionGrams] = useState(String(recognition.portionGrams ?? ""));
   const [saving, setSaving] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +63,55 @@ export function ConfirmationCard({
     setCarbs(String(recognition.carbs ?? ""));
     setPortionGrams(String(recognition.portionGrams ?? ""));
   }, [recognition]);
+
+  function applyNutrition(data: NutritionFields) {
+    setDishName(data.dishName);
+    setCalories(String(data.calories));
+    setProtein(data.protein !== undefined ? String(data.protein) : "");
+    setFat(data.fat !== undefined ? String(data.fat) : "");
+    setCarbs(data.carbs !== undefined ? String(data.carbs) : "");
+    setPortionGrams(data.portionGrams !== undefined ? String(data.portionGrams) : "");
+  }
+
+  async function handleLookup(nameOverride?: string) {
+    const query = (nameOverride ?? dishName).trim();
+    if (!query) {
+      setError("Введите название блюда для поиска");
+      return;
+    }
+
+    setSearching(true);
+    setError(null);
+    setLookupMessage(null);
+
+    try {
+      const response = await fetch(withBasePath("/api/food/lookup"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dishName: query }),
+      });
+
+      const data = (await response.json()) as {
+        recognition?: NutritionFields;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Не удалось найти блюдо");
+      }
+
+      if (!data.recognition) {
+        throw new Error("Пустой ответ от сервера");
+      }
+
+      applyNutrition(data.recognition);
+      setLookupMessage("Калорийность и БЖУ обновлены по названию блюда");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка поиска");
+    } finally {
+      setSearching(false);
+    }
+  }
 
   const wasCorrected =
     dishName.trim() !== recognition.dishName ||
@@ -97,7 +166,7 @@ export function ConfirmationCard({
         <div>
           <h2 className="text-xl font-bold">Проверьте распознавание</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Всё верно? Подтвердите или исправьте блюдо и калории перед сохранением.
+            Исправьте название при необходимости и нажмите поиск, чтобы обновить калории и БЖУ.
           </p>
         </div>
 
@@ -119,11 +188,37 @@ export function ConfirmationCard({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="field sm:col-span-2">
                 <label htmlFor="dishName">Блюдо</label>
-                <input
-                  id="dishName"
-                  value={dishName}
-                  onChange={(event) => setDishName(event.target.value)}
-                />
+                <div className="input-with-action">
+                  <input
+                    id="dishName"
+                    value={dishName}
+                    placeholder="Например: борщ с мясом"
+                    onChange={(event) => setDishName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        void handleLookup();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    title="Найти калорийность и БЖУ"
+                    aria-label="Найти калорийность и БЖУ"
+                    disabled={searching || saving}
+                    onClick={() => void handleLookup()}
+                  >
+                    {searching ? (
+                      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <SearchIcon />
+                    )}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Измените название и нажмите лупу или Enter для пересчёта
+                </p>
               </div>
 
               <div className="field">
@@ -194,10 +289,7 @@ export function ConfirmationCard({
                       key={item.dishName}
                       type="button"
                       className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-                      onClick={() => {
-                        setDishName(item.dishName);
-                        setCalories(String(item.calories));
-                      }}
+                      onClick={() => void handleLookup(item.dishName)}
                     >
                       {item.dishName} · {item.calories} ккал
                     </button>
@@ -208,13 +300,14 @@ export function ConfirmationCard({
           </div>
         </div>
 
+        {lookupMessage ? <p className="text-sm text-teal-700">{lookupMessage}</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="btn btn-primary" disabled={saving} onClick={handleSave}>
+          <button type="button" className="btn btn-primary" disabled={saving || searching} onClick={handleSave}>
             {saving ? "Сохраняем..." : "Да, сохранить"}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={saving} onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
             Отменить
           </button>
         </div>

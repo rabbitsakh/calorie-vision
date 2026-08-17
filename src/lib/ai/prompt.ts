@@ -26,3 +26,26 @@ export const FOOD_RECOGNITION_PROMPT = `Ты диетолог и эксперт 
 - confidence: от 0 до 1
 - alternatives: 1-3 варианта, если блюдо неочевидно; иначе пустой массив
 - если на фото не еда: dishName "Не удалось распознать еду", calories 0, confidence 0.1, alternatives []`;
+
+export function buildFoodLookupPrompt(dishName: string): string {
+  return `Ты диетолог. Пользователь указал название блюда: "${dishName}".
+
+Оцени типичную одну порцию этого блюда (домашняя/кафе, Россия) и верни ТОЛЬКО JSON без markdown:
+{
+  "dishName": "уточнённое название на русском",
+  "calories": 0,
+  "protein": 0,
+  "fat": 0,
+  "carbs": 0,
+  "portionGrams": 0,
+  "confidence": 0.0,
+  "alternatives": []
+}
+
+Правила:
+- dishName: исправь опечатки, сделай название понятным (на русском)
+- calories, protein, fat, carbs: для одной стандартной порции
+- portionGrams: примерный вес порции в граммах
+- confidence: от 0 до 1, насколько уверены в оценке
+- alternatives: оставь пустым массивом`;
+}
