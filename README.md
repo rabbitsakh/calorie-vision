@@ -183,21 +183,62 @@ calorie-vision/
 
 ## Деплой на VPS (calorievision.ru)
 
+### 1. DNS
+A-записи `@` и `www` → IP сервера.
+
+### 2. `.env` на сервере (`/var/www/calorie-vision/.env`)
+
+```env
+DATABASE_URL="mysql://calorie:пароль%40@localhost:3306/calorie_vision"
+UPLOAD_DIR="public/uploads"
+NEXT_PUBLIC_BASE_PATH=
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=https://calorievision.ru/api/auth
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GIGACHAT_CREDENTIALS=...
+GIGACHAT_SCOPE=GIGACHAT_API_PERS
+GIGACHAT_MODEL=GigaChat-2-Max
+GIGACHAT_API_BASE=https://api.giga.chat/v1
+```
+
+### 3. Запуск приложения
+
 ```bash
 cd /var/www/calorie-vision
 git pull
-npm install
-npm run db:generate
-npm run db:push
-npm run build
-pm2 restart calorie-vision
+bash deploy/deploy.sh
 ```
 
+### 4. Nginx
+
+```bash
+# Ubuntu/Debian
+cp deploy/nginx-calorievision.ru.conf /etc/nginx/sites-available/calorievision.ru
+mkdir -p /etc/nginx/sites-enabled
+ln -sf /etc/nginx/sites-available/calorievision.ru /etc/nginx/sites-enabled/calorievision.ru
+nginx -t && systemctl reload nginx
+
+# Или CentOS/без sites-enabled:
+# cp deploy/nginx-calorievision.ru.conf /etc/nginx/conf.d/calorievision.ru.conf
+```
+
+### 5. HTTPS
+
+```bash
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d calorievision.ru -d www.calorievision.ru
+```
+
+### 6. Google OAuth
+
+- **Origins:** `https://calorievision.ru`
+- **Redirect URI:** `https://calorievision.ru/api/auth/callback/google`
+
 **Важно:**
-- Используйте `npm run db:push`, а не `npx prisma` — на сервере `npx` может подтянуть Prisma 7, несовместимую с проектом.
-- Версии Prisma зафиксированы в `package.json` (6.19.3).
-- Если в пароле MySQL есть `@`, `#`, `%` — закодируйте их в `DATABASE_URL` (`@` → `%40`).
-- На продакшене: `NEXT_PUBLIC_BASE_PATH=` (пусто), `NEXTAUTH_URL=https://calorievision.ru/api/auth`.
+- Используйте `npm run db:push`, а не `npx prisma` — `npx` может подтянуть Prisma 7.
+- Prisma зафиксирована в `package.json` (6.19.3).
+- Спецсимволы в пароле MySQL кодируйте в URL (`@` → `%40`).
 
 ## Полезные команды
 
