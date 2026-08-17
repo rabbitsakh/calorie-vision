@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
-import type { FoodRecognitionResult } from "@/lib/food-recognition";
+import type { FoodRecognitionResult } from "../food-types";
 import { FOOD_RECOGNITION_PROMPT, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
