@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppVersion } from "@/components/AppVersion";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -16,6 +17,7 @@ export default function RootLayout({
     <html lang="ru">
       <body>
         <Providers>{children}</Providers>
+        <AppVersion />
       </body>
     </html>
   );
