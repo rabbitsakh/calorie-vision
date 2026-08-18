@@ -74,6 +74,18 @@ test("uses the full pack when it looks like a single serving", () => {
   assert.equal(nutrition?.calories, 96);
 });
 
+test("decodes HTML entities in Open Food Facts names", () => {
+  const nutrition = offProductToNutrition({
+    brands: "ООО &quot;КДВ Воронеж&quot;",
+    product_name: "Zebra",
+    quantity: "40 г",
+    nutriments: { "energy-kcal_100g": 500, proteins_100g: 8, fat_100g: 27, carbohydrates_100g: 55 },
+  });
+
+  assert.equal(nutrition?.dishName, 'ООО "КДВ Воронеж" Zebra');
+  assert.equal(nutrition?.brand, 'ООО "КДВ Воронеж"');
+});
+
 test("accepts Open Food Facts hits that share product tokens", () => {
   assert.equal(offMatchesQuery("Простоквашино кефир", "Простоквашино Кефир 2.5%"), true);
   assert.equal(offMatchesQuery("борщ", "Шоколад Milka"), false);

@@ -5,6 +5,7 @@ import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { decodeHtmlEntities } from "@/lib/html-text";
 
 type DailyLogProps = {
   selectedDate: string;
@@ -172,7 +173,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={getImageUrl(entry.imagePath)}
-                    alt={entry.dishName}
+                    alt={decodeHtmlEntities(entry.dishName)}
                     className="h-full w-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -182,7 +183,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
 
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold">{entry.dishName}</h3>
+                  <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
                   {entry.wasCorrected ? (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                       исправлено

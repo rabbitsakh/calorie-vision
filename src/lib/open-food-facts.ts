@@ -40,6 +40,33 @@ const USER_AGENT = "CalorieVision/1.0 (https://calorievision.ru)";
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
 const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 
+function decodeOffText(value: string): string {
+  if (!value.includes("&")) {
+    return value;
+  }
+
+  let current = value;
+  for (let index = 0; index < 3; index += 1) {
+    const next = current
+      .replace(/&amp;/gi, "&")
+      .replace(/&quot;/gi, '"')
+      .replace(/&#0*34;/g, '"')
+      .replace(/&#x0*22;/gi, '"')
+      .replace(/&apos;/gi, "'")
+      .replace(/&#0*39;/g, "'")
+      .replace(/&#x0*27;/gi, "'")
+      .replace(/&lt;/gi, "<")
+      .replace(/&gt;/gi, ">")
+      .replace(/&nbsp;/gi, " ");
+    if (next === current) {
+      break;
+    }
+    current = next;
+  }
+
+  return current;
+}
+
 function pickOffImageUrl(product: OffProduct): string | undefined {
   const candidates = [
     product.image_front_url,
@@ -172,15 +199,15 @@ export function offProductToNutrition(
     return null;
   }
 
-  const name = (product.product_name_ru || product.product_name || "").trim();
-  const brand = product.brands?.split(",")[0]?.trim();
+  const name = decodeOffText((product.product_name_ru || product.product_name || "").trim());
+  const brand = decodeOffText(product.brands?.split(",")[0]?.trim() ?? "");
   const dishName = [brand, name].filter(Boolean).join(" ").trim() || "Продукт";
 
   return {
     ...scaled,
     dishName,
     barcode: product.code,
-    brand,
+    brand: brand || undefined,
     explicitPackGrams: explicit,
     imageUrl: pickOffImageUrl(product),
   };
