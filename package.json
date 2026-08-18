@@ -1,17 +1,17 @@
 {
   "name": "calorie-vision",
-  "version": "0.5.3",
+  "version": "0.5.9",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "tsx scripts/sync-app-version.ts && next build",
-    "sync-version": "tsx scripts/sync-app-version.ts",
+    "build": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts && next build",
+    "sync-version": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
     "db:generate": "prisma generate",
-    "db:migrate-sql": "tsx scripts/apply-sql-migration.ts",
+    "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },

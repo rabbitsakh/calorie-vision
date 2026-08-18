@@ -32,10 +32,10 @@ test("maps 1-based sequence to versions starting at 0.4.0", () => {
 });
 
 test("maps git commit count onto the shifted version sequence", () => {
-  assert.equal(versionFromCommitCount(58), "0.4.0");
-  assert.equal(versionFromCommitCount(59), "0.4.0");
-  assert.equal(versionFromCommitCount(60), "0.4.1");
-  assert.equal(versionFromCommitCount(68), "0.4.9");
-  assert.equal(versionFromCommitCount(69), "0.5.0");
-  assert.equal(versionFromCommitCount(78), "0.5.9");
+  assert.equal(versionFromCommitCount(69), "0.4.0");
+  assert.equal(versionFromCommitCount(70), "0.4.0");
+  assert.equal(versionFromCommitCount(71), "0.4.1");
+  assert.equal(versionFromCommitCount(79), "0.4.9");
+  assert.equal(versionFromCommitCount(80), "0.5.0");
+  assert.equal(versionFromCommitCount(89), "0.5.9");
 });

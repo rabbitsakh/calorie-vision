@@ -1,110 +1,54 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-function loadEnvFile(): void {
-  const envPath = join(process.cwd(), ".env");
-  if (!existsSync(envPath)) {
-    return;
-  }
-
-  for (const line of readFileSync(envPath, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const eq = trimmed.indexOf("=");
-    if (eq === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    process.env[key] = value;
-  }
-}
+import { parseMysqlUrl, readEnvFileValue } from "../src/lib/mysql-url.ts";
 
 function getDatabaseUrl(): string {
-  loadEnvFile();
-  const url = process.env.DATABASE_URL?.trim();
-  if (!url) {
-    throw new Error("DATABASE_URL is missing in .env");
+  const envPath = join(process.cwd(), ".env");
+  if (existsSync(envPath)) {
+    const fromFile = readEnvFileValue(readFileSync(envPath, "utf8"), "DATABASE_URL");
+    if (fromFile?.trim()) {
+      return fromFile.trim();
+    }
   }
-  return url;
+
+  const fromEnv = process.env.DATABASE_URL?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  throw new Error("DATABASE_URL is missing in .env");
 }
 
-function parseMysqlUrl(url: string) {
-  const normalized = url.replace(/^mysql:\/\//, "");
-  const slash = normalized.indexOf("/");
-  if (slash === -1) {
-    throw new Error(`Invalid DATABASE_URL: ${url}`);
-  }
-
-  const authority = normalized.slice(0, slash);
-  const database = normalized.slice(slash + 1).split("?")[0];
-  const at = authority.lastIndexOf("@");
-  if (at === -1) {
-    throw new Error(`Invalid DATABASE_URL: ${url}`);
-  }
-
-  const userInfo = authority.slice(0, at);
-  const hostPort = authority.slice(at + 1);
-  const colon = userInfo.indexOf(":");
-  const user = decodeURIComponent(colon >= 0 ? userInfo.slice(0, colon) : userInfo);
-  const password = decodeURIComponent(colon >= 0 ? userInfo.slice(colon + 1) : "");
-
-  const portMatch = hostPort.match(/:(\d+)$/);
-  const host = portMatch ? hostPort.slice(0, -(portMatch[0].length)) : hostPort;
-  const port = portMatch ? portMatch[1] : "3306";
-
-  if (!host || !database) {
-    throw new Error(`Invalid DATABASE_URL: ${url}`);
-  }
-
-  return {
-    host,
-    port,
-    user,
-    password,
-    database,
-  };
+function quoteIni(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
-function escapeIniValue(value: string): string {
-  if (/[\s"'#;\\]/.test(value)) {
-    return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-  }
-  return value;
-}
-
-function runMysqlMigration(
-  db: ReturnType<typeof parseMysqlUrl>,
-  sql: string,
-): void {
-  const configPath = join(tmpdir(), `cv-mysql-${randomBytes(8).toString("hex")}.cnf`);
+function runMysqlMigration(db: ReturnType<typeof parseMysqlUrl>, sql: string): void {
+  const configPath = join(process.cwd(), `.mysql-client-${randomBytes(8).toString("hex")}.cnf`);
   const ini = [
     "[client]",
-    `user=${escapeIniValue(db.user)}`,
-    `password=${escapeIniValue(db.password)}`,
-    `host=${escapeIniValue(db.host)}`,
+    `user=${quoteIni(db.user)}`,
+    `password=${quoteIni(db.password)}`,
+    `host=${quoteIni(db.host)}`,
     `port=${db.port}`,
+    "protocol=tcp",
     "",
   ].join("\n");
 
   writeFileSync(configPath, ini, { mode: 0o600 });
 
+  const env = { ...process.env };
+  delete env.MYSQL_PWD;
+  delete env.MYSQL_HOST;
+  delete env.MYSQL_TCP_PORT;
+  delete env.MYSQL_UNIX_PORT;
+
   try {
-    execFileSync("mysql", [`--defaults-extra-file=${configPath}`, db.database], {
+    // --defaults-file is first so ~/.my.cnf (often root@localhost) is ignored.
+    execFileSync("mysql", [`--defaults-file=${configPath}`, "--database", db.database], {
+      env,
       input: sql,
       stdio: ["pipe", "inherit", "inherit"],
     });
@@ -127,6 +71,7 @@ function main(): void {
   }
 
   const db = parseMysqlUrl(getDatabaseUrl());
+  console.info(`MySQL: ${db.user}@${db.host}:${db.port}/${db.database}`);
 
   try {
     for (const file of files) {
@@ -138,10 +83,7 @@ function main(): void {
     const message = error instanceof Error ? error.message : String(error);
     console.error("SQL migration failed:", message);
     console.error(
-      "Проверьте DATABASE_URL в .env: пользователь, пароль и имя базы должны совпадать с MySQL.",
-    );
-    console.error(
-      "Если Prisma (db:push) подключается, а mysql CLI — нет, попробуйте host 127.0.0.1 вместо localhost.",
+      "Проверьте DATABASE_URL в .env приложения. Клиент mysql не должен брать root из ~/.my.cnf.",
     );
     process.exit(1);
   }
