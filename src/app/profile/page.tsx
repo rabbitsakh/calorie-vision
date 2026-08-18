@@ -24,6 +24,7 @@ export default function ProfilePage() {
           <WeightGoalCard
             selectedDate={date}
             refreshKey={refreshKey}
+            showCurrentWeight
             onChanged={() => setRefreshKey((value) => value + 1)}
           />
         </div>

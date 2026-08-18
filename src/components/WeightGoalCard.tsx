@@ -18,6 +18,7 @@ import { withBasePath } from "@/lib/paths";
 type ProfileResponse = {
   goal: WeightGoal | null;
   goalPace: GoalPace | null;
+  currentWeightKg: number | null;
   error?: string;
 };
 
@@ -25,14 +26,21 @@ type WeightGoalCardProps = {
   selectedDate: string;
   refreshKey: number;
   onChanged: () => void;
+  showCurrentWeight?: boolean;
 };
 
-export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGoalCardProps) {
+export function WeightGoalCard({
+  selectedDate,
+  refreshKey,
+  onChanged,
+  showCurrentWeight = false,
+}: WeightGoalCardProps) {
   const [goal, setGoal] = useState<WeightGoal | null>(null);
   const [goalPace, setGoalPace] = useState<GoalPace | null>(null);
   const [draftGoal, setDraftGoal] = useState<WeightGoal | null>(null);
   const [draftPace, setDraftPace] = useState<GoalPace | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
+  const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +65,7 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       if (!nextGoal || (goalNeedsPace(nextGoal) && !nextPace)) {
         setEditingGoal(true);
       }
+      setCurrentWeightKg(data.currentWeightKg);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка профиля");
     } finally {
@@ -121,6 +130,15 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
     <section className="card p-6">
       <div className="flex flex-col gap-5">
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
+
+        {!loading && showCurrentWeight ? (
+          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
+            <div className="mt-1 text-2xl font-bold text-slate-900">
+              {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+            </div>
+          </div>
+        ) : null}
 
         {!loading ? (
           <div>
