@@ -3,6 +3,10 @@ import { lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat
 import { normalizeBarcode } from "@/lib/barcode";
 import { findFoodImage } from "@/lib/food-image";
 import {
+  needsNutritionLookup,
+  normalizeRecognitionNutrition,
+} from "@/lib/recognition-nutrition";
+import {
   lookupOpenFoodFactsByBarcode,
   nutritionFromPer100g,
   offMatchesQuery,
@@ -174,7 +178,24 @@ export async function recognizeFoodWithAI(
   }
 
   const vision = await recognizeWithGigaChat(imageBuffer, filename);
-  return enrichPackagedProduct({ ...vision, source: "gigachat" });
+  const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat" });
+  let result = normalizeRecognitionNutrition(enriched);
+
+  if (needsNutritionLookup(result)) {
+    try {
+      const looked = await lookupFoodByName(result.dishName);
+      if (!needsNutritionLookup(looked)) {
+        return normalizeRecognitionNutrition({
+          ...looked,
+          confidence: Math.max(looked.confidence, result.confidence * 0.85),
+        });
+      }
+    } catch (error) {
+      console.error("Nutrition lookup fallback failed", error);
+    }
+  }
+
+  return result;
 }
 
 async function withFoodImage(
@@ -201,22 +222,24 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  return withFoodImage(
-    {
-      dishName: off.dishName,
-      calories: off.calories,
-      protein: off.protein,
-      fat: off.fat,
-      carbs: off.carbs,
-      portionGrams: off.portionGrams,
-      barcode: off.barcode ?? barcode,
-      brand: off.brand,
-      imageUrl: off.imageUrl,
-      confidence: 0.9,
-      source: "openfoodfacts-barcode",
-      photoKind: "barcode",
-    },
-    off.dishName,
+  return normalizeRecognitionNutrition(
+    await withFoodImage(
+      {
+        dishName: off.dishName,
+        calories: off.calories,
+        protein: off.protein,
+        fat: off.fat,
+        carbs: off.carbs,
+        portionGrams: off.portionGrams,
+        barcode: off.barcode ?? barcode,
+        brand: off.brand,
+        imageUrl: off.imageUrl,
+        confidence: 0.9,
+        source: "openfoodfacts-barcode",
+        photoKind: "barcode",
+      },
+      off.dishName,
+    ),
   );
 }
 
@@ -227,22 +250,24 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
 
   const off = await searchOpenFoodFacts(dishName);
   if (off && offMatchesQuery(dishName, off.dishName)) {
-    return withFoodImage(
-      {
-        dishName: off.dishName || dishName.trim(),
-        calories: off.calories,
-        protein: off.protein,
-        fat: off.fat,
-        carbs: off.carbs,
-        portionGrams: off.portionGrams,
-        barcode: off.barcode,
-        brand: off.brand,
-        imageUrl: off.imageUrl,
-        confidence: 0.8,
-        source: "openfoodfacts-search",
-        photoKind: "package",
-      },
-      dishName,
+    return normalizeRecognitionNutrition(
+      await withFoodImage(
+        {
+          dishName: off.dishName || dishName.trim(),
+          calories: off.calories,
+          protein: off.protein,
+          fat: off.fat,
+          carbs: off.carbs,
+          portionGrams: off.portionGrams,
+          barcode: off.barcode,
+          brand: off.brand,
+          imageUrl: off.imageUrl,
+          confidence: 0.8,
+          source: "openfoodfacts-search",
+          photoKind: "package",
+        },
+        dishName,
+      ),
     );
   }
 
@@ -253,5 +278,7 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
   }
 
   const result = await lookupFoodWithGigaChat(dishName);
-  return withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName);
+  return normalizeRecognitionNutrition(
+    await withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName),
+  );
 }
