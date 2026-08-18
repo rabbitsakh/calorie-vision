@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import sharp from "sharp";
-import { compressFoodImage, FOOD_IMAGE_MAX_EDGE } from "./image-compress.ts";
+import { compressFoodImage, FOOD_IMAGE_MAX_BYTES, FOOD_IMAGE_MAX_EDGE } from "./image-compress.ts";
 import { mealNeedsImage, normalizeDishName } from "./meal-image.ts";
 
 test("compresses a large png into a smaller webp within the display size", async () => {
@@ -10,7 +10,7 @@ test("compresses a large png into a smaller webp within the display size", async
       width: 1600,
       height: 1200,
       channels: 3,
-      background: { r: 15, g: 118, b: 110 },
+      noise: { type: "gaussian", mean: 128, sigma: 40 },
     },
   })
     .png()
@@ -19,6 +19,7 @@ test("compresses a large png into a smaller webp within the display size", async
   const result = await compressFoodImage(png);
   assert.equal(result.mimeType, "image/webp");
   assert.ok(result.buffer.length < png.length);
+  assert.ok(result.buffer.length <= FOOD_IMAGE_MAX_BYTES);
 
   const meta = await sharp(result.buffer).metadata();
   assert.equal(meta.format, "webp");
