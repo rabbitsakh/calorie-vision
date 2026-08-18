@@ -11,7 +11,7 @@ type AuthTab = "phone" | "email";
 
 const AUTH_ERRORS: Record<string, string> = {
   OAuthSignin: "Не удалось начать вход через соцсеть.",
-  OAuthCallback: "Соцсеть отклонила вход. Проверьте Redirect URI в кабинете приложения.",
+  OAuthCallback: "Не удалось войти через VK. В кабинете VK ID в «Доверенный Redirect URL» укажите точно https://calorievision.ru/api/auth/callback/vk",
   OAuthCreateAccount: "Не удалось создать аккаунт.",
   OAuthAccountNotLinked: "Этот email уже используется другим способом входа.",
   Callback: "Ошибка входа. Попробуйте ещё раз.",
