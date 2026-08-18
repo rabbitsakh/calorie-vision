@@ -26,7 +26,6 @@ export default function WeightPage() {
             onChanged={() => setRefreshKey((value) => value + 1)}
           />
           <WeightGoalCard
-            goalOnly
             selectedDate={todayKey}
             refreshKey={refreshKey}
             onChanged={() => setRefreshKey((value) => value + 1)}
