@@ -4,6 +4,7 @@ import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/email";
 import GoogleProvider from "next-auth/providers/google";
+import { isAdminEmail } from "@/lib/admin";
 import { sanitizeAdapterAccount, sanitizeAdapterUser } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
 import { verifyPhoneOtp } from "@/lib/otp";
@@ -132,6 +133,7 @@ export const authOptions: NextAuthOptions = {
           session.user.phone = user.phone;
           session.user.name = user.name ?? session.user.name;
           session.user.image = user.image ?? session.user.image;
+          session.user.isAdmin = isAdminEmail(user.email);
         }
       }
       return session;

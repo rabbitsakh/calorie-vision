@@ -8,6 +8,7 @@ declare module "next-auth" {
       email?: string | null;
       phone?: string | null;
       image?: string | null;
+      isAdmin?: boolean;
     };
   }
 }

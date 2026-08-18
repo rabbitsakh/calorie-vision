@@ -77,7 +77,7 @@ export function AuthPanel() {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
         >
           <Link
             href="/profile"
@@ -87,6 +87,26 @@ export function AuthPanel() {
           >
             Профиль
           </Link>
+          {session.user.isAdmin ? (
+            <>
+              <Link
+                href="/admin/users"
+                role="menuitem"
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => setOpen(false)}
+              >
+                Пользователи
+              </Link>
+              <Link
+                href="/admin/stats"
+                role="menuitem"
+                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => setOpen(false)}
+              >
+                Статистика
+              </Link>
+            </>
+          ) : null}
           <button
             type="button"
             role="menuitem"
