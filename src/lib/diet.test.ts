@@ -58,6 +58,16 @@ test("does not inflate calories linearly for a high body weight", () => {
   assert.ok(man.calories < oldRuleOfThumb);
 });
 
+test("does not set 1.9 g protein per kg of a very high body weight", () => {
+  const diet = recommendDiet(138.9, "LOSE", "FAST", "MALE");
+  assert.equal(diet.calories, 2082);
+  assert.equal(diet.protein, 174.6);
+  assert.equal(diet.fat, 64.3);
+  assert.equal(diet.carbs, 201.2);
+  assert.ok(diet.protein < 138.9 * 1.9);
+  assert.ok(diet.protein * 4 + diet.fat * 9 < diet.calories * 0.7);
+});
+
 test("defaults a missing pace to the healthy plan", () => {
   assert.deepEqual(
     recommendDiet(80, "LOSE", undefined, "FEMALE"),
