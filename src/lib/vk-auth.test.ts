@@ -6,6 +6,7 @@ import {
   getVkRedirectUri,
   parseVkCallbackParams,
   takeVkDeviceId,
+  toNextAuthTokens,
   vkProfileToUser,
 } from "./vk-auth.ts";
 
@@ -48,6 +49,24 @@ test("maps a VK ID profile to a NextAuth user", () => {
       image: "https://example.com/a.png",
     },
   );
+});
+
+test("maps a top-level VK user object without a nested user field", () => {
+  assert.equal(vkProfileToUser({ user_id: 456, first_name: "Анна" }).id, "456");
+});
+
+test("omits VK user_id and state from tokens stored in Account", () => {
+  const tokens = toNextAuthTokens({
+    access_token: "tok",
+    refresh_token: "ref",
+    expires_in: 0,
+    scope: "email phone",
+  });
+  assert.equal(tokens.access_token, "tok");
+  assert.equal(tokens.expires_in, 0);
+  assert.equal(typeof tokens.expires_at, "number");
+  assert.equal("user_id" in tokens, false);
+  assert.equal("state" in tokens, false);
 });
 
 test("sends device_id and state when exchanging the VK code", () => {

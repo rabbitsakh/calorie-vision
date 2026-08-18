@@ -1,8 +1,10 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
+import type { Adapter, AdapterAccount, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/email";
 import GoogleProvider from "next-auth/providers/google";
+import { sanitizeAdapterAccount, sanitizeAdapterUser } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
 import { verifyPhoneOtp } from "@/lib/otp";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
@@ -80,8 +82,27 @@ if (process.env.VK_CLIENT_ID) {
   );
 }
 
+function createAuthAdapter(): Adapter {
+  const adapter = PrismaAdapter(prisma) as Adapter;
+
+  return {
+    ...adapter,
+    createUser(user: AdapterUser) {
+      return adapter.createUser!({
+        id: user.id,
+        ...sanitizeAdapterUser(user as unknown as Record<string, unknown>),
+      } as AdapterUser);
+    },
+    linkAccount(account: AdapterAccount) {
+      return adapter.linkAccount!(
+        sanitizeAdapterAccount(account as unknown as Record<string, unknown>) as AdapterAccount,
+      );
+    },
+  };
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  adapter: createAuthAdapter(),
   providers,
   secret: process.env.NEXTAUTH_SECRET,
   session: {

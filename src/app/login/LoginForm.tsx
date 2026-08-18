@@ -14,7 +14,7 @@ const AUTH_ERRORS: Record<string, string> = {
   OAuthCallback: "Не удалось войти через VK. В кабинете VK ID в «Доверенный Redirect URL» укажите точно https://calorievision.ru/api/auth/callback/vk",
   OAuthCreateAccount: "Не удалось создать аккаунт.",
   OAuthAccountNotLinked: "Этот email уже используется другим способом входа.",
-  Callback: "Ошибка входа. Попробуйте ещё раз.",
+  Callback: "Не удалось сохранить вход через VK. Попробуйте ещё раз.",
   CredentialsSignin: "Неверный или просроченный код.",
   Configuration: "Вход через соцсеть не настроен на сервере.",
   AccessDenied: "Доступ через соцсеть запрещён.",
