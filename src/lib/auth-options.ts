@@ -5,7 +5,13 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/email";
 import GoogleProvider from "next-auth/providers/google";
 import { isAdminEmail } from "@/lib/admin";
-import { sanitizeAdapterAccount, sanitizeAdapterUser } from "@/lib/auth-account";
+import {
+  isBlankAuthEmail,
+  isPrismaUniqueConflict,
+  oauthUserCreateId,
+  sanitizeAdapterAccount,
+  sanitizeAdapterUser,
+} from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
 import { verifyPhoneOtp } from "@/lib/otp";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
@@ -88,16 +94,67 @@ function createAuthAdapter(): Adapter {
 
   return {
     ...adapter,
-    createUser(user: AdapterUser) {
-      return adapter.createUser!({
-        id: user.id,
+    async createUser(user: AdapterUser) {
+      const data = {
         ...sanitizeAdapterUser(user as unknown as Record<string, unknown>),
-      } as AdapterUser);
+      };
+      const id = oauthUserCreateId(user);
+
+      if (id) {
+        const existing = await prisma.user.findUnique({ where: { id } });
+        if (existing) {
+          return existing;
+        }
+      }
+
+      try {
+        return await prisma.user.create({
+          data: id ? { id, ...data } : data,
+        });
+      } catch (error) {
+        if (id && isPrismaUniqueConflict(error)) {
+          const existing = await prisma.user.findUnique({ where: { id } });
+          if (existing) {
+            return existing;
+          }
+        }
+        throw error;
+      }
     },
-    linkAccount(account: AdapterAccount) {
-      return adapter.linkAccount!(
-        sanitizeAdapterAccount(account as unknown as Record<string, unknown>) as AdapterAccount,
-      );
+    async getUserByEmail(email) {
+      if (isBlankAuthEmail(email)) {
+        return null;
+      }
+      return adapter.getUserByEmail!(email);
+    },
+    async getUserByAccount(providerAccount) {
+      return adapter.getUserByAccount!({
+        provider: providerAccount.provider,
+        providerAccountId: String(providerAccount.providerAccountId),
+      });
+    },
+    async linkAccount(account: AdapterAccount) {
+      const data = sanitizeAdapterAccount(account as unknown as Record<string, unknown>);
+      try {
+        return await adapter.linkAccount!(data as AdapterAccount);
+      } catch (error) {
+        if (!isPrismaUniqueConflict(error) || !data.provider || !data.providerAccountId) {
+          throw error;
+        }
+
+        const existing = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: String(data.provider),
+              providerAccountId: String(data.providerAccountId),
+            },
+          },
+        });
+        if (existing) {
+          return existing as AdapterAccount;
+        }
+        throw error;
+      }
     },
   };
 }

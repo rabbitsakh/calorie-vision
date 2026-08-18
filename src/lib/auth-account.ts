@@ -33,7 +33,32 @@ export function sanitizeAdapterAccount(data: Record<string, unknown>): Record<st
     account.expires_at = Math.round(account.expires_at);
   }
 
+  if (account.providerAccountId !== undefined) {
+    account.providerAccountId = String(account.providerAccountId);
+  }
+
+  if (account.userId !== undefined) {
+    account.userId = String(account.userId);
+  }
+
   return account;
+}
+
+export function isBlankAuthEmail(email: unknown): boolean {
+  return typeof email !== "string" || !email.trim();
+}
+
+export function oauthUserCreateId(user: { id?: unknown }): string | undefined {
+  return typeof user.id === "string" && user.id.trim() ? user.id.trim() : undefined;
+}
+
+export function isPrismaUniqueConflict(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 export function sanitizeAdapterUser(data: Record<string, unknown>): {
