@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { lookupFoodByName } from "@/lib/food-recognition";
+import { lookupFoodByBarcode, lookupFoodByName } from "@/lib/food-recognition";
+import { normalizeBarcode } from "@/lib/barcode";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,11 +10,17 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const body = (await request.json()) as { dishName?: string };
+    const body = (await request.json()) as { dishName?: string; barcode?: string };
+    const barcode = body.barcode ? normalizeBarcode(body.barcode) : null;
     const dishName = body.dishName?.trim();
 
+    if (barcode) {
+      const recognition = await lookupFoodByBarcode(barcode);
+      return NextResponse.json({ recognition });
+    }
+
     if (!dishName) {
-      return NextResponse.json({ error: "Укажите название блюда" }, { status: 400 });
+      return NextResponse.json({ error: "Укажите название блюда или штрихкод" }, { status: 400 });
     }
 
     const recognition = await lookupFoodByName(dishName);

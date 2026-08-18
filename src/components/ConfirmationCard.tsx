@@ -231,6 +231,8 @@ export function ConfirmationCard({
     }
   }
 
+  const hasImage = Boolean(previewUrl || imagePath);
+
   return (
     <section className="card p-6">
       <div className="flex flex-col gap-5">
@@ -241,15 +243,17 @@ export function ConfirmationCard({
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-[220px_1fr]">
-          <div className="overflow-hidden rounded-2xl bg-slate-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl ?? getImageUrl(imagePath)}
-              alt="Загруженная еда"
-              className="h-full min-h-52 w-full object-cover"
-            />
-          </div>
+        <div className={`grid gap-5 ${hasImage ? "md:grid-cols-[220px_1fr]" : ""}`}>
+          {hasImage ? (
+            <div className="overflow-hidden rounded-2xl bg-slate-100">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={previewUrl ?? getImageUrl(imagePath)}
+                alt="Загруженная еда"
+                className="h-full min-h-52 w-full object-cover"
+              />
+            </div>
+          ) : null}
 
           <div className="flex flex-col gap-4">
             <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">

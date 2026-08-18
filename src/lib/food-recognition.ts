@@ -175,6 +175,32 @@ export async function recognizeFoodWithAI(
   return enrichPackagedProduct({ ...vision, source: "gigachat" });
 }
 
+export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRecognitionResult> {
+  const barcode = normalizeBarcode(barcodeInput);
+  if (!barcode) {
+    throw new Error("Укажите корректный штрихкод (8, 12 или 13 цифр)");
+  }
+
+  const off = await lookupOpenFoodFactsByBarcode(barcode);
+  if (!off) {
+    throw new Error("Продукт не найден в базе Open Food Facts");
+  }
+
+  return {
+    dishName: off.dishName,
+    calories: off.calories,
+    protein: off.protein,
+    fat: off.fat,
+    carbs: off.carbs,
+    portionGrams: off.portionGrams,
+    barcode: off.barcode ?? barcode,
+    brand: off.brand,
+    confidence: 0.9,
+    source: "openfoodfacts-barcode",
+    photoKind: "barcode",
+  };
+}
+
 export async function lookupFoodByName(dishName: string): Promise<FoodRecognitionResult> {
   if (!dishName.trim()) {
     throw new Error("Укажите название блюда");

@@ -9,6 +9,55 @@ function isValidWeight(value: number): boolean {
   return Number.isFinite(value) && value >= 20 && value <= 300;
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const { session, response } = await requireSession();
+    if (response) {
+      return response;
+    }
+
+    const limitParam = request.nextUrl.searchParams.get("limit");
+    const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 50) : 10;
+
+    const [entries, first, current] = await Promise.all([
+      prisma.weightEntry.findMany({
+        where: { userId: session.user.id },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        take: limit,
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { date: "asc" },
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: { date: "desc" },
+      }),
+    ]);
+
+    const changeKg =
+      first && current ? Math.round((current.weightKg - first.weightKg) * 10) / 10 : null;
+
+    return NextResponse.json({
+      entries: entries.map((entry) => ({
+        id: entry.id,
+        date: entry.date,
+        weightKg: entry.weightKg,
+        createdAt: entry.createdAt.toISOString(),
+        updatedAt: entry.updatedAt.toISOString(),
+      })),
+      firstWeightKg: first?.weightKg ?? null,
+      firstWeightDate: first?.date ?? null,
+      currentWeightKg: current?.weightKg ?? null,
+      currentWeightDate: current?.date ?? null,
+      weightChangeKg: changeKg,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось загрузить вес" }, { status: 500 });
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
     const { session, response } = await requireSession();

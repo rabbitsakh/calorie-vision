@@ -10,9 +10,10 @@ type DailyLogProps = {
   selectedDate: string;
   refreshKey: number;
   onChanged?: () => void;
+  compact?: boolean;
 };
 
-export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
   const [daySummary, setDaySummary] = useState<
@@ -76,10 +77,14 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
     <section className="card p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold">Дневник за день</h2>
-            <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
-          </div>
+          {!compact ? (
+            <div>
+              <h2 className="text-xl font-bold">Дневник за день</h2>
+              <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
+            </div>
+          ) : (
+            <h2 className="text-lg font-bold">Дневник за день</h2>
+          )}
           <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
             <div className="text-xs uppercase tracking-wide text-teal-100">Итого</div>
             <div className="text-2xl font-bold">{totals.calories} ккал</div>
@@ -107,7 +112,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged }: DailyLogProps)
 
         {!loading && !error && entries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            За этот день пока нет записей. Загрузите фото еды, чтобы начать.
+            За этот день пока нет записей. Добавьте еду выше.
           </div>
         ) : null}
 
