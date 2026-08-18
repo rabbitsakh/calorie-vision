@@ -129,6 +129,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
                     src={getImageUrl(entry.imagePath)}
                     alt={entry.dishName}
                     className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer-when-downgrade"
                   />
                 </div>
               ) : null}

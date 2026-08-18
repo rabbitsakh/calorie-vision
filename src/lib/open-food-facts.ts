@@ -9,6 +9,7 @@ export type PackNutrition = {
   explicitPackGrams?: boolean;
   barcode?: string;
   brand?: string;
+  imageUrl?: string;
 };
 
 type OffNutriments = {
@@ -29,11 +30,37 @@ type OffProduct = {
   serving_size?: string;
   serving_quantity?: number | string;
   nutriments?: OffNutriments;
+  image_front_url?: string;
+  image_url?: string;
+  image_front_small_url?: string;
+  image_small_url?: string;
 };
 
 const USER_AGENT = "CalorieVision/1.0 (https://calorievision.ru)";
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
 const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
+
+function pickOffImageUrl(product: OffProduct): string | undefined {
+  const candidates = [
+    product.image_front_url,
+    product.image_url,
+    product.image_front_small_url,
+    product.image_small_url,
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      candidate.startsWith("https://") &&
+      /openfoodfacts\.(org|net)/i.test(candidate) &&
+      !/\.svg(?:$|\?)/i.test(candidate)
+    ) {
+      return candidate;
+    }
+  }
+
+  return undefined;
+}
 
 export function parsePackGrams(value: string | number | null | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -155,6 +182,7 @@ export function offProductToNutrition(
     barcode: product.code,
     brand,
     explicitPackGrams: explicit,
+    imageUrl: pickOffImageUrl(product),
   };
 }
 

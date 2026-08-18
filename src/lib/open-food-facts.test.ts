@@ -54,12 +54,14 @@ test("converts an Open Food Facts product to a portion", () => {
       fat_100g: 2.5,
       carbohydrates_100g: 4.1,
     },
+    image_front_url: "https://images.openfoodfacts.org/images/products/460/kefir.jpg",
   });
 
   assert.ok(nutrition);
   assert.equal(nutrition?.dishName, "Простоквашино Кефир 2.5%");
   assert.equal(nutrition?.portionGrams, 100);
   assert.equal(nutrition?.calories, 51);
+  assert.equal(nutrition?.imageUrl, "https://images.openfoodfacts.org/images/products/460/kefir.jpg");
 });
 
 test("uses the full pack when it looks like a single serving", () => {

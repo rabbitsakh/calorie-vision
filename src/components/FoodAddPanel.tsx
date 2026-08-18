@@ -15,9 +15,12 @@ type FoodAddPanelProps = {
   onSaved: () => void;
 };
 
-function toRecognitionResponse(recognition: FoodRecognitionResult): RecognitionResponse {
+function toRecognitionResponse(
+  recognition: FoodRecognitionResult,
+  imagePath?: string,
+): RecognitionResponse {
   return {
-    imagePath: "",
+    imagePath: imagePath ?? "",
     recognition,
   };
 }
@@ -42,6 +45,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
       });
       const data = (await response.json()) as {
         recognition?: FoodRecognitionResult;
+        imagePath?: string;
         error?: string;
       };
 
@@ -49,7 +53,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         throw new Error(data.error ?? "Не удалось найти продукт");
       }
 
-      setPendingResult(toRecognitionResponse(data.recognition));
+      setPendingResult(toRecognitionResponse(data.recognition, data.imagePath));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка поиска");
     } finally {

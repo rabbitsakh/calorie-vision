@@ -43,13 +43,14 @@ export function ConfirmationCard({
   onCancel,
   onSaved,
 }: ConfirmationCardProps) {
-  const { recognition, imagePath, previewUrl } = result;
+  const { recognition, imagePath: initialImagePath, previewUrl } = result;
   const [dishName, setDishName] = useState(recognition.dishName);
   const [calories, setCalories] = useState(String(recognition.calories));
   const [protein, setProtein] = useState(String(recognition.protein ?? ""));
   const [fat, setFat] = useState(String(recognition.fat ?? ""));
   const [carbs, setCarbs] = useState(String(recognition.carbs ?? ""));
   const [portionGrams, setPortionGrams] = useState(String(recognition.portionGrams ?? ""));
+  const [imagePath, setImagePath] = useState(initialImagePath);
   const [baseline, setBaseline] = useState<NutritionValues | null>(() =>
     nutritionBaseline(recognition),
   );
@@ -105,7 +106,8 @@ export function ConfirmationCard({
     setCarbs(String(recognition.carbs ?? ""));
     setPortionGrams(String(recognition.portionGrams ?? ""));
     setBaseline(nutritionBaseline(recognition));
-  }, [recognition]);
+    setImagePath(initialImagePath);
+  }, [recognition, initialImagePath]);
 
   function applyNutrition(data: NutritionFields) {
     setDishName(data.dishName);
@@ -161,6 +163,7 @@ export function ConfirmationCard({
 
       const data = (await response.json()) as {
         recognition?: NutritionFields;
+        imagePath?: string;
         error?: string;
       };
 
@@ -173,6 +176,9 @@ export function ConfirmationCard({
       }
 
       applyNutrition(data.recognition);
+      if (!previewUrl && data.imagePath) {
+        setImagePath(data.imagePath);
+      }
       const sourceLabel = data.recognition.source
         ? RECOGNITION_SOURCE_LABELS[data.recognition.source]
         : undefined;
@@ -211,7 +217,7 @@ export function ConfirmationCard({
           carbs: carbs ? Number(carbs) : undefined,
           portionGrams: portionGrams ? Number(portionGrams) : undefined,
           confidence: recognition.confidence,
-          imagePath,
+          imagePath: imagePath || undefined,
           wasCorrected,
           originalDish: recognition.dishName,
           originalCalories: recognition.calories,
@@ -249,7 +255,7 @@ export function ConfirmationCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={previewUrl ?? getImageUrl(imagePath)}
-                alt="Загруженная еда"
+                alt={dishName.trim() || "Фото блюда"}
                 className="h-full min-h-52 w-full object-cover"
               />
             </div>

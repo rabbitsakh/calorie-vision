@@ -26,6 +26,7 @@ export type FoodRecognitionResult = {
   photoKind?: PhotoKind;
   barcode?: string;
   brand?: string;
+  imageUrl?: string;
   per100g?: {
     calories: number;
     protein?: number;
