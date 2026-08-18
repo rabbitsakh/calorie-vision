@@ -153,7 +153,7 @@ export async function recompressStoredImages(): Promise<number> {
       continue;
     }
 
-    if (ext === ".webp" && original.length <= 80_000) {
+    if (ext === ".webp" && original.length <= 18_000) {
       continue;
     }
 
