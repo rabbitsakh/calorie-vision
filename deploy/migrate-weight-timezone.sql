@@ -11,13 +11,36 @@
 
 SET NAMES utf8mb4;
 
--- 1. Добавить timezone к пользователю (идемпотентно)
-ALTER TABLE `User`
-  ADD COLUMN IF NOT EXISTS `timezone` VARCHAR(64) NULL;
+DROP PROCEDURE IF EXISTS `_add_column_if_not_exists`;
+DELIMITER //
+CREATE PROCEDURE `_add_column_if_not_exists`(
+  IN p_table VARCHAR(64),
+  IN p_column VARCHAR(64),
+  IN p_ddl TEXT
+)
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = p_table
+      AND COLUMN_NAME = p_column
+  ) THEN
+    SET @sql = CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN `', p_column, '` ', p_ddl);
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END //
+DELIMITER ;
 
--- 2. Добавить measuredAt к WeightEntry (идемпотентно)
-ALTER TABLE `WeightEntry`
-  ADD COLUMN IF NOT EXISTS `measuredAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
+CALL `_add_column_if_not_exists`('User', 'timezone', 'VARCHAR(64) NULL');
+CALL `_add_column_if_not_exists`(
+  'WeightEntry',
+  'measuredAt',
+  'DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)'
+);
+DROP PROCEDURE IF EXISTS `_add_column_if_not_exists`;
 
 -- 3. Заполнить measuredAt из createdAt для существующих записей
 UPDATE `WeightEntry`
