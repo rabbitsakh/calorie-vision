@@ -7,7 +7,32 @@ import {
   sortWeightEntriesNewestFirst,
 } from "./weight-entries.ts";
 
-test("orders weight entries by measuredAt descending", () => {
+test("orders by calendar date descending, then measuredAt", () => {
+  const entries = [
+    {
+      id: "old-day",
+      date: "2026-08-17",
+      measuredAt: "2026-08-18T19:33:00.000Z",
+      weightKg: 141.3,
+    },
+    {
+      id: "new-day-late",
+      date: "2026-08-18",
+      measuredAt: "2026-08-18T16:34:00.000Z",
+      weightKg: 137,
+    },
+    {
+      id: "new-day-early",
+      date: "2026-08-18",
+      measuredAt: "2026-08-18T16:31:00.000Z",
+      weightKg: 139,
+    },
+  ];
+  const sorted = sortWeightEntriesNewestFirst(entries);
+  assert.deepEqual(sorted.map((e) => e.id), ["new-day-late", "new-day-early", "old-day"]);
+});
+
+test("orders by measuredAt within the same calendar day", () => {
   const entries = [
     { id: "a", measuredAt: "2024-08-16T16:32:00.000Z", date: "2024-08-16", weightKg: 138 },
     { id: "b", measuredAt: "2024-08-16T16:34:00.000Z", date: "2024-08-16", weightKg: 139 },
@@ -17,7 +42,7 @@ test("orders weight entries by measuredAt descending", () => {
   assert.deepEqual(sorted.map((e) => e.id), ["c", "b", "a"]);
 });
 
-test("uses id as tie-breaker when measuredAt is equal", () => {
+test("uses id as tie-breaker when date and measuredAt are equal", () => {
   const entries = [
     { id: "a", measuredAt: "2024-08-16T16:32:00.000Z", date: "2024-08-16", weightKg: 138 },
     { id: "b", measuredAt: "2024-08-16T16:32:00.000Z", date: "2024-08-16", weightKg: 139 },
@@ -26,15 +51,30 @@ test("uses id as tie-breaker when measuredAt is equal", () => {
   assert.deepEqual(sorted.map((e) => e.id), ["b", "a"]);
 });
 
-test("groups by date with newest entries first within each day", () => {
+test("groups by date with newest calendar day first", () => {
   const entries = [
-    { id: "a", measuredAt: "2024-08-16T16:32:00.000Z", date: "2024-08-16", weightKg: 138 },
-    { id: "b", measuredAt: "2024-08-16T16:34:00.000Z", date: "2024-08-16", weightKg: 139 },
-    { id: "c", measuredAt: "2024-08-18T19:13:00.000Z", date: "2024-08-18", weightKg: 140.4 },
+    {
+      id: "old-day",
+      date: "2026-08-17",
+      measuredAt: "2026-08-18T19:33:00.000Z",
+      weightKg: 141.3,
+    },
+    {
+      id: "new-day-late",
+      date: "2026-08-18",
+      measuredAt: "2026-08-18T16:34:00.000Z",
+      weightKg: 137,
+    },
+    {
+      id: "new-day-early",
+      date: "2026-08-18",
+      measuredAt: "2026-08-18T16:31:00.000Z",
+      weightKg: 139,
+    },
   ];
   const grouped = groupWeightEntriesByDate(entries);
-  assert.deepEqual(grouped.map((g) => g.date), ["2024-08-18", "2024-08-16"]);
-  assert.deepEqual(grouped[1].items.map((e) => e.id), ["b", "a"]);
+  assert.deepEqual(grouped.map((g) => g.date), ["2026-08-18", "2026-08-17"]);
+  assert.deepEqual(grouped[0].items.map((e) => e.id), ["new-day-late", "new-day-early"]);
 });
 
 test("returns change from oldest to newest measurement", () => {
