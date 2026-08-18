@@ -1,5 +1,5 @@
-import type { FoodRecognitionResult } from "./food-types.ts";
-import { nutritionFromPer100g } from "./open-food-facts.ts";
+import type { FoodRecognitionResult } from "./food-types";
+import { nutritionFromPer100g } from "./open-food-facts";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
