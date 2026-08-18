@@ -3,6 +3,12 @@ import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey } from "@/lib/dates";
 import { round1 } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
+import {
+  computeWeightChangeKg,
+  latestWeightByDate,
+  weightEntryOrderNewestFirst,
+  weightEntryOrderOldestFirst,
+} from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +59,8 @@ export async function GET(request: NextRequest) {
           userId: session.user.id,
           date: { gte: start, lte: end },
         },
-        select: { date: true, weightKg: true },
-        orderBy: { date: "asc" },
+        select: { date: true, weightKg: true, measuredAt: true, id: true },
+        orderBy: weightEntryOrderOldestFirst,
       }),
     ]);
 
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
       mealByDate.set(meal.date, current);
     }
 
-    const weightByDate = new Map(weights.map((entry) => [entry.date, entry.weightKg]));
+    const weightByDate = latestWeightByDate(weights);
 
     const days = dates.map((date) => {
       const mealTotals = mealByDate.get(date);
@@ -90,14 +96,16 @@ export async function GET(request: NextRequest) {
         ? Math.round(daysWithMeals.reduce((sum, day) => sum + day.calories, 0) / daysWithMeals.length)
         : 0;
 
-    const firstWeight = await prisma.weightEntry.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { date: "asc" },
-    });
-    const lastWeight = await prisma.weightEntry.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { date: "desc" },
-    });
+    const [firstWeight, lastWeight] = await Promise.all([
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: weightEntryOrderOldestFirst,
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: weightEntryOrderNewestFirst,
+      }),
+    ]);
 
     return NextResponse.json({
       period,
@@ -107,10 +115,7 @@ export async function GET(request: NextRequest) {
       summary: {
         avgCalories,
         totalMealDays: daysWithMeals.length,
-        weightChangeKg:
-          firstWeight && lastWeight
-            ? Math.round((lastWeight.weightKg - firstWeight.weightKg) * 10) / 10
-            : null,
+        weightChangeKg: computeWeightChangeKg(firstWeight, lastWeight),
         firstWeightKg: firstWeight?.weightKg ?? null,
         lastWeightKg: lastWeight?.weightKg ?? null,
         daysWithWeight: daysWithWeight.length,

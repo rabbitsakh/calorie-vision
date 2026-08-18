@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
 import { calorieTone, compareNutrient, formatGoalChoice, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 type SaveMealBody = {
   date: string;
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id, date: { lte: date } },
-        orderBy: { date: "desc" },
+        orderBy: weightEntryOrderNewestFirst,
       }),
     ]);
 

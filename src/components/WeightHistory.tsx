@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateWords, formatTimeShort } from "@/lib/dates";
 import { formatSignedKg } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
+import { groupWeightEntriesByDate } from "@/lib/weight-entries";
 
 type WeightEntryRow = {
   id: string;
@@ -130,16 +131,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     }
   }
 
-  // Group entries by date for the list
-  const grouped = data?.entries.reduce<Array<{ date: string; items: WeightEntryRow[] }>>((acc, entry) => {
-    const last = acc[acc.length - 1];
-    if (last?.date === entry.date) {
-      last.items.push(entry);
-    } else {
-      acc.push({ date: entry.date, items: [entry] });
-    }
-    return acc;
-  }, []) ?? [];
+  const grouped = groupWeightEntriesByDate(data?.entries ?? []);
 
   return (
     <section className="card p-4 md:p-6">
