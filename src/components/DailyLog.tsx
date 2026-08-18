@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { formatDateWords } from "@/lib/dates";
@@ -26,17 +26,27 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const attemptedImageDates = useRef(new Set<string>());
+  const selectedDateRef = useRef(selectedDate);
+  selectedDateRef.current = selectedDate;
 
-  const loadEntries = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadEntries = useCallback(async (quiet = false) => {
+    const date = selectedDate;
+    if (!quiet) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
-      const response = await fetch(withBasePath(`/api/meals?date=${selectedDate}`));
+      const response = await fetch(withBasePath(`/api/meals?date=${date}`));
       const data = (await response.json()) as DayMealsResponse & { error?: string };
 
       if (!response.ok) {
         throw new Error(data.error ?? "Не удалось загрузить день");
+      }
+
+      if (selectedDateRef.current !== date) {
+        return;
       }
 
       setEntries(data.entries);
@@ -53,15 +63,50 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
         dietLabel: data.dietLabel ?? null,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      if (!quiet) {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      }
     } finally {
-      setLoading(false);
+      if (!quiet) {
+        setLoading(false);
+      }
     }
   }, [selectedDate]);
 
   useEffect(() => {
-    loadEntries();
-  }, [loadEntries, refreshKey]);
+    attemptedImageDates.current.delete(selectedDate);
+    void loadEntries();
+  }, [loadEntries, refreshKey, selectedDate]);
+
+  useEffect(() => {
+    if (loading || error) {
+      return;
+    }
+
+    const missing = entries.some((entry) => !entry.imagePath);
+    if (!missing || attemptedImageDates.current.has(selectedDate)) {
+      return;
+    }
+
+    attemptedImageDates.current.add(selectedDate);
+    const date = selectedDate;
+
+    void (async () => {
+      try {
+        const response = await fetch(withBasePath("/api/meals/images"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date }),
+        });
+        const data = (await response.json()) as { updated?: number };
+        if (response.ok && (data.updated ?? 0) > 0 && selectedDateRef.current === date) {
+          await loadEntries(true);
+        }
+      } catch {
+        // Diary still works if image lookup fails.
+      }
+    })();
+  }, [loading, error, entries, selectedDate, loadEntries]);
 
   async function handleDelete(id: string) {
     const response = await fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" });
@@ -129,7 +174,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
                     src={getImageUrl(entry.imagePath)}
                     alt={entry.dishName}
                     className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer-when-downgrade"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ) : null}

@@ -1,56 +1,13 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import { isAllowedImageUrl } from "@/lib/food-image";
+import { isAllowedImageUrl } from "./food-image";
+import { compressFoodImage } from "./image-compress";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "public/uploads";
 
 function getUploadDirectory(): string {
   return path.join(process.cwd(), UPLOAD_DIR);
-}
-
-export async function saveUploadedImage(file: File): Promise<string> {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const ext = path.extname(file.name) || ".jpg";
-  const safeExt = [".jpg", ".jpeg", ".png", ".webp"].includes(ext.toLowerCase())
-    ? ext.toLowerCase()
-    : ".jpg";
-
-  const uploadPath = getUploadDirectory();
-  await fs.mkdir(uploadPath, { recursive: true });
-
-  const id = randomUUID();
-  const filename = `${id}${safeExt}`;
-  await fs.writeFile(path.join(uploadPath, filename), buffer);
-
-  return `/api/uploads/${id}`;
-}
-
-export async function readUploadedImageById(id: string): Promise<{
-  buffer: Buffer;
-  mimeType: string;
-}> {
-  const uploadPath = getUploadDirectory();
-  const files = await fs.readdir(uploadPath);
-  const match = files.find((file) => file.startsWith(`${id}.`));
-
-  if (!match) {
-    throw new Error("Image not found");
-  }
-
-  const ext = path.extname(match).toLowerCase();
-  const mimeType =
-    ext === ".png"
-      ? "image/png"
-      : ext === ".webp"
-        ? "image/webp"
-        : ext === ".gif"
-          ? "image/gif"
-          : "image/jpeg";
-
-  const buffer = await fs.readFile(path.join(uploadPath, match));
-  return { buffer, mimeType };
 }
 
 function extensionForMime(mimeType: string): string {
@@ -66,6 +23,19 @@ function extensionForMime(mimeType: string): string {
   return ".jpg";
 }
 
+function mimeTypeForExtension(ext: string): string {
+  if (ext === ".png") {
+    return "image/png";
+  }
+  if (ext === ".webp") {
+    return "image/webp";
+  }
+  if (ext === ".gif") {
+    return "image/gif";
+  }
+  return "image/jpeg";
+}
+
 export async function saveImageBuffer(buffer: Buffer, mimeType = "image/jpeg"): Promise<string> {
   const uploadPath = getUploadDirectory();
   await fs.mkdir(uploadPath, { recursive: true });
@@ -75,6 +45,30 @@ export async function saveImageBuffer(buffer: Buffer, mimeType = "image/jpeg"): 
   await fs.writeFile(path.join(uploadPath, filename), buffer);
 
   return `/api/uploads/${id}`;
+}
+
+export async function saveUploadedImage(file: File): Promise<string> {
+  const bytes = await file.arrayBuffer();
+  const compressed = await compressFoodImage(Buffer.from(bytes));
+  return saveImageBuffer(compressed.buffer, compressed.mimeType);
+}
+
+export async function readUploadedImageById(id: string): Promise<{
+  buffer: Buffer;
+  mimeType: string;
+}> {
+  const uploadPath = getUploadDirectory();
+  const files = await fs.readdir(uploadPath);
+  const matches = files.filter((file) => file.startsWith(`${id}.`));
+  const match = matches.find((file) => file.toLowerCase().endsWith(".webp")) ?? matches[0];
+
+  if (!match) {
+    throw new Error("Image not found");
+  }
+
+  const ext = path.extname(match).toLowerCase();
+  const buffer = await fs.readFile(path.join(uploadPath, match));
+  return { buffer, mimeType: mimeTypeForExtension(ext) };
 }
 
 const MAX_REMOTE_IMAGE_BYTES = 2.5 * 1024 * 1024;
@@ -111,7 +105,8 @@ export async function saveRemoteImage(url: string): Promise<string | null> {
       return null;
     }
 
-    return saveImageBuffer(buffer, contentType);
+    const compressed = await compressFoodImage(buffer);
+    return saveImageBuffer(compressed.buffer, compressed.mimeType);
   } catch {
     return null;
   } finally {
@@ -130,6 +125,60 @@ export async function cacheRemoteImage(url: string | undefined): Promise<string 
   }
 
   return isAllowedImageUrl(url) ? url : undefined;
+}
+
+export async function recompressStoredImages(): Promise<number> {
+  const uploadPath = getUploadDirectory();
+
+  let files: string[] = [];
+  try {
+    files = await fs.readdir(uploadPath);
+  } catch {
+    return 0;
+  }
+
+  let converted = 0;
+
+  for (const file of files) {
+    const ext = path.extname(file).toLowerCase();
+    if (![".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
+      continue;
+    }
+
+    const fullPath = path.join(uploadPath, file);
+    let original: Buffer;
+    try {
+      original = await fs.readFile(fullPath);
+    } catch {
+      continue;
+    }
+
+    if (ext === ".webp" && original.length <= 80_000) {
+      continue;
+    }
+
+    try {
+      const compressed = await compressFoodImage(original);
+      if (compressed.buffer.length >= original.length && ext === ".webp") {
+        continue;
+      }
+
+      const id = path.basename(file, ext);
+      const nextName = `${id}${extensionForMime(compressed.mimeType)}`;
+      const nextPath = path.join(uploadPath, nextName);
+      await fs.writeFile(nextPath, compressed.buffer);
+
+      if (nextName !== file) {
+        await fs.unlink(fullPath);
+      }
+
+      converted += 1;
+    } catch (error) {
+      console.error("Failed to recompress", file, error);
+    }
+  }
+
+  return converted;
 }
 
 export function resolveLegacyImageId(imagePath: string): string | null {
