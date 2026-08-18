@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applyVkCallbackToSearchParams,
   buildVkTokenRequestBody,
+  getVkRedirectUri,
   parseVkCallbackParams,
+  takeVkDeviceId,
   vkProfileToUser,
 } from "./vk-auth.ts";
 
@@ -62,5 +65,49 @@ test("sends device_id and state when exchanging the VK code", () => {
   assert.equal(body.get("device_id"), "device-9");
   assert.equal(body.get("state"), "state-9");
   assert.equal(body.get("client_secret"), "secret");
+  assert.equal(body.get("service_token"), "secret");
   assert.equal(body.get("redirect_uri"), "https://calorievision.ru/api/auth/callback/vk");
+});
+
+test("builds the VK redirect URI from NEXTAUTH_URL", () => {
+  assert.equal(
+    getVkRedirectUri("https://calorievision.ru"),
+    "https://calorievision.ru/api/auth/callback/vk",
+  );
+  assert.equal(
+    getVkRedirectUri("https://calorievision.ru/api/auth"),
+    "https://calorievision.ru/api/auth/callback/vk",
+  );
+});
+
+test("unpacks VK payload and stashes device_id before NextAuth strips it", () => {
+  const incoming = new URLSearchParams({
+    payload: JSON.stringify({
+      code: "code-3",
+      state: "state-3",
+      type: "code_v2",
+      device_id: "device-3",
+    }),
+  });
+
+  const flattened = applyVkCallbackToSearchParams(incoming);
+  assert.equal(flattened.get("code"), "code-3");
+  assert.equal(flattened.get("state"), "state-3");
+  assert.equal(flattened.get("payload"), null);
+  assert.equal(flattened.get("device_id"), null);
+  assert.equal(takeVkDeviceId("state-3"), "device-3");
+  assert.equal(takeVkDeviceId("state-3"), "");
+});
+
+test("stashes device_id from a plain query callback", () => {
+  const flattened = applyVkCallbackToSearchParams(
+    new URLSearchParams({
+      code: "code-4",
+      state: "state-4",
+      device_id: "device-4",
+    }),
+  );
+  assert.equal(flattened.get("code"), "code-4");
+  assert.equal(flattened.get("device_id"), null);
+  assert.equal(takeVkDeviceId("state-4"), "device-4");
 });

@@ -4,6 +4,7 @@ import type { OAuthConfig } from "next-auth/providers/oauth";
 const VK_AUTHORIZE_URL = "https://id.vk.ru/authorize";
 const VK_TOKEN_URL = "https://id.vk.ru/oauth2/auth";
 const VK_USERINFO_URL = "https://id.vk.ru/oauth2/user_info";
+const DEVICE_TTL_MS = 15 * 60 * 1000;
 
 export type VkIdUser = {
   user_id?: string | number;
@@ -19,6 +20,13 @@ export type VkIdProfile = {
 };
 
 type OAuthRequestParams = Record<string, string | string[] | undefined>;
+
+type DeviceCacheEntry = {
+  deviceId: string;
+  expiresAt: number;
+};
+
+const deviceIdsByState = new Map<string, DeviceCacheEntry>();
 
 export function parseVkCallbackParams(params: OAuthRequestParams): {
   code: string;
@@ -40,6 +48,69 @@ export function parseVkCallbackParams(params: OAuthRequestParams): {
     state: stringValue(payload.state) || firstString(params.state),
     deviceId: stringValue(payload.device_id) || firstString(params.device_id),
   };
+}
+
+export function rememberVkDeviceId(state: string, deviceId: string): void {
+  if (!state || !deviceId) {
+    return;
+  }
+
+  deviceIdsByState.set(state, {
+    deviceId,
+    expiresAt: Date.now() + DEVICE_TTL_MS,
+  });
+}
+
+export function takeVkDeviceId(state: string): string {
+  const entry = deviceIdsByState.get(state);
+  if (!entry) {
+    return "";
+  }
+
+  deviceIdsByState.delete(state);
+  if (entry.expiresAt < Date.now()) {
+    return "";
+  }
+
+  return entry.deviceId;
+}
+
+/**
+ * NextAuth/openid-client keep only standard OAuth fields (`code`, `state`, …)
+ * and drop VK ID's `payload` / `device_id`. Unpack them first and stash
+ * `device_id` by `state` so the token request can still send it.
+ */
+export function applyVkCallbackToSearchParams(search: URLSearchParams): URLSearchParams {
+  const parsed = parseVkCallbackParams(Object.fromEntries(search.entries()));
+  rememberVkDeviceId(parsed.state, parsed.deviceId);
+
+  const next = new URLSearchParams(search);
+  if (parsed.code) {
+    next.set("code", parsed.code);
+  }
+  if (parsed.state) {
+    next.set("state", parsed.state);
+  }
+  next.delete("payload");
+  next.delete("device_id");
+  return next;
+}
+
+export function getVkRedirectUri(nextAuthUrl = process.env.NEXTAUTH_URL): string {
+  const fallback = "http://localhost:3000";
+  const raw = (nextAuthUrl || fallback).trim();
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    let path = url.pathname.replace(/\/+$/, "");
+    if (path === "/api/auth" || path.endsWith("/api/auth")) {
+      path = path.slice(0, -"/api/auth".length);
+    }
+    const base = `${url.origin}${path && path !== "/" ? path : ""}`;
+    return `${base}/api/auth/callback/vk`;
+  } catch {
+    return `${fallback}/api/auth/callback/vk`;
+  }
 }
 
 export function vkProfileToUser(profile: VkIdProfile | VkIdUser): {
@@ -80,6 +151,7 @@ export function buildVkTokenRequestBody(input: {
 
   if (input.clientSecret) {
     body.set("client_secret", input.clientSecret);
+    body.set("service_token", input.clientSecret);
   }
 
   return body;
@@ -89,6 +161,8 @@ export function createVkIdProvider(options: {
   clientId: string;
   clientSecret?: string;
 }): OAuthConfig<VkIdProfile> {
+  const redirectUri = getVkRedirectUri();
+
   return {
     id: "vk",
     name: "VK",
@@ -105,20 +179,30 @@ export function createVkIdProvider(options: {
         response_type: "code",
         scope: "email phone",
         lang_id: 0,
+        redirect_uri: redirectUri,
       },
     },
     token: {
       url: VK_TOKEN_URL,
       async request({ provider, params, checks }) {
         const callback = parseVkCallbackParams(params as OAuthRequestParams);
+        const state =
+          callback.state || (typeof checks.state === "string" ? checks.state : "");
+        const deviceId = callback.deviceId || takeVkDeviceId(state);
+        if (!callback.code || !deviceId) {
+          throw new Error(
+            "VK не вернул code или device_id. Проверьте Redirect URL в кабинете VK ID.",
+          );
+        }
+
         const body = buildVkTokenRequestBody({
           code: callback.code,
           codeVerifier: typeof checks.code_verifier === "string" ? checks.code_verifier : "",
           clientId: String(provider.clientId ?? ""),
           clientSecret: provider.clientSecret ? String(provider.clientSecret) : undefined,
-          redirectUri: provider.callbackUrl,
-          deviceId: callback.deviceId,
-          state: callback.state,
+          redirectUri,
+          deviceId,
+          state,
         });
 
         const response = await fetch(VK_TOKEN_URL, {
@@ -128,11 +212,15 @@ export function createVkIdProvider(options: {
         });
         const tokens = (await response.json()) as {
           error?: string;
-          error_description?: string;
+          error_description?: string | { error?: string };
           access_token?: string;
         };
         if (!response.ok || tokens.error || !tokens.access_token) {
-          throw new Error(tokens.error_description ?? tokens.error ?? "VK не выдал access token");
+          const description =
+            typeof tokens.error_description === "string"
+              ? tokens.error_description
+              : tokens.error_description?.error;
+          throw new Error(description ?? tokens.error ?? "VK не выдал access token");
         }
 
         return { tokens };
@@ -149,7 +237,10 @@ export function createVkIdProvider(options: {
             client_id: String(provider.clientId ?? ""),
           }),
         });
-        const profile = (await response.json()) as VkIdProfile & { error?: string; error_description?: string };
+        const profile = (await response.json()) as VkIdProfile & {
+          error?: string;
+          error_description?: string;
+        };
         if (!response.ok || profile.error) {
           throw new Error(profile.error_description ?? profile.error ?? "VK не вернул профиль");
         }

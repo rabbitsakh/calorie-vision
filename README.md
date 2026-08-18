@@ -165,11 +165,13 @@ npm run start
 3. Добавьте доверенный Redirect URL:
    - `https://calorievision.ru/api/auth/callback/vk`
    - `http://localhost:3000/api/auth/callback/vk` (для локальной разработки)
-4. Скопируйте ID приложения и защищённый ключ в `.env`:
+4. Скопируйте ID приложения и **сервисный ключ** (или защищённый ключ) в `.env`:
    ```env
    VK_CLIENT_ID=...
    VK_CLIENT_SECRET=...
    ```
+   Redirect URL должен совпадать **байт в байт**, без слэша на конце:
+   `https://calorievision.ru/api/auth/callback/vk`
 5. Перезапустите сервер. Без `VK_CLIENT_ID` кнопка VK скрывается.
 
 После обновления схемы БД (поля `phone`, `phoneVerified` у `User`) выполните:
@@ -268,8 +270,9 @@ certbot --nginx -d calorievision.ru -d www.calorievision.ru
 
 ### 7. VK ID
 
-- **Redirect URL:** `https://calorievision.ru/api/auth/callback/vk`
-- В `.env` на сервере: `VK_CLIENT_ID` и `VK_CLIENT_SECRET`, затем `bash deploy/deploy.sh`.
+- **Redirect URL (точно, без `/` на конце):** `https://calorievision.ru/api/auth/callback/vk`
+- Базовый домен: `calorievision.ru` (без `www`)
+- В `.env` на сервере: `VK_CLIENT_ID` и `VK_CLIENT_SECRET` (сервисный ключ), затем `bash deploy/deploy.sh`.
 
 После обновления nginx (`www` → основной домен) снова примените конфиг и при необходимости перевыпустите сертификат:
 
