@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
-import { saveUploadedImage } from "@/lib/upload";
+import { compressFoodImage } from "@/lib/image-compress";
+import { saveImageBuffer } from "@/lib/upload";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,9 +22,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Нужен файл изображения" }, { status: 400 });
     }
 
-    const imagePath = await saveUploadedImage(file);
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const recognition = await recognizeFoodWithAI(buffer, file.name);
+    const original = Buffer.from(await file.arrayBuffer());
+    const compressed = await compressFoodImage(original);
+    const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
+    const recognition = await recognizeFoodWithAI(original, file.name);
 
     return NextResponse.json({
       imagePath,

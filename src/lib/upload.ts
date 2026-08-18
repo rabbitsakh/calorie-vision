@@ -1,8 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import sharp from "sharp";
 import { isAllowedImageUrl } from "./food-image";
-import { compressFoodImage } from "./image-compress";
+import { compressFoodImage, FOOD_IMAGE_MAX_BYTES, FOOD_IMAGE_MAX_EDGE } from "./image-compress";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "public/uploads";
 
@@ -153,8 +154,18 @@ export async function recompressStoredImages(): Promise<number> {
       continue;
     }
 
-    if (ext === ".webp" && original.length <= 18_000) {
-      continue;
+    if (ext === ".webp") {
+      try {
+        const metadata = await sharp(original, { failOn: "none" }).metadata();
+        const withinEdge =
+          (metadata.width ?? 0) <= FOOD_IMAGE_MAX_EDGE &&
+          (metadata.height ?? 0) <= FOOD_IMAGE_MAX_EDGE;
+        if (withinEdge && original.length <= FOOD_IMAGE_MAX_BYTES) {
+          continue;
+        }
+      } catch {
+        // Recompress if metadata cannot be read.
+      }
     }
 
     try {
