@@ -119,15 +119,39 @@ export function vkProfileToUser(profile: VkIdProfile | VkIdUser): {
   email: string | null;
   image: string | null;
 } {
-  const user = "user" in profile && profile.user ? profile.user : (profile as VkIdUser);
+  const nested = "user" in profile && profile.user ? profile.user : undefined;
+  const raw = profile as VkIdUser;
+  const user = nested ?? raw;
+  const userId = user.user_id ?? raw.user_id;
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
 
   return {
-    id: String(user.user_id ?? ""),
+    id: String(userId ?? ""),
     name: name || "Пользователь VK",
-    email: user.email || null,
-    image: user.avatar || null,
+    email: user.email || raw.email || null,
+    image: user.avatar || raw.avatar || null,
   };
+}
+
+export function toNextAuthTokens(tokens: {
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  scope?: string;
+}): Record<string, string | number> {
+  const next: Record<string, string | number> = {};
+  if (tokens.access_token) next.access_token = tokens.access_token;
+  if (tokens.refresh_token) next.refresh_token = tokens.refresh_token;
+  if (tokens.id_token) next.id_token = tokens.id_token;
+  if (tokens.token_type) next.token_type = tokens.token_type;
+  if (typeof tokens.expires_in === "number" && Number.isFinite(tokens.expires_in)) {
+    next.expires_in = tokens.expires_in;
+    next.expires_at = Math.floor(Date.now() / 1000) + Math.max(0, Math.round(tokens.expires_in));
+  }
+  if (tokens.scope) next.scope = tokens.scope;
+  return next;
 }
 
 export function buildVkTokenRequestBody(input: {
@@ -214,6 +238,12 @@ export function createVkIdProvider(options: {
           error?: string;
           error_description?: string | { error?: string };
           access_token?: string;
+          refresh_token?: string;
+          id_token?: string;
+          token_type?: string;
+          expires_in?: number;
+          scope?: string;
+          user_id?: string | number;
         };
         if (!response.ok || tokens.error || !tokens.access_token) {
           const description =
@@ -223,7 +253,7 @@ export function createVkIdProvider(options: {
           throw new Error(description ?? tokens.error ?? "VK не выдал access token");
         }
 
-        return { tokens };
+        return { tokens: toNextAuthTokens(tokens) };
       },
     },
     userinfo: {
@@ -237,18 +267,27 @@ export function createVkIdProvider(options: {
             client_id: String(provider.clientId ?? ""),
           }),
         });
-        const profile = (await response.json()) as VkIdProfile & {
+        const data = (await response.json()) as Record<string, unknown> & {
           error?: string;
           error_description?: string;
+          user?: VkIdUser;
         };
-        if (!response.ok || profile.error) {
-          throw new Error(profile.error_description ?? profile.error ?? "VK не вернул профиль");
+        if (!response.ok || data.error) {
+          throw new Error(data.error_description ?? data.error ?? "VK не вернул профиль");
         }
+        const profile =
+          data.user && typeof data.user === "object"
+            ? (data as VkIdProfile)
+            : ({ user: data as VkIdUser } satisfies VkIdProfile);
         return profile as unknown as Profile;
       },
     },
     profile(profile) {
-      return vkProfileToUser(profile);
+      const user = vkProfileToUser(profile);
+      if (!user.id) {
+        throw new Error("VK не вернул идентификатор пользователя");
+      }
+      return user;
     },
     allowDangerousEmailAccountLinking: true,
   };
