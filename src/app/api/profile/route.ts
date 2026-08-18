@@ -3,6 +3,11 @@ import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { goalNeedsPace, isGoalPace, isWeightGoal, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
+import {
+  computeWeightChangeKg,
+  weightEntryOrderNewestFirst,
+  weightEntryOrderOldestFirst,
+} from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
 
@@ -26,22 +31,21 @@ export async function GET(request: NextRequest) {
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { date: "asc" },
+        orderBy: weightEntryOrderOldestFirst,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { date: "desc" },
+        orderBy: weightEntryOrderNewestFirst,
       }),
       selectedDate
         ? prisma.weightEntry.findFirst({
             where: { userId: session.user.id, date: selectedDate },
-            orderBy: { measuredAt: "asc" },
+            orderBy: weightEntryOrderNewestFirst,
           })
         : Promise.resolve(null),
     ]);
 
-    const changeKg =
-      first && current ? Math.round((current.weightKg - first.weightKg) * 10) / 10 : null;
+    const changeKg = computeWeightChangeKg(first, current);
 
     return NextResponse.json({
       goal: user?.goal ?? null,

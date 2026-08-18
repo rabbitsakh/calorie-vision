@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import {
+  computeWeightChangeKg,
+  weightEntryOrderNewestFirst,
+  weightEntryOrderOldestFirst,
+} from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
 
@@ -22,23 +27,20 @@ export async function GET(request: NextRequest) {
     const [entries, first, current] = await Promise.all([
       prisma.weightEntry.findMany({
         where: { userId: session.user.id },
-        orderBy: { measuredAt: "desc" },
+        orderBy: weightEntryOrderNewestFirst,
         take: limit,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { measuredAt: "asc" },
+        orderBy: weightEntryOrderOldestFirst,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { measuredAt: "desc" },
+        orderBy: weightEntryOrderNewestFirst,
       }),
     ]);
 
-    const changeKg =
-      first && current && first.id !== current.id
-        ? Math.round((current.weightKg - first.weightKg) * 10) / 10
-        : null;
+    const changeKg = computeWeightChangeKg(first, current);
 
     return NextResponse.json({
       entries: entries.map((entry) => ({
@@ -114,7 +116,7 @@ export async function PUT(request: NextRequest) {
     const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
     const existing = await prisma.weightEntry.findFirst({
       where: { userId: session.user.id, date },
-      orderBy: { measuredAt: "asc" },
+      orderBy: weightEntryOrderOldestFirst,
     });
 
     const entry = existing
