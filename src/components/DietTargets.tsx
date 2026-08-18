@@ -1,4 +1,4 @@
-import { formatBalanceLabel, type NutrientComparison } from "@/lib/diet";
+import { formatBalanceLabel, sexNoun, type NutrientComparison, type Sex } from "@/lib/diet";
 
 type DietTargetsProps = {
   comparison: {
@@ -10,6 +10,7 @@ type DietTargetsProps = {
   calorieTone: "good" | "warn" | "ok";
   weightKg: number;
   dietLabel?: string | null;
+  sex?: Sex | null;
 };
 
 function Meter({
@@ -44,13 +45,19 @@ function Meter({
   );
 }
 
-export function DietTargets({ comparison, calorieTone, weightKg, dietLabel }: DietTargetsProps) {
+export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex }: DietTargetsProps) {
+  const sexText = sexNoun(sex);
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
       <p className="text-sm font-semibold text-slate-700">Планируемый рацион на день</p>
       <p className="mt-1 text-xs text-slate-500">
-        Норма для {weightKg} кг{dietLabel ? ` · ${dietLabel}` : ""}
+        Норма для {weightKg} кг
+        {sexText ? ` · ${sexText}` : ""}
+        {dietLabel ? ` · ${dietLabel}` : ""}
       </p>
+      {!sex ? (
+        <p className="mt-1 text-xs text-amber-700">Укажите пол в профиле — норма станет точнее</p>
+      ) : null}
       <div className="mt-4 flex flex-col gap-3">
         <Meter label="Калории" unit="ккал" comparison={comparison.calories} tone={calorieTone} />
         <Meter label="Белки" unit="г" comparison={comparison.protein} />

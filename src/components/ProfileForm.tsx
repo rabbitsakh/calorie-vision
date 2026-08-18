@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
+import { SEX_OPTIONS, isSex, type Sex } from "@/lib/diet";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
@@ -12,6 +13,7 @@ type AccountResponse = {
   phone: string | null;
   image: string | null;
   timezone: string | null;
+  sex: Sex | null;
   linkedProviders: string[];
   emailLocked: boolean;
   error?: string;
@@ -28,7 +30,7 @@ const COMMON_TIMEZONES = [
   { label: "Иркутск (UTC+8)", value: "Asia/Irkutsk" },
   { label: "Якутск (UTC+9)", value: "Asia/Yakutsk" },
   { label: "Владивосток (UTC+10)", value: "Asia/Vladivostok" },
-  { label: "Магадан (UTC+11)", value: "Asia/Magadan" },
+  { label: "Магадан, Южно-Сахалинск (UTC+11)", value: "Asia/Magadan" },
   { label: "Камчатка (UTC+12)", value: "Asia/Kamchatka" },
   { label: "Минск (UTC+3)", value: "Europe/Minsk" },
   { label: "Киев (UTC+2/3)", value: "Europe/Kyiv" },
@@ -46,9 +48,10 @@ export function ProfileForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
   const [image, setImage] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("");
+  const [sex, setSex] = useState<Sex | "">("");
   const [emailLocked, setEmailLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,9 +73,10 @@ export function ProfileForm() {
       setFirstName(data.firstName);
       setLastName(data.lastName);
       setEmail(data.email ?? "");
-      setPhone(data.phone);
+      setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
       setImage(data.image);
       setTimezone(data.timezone ?? "");
+      setSex(isSex(data.sex) ? data.sex : "");
       setEmailLocked(data.emailLocked);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -99,8 +103,10 @@ export function ProfileForm() {
           firstName,
           lastName,
           email: email.trim() || null,
+          phone: phone.trim() || null,
           image,
           timezone: timezone || null,
+          sex: sex || null,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -111,9 +117,10 @@ export function ProfileForm() {
       setFirstName(data.firstName);
       setLastName(data.lastName);
       setEmail(data.email ?? "");
-      setPhone(data.phone);
+      setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
       setImage(data.image);
       setTimezone(data.timezone ?? "");
+      setSex(isSex(data.sex) ? data.sex : "");
       setMessage("Профиль сохранён");
       await update();
     } catch (err) {
@@ -225,12 +232,34 @@ export function ProfileForm() {
               <label htmlFor="phone">Телефон</label>
               <input
                 id="phone"
-                value={phone ? formatPhoneDisplay(phone) : "Не указан"}
-                disabled
-                readOnly
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+7 (900) 123-45-67"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
               />
               <p className="text-xs text-slate-500">
-                Смена телефона — через повторный вход по SMS на странице входа
+                Можно указать вручную. Для входа по SMS номер должен быть российским.
+              </p>
+            </div>
+            <div className="field sm:col-span-2">
+              <label htmlFor="sex">Пол</label>
+              <select
+                id="sex"
+                value={sex}
+                onChange={(event) => setSex(isSex(event.target.value) ? event.target.value : "")}
+                className="input"
+              >
+                <option value="">Не указан</option>
+                {SEX_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Нужен для расчёта нормы калорий: у женщин базовый обмен ниже, чем у мужчин
               </p>
             </div>
             <div className="field sm:col-span-2">

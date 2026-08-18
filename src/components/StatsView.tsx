@@ -275,9 +275,6 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           <section className="card p-4 md:p-6">
             <h2 className="text-lg font-bold">Калории по дням</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {period === "week" ? "Последние 7 дней" : "Последние 30 дней · подписи раз в неделю"}
-            </p>
             <div className="mt-4">
               <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} />
             </div>
@@ -285,7 +282,6 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           <section className="card p-4 md:p-6">
             <h2 className="text-lg font-bold">Вес по дням</h2>
-            <p className="mt-1 text-sm text-slate-500">Шкала от минимума до максимума за период</p>
             <div className="mt-4">
               <BarChart days={data.days} valueKey="weightKg" unit="кг" period={period} />
             </div>
