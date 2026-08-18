@@ -5,6 +5,7 @@ import {
   GOAL_OPTIONS,
   PACE_OPTIONS,
   formatGoalChoice,
+  formatSignedKg,
   goalNeedsPace,
   isGoalPace,
   isWeightGoal,
@@ -19,6 +20,7 @@ type ProfileResponse = {
   goal: WeightGoal | null;
   goalPace: GoalPace | null;
   currentWeightKg: number | null;
+  weightChangeKg: number | null;
   error?: string;
 };
 
@@ -41,6 +43,7 @@ export function WeightGoalCard({
   const [draftPace, setDraftPace] = useState<GoalPace | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
+  const [weightChangeKg, setWeightChangeKg] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export function WeightGoalCard({
         setEditingGoal(true);
       }
       setCurrentWeightKg(data.currentWeightKg);
+      setWeightChangeKg(data.weightChangeKg);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка профиля");
     } finally {
@@ -132,10 +136,18 @@ export function WeightGoalCard({
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
 
         {!loading && showCurrentWeight ? (
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">
+                {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+              </div>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
+              <div className="mt-1 text-2xl font-bold text-slate-900">
+                {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
+              </div>
             </div>
           </div>
         ) : null}
