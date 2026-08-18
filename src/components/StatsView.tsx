@@ -31,45 +31,106 @@ type StatsViewProps = {
   endDate: string;
 };
 
+function chartRange(values: number[], paddingRatio = 0.1): { min: number; max: number } {
+  const filtered = values.filter((value) => value > 0);
+  if (filtered.length === 0) {
+    return { min: 0, max: 1 };
+  }
+
+  const rawMin = Math.min(...filtered);
+  const rawMax = Math.max(...filtered);
+
+  if (rawMin === rawMax) {
+    const pad = Math.max(rawMin * 0.05, 1);
+    return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
+  }
+
+  const span = rawMax - rawMin;
+  const pad = span * paddingRatio;
+  return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
+}
+
+function shouldShowDateLabel(index: number, total: number, period: "week" | "month"): boolean {
+  if (period === "week") {
+    return true;
+  }
+
+  if (index === 0 || index === total - 1) {
+    return true;
+  }
+
+  return index % 7 === 0;
+}
+
 function BarChart({
   days,
   valueKey,
   color,
   unit,
+  period,
 }: {
   days: StatsDay[];
   valueKey: "calories" | "weightKg";
   color: string;
   unit: string;
+  period: "week" | "month";
 }) {
-  const values = days.map((day) => (valueKey === "weightKg" ? day.weightKg ?? 0 : day[valueKey]));
-  const max = Math.max(...values, 1);
+  const values = days.map((day) => {
+    if (valueKey === "weightKg") {
+      return day.weightKg ?? 0;
+    }
+    return day.calories;
+  });
+
+  const presentValues =
+    valueKey === "weightKg"
+      ? values.filter((value) => value > 0)
+      : values.filter((value) => value > 0);
+
+  const { min, max } = chartRange(presentValues);
+  const span = Math.max(max - min, 1);
 
   return (
-    <div className="flex h-44 items-end gap-1 sm:gap-2">
-      {days.map((day) => {
-        const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
-        const height = value ? Math.max((value / max) * 100, 4) : 0;
+    <div>
+      <div className="mb-2 flex justify-between text-xs text-slate-400">
+        <span>
+          {Math.round(max)} {unit}
+        </span>
+        <span>
+          {Math.round(min)} {unit}
+        </span>
+      </div>
 
-        return (
-          <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <div className="flex h-36 w-full items-end justify-center">
-              {value ? (
-                <div
-                  className={`w-full max-w-8 rounded-t-lg ${color}`}
-                  style={{ height: `${height}%` }}
-                  title={`${formatDateShort(day.date)}: ${value} ${unit}`}
-                />
-              ) : (
-                <div className="h-1 w-full max-w-8 rounded bg-slate-100" />
-              )}
+      <div className="flex h-44 items-end gap-0.5 sm:gap-1">
+        {days.map((day, index) => {
+          const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
+          const height =
+            value && value > 0 ? Math.max(((value - min) / span) * 100, 6) : 0;
+          const showLabel = shouldShowDateLabel(index, days.length, period);
+
+          return (
+            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <div className="flex h-36 w-full items-end justify-center">
+                {value && value > 0 ? (
+                  <div
+                    className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
+                    style={{ height: `${height}%` }}
+                    title={`${formatDateShort(day.date)}: ${value} ${unit}`}
+                  />
+                ) : (
+                  <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
+                )}
+              </div>
+              <span
+                className={`truncate text-[10px] font-medium text-slate-500 ${showLabel ? "" : "invisible"}`}
+                aria-hidden={!showLabel}
+              >
+                {formatDateShort(day.date)}
+              </span>
             </div>
-            <span className="truncate text-[10px] font-medium text-slate-500 sm:text-xs">
-              {formatDateShort(day.date)}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -148,18 +209,18 @@ export function StatsView({ endDate }: StatsViewProps) {
           <section className="card p-4 md:p-6">
             <h2 className="text-lg font-bold">Калории по дням</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {period === "week" ? "Последние 7 дней" : "Последние 30 дней"}
+              {period === "week" ? "Последние 7 дней" : "Последние 30 дней · подписи раз в неделю"}
             </p>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" color="bg-teal-600" unit="ккал" />
+              <BarChart days={data.days} valueKey="calories" color="bg-teal-600" unit="ккал" period={period} />
             </div>
           </section>
 
           <section className="card p-4 md:p-6">
             <h2 className="text-lg font-bold">Вес по дням</h2>
-            <p className="mt-1 text-sm text-slate-500">Только дни с записью веса</p>
+            <p className="mt-1 text-sm text-slate-500">Шкала от минимума до максимума за период</p>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="weightKg" color="bg-sky-600" unit="кг" />
+              <BarChart days={data.days} valueKey="weightKg" color="bg-sky-600" unit="кг" period={period} />
             </div>
           </section>
         </>
