@@ -1,16 +1,19 @@
-/** Stable Prisma order: newest measurement first (tie-break by id). */
+/** Stable Prisma order: newest calendar day first, then time of measurement. */
 export const weightEntryOrderNewestFirst = [
+  { date: "desc" as const },
   { measuredAt: "desc" as const },
   { id: "desc" as const },
 ];
 
-/** Stable Prisma order: oldest measurement first (tie-break by id). */
+/** Stable Prisma order: oldest calendar day first, then time of measurement. */
 export const weightEntryOrderOldestFirst = [
+  { date: "asc" as const },
   { measuredAt: "asc" as const },
   { id: "asc" as const },
 ];
 
 type SortableWeightEntry = {
+  date?: string;
   measuredAt: string | Date;
   id: string;
 };
@@ -24,6 +27,10 @@ export function sortWeightEntriesOldestFirst<T extends SortableWeightEntry>(entr
 }
 
 function compareWeightEntries(a: SortableWeightEntry, b: SortableWeightEntry): number {
+  if (a.date && b.date && a.date !== b.date) {
+    return b.date.localeCompare(a.date);
+  }
+
   const ta = toMillis(a.measuredAt);
   const tb = toMillis(b.measuredAt);
   if (tb !== ta) {
@@ -69,10 +76,12 @@ export function computeWeightChangeKg(
 export function latestWeightByDate<T extends SortableWeightEntry & { date: string; weightKg: number }>(
   entries: T[],
 ): Map<string, number> {
-  const sorted = sortWeightEntriesOldestFirst(entries);
+  const sorted = sortWeightEntriesNewestFirst(entries);
   const map = new Map<string, number>();
   for (const entry of sorted) {
-    map.set(entry.date, entry.weightKg);
+    if (!map.has(entry.date)) {
+      map.set(entry.date, entry.weightKg);
+    }
   }
   return map;
 }

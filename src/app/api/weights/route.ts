@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
     const entry = existing
       ? await prisma.weightEntry.update({
           where: { id: existing.id },
-          data: { weightKg, measuredAt: new Date() },
+          data: { weightKg },
         })
       : await prisma.weightEntry.create({
           data: { userId: session.user.id, date, weightKg },
