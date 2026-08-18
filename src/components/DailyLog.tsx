@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
-import { formatDateWords } from "@/lib/dates";
+import { formatDateTime, formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 
@@ -12,9 +12,10 @@ type DailyLogProps = {
   refreshKey: number;
   onChanged?: () => void;
   compact?: boolean;
+  timezone?: string | null;
 };
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezone }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
   const [daySummary, setDaySummary] = useState<
@@ -196,6 +197,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact }: Daily
                   {entry.protein ? ` · Б ${entry.protein}` : ""}
                   {entry.fat ? ` · Ж ${entry.fat}` : ""}
                   {entry.carbs ? ` · У ${entry.carbs}` : ""}
+                  {" · "}{formatDateTime(entry.createdAt, timezone)}
                 </p>
               </div>
 

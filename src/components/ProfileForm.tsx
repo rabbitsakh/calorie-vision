@@ -11,10 +11,35 @@ type AccountResponse = {
   email: string | null;
   phone: string | null;
   image: string | null;
+  timezone: string | null;
   linkedProviders: string[];
   emailLocked: boolean;
   error?: string;
 };
+
+const COMMON_TIMEZONES = [
+  { label: "По умолчанию (устройство)", value: "" },
+  { label: "Калининград (UTC+2)", value: "Europe/Kaliningrad" },
+  { label: "Москва, Санкт-Петербург (UTC+3)", value: "Europe/Moscow" },
+  { label: "Самара (UTC+4)", value: "Europe/Samara" },
+  { label: "Екатеринбург (UTC+5)", value: "Asia/Yekaterinburg" },
+  { label: "Омск (UTC+6)", value: "Asia/Omsk" },
+  { label: "Красноярск (UTC+7)", value: "Asia/Krasnoyarsk" },
+  { label: "Иркутск (UTC+8)", value: "Asia/Irkutsk" },
+  { label: "Якутск (UTC+9)", value: "Asia/Yakutsk" },
+  { label: "Владивосток (UTC+10)", value: "Asia/Vladivostok" },
+  { label: "Магадан (UTC+11)", value: "Asia/Magadan" },
+  { label: "Камчатка (UTC+12)", value: "Asia/Kamchatka" },
+  { label: "Минск (UTC+3)", value: "Europe/Minsk" },
+  { label: "Киев (UTC+2/3)", value: "Europe/Kyiv" },
+  { label: "Алматы (UTC+5)", value: "Asia/Almaty" },
+  { label: "Ташкент (UTC+5)", value: "Asia/Tashkent" },
+  { label: "Баку (UTC+4)", value: "Asia/Baku" },
+  { label: "Тбилиси (UTC+4)", value: "Asia/Tbilisi" },
+  { label: "Лондон (UTC+0/1)", value: "Europe/London" },
+  { label: "Берлин, Варшава (UTC+1/2)", value: "Europe/Berlin" },
+  { label: "Дубай (UTC+4)", value: "Asia/Dubai" },
+];
 
 export function ProfileForm() {
   const { update } = useSession();
@@ -23,6 +48,7 @@ export function ProfileForm() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState<string | null>(null);
   const [image, setImage] = useState<string | null>(null);
+  const [timezone, setTimezone] = useState("");
   const [emailLocked, setEmailLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,6 +72,7 @@ export function ProfileForm() {
       setEmail(data.email ?? "");
       setPhone(data.phone);
       setImage(data.image);
+      setTimezone(data.timezone ?? "");
       setEmailLocked(data.emailLocked);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -73,6 +100,7 @@ export function ProfileForm() {
           lastName,
           email: email.trim() || null,
           image,
+          timezone: timezone || null,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -85,6 +113,7 @@ export function ProfileForm() {
       setEmail(data.email ?? "");
       setPhone(data.phone);
       setImage(data.image);
+      setTimezone(data.timezone ?? "");
       setMessage("Профиль сохранён");
       await update();
     } catch (err) {
@@ -129,6 +158,14 @@ export function ProfileForm() {
   }
 
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
+
+  const knownValues = COMMON_TIMEZONES.map((tz) => tz.value);
+  const timezoneOptions = [
+    ...COMMON_TIMEZONES,
+    ...(timezone && !knownValues.includes(timezone)
+      ? [{ label: timezone, value: timezone }]
+      : []),
+  ];
 
   return (
     <section className="card p-4 md:p-6">
@@ -194,6 +231,24 @@ export function ProfileForm() {
               />
               <p className="text-xs text-slate-500">
                 Смена телефона — через повторный вход по SMS на странице входа
+              </p>
+            </div>
+            <div className="field sm:col-span-2">
+              <label htmlFor="timezone">Часовой пояс</label>
+              <select
+                id="timezone"
+                value={timezone}
+                onChange={(event) => setTimezone(event.target.value)}
+                className="input"
+              >
+                {timezoneOptions.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Влияет на отображение даты и времени в дневнике и на запись веса
               </p>
             </div>
           </div>

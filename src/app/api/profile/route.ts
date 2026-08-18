@@ -33,10 +33,9 @@ export async function GET(request: NextRequest) {
         orderBy: { date: "desc" },
       }),
       selectedDate
-        ? prisma.weightEntry.findUnique({
-            where: {
-              userId_date: { userId: session.user.id, date: selectedDate },
-            },
+        ? prisma.weightEntry.findFirst({
+            where: { userId: session.user.id, date: selectedDate },
+            orderBy: { measuredAt: "asc" },
           })
         : Promise.resolve(null),
     ]);

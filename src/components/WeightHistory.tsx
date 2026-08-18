@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatDateTime, formatDateWords } from "@/lib/dates";
+import { formatDateWords, formatTimeShort } from "@/lib/dates";
 import { formatSignedKg } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 
@@ -9,7 +9,7 @@ type WeightEntryRow = {
   id: string;
   date: string;
   weightKg: number;
-  createdAt: string;
+  measuredAt: string;
 };
 
 type WeightsResponse = {
@@ -22,38 +22,46 @@ type WeightsResponse = {
 
 type WeightHistoryProps = {
   refreshKey: number;
+  timezone?: string | null;
   onChanged?: () => void;
 };
 
-export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4h6v2" />
+    </svg>
+  );
+}
+
+export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistoryProps) {
   const [data, setData] = useState<WeightsResponse | null>(null);
   const [weightInput, setWeightInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const today = new Date();
-  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(withBasePath("/api/weights?limit=10"));
+      const response = await fetch(withBasePath("/api/weights?limit=20"));
       const payload = (await response.json()) as WeightsResponse;
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось загрузить вес");
       }
       setData(payload);
-      const todayEntry = payload.entries.find((entry) => entry.date === todayKey);
-      setWeightInput(todayEntry ? String(todayEntry.weightKg) : "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
     }
-  }, [todayKey]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -65,15 +73,34 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
     setError(null);
 
     try {
+      const now = new Date();
+      const dateKey = timezone
+        ? (() => {
+            const parts = new Intl.DateTimeFormat("en-CA", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              timeZone: timezone,
+            }).formatToParts(now);
+            const m = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+            return `${m.year}-${m.month}-${m.day}`;
+          })()
+        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
       const response = await fetch(withBasePath("/api/weights"), {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: todayKey, weightKg: Number(weightInput) }),
+        body: JSON.stringify({
+          date: dateKey,
+          weightKg: Number(weightInput),
+          measuredAt: now.toISOString(),
+        }),
       });
       const payload = (await response.json()) as { error?: string };
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось сохранить вес");
       }
+      setWeightInput("");
       await load();
       onChanged?.();
     } catch (err) {
@@ -82,6 +109,37 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
       setSaving(false);
     }
   }
+
+  async function deleteEntry(id: string) {
+    setDeletingId(id);
+    setError(null);
+    try {
+      const response = await fetch(withBasePath(`/api/weights?id=${encodeURIComponent(id)}`), {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string };
+        throw new Error(payload.error ?? "Не удалось удалить запись");
+      }
+      await load();
+      onChanged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка удаления");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // Group entries by date for the list
+  const grouped = data?.entries.reduce<Array<{ date: string; items: WeightEntryRow[] }>>((acc, entry) => {
+    const last = acc[acc.length - 1];
+    if (last?.date === entry.date) {
+      last.items.push(entry);
+    } else {
+      acc.push({ date: entry.date, items: [entry] });
+    }
+    return acc;
+  }, []) ?? [];
 
   return (
     <section className="card p-4 md:p-6">
@@ -103,9 +161,9 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
 
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
           <div className="field flex-1">
-            <label htmlFor="weight-today">Вес на сегодня, кг</label>
+            <label htmlFor="weight-now">Вес сейчас, кг</label>
             <input
-              id="weight-today"
+              id="weight-now"
               type="number"
               min="20"
               max="300"
@@ -118,7 +176,7 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
             />
           </div>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Сохраняем..." : "Сохранить"}
+            {saving ? "Сохраняем..." : "Добавить измерение"}
           </button>
         </form>
 
@@ -126,24 +184,44 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
           <h2 className="text-lg font-bold">Последние измерения</h2>
           {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
-          {!loading && data?.entries.length === 0 ? (
+          {!loading && grouped.length === 0 ? (
             <p className="mt-3 text-sm text-slate-500">Пока нет записей. Добавьте первое измерение выше.</p>
           ) : null}
 
-          <ul className="mt-4 flex flex-col gap-2">
-            {data?.entries.map((entry) => (
-              <li
-                key={entry.id}
-                className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-              >
-                <div>
-                  <p className="font-semibold">{entry.weightKg} кг</p>
-                  <p className="text-sm capitalize text-slate-500">{formatDateWords(entry.date)}</p>
-                </div>
-                <p className="text-right text-xs text-slate-400">{formatDateTime(entry.createdAt)}</p>
-              </li>
+          <div className="mt-4 flex flex-col gap-3">
+            {grouped.map(({ date, items }) => (
+              <div key={date}>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {formatDateWords(date)}
+                </p>
+                <ul className="flex flex-col gap-1.5">
+                  {items.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5"
+                    >
+                      <div className="flex items-baseline gap-3">
+                        <p className="font-semibold">{entry.weightKg} кг</p>
+                        <p className="text-xs text-slate-400">
+                          {formatTimeShort(entry.measuredAt, timezone)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                        title="Удалить"
+                        aria-label="Удалить"
+                        disabled={deletingId === entry.id}
+                        onClick={() => void deleteEntry(entry.id)}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
