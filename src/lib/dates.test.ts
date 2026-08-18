@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  dateRangeEnding,
   formatDateWords,
   formatYearMonth,
   getMonthGrid,
   isDateKey,
   monthDateRange,
   parseYearMonth,
+  shiftDateKey,
   shiftYearMonth,
 } from "./dates.ts";
 
@@ -34,4 +36,10 @@ test("validates YYYY-MM-DD date keys", () => {
 
 test("formats stored date keys as Russian words", () => {
   assert.equal(formatDateWords("2026-09-01"), "1 сентября 2026 г.");
+});
+
+test("shifts date keys and builds inclusive ranges", () => {
+  assert.equal(shiftDateKey("2026-09-01", -1), "2026-08-31");
+  assert.equal(shiftDateKey("2026-09-01", 1), "2026-09-02");
+  assert.deepEqual(dateRangeEnding("2026-09-03", 3), ["2026-09-01", "2026-09-02", "2026-09-03"]);
 });

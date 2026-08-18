@@ -100,6 +100,46 @@ export function monthDateRange(year: number, monthIndex: number): { start: strin
   };
 }
 
+export function shiftDateKey(dateKey: string, deltaDays: number): string {
+  const date = parseDateInput(dateKey);
+  date.setDate(date.getDate() + deltaDays);
+  return formatDateInput(date);
+}
+
+/** Inclusive list of `days` calendar days ending on `endDate`. */
+export function dateRangeEnding(endDate: string, days: number): string[] {
+  const end = parseDateInput(endDate);
+  const keys: string[] = [];
+  for (let offset = days - 1; offset >= 0; offset -= 1) {
+    const day = new Date(end);
+    day.setDate(day.getDate() - offset);
+    keys.push(formatDateInput(day));
+  }
+  return keys;
+}
+
+export function formatDateShort(dateKey: string): string {
+  if (!isDateKey(dateKey)) {
+    return dateKey;
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+  }).format(parseDateInput(dateKey));
+}
+
+export function formatDateTime(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export function getMonthGrid(year: number, monthIndex: number): Array<string | null> {
   const first = new Date(year, monthIndex, 1);
   const weekday = first.getDay();
