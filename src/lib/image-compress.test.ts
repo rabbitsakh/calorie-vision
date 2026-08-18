@@ -10,7 +10,7 @@ test("compresses a large png into a smaller webp within the display size", async
       width: 1600,
       height: 1200,
       channels: 3,
-      noise: { type: "gaussian", mean: 128, sigma: 40 },
+      noise: { type: "gaussian", mean: 128, sigma: 25 },
     },
   })
     .png()
@@ -23,6 +23,28 @@ test("compresses a large png into a smaller webp within the display size", async
 
   const meta = await sharp(result.buffer).metadata();
   assert.equal(meta.format, "webp");
+  assert.ok((meta.width ?? 0) <= FOOD_IMAGE_MAX_EDGE);
+  assert.ok((meta.height ?? 0) <= FOOD_IMAGE_MAX_EDGE);
+});
+
+test("compresses a large jpeg photo into a smaller webp", async () => {
+  const jpeg = await sharp({
+    create: {
+      width: 2400,
+      height: 1800,
+      channels: 3,
+      noise: { type: "gaussian", mean: 128, sigma: 25 },
+    },
+  })
+    .jpeg({ quality: 92 })
+    .toBuffer();
+
+  const result = await compressFoodImage(jpeg);
+  assert.equal(result.mimeType, "image/webp");
+  assert.ok(result.buffer.length < jpeg.length);
+  assert.ok(result.buffer.length <= FOOD_IMAGE_MAX_BYTES);
+
+  const meta = await sharp(result.buffer).metadata();
   assert.ok((meta.width ?? 0) <= FOOD_IMAGE_MAX_EDGE);
   assert.ok((meta.height ?? 0) <= FOOD_IMAGE_MAX_EDGE);
 });

@@ -138,7 +138,7 @@ async function searchWikipediaImage(query: string, lang: "ru" | "en"): Promise<s
     gsrnamespace: "0",
     prop: "pageimages",
     piprop: "thumbnail",
-    pithumbsize: "480",
+    pithumbsize: "640",
     pilicense: "any",
   }).toString()}`;
 
@@ -166,7 +166,7 @@ async function searchCommonsImage(query: string): Promise<string | undefined> {
     gsrnamespace: "6",
     prop: "imageinfo",
     iiprop: "url|mime|size",
-    iiurlwidth: "480",
+    iiurlwidth: "640",
   }).toString()}`;
 
   const data = (await getJson(url)) as CommonsQueryResponse | null;

@@ -36,10 +36,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
         throw new Error(data.error ?? "Ошибка распознавания");
       }
 
-      onRecognized({
-        ...(data as RecognitionResponse),
-        previewUrl: URL.createObjectURL(file),
-      });
+      onRecognized(data as RecognitionResponse);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось загрузить фото");
     } finally {
