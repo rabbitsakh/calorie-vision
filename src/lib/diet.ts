@@ -162,6 +162,18 @@ function maintainCalories(weightKg: number, sex: Sex): number {
 }
 
 /**
+ * Protein/fat use g per kg, but extra adipose mass should not scale like muscle.
+ * Cap at BMI 30 for the assumed height already used in Mifflin–St Jeor.
+ */
+const MACRO_BMI_CAP = 30;
+
+function weightForMacros(weightKg: number, sex: Sex): number {
+  const heightM = HEIGHT_CM[sex] / 100;
+  const capKg = MACRO_BMI_CAP * heightM * heightM;
+  return Math.min(weightKg, round1(capKg));
+}
+
+/**
  * Daily target from Mifflin–St Jeor (lightly active).
  * Sex defaults to female when unknown so calories are not overestimated.
  */
@@ -177,8 +189,9 @@ export function recommendDiet(
     MIN_CALORIES[resolvedSex],
     Math.round(maintainCalories(weightKg, resolvedSex) * coeff.calorieRatio),
   );
-  const protein = round1(weightKg * coeff.protein);
-  const fat = round1(weightKg * coeff.fat);
+  const macroWeight = weightForMacros(weightKg, resolvedSex);
+  const protein = round1(macroWeight * coeff.protein);
+  const fat = round1(macroWeight * coeff.fat);
   const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));
 
   return { calories, protein, fat, carbs };
