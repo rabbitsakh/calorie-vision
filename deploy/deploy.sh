@@ -11,6 +11,9 @@ git pull
 echo "==> Install dependencies"
 npm install
 
+echo "==> Version"
+npm run sync-version
+
 echo "==> Prisma: apply schema changes"
 npm run db:generate
 # Run the hand-written SQL migration first so prisma db push does not trip over
@@ -33,9 +36,6 @@ npm run db:push
 
 echo "==> Compress and backfill meal images"
 npm run images:backfill || echo "image backfill skipped"
-
-echo "==> Version"
-node scripts/sync-app-version.cjs
 
 echo "==> Build"
 npm run build

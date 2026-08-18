@@ -1,10 +1,11 @@
 {
   "name": "calorie-vision",
-  "version": "0.5.9",
+  "version": "0.5.3",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/sync-app-version.cjs && next build",
+    "build": "tsx scripts/sync-app-version.ts && next build",
+    "sync-version": "tsx scripts/sync-app-version.ts",
     "start": "next start",
     "lint": "next lint",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts",
