@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
 import { calorieTone, compareNutrient, formatGoalChoice, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
+import { decodeHtmlEntities } from "@/lib/html-text";
 
 type SaveMealBody = {
   date: string;
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: session.user.id,
         date,
-        dishName: body.dishName.trim(),
+        dishName: decodeHtmlEntities(body.dishName.trim()),
         calories: Math.round(body.calories),
         protein: body.protein,
         fat: body.fat,
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
         confidence: body.confidence,
         imagePath: body.imagePath?.trim() || null,
         wasCorrected: body.wasCorrected ?? false,
-        originalDish: body.originalDish,
+        originalDish: body.originalDish ? decodeHtmlEntities(body.originalDish) : body.originalDish,
         originalCalories: body.originalCalories,
       },
     });
@@ -109,7 +110,11 @@ export async function GET(request: NextRequest) {
       : null;
 
     return NextResponse.json({
-      entries,
+      entries: entries.map((entry) => ({
+        ...entry,
+        dishName: decodeHtmlEntities(entry.dishName),
+        originalDish: entry.originalDish ? decodeHtmlEntities(entry.originalDish) : entry.originalDish,
+      })),
       totalCalories,
       totalProtein,
       totalFat,

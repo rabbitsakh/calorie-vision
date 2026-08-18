@@ -10,6 +10,7 @@ import {
 import type { RecognitionResponse } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
+import { decodeHtmlEntities } from "@/lib/html-text";
 
 type NutritionFields = {
   dishName: string;
@@ -44,7 +45,7 @@ export function ConfirmationCard({
   onSaved,
 }: ConfirmationCardProps) {
   const { recognition, imagePath: initialImagePath, previewUrl } = result;
-  const [dishName, setDishName] = useState(recognition.dishName);
+  const [dishName, setDishName] = useState(() => decodeHtmlEntities(recognition.dishName));
   const [calories, setCalories] = useState(String(recognition.calories));
   const [protein, setProtein] = useState(String(recognition.protein ?? ""));
   const [fat, setFat] = useState(String(recognition.fat ?? ""));
@@ -99,7 +100,7 @@ export function ConfirmationCard({
   }, [previewUrl]);
 
   useEffect(() => {
-    setDishName(recognition.dishName);
+    setDishName(decodeHtmlEntities(recognition.dishName));
     setCalories(String(recognition.calories));
     setProtein(String(recognition.protein ?? ""));
     setFat(String(recognition.fat ?? ""));
@@ -110,7 +111,7 @@ export function ConfirmationCard({
   }, [recognition, initialImagePath]);
 
   function applyNutrition(data: NutritionFields) {
-    setDishName(data.dishName);
+    setDishName(decodeHtmlEntities(data.dishName));
     setCalories(String(data.calories));
     setProtein(data.protein !== undefined ? String(data.protein) : "");
     setFat(data.fat !== undefined ? String(data.fat) : "");
@@ -191,7 +192,7 @@ export function ConfirmationCard({
   }
 
   const wasCorrected =
-    dishName.trim() !== recognition.dishName ||
+    dishName.trim() !== decodeHtmlEntities(recognition.dishName) ||
     Number(calories) !== recognition.calories;
 
   async function handleSave() {
@@ -219,7 +220,7 @@ export function ConfirmationCard({
           confidence: recognition.confidence,
           imagePath: imagePath || undefined,
           wasCorrected,
-          originalDish: recognition.dishName,
+          originalDish: decodeHtmlEntities(recognition.dishName),
           originalCalories: recognition.calories,
         }),
       });
@@ -388,16 +389,19 @@ export function ConfirmationCard({
               <div>
                 <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
                 <div className="flex flex-wrap gap-2">
-                  {recognition.alternatives.map((item) => (
+                  {recognition.alternatives.map((item) => {
+                    const altName = decodeHtmlEntities(item.dishName);
+                    return (
                     <button
-                      key={item.dishName}
+                      key={altName}
                       type="button"
                       className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-                      onClick={() => void handleLookup(item.dishName)}
+                      onClick={() => void handleLookup(altName)}
                     >
-                      {item.dishName} · {item.calories} ккал
+                      {altName} · {item.calories} ккал
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : null}
