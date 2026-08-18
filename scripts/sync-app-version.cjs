@@ -3,7 +3,7 @@ const { readFileSync, writeFileSync } = require("node:fs");
 const { join } = require("node:path");
 
 const APP_VERSION_BASE = "0.4.0";
-const APP_VERSION_EPOCH_COMMITS = 16;
+const APP_VERSION_EPOCH_COMMITS = 51;
 
 function countGitCommits() {
   try {

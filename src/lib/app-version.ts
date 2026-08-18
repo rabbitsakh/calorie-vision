@@ -3,9 +3,9 @@ export const APP_VERSION_BASE = "0.4.0";
 
 /**
  * Git commit count on the repo before sequence 1.
- * Sequence = max(1, commitCount − epoch), so commit 17 is 0.4.0.
+ * Sequence = max(1, commitCount − epoch), so commits 51 and 52 still map to 0.4.0.
  */
-export const APP_VERSION_EPOCH_COMMITS = 16;
+export const APP_VERSION_EPOCH_COMMITS = 51;
 
 export type AppVersionParts = {
   major: number;
