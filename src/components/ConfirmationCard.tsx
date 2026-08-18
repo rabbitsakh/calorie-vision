@@ -102,13 +102,22 @@ export function ConfirmationCard({
   useEffect(() => {
     setDishName(decodeHtmlEntities(recognition.dishName));
     setCalories(String(recognition.calories));
-    setProtein(String(recognition.protein ?? ""));
-    setFat(String(recognition.fat ?? ""));
-    setCarbs(String(recognition.carbs ?? ""));
-    setPortionGrams(String(recognition.portionGrams ?? ""));
+    setProtein(recognition.protein !== undefined ? String(recognition.protein) : "");
+    setFat(recognition.fat !== undefined ? String(recognition.fat) : "");
+    setCarbs(recognition.carbs !== undefined ? String(recognition.carbs) : "");
+    setPortionGrams(recognition.portionGrams !== undefined ? String(recognition.portionGrams) : "");
     setBaseline(nutritionBaseline(recognition));
     setImagePath(initialImagePath);
   }, [recognition, initialImagePath]);
+
+  useEffect(() => {
+    const name = decodeHtmlEntities(recognition.dishName).trim();
+    if (recognition.calories > 0 || !name || /не удалось распознать/i.test(name)) {
+      return;
+    }
+
+    void handleLookup(name);
+  }, [recognition.dishName, recognition.calories]);
 
   function applyNutrition(data: NutritionFields) {
     setDishName(decodeHtmlEntities(data.dishName));
@@ -123,11 +132,32 @@ export function ConfirmationCard({
   function handlePortionChange(value: string) {
     setPortionGrams(value);
     const grams = Number(value);
-    if (!baseline) {
+    if (!Number.isFinite(grams) || grams <= 0) {
       return;
     }
 
-    const scaled = scaleNutritionByPortion(baseline, grams);
+    let base = baseline;
+    if (!base) {
+      const kcal = Number(calories);
+      if (Number.isFinite(kcal) && kcal > 0) {
+        base = nutritionBaseline({
+          calories: kcal,
+          protein: parseOptionalNumber(protein),
+          fat: parseOptionalNumber(fat),
+          carbs: parseOptionalNumber(carbs),
+          portionGrams: grams,
+        });
+        if (base) {
+          setBaseline(base);
+        }
+      }
+    }
+
+    if (!base) {
+      return;
+    }
+
+    const scaled = scaleNutritionByPortion(base, grams);
     if (!scaled) {
       return;
     }
