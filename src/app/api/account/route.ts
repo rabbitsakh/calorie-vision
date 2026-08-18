@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { lockedEmailDecision } from "@/lib/account-email";
 import { requireSession } from "@/lib/auth-session";
 import { isSex, type Sex } from "@/lib/diet";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
@@ -87,10 +88,20 @@ export async function PUT(request: NextRequest) {
       sex?: string | null;
     };
 
-    const accounts = await prisma.account.findMany({
-      where: { userId: session.user.id },
-      select: { provider: true },
-    });
+    const [currentUser, accounts] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { email: true },
+      }),
+      prisma.account.findMany({
+        where: { userId: session.user.id },
+        select: { provider: true },
+      }),
+    ]);
+    if (!currentUser) {
+      return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+    }
+
     const linkedProviders = accounts.map((account) => account.provider);
     const emailLocked = linkedProviders.includes("google") || linkedProviders.includes("vk");
 
@@ -159,15 +170,16 @@ export async function PUT(request: NextRequest) {
       data.timezone = tz;
     }
 
-    if (body.email !== undefined) {
-      if (emailLocked) {
-        return NextResponse.json(
-          { error: "Email нельзя изменить — вход привязан к Google или VK" },
-          { status: 400 },
-        );
-      }
+    const emailDecision = lockedEmailDecision(emailLocked, body.email, currentUser.email);
+    if (emailDecision.action === "reject") {
+      return NextResponse.json(
+        { error: "Email нельзя изменить — вход привязан к Google или VK" },
+        { status: 400 },
+      );
+    }
 
-      const email = body.email?.trim().toLowerCase() || null;
+    if (emailDecision.action === "update") {
+      const email = emailDecision.email;
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
       }
