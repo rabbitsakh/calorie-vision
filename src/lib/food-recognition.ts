@@ -1,6 +1,7 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 import { lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { normalizeBarcode } from "@/lib/barcode";
+import { findFoodImage } from "@/lib/food-image";
 import {
   lookupOpenFoodFactsByBarcode,
   nutritionFromPer100g,
@@ -104,6 +105,7 @@ function mergeOffNutrition(
     portionGrams: scaled?.portionGrams ?? off.portionGrams,
     barcode: barcode ?? off.barcode ?? vision.barcode,
     brand: off.brand ?? vision.brand,
+    imageUrl: off.imageUrl ?? vision.imageUrl,
     photoKind,
     source,
     confidence: Math.max(vision.confidence, source === "openfoodfacts-barcode" ? 0.9 : 0.8),
@@ -175,6 +177,19 @@ export async function recognizeFoodWithAI(
   return enrichPackagedProduct({ ...vision, source: "gigachat" });
 }
 
+async function withFoodImage(
+  result: FoodRecognitionResult,
+  query: string,
+): Promise<FoodRecognitionResult> {
+  const imageUrl = await findFoodImage({
+    query: result.dishName || query,
+    brand: result.brand,
+    productImageUrl: result.imageUrl,
+  });
+
+  return imageUrl ? { ...result, imageUrl } : result;
+}
+
 export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRecognitionResult> {
   const barcode = normalizeBarcode(barcodeInput);
   if (!barcode) {
@@ -186,19 +201,23 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  return {
-    dishName: off.dishName,
-    calories: off.calories,
-    protein: off.protein,
-    fat: off.fat,
-    carbs: off.carbs,
-    portionGrams: off.portionGrams,
-    barcode: off.barcode ?? barcode,
-    brand: off.brand,
-    confidence: 0.9,
-    source: "openfoodfacts-barcode",
-    photoKind: "barcode",
-  };
+  return withFoodImage(
+    {
+      dishName: off.dishName,
+      calories: off.calories,
+      protein: off.protein,
+      fat: off.fat,
+      carbs: off.carbs,
+      portionGrams: off.portionGrams,
+      barcode: off.barcode ?? barcode,
+      brand: off.brand,
+      imageUrl: off.imageUrl,
+      confidence: 0.9,
+      source: "openfoodfacts-barcode",
+      photoKind: "barcode",
+    },
+    off.dishName,
+  );
 }
 
 export async function lookupFoodByName(dishName: string): Promise<FoodRecognitionResult> {
@@ -208,19 +227,23 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
 
   const off = await searchOpenFoodFacts(dishName);
   if (off && offMatchesQuery(dishName, off.dishName)) {
-    return {
-      dishName: off.dishName || dishName.trim(),
-      calories: off.calories,
-      protein: off.protein,
-      fat: off.fat,
-      carbs: off.carbs,
-      portionGrams: off.portionGrams,
-      barcode: off.barcode,
-      brand: off.brand,
-      confidence: 0.8,
-      source: "openfoodfacts-search",
-      photoKind: "package",
-    };
+    return withFoodImage(
+      {
+        dishName: off.dishName || dishName.trim(),
+        calories: off.calories,
+        protein: off.protein,
+        fat: off.fat,
+        carbs: off.carbs,
+        portionGrams: off.portionGrams,
+        barcode: off.barcode,
+        brand: off.brand,
+        imageUrl: off.imageUrl,
+        confidence: 0.8,
+        source: "openfoodfacts-search",
+        photoKind: "package",
+      },
+      dishName,
+    );
   }
 
   if (!process.env.GIGACHAT_CREDENTIALS) {
@@ -230,5 +253,5 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
   }
 
   const result = await lookupFoodWithGigaChat(dishName);
-  return { ...result, source: "gigachat-lookup", photoKind: "meal" };
+  return withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName);
 }

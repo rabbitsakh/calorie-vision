@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         carbs: body.carbs,
         portionGrams: body.portionGrams,
         confidence: body.confidence,
-        imagePath: body.imagePath,
+        imagePath: body.imagePath?.trim() || null,
         wasCorrected: body.wasCorrected ?? false,
         originalDish: body.originalDish,
         originalCalories: body.originalCalories,

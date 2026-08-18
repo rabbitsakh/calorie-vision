@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { lookupFoodByBarcode, lookupFoodByName } from "@/lib/food-recognition";
 import { normalizeBarcode } from "@/lib/barcode";
+import { cacheRemoteImage } from "@/lib/upload";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
 
     if (barcode) {
       const recognition = await lookupFoodByBarcode(barcode);
-      return NextResponse.json({ recognition });
+      const imagePath = await cacheRemoteImage(recognition.imageUrl);
+      return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
     }
 
     if (!dishName) {
@@ -24,7 +26,8 @@ export async function POST(request: NextRequest) {
     }
 
     const recognition = await lookupFoodByName(dishName);
-    return NextResponse.json({ recognition });
+    const imagePath = await cacheRemoteImage(recognition.imageUrl);
+    return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
   } catch (error) {
     console.error(error);
     return NextResponse.json(
