@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
-import { calorieTone, compareNutrient, formatGoalChoice, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
+import { calorieTone, compareNutrient, formatGoalChoice, isSex, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true },
+        select: { goal: true, goalPace: true, sex: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id, date: { lte: date } },
@@ -100,7 +100,8 @@ export async function GET(request: NextRequest) {
     const totalCarbs = round1(entries.reduce((sum, item) => sum + (item.carbs ?? 0), 0));
     const goal = (user?.goal ?? null) as WeightGoal | null;
     const goalPace = (user?.goalPace ?? null) as GoalPace | null;
-    const target = goal && weight ? recommendDiet(weight.weightKg, goal, goalPace) : null;
+    const sex = isSex(user?.sex) ? user!.sex : null;
+    const target = goal && weight ? recommendDiet(weight.weightKg, goal, goalPace, sex) : null;
     const comparison = target
       ? {
           calories: compareNutrient(totalCalories, target.calories),
@@ -123,6 +124,7 @@ export async function GET(request: NextRequest) {
       goal,
       goalPace,
       dietLabel: goal ? formatGoalChoice(goal, goalPace) : null,
+      sex,
       weightKg: weight?.weightKg ?? null,
       target,
       comparison,

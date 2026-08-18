@@ -19,12 +19,13 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
   const [daySummary, setDaySummary] = useState<
-    Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg" | "dietLabel">
+    Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex">
   >({
     comparison: null,
     calorieTone: null,
     weightKg: null,
     dietLabel: null,
+    sex: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +64,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         calorieTone: data.calorieTone ?? null,
         weightKg: data.weightKg ?? null,
         dietLabel: data.dietLabel ?? null,
+        sex: data.sex ?? null,
       });
     } catch (err) {
       if (!quiet) {
@@ -147,6 +149,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
             calorieTone={daySummary.calorieTone}
             weightKg={daySummary.weightKg}
             dietLabel={daySummary.dietLabel}
+            sex={daySummary.sex}
           />
         ) : (
           <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">

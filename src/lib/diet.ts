@@ -1,8 +1,9 @@
 export type WeightGoal = "LOSE" | "GAIN" | "MAINTAIN";
 export type GoalPace = "SIMPLE" | "HEALTHY" | "FAST";
+export type Sex = "FEMALE" | "MALE";
 
 type DietCoeff = {
-  kcal: number;
+  calorieRatio: number;
   protein: number;
   fat: number;
 };
@@ -19,6 +20,11 @@ export const PACE_OPTIONS: Array<{ value: GoalPace; label: string }> = [
   { value: "FAST", label: "Как можно быстрее" },
 ];
 
+export const SEX_OPTIONS: Array<{ value: Sex; label: string }> = [
+  { value: "FEMALE", label: "Женский" },
+  { value: "MALE", label: "Мужской" },
+];
+
 const PACE_HINTS: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, string>> = {
   LOSE: {
     SIMPLE: "Небольшой дефицит, привычная еда",
@@ -32,18 +38,25 @@ const PACE_HINTS: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, strin
   },
 };
 
-const MAINTAIN_COEFF: DietCoeff = { kcal: 30, protein: 1.6, fat: 1 };
+/** Mifflin–St Jeor assumes typical adult height/age when those are unknown. */
+const DEFAULT_AGE = 35;
+const HEIGHT_CM: Record<Sex, number> = { FEMALE: 165, MALE: 175 };
+/** Sedentary–light (office + walking), not gym-athlete. */
+const ACTIVITY_FACTOR = 1.25;
+const MIN_CALORIES: Record<Sex, number> = { FEMALE: 1200, MALE: 1500 };
+
+const MAINTAIN_COEFF: DietCoeff = { calorieRatio: 1, protein: 1.4, fat: 0.8 };
 
 const GOAL_PACE_COEFF: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, DietCoeff>> = {
   LOSE: {
-    SIMPLE: { kcal: 27, protein: 1.6, fat: 1 },
-    HEALTHY: { kcal: 25, protein: 2, fat: 0.8 },
-    FAST: { kcal: 21, protein: 2.2, fat: 0.7 },
+    SIMPLE: { calorieRatio: 0.9, protein: 1.5, fat: 0.8 },
+    HEALTHY: { calorieRatio: 0.8, protein: 1.7, fat: 0.75 },
+    FAST: { calorieRatio: 0.72, protein: 1.9, fat: 0.7 },
   },
   GAIN: {
-    SIMPLE: { kcal: 33, protein: 1.6, fat: 1 },
-    HEALTHY: { kcal: 37, protein: 1.8, fat: 1 },
-    FAST: { kcal: 42, protein: 2, fat: 1.2 },
+    SIMPLE: { calorieRatio: 1.08, protein: 1.5, fat: 0.9 },
+    HEALTHY: { calorieRatio: 1.15, protein: 1.7, fat: 0.9 },
+    FAST: { calorieRatio: 1.2, protein: 1.8, fat: 1 },
   },
 };
 
@@ -84,6 +97,23 @@ export function savedGoalHint(goal: WeightGoal, pace: GoalPace | null | undefine
   return paceHint(goal, pace);
 }
 
+export function sexLabel(sex: Sex | null | undefined): string | null {
+  if (!sex) {
+    return null;
+  }
+  return SEX_OPTIONS.find((option) => option.value === sex)?.label ?? null;
+}
+
+export function sexNoun(sex: Sex | null | undefined): string | null {
+  if (sex === "FEMALE") {
+    return "женщина";
+  }
+  if (sex === "MALE") {
+    return "мужчина";
+  }
+  return null;
+}
+
 export type DietTarget = {
   calories: number;
   protein: number;
@@ -110,6 +140,10 @@ export function isGoalPace(value: unknown): value is GoalPace {
   return value === "SIMPLE" || value === "HEALTHY" || value === "FAST";
 }
 
+export function isSex(value: unknown): value is Sex {
+  return value === "FEMALE" || value === "MALE";
+}
+
 function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoeff {
   if (goal === "MAINTAIN") {
     return MAINTAIN_COEFF;
@@ -117,13 +151,32 @@ function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoe
   return GOAL_PACE_COEFF[goal][pace ?? "HEALTHY"];
 }
 
+function mifflinBmr(weightKg: number, sex: Sex): number {
+  const heightCm = HEIGHT_CM[sex];
+  const base = 10 * weightKg + 6.25 * heightCm - 5 * DEFAULT_AGE;
+  return sex === "MALE" ? base + 5 : base - 161;
+}
+
+function maintainCalories(weightKg: number, sex: Sex): number {
+  return Math.round(mifflinBmr(weightKg, sex) * ACTIVITY_FACTOR);
+}
+
+/**
+ * Daily target from Mifflin–St Jeor (lightly active).
+ * Sex defaults to female when unknown so calories are not overestimated.
+ */
 export function recommendDiet(
   weightKg: number,
   goal: WeightGoal,
   pace: GoalPace | null | undefined = null,
+  sex: Sex | null | undefined = "FEMALE",
 ): DietTarget {
+  const resolvedSex = isSex(sex) ? sex : "FEMALE";
   const coeff = dietCoeff(goal, pace);
-  const calories = Math.round(weightKg * coeff.kcal);
+  const calories = Math.max(
+    MIN_CALORIES[resolvedSex],
+    Math.round(maintainCalories(weightKg, resolvedSex) * coeff.calorieRatio),
+  );
   const protein = round1(weightKg * coeff.protein);
   const fat = round1(weightKg * coeff.fat);
   const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));

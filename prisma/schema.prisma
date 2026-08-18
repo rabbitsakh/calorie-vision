@@ -19,6 +19,11 @@ enum GoalPace {
   FAST
 }
 
+enum Sex {
+  FEMALE
+  MALE
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String?
@@ -27,6 +32,7 @@ model User {
   phone         String?        @unique
   phoneVerified DateTime?
   image         String?
+  sex           Sex?
   goal          WeightGoal?
   goalPace      GoalPace?
   timezone      String?        @db.VarChar(64)

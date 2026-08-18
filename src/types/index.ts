@@ -1,4 +1,4 @@
-import type { GoalPace, NutrientComparison, WeightGoal } from "@/lib/diet";
+import type { GoalPace, NutrientComparison, Sex, WeightGoal } from "@/lib/diet";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 
 export type RecognitionResponse = {
@@ -40,6 +40,7 @@ export type DayMealsResponse = {
   goal: WeightGoal | null;
   goalPace: GoalPace | null;
   dietLabel: string | null;
+  sex: Sex | null;
   weightKg: number | null;
   target: DietTarget | null;
   comparison: {

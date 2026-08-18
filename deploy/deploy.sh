@@ -18,7 +18,7 @@ echo "==> Prisma: apply schema changes"
 npm run db:generate
 # Run the hand-written SQL migration first so prisma db push does not trip over
 # duplicate foreign key names that MySQL doesn't let Prisma rename automatically.
-if [ -f deploy/migrate-weight-timezone.sql ]; then
+if ls deploy/migrate-*.sql >/dev/null 2>&1; then
   if npm run db:migrate-sql 2>&1; then
     echo "   SQL migration applied"
   else

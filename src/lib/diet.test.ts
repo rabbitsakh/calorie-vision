@@ -10,43 +10,63 @@ import {
 } from "./diet.ts";
 
 test("recommends a calorie deficit and higher protein for a healthy cut", () => {
-  const diet = recommendDiet(80, "LOSE", "HEALTHY");
-  assert.equal(diet.calories, 2000);
-  assert.equal(diet.protein, 160);
-  assert.equal(diet.fat, 64);
-  assert.equal(diet.carbs, 196);
+  const diet = recommendDiet(80, "LOSE", "HEALTHY", "FEMALE");
+  assert.equal(diet.calories, 1495);
+  assert.equal(diet.protein, 136);
+  assert.equal(diet.fat, 60);
+  assert.equal(diet.carbs, 102.8);
 });
 
 test("uses a milder cut when losing weight the simple way", () => {
-  const simple = recommendDiet(80, "LOSE", "SIMPLE");
-  const healthy = recommendDiet(80, "LOSE", "HEALTHY");
-  const fast = recommendDiet(80, "LOSE", "FAST");
+  const simple = recommendDiet(80, "LOSE", "SIMPLE", "FEMALE");
+  const healthy = recommendDiet(80, "LOSE", "HEALTHY", "FEMALE");
+  const fast = recommendDiet(80, "LOSE", "FAST", "FEMALE");
 
-  assert.equal(simple.calories, 2160);
-  assert.equal(simple.protein, 128);
-  assert.equal(fast.calories, 1680);
-  assert.equal(fast.protein, 176);
+  assert.equal(simple.calories, 1682);
+  assert.equal(fast.calories, 1346);
   assert.ok(fast.calories < healthy.calories);
   assert.ok(healthy.calories < simple.calories);
 });
 
 test("uses a larger surplus when gaining weight faster", () => {
-  const simple = recommendDiet(80, "GAIN", "SIMPLE");
-  const healthy = recommendDiet(80, "GAIN", "HEALTHY");
-  const fast = recommendDiet(80, "GAIN", "FAST");
-  const maintain = recommendDiet(80, "MAINTAIN");
+  const simple = recommendDiet(80, "GAIN", "SIMPLE", "FEMALE");
+  const healthy = recommendDiet(80, "GAIN", "HEALTHY", "FEMALE");
+  const fast = recommendDiet(80, "GAIN", "FAST", "FEMALE");
+  const maintain = recommendDiet(80, "MAINTAIN", null, "FEMALE");
 
-  assert.equal(simple.calories, 2640);
-  assert.equal(healthy.calories, 2960);
-  assert.equal(fast.calories, 3360);
+  assert.equal(maintain.calories, 1869);
   assert.ok(simple.calories > maintain.calories);
   assert.ok(healthy.calories > simple.calories);
   assert.ok(fast.calories > healthy.calories);
 });
 
+test("gives men a higher maintenance target than women at the same weight", () => {
+  const woman = recommendDiet(80, "MAINTAIN", null, "FEMALE");
+  const man = recommendDiet(80, "MAINTAIN", null, "MALE");
+  assert.equal(woman.calories, 1869);
+  assert.equal(man.calories, 2155);
+  assert.ok(man.calories > woman.calories);
+});
+
+test("does not inflate calories linearly for a high body weight", () => {
+  const oldRuleOfThumb = 140 * 30;
+  const woman = recommendDiet(140, "MAINTAIN", null, "FEMALE");
+  const man = recommendDiet(140, "MAINTAIN", null, "MALE");
+  assert.equal(woman.calories, 2619);
+  assert.equal(man.calories, 2905);
+  assert.ok(woman.calories < oldRuleOfThumb);
+  assert.ok(man.calories < oldRuleOfThumb);
+});
+
 test("defaults a missing pace to the healthy plan", () => {
-  assert.deepEqual(recommendDiet(80, "LOSE"), recommendDiet(80, "LOSE", "HEALTHY"));
-  assert.deepEqual(recommendDiet(80, "GAIN"), recommendDiet(80, "GAIN", "HEALTHY"));
+  assert.deepEqual(
+    recommendDiet(80, "LOSE", undefined, "FEMALE"),
+    recommendDiet(80, "LOSE", "HEALTHY", "FEMALE"),
+  );
+  assert.deepEqual(
+    recommendDiet(80, "GAIN", undefined, "FEMALE"),
+    recommendDiet(80, "GAIN", "HEALTHY", "FEMALE"),
+  );
 });
 
 test("formats the saved goal with its pace", () => {

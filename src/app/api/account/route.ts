@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
+import { isSex, type Sex } from "@/lib/diet";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { saveUploadedImage } from "@/lib/upload";
 
@@ -35,6 +37,7 @@ export async function GET() {
           phone: true,
           image: true,
           timezone: true,
+          sex: true,
         },
       }),
       prisma.account.findMany({
@@ -57,6 +60,7 @@ export async function GET() {
       phone: user.phone,
       image: user.image,
       timezone: user.timezone ?? null,
+      sex: user.sex ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
     });
@@ -77,8 +81,10 @@ export async function PUT(request: NextRequest) {
       firstName?: string;
       lastName?: string;
       email?: string | null;
+      phone?: string | null;
       image?: string | null;
       timezone?: string | null;
+      sex?: string | null;
     };
 
     const accounts = await prisma.account.findMany({
@@ -95,12 +101,50 @@ export async function PUT(request: NextRequest) {
     const data: {
       name: string | null;
       email?: string | null;
+      phone?: string | null;
+      phoneVerified?: Date | null;
       image?: string | null;
       timezone?: string | null;
+      sex?: Sex | null;
     } = { name };
 
     if (body.image !== undefined) {
       data.image = body.image;
+    }
+
+    if (body.sex !== undefined) {
+      if (body.sex === null || body.sex === "") {
+        data.sex = null;
+      } else if (!isSex(body.sex)) {
+        return NextResponse.json({ error: "Укажите пол: женский или мужской" }, { status: 400 });
+      } else {
+        data.sex = body.sex;
+      }
+    }
+
+    if (body.phone !== undefined) {
+      const raw = body.phone?.trim() ?? "";
+      if (!raw) {
+        data.phone = null;
+        data.phoneVerified = null;
+      } else {
+        const phone = normalizePhone(raw);
+        if (!phone || !isValidPhone(phone)) {
+          return NextResponse.json({ error: "Укажите телефон в формате +7 XXX XXX-XX-XX" }, { status: 400 });
+        }
+
+        const existing = await prisma.user.findFirst({
+          where: { phone, NOT: { id: session.user.id } },
+        });
+        if (existing) {
+          return NextResponse.json({ error: "Этот телефон уже используется" }, { status: 400 });
+        }
+
+        if (phone !== session.user.phone) {
+          data.phoneVerified = null;
+        }
+        data.phone = phone;
+      }
     }
 
     if (body.timezone !== undefined) {
@@ -143,7 +187,7 @@ export async function PUT(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data,
-      select: { name: true, email: true, phone: true, image: true, timezone: true },
+      select: { name: true, email: true, phone: true, image: true, timezone: true, sex: true },
     });
 
     const split = splitName(user.name);
@@ -154,6 +198,7 @@ export async function PUT(request: NextRequest) {
       phone: user.phone,
       image: user.image,
       timezone: user.timezone ?? null,
+      sex: user.sex ?? null,
       linkedProviders,
       emailLocked,
     });

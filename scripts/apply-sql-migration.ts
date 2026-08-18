@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -114,18 +114,26 @@ function runMysqlMigration(
 }
 
 function main(): void {
-  const migrationPath = join(process.cwd(), "deploy/migrate-weight-timezone.sql");
-  if (!existsSync(migrationPath)) {
-    console.info("SQL migration file not found, skipping");
+  const deployDir = join(process.cwd(), "deploy");
+  const files = existsSync(deployDir)
+    ? readdirSync(deployDir)
+        .filter((name) => name.startsWith("migrate-") && name.endsWith(".sql"))
+        .sort()
+    : [];
+
+  if (files.length === 0) {
+    console.info("SQL migration files not found, skipping");
     return;
   }
 
   const db = parseMysqlUrl(getDatabaseUrl());
-  const sql = readFileSync(migrationPath, "utf8");
 
   try {
-    runMysqlMigration(db, sql);
-    console.info("SQL migration applied");
+    for (const file of files) {
+      const sql = readFileSync(join(deployDir, file), "utf8");
+      runMysqlMigration(db, sql);
+      console.info(`SQL migration applied: ${file}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("SQL migration failed:", message);
