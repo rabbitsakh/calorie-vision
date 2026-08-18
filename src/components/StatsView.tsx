@@ -87,13 +87,11 @@ function yAxisTicks(min: number, max: number, count = 4): number[] {
 function BarChart({
   days,
   valueKey,
-  color,
   unit,
   period,
 }: {
   days: StatsDay[];
   valueKey: "calories" | "weightKg";
-  color: string;
   unit: string;
   period: "week" | "month";
 }) {
@@ -109,16 +107,18 @@ function BarChart({
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
   const plotHeight = 144;
-  const valueLabelHeight = 14;
-  const barAreaHeight = plotHeight - valueLabelHeight;
+  const valueLabelOffset = 16;
 
   function barHeightPx(value: number | null | undefined): number {
     if (!value || value <= 0) {
       return 0;
     }
 
-    return Math.max(Math.round(((value - min) / span) * barAreaHeight), 4);
+    return Math.max(Math.round(((value - min) / span) * plotHeight), 6);
   }
+
+  const valueLabelClass =
+    period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]";
 
   return (
     <div className="flex gap-2 sm:gap-3">
@@ -148,30 +148,31 @@ function BarChart({
             />
           ))}
 
-          <div className="absolute inset-0 flex items-end gap-0.5 sm:gap-1">
+          <div className="absolute inset-0 flex gap-0.5 sm:gap-1">
             {days.map((day) => {
               const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
               const heightPx = barHeightPx(value);
 
               return (
-                <div key={day.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                <div key={day.date} className="relative min-w-0 flex-1">
                   {value && value > 0 ? (
                     <>
-                      <span
-                        className={`mb-0.5 text-center font-semibold leading-none text-slate-700 ${
-                          period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
-                        }`}
-                      >
-                        {formatChartValue(value, valueKey)}
-                      </span>
                       <div
-                        className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
+                        className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 shrink-0 -translate-x-1/2 rounded-t-md ${
+                          valueKey === "calories" ? "bg-teal-600" : "bg-sky-600"
+                        }`}
                         style={{ height: `${heightPx}px` }}
                         title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
                       />
+                      <span
+                        className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center font-semibold leading-none text-slate-700 ${valueLabelClass}`}
+                        style={{ bottom: `${heightPx + valueLabelOffset}px` }}
+                      >
+                        {formatChartValue(value, valueKey)}
+                      </span>
                     </>
                   ) : (
-                    <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
+                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded bg-slate-100" />
                   )}
                 </div>
               );
@@ -278,7 +279,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               {period === "week" ? "Последние 7 дней" : "Последние 30 дней · подписи раз в неделю"}
             </p>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" color="bg-teal-600" unit="ккал" period={period} />
+              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} />
             </div>
           </section>
 
@@ -286,7 +287,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             <h2 className="text-lg font-bold">Вес по дням</h2>
             <p className="mt-1 text-sm text-slate-500">Шкала от минимума до максимума за период</p>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="weightKg" color="bg-sky-600" unit="кг" period={period} />
+              <BarChart days={data.days} valueKey="weightKg" unit="кг" period={period} />
             </div>
           </section>
         </>
