@@ -62,6 +62,28 @@ function shouldShowDateLabel(index: number, total: number, period: "week" | "mon
   return index % 7 === 0;
 }
 
+function formatChartValue(value: number, valueKey: "calories" | "weightKg"): string {
+  if (valueKey === "weightKg") {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  }
+
+  return String(Math.round(value));
+}
+
+function yAxisTicks(min: number, max: number, count = 4): number[] {
+  if (count < 2) {
+    return [max, min];
+  }
+
+  const span = max - min;
+  const ticks: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    ticks.push(min + (span * index) / (count - 1));
+  }
+
+  return ticks.reverse();
+}
+
 function BarChart({
   days,
   valueKey,
@@ -82,54 +104,92 @@ function BarChart({
     return day.calories;
   });
 
-  const presentValues =
-    valueKey === "weightKg"
-      ? values.filter((value) => value > 0)
-      : values.filter((value) => value > 0);
-
+  const presentValues = values.filter((value) => value > 0);
   const { min, max } = chartRange(presentValues);
   const span = Math.max(max - min, 1);
+  const ticks = yAxisTicks(min, max);
+  const plotHeight = 144;
 
   return (
-    <div>
-      <div className="mb-2 flex justify-between text-xs text-slate-400">
-        <span>
-          {Math.round(max)} {unit}
-        </span>
-        <span>
-          {Math.round(min)} {unit}
-        </span>
+    <div className="flex gap-2 sm:gap-3">
+      <div
+        className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
+        style={{ height: plotHeight, width: "2.75rem" }}
+        aria-hidden="true"
+      >
+        {ticks.map((tick, index) => (
+          <span
+            key={`${tick}-${index}`}
+            className="absolute right-0 -translate-y-1/2 leading-none"
+            style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+          >
+            {formatChartValue(tick, valueKey)}
+          </span>
+        ))}
       </div>
 
-      <div className="flex h-44 items-end gap-0.5 sm:gap-1">
-        {days.map((day, index) => {
-          const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
-          const height =
-            value && value > 0 ? Math.max(((value - min) / span) * 100, 6) : 0;
-          const showLabel = shouldShowDateLabel(index, days.length, period);
+      <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
+        <div className="relative" style={{ height: plotHeight }}>
+          {ticks.map((tick, index) => (
+            <div
+              key={`grid-${tick}-${index}`}
+              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-100"
+              style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+            />
+          ))}
 
-          return (
-            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <div className="flex h-36 w-full items-end justify-center">
-                {value && value > 0 ? (
-                  <div
-                    className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
-                    style={{ height: `${height}%` }}
-                    title={`${formatDateShort(day.date)}: ${value} ${unit}`}
-                  />
-                ) : (
-                  <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
-                )}
+          <div className="absolute inset-0 flex items-end gap-0.5 sm:gap-1">
+            {days.map((day, index) => {
+              const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
+              const height =
+                value && value > 0 ? Math.max(((value - min) / span) * 100, 6) : 0;
+              const showDateLabel = shouldShowDateLabel(index, days.length, period);
+
+              return (
+                <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center">
+                  <div className="flex h-full w-full flex-col items-center justify-end">
+                    {value && value > 0 ? (
+                      <>
+                        <span
+                          className={`mb-0.5 text-center font-semibold leading-none text-slate-700 ${
+                            period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
+                          }`}
+                        >
+                          {formatChartValue(value, valueKey)}
+                        </span>
+                        <div
+                          className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
+                          style={{ height: `${height}%` }}
+                          title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
+                        />
+                      </>
+                    ) : (
+                      <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-1 flex gap-0.5 sm:gap-1">
+          {days.map((day, index) => {
+            const showDateLabel = shouldShowDateLabel(index, days.length, period);
+            return (
+              <div key={`${day.date}-label`} className="min-w-0 flex-1 text-center">
+                <span
+                  className={`block truncate text-[10px] font-medium text-slate-500 sm:text-xs ${
+                    showDateLabel ? "" : "invisible"
+                  }`}
+                  aria-hidden={!showDateLabel}
+                >
+                  {formatDateShort(day.date)}
+                </span>
               </div>
-              <span
-                className={`truncate text-[10px] font-medium text-slate-500 ${showLabel ? "" : "invisible"}`}
-                aria-hidden={!showLabel}
-              >
-                {formatDateShort(day.date)}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
