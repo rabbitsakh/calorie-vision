@@ -5,6 +5,7 @@ import {
   offProductToNutrition,
   parsePackGrams,
   nutritionFromPer100g,
+  resolvePackGrams,
 } from "./open-food-facts.ts";
 
 test("parses net weight from package quantity text", () => {
@@ -15,7 +16,18 @@ test("parses net weight from package quantity text", () => {
   assert.equal(parsePackGrams("0.33 kg"), 330);
   assert.equal(parsePackGrams("1 кг"), 1000);
   assert.equal(parsePackGrams("330 мл"), 330);
+  assert.equal(parsePackGrams("50.0g"), 50);
   assert.equal(parsePackGrams(180), 180);
+});
+
+test("uses serving size when net quantity is missing", () => {
+  const { grams, explicit } = resolvePackGrams({
+    quantity: "",
+    serving_size: "50.0g",
+    serving_quantity: 50,
+  });
+  assert.equal(grams, 50);
+  assert.equal(explicit, true);
 });
 
 test("scales 100g nutrition to the pack weight", () => {
@@ -63,4 +75,26 @@ test("uses the full pack when it looks like a single serving", () => {
 test("accepts Open Food Facts hits that share product tokens", () => {
   assert.equal(offMatchesQuery("Простоквашино кефир", "Простоквашино Кефир 2.5%"), true);
   assert.equal(offMatchesQuery("борщ", "Шоколад Milka"), false);
+});
+
+test("uses serving weight for a single snack bar in Open Food Facts", () => {
+  const nutrition = offProductToNutrition({
+    code: "4610169560862",
+    product_name: "Pistachios & Caramel",
+    brands: "SNAQER",
+    quantity: "",
+    serving_size: "50.0g",
+    serving_quantity: 50,
+    nutriments: {
+      "energy-kcal_100g": 449,
+      proteins_100g: 15,
+      fat_100g: 20,
+      carbohydrates_100g: 45,
+    },
+  });
+
+  assert.ok(nutrition);
+  assert.equal(nutrition?.portionGrams, 50);
+  assert.equal(nutrition?.calories, 225);
+  assert.equal(nutrition?.explicitPackGrams, true);
 });
