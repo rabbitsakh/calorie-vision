@@ -102,7 +102,7 @@ export function ProfileForm() {
         body: JSON.stringify({
           firstName,
           lastName,
-          email: email.trim() || null,
+          ...(emailLocked ? {} : { email: email.trim() || null }),
           phone: phone.trim() || null,
           image,
           timezone: timezone || null,
