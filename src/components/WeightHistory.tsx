@@ -84,8 +84,8 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="card p-4 md:p-6">
+    <section className="card p-4 md:p-6">
+      <div className="flex flex-col gap-5">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl bg-slate-50 px-4 py-3">
             <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
@@ -101,7 +101,7 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
           </div>
         </div>
 
-        <form className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
+        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
           <div className="field flex-1">
             <label htmlFor="weight-today">Вес на сегодня, кг</label>
             <input
@@ -121,32 +121,33 @@ export function WeightHistory({ refreshKey, onChanged }: WeightHistoryProps) {
             {saving ? "Сохраняем..." : "Сохранить"}
           </button>
         </form>
-      </section>
 
-      <section className="card p-4 md:p-6">
-        <h2 className="text-lg font-bold">Последние измерения</h2>
-        {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+        <div>
+          <h2 className="text-lg font-bold">Последние измерения</h2>
+          {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
-        {!loading && data?.entries.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">Пока нет записей. Добавьте первое измерение выше.</p>
-        ) : null}
+          {!loading && data?.entries.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">Пока нет записей. Добавьте первое измерение выше.</p>
+          ) : null}
 
-        <ul className="mt-4 flex flex-col gap-2">
-          {data?.entries.map((entry) => (
-            <li
-              key={entry.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
-            >
-              <div>
-                <p className="font-semibold">{entry.weightKg} кг</p>
-                <p className="text-sm capitalize text-slate-500">{formatDateWords(entry.date)}</p>
-              </div>
-              <p className="text-right text-xs text-slate-400">{formatDateTime(entry.createdAt)}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+          <ul className="mt-4 flex flex-col gap-2">
+            {data?.entries.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+              >
+                <div>
+                  <p className="font-semibold">{entry.weightKg} кг</p>
+                  <p className="text-sm capitalize text-slate-500">{formatDateWords(entry.date)}</p>
+                </div>
+                <p className="text-right text-xs text-slate-400">{formatDateTime(entry.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+    </section>
   );
 }

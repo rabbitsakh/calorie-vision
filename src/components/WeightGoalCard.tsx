@@ -33,9 +33,10 @@ type WeightGoalCardProps = {
   selectedDate: string;
   refreshKey: number;
   onChanged: () => void;
+  goalOnly?: boolean;
 };
 
-export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGoalCardProps) {
+export function WeightGoalCard({ selectedDate, refreshKey, onChanged, goalOnly = false }: WeightGoalCardProps) {
   const [goal, setGoal] = useState<WeightGoal | null>(null);
   const [goalPace, setGoalPace] = useState<GoalPace | null>(null);
   const [draftGoal, setDraftGoal] = useState<WeightGoal | null>(null);
@@ -162,44 +163,48 @@ export function WeightGoalCard({ selectedDate, refreshKey, onChanged }: WeightGo
       <div className="flex flex-col gap-5">
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+        {!goalOnly ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
+                </div>
+                {firstWeightDate ? (
+                  <p className="mt-1 text-xs text-slate-500">первая запись {formatDateWords(firstWeightDate)}</p>
+                ) : null}
+              </div>
             </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
-            <div className="mt-1 text-2xl font-bold text-slate-900">
-              {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
-            </div>
-            {firstWeightDate ? (
-              <p className="mt-1 text-xs text-slate-500">первая запись {formatDateWords(firstWeightDate)}</p>
-            ) : null}
-          </div>
-        </div>
 
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
-          <div className="field flex-1">
-            <label htmlFor="weightKg">Вес на {formatDateWords(selectedDate)}, кг</label>
-            <input
-              id="weightKg"
-              type="number"
-              min="20"
-              max="300"
-              step="0.1"
-              placeholder="Например: 78.5"
-              value={weightInput}
-              onChange={(event) => setWeightInput(event.target.value)}
-              disabled={saving}
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Сохраняем..." : "Сохранить вес"}
-          </button>
-        </form>
+            <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
+              <div className="field flex-1">
+                <label htmlFor="weightKg">Вес на {formatDateWords(selectedDate)}, кг</label>
+                <input
+                  id="weightKg"
+                  type="number"
+                  min="20"
+                  max="300"
+                  step="0.1"
+                  placeholder="Например: 78.5"
+                  value={weightInput}
+                  onChange={(event) => setWeightInput(event.target.value)}
+                  disabled={saving}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? "Сохраняем..." : "Сохранить вес"}
+              </button>
+            </form>
+          </>
+        ) : null}
 
         {!loading ? (
           <div>
