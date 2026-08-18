@@ -1,13 +1,13 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { formatDateInput, isDateKey } from "@/lib/dates";
+import { isDateKey, toDateKeyTz } from "@/lib/dates";
 
-export function useSelectedDate() {
+export function useSelectedDate(timezone?: string | null) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const today = formatDateInput(new Date());
+  const today = toDateKeyTz(new Date(), timezone);
   const raw = searchParams.get("date");
   const date = raw && isDateKey(raw) ? raw : today;
 

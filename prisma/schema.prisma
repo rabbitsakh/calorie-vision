@@ -29,6 +29,7 @@ model User {
   image         String?
   goal          WeightGoal?
   goalPace      GoalPace?
+  timezone      String?        @db.VarChar(64)
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]
@@ -77,17 +78,18 @@ model VerificationToken {
 }
 
 model WeightEntry {
-  id        String   @id @default(cuid())
-  userId    String
-  date      String   @db.VarChar(10)
-  weightKg  Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  date        String   @db.VarChar(10)
+  weightKg    Float
+  measuredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, date])
   @@index([userId, date])
+  @@index([userId, measuredAt])
 }
 
 model MealEntry {

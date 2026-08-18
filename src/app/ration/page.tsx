@@ -7,9 +7,11 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { useSelectedDate } from "@/lib/use-selected-date";
+import { useTimezone } from "@/lib/use-timezone";
 
 export default function RationPage() {
-  const { date, setDate, today } = useSelectedDate();
+  const timezone = useTimezone();
+  const { date, setDate, today } = useSelectedDate(timezone);
   const [refreshKey, setRefreshKey] = useState(0);
 
   return (
@@ -36,6 +38,7 @@ export default function RationPage() {
             selectedDate={date}
             refreshKey={refreshKey}
             compact
+            timezone={timezone}
             onChanged={() => setRefreshKey((value) => value + 1)}
           />
         </div>

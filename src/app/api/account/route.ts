@@ -34,6 +34,7 @@ export async function GET() {
           email: true,
           phone: true,
           image: true,
+          timezone: true,
         },
       }),
       prisma.account.findMany({
@@ -55,6 +56,7 @@ export async function GET() {
       email: user.email,
       phone: user.phone,
       image: user.image,
+      timezone: user.timezone ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
     });
@@ -76,6 +78,7 @@ export async function PUT(request: NextRequest) {
       lastName?: string;
       email?: string | null;
       image?: string | null;
+      timezone?: string | null;
     };
 
     const accounts = await prisma.account.findMany({
@@ -93,10 +96,23 @@ export async function PUT(request: NextRequest) {
       name: string | null;
       email?: string | null;
       image?: string | null;
+      timezone?: string | null;
     } = { name };
 
     if (body.image !== undefined) {
       data.image = body.image;
+    }
+
+    if (body.timezone !== undefined) {
+      const tz = body.timezone?.trim() || null;
+      if (tz) {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz });
+        } catch {
+          return NextResponse.json({ error: "Неизвестный часовой пояс" }, { status: 400 });
+        }
+      }
+      data.timezone = tz;
     }
 
     if (body.email !== undefined) {
@@ -127,7 +143,7 @@ export async function PUT(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data,
-      select: { name: true, email: true, phone: true, image: true },
+      select: { name: true, email: true, phone: true, image: true, timezone: true },
     });
 
     const split = splitName(user.name);
@@ -137,6 +153,7 @@ export async function PUT(request: NextRequest) {
       email: user.email,
       phone: user.phone,
       image: user.image,
+      timezone: user.timezone ?? null,
       linkedProviders,
       emailLocked,
     });

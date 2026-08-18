@@ -17,34 +17,36 @@ export async function GET(request: NextRequest) {
     }
 
     const limitParam = request.nextUrl.searchParams.get("limit");
-    const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 50) : 10;
+    const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 100) : 20;
 
     const [entries, first, current] = await Promise.all([
       prisma.weightEntry.findMany({
         where: { userId: session.user.id },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+        orderBy: { measuredAt: "desc" },
         take: limit,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { date: "asc" },
+        orderBy: { measuredAt: "asc" },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
-        orderBy: { date: "desc" },
+        orderBy: { measuredAt: "desc" },
       }),
     ]);
 
     const changeKg =
-      first && current ? Math.round((current.weightKg - first.weightKg) * 10) / 10 : null;
+      first && current && first.id !== current.id
+        ? Math.round((current.weightKg - first.weightKg) * 10) / 10
+        : null;
 
     return NextResponse.json({
       entries: entries.map((entry) => ({
         id: entry.id,
         date: entry.date,
         weightKg: entry.weightKg,
+        measuredAt: entry.measuredAt.toISOString(),
         createdAt: entry.createdAt.toISOString(),
-        updatedAt: entry.updatedAt.toISOString(),
       })),
       firstWeightKg: first?.weightKg ?? null,
       firstWeightDate: first?.date ?? null,
@@ -58,6 +60,44 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const { session, response } = await requireSession();
+    if (response) {
+      return response;
+    }
+
+    const body = (await request.json()) as { date?: string; weightKg?: number; measuredAt?: string };
+    const date = requireDateKey(body.date);
+    if (!date || !isValidWeight(Number(body.weightKg))) {
+      return NextResponse.json({ error: "Укажите дату и вес от 20 до 300 кг" }, { status: 400 });
+    }
+
+    const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
+    const measuredAt = body.measuredAt ? new Date(body.measuredAt) : new Date();
+
+    const entry = await prisma.weightEntry.create({
+      data: {
+        userId: session.user.id,
+        date,
+        weightKg,
+        measuredAt: isNaN(measuredAt.getTime()) ? new Date() : measuredAt,
+      },
+    });
+
+    return NextResponse.json({
+      id: entry.id,
+      date: entry.date,
+      weightKg: entry.weightKg,
+      measuredAt: entry.measuredAt.toISOString(),
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось сохранить вес" }, { status: 500 });
+  }
+}
+
+// Keep PUT for backward compat (profile API uses it to read weightKg for given date)
 export async function PUT(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -72,16 +112,25 @@ export async function PUT(request: NextRequest) {
     }
 
     const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
-
-    const entry = await prisma.weightEntry.upsert({
-      where: { userId_date: { userId: session.user.id, date } },
-      create: { userId: session.user.id, date, weightKg },
-      update: { weightKg },
+    const existing = await prisma.weightEntry.findFirst({
+      where: { userId: session.user.id, date },
+      orderBy: { measuredAt: "asc" },
     });
 
+    const entry = existing
+      ? await prisma.weightEntry.update({
+          where: { id: existing.id },
+          data: { weightKg, measuredAt: new Date() },
+        })
+      : await prisma.weightEntry.create({
+          data: { userId: session.user.id, date, weightKg },
+        });
+
     return NextResponse.json({
+      id: entry.id,
       date: entry.date,
       weightKg: entry.weightKg,
+      measuredAt: entry.measuredAt.toISOString(),
     });
   } catch (error) {
     console.error(error);
@@ -96,16 +145,28 @@ export async function DELETE(request: NextRequest) {
       return response;
     }
 
+    const id = request.nextUrl.searchParams.get("id");
     const date = requireDateKey(request.nextUrl.searchParams.get("date"));
-    if (!date) {
-      return NextResponse.json({ error: "Укажите date=YYYY-MM-DD" }, { status: 400 });
+
+    if (id) {
+      const entry = await prisma.weightEntry.findFirst({
+        where: { id, userId: session.user.id },
+      });
+      if (!entry) {
+        return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
+      }
+      await prisma.weightEntry.delete({ where: { id } });
+      return NextResponse.json({ ok: true });
     }
 
-    await prisma.weightEntry.deleteMany({
-      where: { userId: session.user.id, date },
-    });
+    if (date) {
+      await prisma.weightEntry.deleteMany({
+        where: { userId: session.user.id, date },
+      });
+      return NextResponse.json({ ok: true });
+    }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ error: "Укажите id или date" }, { status: 400 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось удалить вес" }, { status: 500 });

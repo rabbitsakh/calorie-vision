@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   dateRangeEnding,
   formatDateWords,
+  formatTimeShort,
   formatYearMonth,
   getMonthGrid,
   isDateKey,
@@ -10,6 +11,7 @@ import {
   parseYearMonth,
   shiftDateKey,
   shiftYearMonth,
+  toDateKeyTz,
 } from "./dates.ts";
 
 test("builds a Monday-first grid for August 2026", () => {
@@ -42,4 +44,22 @@ test("shifts date keys and builds inclusive ranges", () => {
   assert.equal(shiftDateKey("2026-09-01", -1), "2026-08-31");
   assert.equal(shiftDateKey("2026-09-01", 1), "2026-09-02");
   assert.deepEqual(dateRangeEnding("2026-09-03", 3), ["2026-09-01", "2026-09-02", "2026-09-03"]);
+});
+
+test("toDateKeyTz returns YYYY-MM-DD in the given timezone", () => {
+  // UTC midnight Aug 18 is already Aug 18 in Moscow (UTC+3) but same in UTC.
+  const utcMidnight = new Date("2026-08-18T00:00:00Z");
+  assert.equal(toDateKeyTz(utcMidnight, "UTC"), "2026-08-18");
+  assert.equal(toDateKeyTz(utcMidnight, "Europe/Moscow"), "2026-08-18");
+
+  // UTC 23:00 Aug 17 is still Aug 17 in UTC but already Aug 18 in Moscow.
+  const utcLate = new Date("2026-08-17T23:00:00Z");
+  assert.equal(toDateKeyTz(utcLate, "UTC"), "2026-08-17");
+  assert.equal(toDateKeyTz(utcLate, "Europe/Moscow"), "2026-08-18");
+});
+
+test("formatTimeShort formats a UTC time correctly in a specific timezone", () => {
+  const ts = new Date("2026-08-18T10:30:00Z");
+  const moscow = formatTimeShort(ts, "Europe/Moscow");
+  assert.equal(moscow, "13:30");
 });

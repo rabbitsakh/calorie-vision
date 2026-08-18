@@ -129,7 +129,7 @@ export function formatDateShort(dateKey: string): string {
   }).format(parseDateInput(dateKey));
 }
 
-export function formatDateTime(value: string | Date): string {
+export function formatDateTime(value: string | Date, timezone?: string | null): string {
   const date = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
@@ -137,7 +137,29 @@ export function formatDateTime(value: string | Date): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: timezone ?? undefined,
   }).format(date);
+}
+
+export function formatTimeShort(value: string | Date, timezone?: string | null): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone ?? undefined,
+  }).format(date);
+}
+
+/** Returns YYYY-MM-DD in the given timezone (defaults to local). */
+export function toDateKeyTz(date: Date, timezone?: string | null): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone ?? undefined,
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 export function getMonthGrid(year: number, monthIndex: number): Array<string | null> {
