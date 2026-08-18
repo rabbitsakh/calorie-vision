@@ -8,11 +8,11 @@ echo "==> Pull latest code"
 git restore package.json package-lock.json
 git pull
 
-echo "==> Version"
-node --experimental-strip-types --no-warnings scripts/sync-app-version.ts
-
 echo "==> Install dependencies"
 npm install
+
+echo "==> Version"
+./node_modules/.bin/tsx scripts/sync-app-version.ts
 
 echo "==> Prisma: apply schema changes"
 npm run db:generate
