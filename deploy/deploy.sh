@@ -15,6 +15,9 @@ echo "==> Prisma"
 npm run db:generate
 npm run db:push
 
+echo "==> Compress and backfill meal images"
+npm run images:backfill || echo "image backfill skipped"
+
 echo "==> Version"
 node scripts/sync-app-version.cjs
 
