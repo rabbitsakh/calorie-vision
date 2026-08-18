@@ -19,14 +19,7 @@ npm run db:generate
 # Run the hand-written SQL migration first so prisma db push does not trip over
 # duplicate foreign key names that MySQL doesn't let Prisma rename automatically.
 if [ -f deploy/migrate-weight-timezone.sql ]; then
-  DB_URL="${DATABASE_URL:-}"
-  DB_HOST=$(echo "$DB_URL" | sed -E 's|.*@([^:/]+):.*|\1|')
-  DB_PORT=$(echo "$DB_URL" | sed -E 's|.*:([0-9]+)/.*|\1|')
-  DB_NAME=$(echo "$DB_URL" | sed -E 's|.*/([^?]+)(\?.*)?$|\1|')
-  DB_USER=$(echo "$DB_URL" | sed -E 's|mysql://([^:]+):.*|\1|')
-  DB_PASS=$(echo "$DB_URL" | sed -E 's|mysql://[^:]+:([^@]+)@.*|\1|')
-  if mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" \
-       < deploy/migrate-weight-timezone.sql 2>&1; then
+  if npm run db:migrate-sql 2>&1; then
     echo "   SQL migration applied"
   else
     echo "   SQL migration failed or already applied; continuing with db:push"
