@@ -156,25 +156,34 @@ textarea {
 }
 
 .admin-table {
-  width: 100%;
   border-collapse: collapse;
   font-size: 0.875rem;
+  width: 100%;
+}
+
+.admin-table-wide {
+  min-width: 44rem;
 }
 
 .admin-table th {
   border-bottom: 1px solid #e2e8f0;
   color: var(--muted);
   font-weight: 600;
-  padding: 0.65rem 0.75rem;
+  padding: 0.65rem 1rem 0.65rem 0;
   text-align: left;
   white-space: nowrap;
 }
 
 .admin-table td {
   border-bottom: 1px solid #f1f5f9;
-  padding: 0.7rem 0.75rem;
+  padding: 0.7rem 1rem 0.7rem 0;
   vertical-align: middle;
   white-space: nowrap;
+}
+
+.admin-table th:last-child,
+.admin-table td:last-child {
+  padding-right: 0;
 }
 
 .admin-table tbody tr:last-child td {

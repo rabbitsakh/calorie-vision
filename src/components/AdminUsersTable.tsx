@@ -23,6 +23,25 @@ function displayName(user: AdminUserRow): string {
   return user.name?.trim() || user.email || user.phone || "Без имени";
 }
 
+function UserAvatar({ user }: { user: AdminUserRow }) {
+  if (user.image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={getImageUrl(user.image)}
+        alt=""
+        className="h-8 w-8 shrink-0 rounded-full object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800">
+      {displayName(user).charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
   const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [total, setTotal] = useState<number | null>(null);
@@ -91,14 +110,38 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
   }, [hasMore, loadMore, users.length]);
 
   return (
-    <section className="card overflow-hidden p-4 md:p-6">
+    <section className="card p-4 md:p-6">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="text-lg font-semibold">Пользователи</h2>
         {total !== null ? <p className="text-sm text-slate-500">{total}</p> : null}
       </div>
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
+      <ul className="divide-y divide-slate-100 md:hidden">
+        {users.map((user) => (
+          <li key={user.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+            <UserAvatar user={user} />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-slate-900">{displayName(user)}</p>
+              <p className="mt-0.5 break-all text-sm text-slate-500">{user.email ?? "—"}</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {user.phone ? formatPhoneDisplay(user.phone) : "—"}
+                {" · "}
+                {sexLabel(user.sex) ?? "пол не указан"}
+                {" · "}
+                {formatRegisteredAt(user.createdAt)}
+              </p>
+              {showCounts ? (
+                <p className="mt-1 text-sm text-slate-500">
+                  Блюда {user.mealCount} · Вес {user.weightCount} · Фото {user.photoCount}
+                </p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="admin-table-wrap hidden md:block">
+        <table className="admin-table admin-table-wide">
           <thead>
             <tr>
               <th>Пользователь</th>
@@ -120,18 +163,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
               <tr key={user.id}>
                 <td>
                   <div className="flex items-center gap-2">
-                    {user.image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={getImageUrl(user.image)}
-                        alt=""
-                        className="h-8 w-8 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800">
-                        {displayName(user).charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar user={user} />
                     <span className="font-medium text-slate-900">{displayName(user)}</span>
                   </div>
                 </td>
