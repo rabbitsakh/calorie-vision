@@ -109,6 +109,16 @@ function BarChart({
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
   const plotHeight = 144;
+  const valueLabelHeight = 14;
+  const barAreaHeight = plotHeight - valueLabelHeight;
+
+  function barHeightPx(value: number | null | undefined): number {
+    if (!value || value <= 0) {
+      return 0;
+    }
+
+    return Math.max(Math.round(((value - min) / span) * barAreaHeight), 4);
+  }
 
   return (
     <div className="flex gap-2 sm:gap-3">
@@ -139,34 +149,30 @@ function BarChart({
           ))}
 
           <div className="absolute inset-0 flex items-end gap-0.5 sm:gap-1">
-            {days.map((day, index) => {
+            {days.map((day) => {
               const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
-              const height =
-                value && value > 0 ? Math.max(((value - min) / span) * 100, 6) : 0;
-              const showDateLabel = shouldShowDateLabel(index, days.length, period);
+              const heightPx = barHeightPx(value);
 
               return (
-                <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center">
-                  <div className="flex h-full w-full flex-col items-center justify-end">
-                    {value && value > 0 ? (
-                      <>
-                        <span
-                          className={`mb-0.5 text-center font-semibold leading-none text-slate-700 ${
-                            period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
-                          }`}
-                        >
-                          {formatChartValue(value, valueKey)}
-                        </span>
-                        <div
-                          className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
-                          style={{ height: `${height}%` }}
-                          title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
-                        />
-                      </>
-                    ) : (
-                      <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
-                    )}
-                  </div>
+                <div key={day.date} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
+                  {value && value > 0 ? (
+                    <>
+                      <span
+                        className={`mb-0.5 text-center font-semibold leading-none text-slate-700 ${
+                          period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]"
+                        }`}
+                      >
+                        {formatChartValue(value, valueKey)}
+                      </span>
+                      <div
+                        className={`w-full max-w-3 rounded-t-md sm:max-w-6 ${color}`}
+                        style={{ height: `${heightPx}px` }}
+                        title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
+                      />
+                    </>
+                  ) : (
+                    <div className="h-0.5 w-full max-w-3 rounded bg-slate-100 sm:max-w-6" />
+                  )}
                 </div>
               );
             })}
