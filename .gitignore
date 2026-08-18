@@ -6,4 +6,5 @@ public/uploads/*
 !public/uploads/.gitkeep
 *.log
 .DS_Store
-tsconfig.tsbuildinfo
+.mysql-client-*.cnf
+
