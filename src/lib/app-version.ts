@@ -1,11 +1,15 @@
-/** First version of the 0–9 patch/minor scheme. Sequence 1 is 0.4.0. */
+/** First release in the PR-based scheme. Sequence 1 → 0.4.0. */
 export const APP_VERSION_BASE = "0.4.0";
 
+/** Z (patch) rolls at 20; Y (minor) rolls at 10; X (major) grows without limit. */
+export const PATCHES_PER_MINOR = 20;
+export const MINORS_PER_MAJOR = 10;
+
 /**
- * Git commit count on the repo before sequence 1.
- * Used only by `npm run sync-version -- --write` when bumping package.json manually.
+ * Merge count at sequence 1 (0.4.0). Calibrated so the current main history maps to 0.5.9.
+ * sequence = mergeCount - APP_VERSION_EPOCH_MERGES + 1
  */
-export const APP_VERSION_EPOCH_COMMITS = 69;
+export const APP_VERSION_EPOCH_MERGES = 21;
 
 export type AppVersionParts = {
   major: number;
@@ -29,42 +33,40 @@ function formatVersionParts({ major, minor, patch }: AppVersionParts): string {
   return `${major}.${minor}.${patch}`;
 }
 
-function versionFromUnits(units: number): string {
-  if (!Number.isInteger(units) || units < 0) {
-    throw new Error(`Invalid version units: ${units}`);
-  }
-  return formatVersionParts({
-    major: Math.floor(units / 100),
-    minor: Math.floor((units % 100) / 10),
-    patch: units % 10,
-  });
-}
-
-function unitsFromParts({ major, minor, patch }: AppVersionParts): number {
-  return major * 100 + minor * 10 + patch;
-}
-
-/** Patch 0–9, then minor; minor 0–9, then major. 0.4.9 → 0.5.0, 0.9.9 → 1.0.0. */
+/** +1 Z per PR; +1 Y every 20 Z; +1 X every 10 Y. */
 export function incrementAppVersion(version: string): string {
-  return versionFromUnits(unitsFromParts(parseAppVersion(version)) + 1);
+  let { major, minor, patch } = parseAppVersion(version);
+  patch += 1;
+  if (patch >= PATCHES_PER_MINOR) {
+    patch = 0;
+    minor += 1;
+    if (minor >= MINORS_PER_MAJOR) {
+      minor = 0;
+      major += 1;
+    }
+  }
+  return formatVersionParts({ major, minor, patch });
 }
 
-/**
- * Sequential versions from a 1-based index.
- * 1 → 0.4.0, 10 → 0.4.9, 11 → 0.5.0, 12 → 0.5.1.
- */
+/** Map a 1-based PR sequence onto versions starting at APP_VERSION_BASE. */
 export function versionFromSequence(sequence: number, start = APP_VERSION_BASE): string {
   if (!Number.isInteger(sequence) || sequence < 1) {
     throw new Error(`Version sequence must be an integer ≥ 1, got ${sequence}`);
   }
-  return versionFromUnits(unitsFromParts(parseAppVersion(start)) + (sequence - 1));
+
+  let version = start;
+  for (let step = 1; step < sequence; step += 1) {
+    version = incrementAppVersion(version);
+  }
+  return version;
 }
 
-export function versionFromCommitCount(
-  commitCount: number,
-  epochCommits = APP_VERSION_EPOCH_COMMITS,
+export function versionFromPullRequestCount(
+  mergeCount: number,
+  epochMerges = APP_VERSION_EPOCH_MERGES,
 ): string {
-  return versionFromSequence(Math.max(1, commitCount - epochCommits));
+  const sequence = Math.max(1, mergeCount - epochMerges + 1);
+  return versionFromSequence(sequence);
 }
 
 export function formatAppVersion(version: string): string {

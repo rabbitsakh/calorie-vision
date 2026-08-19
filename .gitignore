@@ -8,3 +8,4 @@ public/uploads/*
 .DS_Store
 .mysql-client-*.cnf
 
+tsconfig.tsbuildinfo

@@ -1,10 +1,10 @@
 {
   "name": "calorie-vision",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts && next build",
     "sync-version": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts",
     "start": "next start",
     "lint": "next lint",
