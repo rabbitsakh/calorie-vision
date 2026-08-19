@@ -107,7 +107,8 @@ function BarChart({
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
   const plotHeight = 144;
-  const valueLabelOffset = 16;
+  // label area reserved above the bar area so labels never overlap bars
+  const labelAreaHeight = period === "month" ? 28 : 24;
 
   function barHeightPx(value: number | null | undefined): number {
     if (!value || value <= 0) {
@@ -124,14 +125,14 @@ function BarChart({
     <div className="flex gap-2 sm:gap-3">
       <div
         className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
-        style={{ height: plotHeight, width: "2.75rem" }}
+        style={{ height: plotHeight + labelAreaHeight, width: "2.75rem" }}
         aria-hidden="true"
       >
         {ticks.map((tick, index) => (
           <span
             key={`${tick}-${index}`}
             className="absolute right-0 -translate-y-1/2 leading-none"
-            style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+            style={{ top: `${labelAreaHeight + (index / (ticks.length - 1)) * plotHeight}px` }}
           >
             {formatChartValue(tick, valueKey)}
           </span>
@@ -139,6 +140,26 @@ function BarChart({
       </div>
 
       <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
+        {/* label row above chart */}
+        <div className="flex gap-0.5 sm:gap-1" style={{ height: labelAreaHeight }}>
+          {days.map((day) => {
+            const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
+            return (
+              <div key={`lbl-${day.date}`} className="flex min-w-0 flex-1 items-end justify-center">
+                {value && value > 0 ? (
+                  <span
+                    className={`block whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
+                    style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+                  >
+                    {formatChartValue(value, valueKey)}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* bar plot area */}
         <div className="relative" style={{ height: plotHeight }}>
           {ticks.map((tick, index) => (
             <div
@@ -156,25 +177,13 @@ function BarChart({
               return (
                 <div key={day.date} className="relative min-w-0 flex-1">
                   {value && value > 0 ? (
-                    <>
-                      <div
-                        className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 shrink-0 -translate-x-1/2 rounded-t-md ${
-                          valueKey === "calories" ? "bg-teal-600" : "bg-sky-600"
-                        }`}
-                        style={{ height: `${heightPx}px` }}
-                        title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
-                      />
-                      <span
-                        className={`absolute left-1/2 origin-bottom-left -translate-x-1/2 whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
-                        style={{
-                          bottom: `${heightPx + 6}px`,
-                          writingMode: "vertical-rl",
-                          transform: "translateX(-50%) rotate(180deg)",
-                        }}
-                      >
-                        {formatChartValue(value, valueKey)}
-                      </span>
-                    </>
+                    <div
+                      className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 shrink-0 -translate-x-1/2 rounded-t-md ${
+                        valueKey === "calories" ? "bg-teal-600" : "bg-sky-600"
+                      }`}
+                      style={{ height: `${heightPx}px` }}
+                      title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
+                    />
                   ) : (
                     <div className="absolute bottom-0 left-1/2 h-0.5 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded bg-slate-100" />
                   )}
