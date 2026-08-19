@@ -2,7 +2,7 @@
   "name": "Calorie Vision",
   "short_name": "CalorieVision",
   "description": "Распознавание еды по фото и учёт калорий",
-  "start_url": "/ration/",
+  "start_url": ".",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f4f7fb",

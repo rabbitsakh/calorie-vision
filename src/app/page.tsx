@@ -1,5 +1,15 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { PageFallback } from "@/components/AppShell";
 
 export default function HomePage() {
-  redirect("/ration");
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/ration/");
+  }, [router]);
+
+  return <PageFallback />;
 }
