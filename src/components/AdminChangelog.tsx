@@ -14,6 +14,12 @@ const KIND_STYLES: Record<ChangelogItemKind, string> = {
   improvement: "bg-slate-100 text-slate-700",
 };
 
+const KIND_DOTS: Record<ChangelogItemKind, string> = {
+  feature: "bg-teal-500",
+  fix: "bg-amber-500",
+  improvement: "bg-slate-400",
+};
+
 export function AdminChangelog() {
   return (
     <div className="flex flex-col gap-4 md:gap-6">
@@ -55,13 +61,14 @@ export function AdminChangelog() {
 
             <ul className="divide-y divide-slate-100 px-4 py-2 md:px-6">
               {release.items.map((item) => (
-                <li key={item.text} className="flex items-baseline gap-3 py-3">
-                  <span
-                    className={`shrink-0 self-start whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium leading-5 ${KIND_STYLES[item.kind]}`}
-                  >
-                    {CHANGELOG_KIND_LABELS[item.kind]}
-                  </span>
-                  <p className="min-w-0 text-sm leading-relaxed text-slate-700">{item.text}</p>
+                <li key={item.text} className="flex items-start gap-3 py-3">
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${KIND_DOTS[item.kind]}`} />
+                  <p className="min-w-0 text-sm leading-relaxed text-slate-700">
+                    <span className={`mr-1.5 rounded px-1.5 py-0.5 text-xs font-semibold ${KIND_STYLES[item.kind]}`}>
+                      {CHANGELOG_KIND_LABELS[item.kind]}
+                    </span>
+                    {item.text}
+                  </p>
                 </li>
               ))}
             </ul>
