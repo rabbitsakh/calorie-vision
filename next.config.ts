@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { readPackageVersion } from "./src/lib/read-package-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
