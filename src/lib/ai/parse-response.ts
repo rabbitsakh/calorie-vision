@@ -1,6 +1,7 @@
-type PhotoKind = "meal" | "package" | "label" | "barcode";
+import type { FoodRecognitionResult, PhotoKind } from "../food-types";
 
 const PHOTO_KINDS = new Set<PhotoKind>(["meal", "package", "label", "barcode"]);
+const MAX_PLATE_ITEMS = 8;
 
 type RawRecognition = {
   dishName?: unknown;
@@ -15,6 +16,7 @@ type RawRecognition = {
   confidence?: unknown;
   alternatives?: unknown;
   per100g?: unknown;
+  items?: unknown;
 };
 
 function toNumber(value: unknown): number | undefined {
@@ -70,15 +72,13 @@ function parsePer100g(value: unknown): {
   };
 }
 
-export function parseFoodRecognitionResponse(text: string) {
-  let parsed: RawRecognition;
+function parsePhotoKind(value: unknown): PhotoKind | undefined {
+  return typeof value === "string" && PHOTO_KINDS.has(value as PhotoKind)
+    ? (value as PhotoKind)
+    : undefined;
+}
 
-  try {
-    parsed = JSON.parse(extractJson(text)) as RawRecognition;
-  } catch {
-    throw new Error("Модель вернула некорректный JSON");
-  }
-
+function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): FoodRecognitionResult {
   const dishName =
     typeof parsed.dishName === "string" && parsed.dishName.trim()
       ? parsed.dishName.trim()
@@ -87,9 +87,6 @@ export function parseFoodRecognitionResponse(text: string) {
   const calories = Math.max(0, Math.round(toNumber(parsed.calories) ?? 0));
   const confidenceRaw = toNumber(parsed.confidence) ?? 0.5;
   const confidence = Math.min(1, Math.max(0, confidenceRaw));
-  const photoKind = typeof parsed.photoKind === "string" && PHOTO_KINDS.has(parsed.photoKind as PhotoKind)
-    ? (parsed.photoKind as PhotoKind)
-    : undefined;
   const barcode = typeof parsed.barcode === "string" ? parsed.barcode.trim() : undefined;
   const brand = typeof parsed.brand === "string" && parsed.brand.trim() ? parsed.brand.trim() : undefined;
 
@@ -110,7 +107,7 @@ export function parseFoodRecognitionResponse(text: string) {
         .slice(0, 3)
     : undefined;
 
-  return {
+  const result: FoodRecognitionResult = {
     dishName,
     calories,
     protein: toNumber(parsed.protein),
@@ -121,9 +118,40 @@ export function parseFoodRecognitionResponse(text: string) {
       : undefined,
     confidence,
     alternatives: alternatives?.length ? alternatives : undefined,
-    photoKind,
+    photoKind: parsePhotoKind(parsed.photoKind),
     barcode: barcode || undefined,
     brand,
     per100g: parsePer100g(parsed.per100g),
   };
+
+  if (!includeItems || !Array.isArray(parsed.items)) {
+    return result;
+  }
+
+  const items = parsed.items
+    .filter((item): item is RawRecognition => Boolean(item) && typeof item === "object")
+    .map((item) => parseRecognitionObject(item, false))
+    .filter((item) => item.dishName && !/не удалось распознать/i.test(item.dishName))
+    .slice(0, MAX_PLATE_ITEMS);
+
+  if (items.length >= 2) {
+    result.items = items.map((item) => ({
+      ...item,
+      photoKind: item.photoKind ?? result.photoKind ?? "meal",
+    }));
+  }
+
+  return result;
+}
+
+export function parseFoodRecognitionResponse(text: string): FoodRecognitionResult {
+  let parsed: RawRecognition;
+
+  try {
+    parsed = JSON.parse(extractJson(text)) as RawRecognition;
+  } catch {
+    throw new Error("Модель вернула некорректный JSON");
+  }
+
+  return parseRecognitionObject(parsed, true);
 }
