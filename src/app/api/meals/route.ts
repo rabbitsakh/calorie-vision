@@ -17,6 +17,7 @@ type SaveMealBody = {
   portionGrams?: number;
   confidence?: number;
   imagePath?: string;
+  mealGroupId?: string;
   wasCorrected?: boolean;
   originalDish?: string;
   originalCalories?: number;
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
         portionGrams: body.portionGrams,
         confidence: body.confidence,
         imagePath: body.imagePath?.trim() || null,
+        mealGroupId: body.mealGroupId?.trim() || null,
         wasCorrected: body.wasCorrected ?? false,
         originalDish: body.originalDish ? decodeHtmlEntities(body.originalDish) : body.originalDish,
         originalCalories: body.originalCalories,

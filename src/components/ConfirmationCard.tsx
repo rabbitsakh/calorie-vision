@@ -205,7 +205,7 @@ export function ConfirmationCard({
     }
   }
 
-  async function saveDish(dish: DishDraft) {
+  async function saveDish(dish: DishDraft, mealGroupId?: string) {
     const parsedCalories = Number(dish.calories);
     if (!dish.dishName.trim() || !Number.isFinite(parsedCalories) || parsedCalories <= 0) {
       throw new Error("Проверьте название и калорийность каждого блюда");
@@ -228,6 +228,7 @@ export function ConfirmationCard({
         portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
         confidence: dish.original.confidence,
         imagePath: imagePath || undefined,
+        mealGroupId,
         wasCorrected,
         originalDish: decodeHtmlEntities(dish.original.dishName),
         originalCalories: dish.original.calories,
@@ -245,8 +246,9 @@ export function ConfirmationCard({
     setError(null);
 
     try {
+      const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
       for (const dish of dishes) {
-        await saveDish(dish);
+        await saveDish(dish, mealGroupId);
       }
       onSaved();
     } catch (err) {

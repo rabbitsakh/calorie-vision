@@ -110,6 +110,7 @@ model MealEntry {
   portionGrams     Int?
   confidence       Float?
   imagePath        String?
+  mealGroupId      String?  @db.VarChar(191)
   wasCorrected     Boolean  @default(false)
   originalDish     String?
   originalCalories Int?

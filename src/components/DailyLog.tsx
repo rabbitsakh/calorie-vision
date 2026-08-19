@@ -6,6 +6,7 @@ import type { DayMealsResponse, MealEntry } from "@/types";
 import { formatDateTime, formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
 
 type DailyLogProps = {
   selectedDate: string;
@@ -14,6 +15,179 @@ type DailyLogProps = {
   compact?: boolean;
   timezone?: string | null;
 };
+
+function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs">): string {
+  const parts: string[] = [];
+  if (entry.protein) {
+    parts.push(`Б ${entry.protein}`);
+  }
+  if (entry.fat) {
+    parts.push(`Ж ${entry.fat}`);
+  }
+  if (entry.carbs) {
+    parts.push(`У ${entry.carbs}`);
+  }
+  return parts.join(" · ");
+}
+
+function MealEntryDetails({
+  entry,
+  timezone,
+}: {
+  entry: MealEntry;
+  timezone?: string | null;
+}) {
+  const macros = formatMacros(entry);
+
+  return (
+    <p className="mt-1 text-sm text-slate-500">
+      {entry.calories} ккал
+      {entry.portionGrams ? ` · ${entry.portionGrams} г` : ""}
+      {macros ? ` · ${macros}` : ""}
+      {" · "}
+      {formatDateTime(entry.createdAt, timezone)}
+    </p>
+  );
+}
+
+function GroupedMealCard({
+  group,
+  timezone,
+  onDelete,
+}: {
+  group: MealListGroup;
+  timezone?: string | null;
+  onDelete: (id: string) => void;
+}) {
+  const macros = formatMacros({
+    protein: group.totalProtein,
+    fat: group.totalFat,
+    carbs: group.totalCarbs,
+  });
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-teal-100 bg-slate-50">
+      <div className="flex flex-col gap-4 p-4 md:flex-row">
+        {group.imagePath ? (
+          <div className="h-28 w-full shrink-0 overflow-hidden rounded-xl bg-white md:h-32 md:w-32">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getImageUrl(group.imagePath)}
+              alt={group.entries.map((entry) => decodeHtmlEntities(entry.dishName)).join(", ")}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+        ) : null}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold">С одного фото</h3>
+            <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800">
+              {group.entries.length} {group.entries.length === 1 ? "блюдо" : group.entries.length < 5 ? "блюда" : "блюд"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            {group.totalCalories} ккал
+            {macros ? ` · ${macros}` : ""}
+            {" · "}
+            {formatDateTime(group.createdAt, timezone)}
+          </p>
+        </div>
+      </div>
+
+      <div className="divide-y divide-slate-100 border-t border-slate-100 bg-white/70">
+        {group.entries.map((entry) => (
+          <div key={entry.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="font-medium">{decodeHtmlEntities(entry.dishName)}</h4>
+                {entry.wasCorrected ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    исправлено
+                  </span>
+                ) : null}
+              </div>
+              <MealEntryDetails entry={entry} timezone={timezone} />
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-danger self-start sm:self-center"
+              onClick={() => onDelete(entry.id)}
+            >
+              Удалить
+            </button>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function SingleMealCard({
+  entry,
+  timezone,
+  onDelete,
+}: {
+  entry: MealEntry;
+  timezone?: string | null;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <article className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center">
+      {entry.imagePath ? (
+        <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl bg-white md:w-28">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getImageUrl(entry.imagePath)}
+            alt={decodeHtmlEntities(entry.dishName)}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+      ) : null}
+
+      <div className="flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
+          {entry.wasCorrected ? (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+              исправлено
+            </span>
+          ) : null}
+        </div>
+        <MealEntryDetails entry={entry} timezone={timezone} />
+      </div>
+
+      <button
+        type="button"
+        className="btn btn-danger self-start md:self-center"
+        onClick={() => onDelete(entry.id)}
+      >
+        Удалить
+      </button>
+    </article>
+  );
+}
+
+function MealListRow({
+  item,
+  timezone,
+  onDelete,
+}: {
+  item: MealListItem;
+  timezone?: string | null;
+  onDelete: (id: string) => void;
+}) {
+  if (item.kind === "group") {
+    return <GroupedMealCard group={item} timezone={timezone} onDelete={onDelete} />;
+  }
+
+  return <SingleMealCard entry={item.entry} timezone={timezone} onDelete={onDelete} />;
+}
 
 export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezone }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
@@ -121,6 +295,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
   }
 
   const displayDate = formatDateWords(selectedDate);
+  const listItems = groupMealEntries(entries);
 
   return (
     <section className="card p-6">
@@ -167,51 +342,13 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         ) : null}
 
         <div className="flex flex-col gap-3">
-          {entries.map((entry) => (
-            <article
-              key={entry.id}
-              className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
-            >
-              {entry.imagePath ? (
-                <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl bg-white md:w-28">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={getImageUrl(entry.imagePath)}
-                    alt={decodeHtmlEntities(entry.dishName)}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              ) : null}
-
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
-                  {entry.wasCorrected ? (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                      исправлено
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  {entry.calories} ккал
-                  {entry.portionGrams ? ` · ${entry.portionGrams} г` : ""}
-                  {entry.protein ? ` · Б ${entry.protein}` : ""}
-                  {entry.fat ? ` · Ж ${entry.fat}` : ""}
-                  {entry.carbs ? ` · У ${entry.carbs}` : ""}
-                  {" · "}{formatDateTime(entry.createdAt, timezone)}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-danger self-start md:self-center"
-                onClick={() => handleDelete(entry.id)}
-              >
-                Удалить
-              </button>
-            </article>
+          {listItems.map((item) => (
+            <MealListRow
+              key={item.kind === "group" ? item.groupId : item.entry.id}
+              item={item}
+              timezone={timezone}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       </div>
