@@ -94,8 +94,6 @@ export function MealSuggestions({
     }
   }
 
-  if (totalCalories === 0) return null;
-
   if (hidden) {
     return (
       <button
@@ -118,8 +116,14 @@ export function MealSuggestions({
       >
         <span className="text-xl">🤖</span>
         <div className="text-left">
-          <p className="font-semibold">Что ещё съесть сегодня?</p>
-          <p className="text-xs text-teal-600">AI проанализирует остаток макросов и предложит блюда</p>
+          <p className="font-semibold">
+            {totalCalories === 0 ? "Что съесть сегодня? Спросить AI" : "Что ещё съесть сегодня?"}
+          </p>
+          <p className="text-xs text-teal-600">
+            {totalCalories === 0
+              ? "AI подберёт блюда под вашу цель и норму калорий"
+              : "AI проанализирует остаток макросов и предложит блюда"}
+          </p>
         </div>
       </button>
     );
