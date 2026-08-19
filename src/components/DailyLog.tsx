@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
+import { MEAL_TYPE_LABELS } from "@/types";
 import { formatDateTime, formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -529,6 +530,31 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
     void loadEntries(true);
   }
 
+  const [copying, setCopying] = useState(false);
+
+  async function handleCopyYesterday() {
+    setCopying(true);
+    try {
+      const d = new Date(selectedDate + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() - 1);
+      const fromDate = d.toISOString().slice(0, 10);
+      const resp = await fetch(withBasePath("/api/meals/copy"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromDate, toDate: selectedDate }),
+      });
+      const data = (await resp.json()) as { copied?: number; error?: string };
+      if (resp.ok) {
+        await loadEntries();
+        onChanged?.();
+      } else {
+        alert(data.error ?? "Не удалось скопировать");
+      }
+    } finally {
+      setCopying(false);
+    }
+  }
+
   const displayDate = formatDateWords(selectedDate);
   const listItems = groupMealEntries(entries);
 
@@ -573,13 +599,56 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         </div>
 
         {daySummary.comparison && daySummary.calorieTone && daySummary.weightKg != null ? (
-          <DietTargets
-            comparison={daySummary.comparison}
-            calorieTone={daySummary.calorieTone}
-            weightKg={daySummary.weightKg}
-            dietLabel={daySummary.dietLabel}
-            sex={daySummary.sex}
-          />
+          <>
+            <DietTargets
+              comparison={daySummary.comparison}
+              calorieTone={daySummary.calorieTone}
+              weightKg={daySummary.weightKg}
+              dietLabel={daySummary.dietLabel}
+              sex={daySummary.sex}
+            />
+            {daySummary.comparison.calories.target > 0 ? (() => {
+              const target = daySummary.comparison!.calories.target;
+              const budgets = [
+                { label: "Завтрак", pct: 0.25 },
+                { label: "Обед", pct: 0.35 },
+                { label: "Ужин", pct: 0.30 },
+                { label: "Перекус", pct: 0.10 },
+              ];
+              const eaten = Object.fromEntries(
+                (["BREAKFAST","LUNCH","DINNER","SNACK"] as const).map((type, i) => [
+                  budgets[i]!.label,
+                  entries.filter((e) => e.mealType === type).reduce((s, e) => s + e.calories, 0),
+                ])
+              );
+              const hasTypes = entries.some((e) => e.mealType);
+              if (!hasTypes) return null;
+              return (
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">Бюджет по приёмам пищи</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {budgets.map((b) => {
+                      const alloc = Math.round(target * b.pct);
+                      const used = eaten[b.label] ?? 0;
+                      const pct = Math.min(100, Math.round((used / alloc) * 100));
+                      const over = used > alloc;
+                      return (
+                        <div key={b.label} className="flex flex-col gap-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-medium text-slate-700">{b.label}</span>
+                            <span className={over ? "text-rose-600" : "text-slate-500"}>{used} / {alloc} ккал</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                            <div className={`h-2 rounded-full transition-all ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })() : null}
+          </>
         ) : (
           <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
             Чтобы увидеть рекомендуемый рацион и дефицит/профицит, укажите вес и выберите цель.
@@ -598,8 +667,16 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         ) : null}
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            За этот день пока нет записей. Добавьте еду выше.
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
+            <p>За этот день пока нет записей. Добавьте еду выше.</p>
+            <button
+              type="button"
+              className="btn btn-secondary text-sm"
+              disabled={copying}
+              onClick={() => void handleCopyYesterday()}
+            >
+              {copying ? "Копируем..." : "📋 Повторить вчерашний день"}
+            </button>
           </div>
         ) : null}
 
