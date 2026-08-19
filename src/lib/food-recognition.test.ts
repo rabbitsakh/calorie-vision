@@ -27,6 +27,28 @@ test("parses a nutrition-label vision response and scales from 100g", () => {
   assert.equal(scaled?.protein, 32);
 });
 
+test("parses several dishes from a mixed plate", () => {
+  const vision = parseFoodRecognitionResponse(`{
+    "photoKind": "meal",
+    "dishName": "Стейк, картофель, салат",
+    "calories": 670,
+    "protein": 46,
+    "fat": 33,
+    "carbs": 32,
+    "portionGrams": 430,
+    "confidence": 0.6,
+    "items": [
+      { "dishName": "Стейк", "calories": 400, "protein": 40, "fat": 20, "carbs": 0, "portionGrams": 150, "confidence": 0.7 },
+      { "dishName": "Картофель", "calories": 180, "protein": 4, "fat": 6, "carbs": 28, "portionGrams": 200, "confidence": 0.8 },
+      { "dishName": "Салат", "calories": 90, "protein": 2, "fat": 7, "carbs": 4, "portionGrams": 80, "confidence": 0.6 }
+    ]
+  }`);
+
+  assert.equal(vision.items?.length, 3);
+  assert.equal(vision.items?.[0].dishName, "Стейк");
+  assert.equal(vision.items?.[1].calories, 180);
+});
+
 test("parses a package barcode from the vision JSON", () => {
   const vision = parseFoodRecognitionResponse(`{
     "photoKind": "barcode",

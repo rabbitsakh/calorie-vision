@@ -7,6 +7,10 @@ import {
 } from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
 import {
+  combineRecognitionItems,
+  isMultiItemRecognition,
+} from "@/lib/recognition-items";
+import {
   needsNutritionLookup,
   normalizeRecognitionNutrition,
 } from "@/lib/recognition-nutrition";
@@ -171,6 +175,33 @@ export async function enrichPackagedProduct(
   };
 }
 
+async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecognitionResult> {
+  let result = normalizeRecognitionNutrition({
+    ...vision,
+    photoKind: vision.photoKind ?? "meal",
+    source: vision.source ?? "gigachat",
+    items: undefined,
+  });
+
+  if (needsNutritionLookup(result)) {
+    try {
+      const looked = await lookupFoodByName(result.dishName);
+      if (!needsNutritionLookup(looked)) {
+        result = normalizeRecognitionNutrition({
+          ...looked,
+          dishName: result.dishName,
+          photoKind: "meal",
+          confidence: Math.max(looked.confidence, result.confidence * 0.85),
+        });
+      }
+    } catch (error) {
+      console.error("Nutrition lookup fallback failed", error);
+    }
+  }
+
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
+}
+
 export async function recognizeFoodWithAI(
   imageBuffer: Buffer,
   filename: string,
@@ -182,7 +213,15 @@ export async function recognizeFoodWithAI(
   }
 
   const vision = await recognizeWithGigaChat(imageBuffer, filename);
-  const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat" });
+  const plated =
+    (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
+
+  if (plated && vision.items) {
+    const processed = await Promise.all(vision.items.map((item) => enrichMealItem(item)));
+    return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
+  }
+
+  const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
   let result = normalizeRecognitionNutrition(enriched);
 
   if (needsNutritionLookup(result)) {

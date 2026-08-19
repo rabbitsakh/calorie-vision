@@ -9,6 +9,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "openfoodfacts-search": "Данные из базы по названию на упаковке",
   label: "Считано с этикетки",
   "correction-memory": "Уточнено по прошлым исправлениям",
+  "gigachat-plate": "Несколько блюд на тарелке",
 };
 
 export type FoodRecognitionResult = {
@@ -34,4 +35,5 @@ export type FoodRecognitionResult = {
     fat?: number;
     carbs?: number;
   };
+  items?: FoodRecognitionResult[];
 };

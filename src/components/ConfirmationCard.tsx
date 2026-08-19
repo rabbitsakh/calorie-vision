@@ -9,8 +9,10 @@ import {
 } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { flattenRecognitionItems } from "@/lib/recognition-items";
 
 type NutritionFields = {
   dishName: string;
@@ -20,6 +22,18 @@ type NutritionFields = {
   carbs?: number;
   portionGrams?: number;
   source?: string;
+};
+
+type DishDraft = {
+  id: string;
+  original: FoodRecognitionResult;
+  dishName: string;
+  calories: string;
+  protein: string;
+  fat: string;
+  carbs: string;
+  portionGrams: string;
+  baseline: NutritionValues | null;
 };
 
 type ConfirmationCardProps = {
@@ -38,6 +52,35 @@ function SearchIcon() {
   );
 }
 
+function parseOptionalNumber(value: string): number | undefined {
+  if (value.trim() === "") {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraft {
+  return {
+    id,
+    original: item,
+    dishName: decodeHtmlEntities(item.dishName),
+    calories: String(item.calories || ""),
+    protein: item.protein !== undefined ? String(item.protein) : "",
+    fat: item.fat !== undefined ? String(item.fat) : "",
+    carbs: item.carbs !== undefined ? String(item.carbs) : "",
+    portionGrams: item.portionGrams !== undefined ? String(item.portionGrams) : "",
+    baseline: nutritionBaseline(item),
+  };
+}
+
+function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] {
+  return flattenRecognitionItems(recognition).map((item, index) =>
+    draftFromRecognition(item, `${item.dishName}-${index}`),
+  );
+}
+
 export function ConfirmationCard({
   result,
   selectedDate,
@@ -45,51 +88,12 @@ export function ConfirmationCard({
   onSaved,
 }: ConfirmationCardProps) {
   const { recognition, imagePath: initialImagePath, previewUrl } = result;
-  const [dishName, setDishName] = useState(() => decodeHtmlEntities(recognition.dishName));
-  const [calories, setCalories] = useState(String(recognition.calories));
-  const [protein, setProtein] = useState(String(recognition.protein ?? ""));
-  const [fat, setFat] = useState(String(recognition.fat ?? ""));
-  const [carbs, setCarbs] = useState(String(recognition.carbs ?? ""));
-  const [portionGrams, setPortionGrams] = useState(String(recognition.portionGrams ?? ""));
+  const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
   const [imagePath, setImagePath] = useState(initialImagePath);
-  const [baseline, setBaseline] = useState<NutritionValues | null>(() =>
-    nutritionBaseline(recognition),
-  );
   const [saving, setSaving] = useState(false);
-  const [searching, setSearching] = useState(false);
+  const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  function parseOptionalNumber(value: string): number | undefined {
-    if (value.trim() === "") {
-      return undefined;
-    }
-
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-
-  function captureBaseline(
-    next: Partial<{
-      calories: string;
-      protein: string;
-      fat: string;
-      carbs: string;
-      portionGrams: string;
-    }>,
-  ) {
-    const grams = Number(next.portionGrams ?? portionGrams);
-    const kcal = Number(next.calories ?? calories);
-    setBaseline(
-      nutritionBaseline({
-        calories: kcal,
-        protein: parseOptionalNumber(next.protein ?? protein),
-        fat: parseOptionalNumber(next.fat ?? fat),
-        carbs: parseOptionalNumber(next.carbs ?? carbs),
-        portionGrams: grams,
-      }),
-    );
-  }
 
   useEffect(() => {
     return () => {
@@ -100,88 +104,61 @@ export function ConfirmationCard({
   }, [previewUrl]);
 
   useEffect(() => {
-    setDishName(decodeHtmlEntities(recognition.dishName));
-    setCalories(String(recognition.calories));
-    setProtein(recognition.protein !== undefined ? String(recognition.protein) : "");
-    setFat(recognition.fat !== undefined ? String(recognition.fat) : "");
-    setCarbs(recognition.carbs !== undefined ? String(recognition.carbs) : "");
-    setPortionGrams(recognition.portionGrams !== undefined ? String(recognition.portionGrams) : "");
-    setBaseline(nutritionBaseline(recognition));
+    setDishes(draftsFromRecognition(recognition));
     setImagePath(initialImagePath);
   }, [recognition, initialImagePath]);
 
-  useEffect(() => {
-    const name = decodeHtmlEntities(recognition.dishName).trim();
-    if (recognition.calories > 0 || !name || /не удалось распознать/i.test(name)) {
-      return;
-    }
-
-    void handleLookup(name);
-  }, [recognition.dishName, recognition.calories]);
-
-  function applyNutrition(data: NutritionFields) {
-    setDishName(decodeHtmlEntities(data.dishName));
-    setCalories(String(data.calories));
-    setProtein(data.protein !== undefined ? String(data.protein) : "");
-    setFat(data.fat !== undefined ? String(data.fat) : "");
-    setCarbs(data.carbs !== undefined ? String(data.carbs) : "");
-    setPortionGrams(data.portionGrams !== undefined ? String(data.portionGrams) : "");
-    setBaseline(nutritionBaseline(data));
+  function updateDish(id: string, patch: Partial<DishDraft>) {
+    setDishes((current) => current.map((dish) => (dish.id === id ? { ...dish, ...patch } : dish)));
   }
 
-  function handlePortionChange(value: string) {
-    setPortionGrams(value);
-    const grams = Number(value);
-    if (!Number.isFinite(grams) || grams <= 0) {
-      return;
-    }
+  function captureBaseline(dish: DishDraft, next: Partial<DishDraft>): NutritionValues | null {
+    return nutritionBaseline({
+      calories: Number(next.calories ?? dish.calories),
+      protein: parseOptionalNumber(next.protein ?? dish.protein),
+      fat: parseOptionalNumber(next.fat ?? dish.fat),
+      carbs: parseOptionalNumber(next.carbs ?? dish.carbs),
+      portionGrams: Number(next.portionGrams ?? dish.portionGrams),
+    });
+  }
 
-    let base = baseline;
+  function handlePortionChange(dish: DishDraft, value: string) {
+    const grams = Number(value);
+    let base = dish.baseline;
     if (!base) {
-      const kcal = Number(calories);
-      if (Number.isFinite(kcal) && kcal > 0) {
+      const kcal = Number(dish.calories);
+      if (Number.isFinite(kcal) && kcal > 0 && Number.isFinite(grams) && grams > 0) {
         base = nutritionBaseline({
           calories: kcal,
-          protein: parseOptionalNumber(protein),
-          fat: parseOptionalNumber(fat),
-          carbs: parseOptionalNumber(carbs),
+          protein: parseOptionalNumber(dish.protein),
+          fat: parseOptionalNumber(dish.fat),
+          carbs: parseOptionalNumber(dish.carbs),
           portionGrams: grams,
         });
-        if (base) {
-          setBaseline(base);
-        }
       }
     }
 
-    if (!base) {
-      return;
-    }
+    const scaled =
+      base && Number.isFinite(grams) && grams > 0 ? scaleNutritionByPortion(base, grams) : null;
 
-    const scaled = scaleNutritionByPortion(base, grams);
-    if (!scaled) {
-      return;
-    }
-
-    setCalories(String(scaled.calories));
-    if (scaled.protein !== undefined) {
-      setProtein(formatMacro(scaled.protein));
-    }
-    if (scaled.fat !== undefined) {
-      setFat(formatMacro(scaled.fat));
-    }
-    if (scaled.carbs !== undefined) {
-      setCarbs(formatMacro(scaled.carbs));
-    }
+    updateDish(dish.id, {
+      portionGrams: value,
+      baseline: base ?? dish.baseline,
+      calories: scaled ? String(scaled.calories) : dish.calories,
+      protein: scaled?.protein !== undefined ? formatMacro(scaled.protein) : dish.protein,
+      fat: scaled?.fat !== undefined ? formatMacro(scaled.fat) : dish.fat,
+      carbs: scaled?.carbs !== undefined ? formatMacro(scaled.carbs) : dish.carbs,
+    });
   }
 
-  async function handleLookup(nameOverride?: string) {
-    const query = (nameOverride ?? dishName).trim();
+  async function handleLookup(dish: DishDraft, nameOverride?: string) {
+    const query = (nameOverride ?? dish.dishName).trim();
     if (!query) {
       setError("Введите название блюда для поиска");
       return;
     }
 
-    setSearching(true);
+    setSearchingId(dish.id);
     setError(null);
     setLookupMessage(null);
 
@@ -206,60 +183,71 @@ export function ConfirmationCard({
         throw new Error("Пустой ответ от сервера");
       }
 
-      applyNutrition(data.recognition);
-      if (!previewUrl && data.imagePath) {
+      const next = data.recognition;
+      updateDish(dish.id, {
+        dishName: decodeHtmlEntities(next.dishName),
+        calories: String(next.calories),
+        protein: next.protein !== undefined ? String(next.protein) : "",
+        fat: next.fat !== undefined ? String(next.fat) : "",
+        carbs: next.carbs !== undefined ? String(next.carbs) : "",
+        portionGrams: next.portionGrams !== undefined ? String(next.portionGrams) : "",
+        baseline: nutritionBaseline(next),
+      });
+      if (!previewUrl && data.imagePath && dishes.length === 1) {
         setImagePath(data.imagePath);
       }
-      const sourceLabel = data.recognition.source
-        ? RECOGNITION_SOURCE_LABELS[data.recognition.source]
-        : undefined;
+      const sourceLabel = next.source ? RECOGNITION_SOURCE_LABELS[next.source] : undefined;
       setLookupMessage(sourceLabel ?? "Калорийность и БЖУ обновлены по названию блюда");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка поиска");
     } finally {
-      setSearching(false);
+      setSearchingId(null);
     }
   }
 
-  const wasCorrected =
-    dishName.trim() !== decodeHtmlEntities(recognition.dishName) ||
-    Number(calories) !== recognition.calories;
-
-  async function handleSave() {
-    const parsedCalories = Number(calories);
-    if (!dishName.trim() || !Number.isFinite(parsedCalories) || parsedCalories <= 0) {
-      setError("Проверьте название блюда и калорийность");
-      return;
+  async function saveDish(dish: DishDraft) {
+    const parsedCalories = Number(dish.calories);
+    if (!dish.dishName.trim() || !Number.isFinite(parsedCalories) || parsedCalories <= 0) {
+      throw new Error("Проверьте название и калорийность каждого блюда");
     }
 
+    const wasCorrected =
+      dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
+      parsedCalories !== dish.original.calories;
+
+    const response = await fetch(withBasePath("/api/meals"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: selectedDate,
+        dishName: dish.dishName.trim(),
+        calories: parsedCalories,
+        protein: dish.protein ? Number(dish.protein) : undefined,
+        fat: dish.fat ? Number(dish.fat) : undefined,
+        carbs: dish.carbs ? Number(dish.carbs) : undefined,
+        portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
+        confidence: dish.original.confidence,
+        imagePath: imagePath || undefined,
+        wasCorrected,
+        originalDish: decodeHtmlEntities(dish.original.dishName),
+        originalCalories: dish.original.calories,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error ?? "Ошибка сохранения");
+    }
+  }
+
+  async function handleSave() {
     setSaving(true);
     setError(null);
 
     try {
-      const response = await fetch(withBasePath("/api/meals"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: selectedDate,
-          dishName: dishName.trim(),
-          calories: parsedCalories,
-          protein: protein ? Number(protein) : undefined,
-          fat: fat ? Number(fat) : undefined,
-          carbs: carbs ? Number(carbs) : undefined,
-          portionGrams: portionGrams ? Number(portionGrams) : undefined,
-          confidence: recognition.confidence,
-          imagePath: imagePath || undefined,
-          wasCorrected,
-          originalDish: decodeHtmlEntities(recognition.dishName),
-          originalCalories: recognition.calories,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "Ошибка сохранения");
+      for (const dish of dishes) {
+        await saveDish(dish);
       }
-
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить");
@@ -269,6 +257,9 @@ export function ConfirmationCard({
   }
 
   const hasImage = Boolean(previewUrl || imagePath);
+  const multi = dishes.length > 1;
+  const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
+  const searching = searchingId !== null;
 
   return (
     <section className="card p-6">
@@ -276,7 +267,9 @@ export function ConfirmationCard({
         <div>
           <h2 className="text-xl font-bold">Проверьте распознавание</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Измените порцию — калории и БЖУ пересчитаются сразу. Название можно уточнить поиском.
+            {multi
+              ? "На фото несколько блюд — каждое можно поправить и сохранить отдельно."
+              : "Измените порцию — калории и БЖУ пересчитаются сразу. Название можно уточнить поиском."}
           </p>
         </div>
 
@@ -286,7 +279,7 @@ export function ConfirmationCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={previewUrl ?? getImageUrl(imagePath)}
-                alt={dishName.trim() || "Фото блюда"}
+                alt={dishes.map((dish) => dish.dishName).join(", ") || "Фото блюда"}
                 className="h-full min-h-52 w-full object-cover"
               />
             </div>
@@ -298,142 +291,49 @@ export function ConfirmationCard({
                 {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
               </p>
               <p className="mt-1 text-xs text-teal-800">
-                Уверенность: {Math.round(recognition.confidence * 100)}%
+                {multi
+                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+                  : `Уверенность: ${Math.round(recognition.confidence * 100)}%`}
                 {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
               </p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="field sm:col-span-2">
-                <label htmlFor="dishName">Блюдо</label>
-                <div className="input-with-action">
-                  <input
-                    id="dishName"
-                    value={dishName}
-                    placeholder="Например: борщ с мясом"
-                    onChange={(event) => setDishName(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        void handleLookup();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn-icon"
-                    title="Найти калорийность и БЖУ"
-                    aria-label="Найти калорийность и БЖУ"
-                    disabled={searching || saving}
-                    onClick={() => void handleLookup()}
-                  >
-                    {searching ? (
-                      <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    ) : (
-                      <SearchIcon />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Измените название и нажмите лупу или Enter для пересчёта
-                </p>
-              </div>
+            {dishes.map((dish, index) => (
+              <DishFields
+                key={dish.id}
+                dish={dish}
+                index={index}
+                multi={multi}
+                searching={searchingId === dish.id}
+                disabled={saving || searching}
+                canRemove={multi}
+                onChange={(patch) => updateDish(dish.id, patch)}
+                onBaselineChange={(patch) =>
+                  updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
+                }
+                onPortionChange={(value) => handlePortionChange(dish, value)}
+                onLookup={(name) => void handleLookup(dish, name)}
+                onRemove={() => setDishes((current) => current.filter((item) => item.id !== dish.id))}
+              />
+            ))}
 
-              <div className="field">
-                <label htmlFor="calories">Калории, ккал</label>
-                <input
-                  id="calories"
-                  type="number"
-                  min="1"
-                  value={calories}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setCalories(value);
-                    captureBaseline({ calories: value });
-                  }}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="portionGrams">Порция, г</label>
-                <input
-                  id="portionGrams"
-                  type="number"
-                  min="1"
-                  value={portionGrams}
-                  onChange={(event) => handlePortionChange(event.target.value)}
-                />
-                <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
-              </div>
-
-              <div className="field">
-                <label htmlFor="protein">Белки, г</label>
-                <input
-                  id="protein"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={protein}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setProtein(value);
-                    captureBaseline({ protein: value });
-                  }}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="fat">Жиры, г</label>
-                <input
-                  id="fat"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={fat}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setFat(value);
-                    captureBaseline({ fat: value });
-                  }}
-                />
-              </div>
-
-              <div className="field sm:col-span-2">
-                <label htmlFor="carbs">Углеводы, г</label>
-                <input
-                  id="carbs"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={carbs}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setCarbs(value);
-                    captureBaseline({ carbs: value });
-                  }}
-                />
-              </div>
-            </div>
-
-            {recognition.alternatives?.length ? (
-              <div>
-                <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
-                <div className="flex flex-wrap gap-2">
-                  {recognition.alternatives.map((item) => {
-                    const altName = decodeHtmlEntities(item.dishName);
-                    return (
-                    <button
-                      key={altName}
-                      type="button"
-                      className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-                      onClick={() => void handleLookup(altName)}
-                    >
-                      {altName} · {item.calories} ккал
-                    </button>
-                    );
-                  })}
-                </div>
-              </div>
+            {multi ? (
+              <button
+                type="button"
+                className="btn btn-secondary self-start text-sm"
+                disabled={saving || searching}
+                onClick={() =>
+                  setDishes((current) => [
+                    ...current,
+                    draftFromRecognition(
+                      { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
+                      `new-${Date.now()}`,
+                    ),
+                  ])
+                }
+              >
+                Добавить блюдо
+              </button>
             ) : null}
           </div>
         </div>
@@ -442,8 +342,8 @@ export function ConfirmationCard({
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="btn btn-primary" disabled={saving || searching} onClick={handleSave}>
-            {saving ? "Сохраняем..." : "Да, сохранить"}
+          <button type="button" className="btn btn-primary" disabled={saving || searching} onClick={() => void handleSave()}>
+            {saving ? "Сохраняем..." : multi ? "Сохранить все блюда" : "Да, сохранить"}
           </button>
           <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
             Отменить
@@ -451,5 +351,163 @@ export function ConfirmationCard({
         </div>
       </div>
     </section>
+  );
+}
+
+function DishFields({
+  dish,
+  index,
+  multi,
+  searching,
+  disabled,
+  canRemove,
+  onChange,
+  onBaselineChange,
+  onPortionChange,
+  onLookup,
+  onRemove,
+}: {
+  dish: DishDraft;
+  index: number;
+  multi: boolean;
+  searching: boolean;
+  disabled: boolean;
+  canRemove: boolean;
+  onChange: (patch: Partial<DishDraft>) => void;
+  onBaselineChange: (patch: Partial<DishDraft>) => void;
+  onPortionChange: (value: string) => void;
+  onLookup: (name?: string) => void;
+  onRemove: () => void;
+}) {
+  const fieldId = (name: string) => `${name}-${dish.id}`;
+
+  return (
+    <div className={multi ? "rounded-2xl border border-slate-200 p-4" : "flex flex-col gap-4"}>
+      {multi ? (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-slate-700">Блюдо {index + 1}</p>
+          {canRemove ? (
+            <button type="button" className="text-sm text-red-600 hover:text-red-700" disabled={disabled} onClick={onRemove}>
+              Убрать
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="field sm:col-span-2">
+          <label htmlFor={fieldId("dishName")}>Блюдо</label>
+          <div className="input-with-action">
+            <input
+              id={fieldId("dishName")}
+              value={dish.dishName}
+              placeholder="Например: борщ с мясом"
+              onChange={(event) => onChange({ dishName: event.target.value })}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onLookup();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn-icon"
+              title="Найти калорийность и БЖУ"
+              aria-label="Найти калорийность и БЖУ"
+              disabled={disabled}
+              onClick={() => onLookup()}
+            >
+              {searching ? (
+                <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <SearchIcon />
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">Измените название и нажмите лупу или Enter для пересчёта</p>
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("calories")}>Калории, ккал</label>
+          <input
+            id={fieldId("calories")}
+            type="number"
+            min="1"
+            value={dish.calories}
+            onChange={(event) => onBaselineChange({ calories: event.target.value })}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("portionGrams")}>Порция, г</label>
+          <input
+            id={fieldId("portionGrams")}
+            type="number"
+            min="1"
+            value={dish.portionGrams}
+            onChange={(event) => onPortionChange(event.target.value)}
+          />
+          <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("protein")}>Белки, г</label>
+          <input
+            id={fieldId("protein")}
+            type="number"
+            min="0"
+            step="0.1"
+            value={dish.protein}
+            onChange={(event) => onBaselineChange({ protein: event.target.value })}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("fat")}>Жиры, г</label>
+          <input
+            id={fieldId("fat")}
+            type="number"
+            min="0"
+            step="0.1"
+            value={dish.fat}
+            onChange={(event) => onBaselineChange({ fat: event.target.value })}
+          />
+        </div>
+
+        <div className="field sm:col-span-2">
+          <label htmlFor={fieldId("carbs")}>Углеводы, г</label>
+          <input
+            id={fieldId("carbs")}
+            type="number"
+            min="0"
+            step="0.1"
+            value={dish.carbs}
+            onChange={(event) => onBaselineChange({ carbs: event.target.value })}
+          />
+        </div>
+      </div>
+
+      {!multi && dish.original.alternatives?.length ? (
+        <div>
+          <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
+          <div className="flex flex-wrap gap-2">
+            {dish.original.alternatives.map((item) => {
+              const altName = decodeHtmlEntities(item.dishName);
+              return (
+                <button
+                  key={altName}
+                  type="button"
+                  className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
+                  onClick={() => onLookup(altName)}
+                >
+                  {altName} · {item.calories} ккал
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
