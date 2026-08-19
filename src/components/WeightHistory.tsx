@@ -27,6 +27,21 @@ type WeightHistoryProps = {
   onChanged?: () => void;
 };
 
+function WeightUndoToast({ label, onUndo, onExpired }: { label: string; onUndo: () => void; onExpired: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onExpired, 4000);
+    return () => clearTimeout(t);
+  }, [onExpired]);
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white">
+      <span>Удалено: {label}</span>
+      <button type="button" className="rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30" onClick={onUndo}>
+        Отменить
+      </button>
+    </div>
+  );
+}
+
 function TrashIcon() {
   return (
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -45,13 +60,15 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limit, setLimit] = useState(20);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (currentLimit = limit) => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(withBasePath("/api/weights?limit=20"));
+      const response = await fetch(withBasePath(`/api/weights?limit=${currentLimit}`));
       const payload = (await response.json()) as WeightsResponse;
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось загрузить вес");
@@ -65,8 +82,9 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load, refreshKey]);
+    void load(limit);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey, limit]);
 
   async function saveWeight(event: React.FormEvent) {
     event.preventDefault();
@@ -111,9 +129,8 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     }
   }
 
-  async function deleteEntry(id: string) {
+  async function performDelete(id: string) {
     setDeletingId(id);
-    setError(null);
     try {
       const response = await fetch(withBasePath(`/api/weights?id=${encodeURIComponent(id)}`), {
         method: "DELETE",
@@ -122,13 +139,31 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
         const payload = (await response.json()) as { error?: string };
         throw new Error(payload.error ?? "Не удалось удалить запись");
       }
-      await load();
+      await load(limit);
       onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка удаления");
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function requestDelete(id: string, label: string) {
+    // Optimistically hide entry
+    setData((prev) => prev ? { ...prev, entries: prev.entries.filter((e) => e.id !== id) } : prev);
+    setPendingDelete({ id, label });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const { id } = pendingDelete;
+    setPendingDelete(null);
+    await performDelete(id);
+  }
+
+  function undoDelete() {
+    setPendingDelete(null);
+    void load(limit); // restore
   }
 
   const grouped = groupWeightEntriesByDate(data?.entries ?? []);
@@ -172,11 +207,20 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
           </button>
         </form>
 
+        {/* Undo toast */}
+        {pendingDelete ? (
+          <WeightUndoToast
+            label={pendingDelete.label}
+            onUndo={undoDelete}
+            onExpired={() => void confirmDelete()}
+          />
+        ) : null}
+
         <div>
           <h2 className="text-lg font-bold">Последние измерения</h2>
           {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
-          {!loading && grouped.length === 0 ? (
+          {!loading && grouped.length === 0 && !pendingDelete ? (
             <p className="mt-3 text-sm text-slate-500">Пока нет записей. Добавьте первое измерение выше.</p>
           ) : null}
 
@@ -204,7 +248,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
                         title="Удалить"
                         aria-label="Удалить"
                         disabled={deletingId === entry.id}
-                        onClick={() => void deleteEntry(entry.id)}
+                        onClick={() => requestDelete(entry.id, `${entry.weightKg} кг`)}
                       >
                         <TrashIcon />
                       </button>
@@ -214,6 +258,17 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
               </div>
             ))}
           </div>
+
+          {/* Load more */}
+          {(data?.entries.length ?? 0) >= limit ? (
+            <button
+              type="button"
+              className="mt-3 text-sm text-teal-700 hover:underline"
+              onClick={() => setLimit((l) => l + 20)}
+            >
+              Показать ещё…
+            </button>
+          ) : null}
         </div>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

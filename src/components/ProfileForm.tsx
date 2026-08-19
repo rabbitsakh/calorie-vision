@@ -113,8 +113,8 @@ export function ProfileForm() {
           image,
           timezone: timezone || null,
           sex: sex || null,
-          heightCm: heightCm ? Number(heightCm) : null,
-          birthYear: birthYear ? Number(birthYear) : null,
+          heightCm: heightCm && Number.isFinite(Number(heightCm)) ? Math.round(Number(heightCm)) : null,
+          birthYear: birthYear && Number.isFinite(Number(birthYear)) ? Math.round(Number(birthYear)) : null,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -230,10 +230,12 @@ export function ProfileForm() {
                 type="email"
                 value={email}
                 disabled={emailLocked}
+                readOnly={emailLocked}
+                className={emailLocked ? "cursor-not-allowed opacity-60" : undefined}
                 onChange={(event) => setEmail(event.target.value)}
               />
               {emailLocked ? (
-                <p className="text-xs text-slate-500">Email управляется через Google или VK</p>
+                <p className="text-xs text-slate-500">🔒 Email привязан к Google или VK — изменить нельзя</p>
               ) : null}
             </div>
             <div className="field sm:col-span-2">

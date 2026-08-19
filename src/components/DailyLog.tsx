@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
@@ -558,7 +558,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }
 
   const displayDate = formatDateWords(selectedDate);
-  const listItems = groupMealEntries(entries);
+  const listItems = useMemo(() => groupMealEntries(entries), [entries]);
 
   return (
     <section className="card p-6">
@@ -590,8 +590,15 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               const pct = target > 0 ? Math.min(100, Math.round((totals.calories / target) * 100)) : 0;
               return (
                 <div className="mt-2">
-                  <div className="h-1.5 overflow-hidden rounded-full bg-teal-900/40">
-                    <div className="h-1.5 rounded-full bg-teal-200 transition-all" style={{ width: `${pct}%` }} />
+                  <div
+                    role="progressbar"
+                    aria-valuenow={pct}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${pct}% дневной нормы калорий`}
+                    className="h-2 overflow-hidden rounded-full bg-teal-900/40"
+                  >
+                    <div className="h-2 rounded-full bg-teal-200 transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   <div className="mt-0.5 text-[10px] text-teal-200">{pct}% от {target} ккал</div>
                 </div>
