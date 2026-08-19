@@ -55,9 +55,9 @@ export function AdminChangelog() {
 
             <ul className="divide-y divide-slate-100 px-4 py-2 md:px-6">
               {release.items.map((item) => (
-                <li key={item.text} className="flex gap-3 py-3">
+                <li key={item.text} className="flex items-baseline gap-3 py-3">
                   <span
-                    className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${KIND_STYLES[item.kind]}`}
+                    className={`shrink-0 self-start whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium leading-5 ${KIND_STYLES[item.kind]}`}
                   >
                     {CHANGELOG_KIND_LABELS[item.kind]}
                   </span>
