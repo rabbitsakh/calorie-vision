@@ -1,6 +1,10 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 import { lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { normalizeBarcode } from "@/lib/barcode";
+import {
+  applyStoredFoodCorrection,
+  lookupStoredFoodCorrection,
+} from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
 import {
   needsNutritionLookup,
@@ -185,7 +189,7 @@ export async function recognizeFoodWithAI(
     try {
       const looked = await lookupFoodByName(result.dishName);
       if (!needsNutritionLookup(looked)) {
-        return normalizeRecognitionNutrition({
+        result = normalizeRecognitionNutrition({
           ...looked,
           confidence: Math.max(looked.confidence, result.confidence * 0.85),
         });
@@ -195,7 +199,7 @@ export async function recognizeFoodWithAI(
     }
   }
 
-  return result;
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
 }
 
 async function withFoodImage(
@@ -248,6 +252,13 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
     throw new Error("Укажите название блюда");
   }
 
+  const remembered = await lookupStoredFoodCorrection(dishName);
+  if (remembered) {
+    return normalizeRecognitionNutrition(
+      await withFoodImage(remembered, dishName),
+    );
+  }
+
   const off = await searchOpenFoodFacts(dishName);
   if (off && offMatchesQuery(dishName, off.dishName)) {
     return normalizeRecognitionNutrition(
@@ -278,7 +289,9 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
   }
 
   const result = await lookupFoodWithGigaChat(dishName);
-  return normalizeRecognitionNutrition(
-    await withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName),
+  return applyStoredFoodCorrection(
+    normalizeRecognitionNutrition(
+      await withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName),
+    ),
   );
 }

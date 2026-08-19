@@ -8,6 +8,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "openfoodfacts-barcode": "Данные из базы по штрихкоду",
   "openfoodfacts-search": "Данные из базы по названию на упаковке",
   label: "Считано с этикетки",
+  "correction-memory": "Уточнено по прошлым исправлениям",
 };
 
 export type FoodRecognitionResult = {
