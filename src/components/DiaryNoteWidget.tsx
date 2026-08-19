@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+
+const PANEL_ID = "diary-note";
 
 const MOODS = [
   { value: 1, emoji: "😞", label: "Плохо" },
@@ -17,6 +20,11 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [hiddenByUser, setHiddenByUser] = useState(false);
+
+  useEffect(() => {
+    setHiddenByUser(isPanelHiddenToday(PANEL_ID, selectedDate));
+  }, [selectedDate]);
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +64,19 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
     }
   }
 
+  if (hiddenByUser) {
+    return (
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHiddenByUser(false); }}
+      >
+        <span>📝 Заметка о дне{mood ? ` · ${["😞","😕","😐","🙂","😄"][mood - 1]}` : ""}</span>
+        <span className="text-xs">Показать</span>
+      </button>
+    );
+  }
+
   if (!open) {
     return (
       <button
@@ -76,7 +97,14 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         <button
           type="button"
           className="text-xs text-slate-400 hover:text-slate-600"
-          onClick={() => { setOpen(false); setNote(""); setMood(null); void handleSave(); }}
+          onClick={() => {
+          hidePanelToday(PANEL_ID, selectedDate);
+          setOpen(false);
+          setNote("");
+          setMood(null);
+          void handleSave();
+          setHiddenByUser(true);
+        }}
         >
           Скрыть
         </button>
