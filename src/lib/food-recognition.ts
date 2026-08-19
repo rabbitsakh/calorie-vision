@@ -183,7 +183,14 @@ async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecogn
     items: undefined,
   });
 
-  if (needsNutritionLookup(result)) {
+  // If the item has per100g data (e.g. a packaged snack on the plate), scale it
+  if (result.per100g && result.per100g.calories > 0 && result.calories <= 0) {
+    result = normalizeRecognitionNutrition(nutritionFromLabel(result));
+  }
+
+  // Only trigger a fallback lookup when the item genuinely needs it AND
+  // the model wasn't already confident about it (confidence < 0.6)
+  if (needsNutritionLookup(result) && result.confidence < 0.6) {
     try {
       const looked = await lookupFoodByName(result.dishName);
       if (!needsNutritionLookup(looked)) {
