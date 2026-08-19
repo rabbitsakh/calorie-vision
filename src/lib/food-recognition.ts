@@ -188,9 +188,9 @@ async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecogn
     result = normalizeRecognitionNutrition(nutritionFromLabel(result));
   }
 
-  // Only trigger a fallback lookup when the item genuinely needs it AND
-  // the model wasn't already confident about it (confidence < 0.6)
-  if (needsNutritionLookup(result) && result.confidence < 0.6) {
+  // Fallback lookup whenever nutrition is missing — confidence reflects dish
+  // identification, not whether calories/macros were actually returned.
+  if (needsNutritionLookup(result)) {
     try {
       const looked = await lookupFoodByName(result.dishName);
       if (!needsNutritionLookup(looked)) {
