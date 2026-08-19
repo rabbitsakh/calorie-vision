@@ -1,6 +1,7 @@
 import type { FoodRecognitionResult } from "./food-types";
 
 const MAX_PLATE_ITEMS = 8;
+const MAX_DISH_NAME_ITEMS = 3;
 
 function sumDefined(values: Array<number | undefined>): number | undefined {
   const present = values.filter((value): value is number => value !== undefined && Number.isFinite(value));
@@ -50,9 +51,16 @@ export function combineRecognitionItems(
     return cleaned[0];
   }
 
+  const nameItems = cleaned.slice(0, MAX_DISH_NAME_ITEMS);
+  const remaining = cleaned.length - nameItems.length;
+  const dishName =
+    remaining > 0
+      ? `${nameItems.map((item) => item.dishName).join(", ")} и ещё ${remaining}`
+      : nameItems.map((item) => item.dishName).join(", ");
+
   return {
     ...base,
-    dishName: cleaned.map((item) => item.dishName).join(", "),
+    dishName,
     calories: cleaned.reduce((sum, item) => sum + Math.max(0, item.calories || 0), 0),
     protein: sumDefined(cleaned.map((item) => item.protein)),
     fat: sumDefined(cleaned.map((item) => item.fat)),

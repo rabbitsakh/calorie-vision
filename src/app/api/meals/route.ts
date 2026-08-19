@@ -21,6 +21,9 @@ type SaveMealBody = {
   wasCorrected?: boolean;
   originalDish?: string;
   originalCalories?: number;
+  originalProtein?: number;
+  originalFat?: number;
+  originalCarbs?: number;
 };
 
 export async function POST(request: NextRequest) {
@@ -68,6 +71,10 @@ export async function POST(request: NextRequest) {
         fat: body.fat,
         carbs: body.carbs,
         portionGrams: body.portionGrams,
+        originalCalories: body.originalCalories,
+        originalProtein: body.originalProtein,
+        originalFat: body.originalFat,
+        originalCarbs: body.originalCarbs,
       });
     }
 

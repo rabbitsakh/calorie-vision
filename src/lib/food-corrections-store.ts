@@ -79,9 +79,11 @@ export async function lookupStoredFoodCorrection(
 export async function rememberFoodCorrection(input: RememberFoodCorrectionInput): Promise<void> {
   const originalKey = foodCorrectionKey(input.originalDish);
   const correctedKey = foodCorrectionKey(input.dishName);
-  if (!originalKey || !correctedKey || originalKey === correctedKey) {
+  if (!originalKey || !correctedKey) {
     return;
   }
+  // Also learn when only calories/macros changed without a name change.
+  // (originalKey === correctedKey is fine — we just update the nutrition values.)
 
   const existing = await prisma.foodCorrection.findUnique({
     where: { originalKey },
