@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+
+const PANEL_ID = "streak";
 
 type StreakData = {
   streak: number;
@@ -48,6 +51,11 @@ export function StreakWidget({
   refreshKey: number;
 }) {
   const [data, setData] = useState<StreakData | null>(null);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
+  }, [selectedDate]);
 
   useEffect(() => {
     void (async () => {
@@ -61,10 +69,26 @@ export function StreakWidget({
     })();
   }, [selectedDate, refreshKey]);
 
-  if (!data || data.streak < 1) return null;
+  if (!data) return null;
+
+  if (hidden) {
+    return (
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
+      >
+        <span>
+          {data.streak >= 1 ? `${streakEmoji(data.streak)} ${data.streak} ${data.streak < 5 ? "дн." : "дней"} подряд` : "📅 Календарь прогресса"}
+        </span>
+        <span className="text-xs">Показать</span>
+      </button>
+    );
+  }
 
   const { streak, longestStreak, nextMilestone, daysUntilNext, last14, daysLoggedTotal } = data;
   const isRecord = streak >= longestStreak && streak > 1;
+  const hasStreak = streak >= 1;
   const progressPct = nextMilestone
     ? Math.round(((nextMilestone - daysUntilNext!) / nextMilestone) * 100)
     : 100;
@@ -83,27 +107,40 @@ export function StreakWidget({
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-2xl leading-none">{streakEmoji(streak)}</span>
+          <span className="text-2xl leading-none">{hasStreak ? streakEmoji(streak) : "📅"}</span>
           <div>
             <p className="text-lg font-bold text-amber-900">
-              {streak} {streak === 1 ? "день" : streak < 5 ? "дня" : "дней"} подряд
+              {hasStreak
+                ? `${streak} ${streak === 1 ? "день" : streak < 5 ? "дня" : "дней"} подряд`
+                : "Начни серию сегодня"}
             </p>
-            <p className="text-xs text-amber-700">{streakLabel(streak)}</p>
+            <p className="text-xs text-amber-700">
+              {hasStreak ? streakLabel(streak) : "Добавь еду — и первый день засчитается"}
+            </p>
           </div>
         </div>
-        {isRecord ? (
-          <span className="shrink-0 rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
-            Рекорд!
-          </span>
-        ) : longestStreak > streak ? (
-          <span className="shrink-0 text-right text-xs text-amber-700">
-            Рекорд: {longestStreak} {longestStreak < 5 ? "дня" : "дней"}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {hasStreak && isRecord ? (
+            <span className="shrink-0 rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+              Рекорд!
+            </span>
+          ) : hasStreak && longestStreak > streak ? (
+            <span className="shrink-0 text-right text-xs text-amber-700">
+              Рекорд: {longestStreak} {longestStreak < 5 ? "дня" : "дней"}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className="text-xs text-amber-600 hover:text-amber-800"
+            onClick={() => { hidePanelToday(PANEL_ID, selectedDate); setHidden(true); }}
+          >
+            Скрыть
+          </button>
+        </div>
       </div>
 
       {/* Progress to next milestone */}
-      {nextMilestone ? (
+      {hasStreak && nextMilestone ? (
         <div className="mt-3">
           <div className="mb-1 flex justify-between text-xs text-amber-700">
             <span>До {nextMilestone} дней</span>
@@ -116,11 +153,11 @@ export function StreakWidget({
             />
           </div>
         </div>
-      ) : (
+      ) : hasStreak && !nextMilestone ? (
         <p className="mt-2 text-sm font-semibold text-amber-800">
           🏆 Вы достигли {streak} дней! Невероятно!
         </p>
-      )}
+      ) : null}
 
       {/* Last 14 days mini-calendar */}
       <div className="mt-3">
