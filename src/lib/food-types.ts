@@ -18,6 +18,9 @@ export type FoodRecognitionResult = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
   portionGrams?: number;
   confidence: number;
   alternatives?: Array<{
@@ -38,6 +41,9 @@ export type FoodRecognitionResult = {
     protein?: number;
     fat?: number;
     carbs?: number;
+    fiber?: number;
+    sugar?: number;
+    saturatedFat?: number;
   };
   items?: FoodRecognitionResult[];
 };

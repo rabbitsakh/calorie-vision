@@ -55,6 +55,9 @@ function parsePer100g(value: unknown): {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
 } | undefined {
   if (!value || typeof value !== "object") {
     return undefined;
@@ -69,6 +72,9 @@ function parsePer100g(value: unknown): {
     protein: toNumber(raw.protein),
     fat: toNumber(raw.fat),
     carbs: toNumber(raw.carbs),
+    fiber: toNumber(raw.fiber) || undefined,
+    sugar: toNumber(raw.sugar) || undefined,
+    saturatedFat: toNumber(raw.saturatedFat) || undefined,
   };
 }
 
@@ -131,6 +137,9 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
     protein: toNumber(parsed.protein),
     fat: toNumber(parsed.fat),
     carbs: toNumber(parsed.carbs),
+    fiber: toNumber((parsed as Record<string, unknown>).fiber) || undefined,
+    sugar: toNumber((parsed as Record<string, unknown>).sugar) || undefined,
+    saturatedFat: toNumber((parsed as Record<string, unknown>).saturatedFat) || undefined,
     portionGrams: toNumber(parsed.portionGrams)
       ? Math.round(toNumber(parsed.portionGrams)!)
       : undefined,

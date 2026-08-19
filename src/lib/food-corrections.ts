@@ -58,10 +58,15 @@ export function pickFoodCorrection(
       continue;
     }
     if (key.includes(row.originalKey) || row.originalKey.includes(key)) {
-      const score = Math.min(key.length, row.originalKey.length);
-      if (score > bestScore) {
+      const shorter = Math.min(key.length, row.originalKey.length);
+      const longer = Math.max(key.length, row.originalKey.length);
+      // Only apply substring correction when keys are similar enough in length
+      // — prevents "борщ" (4 chars) correction from overriding "борщ со сметаной и хлебом" (27 chars)
+      // Threshold 0.5 means the shorter key must be at least half of the longer one
+      const ratio = shorter / longer;
+      if (ratio >= 0.5 && shorter > bestScore) {
         best = row;
-        bestScore = score;
+        bestScore = shorter;
       }
     }
   }
@@ -107,6 +112,13 @@ export function mergeRememberedCorrection(
 
   const sameName = foodCorrectionKey(existing.correctedName) === foodCorrectionKey(next.correctedName);
   if (!sameName) {
+    return { ...next, useCount: existing.useCount + 1 };
+  }
+
+  // Large calorie deviation (>20%) = deliberate override, not random noise — use new value directly
+  const calorieDiff = Math.abs(next.calories - existing.calories);
+  const isLargeDeviation = existing.calories > 0 && calorieDiff / existing.calories > 0.2;
+  if (isLargeDeviation) {
     return { ...next, useCount: existing.useCount + 1 };
   }
 
