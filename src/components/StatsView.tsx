@@ -165,8 +165,12 @@ function BarChart({
                         title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
                       />
                       <span
-                        className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center font-semibold leading-none text-slate-700 ${valueLabelClass}`}
-                        style={{ bottom: `${heightPx + valueLabelOffset}px` }}
+                        className={`absolute left-1/2 origin-bottom-left -translate-x-1/2 whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
+                        style={{
+                          bottom: `${heightPx + 6}px`,
+                          writingMode: "vertical-rl",
+                          transform: "translateX(-50%) rotate(180deg)",
+                        }}
                       >
                         {formatChartValue(value, valueKey)}
                       </span>
