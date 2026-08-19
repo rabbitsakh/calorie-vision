@@ -26,6 +26,7 @@ body {
     radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 28%),
     radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%),
     var(--background);
+  background-attachment: fixed;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   min-height: 100vh;
 }
@@ -223,6 +224,11 @@ textarea {
   height: 0.32rem;
   width: 0.32rem;
   background: currentColor;
+}
+
+@keyframes thinkingDot {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
 }
 
 @keyframes daisy-bounce {
