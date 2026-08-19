@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Calorie Vision",
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
   },
   manifest: "/manifest.json",
 };
