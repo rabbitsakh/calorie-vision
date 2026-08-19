@@ -3,7 +3,7 @@ export const APP_VERSION_BASE = "0.4.0";
 
 /**
  * Git commit count on the repo before sequence 1.
- * Sequence = max(1, commitCount - epoch). Epoch 69 maps 89 commits to 0.5.9.
+ * Used only by `npm run sync-version -- --write` when bumping package.json manually.
  */
 export const APP_VERSION_EPOCH_COMMITS = 69;
 
