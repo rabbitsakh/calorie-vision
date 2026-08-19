@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
 import { calorieTone, compareNutrient, formatGoalChoice, isSex, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { rememberFoodCorrection } from "@/lib/food-corrections-store";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 type SaveMealBody = {
@@ -55,6 +56,18 @@ export async function POST(request: NextRequest) {
         originalCalories: body.originalCalories,
       },
     });
+
+    if (body.wasCorrected && body.originalDish?.trim()) {
+      await rememberFoodCorrection({
+        originalDish: body.originalDish,
+        dishName: body.dishName,
+        calories: body.calories,
+        protein: body.protein,
+        fat: body.fat,
+        carbs: body.carbs,
+        portionGrams: body.portionGrams,
+      });
+    }
 
     return NextResponse.json({ entry });
   } catch (error) {

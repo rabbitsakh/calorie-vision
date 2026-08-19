@@ -121,3 +121,17 @@ model MealEntry {
   @@index([userId, date])
   @@index([date])
 }
+
+model FoodCorrection {
+  id            String   @id @default(cuid())
+  originalKey   String   @unique @db.VarChar(191)
+  correctedName String
+  calories      Int
+  protein       Float?
+  fat           Float?
+  carbs         Float?
+  portionGrams  Int?
+  useCount      Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

@@ -41,6 +41,8 @@ export const FOOD_RECOGNITION_PROMPT = `Ты диетолог и эксперт 
   - package/barcode: если виден вес нетто — укажи его в portionGrams и пересчитай калории/БЖУ на эту порцию; если только «на 100 г» — заполни per100g и portionGrams = нетто
 - confidence: от 0 до 1
 - alternatives: 1-3 варианта, если продукт неочевиден; иначе []
+- для готовых блюд на тарелке: называй конкретно (например «борщ», «греческий салат», «овсянка на молоке»), не «еда» или «блюдо»
+- если видны несколько продуктов на тарелке — выбери основное или укажи состав в dishName
 - если это не еда и не продукт питания: dishName "Не удалось распознать еду", calories 0, confidence 0.1, photoKind "meal"`;
 
 export function buildFoodLookupPrompt(dishName: string): string {
@@ -67,5 +69,6 @@ export function buildFoodLookupPrompt(dishName: string): string {
 - calories, protein, fat, carbs: для одной стандартной порции
 - portionGrams: примерный вес порции в граммах
 - confidence: от 0 до 1
-- alternatives: оставь пустым массивом`;
+- alternatives: оставь пустым массивом
+- если название расплывчатое («салат», «каша») — уточни типичный вариант для России`;
 }
