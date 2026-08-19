@@ -106,26 +106,27 @@ function BarChart({
   const { min, max } = chartRange(presentValues);
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
+  // Extra space above bars so vertical labels don't get clipped
+  const labelGap = 6; // px between top of bar and bottom of label
+  const labelAreaHeight = period === "month" ? 32 : 28;
   const plotHeight = 144;
-  // label area reserved above the bar area so labels never overlap bars
-  const labelAreaHeight = period === "month" ? 28 : 24;
 
   function barHeightPx(value: number | null | undefined): number {
     if (!value || value <= 0) {
       return 0;
     }
-
     return Math.max(Math.round(((value - min) / span) * plotHeight), 6);
   }
 
   const valueLabelClass =
     period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]";
+  const totalHeight = plotHeight + labelAreaHeight;
 
   return (
     <div className="flex gap-2 sm:gap-3">
       <div
         className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
-        style={{ height: plotHeight + labelAreaHeight, width: "2.75rem" }}
+        style={{ height: totalHeight, width: "2.75rem" }}
         aria-hidden="true"
       >
         {ticks.map((tick, index) => (
@@ -140,32 +141,14 @@ function BarChart({
       </div>
 
       <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
-        {/* label row above chart */}
-        <div className="flex gap-0.5 sm:gap-1" style={{ height: labelAreaHeight }}>
-          {days.map((day) => {
-            const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
-            return (
-              <div key={`lbl-${day.date}`} className="flex min-w-0 flex-1 items-end justify-center">
-                {value && value > 0 ? (
-                  <span
-                    className={`block whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
-                    style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
-                  >
-                    {formatChartValue(value, valueKey)}
-                  </span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* bar plot area */}
-        <div className="relative" style={{ height: plotHeight }}>
+        {/* combined label + bar area — bars aligned to bottom, labels float above each bar */}
+        <div className="relative" style={{ height: totalHeight }}>
+          {/* grid lines only in bar zone */}
           {ticks.map((tick, index) => (
             <div
               key={`grid-${tick}-${index}`}
               className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-100"
-              style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+              style={{ top: `${labelAreaHeight + (index / (ticks.length - 1)) * plotHeight}px` }}
             />
           ))}
 
@@ -177,13 +160,27 @@ function BarChart({
               return (
                 <div key={day.date} className="relative min-w-0 flex-1">
                   {value && value > 0 ? (
-                    <div
-                      className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 shrink-0 -translate-x-1/2 rounded-t-md ${
-                        valueKey === "calories" ? "bg-teal-600" : "bg-sky-600"
-                      }`}
-                      style={{ height: `${heightPx}px` }}
-                      title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
-                    />
+                    <>
+                      {/* bar — positioned from the bottom of the full container */}
+                      <div
+                        className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 shrink-0 -translate-x-1/2 rounded-t-md ${
+                          valueKey === "calories" ? "bg-teal-600" : "bg-sky-600"
+                        }`}
+                        style={{ height: `${heightPx}px` }}
+                        title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
+                      />
+                      {/* label — sits exactly (heightPx + labelGap) from the bottom, centred */}
+                      <span
+                        className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
+                        style={{
+                          bottom: `${heightPx + labelGap}px`,
+                          writingMode: "vertical-lr",
+                          transform: "translateX(-50%) rotate(180deg)",
+                        }}
+                      >
+                        {formatChartValue(value, valueKey)}
+                      </span>
+                    </>
                   ) : (
                     <div className="absolute bottom-0 left-1/2 h-0.5 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded bg-slate-100" />
                   )}
