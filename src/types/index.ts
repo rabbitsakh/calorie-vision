@@ -7,6 +7,15 @@ export type RecognitionResponse = {
   recognition: FoodRecognitionResult;
 };
 
+export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+
+export const MEAL_TYPE_LABELS: Record<MealType, string> = {
+  BREAKFAST: "Завтрак",
+  LUNCH: "Обед",
+  DINNER: "Ужин",
+  SNACK: "Перекус",
+};
+
 export type MealEntry = {
   id: string;
   date: string;
@@ -19,6 +28,7 @@ export type MealEntry = {
   confidence: number | null;
   imagePath: string | null;
   mealGroupId: string | null;
+  mealType: MealType | null;
   wasCorrected: boolean;
   originalDish: string | null;
   originalCalories: number | null;

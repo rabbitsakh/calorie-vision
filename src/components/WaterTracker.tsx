@@ -1,0 +1,113 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { withBasePath } from "@/lib/paths";
+
+type WaterResponse = {
+  totalMl: number;
+  target: number;
+};
+
+const QUICK_AMOUNTS = [200, 250, 350, 500];
+
+export function WaterTracker({ selectedDate }: { selectedDate: string }) {
+  const [totalMl, setTotalMl] = useState(0);
+  const [target, setTarget] = useState(2000);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const resp = await fetch(withBasePath(`/api/water?date=${selectedDate}`));
+      if (!resp.ok) return;
+      const data = (await resp.json()) as WaterResponse;
+      setTotalMl(data.totalMl);
+      setTarget(data.target);
+    } catch {
+      // non-critical
+    }
+  }, [selectedDate]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function add(ml: number) {
+    setLoading(true);
+    try {
+      const resp = await fetch(withBasePath("/api/water"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: selectedDate, ml }),
+      });
+      if (resp.ok) {
+        const data = (await resp.json()) as WaterResponse;
+        setTotalMl(data.totalMl);
+        setTarget(data.target);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const pct = Math.min(100, Math.round((totalMl / target) * 100));
+  const glasses = Math.floor(totalMl / 250);
+  const remaining = Math.max(0, target - totalMl);
+
+  // SVG ring
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+
+  return (
+    <section className="card p-4 md:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base font-semibold">Вода</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {totalMl} мл из {target} мл
+            {remaining > 0 ? ` · ещё ${remaining} мл` : " · норма выполнена!"}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {glasses > 0 ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}` : "Начните пить воду сегодня"}
+          </p>
+        </div>
+
+        {/* Ring */}
+        <div className="relative shrink-0">
+          <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r={r} fill="none" stroke="#e2e8f0" strokeWidth="6" />
+            <circle
+              cx="36"
+              cy="36"
+              r={r}
+              fill="none"
+              stroke={pct >= 100 ? "#0f766e" : "#38bdf8"}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${circ}`}
+              strokeDashoffset={circ / 4}
+              className="transition-all duration-500"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-700">
+            {pct}%
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {QUICK_AMOUNTS.map((ml) => (
+          <button
+            key={ml}
+            type="button"
+            className="rounded-xl bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+            disabled={loading}
+            onClick={() => void add(ml)}
+          >
+            +{ml} мл
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}

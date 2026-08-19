@@ -19,6 +19,8 @@ import { withBasePath } from "@/lib/paths";
 type ProfileResponse = {
   goal: WeightGoal | null;
   goalPace: GoalPace | null;
+  targetWeightKg: number | null;
+  goalDeadline: string | null;
   currentWeightKg: number | null;
   weightChangeKg: number | null;
   error?: string;
@@ -44,6 +46,10 @@ export function WeightGoalCard({
   const [editingGoal, setEditingGoal] = useState(false);
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
   const [weightChangeKg, setWeightChangeKg] = useState<number | null>(null);
+  const [targetWeightKg, setTargetWeightKg] = useState<number | null>(null);
+  const [goalDeadline, setGoalDeadline] = useState<string | null>(null);
+  const [draftTarget, setDraftTarget] = useState("");
+  const [draftDeadline, setDraftDeadline] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +76,10 @@ export function WeightGoalCard({
       }
       setCurrentWeightKg(data.currentWeightKg);
       setWeightChangeKg(data.weightChangeKg);
+      setTargetWeightKg(data.targetWeightKg);
+      setGoalDeadline(data.goalDeadline);
+      setDraftTarget(data.targetWeightKg ? String(data.targetWeightKg) : "");
+      setDraftDeadline(data.goalDeadline ?? "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка профиля");
     } finally {
@@ -88,9 +98,14 @@ export function WeightGoalCard({
       const response = await fetch(withBasePath("/api/profile"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal: nextGoal, goalPace: nextPace }),
+        body: JSON.stringify({
+          goal: nextGoal,
+          goalPace: nextPace,
+          targetWeightKg: draftTarget ? Number(draftTarget) : null,
+          goalDeadline: draftDeadline || null,
+        }),
       });
-      const data = (await response.json()) as { goal?: WeightGoal; goalPace?: GoalPace | null; error?: string };
+      const data = (await response.json()) as { goal?: WeightGoal; goalPace?: GoalPace | null; targetWeightKg?: number | null; goalDeadline?: string | null; error?: string };
       if (!response.ok) {
         throw new Error(data.error ?? "Не удалось сохранить цель");
       }
@@ -99,6 +114,8 @@ export function WeightGoalCard({
         setGoalPace(isGoalPace(data.goalPace) ? data.goalPace : null);
         setDraftGoal(data.goal);
         setDraftPace(isGoalPace(data.goalPace) ? data.goalPace : null);
+        setTargetWeightKg(data.targetWeightKg ?? null);
+        setGoalDeadline(data.goalDeadline ?? null);
         setEditingGoal(false);
       }
       onChanged();
@@ -160,6 +177,17 @@ export function WeightGoalCard({
                 <div>
                   <p className="font-semibold text-teal-900">{formatGoalChoice(goal, goalPace)}</p>
                   <p className="text-xs text-teal-800">{savedGoalHint(goal, goalPace)}</p>
+                  {targetWeightKg ? (
+                    <p className="mt-1 text-xs text-teal-700">
+                      Цель: {targetWeightKg} кг
+                      {goalDeadline ? ` · к ${new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(new Date(goalDeadline + "T12:00:00"))}` : ""}
+                      {currentWeightKg && goalDeadline ? (() => {
+                        const diff = Math.abs(currentWeightKg - targetWeightKg);
+                        const daysLeft = Math.max(0, Math.round((new Date(goalDeadline + "T12:00:00").getTime() - Date.now()) / 86400000));
+                        return diff > 0.05 && daysLeft > 0 ? ` · ${daysLeft} ${daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"} осталось` : null;
+                      })() : null}
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -222,6 +250,31 @@ export function WeightGoalCard({
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+                ) : null}
+                {draftGoal && goalNeedsPace(draftGoal) ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="field">
+                      <label className="text-xs">Целевой вес, кг (необязательно)</label>
+                      <input
+                        type="number"
+                        min="30"
+                        max="300"
+                        step="0.1"
+                        placeholder="70"
+                        value={draftTarget}
+                        onChange={(e) => setDraftTarget(e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label className="text-xs">Дата цели (необязательно)</label>
+                      <input
+                        type="date"
+                        value={draftDeadline}
+                        min={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setDraftDeadline(e.target.value)}
+                      />
                     </div>
                   </div>
                 ) : null}

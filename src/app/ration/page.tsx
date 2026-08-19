@@ -6,6 +6,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
+import { WaterTracker } from "@/components/WaterTracker";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -34,6 +35,7 @@ export default function RationPage() {
             selectedDate={date}
             onSaved={() => setRefreshKey((value) => value + 1)}
           />
+          <WaterTracker selectedDate={date} />
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}

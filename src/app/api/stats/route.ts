@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey } from "@/lib/dates";
-import { isSex, recommendDiet, round1, isWeightGoal, isGoalPace } from "@/lib/diet";
+import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 import {
   computeWeightChangeKg,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
-    const [meals, weights, user, latestWeight] = await Promise.all([
+    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
@@ -64,7 +64,23 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+        select: { goal: true, goalPace: true, sex: true },
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: weightEntryOrderNewestFirst,
+      }),
+      prisma.mealEntry.groupBy({
+        by: ["dishName"],
+        where: { userId: session.user.id, date: { gte: start, lte: end } },
+        _count: { id: true },
+        _avg: { calories: true },
+        orderBy: { _count: { id: "desc" } },
+        take: 8,
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: weightEntryOrderOldestFirst,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -104,22 +120,11 @@ export async function GET(request: NextRequest) {
         ? Math.round(daysWithMeals.reduce((sum, day) => sum + day.calories, 0) / daysWithMeals.length)
         : 0;
 
-    const [firstWeight, lastWeight] = await Promise.all([
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderOldestFirst,
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderNewestFirst,
-      }),
-    ]);
-
     const resolvedGoal = isWeightGoal(user?.goal) ? user!.goal : null;
     const resolvedPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
     const resolvedSex = isSex(user?.sex) ? user!.sex : null;
     const calorieTarget = resolvedGoal && latestWeight
-      ? recommendDiet(latestWeight.weightKg, resolvedGoal, resolvedPace, resolvedSex, user?.heightCm, user?.birthYear).calories
+      ? recommendDiet(latestWeight.weightKg, resolvedGoal, resolvedPace, resolvedSex).calories
       : null;
 
     return NextResponse.json({
@@ -128,6 +133,11 @@ export async function GET(request: NextRequest) {
       end,
       days,
       calorieTarget,
+      topFoods: topFoods.map((f) => ({
+        dishName: f.dishName,
+        count: f._count.id,
+        avgCalories: Math.round(f._avg.calories ?? 0),
+      })),
       summary: {
         avgCalories,
         totalMealDays: daysWithMeals.length,

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const [user, first, current, selected] = await Promise.all([
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true },
+        select: { goal: true, goalPace: true, targetWeightKg: true, goalDeadline: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       goal: user?.goal ?? null,
       goalPace: user?.goalPace ?? null,
+      targetWeightKg: user?.targetWeightKg ?? null,
+      goalDeadline: user?.goalDeadline ?? null,
       firstWeightKg: first?.weightKg ?? null,
       firstWeightDate: first?.date ?? null,
       currentWeightKg: current?.weightKg ?? null,
@@ -70,7 +72,7 @@ export async function PUT(request: NextRequest) {
       return response;
     }
 
-    const body = (await request.json()) as { goal?: string | null; goalPace?: string | null };
+    const body = (await request.json()) as { goal?: string | null; goalPace?: string | null; targetWeightKg?: number | null; goalDeadline?: string | null };
     if (body.goal !== null && body.goal !== undefined && !isWeightGoal(body.goal)) {
       return NextResponse.json({ error: "Выберите цель: похудеть, набрать или удержать вес" }, { status: 400 });
     }
@@ -90,13 +92,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Для этой цели выберите способ" }, { status: 400 });
     }
 
+    const targetWeightKg = body.targetWeightKg != null && body.targetWeightKg > 0 ? body.targetWeightKg : null;
+    const goalDeadline = body.goalDeadline?.match(/^\d{4}-\d{2}-\d{2}$/) ? body.goalDeadline : null;
+
     const user = await prisma.user.update({
       where: { id: session.user.id },
-      data: { goal, goalPace },
-      select: { goal: true, goalPace: true },
+      data: { goal, goalPace, targetWeightKg, goalDeadline },
+      select: { goal: true, goalPace: true, targetWeightKg: true, goalDeadline: true },
     });
 
-    return NextResponse.json({ goal: user.goal, goalPace: user.goalPace });
+    return NextResponse.json({ goal: user.goal, goalPace: user.goalPace, targetWeightKg: user.targetWeightKg, goalDeadline: user.goalDeadline });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось сохранить цель" }, { status: 500 });

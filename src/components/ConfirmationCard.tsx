@@ -8,6 +8,7 @@ import {
   type NutritionValues,
 } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
+import { MEAL_TYPE_LABELS } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
@@ -90,6 +91,7 @@ export function ConfirmationCard({
   const { recognition, imagePath: initialImagePath, previewUrl } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
   const [imagePath, setImagePath] = useState(initialImagePath);
+  const [mealType, setMealType] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
@@ -239,6 +241,7 @@ export function ConfirmationCard({
         confidence: dish.original.confidence,
         imagePath: imagePath || undefined,
         mealGroupId,
+        mealType: mealType || undefined,
         wasCorrected,
         originalDish: decodeHtmlEntities(dish.original.dishName),
         originalCalories: dish.original.calories,
@@ -382,6 +385,24 @@ export function ConfirmationCard({
         {lookupMessage ? <p className="text-sm text-teal-700">{lookupMessage}</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap gap-1">
+            {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  mealType === value
+                    ? "bg-teal-700 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+                onClick={() => setMealType(mealType === value ? "" : value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex flex-wrap gap-3">
           <button type="button" className="btn btn-primary" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? "Сохраняем..." : multi ? "Сохранить все блюда" : "Да, сохранить"}
