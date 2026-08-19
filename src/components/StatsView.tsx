@@ -249,6 +249,16 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 
   const svgPoints = points.map((p) => `${xPct(p.index)},${yPct(p.value)}`).join(" ");
 
+  // 7-day rolling average
+  function rollingAvg(window = 7) {
+    return points.map((p) => {
+      const slice = points.filter((q) => q.index >= p.index - window + 1 && q.index <= p.index);
+      const avg = slice.reduce((s, q) => s + q.value, 0) / slice.length;
+      return { index: p.index, avg: Math.round(avg * 10) / 10 };
+    });
+  }
+  const avgPoints = points.length >= 3 ? rollingAvg() : null;
+
   return (
     <div className="flex gap-2 sm:gap-3">
       <div
@@ -278,15 +288,28 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
           ))}
 
           <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${plotWidth} 100`} preserveAspectRatio="none">
+            {/* raw measurements — faint */}
             <polyline
               points={svgPoints}
               fill="none"
-              stroke="#0284c7"
-              strokeWidth="2"
+              stroke="#bae6fd"
+              strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
+            {/* 7-day rolling average — bold */}
+            {avgPoints ? (
+              <polyline
+                points={avgPoints.map((p) => `${xPct(p.index)},${yPct(p.avg)}`).join(" ")}
+                fill="none"
+                stroke="#0284c7"
+                strokeWidth="2.5"
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ) : null}
           </svg>
 
           {points.map((p) => (
@@ -315,6 +338,63 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
             );
           })}
         </div>
+      </div>
+      {avgPoints ? (
+        <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
+          <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-6 bg-sky-200" />измерения</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-0.5 w-6 bg-sky-600" style={{ height: "2.5px" }} />7-дн. среднее</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
+  const daysWithData = days.filter((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
+  if (daysWithData.length === 0) {
+    return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
+  }
+
+  const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs));
+  if (maxTotal <= 0) return null;
+
+  const labelClass = period === "month" ? "text-[8px]" : "text-[9px] sm:text-[10px]";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-3 text-xs text-slate-600">
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-teal-500" />Белки</span>
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Жиры</span>
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-violet-400" />Углеводы</span>
+      </div>
+      <div className="flex gap-0.5 sm:gap-1">
+        {days.map((day, index) => {
+          const total = day.protein + day.fat + day.carbs;
+          const showLabel = shouldShowDateLabel(index, days.length, period);
+          const barH = total > 0 ? Math.max(4, Math.round((total / maxTotal) * 100)) : 0;
+          return (
+            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+              <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
+                {total > 0 ? (
+                  <div
+                    className="w-full overflow-hidden"
+                    style={{ height: `${barH}%` }}
+                    title={`${day.date}: Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г`}
+                  >
+                    <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-teal-500" />
+                    <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
+                    <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-violet-400" />
+                  </div>
+                ) : (
+                  <div className="mx-auto h-0.5 w-full rounded bg-slate-100" />
+                )}
+              </div>
+              <span className={`block truncate text-center font-medium text-slate-500 ${labelClass} ${showLabel ? "" : "invisible"}`}>
+                {formatDateShort(day.date)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -392,9 +472,24 @@ export function StatsView({ endDate }: StatsViewProps) {
           </div>
 
           <section className="card p-4 md:p-6">
-            <h2 className="text-lg font-bold">Калории по дням</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-bold">Калории по дням</h2>
+              {data.calorieTarget ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                  <span className="inline-block h-0.5 w-5 border-t-2 border-dashed border-amber-400" />
+                  цель {data.calorieTarget} ккал
+                </div>
+              ) : null}
+            </div>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} />
+              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="text-lg font-bold">БЖУ по дням</h2>
+            <div className="mt-4">
+              <MacroChart days={data.days} period={period} />
             </div>
           </section>
 
