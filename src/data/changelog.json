@@ -1,0 +1,434 @@
+[
+  {
+    "version": "0.5.11",
+    "date": "2026-08-19",
+    "summary": "Auto version from merged PRs (Z/20, Y/10 carry)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Auto version from merged PRs (Z/20, Y/10 carry)"
+      }
+    ]
+  },
+  {
+    "version": "0.5.10",
+    "date": "2026-08-19",
+    "summary": "Fix deploy: read-package-version without app-version import",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix deploy: read-package-version without app-version import"
+      }
+    ]
+  },
+  {
+    "version": "0.5.9",
+    "date": "2026-08-19",
+    "summary": "Fix app version: use package.json instead of commit count",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix app version: use package.json instead of commit count"
+      }
+    ]
+  },
+  {
+    "version": "0.5.8",
+    "date": "2026-08-19",
+    "summary": "Add admin changelog page in profile menu",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Add admin changelog page in profile menu"
+      }
+    ]
+  },
+  {
+    "version": "0.5.7",
+    "date": "2026-08-19",
+    "summary": "Group multi-dish photo saves in daily log",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Group multi-dish photo saves in daily log"
+      }
+    ]
+  },
+  {
+    "version": "0.5.6",
+    "date": "2026-08-19",
+    "summary": "feat: распознавать несколько блюд на одной тарелке",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: распознавать несколько блюд на одной тарелке"
+      }
+    ]
+  },
+  {
+    "version": "0.5.5",
+    "date": "2026-08-19",
+    "summary": "feat: память исправлений распознавания еды",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: память исправлений распознавания еды"
+      }
+    ]
+  },
+  {
+    "version": "0.5.4",
+    "date": "2026-08-19",
+    "summary": "fix: очищать поле ввода еды после сохранения",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: очищать поле ввода еды после сохранения"
+      }
+    ]
+  },
+  {
+    "version": "0.5.3",
+    "date": "2026-08-19",
+    "summary": "fix: пустые дубли пользователей после входа через VK",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: пустые дубли пользователей после входа через VK"
+      }
+    ]
+  },
+  {
+    "version": "0.5.2",
+    "date": "2026-08-19",
+    "summary": "fix: не раздувать норму белка при высоком весе",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: не раздувать норму белка при высоком весе"
+      }
+    ]
+  },
+  {
+    "version": "0.5.1",
+    "date": "2026-08-19",
+    "summary": "fix: имя и email пользователей не сливаются на телефоне",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: имя и email пользователей не сливаются на телефоне"
+      }
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-08-19",
+    "summary": "feat: админ-разделы Пользователи и Статистика",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: админ-разделы Пользователи и Статистика"
+      }
+    ]
+  },
+  {
+    "version": "0.4.19",
+    "date": "2026-08-18",
+    "summary": "fix: сохранение профиля при входе через Google или VK",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: сохранение профиля при входе через Google или VK"
+      }
+    ]
+  },
+  {
+    "version": "0.4.18",
+    "date": "2026-08-18",
+    "summary": "fix: MySQL-compatible ADD COLUMN for sex/timezone migrations",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: MySQL-compatible ADD COLUMN for sex/timezone migrations"
+      }
+    ]
+  },
+  {
+    "version": "0.4.17",
+    "date": "2026-08-18",
+    "summary": "Fix deploy version mismatch and MySQL root@localhost",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix deploy version mismatch and MySQL root@localhost"
+      }
+    ]
+  },
+  {
+    "version": "0.4.16",
+    "date": "2026-08-18",
+    "summary": "Profile: phone, sex, and gender-based calorie targets",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Profile: phone, sex, and gender-based calorie targets"
+      }
+    ]
+  },
+  {
+    "version": "0.4.15",
+    "date": "2026-08-18",
+    "summary": "Fix deploy SQL migration MySQL authentication",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix deploy SQL migration MySQL authentication"
+      }
+    ]
+  },
+  {
+    "version": "0.4.14",
+    "date": "2026-08-18",
+    "summary": "Fix zero nutrition values after photo recognition",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix zero nutrition values after photo recognition"
+      }
+    ]
+  },
+  {
+    "version": "0.4.13",
+    "date": "2026-08-18",
+    "summary": "Fix deploy SQL migration DATABASE_URL parsing",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix deploy SQL migration DATABASE_URL parsing"
+      }
+    ]
+  },
+  {
+    "version": "0.4.12",
+    "date": "2026-08-18",
+    "summary": "Fix inconsistent app version during deploy",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix inconsistent app version during deploy"
+      }
+    ]
+  },
+  {
+    "version": "0.4.11",
+    "date": "2026-08-18",
+    "summary": "Lower derived app version to 0.5.9",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Lower derived app version to 0.5.9"
+      }
+    ]
+  },
+  {
+    "version": "0.4.10",
+    "date": "2026-08-18",
+    "summary": "Profile: show weight change since first measurement",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Profile: show weight change since first measurement"
+      }
+    ]
+  },
+  {
+    "version": "0.4.9",
+    "date": "2026-08-18",
+    "summary": "Profile: back button, current weight, no weight input form",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Profile: back button, current weight, no weight input form"
+      }
+    ]
+  },
+  {
+    "version": "0.4.8",
+    "date": "2026-08-18",
+    "summary": "Fix weight list order and current weight by calendar date",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix weight list order and current weight by calendar date"
+      }
+    ]
+  },
+  {
+    "version": "0.4.7",
+    "date": "2026-08-18",
+    "summary": "Fix weight measurements ordering and change calculation",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix weight measurements ordering and change calculation"
+      }
+    ]
+  },
+  {
+    "version": "0.4.6",
+    "date": "2026-08-18",
+    "summary": "Fix prisma db push failing with duplicate FK on existing MySQL DB",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix prisma db push failing with duplicate FK on existing MySQL DB"
+      }
+    ]
+  },
+  {
+    "version": "0.4.5",
+    "date": "2026-08-18",
+    "summary": "Multiple weight entries per day, delete, and user timezone",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Multiple weight entries per day, delete, and user timezone"
+      }
+    ]
+  },
+  {
+    "version": "0.4.4",
+    "date": "2026-08-18",
+    "summary": "Decode HTML entities in food names",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Decode HTML entities in food names"
+      }
+    ]
+  },
+  {
+    "version": "0.4.3",
+    "date": "2026-08-18",
+    "summary": "Compress user meal photos and raise image quality",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Compress user meal photos and raise image quality"
+      }
+    ]
+  },
+  {
+    "version": "0.4.2",
+    "date": "2026-08-18",
+    "summary": "Compress food images further for faster loads",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Compress food images further for faster loads"
+      }
+    ]
+  },
+  {
+    "version": "0.4.1",
+    "date": "2026-08-18",
+    "summary": "Backfill meal photos and compress food images",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Backfill meal photos and compress food images"
+      }
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-08-18",
+    "summary": "Пересчёт калорий и БЖУ при смене порции",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Пересчёт калорий и БЖУ при смене порции"
+      },
+      {
+        "kind": "improvement",
+        "text": "Показывать версию и git-билд на сайте"
+      },
+      {
+        "kind": "improvement",
+        "text": "Вес, цель, календарь и рекомендуемый рацион"
+      },
+      {
+        "kind": "improvement",
+        "text": "Страницы, цель один раз и даты ГГГГ-ММ-ДД"
+      },
+      {
+        "kind": "improvement",
+        "text": "Версии 0.4.0 → 0.4.9 → 0.5.0 по логике, а не вручную"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подкатегории цели: проще, здорово, быстрее"
+      },
+      {
+        "kind": "fix",
+        "text": "Исправить ошибку TypeScript в подсказках цели"
+      },
+      {
+        "kind": "improvement",
+        "text": "Версия в логе сборки больше не застревает на 0.4.0"
+      },
+      {
+        "kind": "feature",
+        "text": "Add shutter-leaf logo to the app"
+      },
+      {
+        "kind": "fix",
+        "text": "Исправить деплой: версия без experimental-strip-types"
+      },
+      {
+        "kind": "improvement",
+        "text": "Show the CV viewfinder logo in the header"
+      },
+      {
+        "kind": "improvement",
+        "text": "Look up packaged foods by barcode, label, or product name"
+      },
+      {
+        "kind": "fix",
+        "text": "Fix pack portion weight from Open Food Facts serving size"
+      },
+      {
+        "kind": "fix",
+        "text": "Fix VK ID login by preserving device_id through NextAuth"
+      },
+      {
+        "kind": "fix",
+        "text": "Fix VK login failing when Prisma saves the Account"
+      },
+      {
+        "kind": "improvement",
+        "text": "Mobile app shell with stats, ration, weight, and profile"
+      },
+      {
+        "kind": "improvement",
+        "text": "Mobile app shell with stats, ration, weight, and profile"
+      },
+      {
+        "kind": "feature",
+        "text": "Add Y-axis and bar value labels to stats charts"
+      },
+      {
+        "kind": "fix",
+        "text": "Fix invisible stats chart bars"
+      },
+      {
+        "kind": "fix",
+        "text": "Fix invisible stats chart bars"
+      },
+      {
+        "kind": "improvement",
+        "text": "Show food photos for text and barcode entries"
+      }
+    ]
+  }
+]

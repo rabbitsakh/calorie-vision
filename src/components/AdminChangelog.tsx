@@ -22,7 +22,7 @@ export function AdminChangelog() {
           <div>
             <h2 className="text-lg font-semibold">Calorie Vision</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Краткая история обновлений. Полный список — по версиям, от новых к старым.
+              История обновлений из merged PR на main — синхронизируется с версией при деплое.
             </p>
           </div>
           <div className="rounded-2xl bg-teal-50 px-4 py-2 text-sm font-medium text-teal-900">
