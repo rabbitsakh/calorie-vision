@@ -7,6 +7,9 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { WaterTracker } from "@/components/WaterTracker";
+import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
+import { FavoriteFoods } from "@/components/FavoriteFoods";
+import { MealSuggestions } from "@/components/MealSuggestions";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -14,6 +17,7 @@ export default function RationPage() {
   const timezone = useTimezone();
   const { date, setDate, today } = useSelectedDate(timezone);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [totalCalories, setTotalCalories] = useState(0);
 
   return (
     <AppShell
@@ -36,12 +40,16 @@ export default function RationPage() {
             onSaved={() => setRefreshKey((value) => value + 1)}
           />
           <WaterTracker selectedDate={date} />
+          <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
+          <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
+          <DiaryNoteWidget selectedDate={date} />
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}
             compact
             timezone={timezone}
             onChanged={() => setRefreshKey((value) => value + 1)}
+            onTotalsChange={setTotalCalories}
           />
         </div>
       </AuthGate>

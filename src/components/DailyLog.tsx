@@ -63,6 +63,7 @@ type DailyLogProps = {
   selectedDate: string;
   refreshKey: number;
   onChanged?: () => void;
+  onTotalsChange?: (calories: number) => void;
   compact?: boolean;
   timezone?: string | null;
 };
@@ -376,7 +377,7 @@ function MealListRow({
   return <SingleMealCard entry={item.entry} timezone={timezone} onDelete={onDelete} onEdit={onEdit} />;
 }
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezone }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
   const [daySummary, setDaySummary] = useState<
@@ -422,6 +423,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         fat: data.totalFat ?? 0,
         carbs: data.totalCarbs ?? 0,
       });
+      onTotalsChange?.(data.totalCalories);
       setDaySummary({
         comparison: data.comparison ?? null,
         calorieTone: data.calorieTone ?? null,

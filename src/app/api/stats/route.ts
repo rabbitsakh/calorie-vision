@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
-    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight] = await Promise.all([
+    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight, allMealsForTiming] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
@@ -86,6 +86,10 @@ export async function GET(request: NextRequest) {
         where: { userId: session.user.id },
         orderBy: weightEntryOrderNewestFirst,
       }),
+      prisma.mealEntry.findMany({
+        where: { userId: session.user.id, date: { gte: start, lte: end } },
+        select: { createdAt: true, calories: true },
+      }),
     ]);
 
     const mealByDate = new Map<string, { calories: number; protein: number; fat: number; carbs: number }>();
@@ -127,12 +131,20 @@ export async function GET(request: NextRequest) {
       ? recommendDiet(latestWeight.weightKg, resolvedGoal, resolvedPace, resolvedSex).calories
       : null;
 
+    // Hourly calorie distribution (0–23)
+    const hourlyCalories = new Array<number>(24).fill(0);
+    for (const m of allMealsForTiming) {
+      const hour = new Date(m.createdAt).getHours();
+      hourlyCalories[hour] = (hourlyCalories[hour] ?? 0) + m.calories;
+    }
+
     return NextResponse.json({
       period,
       start,
       end,
       days,
       calorieTarget,
+      hourlyCalories,
       topFoods: topFoods.map((f) => ({
         dishName: f.dishName,
         count: f._count.id,
