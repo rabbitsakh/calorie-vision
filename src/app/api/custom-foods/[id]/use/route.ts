@@ -1,0 +1,24 @@
+import { NextRequest, NextResponse } from "next/server";
+import { requireSession } from "@/lib/auth-session";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { session, response } = await requireSession();
+    if (response) return response;
+
+    const { id } = await params;
+    await prisma.customFood.updateMany({
+      where: { id, userId: session.user.id },
+      data: { useCount: { increment: 1 } },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Ошибка" }, { status: 500 });
+  }
+}

@@ -17,6 +17,7 @@ type StatsResponse = {
   period: "week" | "month";
   days: StatsDay[];
   calorieTarget: number | null;
+  hourlyCalories: number[];
   topFoods: Array<{ dishName: string; count: number; avgCalories: number }>;
   summary: {
     avgCalories: number;
@@ -400,6 +401,38 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
   );
 }
 
+function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
+  const maxVal = Math.max(...hourlyCalories, 1);
+  const LABELS = ["00","02","04","06","08","10","12","14","16","18","20","22"];
+
+  return (
+    <div className="flex items-end gap-0.5">
+      {hourlyCalories.map((val, hour) => {
+        const heightPct = Math.max(0, Math.round((val / maxVal) * 100));
+        const showLabel = hour % 2 === 0;
+        return (
+          <div key={hour} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+            <div className="flex w-full flex-col justify-end" style={{ height: "64px" }}>
+              {val > 0 ? (
+                <div
+                  className="w-full rounded-t-sm bg-teal-500 opacity-80"
+                  style={{ height: `${heightPct}%` }}
+                  title={`${String(hour).padStart(2, "0")}:00 — ${val} ккал`}
+                />
+              ) : (
+                <div className="mx-auto h-px w-full bg-slate-100" />
+              )}
+            </div>
+            <span className={`text-[8px] font-medium text-slate-400 sm:text-[9px] ${showLabel ? "" : "invisible"}`}>
+              {LABELS[Math.floor(hour / 2)]}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function StatsView({ endDate }: StatsViewProps) {
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [data, setData] = useState<StatsResponse | null>(null);
@@ -518,6 +551,16 @@ export function StatsView({ endDate }: StatsViewProps) {
               <WeightLineChart days={data.days} period={period} />
             </div>
           </section>
+
+          {data.hourlyCalories.some((v) => v > 0) ? (
+            <section className="card p-4 md:p-6">
+              <h2 className="text-lg font-bold">Когда вы едите</h2>
+              <p className="mt-1 text-xs text-slate-500">Калории по часам суток за период</p>
+              <div className="mt-4">
+                <TimingChart hourlyCalories={data.hourlyCalories} />
+              </div>
+            </section>
+          ) : null}
         </>
       ) : null}
     </div>

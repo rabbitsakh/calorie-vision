@@ -319,9 +319,18 @@ export function ProfileForm() {
           {message ? <p className="text-sm text-teal-700">{message}</p> : null}
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-          <button type="submit" className="btn btn-primary self-start" disabled={saving || uploading}>
-            {saving ? "Сохраняем..." : "Сохранить профиль"}
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button type="submit" className="btn btn-primary" disabled={saving || uploading}>
+              {saving ? "Сохраняем..." : "Сохранить профиль"}
+            </button>
+            <a
+              href="/api/export"
+              download="calorie-vision-export.csv"
+              className="btn btn-secondary"
+            >
+              📥 Скачать CSV
+            </a>
+          </div>
         </form>
       ) : null}
     </section>

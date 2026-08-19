@@ -1,6 +1,7 @@
 "use client";
 
 import { AdminGate } from "@/components/AdminGate";
+import { AdminRecognitionStats } from "@/components/AdminRecognitionStats";
 import { AdminStatsSummary } from "@/components/AdminStatsSummary";
 import { AdminUsersTable } from "@/components/AdminUsersTable";
 import { AppShell } from "@/components/AppShell";
@@ -18,6 +19,7 @@ export default function AdminStatsPage() {
         <AdminGate>
           <div className="flex flex-col gap-4 md:gap-6">
             <AdminStatsSummary />
+            <AdminRecognitionStats />
             <AdminUsersTable showCounts />
           </div>
         </AdminGate>
