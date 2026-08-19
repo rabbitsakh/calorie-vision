@@ -392,7 +392,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
-  const [streak, setStreak] = useState<number>(0);
+  const [streakDays, setStreakDays] = useState<number>(0);
   const attemptedImageDates = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
@@ -453,7 +453,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`));
         const data = (await resp.json()) as { streak?: number };
         if (resp.ok && data.streak != null) {
-          setStreak(data.streak);
+          setStreakDays(data.streak);
         }
       } catch {
         // streak is non-critical
@@ -572,10 +572,10 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           ) : (
             <h2 className="text-lg font-bold">Дневник за день</h2>
           )}
-          {streak >= 2 ? (
+          {streakDays >= 2 ? (
             <div className="flex items-center gap-1.5 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
               <span className="text-lg">🔥</span>
-              <span>{streak} {streak === 1 ? "день" : streak < 5 ? "дня" : "дней"} подряд</span>
+              <span>{streakDays} {streakDays === 1 ? "день" : streakDays < 5 ? "дня" : "дней"} подряд</span>
             </div>
           ) : null}
 

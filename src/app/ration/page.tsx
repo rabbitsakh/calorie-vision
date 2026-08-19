@@ -7,6 +7,7 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { WaterTracker } from "@/components/WaterTracker";
+import { StreakWidget } from "@/components/StreakWidget";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
@@ -39,6 +40,7 @@ export default function RationPage() {
             selectedDate={date}
             onSaved={() => setRefreshKey((value) => value + 1)}
           />
+          <StreakWidget selectedDate={date} refreshKey={refreshKey} />
           <WaterTracker selectedDate={date} />
           <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
           <MealSuggestions selectedDate={date} totalCalories={totalCalories} />

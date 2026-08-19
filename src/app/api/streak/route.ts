@@ -4,35 +4,50 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-function computeStreak(dates: string[], today: string): number {
-  if (dates.length === 0) return 0;
+const MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365];
 
-  const sorted = [...new Set(dates)].sort().reverse();
+function shiftDate(dateKey: string, days: number): string {
+  const d = new Date(dateKey + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function computeStreak(dateSet: Set<string>, today: string): number {
   let streak = 0;
   let expected = today;
+  while (dateSet.has(expected)) {
+    streak += 1;
+    expected = shiftDate(expected, -1);
+  }
+  return streak;
+}
 
-  for (const date of sorted) {
-    if (date === expected) {
-      streak += 1;
-      // Move expected to the previous day
-      const d = new Date(date + "T12:00:00Z");
-      d.setUTCDate(d.getUTCDate() - 1);
-      expected = d.toISOString().slice(0, 10);
-    } else if (date < expected) {
-      // Gap — streak broken
-      break;
+function computeLongestStreak(dates: string[]): number {
+  if (dates.length === 0) return 0;
+  const sorted = [...new Set(dates)].sort();
+  let longest = 1;
+  let current = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1]!;
+    const curr = sorted[i]!;
+    if (shiftDate(prev, 1) === curr) {
+      current += 1;
+      longest = Math.max(longest, current);
+    } else {
+      current = 1;
     }
   }
+  return longest;
+}
 
-  return streak;
+function nextMilestone(streak: number): number | null {
+  return MILESTONES.find((m) => m > streak) ?? null;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
-    if (response) {
-      return response;
-    }
+    if (response) return response;
 
     const todayParam = request.nextUrl.searchParams.get("today");
     const today = todayParam ?? new Date().toISOString().slice(0, 10);
@@ -41,13 +56,34 @@ export async function GET(request: NextRequest) {
       where: { userId: session.user.id },
       select: { date: true },
       orderBy: { date: "desc" },
-      take: 400, // enough for ~13 months
+      take: 400,
     });
 
     const dates = entries.map((e) => e.date);
-    const streak = computeStreak(dates, today);
+    const dateSet = new Set(dates);
 
-    return NextResponse.json({ streak });
+    const streak = computeStreak(dateSet, today);
+    const longestStreak = computeLongestStreak(dates);
+    const next = nextMilestone(streak);
+
+    // Last 14 days with logged status
+    const last14: Array<{ date: string; logged: boolean }> = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = shiftDate(today, -i);
+      last14.push({ date: d, logged: dateSet.has(d) });
+    }
+
+    // Days with logs this week (Mon–today)
+    const daysLoggedTotal = new Set(dates).size;
+
+    return NextResponse.json({
+      streak,
+      longestStreak: Math.max(longestStreak, streak),
+      nextMilestone: next,
+      daysUntilNext: next ? next - streak : null,
+      last14,
+      daysLoggedTotal,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось загрузить серию" }, { status: 500 });
