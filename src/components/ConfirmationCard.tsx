@@ -276,7 +276,7 @@ export function ConfirmationCard({
         .filter((message): message is string => message !== null);
 
       if (failures.length > 0) {
-        setError(failures.join(" · "));
+        setError(failures.join("\n"));
         return;
       }
 
@@ -383,7 +383,18 @@ export function ConfirmationCard({
         </div>
 
         {lookupMessage ? <p className="text-sm text-teal-700">{lookupMessage}</p> : null}
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <div className="rounded-xl bg-red-50 px-3 py-2">
+            {error.split("\n").map((line, i) => (
+              <p key={i} className="text-sm text-red-600">{line}</p>
+            ))}
+          </div>
+        ) : null}
+        {!mealType ? (
+          <p className="text-xs text-slate-400">
+            💡 Укажите тип приёма пищи — это поможет отслеживать бюджет по приёмам
+          </p>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-wrap gap-1">

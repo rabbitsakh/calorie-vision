@@ -106,6 +106,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               onClick={() => {
                 setMode(tab.id);
                 setError(null);
+                setTextQuery("");
+                setBarcodeQuery("");
               }}
             >
               {tab.label}
@@ -162,6 +164,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               <input
                 id="food-barcode"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 value={barcodeQuery}
                 placeholder="4601234567890"
                 disabled={disabled || loading}

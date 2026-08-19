@@ -36,15 +36,11 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
+          {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}
             onSaved={() => setRefreshKey((value) => value + 1)}
           />
-          <StreakWidget selectedDate={date} refreshKey={refreshKey} />
-          <WaterTracker selectedDate={date} />
-          <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
-          <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
-          <DiaryNoteWidget selectedDate={date} />
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}
@@ -53,6 +49,12 @@ export default function RationPage() {
             onChanged={() => setRefreshKey((value) => value + 1)}
             onTotalsChange={setTotalCalories}
           />
+          {/* Secondary: streak, water, ai, favorites, note */}
+          <StreakWidget selectedDate={date} refreshKey={refreshKey} />
+          <WaterTracker selectedDate={date} />
+          <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
+          <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
+          <DiaryNoteWidget selectedDate={date} />
         </div>
       </AuthGate>
     </AppShell>

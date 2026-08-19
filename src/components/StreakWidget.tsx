@@ -79,7 +79,11 @@ export function StreakWidget({
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
         <span>
-          {data.streak >= 1 ? `${streakEmoji(data.streak)} ${data.streak} ${data.streak < 5 ? "дн." : "дней"} подряд` : "📅 Календарь прогресса"}
+          {data.streak >= 1
+            ? `${streakEmoji(data.streak)} ${data.streak} ${data.streak < 5 ? "дн." : "дней"} подряд`
+            : data.daysLoggedTotal > 0
+              ? "📅 Продолжи серию сегодня"
+              : "📅 Начни серию сегодня"}
         </span>
         <span className="text-xs">Показать</span>
       </button>
@@ -112,10 +116,14 @@ export function StreakWidget({
             <p className="text-lg font-bold text-amber-900">
               {hasStreak
                 ? `${streak} ${streak === 1 ? "день" : streak < 5 ? "дня" : "дней"} подряд`
-                : "Начни серию сегодня"}
+                : daysLoggedTotal > 0 ? "Продолжи серию сегодня" : "Начни серию сегодня"}
             </p>
             <p className="text-xs text-amber-700">
-              {hasStreak ? streakLabel(streak) : "Добавь еду — и первый день засчитается"}
+              {hasStreak
+                ? streakLabel(streak)
+                : daysLoggedTotal > 0
+                  ? `Лучший результат: ${longestStreak} ${longestStreak < 5 ? "дн." : "дней"}. Добавь еду — и серия возобновится`
+                  : "Добавь первый приём пищи — и серия начнётся"}
             </p>
           </div>
         </div>

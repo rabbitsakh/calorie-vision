@@ -11,7 +11,7 @@ type AuthTab = "phone" | "email";
 
 const AUTH_ERRORS: Record<string, string> = {
   OAuthSignin: "Не удалось начать вход через соцсеть.",
-  OAuthCallback: "Не удалось войти через VK. В кабинете VK ID в «Доверенный Redirect URL» укажите точно https://calorievision.ru/api/auth/callback/vk",
+  OAuthCallback: "Не удалось войти через соцсеть. Попробуйте ещё раз или используйте другой способ входа.",
   OAuthCreateAccount: "Не удалось создать аккаунт.",
   OAuthAccountNotLinked: "Этот email уже используется другим способом входа.",
   Callback: "Не удалось сохранить вход через VK. Попробуйте ещё раз.",
@@ -43,7 +43,7 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/");
+      router.replace("/ration/");
     }
   }, [status, router]);
 
