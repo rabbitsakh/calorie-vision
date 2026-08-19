@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts && next build",
+    "build": "next build",
     "sync-version": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts",
     "start": "next start",
     "lint": "next lint",

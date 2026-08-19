@@ -1,11 +1,11 @@
-import { countGitCommits } from "./src/lib/git-commit-count";
-import { versionFromCommitCount } from "./src/lib/app-version";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { readPackageVersion } from "./src/lib/read-package-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const commitCount = countGitCommits();
-const appVersion = versionFromCommitCount(commitCount);
+const appVersion = readPackageVersion();
 
-console.info(`Calorie Vision v${appVersion} (${commitCount} commits)`);
+console.info(`Calorie Vision v${appVersion}`);
 
 const nextConfig = {
   ...(basePath ? { basePath } : {}),
