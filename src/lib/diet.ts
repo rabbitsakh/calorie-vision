@@ -151,14 +151,15 @@ function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoe
   return GOAL_PACE_COEFF[goal][pace ?? "HEALTHY"];
 }
 
-function mifflinBmr(weightKg: number, sex: Sex): number {
-  const heightCm = HEIGHT_CM[sex];
-  const base = 10 * weightKg + 6.25 * heightCm - 5 * DEFAULT_AGE;
+function mifflinBmr(weightKg: number, sex: Sex, heightCm?: number | null, age?: number | null): number {
+  const h = (heightCm && heightCm > 0) ? heightCm : HEIGHT_CM[sex];
+  const a = (age && age > 0) ? age : DEFAULT_AGE;
+  const base = 10 * weightKg + 6.25 * h - 5 * a;
   return sex === "MALE" ? base + 5 : base - 161;
 }
 
-function maintainCalories(weightKg: number, sex: Sex): number {
-  return Math.round(mifflinBmr(weightKg, sex) * ACTIVITY_FACTOR);
+function maintainCalories(weightKg: number, sex: Sex, heightCm?: number | null, age?: number | null): number {
+  return Math.round(mifflinBmr(weightKg, sex, heightCm, age) * ACTIVITY_FACTOR);
 }
 
 /**
@@ -167,8 +168,9 @@ function maintainCalories(weightKg: number, sex: Sex): number {
  */
 const MACRO_BMI_CAP = 30;
 
-function weightForMacros(weightKg: number, sex: Sex): number {
-  const heightM = HEIGHT_CM[sex] / 100;
+function weightForMacros(weightKg: number, sex: Sex, heightCm?: number | null): number {
+  const h = (heightCm && heightCm > 0) ? heightCm : HEIGHT_CM[sex];
+  const heightM = h / 100;
   const capKg = MACRO_BMI_CAP * heightM * heightM;
   return Math.min(weightKg, round1(capKg));
 }
@@ -182,14 +184,17 @@ export function recommendDiet(
   goal: WeightGoal,
   pace: GoalPace | null | undefined = null,
   sex: Sex | null | undefined = "FEMALE",
+  heightCm?: number | null,
+  birthYear?: number | null,
 ): DietTarget {
   const resolvedSex = isSex(sex) ? sex : "FEMALE";
+  const age = birthYear ? new Date().getFullYear() - birthYear : null;
   const coeff = dietCoeff(goal, pace);
   const calories = Math.max(
     MIN_CALORIES[resolvedSex],
-    Math.round(maintainCalories(weightKg, resolvedSex) * coeff.calorieRatio),
+    Math.round(maintainCalories(weightKg, resolvedSex, heightCm, age) * coeff.calorieRatio),
   );
-  const macroWeight = weightForMacros(weightKg, resolvedSex);
+  const macroWeight = weightForMacros(weightKg, resolvedSex, heightCm);
   const protein = round1(macroWeight * coeff.protein);
   const fat = round1(macroWeight * coeff.fat);
   const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));

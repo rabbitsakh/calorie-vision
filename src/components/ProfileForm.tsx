@@ -14,6 +14,8 @@ type AccountResponse = {
   image: string | null;
   timezone: string | null;
   sex: Sex | null;
+  heightCm: number | null;
+  birthYear: number | null;
   linkedProviders: string[];
   emailLocked: boolean;
   error?: string;
@@ -52,6 +54,8 @@ export function ProfileForm() {
   const [image, setImage] = useState<string | null>(null);
   const [timezone, setTimezone] = useState("");
   const [sex, setSex] = useState<Sex | "">("");
+  const [heightCm, setHeightCm] = useState("");
+  const [birthYear, setBirthYear] = useState("");
   const [emailLocked, setEmailLocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +81,8 @@ export function ProfileForm() {
       setImage(data.image);
       setTimezone(data.timezone ?? "");
       setSex(isSex(data.sex) ? data.sex : "");
+      setHeightCm(data.heightCm ? String(data.heightCm) : "");
+      setBirthYear(data.birthYear ? String(data.birthYear) : "");
       setEmailLocked(data.emailLocked);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -107,6 +113,8 @@ export function ProfileForm() {
           image,
           timezone: timezone || null,
           sex: sex || null,
+          heightCm: heightCm ? Number(heightCm) : null,
+          birthYear: birthYear ? Number(birthYear) : null,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -261,6 +269,32 @@ export function ProfileForm() {
               <p className="text-xs text-slate-500">
                 Нужен для расчёта нормы калорий: у женщин базовый обмен ниже, чем у мужчин
               </p>
+            </div>
+            <div className="field">
+              <label htmlFor="heightCm">Рост, см</label>
+              <input
+                id="heightCm"
+                type="number"
+                min="100"
+                max="250"
+                placeholder="170"
+                value={heightCm}
+                onChange={(event) => setHeightCm(event.target.value)}
+              />
+              <p className="text-xs text-slate-500">Для точного расчёта базового обмена</p>
+            </div>
+            <div className="field">
+              <label htmlFor="birthYear">Год рождения</label>
+              <input
+                id="birthYear"
+                type="number"
+                min="1920"
+                max={new Date().getFullYear() - 10}
+                placeholder="1990"
+                value={birthYear}
+                onChange={(event) => setBirthYear(event.target.value)}
+              />
+              <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
             </div>
             <div className="field sm:col-span-2">
               <label htmlFor="timezone">Часовой пояс</label>

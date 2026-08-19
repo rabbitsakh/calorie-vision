@@ -39,6 +39,8 @@ export async function GET() {
           image: true,
           timezone: true,
           sex: true,
+          heightCm: true,
+          birthYear: true,
         },
       }),
       prisma.account.findMany({
@@ -62,6 +64,8 @@ export async function GET() {
       image: user.image,
       timezone: user.timezone ?? null,
       sex: user.sex ?? null,
+      heightCm: user.heightCm ?? null,
+      birthYear: user.birthYear ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
     });
@@ -86,6 +90,8 @@ export async function PUT(request: NextRequest) {
       image?: string | null;
       timezone?: string | null;
       sex?: string | null;
+      heightCm?: number | null;
+      birthYear?: number | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -117,10 +123,23 @@ export async function PUT(request: NextRequest) {
       image?: string | null;
       timezone?: string | null;
       sex?: Sex | null;
+      heightCm?: number | null;
+      birthYear?: number | null;
     } = { name };
 
     if (body.image !== undefined) {
       data.image = body.image;
+    }
+
+    if (body.heightCm !== undefined) {
+      data.heightCm = body.heightCm && body.heightCm > 0 ? Math.round(body.heightCm) : null;
+    }
+
+    if (body.birthYear !== undefined) {
+      const currentYear = new Date().getFullYear();
+      data.birthYear = body.birthYear && body.birthYear > 1900 && body.birthYear < currentYear
+        ? Math.round(body.birthYear)
+        : null;
     }
 
     if (body.sex !== undefined) {

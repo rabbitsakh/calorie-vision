@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true, sex: true },
+        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id, date: { lte: date } },
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     const goal = (user?.goal ?? null) as WeightGoal | null;
     const goalPace = (user?.goalPace ?? null) as GoalPace | null;
     const sex = isSex(user?.sex) ? user!.sex : null;
-    const target = goal && weight ? recommendDiet(weight.weightKg, goal, goalPace, sex) : null;
+    const target = goal && weight ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear) : null;
     const comparison = target
       ? {
           calories: compareNutrient(totalCalories, target.calories),

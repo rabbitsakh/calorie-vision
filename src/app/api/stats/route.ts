@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey } from "@/lib/dates";
-import { round1 } from "@/lib/diet";
+import { isSex, recommendDiet, round1, isWeightGoal, isGoalPace } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 import {
   computeWeightChangeKg,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
-    const [meals, weights] = await Promise.all([
+    const [meals, weights, user, latestWeight] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
@@ -61,6 +61,14 @@ export async function GET(request: NextRequest) {
         },
         select: { date: true, weightKg: true, measuredAt: true, id: true },
         orderBy: weightEntryOrderOldestFirst,
+      }),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId: session.user.id },
+        orderBy: weightEntryOrderNewestFirst,
       }),
     ]);
 
@@ -107,11 +115,19 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
+    const resolvedGoal = isWeightGoal(user?.goal) ? user!.goal : null;
+    const resolvedPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
+    const resolvedSex = isSex(user?.sex) ? user!.sex : null;
+    const calorieTarget = resolvedGoal && latestWeight
+      ? recommendDiet(latestWeight.weightKg, resolvedGoal, resolvedPace, resolvedSex, user?.heightCm, user?.birthYear).calories
+      : null;
+
     return NextResponse.json({
       period,
       start,
       end,
       days,
+      calorieTarget,
       summary: {
         avgCalories,
         totalMealDays: daysWithMeals.length,
