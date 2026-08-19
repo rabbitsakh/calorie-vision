@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+
+const PANEL_ID = "favorites";
 
 type CustomFood = {
   id: string;
@@ -33,6 +36,11 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
+  }, [selectedDate]);
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
   const [protein, setProtein] = useState("");
@@ -105,10 +113,24 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
     await load();
   }
 
+  if (hidden) {
+    return (
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
+      >
+        <span>⭐ Мои продукты</span>
+        <span className="text-xs">Показать</span>
+      </button>
+    );
+  }
+
   return (
     <section className="card p-4 md:p-6">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Мои продукты</h2>
+        <div className="flex gap-2">
         <button
           type="button"
           className="btn btn-secondary text-sm"
@@ -116,6 +138,14 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
         >
           {showForm ? "Отмена" : "+ Добавить"}
         </button>
+        <button
+          type="button"
+          className="text-xs text-slate-400 hover:text-slate-600"
+          onClick={() => { hidePanelToday(PANEL_ID, selectedDate); setHidden(true); }}
+        >
+          Скрыть
+        </button>
+        </div>
       </div>
 
       {showForm ? (
