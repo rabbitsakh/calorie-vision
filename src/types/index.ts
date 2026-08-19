@@ -18,6 +18,7 @@ export type MealEntry = {
   portionGrams: number | null;
   confidence: number | null;
   imagePath: string | null;
+  mealGroupId: string | null;
   wasCorrected: boolean;
   originalDish: string | null;
   originalCalories: number | null;
