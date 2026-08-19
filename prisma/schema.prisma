@@ -33,6 +33,8 @@ model User {
   phoneVerified DateTime?
   image         String?
   sex           Sex?
+  heightCm      Int?
+  birthYear     Int?
   goal          WeightGoal?
   goalPace      GoalPace?
   timezone      String?        @db.VarChar(64)

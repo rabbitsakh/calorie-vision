@@ -16,6 +16,7 @@ type StatsDay = {
 type StatsResponse = {
   period: "week" | "month";
   days: StatsDay[];
+  calorieTarget: number | null;
   summary: {
     avgCalories: number;
     totalMealDays: number;
@@ -89,11 +90,13 @@ function BarChart({
   valueKey,
   unit,
   period,
+  targetValue,
 }: {
   days: StatsDay[];
   valueKey: "calories" | "weightKg";
   unit: string;
   period: "week" | "month";
+  targetValue?: number | null;
 }) {
   const values = days.map((day) => {
     if (valueKey === "weightKg") {
@@ -103,7 +106,9 @@ function BarChart({
   });
 
   const presentValues = values.filter((value) => value > 0);
-  const { min, max } = chartRange(presentValues);
+  // Include target in range so target line is always visible
+  const allValues = targetValue ? [...presentValues, targetValue] : presentValues;
+  const { min, max } = chartRange(allValues);
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
   // Extra space above bars so vertical labels don't get clipped
@@ -151,6 +156,21 @@ function BarChart({
               style={{ top: `${labelAreaHeight + (index / (ticks.length - 1)) * plotHeight}px` }}
             />
           ))}
+
+          {/* Target line */}
+          {targetValue && targetValue > 0 ? (() => {
+            const targetHeightPx = barHeightPx(targetValue);
+            const targetTopPx = labelAreaHeight + plotHeight - targetHeightPx;
+            return (
+              <div
+                className="pointer-events-none absolute left-0 right-0 z-10 flex items-center gap-1"
+                style={{ top: `${targetTopPx}px` }}
+              >
+                <div className="h-px flex-1 border-t-2 border-dashed border-amber-400" />
+                <span className="shrink-0 text-[9px] font-semibold text-amber-600">{targetValue}</span>
+              </div>
+            );
+          })() : null}
 
           <div className="absolute inset-0 flex gap-0.5 sm:gap-1">
             {days.map((day) => {
@@ -213,6 +233,14 @@ function BarChart({
   );
 }
 
+function rollingAverage(points: Array<{ index: number; value: number }>, window = 7): Array<{ index: number; avg: number }> {
+  return points.map((point) => {
+    const windowPoints = points.filter((p) => p.index >= point.index - window + 1 && p.index <= point.index);
+    const avg = windowPoints.reduce((sum, p) => sum + p.value, 0) / windowPoints.length;
+    return { index: point.index, avg: Math.round(avg * 10) / 10 };
+  });
+}
+
 function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
   const points = days
     .map((day, index) => ({ index, date: day.date, value: day.weightKg }))
@@ -271,12 +299,27 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
             <polyline
               points={svgPoints}
               fill="none"
-              stroke="#0284c7"
-              strokeWidth="2"
+              stroke="#bae6fd"
+              strokeWidth="1.5"
               vectorEffect="non-scaling-stroke"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
+            {points.length >= 3 ? (() => {
+              const avgPoints = rollingAverage(points);
+              const avgSvgPoints = avgPoints.map((p) => `${xPct(p.index)},${yPct(p.avg)}`).join(" ");
+              return (
+                <polyline
+                  points={avgSvgPoints}
+                  fill="none"
+                  stroke="#0284c7"
+                  strokeWidth="2.5"
+                  vectorEffect="non-scaling-stroke"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              );
+            })() : null}
           </svg>
 
           {points.map((p) => (
@@ -305,6 +348,57 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
             );
           })}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
+  const daysWithData = days.filter((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
+  if (daysWithData.length === 0) {
+    return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
+  }
+
+  const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs));
+  if (maxTotal <= 0) return null;
+
+  const labelClass = period === "month" ? "text-[8px]" : "text-[9px] sm:text-[10px]";
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-3 text-xs">
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-teal-500" />Белки</span>
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-amber-400" />Жиры</span>
+        <span className="flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-violet-400" />Углеводы</span>
+      </div>
+      <div className="flex gap-0.5 sm:gap-1">
+        {days.map((day, index) => {
+          const total = day.protein + day.fat + day.carbs;
+          const showLabel = shouldShowDateLabel(index, days.length, period);
+          const barH = total > 0 ? Math.max(4, Math.round((total / maxTotal) * 100)) : 0;
+          return (
+            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+              <div className="flex w-full flex-col justify-end" style={{ height: "80px" }}>
+                {total > 0 ? (
+                  <div
+                    className="w-full overflow-hidden rounded-t-sm"
+                    style={{ height: `${barH}%` }}
+                    title={`${day.date}: Б ${day.protein}г, Ж ${day.fat}г, У ${day.carbs}г`}
+                  >
+                    <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-teal-500" />
+                    <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
+                    <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-violet-400" />
+                  </div>
+                ) : (
+                  <div className="mx-auto h-0.5 w-full rounded bg-slate-100" />
+                )}
+              </div>
+              <span className={`block truncate text-center font-medium text-slate-500 ${labelClass} ${showLabel ? "" : "invisible"}`}>
+                {formatDateShort(day.date)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -382,9 +476,24 @@ export function StatsView({ endDate }: StatsViewProps) {
           </div>
 
           <section className="card p-4 md:p-6">
-            <h2 className="text-lg font-bold">Калории по дням</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg font-bold">Калории по дням</h2>
+              {data.calorieTarget ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                  <span className="inline-block h-0.5 w-5 border-t-2 border-dashed border-amber-400" />
+                  цель {data.calorieTarget} ккал
+                </div>
+              ) : null}
+            </div>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} />
+              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="text-lg font-bold">БЖУ по дням</h2>
+            <div className="mt-4">
+              <MacroChart days={data.days} period={period} />
             </div>
           </section>
 
