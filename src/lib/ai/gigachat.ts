@@ -205,7 +205,7 @@ async function uploadImage(
   return data.id;
 }
 
-async function completeChat(
+export async function completeChat(
   messages: Array<{ role: string; content: string; attachments?: string[] }>,
   temperature = 0.35,
 ): Promise<string> {
