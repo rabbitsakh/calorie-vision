@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildChangelogReleases, classifyChangelogKind } from "./changelog-build.ts";
+import { buildChangelogReleases, classifyChangelogKind, translateTitle } from "./changelog-build.ts";
 import { formatChangelogDate } from "./changelog-types.ts";
 import { APP_VERSION_EPOCH_MERGES, versionFromPullRequestCount } from "./app-version.ts";
 
@@ -31,6 +31,12 @@ test("builds one release per version from merge inputs", () => {
   assert.equal(releases[0]?.version, "0.4.1");
   assert.equal(releases[1]?.version, "0.4.0");
   assert.equal(releases[0]?.items[0]?.kind, "fix");
+});
+
+test("translates English PR titles to Russian", () => {
+  assert.equal(translateTitle("Fix drink calories when lookup returns per-100 ml values"), "Калории напитков пересчитываются на полную порцию");
+  assert.equal(translateTitle("feat: recognize several dishes on one plate separately"), "Распознавание нескольких блюд на одном фото");
+  assert.equal(translateTitle("Some unknown title"), "Some unknown title");
 });
 
 test("formatChangelogDate renders Russian date", () => {
