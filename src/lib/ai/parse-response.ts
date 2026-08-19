@@ -94,16 +94,34 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
     ? parsed.alternatives
         .map((item) => {
           if (!item || typeof item !== "object") return null;
-          const alt = item as { dishName?: unknown; calories?: unknown };
+          const alt = item as {
+            dishName?: unknown;
+            calories?: unknown;
+            protein?: unknown;
+            fat?: unknown;
+            carbs?: unknown;
+            portionGrams?: unknown;
+          };
           const name =
             typeof alt.dishName === "string" && alt.dishName.trim()
               ? alt.dishName.trim()
               : null;
           const altCalories = toNumber(alt.calories);
           if (!name || altCalories === undefined) return null;
-          return { dishName: name, calories: Math.max(0, Math.round(altCalories)) };
+          return {
+            dishName: name,
+            calories: Math.max(0, Math.round(altCalories)),
+            protein: toNumber(alt.protein),
+            fat: toNumber(alt.fat),
+            carbs: toNumber(alt.carbs),
+            portionGrams: toNumber(alt.portionGrams)
+              ? Math.round(toNumber(alt.portionGrams)!)
+              : undefined,
+          };
         })
-        .filter((item): item is { dishName: string; calories: number } => item !== null)
+        .filter(
+          (item): item is NonNullable<typeof item> => item !== null,
+        )
         .slice(0, 3)
     : undefined;
 

@@ -18,6 +18,10 @@ export type RememberFoodCorrectionInput = {
   fat?: number | null;
   carbs?: number | null;
   portionGrams?: number | null;
+  originalCalories?: number | null;
+  originalProtein?: number | null;
+  originalFat?: number | null;
+  originalCarbs?: number | null;
 };
 
 /** Stable key for matching a misrecognized dish name. */

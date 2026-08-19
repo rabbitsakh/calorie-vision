@@ -40,6 +40,22 @@ const USER_AGENT = "CalorieVision/1.0 (https://calorievision.ru)";
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
 const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 
+// In-process cache (5 min TTL) to avoid duplicate network calls for repeated scans.
+const OFF_CACHE_TTL_MS = 5 * 60 * 1000;
+type OffCacheEntry = { value: PackNutrition | null; ts: number };
+const offBarcodeCache = new Map<string, OffCacheEntry>();
+const offSearchCache = new Map<string, OffCacheEntry>();
+
+function offCacheGet(cache: Map<string, OffCacheEntry>, key: string): PackNutrition | null | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() - entry.ts > OFF_CACHE_TTL_MS) { cache.delete(key); return undefined; }
+  return entry.value;
+}
+function offCacheSet(cache: Map<string, OffCacheEntry>, key: string, value: PackNutrition | null): void {
+  cache.set(key, { value, ts: Date.now() });
+}
+
 function decodeOffText(value: string): string {
   if (!value.includes("&")) {
     return value;
@@ -179,7 +195,9 @@ export function offProductToNutrition(
   preferredGrams?: number,
 ): PackNutrition | null {
   const nutriments = product.nutriments ?? {};
-  const kcal100 = nutriments["energy-kcal_100g"] ?? nutriments["energy-kcal"];
+  // Use only the per-100g field — "energy-kcal" without suffix is per-serving in OFF schema
+  // and would produce wrong calorie density if product_quantity differs from serving_quantity.
+  const kcal100 = nutriments["energy-kcal_100g"];
   if (typeof kcal100 !== "number" || !Number.isFinite(kcal100) || kcal100 <= 0) {
     return null;
   }
@@ -236,13 +254,17 @@ async function offGetJson(url: string): Promise<unknown | null> {
 }
 
 export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<PackNutrition | null> {
+  const cached = offCacheGet(offBarcodeCache, barcode);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const data = (await offGetJson(`${PRODUCT_URL}/${encodeURIComponent(barcode)}.json`)) as
     | { status?: number; product?: OffProduct }
     | null;
-  if (!data || data.status !== 1 || !data.product) {
-    return null;
-  }
-  return offProductToNutrition(data.product);
+  const result = data?.status === 1 && data.product ? offProductToNutrition(data.product) : null;
+  offCacheSet(offBarcodeCache, barcode, result);
+  return result;
 }
 
 export function offMatchesQuery(query: string, dishName: string): boolean {
@@ -277,12 +299,19 @@ export async function searchOpenFoodFacts(query: string): Promise<PackNutrition 
     return null;
   }
 
+  const cached = offCacheGet(offSearchCache, trimmed.toLowerCase());
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const url = `${SEARCH_URL}?${new URLSearchParams({
     search_terms: trimmed,
     search_simple: "1",
     action: "process",
     json: "1",
     page_size: "5",
+    lc: "ru",
+    cc: "ru",
   }).toString()}`;
 
   const data = (await offGetJson(url)) as { products?: OffProduct[] } | null;
@@ -295,5 +324,9 @@ export async function searchOpenFoodFacts(query: string): Promise<PackNutrition 
     }
   }
 
-  return matches.find((item) => offMatchesQuery(trimmed, item.dishName)) ?? matches[0] ?? null;
+  // Only return a result when it actually matches the query — never silently substitute
+  // an unrelated product that happened to be first in the result list.
+  const result = matches.find((item) => offMatchesQuery(trimmed, item.dishName)) ?? null;
+  offCacheSet(offSearchCache, trimmed.toLowerCase(), result);
+  return result;
 }

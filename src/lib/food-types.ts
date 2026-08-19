@@ -23,6 +23,10 @@ export type FoodRecognitionResult = {
   alternatives?: Array<{
     dishName: string;
     calories: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    portionGrams?: number;
   }>;
   source?: string;
   photoKind?: PhotoKind;

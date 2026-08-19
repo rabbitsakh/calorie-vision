@@ -1,5 +1,38 @@
 [
   {
+    "version": "0.5.14",
+    "date": "2026-08-19",
+    "summary": "Fix drink calories when lookup returns per-100 ml values",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix drink calories when lookup returns per-100 ml values"
+      }
+    ]
+  },
+  {
+    "version": "0.5.13",
+    "date": "2026-08-19",
+    "summary": "Fix server git pull after deploy (restore generated files)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix server git pull after deploy (restore generated files)"
+      }
+    ]
+  },
+  {
+    "version": "0.5.12",
+    "date": "2026-08-19",
+    "summary": "Auto-sync admin changelog from merged PRs",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Auto-sync admin changelog from merged PRs"
+      }
+    ]
+  },
+  {
     "version": "0.5.11",
     "date": "2026-08-19",
     "summary": "Auto version from merged PRs (Z/20, Y/10 carry)",

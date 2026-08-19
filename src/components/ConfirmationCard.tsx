@@ -211,9 +211,19 @@ export function ConfirmationCard({
       throw new Error("Проверьте название и калорийность каждого блюда");
     }
 
+    const origProtein = dish.original.protein !== undefined ? Number(dish.original.protein) : undefined;
+    const origFat = dish.original.fat !== undefined ? Number(dish.original.fat) : undefined;
+    const origCarbs = dish.original.carbs !== undefined ? Number(dish.original.carbs) : undefined;
+    const parsedProtein = dish.protein ? Number(dish.protein) : undefined;
+    const parsedFat = dish.fat ? Number(dish.fat) : undefined;
+    const parsedCarbs = dish.carbs ? Number(dish.carbs) : undefined;
+
     const wasCorrected =
       dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
-      parsedCalories !== dish.original.calories;
+      parsedCalories !== dish.original.calories ||
+      parsedProtein !== origProtein ||
+      parsedFat !== origFat ||
+      parsedCarbs !== origCarbs;
 
     const response = await fetch(withBasePath("/api/meals"), {
       method: "POST",
@@ -232,6 +242,9 @@ export function ConfirmationCard({
         wasCorrected,
         originalDish: decodeHtmlEntities(dish.original.dishName),
         originalCalories: dish.original.calories,
+        originalProtein: origProtein,
+        originalFat: origFat,
+        originalCarbs: origCarbs,
       }),
     });
 
@@ -247,9 +260,23 @@ export function ConfirmationCard({
 
     try {
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
-      for (const dish of dishes) {
-        await saveDish(dish, mealGroupId);
+      const results = await Promise.allSettled(
+        dishes.map((dish) => saveDish(dish, mealGroupId)),
+      );
+
+      const failures = results
+        .map((result, index) =>
+          result.status === "rejected"
+            ? `${dishes[index]?.dishName || `Блюдо ${index + 1}`}: ${result.reason instanceof Error ? result.reason.message : "ошибка"}`
+            : null,
+        )
+        .filter((message): message is string => message !== null);
+
+      if (failures.length > 0) {
+        setError(failures.join(" · "));
+        return;
       }
+
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить");
@@ -315,6 +342,18 @@ export function ConfirmationCard({
                 }
                 onPortionChange={(value) => handlePortionChange(dish, value)}
                 onLookup={(name) => void handleLookup(dish, name)}
+                onApplyAlternative={(alt) => {
+                  updateDish(dish.id, {
+                    dishName: decodeHtmlEntities(alt.dishName),
+                    calories: String(alt.calories),
+                    protein: alt.protein !== undefined ? String(alt.protein) : "",
+                    fat: alt.fat !== undefined ? String(alt.fat) : "",
+                    carbs: alt.carbs !== undefined ? String(alt.carbs) : "",
+                    portionGrams: alt.portionGrams !== undefined ? String(alt.portionGrams) : dish.portionGrams,
+                    baseline: null,
+                  });
+                  setLookupMessage("Вариант применён");
+                }}
                 onRemove={() => setDishes((current) => current.filter((item) => item.id !== dish.id))}
               />
             ))}
@@ -367,6 +406,7 @@ function DishFields({
   onBaselineChange,
   onPortionChange,
   onLookup,
+  onApplyAlternative,
   onRemove,
 }: {
   dish: DishDraft;
@@ -379,6 +419,7 @@ function DishFields({
   onBaselineChange: (patch: Partial<DishDraft>) => void;
   onPortionChange: (value: string) => void;
   onLookup: (name?: string) => void;
+  onApplyAlternative: (alt: NonNullable<FoodRecognitionResult["alternatives"]>[number]) => void;
   onRemove: () => void;
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
@@ -496,12 +537,20 @@ function DishFields({
           <div className="flex flex-wrap gap-2">
             {dish.original.alternatives.map((item) => {
               const altName = decodeHtmlEntities(item.dishName);
+              const hasMacros = item.protein !== undefined || item.fat !== undefined || item.carbs !== undefined;
+              const handleAltClick = () => {
+                if (hasMacros) {
+                  onApplyAlternative(item);
+                } else {
+                  onLookup(altName);
+                }
+              };
               return (
                 <button
                   key={altName}
                   type="button"
                   className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-                  onClick={() => onLookup(altName)}
+                  onClick={handleAltClick}
                 >
                   {altName} · {item.calories} ккал
                 </button>
