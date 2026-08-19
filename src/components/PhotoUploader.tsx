@@ -177,7 +177,6 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
             ref={inputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             disabled={disabled}
             onChange={handleFileChange}
