@@ -202,6 +202,103 @@ function BarChart({
   );
 }
 
+function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
+  const points = days
+    .map((day, index) => ({ index, date: day.date, value: day.weightKg }))
+    .filter((point): point is { index: number; date: string; value: number } => point.value !== null && point.value > 0);
+
+  if (points.length === 0) {
+    return <p className="py-6 text-center text-sm text-slate-400">Нет измерений веса за период</p>;
+  }
+
+  const plotHeight = 144;
+  const plotWidth = 100; // percentage
+  const weights = points.map((p) => p.value);
+  const { min, max } = chartRange(weights);
+  const span = Math.max(max - min, 0.1);
+  const ticks = yAxisTicks(min, max);
+  const totalDays = days.length;
+
+  function xPct(dayIndex: number): number {
+    return totalDays <= 1 ? 50 : (dayIndex / (totalDays - 1)) * plotWidth;
+  }
+  function yPct(value: number): number {
+    return ((max - value) / span) * 100;
+  }
+
+  const svgPoints = points.map((p) => `${xPct(p.index)},${yPct(p.value)}`).join(" ");
+
+  return (
+    <div className="flex gap-2 sm:gap-3">
+      <div
+        className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
+        style={{ height: plotHeight, width: "2.75rem" }}
+        aria-hidden="true"
+      >
+        {ticks.map((tick, index) => (
+          <span
+            key={`${tick}-${index}`}
+            className="absolute right-0 -translate-y-1/2 leading-none"
+            style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+          >
+            {formatChartValue(tick, "weightKg")}
+          </span>
+        ))}
+      </div>
+
+      <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
+        <div className="relative" style={{ height: plotHeight }}>
+          {ticks.map((tick, index) => (
+            <div
+              key={`grid-${tick}-${index}`}
+              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-100"
+              style={{ top: `${(index / (ticks.length - 1)) * 100}%` }}
+            />
+          ))}
+
+          <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${plotWidth} 100`} preserveAspectRatio="none">
+            <polyline
+              points={svgPoints}
+              fill="none"
+              stroke="#0284c7"
+              strokeWidth="2"
+              vectorEffect="non-scaling-stroke"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
+
+          {points.map((p) => (
+            <div
+              key={p.date}
+              className="absolute -translate-x-1/2 -translate-y-1/2"
+              style={{ left: `${xPct(p.index)}%`, top: `${yPct(p.value)}%` }}
+            >
+              <div className="h-2.5 w-2.5 rounded-full border-2 border-sky-600 bg-white" title={`${formatDateShort(p.date)}: ${p.value} кг`} />
+              <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[9px] font-semibold leading-none text-slate-700 sm:text-[10px]" style={{ bottom: "14px" }}>
+                {formatChartValue(p.value, "weightKg")}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-1 flex">
+          {days.map((day, index) => {
+            const showLabel = shouldShowDateLabel(index, days.length, period);
+            return (
+              <div key={day.date} className="min-w-0 flex-1 text-center">
+                <span className={`block truncate text-[10px] font-medium text-slate-500 sm:text-xs ${showLabel ? "" : "invisible"}`}>
+                  {formatDateShort(day.date)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StatsView({ endDate }: StatsViewProps) {
   const [period, setPeriod] = useState<"week" | "month">("week");
   const [data, setData] = useState<StatsResponse | null>(null);
@@ -283,7 +380,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           <section className="card p-4 md:p-6">
             <h2 className="text-lg font-bold">Вес по дням</h2>
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="weightKg" unit="кг" period={period} />
+              <WeightLineChart days={data.days} period={period} />
             </div>
           </section>
         </>

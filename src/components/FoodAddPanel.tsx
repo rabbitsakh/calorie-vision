@@ -140,8 +140,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={disabled || loading}>
-              {loading ? "Ищем..." : "Найти калорийность"}
+            <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>
+              {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти калорийность"}
             </button>
           </form>
         ) : null}
@@ -169,8 +169,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
             <p className="text-xs text-slate-500">
               Можно ввести код вручную или сфотографировать упаковку во вкладке «Фото».
             </p>
-            <button type="submit" className="btn btn-primary" disabled={disabled || loading}>
-              {loading ? "Ищем..." : "Найти по штрихкоду"}
+            <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>
+              {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти по штрихкоду"}
             </button>
           </form>
         ) : null}

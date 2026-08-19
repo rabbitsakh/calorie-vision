@@ -8,6 +8,18 @@ import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
 
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 6h18" strokeLinecap="round" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" strokeLinecap="round" />
+      <path d="M14 11v6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 type DailyLogProps = {
   selectedDate: string;
   refreshKey: number;
@@ -114,10 +126,11 @@ function GroupedMealCard({
 
             <button
               type="button"
-              className="btn btn-danger self-start sm:self-center"
+              className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+              title="Удалить"
               onClick={() => onDelete(entry.id)}
             >
-              Удалить
+              <TrashIcon />
             </button>
           </div>
         ))}
@@ -164,10 +177,11 @@ function SingleMealCard({
 
       <button
         type="button"
-        className="btn btn-danger self-start md:self-center"
+        className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+        title="Удалить"
         onClick={() => onDelete(entry.id)}
       >
-        Удалить
+        <TrashIcon />
       </button>
     </article>
   );
@@ -315,6 +329,18 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
             <div className="text-xs text-teal-100">
               Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
             </div>
+            {daySummary.comparison ? (() => {
+              const target = daySummary.comparison.calories.target;
+              const pct = target > 0 ? Math.min(100, Math.round((totals.calories / target) * 100)) : 0;
+              return (
+                <div className="mt-2">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-teal-900/40">
+                    <div className="h-1.5 rounded-full bg-teal-200 transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-teal-200">{pct}% от {target} ккал</div>
+                </div>
+              );
+            })() : null}
           </div>
         </div>
 
