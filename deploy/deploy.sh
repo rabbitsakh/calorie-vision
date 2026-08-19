@@ -4,8 +4,18 @@ set -euo pipefail
 APP_DIR="/var/www/calorie-vision"
 cd "$APP_DIR"
 
+GENERATED_VERSION_FILES=(
+  "package.json"
+  "package-lock.json"
+  "src/data/changelog.json"
+)
+
+restore_generated_version_files() {
+  git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
+}
+
 echo "==> Pull latest code"
-git restore package.json package-lock.json
+restore_generated_version_files
 git pull
 
 echo "==> Version"
@@ -41,5 +51,7 @@ else
 fi
 
 pm2 save
+
+restore_generated_version_files
 
 echo "==> Done"
