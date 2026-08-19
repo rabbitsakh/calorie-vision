@@ -169,17 +169,18 @@ function BarChart({
                         style={{ height: `${heightPx}px` }}
                         title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
                       />
-                      {/* label — sits exactly (heightPx + labelGap) from the bottom, centred */}
-                      <span
-                        className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
-                        style={{
-                          bottom: `${heightPx + labelGap}px`,
-                          writingMode: "vertical-lr",
-                          transform: "translateX(-50%) rotate(180deg)",
-                        }}
+                      {/* label — fixed gap above bar top, full cell width, centered via flex */}
+                      <div
+                        className="absolute inset-x-0 flex justify-center"
+                        style={{ bottom: `${heightPx + labelGap}px` }}
                       >
-                        {formatChartValue(value, valueKey)}
-                      </span>
+                        <span
+                          className={`whitespace-nowrap font-semibold leading-none text-slate-700 ${valueLabelClass}`}
+                          style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+                        >
+                          {formatChartValue(value, valueKey)}
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <div className="absolute bottom-0 left-1/2 h-0.5 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded bg-slate-100" />
