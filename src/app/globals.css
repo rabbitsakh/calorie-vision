@@ -214,6 +214,17 @@ textarea {
   animation-delay: 0.3s;
 }
 
+.daisy-loading-sm {
+  gap: 0.2rem;
+  height: 1rem;
+}
+
+.daisy-loading-sm span {
+  height: 0.32rem;
+  width: 0.32rem;
+  background: currentColor;
+}
+
 @keyframes daisy-bounce {
   0%,
   80%,

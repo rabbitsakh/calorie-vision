@@ -424,6 +424,35 @@ function DishFields({
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
 
+  const alternativesSection = !multi && dish.original.alternatives?.length ? (
+    <div>
+      <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
+      <div className="flex flex-wrap gap-2">
+        {dish.original.alternatives.map((item) => {
+          const altName = decodeHtmlEntities(item.dishName);
+          const hasMacros = item.protein !== undefined || item.fat !== undefined || item.carbs !== undefined;
+          const handleAltClick = () => {
+            if (hasMacros) {
+              onApplyAlternative(item);
+            } else {
+              onLookup(altName);
+            }
+          };
+          return (
+            <button
+              key={altName}
+              type="button"
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
+              onClick={handleAltClick}
+            >
+              {altName} · {item.calories} ккал
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className={multi ? "rounded-2xl border border-slate-200 p-4" : "flex flex-col gap-4"}>
       {multi ? (
@@ -470,6 +499,8 @@ function DishFields({
           </div>
           <p className="text-xs text-slate-500">Измените название и нажмите лупу или Enter для пересчёта</p>
         </div>
+
+        {alternativesSection}
 
         <div className="field">
           <label htmlFor={fieldId("calories")}>Калории, ккал</label>
@@ -530,35 +561,6 @@ function DishFields({
           />
         </div>
       </div>
-
-      {!multi && dish.original.alternatives?.length ? (
-        <div>
-          <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
-          <div className="flex flex-wrap gap-2">
-            {dish.original.alternatives.map((item) => {
-              const altName = decodeHtmlEntities(item.dishName);
-              const hasMacros = item.protein !== undefined || item.fat !== undefined || item.carbs !== undefined;
-              const handleAltClick = () => {
-                if (hasMacros) {
-                  onApplyAlternative(item);
-                } else {
-                  onLookup(altName);
-                }
-              };
-              return (
-                <button
-                  key={altName}
-                  type="button"
-                  className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-                  onClick={handleAltClick}
-                >
-                  {altName} · {item.calories} ккал
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

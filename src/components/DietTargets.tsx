@@ -24,7 +24,9 @@ function Meter({
   comparison: NutrientComparison;
   tone?: "good" | "warn" | "ok";
 }) {
-  const percent = comparison.target <= 0 ? 0 : Math.min(130, (comparison.actual / comparison.target) * 100);
+  const percent = comparison.target <= 0 ? 0 : (comparison.actual / comparison.target) * 100;
+  const capped = Math.min(100, percent);
+  const overflow = percent > 105;
   const barClass = tone === "warn" ? "bg-amber-500" : tone === "good" ? "bg-teal-600" : "bg-slate-500";
 
   return (
@@ -35,8 +37,11 @@ function Meter({
           {comparison.actual} / {comparison.target} {unit}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${Math.min(100, percent)}%` }} />
+      <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
+        <div className={`h-3 rounded-full ${barClass} transition-all`} style={{ width: `${capped}%` }} />
+        {overflow ? (
+          <div className="absolute inset-y-0 right-0 w-2 rounded-r-full bg-red-400" />
+        ) : null}
       </div>
       <p className={`text-xs ${tone === "warn" ? "text-amber-700" : "text-slate-500"}`}>
         {formatBalanceLabel(comparison, unit)}

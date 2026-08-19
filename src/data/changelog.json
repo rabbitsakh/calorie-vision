@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.5.18",
+    "date": "2026-08-19",
+    "summary": "Fix iOS standalone white screen on home screen launch",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix iOS standalone white screen on home screen launch"
+      }
+    ]
+  },
+  {
+    "version": "0.5.17",
+    "date": "2026-08-19",
+    "summary": "cv-release скрипт и русский журнал изменений",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "cv-release скрипт и русский журнал изменений"
+      }
+    ]
+  },
+  {
     "version": "0.5.16",
     "date": "2026-08-19",
     "summary": "Приложение на рабочем столе iPhone: иконка и полноэкранный режим",
