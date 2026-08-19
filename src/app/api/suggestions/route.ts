@@ -38,6 +38,30 @@ function getTimeOfDayRu(): string {
   return "поздний вечер";
 }
 
+function buildTip(
+  pctCalories: number,
+  deficits: string[],
+  eaten: { protein: number; fat: number; carbs: number },
+  target: { protein: number; fat: number; carbs: number },
+): string {
+  if (deficits.length > 0) {
+    const main = deficits[0]!;
+    if (main.includes("белков")) {
+      return `Белка не хватает ${round1(target.protein - eaten.protein)} г — добавьте куриную грудку, творог или яйца.`;
+    }
+    if (main.includes("углеводов")) {
+      return `Углеводов не хватает ${round1(target.carbs - eaten.carbs)} г — крупа, хлеб или фрукты помогут.`;
+    }
+    if (main.includes("жиров")) {
+      return `Жиров не хватает ${round1(target.fat - eaten.fat)} г — орехи, авокадо или ложка масла.`;
+    }
+  }
+  if (pctCalories < 30) return "Вы съели очень мало — не пропускайте полноценный обед или ужин.";
+  if (pctCalories < 60) return "Уже больше половины дня, а норма выполнена меньше чем наполовину. Пора поесть.";
+  if (pctCalories >= 95) return "Норма почти выполнена. Если голодны — выбирайте что-то лёгкое: овощи, кефир.";
+  return `${pctCalories}% нормы выполнено. Хороший темп!`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -48,19 +72,12 @@ export async function GET(request: NextRequest) {
     const [entries, user, weight] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date },
-        select: {
-          dishName: true,
-          calories: true,
-          protein: true,
-          fat: true,
-          carbs: true,
-          mealType: true,
-        },
+        select: { dishName: true, calories: true, protein: true, fat: true, carbs: true, mealType: true },
         orderBy: { createdAt: "asc" },
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true, name: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -75,7 +92,8 @@ export async function GET(request: NextRequest) {
     if (!goal || !weight) {
       return NextResponse.json({
         suggestions: [],
-        reason: "Укажите цель по весу и добавьте первое измерение веса — тогда я смогу рассчитать вашу норму и дать точные рекомендации.",
+        reason: "Укажите цель и вес в профиле — тогда смогу рассчитать вашу норму и дать точные рекомендации.",
+        tip: "",
       } satisfies Partial<SuggestionsResponse>);
     }
 
@@ -92,9 +110,7 @@ export async function GET(request: NextRequest) {
       fat: Math.max(0, round1(target.fat - eaten.fat)),
       carbs: Math.max(0, round1(target.carbs - eaten.carbs)),
     };
-    const pctCalories = target.calories > 0
-      ? Math.round((eaten.calories / target.calories) * 100)
-      : 0;
+    const pctCalories = target.calories > 0 ? Math.round((eaten.calories / target.calories) * 100) : 0;
 
     if (remaining.calories < 50) {
       const over = eaten.calories - target.calories;
@@ -104,9 +120,9 @@ export async function GET(request: NextRequest) {
         target,
         remaining,
         pctCalories,
-        reason: over > 0
-          ? `Дневная норма выполнена (превышение ${over} ккал). Можно сделать лёгкую прогулку.`
-          : "Дневная норма выполнена! Отличный день.",
+        reason: over > 50
+          ? `Дневная норма выполнена с превышением на ${over} ккал. Завтра постарайтесь уложиться в ${target.calories} ккал.`
+          : "Дневная норма выполнена — отличный день! 🎉",
         tip: "",
       } satisfies Partial<SuggestionsResponse>);
     }
@@ -124,75 +140,83 @@ export async function GET(request: NextRequest) {
     }
 
     const goalRu = goal === "LOSE" ? "похудение" : goal === "GAIN" ? "набор мышечной массы" : "поддержание веса";
+    const sexRu = sex === "FEMALE" ? "женщина" : sex === "MALE" ? "мужчина" : "";
     const timeOfDay = getTimeOfDayRu();
-    const eatenDishes = entries.map((e) => `${decodeHtmlEntities(e.dishName)} (${e.calories} ккал)`).join(", ") || "ничего";
+
+    const eatenList = entries.length > 0
+      ? entries.map((e) => {
+          const parts = [`${decodeHtmlEntities(e.dishName)}: ${e.calories} ккал`];
+          if (e.protein) parts.push(`Б${e.protein}г`);
+          if (e.fat) parts.push(`Ж${e.fat}г`);
+          if (e.carbs) parts.push(`У${e.carbs}г`);
+          return parts.join(" ");
+        }).join("\n  ")
+      : "ещё ничего не ел";
 
     const deficits: string[] = [];
-    const proteinPct = target.protein > 0 ? (eaten.protein / target.protein) * 100 : 100;
-    const carbsPct = target.carbs > 0 ? (eaten.carbs / target.carbs) * 100 : 100;
-    const fatPct = target.fat > 0 ? (eaten.fat / target.fat) * 100 : 100;
-    if (proteinPct < 70) deficits.push(`белков не хватает ${remaining.protein} г`);
-    if (carbsPct < 60) deficits.push(`углеводов не хватает ${remaining.carbs} г`);
-    if (fatPct < 60) deficits.push(`жиров не хватает ${remaining.fat} г`);
+    if (eaten.protein < target.protein * 0.70) deficits.push(`белков (${remaining.protein} г)`);
+    if (eaten.carbs < target.carbs * 0.60) deficits.push(`углеводов (${remaining.carbs} г)`);
+    if (eaten.fat < target.fat * 0.60) deficits.push(`жиров (${remaining.fat} г)`);
 
-    const prompt = `Ты диетолог-нутрициолог. Дай персональные рекомендации на основе данных пользователя.
+    const tip = buildTip(pctCalories, deficits, eaten, target);
 
-ДАННЫЕ:
-- Время суток: ${timeOfDay}
-- Цель: ${goalRu}, ${sex === "FEMALE" ? "женщина" : sex === "MALE" ? "мужчина" : "пол не указан"}, вес ${weight.weightKg} кг
-- Норма на день: ${target.calories} ккал, Б ${target.protein} г, Ж ${target.fat} г, У ${target.carbs} г
-- Уже съел сегодня: ${eatenDishes}
-- Итого: ${eaten.calories} ккал (${pctCalories}% нормы), Б ${eaten.protein} г, Ж ${eaten.fat} г, У ${eaten.carbs} г
-- Остаток: ${remaining.calories} ккал, Б ${remaining.protein} г, Ж ${remaining.fat} г, У ${remaining.carbs} г
-${deficits.length ? `- Главные дефициты: ${deficits.join("; ")}` : ""}
+    const systemPrompt = `Ты опытный диетолог. Ты отвечаешь ТОЛЬКО валидным JSON-массивом из 3 элементов, без пояснений, без markdown.`;
 
-ЗАДАЧА: Предложи ровно 3 конкретных блюда/продукта для России, которые восполнят дефицит и подходят времени суток.
-Для каждого укажи реальные нутриенты для указанной порции.
+    const userPrompt = `Пользователь: ${sexRu ? `${sexRu}, ` : ""}вес ${weight.weightKg} кг, цель — ${goalRu}.
+Время суток: ${timeOfDay}.
+Дневная норма: ${target.calories} ккал | Б ${target.protein} г | Ж ${target.fat} г | У ${target.carbs} г
 
-Верни ТОЛЬКО валидный JSON-массив (без markdown):
-[
-  {
-    "name": "Точное название на русском",
-    "calories": 0,
-    "protein": 0.0,
-    "fat": 0.0,
-    "carbs": 0.0,
-    "portionGrams": 0,
-    "why": "Одно конкретное предложение почему это подходит сейчас (упомяни нутриент или цель)",
-    "category": "protein"
-  }
-]
-category: "protein" | "carbs" | "fat" | "balanced" | "light"`;
+Сегодня съедено (${pctCalories}%):
+  ${eatenList}
+Итого: ${eaten.calories} ккал | Б ${eaten.protein} г | Ж ${eaten.fat} г | У ${eaten.carbs} г
+
+Остаток: ${remaining.calories} ккал | Б ${remaining.protein} г | Ж ${remaining.fat} г | У ${remaining.carbs} г
+${deficits.length ? `Главный дефицит: ${deficits.join(", ")}` : ""}
+
+Предложи РОВНО 3 конкретных блюда/продукта:
+- Подходящих для России и времени суток (${timeOfDay})
+- Покрывающих дефицит макронутриентов
+- Реалистичных по приготовлению
+- Разнообразных (не три одинаковых типа)
+
+Для каждого укажи ТОЧНЫЕ нутриенты для указанной порции.
+
+Верни JSON-массив (без markdown, без пояснений вне массива):
+[{"name":"Куриная грудка отварная","calories":185,"protein":35.0,"fat":4.0,"carbs":0.0,"portionGrams":150,"why":"Закроет ${remaining.protein > 20 ? Math.min(35, remaining.protein) : remaining.protein} г белка из остатка","category":"protein"},...]
+category: protein | carbs | fat | balanced | light`;
 
     let suggestions: Suggestion[] = [];
-    let tip = "";
 
     try {
-      const { lookupFoodWithGigaChat } = await import("@/lib/ai/gigachat");
-      // lookupFoodWithGigaChat uses buildFoodLookupPrompt — we bypass it by using a raw prompt
-      // We need the raw completeChat function — use it via the module
-      const { recognizeWithGigaChat: _ } = await import("@/lib/ai/gigachat");
-      // Use lookupFoodWithGigaChat which calls buildFoodLookupPrompt — instead call it indirectly
-      // The function accepts dishName and wraps it — workaround: use JSON in dishName and parse result
-      const result = await lookupFoodWithGigaChat(prompt);
+      const { completeChat } = await import("@/lib/ai/gigachat");
+      const raw = await completeChat([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ], 0.5);
 
-      // Model may return array in dishName field or as JSON
-      const raw = result.dishName.includes("[") ? result.dishName : JSON.stringify(result);
+      // Parse — find JSON array anywhere in response
       const match = raw.match(/\[[\s\S]*\]/);
       if (match) {
-        const parsed = JSON.parse(match[0]) as Suggestion[];
-        suggestions = parsed.slice(0, 3);
-      }
-
-      // Generate a short daily tip
-      if (deficits.length > 0) {
-        tip = `Сегодня главный дефицит — ${deficits[0]}. Приоритет — белковые продукты.`;
-      } else if (pctCalories < 40) {
-        tip = "Вы съели меньше половины нормы. Не пропускайте полноценный приём пищи.";
-      } else if (pctCalories > 90) {
-        tip = "Норма почти выполнена — выбирайте лёгкое, если ещё голодны.";
-      } else {
-        tip = `${pctCalories}% нормы выполнено. Хороший темп!`;
+        const parsed = JSON.parse(match[0]) as unknown[];
+        suggestions = parsed
+          .filter((item): item is Suggestion =>
+            typeof item === "object" && item !== null &&
+            typeof (item as Record<string, unknown>).name === "string" &&
+            typeof (item as Record<string, unknown>).calories === "number",
+          )
+          .map((item) => ({
+            name: String((item as Record<string, unknown>).name),
+            calories: Math.round(Number((item as Record<string, unknown>).calories)),
+            protein: Number((item as Record<string, unknown>).protein) || 0,
+            fat: Number((item as Record<string, unknown>).fat) || 0,
+            carbs: Number((item as Record<string, unknown>).carbs) || 0,
+            portionGrams: Number((item as Record<string, unknown>).portionGrams) || 0,
+            why: String((item as Record<string, unknown>).why || ""),
+            category: (["protein","carbs","fat","balanced","light"].includes(String((item as Record<string, unknown>).category))
+              ? (item as Record<string, unknown>).category
+              : "balanced") as Suggestion["category"],
+          }))
+          .slice(0, 3);
       }
     } catch {
       // suggestions stays []
