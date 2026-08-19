@@ -69,6 +69,9 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         onCancel={() => setPendingResult(null)}
         onSaved={() => {
           setPendingResult(null);
+          setTextQuery("");
+          setBarcodeQuery("");
+          setError(null);
           onSaved();
         }}
       />
