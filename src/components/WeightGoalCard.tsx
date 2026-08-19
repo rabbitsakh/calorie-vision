@@ -228,7 +228,7 @@ export function WeightGoalCard({
                 {goal ? (
                   <button
                     type="button"
-                    className="text-sm text-teal-700 hover:underline"
+                    className="btn btn-secondary text-sm"
                     onClick={() => setEditingGoal(false)}
                   >
                     Отмена

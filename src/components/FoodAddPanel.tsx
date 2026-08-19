@@ -154,6 +154,9 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               void lookupFood({ barcode: barcodeQuery });
             }}
           >
+            <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              📷 Нет штрихкода под рукой? Сфотографируйте упаковку во вкладке «Фото».
+            </p>
             <div className="field">
               <label htmlFor="food-barcode">Штрихкод EAN</label>
               <input
@@ -166,9 +169,6 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
                 required
               />
             </div>
-            <p className="text-xs text-slate-500">
-              Можно ввести код вручную или сфотографировать упаковку во вкладке «Фото».
-            </p>
             <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>
               {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти по штрихкоду"}
             </button>

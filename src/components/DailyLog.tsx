@@ -20,6 +20,35 @@ function TrashIcon() {
   );
 }
 
+/** Inline undo toast — appears for 4 s, calls onUndo if pressed or onExpired if not */
+function UndoToast({
+  message,
+  onUndo,
+  onExpired,
+}: {
+  message: string;
+  onUndo: () => void;
+  onExpired: () => void;
+}) {
+  useEffect(() => {
+    const timer = setTimeout(onExpired, 4000);
+    return () => clearTimeout(timer);
+  }, [onExpired]);
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
+      <span>{message}</span>
+      <button
+        type="button"
+        className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30"
+        onClick={onUndo}
+      >
+        Отменить
+      </button>
+    </div>
+  );
+}
+
 type DailyLogProps = {
   selectedDate: string;
   refreshKey: number;
@@ -66,10 +95,12 @@ function GroupedMealCard({
   group,
   timezone,
   onDelete,
+  onDeleteGroup,
 }: {
   group: MealListGroup;
   timezone?: string | null;
   onDelete: (id: string) => void;
+  onDeleteGroup: (ids: string[]) => void;
 }) {
   const macros = formatMacros({
     protein: group.totalProtein,
@@ -107,6 +138,15 @@ function GroupedMealCard({
             {formatDateTime(group.createdAt, timezone)}
           </p>
         </div>
+
+        <button
+          type="button"
+          className="shrink-0 self-start rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+          title="Удалить всё фото"
+          onClick={() => onDeleteGroup(group.entries.map((e) => e.id))}
+        >
+          <TrashIcon />
+        </button>
       </div>
 
       <div className="divide-y divide-slate-100 border-t border-slate-100 bg-white/70">
@@ -187,17 +227,31 @@ function SingleMealCard({
   );
 }
 
+type PendingDelete = {
+  ids: string[];
+  label: string;
+};
+
 function MealListRow({
   item,
   timezone,
   onDelete,
+  onDeleteGroup,
 }: {
   item: MealListItem;
   timezone?: string | null;
   onDelete: (id: string) => void;
+  onDeleteGroup: (ids: string[]) => void;
 }) {
   if (item.kind === "group") {
-    return <GroupedMealCard group={item} timezone={timezone} onDelete={onDelete} />;
+    return (
+      <GroupedMealCard
+        group={item}
+        timezone={timezone}
+        onDelete={onDelete}
+        onDeleteGroup={onDeleteGroup}
+      />
+    );
   }
 
   return <SingleMealCard entry={item.entry} timezone={timezone} onDelete={onDelete} />;
@@ -217,6 +271,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const attemptedImageDates = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
@@ -300,12 +355,31 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
     })();
   }, [loading, error, entries, selectedDate, loadEntries]);
 
-  async function handleDelete(id: string) {
-    const response = await fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" });
-    if (response.ok) {
-      await loadEntries();
-      onChanged?.();
-    }
+  async function performDelete(ids: string[]) {
+    await Promise.all(
+      ids.map((id) => fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" })),
+    );
+    await loadEntries();
+    onChanged?.();
+  }
+
+  function requestDelete(ids: string[], label: string) {
+    // Optimistically hide the entry right away so the UI feels instant
+    setEntries((prev) => prev.filter((e) => !ids.includes(e.id)));
+    setPendingDelete({ ids, label });
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    const { ids } = pendingDelete;
+    setPendingDelete(null);
+    await performDelete(ids);
+  }
+
+  function undoDelete() {
+    setPendingDelete(null);
+    // Restore by reloading
+    void loadEntries(true);
   }
 
   const displayDate = formatDateWords(selectedDate);
@@ -361,7 +435,15 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        {!loading && !error && entries.length === 0 ? (
+        {pendingDelete ? (
+          <UndoToast
+            message={`Удалено: ${pendingDelete.label}`}
+            onUndo={undoDelete}
+            onExpired={() => void confirmDelete()}
+          />
+        ) : null}
+
+        {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             За этот день пока нет записей. Добавьте еду выше.
           </div>
@@ -373,7 +455,18 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, compact, timezon
               key={item.kind === "group" ? item.groupId : item.entry.id}
               item={item}
               timezone={timezone}
-              onDelete={handleDelete}
+              onDelete={(id) => {
+                const label = item.kind === "single"
+                  ? decodeHtmlEntities(item.entry.dishName)
+                  : decodeHtmlEntities(entries.find((e) => e.id === id)?.dishName ?? "блюдо");
+                requestDelete([id], label);
+              }}
+              onDeleteGroup={(ids) => {
+                const label = item.kind === "group"
+                  ? `${item.entries.length} блюда с одного фото`
+                  : "блюда";
+                requestDelete(ids, label);
+              }}
             />
           ))}
         </div>
