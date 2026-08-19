@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { APP_VERSION_BASE } from "./app-version";
+
+const PACKAGE_VERSION_FALLBACK = "0.4.0";
 
 export function readPackageVersion(): string {
   try {
@@ -13,5 +14,5 @@ export function readPackageVersion(): string {
   } catch {
     // package.json unavailable during some tooling runs
   }
-  return APP_VERSION_BASE;
+  return PACKAGE_VERSION_FALLBACK;
 }
