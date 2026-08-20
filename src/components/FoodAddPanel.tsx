@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -156,11 +157,15 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               void lookupFood({ barcode: barcodeQuery });
             }}
           >
-            <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              📷 Нет штрихкода под рукой? Сфотографируйте упаковку во вкладке «Фото».
-            </p>
+            <BarcodeScanner
+              disabled={disabled || loading}
+              onDetected={(code) => {
+                setBarcodeQuery(code);
+                void lookupFood({ barcode: code });
+              }}
+            />
             <div className="field">
-              <label htmlFor="food-barcode">Штрихкод EAN</label>
+              <label htmlFor="food-barcode">Или введите штрихкод EAN</label>
               <input
                 id="food-barcode"
                 inputMode="numeric"
