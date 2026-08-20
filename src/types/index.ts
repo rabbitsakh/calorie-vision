@@ -24,8 +24,8 @@ export type MealEntry = {
   protein: number | null;
   fat: number | null;
   carbs: number | null;
-  fiber: number | null;
-  sugar: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
   portionGrams: number | null;
   confidence: number | null;
   imagePath: string | null;
@@ -45,10 +45,8 @@ export type DietTarget = {
   protein: number;
   fat: number;
   carbs: number;
-  /** Soft daily fiber goal (g). */
-  fiber: number;
-  /** Soft daily free-sugar cap (g), informational. */
-  sugar: number;
+  fiber?: number;
+  sugar?: number;
 };
 
 export type DayMealsResponse = {
@@ -57,8 +55,8 @@ export type DayMealsResponse = {
   totalProtein: number;
   totalFat: number;
   totalCarbs: number;
-  totalFiber: number;
-  totalSugar: number;
+  totalFiber?: number;
+  totalSugar?: number;
   goal: WeightGoal | null;
   goalPace: GoalPace | null;
   dietLabel: string | null;
@@ -70,8 +68,8 @@ export type DayMealsResponse = {
     protein: NutrientComparison;
     fat: NutrientComparison;
     carbs: NutrientComparison;
-    fiber: NutrientComparison;
-    sugar: NutrientComparison;
+    fiber?: NutrientComparison;
+    sugar?: NutrientComparison;
   } | null;
   calorieTone: "good" | "warn" | "ok" | null;
 };

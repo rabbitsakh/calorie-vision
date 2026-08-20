@@ -65,6 +65,8 @@ export function combineRecognitionItems(
     protein: sumDefined(cleaned.map((item) => item.protein)),
     fat: sumDefined(cleaned.map((item) => item.fat)),
     carbs: sumDefined(cleaned.map((item) => item.carbs)),
+    fiber: sumDefined(cleaned.map((item) => item.fiber)),
+    sugar: sumDefined(cleaned.map((item) => item.sugar)),
     portionGrams: Math.round(sumDefined(cleaned.map((item) => item.portionGrams)) ?? 0) || undefined,
     confidence: Math.min(...cleaned.map((item) => item.confidence)),
     photoKind: "meal",

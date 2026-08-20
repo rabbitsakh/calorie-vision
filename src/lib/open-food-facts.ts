@@ -4,6 +4,8 @@ export type PackNutrition = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
   portionGrams: number;
   /** True when pack/serving weight came from product data, not a 100 g default. */
   explicitPackGrams?: boolean;
@@ -18,6 +20,8 @@ type OffNutriments = {
   proteins_100g?: number;
   fat_100g?: number;
   carbohydrates_100g?: number;
+  fiber_100g?: number;
+  sugars_100g?: number;
 };
 
 type OffProduct = {
@@ -169,7 +173,14 @@ export function portionGramsForPack(packGrams: number): number {
 }
 
 export function nutritionFromPer100g(
-  per100g: { calories: number; protein?: number; fat?: number; carbs?: number },
+  per100g: {
+    calories: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    fiber?: number;
+    sugar?: number;
+  },
   grams: number,
 ): PackNutrition | null {
   if (!Number.isFinite(grams) || grams <= 0 || !Number.isFinite(per100g.calories)) {
@@ -186,6 +197,8 @@ export function nutritionFromPer100g(
     protein: scaleMacro(per100g.protein),
     fat: scaleMacro(per100g.fat),
     carbs: scaleMacro(per100g.carbs),
+    fiber: scaleMacro(per100g.fiber),
+    sugar: scaleMacro(per100g.sugar),
     portionGrams: grams,
   };
 }
@@ -210,6 +223,8 @@ export function offProductToNutrition(
       protein: nutriments.proteins_100g,
       fat: nutriments.fat_100g,
       carbs: nutriments.carbohydrates_100g,
+      fiber: nutriments.fiber_100g,
+      sugar: nutriments.sugars_100g,
     },
     grams,
   );

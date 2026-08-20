@@ -3,6 +3,8 @@ export type NutritionValues = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
   portionGrams: number;
 };
 
@@ -27,6 +29,8 @@ export function nutritionBaseline(input: {
   protein?: number | null;
   fat?: number | null;
   carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
   portionGrams?: number | null;
 }): NutritionValues | null {
   if (!Number.isFinite(input.calories)) {
@@ -47,6 +51,8 @@ export function nutritionBaseline(input: {
     protein: finiteOrUndefined(input.protein),
     fat: finiteOrUndefined(input.fat),
     carbs: finiteOrUndefined(input.carbs),
+    fiber: finiteOrUndefined(input.fiber),
+    sugar: finiteOrUndefined(input.sugar),
     portionGrams: input.portionGrams,
   };
 }
@@ -71,6 +77,8 @@ export function scaleNutritionByPortion(
     protein: scaleMacro(baseline.protein, ratio),
     fat: scaleMacro(baseline.fat, ratio),
     carbs: scaleMacro(baseline.carbs, ratio),
+    fiber: scaleMacro(baseline.fiber, ratio),
+    sugar: scaleMacro(baseline.sugar, ratio),
   };
 }
 

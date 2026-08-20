@@ -87,6 +87,8 @@ export function mergeNutritionBackfill(
   let lookedProtein = looked.protein;
   let lookedFat = looked.fat;
   let lookedCarbs = looked.carbs;
+  let lookedFiber = looked.fiber;
+  let lookedSugar = looked.sugar;
 
   if (
     targetGrams &&
@@ -105,6 +107,10 @@ export function mergeNutritionBackfill(
       looked.fat !== undefined ? Math.round(looked.fat * ratio * 10) / 10 : undefined;
     lookedCarbs =
       looked.carbs !== undefined ? Math.round(looked.carbs * ratio * 10) / 10 : undefined;
+    lookedFiber =
+      looked.fiber !== undefined ? Math.round(looked.fiber * ratio * 10) / 10 : undefined;
+    lookedSugar =
+      looked.sugar !== undefined ? Math.round(looked.sugar * ratio * 10) / 10 : undefined;
   }
 
   const calories =
@@ -116,6 +122,8 @@ export function mergeNutritionBackfill(
     protein: pickMacro(vision.protein, lookedProtein),
     fat: pickMacro(vision.fat, lookedFat),
     carbs: pickMacro(vision.carbs, lookedCarbs),
+    fiber: pickMacro(vision.fiber, lookedFiber),
+    sugar: pickMacro(vision.sugar, lookedSugar),
     portionGrams: targetGrams ?? vision.portionGrams ?? looked.portionGrams,
     brand: vision.brand ?? looked.brand,
     barcode: vision.barcode ?? looked.barcode,
@@ -130,11 +138,13 @@ type Per100gValues = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
 };
 
 /** GigaChat often returns per-100 g/ml values while portionGrams is the full bottle or plate. */
 export function inferPer100gValues(
-  result: Pick<FoodRecognitionResult, "per100g" | "protein" | "fat" | "carbs">,
+  result: Pick<FoodRecognitionResult, "per100g" | "protein" | "fat" | "carbs" | "fiber" | "sugar">,
   calories: number,
   portionGrams: number,
 ): Per100gValues | null {
@@ -161,6 +171,8 @@ export function inferPer100gValues(
       protein: result.protein,
       fat: result.fat,
       carbs: result.carbs,
+      fiber: result.fiber,
+      sugar: result.sugar,
     };
   }
 
@@ -185,6 +197,8 @@ function scaleFromPer100g(per100g: Per100gValues, grams: number): Per100gValues 
     protein: scaleMacro(per100g.protein, ratio),
     fat: scaleMacro(per100g.fat, ratio),
     carbs: scaleMacro(per100g.carbs, ratio),
+    fiber: scaleMacro(per100g.fiber, ratio),
+    sugar: scaleMacro(per100g.sugar, ratio),
     portionGrams: grams,
   };
 }
@@ -194,6 +208,8 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
   let protein = result.protein;
   let fat = result.fat;
   let carbs = result.carbs;
+  let fiber = result.fiber;
+  let sugar = result.sugar;
   let portionGrams = result.portionGrams;
 
   if (!portionGrams || portionGrams <= 0) {
@@ -209,6 +225,8 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
       protein = scaled.protein;
       fat = scaled.fat;
       carbs = scaled.carbs;
+      fiber = scaled.fiber;
+      sugar = scaled.sugar;
     }
   }
 
@@ -218,6 +236,8 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     protein,
     fat,
     carbs,
+    fiber,
+    sugar,
     portionGrams,
   };
 }
