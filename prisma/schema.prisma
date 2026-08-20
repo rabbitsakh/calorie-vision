@@ -47,6 +47,7 @@ model User {
   waterEntries  WaterEntry[]
   diaryNotes    DiaryNote[]
   customFoods   CustomFood[]
+  streakFreezes StreakFreeze[]
   pushSubscriptions PushSubscription[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -182,6 +183,19 @@ model DiaryNote {
 
   @@unique([userId, date])
   @@index([userId])
+}
+
+model StreakFreeze {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String   @db.VarChar(10)
+  weekStart String   @db.VarChar(10)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, weekStart])
 }
 
 model PushSubscription {
