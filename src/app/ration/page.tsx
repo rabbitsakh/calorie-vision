@@ -15,9 +15,16 @@ import { MealSuggestions } from "@/components/MealSuggestions";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
+<<<<<<< HEAD
+<<<<<<< HEAD
+import { MotivationTip } from "@/components/MotivationTip";
+=======
+=======
 import { EveningCheckin } from "@/components/EveningCheckin";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
+>>>>>>> origin/cursor/weekly-challenge-d07a
 import { TodayProgress } from "@/components/TodayProgress";
+>>>>>>> origin/main
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -54,8 +61,15 @@ export default function RationPage() {
             refreshKey={refreshKey}
             onAddFood={scrollToFoodAdd}
           />
+<<<<<<< HEAD
+<<<<<<< HEAD
+          <MotivationTip today={today} selectedDate={date} />
+=======
+=======
           <EveningCheckin today={today} selectedDate={date} />
+>>>>>>> origin/cursor/weekly-challenge-d07a
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
+>>>>>>> origin/main
           {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}
