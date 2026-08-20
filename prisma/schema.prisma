@@ -125,6 +125,8 @@ model MealEntry {
   protein            Float?
   fat                Float?
   carbs              Float?
+  fiber              Float?
+  sugar              Float?
   portionGrams       Int?
   confidence         Float?
   imagePath          String?
@@ -166,6 +168,8 @@ model CustomFood {
   protein      Float?
   fat          Float?
   carbs        Float?
+  fiber        Float?
+  sugar        Float?
   portionGrams Int?
   useCount     Int      @default(1)
   createdAt    DateTime @default(now())
@@ -258,6 +262,8 @@ model FoodCorrection {
   protein       Float?
   fat           Float?
   carbs         Float?
+  fiber         Float?
+  sugar         Float?
   portionGrams  Int?
   useCount      Int      @default(1)
   createdAt     DateTime @default(now())
