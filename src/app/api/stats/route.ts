@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
-import { decodeHtmlEntities, mergeDecodedFoodStats } from "@/lib/html-text";
+import { mergeDecodedFoodStats } from "@/lib/html-text";
+import { prisma } from "@/lib/prisma";
 import {
   computeWeightChangeKg,
   latestWeightByDate,
