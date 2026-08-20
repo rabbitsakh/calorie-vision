@@ -451,6 +451,8 @@ export function ConfirmationCard({
                     protein: alt.protein !== undefined ? String(alt.protein) : "",
                     fat: alt.fat !== undefined ? String(alt.fat) : "",
                     carbs: alt.carbs !== undefined ? String(alt.carbs) : "",
+                    fiber: alt.fiber !== undefined ? String(alt.fiber) : "",
+                    sugar: alt.sugar !== undefined ? String(alt.sugar) : "",
                     portionGrams: alt.portionGrams !== undefined ? String(alt.portionGrams) : dish.portionGrams,
                     baseline: null,
                   });

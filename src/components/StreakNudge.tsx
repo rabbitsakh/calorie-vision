@@ -84,7 +84,7 @@ export function StreakNudge({ selectedDate, today, refreshKey, onAddFood }: Stre
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn-primary text-sm"
+              className="btn btn-on-tint text-sm text-orange-800"
               onClick={onAddFood}
             >
               Добавить еду

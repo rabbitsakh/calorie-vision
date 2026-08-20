@@ -106,6 +106,8 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
             protein?: unknown;
             fat?: unknown;
             carbs?: unknown;
+            fiber?: unknown;
+            sugar?: unknown;
             portionGrams?: unknown;
           };
           const name =
@@ -120,6 +122,8 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
             protein: toNumber(alt.protein),
             fat: toNumber(alt.fat),
             carbs: toNumber(alt.carbs),
+            fiber: toNumber(alt.fiber) || undefined,
+            sugar: toNumber(alt.sugar) || undefined,
             portionGrams: toNumber(alt.portionGrams)
               ? Math.round(toNumber(alt.portionGrams)!)
               : undefined,

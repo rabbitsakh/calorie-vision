@@ -93,6 +93,17 @@ textarea {
   color: var(--danger);
 }
 
+/* Solid primary on tinted promo cards (teal/orange) looks muddy — use white chip CTAs. */
+.btn-on-tint {
+  background: #ffffff;
+  border: 1.5px solid currentColor;
+  color: inherit;
+}
+
+.btn-on-tint:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.85);
+}
+
 .field {
   display: flex;
   flex-direction: column;

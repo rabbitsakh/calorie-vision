@@ -90,7 +90,7 @@ export function PushNotificationPrompt() {
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn-primary text-sm"
+          className="btn btn-on-tint text-sm text-teal-800"
           disabled={loading}
           onClick={() => void subscribe()}
         >

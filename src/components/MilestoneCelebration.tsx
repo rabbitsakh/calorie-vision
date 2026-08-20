@@ -104,7 +104,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
         <p className="mt-2 text-sm text-amber-800">
           {MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`}
         </p>
-        <button type="button" className="btn-primary mt-5 w-full" onClick={dismiss}>
+        <button type="button" className="btn btn-on-tint mt-5 w-full text-amber-900" onClick={dismiss}>
           Продолжить
         </button>
       </div>

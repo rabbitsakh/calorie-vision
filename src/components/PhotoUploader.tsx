@@ -175,7 +175,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-on-tint text-teal-800"
               disabled={disabled}
               onClick={() => cameraInputRef.current?.click()}
             >

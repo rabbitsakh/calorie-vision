@@ -193,7 +193,7 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
           <div className="sm:col-span-2">
             <button
               type="button"
-              className="btn btn-primary text-sm"
+              className="btn btn-on-tint text-sm text-teal-800"
               disabled={adding || !name.trim() || !calories}
               onClick={() => void handleAdd()}
             >

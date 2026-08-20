@@ -29,6 +29,8 @@ export type FoodRecognitionResult = {
     protein?: number;
     fat?: number;
     carbs?: number;
+    fiber?: number;
+    sugar?: number;
     portionGrams?: number;
   }>;
   source?: string;

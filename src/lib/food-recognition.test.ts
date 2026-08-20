@@ -69,3 +69,27 @@ test("parses a package barcode from the vision JSON", () => {
   assert.equal(vision.barcode, "460 0605 023124");
   assert.equal(vision.brand, "Простоквашино");
 });
+
+test("parses fiber and sugar on meal and alternatives", () => {
+  const vision = parseFoodRecognitionResponse(`{
+    "photoKind": "meal",
+    "dishName": "Борщ с мясом",
+    "calories": 280,
+    "protein": 14,
+    "fat": 12,
+    "carbs": 28,
+    "fiber": 4.5,
+    "sugar": 5,
+    "portionGrams": 350,
+    "confidence": 0.86,
+    "alternatives": [
+      { "dishName": "Щи", "calories": 220, "protein": 10, "fat": 8, "carbs": 24, "fiber": 3, "sugar": 4, "portionGrams": 300 }
+    ],
+    "items": []
+  }`);
+
+  assert.equal(vision.fiber, 4.5);
+  assert.equal(vision.sugar, 5);
+  assert.equal(vision.alternatives?.[0]?.fiber, 3);
+  assert.equal(vision.alternatives?.[0]?.sugar, 4);
+});
