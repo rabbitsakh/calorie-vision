@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { BackButton } from "@/components/BackButton";
 import { ProfileForm } from "@/components/ProfileForm";
+import { PushRemindersSettings } from "@/components/PushRemindersSettings";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
 import { BadgesPanel } from "@/components/BadgesPanel";
 import { useSelectedDate } from "@/lib/use-selected-date";
@@ -22,6 +23,7 @@ export default function ProfilePage() {
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
           <ProfileForm />
+          <PushRemindersSettings />
           <BadgesPanel />
           <WeightGoalCard
             selectedDate={date}
