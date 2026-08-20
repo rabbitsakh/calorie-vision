@@ -131,12 +131,33 @@ export async function GET(request: NextRequest) {
 
     if (target && avgCalories > 0) {
       const diff = avgCalories - target.calories;
+      const abs = Math.round(Math.abs(diff));
       if (Math.abs(diff) <= target.calories * 0.08) {
-        insights.push(`Среднее ${avgCalories} ккал/день — близко к цели (${target.calories}).`);
+        insights.push(
+          goal === "LOSE"
+            ? `Среднее ${avgCalories} ккал/день — в целевом дефиците (${target.calories}).`
+            : `Среднее ${avgCalories} ккал/день — близко к цели (${target.calories}).`,
+        );
+      } else if (goal === "LOSE") {
+        if (diff > 0) {
+          insights.push(`В среднем +${abs} ккал/день выше цели похудения.`);
+        } else if (avgCalories < target.calories * 0.75) {
+          insights.push(
+            `В среднем на ${abs} ккал/день ниже цели — для похудения это уже жёстко, не урезайте сильнее.`,
+          );
+        } else {
+          insights.push(
+            `В среднем на ${abs} ккал/день ниже цели — для похудения это нормально.`,
+          );
+        }
       } else if (diff > 0) {
-        insights.push(`В среднем +${Math.round(diff)} ккал/день выше цели.`);
+        insights.push(`В среднем +${abs} ккал/день выше цели.`);
       } else {
-        insights.push(`В среднем ${Math.round(-diff)} ккал/день не хватает до цели.`);
+        insights.push(
+          goal === "GAIN"
+            ? `В среднем ${abs} ккал/день не хватает до цели набора.`
+            : `В среднем ${abs} ккал/день не хватает до нормы.`,
+        );
       }
     }
 

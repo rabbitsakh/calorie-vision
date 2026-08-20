@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDateShort } from "@/lib/dates";
+import { formatCalorieVsTargetLabel } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 
 const SEEN_KEY_PREFIX = "summary-seen-";
@@ -10,11 +11,13 @@ type DailySummaryData = {
   date: string;
   today: string;
   mealCount: number;
+  entryCount?: number;
   totalCalories: number;
   totalProtein: number;
   totalFat: number;
   totalCarbs: number;
   totalWaterMl: number;
+  goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
   target: { calories: number } | null;
   comparison: { calories: { kind: "deficit" | "surplus" | "even" } } | null;
   tip: string;
@@ -71,6 +74,8 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
     setVisible(false);
   }
 
+  const entryCount = data.entryCount ?? data.mealCount;
+
   const calorieLabel =
     data.totalCalories > 0
       ? `${data.totalCalories} ккал`
@@ -78,11 +83,7 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
 
   const vsTarget =
     data.target && data.totalCalories > 0
-      ? data.comparison?.calories.kind === "deficit"
-        ? ` (${Math.round(data.target.calories - data.totalCalories)} ккал до цели)`
-        : data.comparison?.calories.kind === "surplus"
-          ? ` (+${Math.round(data.totalCalories - data.target.calories)} ккал)`
-          : " (в цели)"
+      ? formatCalorieVsTargetLabel(data.totalCalories, data.target.calories, data.goal)
       : "";
 
   return (
@@ -117,14 +118,14 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         <div className="rounded-xl bg-white/70 px-3 py-2">
           <p className="text-xs text-slate-500">БЖУ</p>
           <p className="text-sm font-semibold text-slate-800">
-            {data.mealCount > 0
+            {entryCount > 0
               ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г`
               : "—"}
           </p>
         </div>
         <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xs text-slate-500">Приёмов</p>
-          <p className="font-semibold text-slate-800">{data.mealCount}</p>
+          <p className="text-xs text-slate-500">Записей</p>
+          <p className="font-semibold text-slate-800">{entryCount}</p>
         </div>
         <div className="rounded-xl bg-white/70 px-3 py-2">
           <p className="text-xs text-slate-500">Вода</p>
