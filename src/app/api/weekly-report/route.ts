@@ -16,6 +16,14 @@ function formatWeekRange(start: string, end: string): string {
   return `${fmt(start)} — ${fmt(end)}`;
 }
 
+function formatWeekDay(dateKey: string): string {
+  return new Intl.DateTimeFormat("ru-RU", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(dateKey + "T12:00:00Z"));
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -77,10 +85,32 @@ export async function GET(request: NextRequest) {
 
     let bestDay: { date: string; calories: number } | null = null;
     let lightestDay: { date: string; calories: number } | null = null;
+    let closestToTarget: { date: string; calories: number; diff: number } | null = null;
+    let hardestDay: { date: string; calories: number; diff: number } | null = null;
+
     for (const d of daysWithMeals) {
       const cal = caloriesByDate.get(d)!;
       if (!bestDay || cal > bestDay.calories) bestDay = { date: d, calories: cal };
       if (!lightestDay || cal < lightestDay.calories) lightestDay = { date: d, calories: cal };
+
+      if (target) {
+        const diff = Math.abs(cal - target.calories);
+        if (!closestToTarget || diff < closestToTarget.diff) {
+          closestToTarget = { date: d, calories: cal, diff };
+        }
+        if (!hardestDay || diff > hardestDay.diff) {
+          hardestDay = { date: d, calories: cal, diff };
+        }
+      }
+    }
+
+    // Soften wording: if same day is both closest and hardest, only show closest
+    if (
+      closestToTarget &&
+      hardestDay &&
+      closestToTarget.date === hardestDay.date
+    ) {
+      hardestDay = null;
     }
 
     const waterDays = dates.filter((d) => (waterByDate.get(d) ?? 0) > 0);
@@ -128,6 +158,20 @@ export async function GET(request: NextRequest) {
       insights.push(`Чаще всего: «${top[0].dishName}» (${top[0].count}×).`);
     }
 
+    if (closestToTarget) {
+      insights.push(
+        `Ближе всего к цели: ${formatWeekDay(closestToTarget.date)} (${closestToTarget.calories} ккал).`,
+      );
+    }
+    if (hardestDay) {
+      const signed = hardestDay.calories - (target?.calories ?? 0);
+      insights.push(
+        signed > 0
+          ? `Самый тяжёлый день: ${formatWeekDay(hardestDay.date)} (+${Math.round(signed)} ккал) — один день не ломает тренд.`
+          : `Самый лёгкий относительно цели: ${formatWeekDay(hardestDay.date)} (${hardestDay.calories} ккал).`,
+      );
+    }
+
     return NextResponse.json({
       start,
       end,
@@ -138,6 +182,8 @@ export async function GET(request: NextRequest) {
       calorieTarget: target?.calories ?? null,
       bestDay,
       lightestDay,
+      closestToTarget,
+      hardestDay,
       topFoods: top,
       insights,
       prevWeekStart: shiftDateKey(start, -7),

@@ -1,0 +1,148 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { formatDateShort } from "@/lib/dates";
+import { withBasePath } from "@/lib/paths";
+
+const SEEN_KEY_PREFIX = "summary-seen-";
+
+type DailySummaryData = {
+  date: string;
+  today: string;
+  mealCount: number;
+  totalCalories: number;
+  totalProtein: number;
+  totalFat: number;
+  totalCarbs: number;
+  totalWaterMl: number;
+  target: { calories: number } | null;
+  comparison: { calories: { kind: "deficit" | "surplus" | "even" } } | null;
+  tip: string;
+  hasData: boolean;
+};
+
+function isSummarySeen(today: string): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(`${SEEN_KEY_PREFIX}${today}`) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markSummarySeen(today: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`${SEEN_KEY_PREFIX}${today}`, "1");
+  } catch {
+    // ignore
+  }
+}
+
+type DailySummaryCardProps = {
+  today: string;
+};
+
+export function DailySummaryCard({ today }: DailySummaryCardProps) {
+  const [data, setData] = useState<DailySummaryData | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isSummarySeen(today)) return;
+
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/daily-summary"));
+        if (!resp.ok) return;
+        const json = (await resp.json()) as DailySummaryData;
+        if (json.today !== today) return;
+        setData(json);
+        setVisible(true);
+      } catch {
+        // non-critical
+      }
+    })();
+  }, [today]);
+
+  if (!visible || !data) return null;
+
+  function dismiss() {
+    markSummarySeen(today);
+    setVisible(false);
+  }
+
+  const calorieLabel =
+    data.totalCalories > 0
+      ? `${data.totalCalories} ккал`
+      : "нет записей";
+
+  const vsTarget =
+    data.target && data.totalCalories > 0
+      ? data.comparison?.calories.kind === "deficit"
+        ? ` (${Math.round(data.target.calories - data.totalCalories)} ккал до цели)`
+        : data.comparison?.calories.kind === "surplus"
+          ? ` (+${Math.round(data.totalCalories - data.target.calories)} ккал)`
+          : " (в цели)"
+      : "";
+
+  return (
+    <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-indigo-50 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-violet-600">
+            Итоги вчера
+          </p>
+          <p className="mt-0.5 font-semibold text-violet-900">
+            {formatDateShort(data.date)}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-quiet shrink-0 text-xs text-violet-700 hover:bg-violet-100"
+          onClick={dismiss}
+          aria-label="Закрыть"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl bg-white/70 px-3 py-2">
+          <p className="text-xs text-slate-500">Калории</p>
+          <p className="font-semibold text-slate-800">
+            {calorieLabel}
+            <span className="block text-xs font-normal text-slate-500">{vsTarget}</span>
+          </p>
+        </div>
+        <div className="rounded-xl bg-white/70 px-3 py-2">
+          <p className="text-xs text-slate-500">БЖУ</p>
+          <p className="text-sm font-semibold text-slate-800">
+            {data.mealCount > 0
+              ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г`
+              : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white/70 px-3 py-2">
+          <p className="text-xs text-slate-500">Приёмов</p>
+          <p className="font-semibold text-slate-800">{data.mealCount}</p>
+        </div>
+        <div className="rounded-xl bg-white/70 px-3 py-2">
+          <p className="text-xs text-slate-500">Вода</p>
+          <p className="font-semibold text-slate-800">
+            {data.totalWaterMl > 0 ? `${data.totalWaterMl} мл` : "—"}
+          </p>
+        </div>
+      </div>
+
+      <p className="mt-3 text-sm text-violet-800">{data.tip}</p>
+
+      <button
+        type="button"
+        className="mt-3 text-sm font-medium text-violet-700 hover:text-violet-900"
+        onClick={dismiss}
+      >
+        Понятно, спасибо
+      </button>
+    </div>
+  );
+}
