@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     if (body.wasCorrected && body.originalDish?.trim()) {
       await rememberFoodCorrection({
+        userId: session.user.id,
         originalDish: body.originalDish,
         dishName: body.dishName,
         calories: body.calories,
