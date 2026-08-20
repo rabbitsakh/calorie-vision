@@ -14,6 +14,7 @@ import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
+import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -67,6 +68,7 @@ export default function RationPage() {
             refreshKey={refreshKey}
             onSaved={() => setRefreshKey((value) => value + 1)}
           />
+          <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
           {/* Secondary: streak, water, ai, favorites, note */}
           <StreakWidget selectedDate={date} refreshKey={refreshKey} />
           <WaterTracker selectedDate={date} />

@@ -48,6 +48,7 @@ model User {
   diaryNotes    DiaryNote[]
   customFoods   CustomFood[]
   pushSubscriptions PushSubscription[]
+  challenges    UserChallenge[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -196,6 +197,23 @@ model PushSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, endpoint])
+  @@index([userId])
+}
+
+model UserChallenge {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeKey String  @db.VarChar(64)
+  weekStart   String   @db.VarChar(10)
+  progress    Int      @default(0)
+  target      Int
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
   @@index([userId])
 }
 
