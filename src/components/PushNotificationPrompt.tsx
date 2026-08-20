@@ -1,85 +1,83 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { withBasePath } from "@/lib/paths";
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const output = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) {
-    output[i] = raw.charCodeAt(i);
-  }
-  return output;
-}
-
-const DISMISS_KEY = "push-prompt-dismissed";
+import {
+  getPushCapability,
+  getPushPromptDismissed,
+  setPushPromptDismissed,
+} from "@/lib/push-client";
+import { subscribeBrowserPush } from "@/lib/push-subscribe";
 
 export function PushNotificationPrompt() {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [supported, setSupported] = useState(false);
+  const [hintOnly, setHintOnly] = useState(false);
+  const [hintText, setHintText] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) return;
-    if (Notification.permission !== "default") return;
-    try {
-      if (localStorage.getItem(DISMISS_KEY) === "1") return;
-    } catch {
+
+    const cap = getPushCapability();
+
+    // Soft hint on iPhone when opened from Safari instead of Home Screen.
+    if (cap.kind === "ios-browser" && !getPushPromptDismissed()) {
+      setHintOnly(true);
+      setHintText(cap.detail);
+      setVisible(true);
       return;
     }
-    setSupported(true);
+
+    if (!cap.canSubscribe || cap.permission !== "default") return;
+    if (getPushPromptDismissed()) return;
+
+    setHintOnly(false);
+    setHintText(null);
     setVisible(true);
   }, []);
 
   const subscribe = useCallback(async () => {
     setLoading(true);
     try {
-      const vapidResp = await fetch(withBasePath("/api/push/vapid"));
-      if (!vapidResp.ok) {
+      const result = await subscribeBrowserPush();
+      if (result.ok) {
+        setPushPromptDismissed(false);
         setVisible(false);
-        return;
+      } else {
+        // Keep banner; user can retry from profile.
+        setVisible(false);
+        setPushPromptDismissed(true);
       }
-      const { publicKey } = (await vapidResp.json()) as { publicKey: string };
-
-      const registration = await navigator.serviceWorker.register(withBasePath("/sw.js"));
-      await navigator.serviceWorker.ready;
-
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
-      });
-
-      const json = subscription.toJSON();
-      await fetch(withBasePath("/api/push/subscribe"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: json.endpoint,
-          keys: json.keys,
-        }),
-      });
-
-      setVisible(false);
-    } catch {
-      dismiss();
     } finally {
       setLoading(false);
     }
   }, []);
 
   function dismiss() {
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      // ignore
-    }
+    setPushPromptDismissed(true);
     setVisible(false);
   }
 
-  if (!supported || !visible) return null;
+  if (!visible) return null;
+
+  if (hintOnly) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4">
+        <p className="font-semibold text-amber-950">Напоминания на iPhone</p>
+        <p className="mt-1 text-sm text-amber-900">
+          {hintText ??
+            "Откройте приложение с иконки на Home Screen — из Safari push не приходит."}
+        </p>
+        <p className="mt-1 text-sm text-amber-800">
+          Статус и повторное включение — в разделе «Профиль».
+        </p>
+        <div className="mt-3">
+          <button type="button" className="btn-quiet text-sm text-amber-800" onClick={dismiss}>
+            Понятно
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-teal-100 bg-teal-50/80 p-4">
@@ -96,11 +94,7 @@ export function PushNotificationPrompt() {
         >
           {loading ? "Подключаем…" : "Включить"}
         </button>
-        <button
-          type="button"
-          className="btn-quiet text-sm text-teal-700"
-          onClick={dismiss}
-        >
+        <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
           Не сейчас
         </button>
       </div>

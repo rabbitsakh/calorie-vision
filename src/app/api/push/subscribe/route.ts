@@ -9,6 +9,22 @@ type SubscribeBody = {
   keys: { p256dh: string; auth: string };
 };
 
+export async function GET() {
+  try {
+    const { session, response } = await requireSession();
+    if (response) return response;
+
+    const count = await prisma.pushSubscription.count({
+      where: { userId: session.user.id },
+    });
+
+    return NextResponse.json({ subscribed: count > 0, count });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось проверить подписку" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
