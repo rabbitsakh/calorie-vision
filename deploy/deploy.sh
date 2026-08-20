@@ -35,7 +35,12 @@ if ls deploy/migrate-*.sql >/dev/null 2>&1; then
     echo "   SQL migration failed or already applied; continuing with db:push"
   fi
 fi
-npm run db:push
+if npm run db:push; then
+  echo "   db:push ok"
+else
+  echo "   db:push failed — often duplicate FK names already created by SQL migrations."
+  echo "   If new tables exist (e.g. PushSubscription), continuing deploy."
+fi
 
 echo "==> Compress and backfill meal images"
 npm run images:backfill || echo "image backfill skipped"

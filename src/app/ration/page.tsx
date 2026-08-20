@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { DateNavBar } from "@/components/DateNavBar";
@@ -8,10 +8,13 @@ import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { WaterTracker } from "@/components/WaterTracker";
 import { StreakWidget } from "@/components/StreakWidget";
+import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
+import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -20,6 +23,10 @@ export default function RationPage() {
   const { date, setDate, today } = useSelectedDate(timezone);
   const [refreshKey, setRefreshKey] = useState(0);
   const [totalCalories, setTotalCalories] = useState(0);
+
+  const scrollToFoodAdd = useCallback(() => {
+    document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   return (
     <AppShell
@@ -38,6 +45,12 @@ export default function RationPage() {
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
           {date === today ? <DailySummaryCard today={today} /> : null}
+          <StreakNudge
+            selectedDate={date}
+            today={today}
+            refreshKey={refreshKey}
+            onAddFood={scrollToFoodAdd}
+          />
           {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}
@@ -51,11 +64,17 @@ export default function RationPage() {
             onChanged={() => setRefreshKey((value) => value + 1)}
             onTotalsChange={setTotalCalories}
           />
+          <QuickAddMeals
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onSaved={() => setRefreshKey((value) => value + 1)}
+          />
           {/* Secondary: streak, water, ai, favorites, note */}
           <StreakWidget selectedDate={date} refreshKey={refreshKey} />
           <WaterTracker selectedDate={date} />
           <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
           <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
+          <PushNotificationPrompt />
           <DiaryNoteWidget selectedDate={date} />
         </div>
       </AuthGate>

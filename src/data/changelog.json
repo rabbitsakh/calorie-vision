@@ -1,5 +1,82 @@
 [
   {
+    "version": "0.7.3",
+    "date": "2026-08-20",
+    "summary": "Restore missing prisma import in stats API",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Restore missing prisma import in stats API"
+      }
+    ]
+  },
+  {
+    "version": "0.7.2",
+    "date": "2026-08-20",
+    "summary": "Fix HTML entities in stats food names",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix HTML entities in stats food names"
+      }
+    ]
+  },
+  {
+    "version": "0.7.1",
+    "date": "2026-08-20",
+    "summary": "Visual design audit: focus, touch targets, contrast, polish",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Visual design audit: focus, touch targets, contrast, polish"
+      }
+    ]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-08-20",
+    "summary": "Fix Russian copy and grammar across the app",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Russian copy and grammar across the app"
+      }
+    ]
+  },
+  {
+    "version": "0.6.19",
+    "date": "2026-08-20",
+    "summary": "Fix missing calories after multi-dish photo recognition",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix missing calories after multi-dish photo recognition"
+      }
+    ]
+  },
+  {
+    "version": "0.6.18",
+    "date": "2026-08-20",
+    "summary": "Убрать capture=environment — оставить доступ к галерее",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Убрать capture=environment — оставить доступ к галерее"
+      }
+    ]
+  },
+  {
+    "version": "0.6.17",
+    "date": "2026-08-20",
+    "summary": "20 UX-улучшений по всему приложению",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "20 UX-улучшений по всему приложению"
+      }
+    ]
+  },
+  {
     "version": "0.6.16",
     "date": "2026-08-20",
     "summary": "Всегда показывать календарь прогресса и AI-подсказки",
