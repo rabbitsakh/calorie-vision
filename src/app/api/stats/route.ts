@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
-import { prisma } from "@/lib/prisma";
+import { decodeHtmlEntities, mergeDecodedFoodStats } from "@/lib/html-text";
 import {
   computeWeightChangeKg,
   latestWeightByDate,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         _count: { id: true },
         _avg: { calories: true },
         orderBy: { _count: { id: "desc" } },
-        take: 8,
+        take: 24,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -145,11 +145,14 @@ export async function GET(request: NextRequest) {
       days,
       calorieTarget,
       hourlyCalories,
-      topFoods: topFoods.map((f) => ({
-        dishName: f.dishName,
-        count: f._count.id,
-        avgCalories: Math.round(f._avg.calories ?? 0),
-      })),
+      topFoods: mergeDecodedFoodStats(
+        topFoods.map((f) => ({
+          dishName: f.dishName,
+          count: f._count.id,
+          avgCalories: Math.round(f._avg.calories ?? 0),
+        })),
+        8,
+      ),
       summary: {
         avgCalories,
         totalMealDays: daysWithMeals.length,

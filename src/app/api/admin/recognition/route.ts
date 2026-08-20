@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
+import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export async function GET() {
         : null,
       topMisrecognized: topMisrecognized
         .filter((row) => row.originalDish)
-        .map((row) => ({ dish: row.originalDish!, count: row._count.id })),
+        .map((row) => ({ dish: decodeHtmlEntities(row.originalDish!), count: row._count.id })),
       savedCorrections: corrections,
     });
   } catch (error) {
