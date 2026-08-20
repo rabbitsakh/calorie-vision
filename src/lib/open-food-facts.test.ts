@@ -38,8 +38,19 @@ test("scales 100g nutrition to the pack weight", () => {
     protein: 25,
     fat: 20,
     carbs: 50,
+    fiber: undefined,
+    sugar: undefined,
     portionGrams: 250,
   });
+});
+
+test("scales fiber and sugar from OFF per-100g values", () => {
+  const scaled = nutritionFromPer100g(
+    { calories: 100, protein: 2, fat: 1, carbs: 20, fiber: 4, sugar: 10 },
+    200,
+  );
+  assert.equal(scaled?.fiber, 8);
+  assert.equal(scaled?.sugar, 20);
 });
 
 test("converts an Open Food Facts product to a portion", () => {
