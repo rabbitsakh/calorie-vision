@@ -2,10 +2,26 @@ import webpush from "web-push";
 
 let configured = false;
 
+/**
+ * web-push requires subject to be a mailto: or https: URL.
+ * Accepts common mistakes like bare domains or emails without mailto:.
+ */
+export function normalizeVapidSubject(raw: string | undefined | null): string {
+  const value = raw?.trim() || "mailto:support@calorievision.ru";
+  if (/^mailto:/i.test(value) || /^https?:\/\//i.test(value)) {
+    return value;
+  }
+  if (value.includes("@")) {
+    return `mailto:${value}`;
+  }
+  // Bare domain: calorievision.ru → https://calorievision.ru
+  return `https://${value.replace(/^\/+/, "")}`;
+}
+
 function ensureVapid(): { publicKey: string; privateKey: string } | null {
   const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
-  const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:support@calorievision.ru";
+  const subject = normalizeVapidSubject(process.env.VAPID_SUBJECT);
 
   if (!publicKey || !privateKey) {
     return null;
