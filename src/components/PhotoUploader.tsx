@@ -54,7 +54,8 @@ function ThinkingAnimation({ preview }: { preview: string | null }) {
 }
 
 export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploaderProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,6 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
       return;
     }
 
-    // Show preview immediately
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     setLoading(true);
@@ -100,7 +100,8 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
       setPreview(null);
       setLoading(false);
       abortRef.current = null;
-      if (inputRef.current) inputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
     }
   }
 
@@ -145,43 +146,69 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
       {loading ? (
         <div className="flex min-h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-teal-200 bg-teal-50/60 px-4 py-6 md:min-h-44">
           <ThinkingAnimation preview={preview} />
-          <button
-            type="button"
-            className="btn-quiet mt-1"
-            onClick={handleCancel}
-          >
+          <button type="button" className="btn-quiet mt-1" onClick={handleCancel}>
             Отменить
           </button>
         </div>
       ) : (
-        <label
-          className={`flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 text-center transition md:min-h-44 md:py-8 ${
+        <div
+          className={`flex min-h-36 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition md:min-h-44 md:py-8 ${
             disabled
               ? "border-slate-200 bg-slate-50 opacity-70"
               : dragOver
                 ? "border-teal-500 bg-teal-100/60 scale-[1.01]"
-                : "border-teal-300 bg-teal-50/60 hover:border-teal-500"
+                : "border-teal-300 bg-teal-50/60"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <span className="text-3xl md:text-4xl">{dragOver ? "📂" : "📷"}</span>
-          <span className="mt-3 text-sm font-semibold text-teal-900 md:text-base">
-            {dragOver ? "Отпустите для загрузки" : "Нажмите или перетащите фото"}
-          </span>
-          <span className="mt-1 text-xs text-slate-500 md:text-sm">
-            Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP · до {MAX_FILE_SIZE_MB} МБ
-          </span>
+          <div>
+            <p className="text-sm font-semibold text-teal-900 md:text-base">
+              {dragOver ? "Отпустите для загрузки" : "Добавить фото еды"}
+            </p>
+            <p className="mt-1 text-xs text-slate-500 md:text-sm">
+              Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP · до {MAX_FILE_SIZE_MB} МБ
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={disabled}
+              onClick={() => cameraInputRef.current?.click()}
+            >
+              Снять на камеру
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={disabled}
+              onClick={() => galleryInputRef.current?.click()}
+            >
+              Выбрать из галереи
+            </button>
+          </div>
+
           <input
-            ref={inputRef}
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            disabled={disabled}
+            onChange={handleFileChange}
+          />
+          <input
+            ref={galleryInputRef}
             type="file"
             accept="image/*"
             className="hidden"
             disabled={disabled}
             onChange={handleFileChange}
           />
-        </label>
+        </div>
       )}
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
