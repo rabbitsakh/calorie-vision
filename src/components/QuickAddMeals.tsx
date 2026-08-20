@@ -21,6 +21,9 @@ type QuickAddItem = {
 type QuickAddResponse = {
   suggestions: QuickAddItem[];
   mealTypeLabel: string;
+  yesterdayDate: string;
+  yesterdayCount: number;
+  today: string;
 };
 
 type QuickAddMealsProps = {
@@ -32,6 +35,8 @@ type QuickAddMealsProps = {
 export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMealsProps) {
   const [data, setData] = useState<QuickAddResponse | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -77,7 +82,32 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
     }
   }
 
-  if (!data || data.suggestions.length === 0) return null;
+  async function copyYesterday() {
+    if (!data?.yesterdayDate) return;
+    setCopying(true);
+    setCopyError(null);
+    try {
+      const resp = await fetch(withBasePath("/api/meals/copy"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromDate: data.yesterdayDate, toDate: selectedDate }),
+      });
+      const payload = (await resp.json()) as { error?: string };
+      if (resp.ok) {
+        onSaved();
+      } else {
+        setCopyError(payload.error ?? "Не удалось скопировать");
+      }
+    } finally {
+      setCopying(false);
+    }
+  }
+
+  if (!data) return null;
+
+  const showCopy = data.yesterdayCount > 0;
+  const showSuggestions = data.suggestions.length > 0;
+  if (!showCopy && !showSuggestions) return null;
 
   if (hidden) {
     return (
@@ -89,7 +119,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
           setHidden(false);
         }}
       >
-        <span>Быстрое добавление — {data.mealTypeLabel}</span>
+        <span>Быстрое добавление{showSuggestions ? ` — ${data.mealTypeLabel}` : ""}</span>
         <span className="text-xs">Показать</span>
       </button>
     );
@@ -100,7 +130,11 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <p className="font-semibold text-teal-900">Быстрое добавление</p>
-          <p className="text-xs text-teal-700">Ваши частые блюда на {data.mealTypeLabel}</p>
+          <p className="text-xs text-teal-700">
+            {showSuggestions
+              ? `Ваши частые блюда на ${data.mealTypeLabel}`
+              : "Повторите вчерашний рацион одним нажатием"}
+          </p>
         </div>
         <button
           type="button"
@@ -113,30 +147,54 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
           Скрыть
         </button>
       </div>
-      <div className="flex flex-col gap-2">
-        {data.suggestions.map((item) => (
-          <button
-            key={item.dishName}
-            type="button"
-            disabled={adding !== null}
-            className="flex items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white px-3 py-2.5 text-left transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
-            onClick={() => void addMeal(item)}
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium text-slate-800">{item.dishName}</p>
-              <p className="text-xs text-slate-500">{item.why}</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="text-sm font-semibold text-teal-800">{item.calories} ккал</p>
-              {adding === item.dishName ? (
-                <span className="text-xs text-teal-600">Добавляем…</span>
-              ) : (
-                <span className="text-xs text-teal-600">+ Добавить</span>
-              )}
-            </div>
-          </button>
-        ))}
-      </div>
+
+      {showCopy ? (
+        <button
+          type="button"
+          disabled={copying || adding !== null}
+          className="mb-2 flex w-full items-center justify-between gap-3 rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-teal-400 hover:bg-teal-50 disabled:opacity-60"
+          onClick={() => void copyYesterday()}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-slate-800">Как вчера</p>
+            <p className="text-xs text-slate-500">
+              Скопировать все записи ({data.yesterdayCount})
+            </p>
+          </div>
+          <span className="shrink-0 text-sm font-semibold text-teal-800">
+            {copying ? "Копируем…" : "Повторить"}
+          </span>
+        </button>
+      ) : null}
+
+      {copyError ? <p className="mb-2 text-xs text-red-600">{copyError}</p> : null}
+
+      {showSuggestions ? (
+        <div className="flex flex-col gap-2">
+          {data.suggestions.map((item) => (
+            <button
+              key={item.dishName}
+              type="button"
+              disabled={adding !== null || copying}
+              className="flex items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white px-3 py-2.5 text-left transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+              onClick={() => void addMeal(item)}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-slate-800">{item.dishName}</p>
+                <p className="text-xs text-slate-500">{item.why}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-sm font-semibold text-teal-800">{item.calories} ккал</p>
+                {adding === item.dishName ? (
+                  <span className="text-xs text-teal-600">Добавляем…</span>
+                ) : (
+                  <span className="text-xs text-teal-600">+ Добавить</span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

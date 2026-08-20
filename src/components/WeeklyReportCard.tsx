@@ -14,6 +14,8 @@ type WeeklyReportData = {
   calorieTarget: number | null;
   insights: string[];
   topFoods: Array<{ dishName: string; count: number }>;
+  closestToTarget: { date: string; calories: number; diff: number } | null;
+  hardestDay: { date: string; calories: number; diff: number } | null;
 };
 
 type WeeklyReportCardProps = {
@@ -105,6 +107,31 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {(data.closestToTarget || data.hardestDay) && data.calorieTarget ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {data.closestToTarget ? (
+            <div className="rounded-xl bg-white/80 px-3 py-2">
+              <p className="text-xs text-emerald-600">Ближе всего к цели</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {data.closestToTarget.calories} ккал
+              </p>
+              <p className="text-xs text-slate-500">{data.closestToTarget.date}</p>
+            </div>
+          ) : null}
+          {data.hardestDay ? (
+            <div className="rounded-xl bg-white/80 px-3 py-2">
+              <p className="text-xs text-amber-600">Самый сложный день</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {data.hardestDay.calories} ккал
+              </p>
+              <p className="text-xs text-slate-500">
+                {data.hardestDay.date} · один день не ломает тренд
+              </p>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
