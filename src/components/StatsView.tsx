@@ -346,11 +346,11 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
         <div className="flex items-center gap-4 pl-[3.25rem] text-xs text-slate-500">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-6 rounded bg-sky-200" />
-            измерения
+            Измерения
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-[2.5px] w-6 rounded bg-sky-600" />
-            7-дн. среднее
+            7‑дневное среднее
           </span>
         </div>
       ) : null}
@@ -574,7 +574,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Top foods */}
           {data.topFoods.length > 0 ? (
             <section className="card p-4 md:p-6">
-              <h2 className="text-lg font-bold">Часто едите</h2>
+              <h2 className="text-lg font-bold">Что вы часто едите</h2>
               <ul className="mt-3 divide-y divide-slate-100">
                 {data.topFoods.map((food) => (
                   <li key={food.dishName} className="flex items-center justify-between gap-3 py-2.5">

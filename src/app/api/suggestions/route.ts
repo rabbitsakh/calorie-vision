@@ -47,17 +47,17 @@ function buildTip(
   if (deficits.length > 0) {
     const main = deficits[0]!;
     if (main.includes("белков")) {
-      return `Белка не хватает ${round1(target.protein - eaten.protein)} г — добавьте куриную грудку, творог или яйца.`;
+      return `Не хватает белка: ${round1(target.protein - eaten.protein)} г — добавьте куриную грудку, творог или яйца.`;
     }
     if (main.includes("углеводов")) {
-      return `Углеводов не хватает ${round1(target.carbs - eaten.carbs)} г — крупа, хлеб или фрукты помогут.`;
+      return `Не хватает углеводов: ${round1(target.carbs - eaten.carbs)} г — крупа, хлеб или фрукты помогут.`;
     }
     if (main.includes("жиров")) {
-      return `Жиров не хватает ${round1(target.fat - eaten.fat)} г — орехи, авокадо или ложка масла.`;
+      return `Не хватает жиров: ${round1(target.fat - eaten.fat)} г — орехи, авокадо или ложка масла.`;
     }
   }
   if (pctCalories < 30) return "Вы съели очень мало — не пропускайте полноценный обед или ужин.";
-  if (pctCalories < 60) return "Уже больше половины дня, а норма выполнена меньше чем наполовину. Пора поесть.";
+  if (pctCalories < 60) return "Уже больше половины дня, а норма выполнена меньше, чем наполовину. Пора поесть.";
   if (pctCalories >= 95) return "Норма почти выполнена. Если голодны — выбирайте что-то лёгкое: овощи, кефир.";
   return `${pctCalories}% нормы выполнено. Хороший темп!`;
 }
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
           if (e.carbs) parts.push(`У${e.carbs}г`);
           return parts.join(" ");
         }).join("\n  ")
-      : "ещё ничего не ел";
+      : "ещё ничего не ели";
 
     const deficits: string[] = [];
     if (eaten.protein < target.protein * 0.70) deficits.push(`белков (${remaining.protein} г)`);

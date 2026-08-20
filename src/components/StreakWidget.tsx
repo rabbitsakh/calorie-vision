@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { pluralDays } from "@/lib/russian-text";
 
 const PANEL_ID = "streak";
 
@@ -30,7 +31,7 @@ function streakLabel(streak: number): string {
   if (streak >= 14) return "Две недели!";
   if (streak >= 7) return "Неделя без пропусков";
   if (streak >= 3) return "Хорошее начало";
-  return "Начинаем";
+  return "Начните сегодня";
 }
 
 function dayAbbr(dateKey: string): string {
@@ -80,10 +81,10 @@ export function StreakWidget({
       >
         <span>
           {data.streak >= 1
-            ? `${streakEmoji(data.streak)} ${data.streak} ${data.streak < 5 ? "дн." : "дней"} подряд`
+            ? `${streakEmoji(data.streak)} ${data.streak} ${pluralDays(data.streak)} подряд`
             : data.daysLoggedTotal > 0
-              ? "📅 Продолжи серию сегодня"
-              : "📅 Начни серию сегодня"}
+              ? "📅 Продолжите серию сегодня"
+              : "📅 Начните серию сегодня"}
         </span>
         <span className="text-xs">Показать</span>
       </button>
@@ -115,15 +116,15 @@ export function StreakWidget({
           <div>
             <p className="text-lg font-bold text-amber-900">
               {hasStreak
-                ? `${streak} ${streak === 1 ? "день" : streak < 5 ? "дня" : "дней"} подряд`
-                : daysLoggedTotal > 0 ? "Продолжи серию сегодня" : "Начни серию сегодня"}
+                ? `${streak} ${pluralDays(streak)} подряд`
+                : daysLoggedTotal > 0 ? "Продолжите серию сегодня" : "Начните серию сегодня"}
             </p>
             <p className="text-xs text-amber-700">
               {hasStreak
                 ? streakLabel(streak)
                 : daysLoggedTotal > 0
-                  ? `Лучший результат: ${longestStreak} ${longestStreak < 5 ? "дн." : "дней"}. Добавь еду — и серия возобновится`
-                  : "Добавь первый приём пищи — и серия начнётся"}
+                  ? `Лучший результат: ${longestStreak} ${pluralDays(longestStreak)}. Добавьте еду — и серия возобновится`
+                  : "Добавьте первый приём пищи — и серия начнётся"}
             </p>
           </div>
         </div>
@@ -134,7 +135,7 @@ export function StreakWidget({
             </span>
           ) : hasStreak && longestStreak > streak ? (
             <span className="shrink-0 text-right text-xs text-amber-700">
-              Рекорд: {longestStreak} {longestStreak < 5 ? "дня" : "дней"}
+              Рекорд: {longestStreak} {pluralDays(longestStreak)}
             </span>
           ) : null}
           <button
@@ -152,7 +153,7 @@ export function StreakWidget({
         <div className="mt-3">
           <div className="mb-1 flex justify-between text-xs text-amber-700">
             <span>До {nextMilestone} дней</span>
-            <span>{daysUntilNext} {daysUntilNext === 1 ? "день" : (daysUntilNext ?? 0) < 5 ? "дня" : "дней"} осталось</span>
+            <span>{daysUntilNext} {pluralDays(daysUntilNext ?? 0)} осталось</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-amber-200">
             <div

@@ -227,7 +227,7 @@ export function WeightGoalCard({
                 </div>
                 {showPace ? (
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-slate-600">Как именно</p>
+                    <p className="mb-2 text-sm font-semibold text-slate-600">Темп достижения цели</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       {PACE_OPTIONS.map((option) => {
                         const active = draftPace === option.value;
