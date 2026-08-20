@@ -20,6 +20,7 @@ type StatsResponse = {
   days: StatsDay[];
   calorieTarget: number | null;
   hourlyCalories: number[];
+  moodInsight?: string | null;
   topFoods: Array<{ dishName: string; count: number; avgCalories: number }>;
   summary: {
     avgCalories: number;
@@ -522,6 +523,16 @@ export function StatsView({ endDate }: StatsViewProps) {
       {data ? (
         <>
           {period === "week" ? <WeeklyReportCard endDate={endDate} /> : null}
+
+          {data.moodInsight ? (
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm text-violet-900">
+              <p className="text-xs font-medium uppercase tracking-wide text-violet-600">
+                Настроение и еда
+              </p>
+              <p className="mt-1">{data.moodInsight}</p>
+            </div>
+          ) : null}
+
           {/* Summary tiles */}
           <div className="grid gap-3 sm:grid-cols-3">
             <StatCard
