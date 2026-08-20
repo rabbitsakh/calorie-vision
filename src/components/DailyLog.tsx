@@ -17,6 +17,8 @@ type EditPatch = {
   protein?: number | null;
   fat?: number | null;
   carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
   portionGrams?: number | null;
 };
 
@@ -70,7 +72,7 @@ type DailyLogProps = {
   timezone?: string | null;
 };
 
-function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs">): string {
+function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">): string {
   const parts: string[] = [];
   if (entry.protein) {
     parts.push(`Б ${entry.protein}`);
@@ -80,6 +82,12 @@ function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs">): stri
   }
   if (entry.carbs) {
     parts.push(`У ${entry.carbs}`);
+  }
+  if (entry.fiber) {
+    parts.push(`Кл ${entry.fiber}`);
+  }
+  if (entry.sugar) {
+    parts.push(`Сах ${entry.sugar}`);
   }
   return parts.join(" · ");
 }
@@ -119,6 +127,8 @@ function GroupedMealCard({
     protein: group.totalProtein,
     fat: group.totalFat,
     carbs: group.totalCarbs,
+    fiber: group.totalFiber,
+    sugar: group.totalSugar,
   });
 
   return (
@@ -215,6 +225,8 @@ function InlineEdit({
   const [protein, setProtein] = useState(entry.protein != null ? String(entry.protein) : "");
   const [fat, setFat] = useState(entry.fat != null ? String(entry.fat) : "");
   const [carbs, setCarbs] = useState(entry.carbs != null ? String(entry.carbs) : "");
+  const [fiber, setFiber] = useState(entry.fiber != null ? String(entry.fiber) : "");
+  const [sugar, setSugar] = useState(entry.sugar != null ? String(entry.sugar) : "");
   const [portionGrams, setPortionGrams] = useState(entry.portionGrams != null ? String(entry.portionGrams) : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -230,6 +242,8 @@ function InlineEdit({
         protein: protein ? Number(protein) : null,
         fat: fat ? Number(fat) : null,
         carbs: carbs ? Number(carbs) : null,
+        fiber: fiber ? Number(fiber) : null,
+        sugar: sugar ? Number(sugar) : null,
         portionGrams: portionGrams ? Number(portionGrams) : null,
       });
     } catch (err) {
@@ -261,9 +275,17 @@ function InlineEdit({
           <label className="text-xs">Жиры, г</label>
           <input type="number" min="0" step="0.1" value={fat} onChange={(e) => setFat(e.target.value)} />
         </div>
-        <div className="field sm:col-span-2">
+        <div className="field">
           <label className="text-xs">Углеводы, г</label>
           <input type="number" min="0" step="0.1" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="text-xs">Клетчатка, г</label>
+          <input type="number" min="0" step="0.1" value={fiber} onChange={(e) => setFiber(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="text-xs">Сахар, г</label>
+          <input type="number" min="0" step="0.1" value={sugar} onChange={(e) => setSugar(e.target.value)} />
         </div>
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
@@ -381,7 +403,7 @@ function MealListRow({
 
 export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
-  const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0 });
+  const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
   const [daySummary, setDaySummary] = useState<
     Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex">
   >({
@@ -424,6 +446,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         protein: data.totalProtein ?? 0,
         fat: data.totalFat ?? 0,
         carbs: data.totalCarbs ?? 0,
+        fiber: data.totalFiber ?? 0,
+        sugar: data.totalSugar ?? 0,
       });
       onTotalsChange?.(data.totalCalories);
       setDaySummary({
@@ -586,6 +610,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             <div className="text-2xl font-bold">{totals.calories} ккал</div>
             <div className="whitespace-nowrap text-xs text-teal-50">
               Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
+              {(totals.fiber > 0 || totals.sugar > 0)
+                ? ` · Кл ${totals.fiber} · Сах ${totals.sugar}`
+                : ""}
             </div>
             {daySummary.comparison ? (() => {
               const target = daySummary.comparison.calories.target;
