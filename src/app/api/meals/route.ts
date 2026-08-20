@@ -25,6 +25,9 @@ type SaveMealBody = {
   originalProtein?: number;
   originalFat?: number;
   originalCarbs?: number;
+  recognitionSource?: string;
+  photoKind?: string;
+  barcode?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -61,6 +64,9 @@ export async function POST(request: NextRequest) {
         wasCorrected: body.wasCorrected ?? false,
         originalDish: body.originalDish ? decodeHtmlEntities(body.originalDish) : body.originalDish,
         originalCalories: body.originalCalories,
+        recognitionSource: body.recognitionSource?.trim().slice(0, 64) || null,
+        photoKind: body.photoKind?.trim().slice(0, 32) || null,
+        barcode: body.barcode?.trim().slice(0, 32) || null,
       },
     });
 
