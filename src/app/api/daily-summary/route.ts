@@ -2,36 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1, compareNutrient } from "@/lib/diet";
+import {
+  isSex,
+  isWeightGoal,
+  isGoalPace,
+  recommendDiet,
+  round1,
+  compareNutrient,
+  buildGoalAwareCalorieTip,
+} from "@/lib/diet";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
-
-function buildTip(
-  totalCalories: number,
-  target: number | null,
-  mealCount: number,
-): string {
-  if (mealCount === 0) {
-    return "Вчера записей не было — сегодня отличный день начать заново!";
-  }
-  if (!target) {
-    return mealCount >= 3
-      ? "Хороший день — три и более приёма пищи помогают держать стабильный аппетит."
-      : "Попробуйте добавить ещё один приём пищи сегодня.";
-  }
-  const diff = totalCalories - target;
-  if (Math.abs(diff) <= target * 0.05) {
-    return "Вчера вы попали в цель по калориям — отличная работа!";
-  }
-  if (diff > target * 0.1) {
-    return `Вчера было на ${Math.round(diff)} ккал больше цели — сегодня можно чуть легче.`;
-  }
-  if (diff < -target * 0.1) {
-    return `Вчера не хватило ${Math.round(-diff)} ккал до цели — не забывайте перекусы.`;
-  }
-  return "Продолжайте в том же духе — регулярность важнее идеальных цифр.";
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,17 +59,35 @@ export async function GET(request: NextRequest) {
       ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
       : null;
 
-    const tip = buildTip(totalCalories, target?.calories ?? null, entries.length);
+    let tip: string;
+    if (entries.length === 0) {
+      tip = "Вчера записей не было — сегодня отличный день начать заново!";
+    } else if (!target) {
+      tip =
+        entries.length >= 3
+          ? "Хороший день с несколькими записями — так проще видеть картину целиком."
+          : "Добавьте ещё записи сегодня, чтобы видеть полную картину дня.";
+    } else {
+      tip = buildGoalAwareCalorieTip({
+        actual: totalCalories,
+        target: target.calories,
+        goal,
+        tense: "yesterday",
+      });
+    }
 
     return NextResponse.json({
       date: summaryDate,
       today,
+      /** Number of meal log rows (not meal occasions). */
       mealCount: entries.length,
+      entryCount: entries.length,
       totalCalories,
       totalProtein,
       totalFat,
       totalCarbs,
       totalWaterMl,
+      goal,
       target: target
         ? {
             calories: target.calories,

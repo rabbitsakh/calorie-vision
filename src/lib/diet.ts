@@ -253,3 +253,93 @@ export function formatBalanceLabel(comparison: NutrientComparison, unit: string)
   const word = comparison.kind === "deficit" ? "дефицит" : "профицит";
   return `${word} ${amount} ${unit}`;
 }
+
+/**
+ * Short label under calorie totals.
+ * For LOSE, eating below the (already-deficit) target is not framed as "still need to reach goal".
+ */
+export function formatCalorieVsTargetLabel(
+  actual: number,
+  target: number,
+  goal: WeightGoal | null | undefined,
+): string {
+  if (actual <= 0) return "";
+  const diff = Math.round(actual - target);
+  if (Math.abs(diff) <= Math.max(1, Math.round(target * 0.05))) {
+    return " (в цели)";
+  }
+  if (goal === "LOSE") {
+    return diff < 0
+      ? ` (ниже цели на ${Math.abs(diff)} ккал)`
+      : ` (+${diff} ккал сверх цели)`;
+  }
+  if (goal === "GAIN") {
+    return diff < 0
+      ? ` (ещё ${Math.abs(diff)} ккал до цели)`
+      : ` (+${diff} ккал сверх цели)`;
+  }
+  return diff < 0
+    ? ` (${Math.abs(diff)} ккал до нормы)`
+    : ` (+${diff} ккал сверх нормы)`;
+}
+
+/**
+ * Goal-aware tip when comparing intake to the recommended daily target.
+ * For LOSE the target already includes a deficit — going moderately under it is OK.
+ * Only warn on extreme undereating (<75% of target).
+ */
+export function buildGoalAwareCalorieTip(params: {
+  actual: number;
+  target: number;
+  goal: WeightGoal | null | undefined;
+  tense?: "today" | "yesterday" | "average";
+}): string {
+  const { actual, target, goal } = params;
+  const tense = params.tense ?? "yesterday";
+  const when =
+    tense === "today" ? "Сегодня" : tense === "average" ? "В среднем" : "Вчера";
+  const whenLower =
+    tense === "today" ? "сегодня" : tense === "average" ? "за период" : "вчера";
+
+  if (actual <= 0) {
+    return "Пока нет записей по калориям.";
+  }
+
+  const diff = actual - target;
+  const abs = Math.round(Math.abs(diff));
+  const near = Math.abs(diff) <= target * 0.08;
+  const veryLow = actual < target * 0.75;
+
+  if (near) {
+    if (goal === "LOSE") {
+      return `${when} вы попали в целевой дефицит — отличная работа!`;
+    }
+    if (goal === "GAIN") {
+      return `${when} вы рядом с целью на набор — так и держите.`;
+    }
+    return `${when} вы рядом с нормой калорий — отличная работа!`;
+  }
+
+  if (goal === "LOSE") {
+    if (diff > 0) {
+      return `${when} на ${abs} ккал выше цели похудения — можно чуть легче.`;
+    }
+    if (veryLow) {
+      return `${when} сильно ниже цели (−${abs} ккал). Для похудения это уже жёстко — лучше не урезать ещё сильнее.`;
+    }
+    return `${when} ниже цели на ${abs} ккал — для похудения это нормально. Следите за самочувствием и белком.`;
+  }
+
+  if (goal === "GAIN") {
+    if (diff < 0) {
+      return `${when} не хватило ${abs} ккал до цели набора — добавьте приём пищи или перекус.`;
+    }
+    return `${when} выше цели набора (+${abs} ккал) — можно чуть спокойнее, если набор идёт слишком быстро.`;
+  }
+
+  // MAINTAIN / unknown
+  if (diff < 0) {
+    return `${when} не хватило ${abs} ккал до нормы — при желании добавьте перекус.`;
+  }
+  return `${when} на ${abs} ккал выше нормы — ${whenLower === "сегодня" ? "можно чуть легче" : "сегодня можно чуть легче"}.`;
+}

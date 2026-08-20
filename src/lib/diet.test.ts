@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildGoalAwareCalorieTip,
   calorieTone,
   compareNutrient,
   formatBalanceLabel,
+  formatCalorieVsTargetLabel,
   formatGoalChoice,
   formatSignedKg,
   recommendDiet,
@@ -111,4 +113,36 @@ test("formats weight change from the first measurement", () => {
   assert.equal(formatSignedKg(-3.14), "−3.1 кг");
   assert.equal(formatSignedKg(1.2), "+1.2 кг");
   assert.equal(formatSignedKg(0.04), "0 кг");
+});
+
+test("LOSE under target is not framed as eat more", () => {
+  const tip = buildGoalAwareCalorieTip({
+    actual: 1600,
+    target: 2000,
+    goal: "LOSE",
+    tense: "yesterday",
+  });
+  assert.match(tip, /ниже цели|нормально|похудения/i);
+  assert.doesNotMatch(tip, /не хватило|перекус/i);
+
+  const label = formatCalorieVsTargetLabel(1600, 2000, "LOSE");
+  assert.equal(label, " (ниже цели на 400 ккал)");
+});
+
+test("LOSE very low intake warns about cutting too hard", () => {
+  const tip = buildGoalAwareCalorieTip({
+    actual: 1200,
+    target: 2000,
+    goal: "LOSE",
+  });
+  assert.match(tip, /жёстко|не урезать/i);
+});
+
+test("GAIN under target still suggests eating more", () => {
+  const tip = buildGoalAwareCalorieTip({
+    actual: 1600,
+    target: 2000,
+    goal: "GAIN",
+  });
+  assert.match(tip, /не хватило|добавьте/i);
 });

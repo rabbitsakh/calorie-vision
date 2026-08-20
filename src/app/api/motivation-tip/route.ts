@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet } from "@/lib/diet";
+import { isSex, isWeightGoal, isGoalPace, recommendDiet, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
 import { completeChat } from "@/lib/ai/gigachat";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -13,6 +13,7 @@ function ruleBasedTip(ctx: {
   streak: number;
   yesterdayCalories: number;
   target: number | null;
+  goal: WeightGoal | null;
   topFood: string | null;
   loggedYesterday: boolean;
 }): string {
@@ -23,14 +24,12 @@ function ruleBasedTip(ctx: {
     return `У вас серия ${ctx.streak} дней — отличная привычка. Держите темп: сначала лог, потом правки.`;
   }
   if (ctx.target && ctx.yesterdayCalories > 0) {
-    const diff = ctx.yesterdayCalories - ctx.target;
-    if (Math.abs(diff) <= ctx.target * 0.08) {
-      return "Вчера вы были близко к цели по калориям. Повторите тот же ритм приёмов сегодня.";
-    }
-    if (diff > 0) {
-      return `Вчера было чуть больше цели (+${Math.round(diff)} ккал). Сегодня можно начать с белка и овощей.`;
-    }
-    return `Вчера не хватило ${Math.round(-diff)} ккал до цели — не забывайте про перекус.`;
+    return buildGoalAwareCalorieTip({
+      actual: ctx.yesterdayCalories,
+      target: ctx.target,
+      goal: ctx.goal,
+      tense: "yesterday",
+    });
   }
   if (ctx.topFood) {
     return `Частое блюдо — «${ctx.topFood}». Можно добавить его в быстрое добавление и сэкономить время.`;
@@ -98,6 +97,7 @@ export async function GET() {
       streak,
       yesterdayCalories,
       target: target?.calories ?? null,
+      goal,
       topFood,
       loggedYesterday: yesterdayMeals.length > 0,
     };
@@ -107,10 +107,17 @@ export async function GET() {
 
     if (process.env.GIGACHAT_CREDENTIALS || (process.env.GIGACHAT_CLIENT_ID && process.env.GIGACHAT_CLIENT_SECRET)) {
       try {
+        const goalHint =
+          goal === "LOSE"
+            ? "Цель пользователя — похудение: целевые ккал уже с дефицитом. Не говори «ешь больше», если вчера чуть ниже цели — это нормально. Предупреждай только при сильном недоедании."
+            : goal === "GAIN"
+              ? "Цель пользователя — набор веса: если ниже цели ккал, мягко предложи добавить еду."
+              : "Цель — удержание веса: ориентируйся на норму калорий.";
         const prompt = [
           "Ты — мягкий коуч по привычке вести дневник питания. Ответь ОДНИМ коротким предложением на русском (макс 160 символов).",
           "Без стыда, без диет-экстрима, без списков. Только мотивация и один конкретный маленький шаг.",
-          `Контекст: серия=${ctx.streak}, вчера_ккал=${ctx.yesterdayCalories}, цель_ккал=${ctx.target ?? "нет"}, частое_блюдо=${ctx.topFood ?? "нет"}, вчера_были_записи=${ctx.loggedYesterday}.`,
+          goalHint,
+          `Контекст: серия=${ctx.streak}, вчера_ккал=${ctx.yesterdayCalories}, цель_ккал=${ctx.target ?? "нет"}, цель_вес=${goal ?? "нет"}, частое_блюдо=${ctx.topFood ?? "нет"}, вчера_были_записи=${ctx.loggedYesterday}.`,
         ].join("\n");
         const ai = await completeChat([{ role: "user", content: prompt }], 0.6);
         const cleaned = ai.replace(/^["«]|["»]$/g, "").trim();

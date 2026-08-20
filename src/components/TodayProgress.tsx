@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { buildGoalAwareCalorieTip } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 
 const WATER_TARGET = 2000;
@@ -11,6 +12,7 @@ type ProgressData = {
   protein: number;
   proteinTarget: number | null;
   waterMl: number;
+  goal: "LOSE" | "GAIN" | "MAINTAIN" | null;
 };
 
 type TodayProgressProps = {
@@ -110,6 +112,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
         const meals = (await mealsResp.json()) as {
           totalCalories: number;
           totalProtein: number;
+          goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
           target: { calories: number; protein: number } | null;
         };
         const water = waterResp.ok
@@ -122,6 +125,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           protein: meals.totalProtein,
           proteinTarget: meals.target?.protein ?? null,
           waterMl: water.totalMl,
+          goal: meals.goal ?? null,
         });
       } catch {
         // non-critical
@@ -144,15 +148,15 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   const waterPct = (data.waterMl / WATER_TARGET) * 100;
 
   let tip = "Добавьте первый приём пищи — и прогресс появится.";
-  if (data.calorieTarget) {
-    const remaining = Math.round(data.calorieTarget - data.calories);
-    if (Math.abs(remaining) <= data.calorieTarget * 0.05) {
-      tip = "Вы рядом с целью по калориям — отличный день!";
-    } else if (remaining > 0) {
-      tip = `Ещё ${remaining} ккал до дневной нормы.`;
-    } else {
-      tip = `На ${Math.abs(remaining)} ккал выше цели — можно чуть легче.`;
-    }
+  if (data.calorieTarget && data.calories > 0) {
+    tip = buildGoalAwareCalorieTip({
+      actual: data.calories,
+      target: data.calorieTarget,
+      goal: data.goal,
+      tense: "today",
+    });
+  } else if (data.calorieTarget) {
+    tip = "Добавьте первый приём пищи — и прогресс появится.";
   } else if (data.calories > 0) {
     tip = "Укажите цель в профиле — появится % пути к норме.";
   }
