@@ -1,44 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
+import { requireDateKey } from "@/lib/dates";
+import {
+  computeLongestStreak,
+  computeStreakFromSet,
+  shiftDateKeyUtc,
+  weekStartMonday,
+} from "@/lib/streak-utils";
 
 export const dynamic = "force-dynamic";
 
 const MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365];
-
-function shiftDate(dateKey: string, days: number): string {
-  const d = new Date(dateKey + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function computeStreak(dateSet: Set<string>, today: string): number {
-  let streak = 0;
-  let expected = today;
-  while (dateSet.has(expected)) {
-    streak += 1;
-    expected = shiftDate(expected, -1);
-  }
-  return streak;
-}
-
-function computeLongestStreak(dates: string[]): number {
-  if (dates.length === 0) return 0;
-  const sorted = [...new Set(dates)].sort();
-  let longest = 1;
-  let current = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = sorted[i - 1]!;
-    const curr = sorted[i]!;
-    if (shiftDate(prev, 1) === curr) {
-      current += 1;
-      longest = Math.max(longest, current);
-    } else {
-      current = 1;
-    }
-  }
-  return longest;
-}
 
 function nextMilestone(streak: number): number | null {
   return MILESTONES.find((m) => m > streak) ?? null;
@@ -52,29 +25,60 @@ export async function GET(request: NextRequest) {
     const todayParam = request.nextUrl.searchParams.get("today");
     const today = todayParam ?? new Date().toISOString().slice(0, 10);
 
-    const entries = await prisma.mealEntry.findMany({
-      where: { userId: session.user.id },
-      select: { date: true },
-      orderBy: { date: "desc" },
-      take: 400,
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
     });
+    const timezone = user?.timezone ?? null;
+    const weekStart = weekStartMonday(today, timezone);
 
-    const dates = entries.map((e) => e.date);
-    const dateSet = new Set(dates);
+    const [entries, freezes, freezeThisWeek] = await Promise.all([
+      prisma.mealEntry.findMany({
+        where: { userId: session.user.id },
+        select: { date: true },
+        orderBy: { date: "desc" },
+        take: 400,
+      }),
+      prisma.streakFreeze.findMany({
+        where: { userId: session.user.id },
+        select: { date: true },
+        take: 100,
+      }),
+      prisma.streakFreeze.findFirst({
+        where: { userId: session.user.id, weekStart },
+      }),
+    ]);
 
-    const streak = computeStreak(dateSet, today);
-    const longestStreak = computeLongestStreak(dates);
+    const mealDates = entries.map((e) => e.date);
+    const frozenDates = freezes.map((f) => f.date);
+    const dateSet = new Set([...mealDates, ...frozenDates]);
+
+    const loggedToday = dateSet.has(today);
+    const yesterday = shiftDateKeyUtc(today, -1);
+    const streakBeforeToday = computeStreakFromSet(dateSet, yesterday);
+    const streak = loggedToday ? computeStreakFromSet(dateSet, today) : streakBeforeToday;
+    const longestStreak = computeLongestStreak([...dateSet]);
     const next = nextMilestone(streak);
+    const streakAtRisk = !loggedToday && streakBeforeToday >= 1;
 
-    // Last 14 days with logged status
-    const last14: Array<{ date: string; logged: boolean }> = [];
+    const freezeAvailable = !freezeThisWeek;
+    const canFreezeYesterday =
+      freezeAvailable &&
+      !dateSet.has(yesterday) &&
+      streakBeforeToday >= 1 &&
+      yesterday < today;
+
+    const last14: Array<{ date: string; logged: boolean; frozen: boolean }> = [];
     for (let i = 13; i >= 0; i--) {
-      const d = shiftDate(today, -i);
-      last14.push({ date: d, logged: dateSet.has(d) });
+      const d = shiftDateKeyUtc(today, -i);
+      last14.push({
+        date: d,
+        logged: mealDates.includes(d),
+        frozen: frozenDates.includes(d),
+      });
     }
 
-    // Days with logs this week (Mon–today)
-    const daysLoggedTotal = new Set(dates).size;
+    const daysLoggedTotal = new Set(mealDates).size;
 
     return NextResponse.json({
       streak,
@@ -83,9 +87,77 @@ export async function GET(request: NextRequest) {
       daysUntilNext: next ? next - streak : null,
       last14,
       daysLoggedTotal,
+      loggedToday,
+      streakAtRisk,
+      streakBeforeToday,
+      freezeAvailable,
+      canFreezeYesterday,
+      frozenDates,
+      weekStart,
     });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось загрузить серию" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { session, response } = await requireSession();
+    if (response) return response;
+
+    const body = (await request.json()) as { date?: string; today?: string };
+    const date = requireDateKey(body.date);
+    const today = requireDateKey(body.today) ?? new Date().toISOString().slice(0, 10);
+
+    if (!date) {
+      return NextResponse.json({ error: "Укажите date=YYYY-MM-DD" }, { status: 400 });
+    }
+
+    if (date >= today) {
+      return NextResponse.json({ error: "Можно заморозить только прошедшие дни" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
+    });
+    const timezone = user?.timezone ?? null;
+    const weekStart = weekStartMonday(today, timezone);
+
+    const [existingMeal, existingFreeze, usedThisWeek] = await Promise.all([
+      prisma.mealEntry.findFirst({
+        where: { userId: session.user.id, date },
+      }),
+      prisma.streakFreeze.findFirst({
+        where: { userId: session.user.id, date },
+      }),
+      prisma.streakFreeze.findFirst({
+        where: { userId: session.user.id, weekStart },
+      }),
+    ]);
+
+    if (existingMeal) {
+      return NextResponse.json({ error: "В этот день уже есть записи" }, { status: 400 });
+    }
+    if (existingFreeze) {
+      return NextResponse.json({ error: "Этот день уже заморожен" }, { status: 400 });
+    }
+    if (usedThisWeek) {
+      return NextResponse.json({ error: "Заморозка уже использована на этой неделе" }, { status: 400 });
+    }
+
+    const freeze = await prisma.streakFreeze.create({
+      data: {
+        userId: session.user.id,
+        date,
+        weekStart,
+      },
+    });
+
+    return NextResponse.json({ freeze, message: "Серия сохранена!" });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось заморозить серию" }, { status: 500 });
   }
 }
