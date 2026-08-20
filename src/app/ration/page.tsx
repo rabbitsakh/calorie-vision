@@ -12,9 +12,11 @@ import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
+import { TodayProgress } from "@/components/TodayProgress";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -44,12 +46,14 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
+          {date === today ? <DailySummaryCard today={today} /> : null}
           <StreakNudge
             selectedDate={date}
             today={today}
             refreshKey={refreshKey}
             onAddFood={scrollToFoodAdd}
           />
+          <TodayProgress selectedDate={date} refreshKey={refreshKey} />
           {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}
