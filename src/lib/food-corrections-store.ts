@@ -8,15 +8,25 @@ import {
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { prisma } from "@/lib/prisma";
 
-const CACHE_TTL_MS = 60_000;
-let cachedRows: Awaited<ReturnType<typeof loadCorrectionRows>> | null = null;
-let cachedAt = 0;
+/** Legacy/global corrections use empty userId so they remain shareable. */
+export const GLOBAL_CORRECTION_USER_ID = "";
 
-async function loadCorrectionRows() {
+const CACHE_TTL_MS = 60_000;
+const cacheByUser = new Map<
+  string,
+  { rows: Awaited<ReturnType<typeof loadCorrectionRows>>; at: number }
+>();
+
+async function loadCorrectionRows(userId: string) {
   return prisma.foodCorrection.findMany({
+    where:
+      userId && userId !== GLOBAL_CORRECTION_USER_ID
+        ? { OR: [{ userId }, { userId: GLOBAL_CORRECTION_USER_ID }] }
+        : { userId: GLOBAL_CORRECTION_USER_ID },
     orderBy: [{ useCount: "desc" }, { updatedAt: "desc" }],
     take: 500,
     select: {
+      userId: true,
       originalKey: true,
       correctedName: true,
       calories: true,
@@ -29,25 +39,38 @@ async function loadCorrectionRows() {
   });
 }
 
-async function getCorrectionRows() {
-  if (cachedRows && Date.now() - cachedAt < CACHE_TTL_MS) {
-    return cachedRows;
+async function getCorrectionRows(userId: string) {
+  const cacheKey = userId || GLOBAL_CORRECTION_USER_ID;
+  const cached = cacheByUser.get(cacheKey);
+  if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+    return cached.rows;
   }
 
-  cachedRows = await loadCorrectionRows();
-  cachedAt = Date.now();
-  return cachedRows;
+  const rows = await loadCorrectionRows(userId);
+  // Prefer the current user's rows before global ones when matching.
+  rows.sort((a, b) => {
+    const aUser = a.userId === userId ? 0 : 1;
+    const bUser = b.userId === userId ? 0 : 1;
+    if (aUser !== bUser) return aUser - bUser;
+    return b.useCount - a.useCount;
+  });
+  cacheByUser.set(cacheKey, { rows, at: Date.now() });
+  return rows;
 }
 
-export function invalidateFoodCorrectionCache(): void {
-  cachedRows = null;
-  cachedAt = 0;
+export function invalidateFoodCorrectionCache(userId?: string): void {
+  if (userId === undefined) {
+    cacheByUser.clear();
+    return;
+  }
+  cacheByUser.delete(userId || GLOBAL_CORRECTION_USER_ID);
 }
 
 export async function applyStoredFoodCorrection(
   result: FoodRecognitionResult,
+  userId?: string | null,
 ): Promise<FoodRecognitionResult> {
-  const rows = await getCorrectionRows();
+  const rows = await getCorrectionRows(userId ?? GLOBAL_CORRECTION_USER_ID);
   const correction = pickFoodCorrection(result.dishName, rows);
   if (!correction) {
     return result;
@@ -58,8 +81,9 @@ export async function applyStoredFoodCorrection(
 
 export async function lookupStoredFoodCorrection(
   dishName: string,
+  userId?: string | null,
 ): Promise<FoodRecognitionResult | null> {
-  const rows = await getCorrectionRows();
+  const rows = await getCorrectionRows(userId ?? GLOBAL_CORRECTION_USER_ID);
   const correction = pickFoodCorrection(dishName, rows);
   if (!correction) {
     return null;
@@ -76,17 +100,21 @@ export async function lookupStoredFoodCorrection(
   );
 }
 
-export async function rememberFoodCorrection(input: RememberFoodCorrectionInput): Promise<void> {
+export async function rememberFoodCorrection(
+  input: RememberFoodCorrectionInput & { userId: string },
+): Promise<void> {
   const originalKey = foodCorrectionKey(input.originalDish);
   const correctedKey = foodCorrectionKey(input.dishName);
   if (!originalKey || !correctedKey) {
     return;
   }
-  // Also learn when only calories/macros changed without a name change.
-  // (originalKey === correctedKey is fine — we just update the nutrition values.)
+
+  const userId = input.userId.trim() || GLOBAL_CORRECTION_USER_ID;
 
   const existing = await prisma.foodCorrection.findUnique({
-    where: { originalKey },
+    where: {
+      userId_originalKey: { userId, originalKey },
+    },
     select: {
       correctedName: true,
       calories: true,
@@ -101,8 +129,11 @@ export async function rememberFoodCorrection(input: RememberFoodCorrectionInput)
   const merged = mergeRememberedCorrection(existing, input);
 
   await prisma.foodCorrection.upsert({
-    where: { originalKey },
+    where: {
+      userId_originalKey: { userId, originalKey },
+    },
     create: {
+      userId,
       originalKey,
       correctedName: merged.correctedName,
       calories: merged.calories,
@@ -123,5 +154,5 @@ export async function rememberFoodCorrection(input: RememberFoodCorrectionInput)
     },
   });
 
-  invalidateFoodCorrectionCache();
+  invalidateFoodCorrectionCache(userId);
 }

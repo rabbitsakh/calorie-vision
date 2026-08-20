@@ -6,7 +6,7 @@ import { cacheRemoteImage } from "@/lib/upload";
 
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireSession();
+    const { session, response } = await requireSession();
     if (response) {
       return response;
     }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Укажите название блюда или штрихкод" }, { status: 400 });
     }
 
-    const recognition = await lookupFoodByName(dishName);
+    const recognition = await lookupFoodByName(dishName, session.user.id);
     const imagePath = await cacheRemoteImage(recognition.imageUrl);
     return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
   } catch (error) {
