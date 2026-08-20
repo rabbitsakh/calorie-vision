@@ -14,6 +14,8 @@ type SaveMealBody = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
   portionGrams?: number;
   confidence?: number;
   imagePath?: string;
@@ -25,6 +27,8 @@ type SaveMealBody = {
   originalProtein?: number;
   originalFat?: number;
   originalCarbs?: number;
+  originalFiber?: number;
+  originalSugar?: number;
   recognitionSource?: string;
   photoKind?: string;
   barcode?: string;
@@ -56,6 +60,8 @@ export async function POST(request: NextRequest) {
         protein: body.protein,
         fat: body.fat,
         carbs: body.carbs,
+        fiber: body.fiber,
+        sugar: body.sugar,
         portionGrams: body.portionGrams,
         confidence: body.confidence,
         imagePath: body.imagePath?.trim() || null,
@@ -79,11 +85,15 @@ export async function POST(request: NextRequest) {
         protein: body.protein,
         fat: body.fat,
         carbs: body.carbs,
+        fiber: body.fiber,
+        sugar: body.sugar,
         portionGrams: body.portionGrams,
         originalCalories: body.originalCalories,
         originalProtein: body.originalProtein,
         originalFat: body.originalFat,
         originalCarbs: body.originalCarbs,
+        originalFiber: body.originalFiber,
+        originalSugar: body.originalSugar,
       });
     }
 
@@ -129,6 +139,8 @@ export async function GET(request: NextRequest) {
     const totalProtein = round1(entries.reduce((sum, item) => sum + (item.protein ?? 0), 0));
     const totalFat = round1(entries.reduce((sum, item) => sum + (item.fat ?? 0), 0));
     const totalCarbs = round1(entries.reduce((sum, item) => sum + (item.carbs ?? 0), 0));
+    const totalFiber = round1(entries.reduce((sum, item) => sum + (item.fiber ?? 0), 0));
+    const totalSugar = round1(entries.reduce((sum, item) => sum + (item.sugar ?? 0), 0));
     const goal = (user?.goal ?? null) as WeightGoal | null;
     const goalPace = (user?.goalPace ?? null) as GoalPace | null;
     const sex = isSex(user?.sex) ? user!.sex : null;
@@ -152,6 +164,8 @@ export async function GET(request: NextRequest) {
       totalProtein,
       totalFat,
       totalCarbs,
+      totalFiber,
+      totalSugar,
       goal,
       goalPace,
       dietLabel: goal ? formatGoalChoice(goal, goalPace) : null,
