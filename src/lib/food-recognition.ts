@@ -11,8 +11,11 @@ import {
   isMultiItemRecognition,
 } from "@/lib/recognition-items";
 import {
+  hasUsableCalories,
+  mergeNutritionBackfill,
   needsNutritionLookup,
   normalizeRecognitionNutrition,
+  simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
 import {
   lookupOpenFoodFactsByBarcode,
@@ -175,6 +178,47 @@ export async function enrichPackagedProduct(
   };
 }
 
+async function backfillMissingNutrition(
+  result: FoodRecognitionResult,
+): Promise<FoodRecognitionResult> {
+  if (!needsNutritionLookup(result)) {
+    return result;
+  }
+
+  const names = [result.dishName.trim()].filter(Boolean);
+  const simplified = simplifyDishNameForLookup(result.dishName);
+  if (simplified && !names.some((n) => n.toLowerCase() === simplified.toLowerCase())) {
+    names.push(simplified);
+  }
+
+  let best = result;
+
+  for (const name of names) {
+    try {
+      const looked = await lookupFoodByName(name);
+      if (!hasUsableCalories(looked) && needsNutritionLookup(looked)) {
+        continue;
+      }
+
+      const merged = normalizeRecognitionNutrition(mergeNutritionBackfill(best, looked));
+      const improved =
+        merged.calories > best.calories ||
+        (!needsNutritionLookup(merged) && needsNutritionLookup(best));
+
+      if (improved) {
+        best = merged;
+      }
+      if (!needsNutritionLookup(best)) {
+        break;
+      }
+    } catch (error) {
+      console.error("Nutrition lookup fallback failed", error);
+    }
+  }
+
+  return best;
+}
+
 async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecognitionResult> {
   let result = normalizeRecognitionNutrition({
     ...vision,
@@ -190,21 +234,7 @@ async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecogn
 
   // Fallback lookup whenever nutrition is missing — confidence reflects dish
   // identification, not whether calories/macros were actually returned.
-  if (needsNutritionLookup(result)) {
-    try {
-      const looked = await lookupFoodByName(result.dishName);
-      if (!needsNutritionLookup(looked)) {
-        result = normalizeRecognitionNutrition({
-          ...looked,
-          dishName: result.dishName,
-          photoKind: "meal",
-          confidence: Math.max(looked.confidence, result.confidence * 0.85),
-        });
-      }
-    } catch (error) {
-      console.error("Nutrition lookup fallback failed", error);
-    }
-  }
+  result = await backfillMissingNutrition(result);
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
 }
@@ -230,20 +260,7 @@ export async function recognizeFoodWithAI(
 
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
   let result = normalizeRecognitionNutrition(enriched);
-
-  if (needsNutritionLookup(result)) {
-    try {
-      const looked = await lookupFoodByName(result.dishName);
-      if (!needsNutritionLookup(looked)) {
-        result = normalizeRecognitionNutrition({
-          ...looked,
-          confidence: Math.max(looked.confidence, result.confidence * 0.85),
-        });
-      }
-    } catch (error) {
-      console.error("Nutrition lookup fallback failed", error);
-    }
-  }
+  result = await backfillMissingNutrition(result);
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
 }
