@@ -13,6 +13,8 @@ type CustomFood = {
   protein: number | null;
   fat: number | null;
   carbs: number | null;
+  fiber: number | null;
+  sugar: number | null;
   portionGrams: number | null;
   useCount: number;
 };
@@ -46,6 +48,8 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [carbs, setCarbs] = useState("");
+  const [fiber, setFiber] = useState("");
+  const [sugar, setSugar] = useState("");
   const [portionGrams, setPortionGrams] = useState("");
 
   const load = useCallback(async () => {
@@ -73,11 +77,13 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
           protein: protein ? Number(protein) : null,
           fat: fat ? Number(fat) : null,
           carbs: carbs ? Number(carbs) : null,
+          fiber: fiber ? Number(fiber) : null,
+          sugar: sugar ? Number(sugar) : null,
           portionGrams: portionGrams ? Number(portionGrams) : null,
         }),
       });
       if (resp.ok) {
-        setName(""); setCalories(""); setProtein(""); setFat(""); setCarbs(""); setPortionGrams("");
+        setName(""); setCalories(""); setProtein(""); setFat(""); setCarbs(""); setFiber(""); setSugar(""); setPortionGrams("");
         setShowForm(false);
         await load();
       }
@@ -97,6 +103,8 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
         protein: food.protein,
         fat: food.fat,
         carbs: food.carbs,
+        fiber: food.fiber,
+        sugar: food.sugar,
         portionGrams: food.portionGrams,
       }),
     });
@@ -170,9 +178,17 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
             <label className="text-xs">Жиры, г</label>
             <input type="number" min="0" step="0.1" value={fat} onChange={(e) => setFat(e.target.value)} />
           </div>
-          <div className="field sm:col-span-2">
+          <div className="field">
             <label className="text-xs">Углеводы, г</label>
             <input type="number" min="0" step="0.1" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="text-xs">Клетчатка, г</label>
+            <input type="number" min="0" step="0.1" value={fiber} onChange={(e) => setFiber(e.target.value)} />
+          </div>
+          <div className="field">
+            <label className="text-xs">Сахар, г</label>
+            <input type="number" min="0" step="0.1" value={sugar} onChange={(e) => setSugar(e.target.value)} />
           </div>
           <div className="sm:col-span-2">
             <button

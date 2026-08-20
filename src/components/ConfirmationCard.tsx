@@ -21,6 +21,8 @@ type NutritionFields = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  fiber?: number;
+  sugar?: number;
   portionGrams?: number;
   source?: string;
 };
@@ -33,6 +35,8 @@ type DishDraft = {
   protein: string;
   fat: string;
   carbs: string;
+  fiber: string;
+  sugar: string;
   portionGrams: string;
   baseline: NutritionValues | null;
 };
@@ -71,6 +75,8 @@ function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraf
     protein: item.protein !== undefined ? String(item.protein) : "",
     fat: item.fat !== undefined ? String(item.fat) : "",
     carbs: item.carbs !== undefined ? String(item.carbs) : "",
+    fiber: item.fiber !== undefined ? String(item.fiber) : "",
+    sugar: item.sugar !== undefined ? String(item.sugar) : "",
     portionGrams: item.portionGrams !== undefined ? String(item.portionGrams) : "",
     baseline: nutritionBaseline(item),
   };
@@ -168,6 +174,8 @@ export function ConfirmationCard({
       protein: parseOptionalNumber(next.protein ?? dish.protein),
       fat: parseOptionalNumber(next.fat ?? dish.fat),
       carbs: parseOptionalNumber(next.carbs ?? dish.carbs),
+      fiber: parseOptionalNumber(next.fiber ?? dish.fiber),
+      sugar: parseOptionalNumber(next.sugar ?? dish.sugar),
       portionGrams: Number(next.portionGrams ?? dish.portionGrams),
     });
   }
@@ -183,6 +191,8 @@ export function ConfirmationCard({
           protein: parseOptionalNumber(dish.protein),
           fat: parseOptionalNumber(dish.fat),
           carbs: parseOptionalNumber(dish.carbs),
+          fiber: parseOptionalNumber(dish.fiber),
+          sugar: parseOptionalNumber(dish.sugar),
           portionGrams: grams,
         });
       }
@@ -198,6 +208,8 @@ export function ConfirmationCard({
       protein: scaled?.protein !== undefined ? formatMacro(scaled.protein) : dish.protein,
       fat: scaled?.fat !== undefined ? formatMacro(scaled.fat) : dish.fat,
       carbs: scaled?.carbs !== undefined ? formatMacro(scaled.carbs) : dish.carbs,
+      fiber: scaled?.fiber !== undefined ? formatMacro(scaled.fiber) : dish.fiber,
+      sugar: scaled?.sugar !== undefined ? formatMacro(scaled.sugar) : dish.sugar,
     });
   }
 
@@ -240,6 +252,8 @@ export function ConfirmationCard({
         protein: next.protein !== undefined ? String(next.protein) : "",
         fat: next.fat !== undefined ? String(next.fat) : "",
         carbs: next.carbs !== undefined ? String(next.carbs) : "",
+        fiber: next.fiber !== undefined ? String(next.fiber) : "",
+        sugar: next.sugar !== undefined ? String(next.sugar) : "",
         portionGrams: next.portionGrams !== undefined ? String(next.portionGrams) : "",
         baseline: nutritionBaseline(next),
       });
@@ -264,16 +278,22 @@ export function ConfirmationCard({
     const origProtein = dish.original.protein !== undefined ? Number(dish.original.protein) : undefined;
     const origFat = dish.original.fat !== undefined ? Number(dish.original.fat) : undefined;
     const origCarbs = dish.original.carbs !== undefined ? Number(dish.original.carbs) : undefined;
+    const origFiber = dish.original.fiber !== undefined ? Number(dish.original.fiber) : undefined;
+    const origSugar = dish.original.sugar !== undefined ? Number(dish.original.sugar) : undefined;
     const parsedProtein = dish.protein ? Number(dish.protein) : undefined;
     const parsedFat = dish.fat ? Number(dish.fat) : undefined;
     const parsedCarbs = dish.carbs ? Number(dish.carbs) : undefined;
+    const parsedFiber = dish.fiber ? Number(dish.fiber) : undefined;
+    const parsedSugar = dish.sugar ? Number(dish.sugar) : undefined;
 
     const wasCorrected =
       dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
       parsedCalories !== dish.original.calories ||
       parsedProtein !== origProtein ||
       parsedFat !== origFat ||
-      parsedCarbs !== origCarbs;
+      parsedCarbs !== origCarbs ||
+      parsedFiber !== origFiber ||
+      parsedSugar !== origSugar;
 
     const response = await fetch(withBasePath("/api/meals"), {
       method: "POST",
@@ -285,6 +305,8 @@ export function ConfirmationCard({
         protein: dish.protein ? Number(dish.protein) : undefined,
         fat: dish.fat ? Number(dish.fat) : undefined,
         carbs: dish.carbs ? Number(dish.carbs) : undefined,
+        fiber: dish.fiber ? Number(dish.fiber) : undefined,
+        sugar: dish.sugar ? Number(dish.sugar) : undefined,
         portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
         confidence: dish.original.confidence,
         imagePath: imagePath || undefined,
@@ -296,6 +318,8 @@ export function ConfirmationCard({
         originalProtein: origProtein,
         originalFat: origFat,
         originalCarbs: origCarbs,
+        originalFiber: origFiber,
+        originalSugar: origSugar,
         recognitionSource: dish.original.source,
         photoKind: dish.original.photoKind,
         barcode: dish.original.barcode,
@@ -711,7 +735,7 @@ function DishFields({
           />
         </div>
 
-        <div className="field sm:col-span-2">
+        <div className="field">
           <label htmlFor={fieldId("carbs")}>Углеводы, г</label>
           <input
             id={fieldId("carbs")}
@@ -720,6 +744,30 @@ function DishFields({
             step="0.1"
             value={dish.carbs}
             onChange={(event) => onBaselineChange({ carbs: event.target.value })}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("fiber")}>Клетчатка, г</label>
+          <input
+            id={fieldId("fiber")}
+            type="number"
+            min="0"
+            step="0.1"
+            value={dish.fiber}
+            onChange={(event) => onBaselineChange({ fiber: event.target.value })}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("sugar")}>Сахар, г</label>
+          <input
+            id={fieldId("sugar")}
+            type="number"
+            min="0"
+            step="0.1"
+            value={dish.sugar}
+            onChange={(event) => onBaselineChange({ sugar: event.target.value })}
           />
         </div>
       </div>

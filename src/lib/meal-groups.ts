@@ -14,6 +14,8 @@ export type MealListGroup = {
   totalProtein: number;
   totalFat: number;
   totalCarbs: number;
+  totalFiber: number;
+  totalSugar: number;
   createdAt: string;
 };
 
@@ -66,6 +68,8 @@ export function groupMealEntries(entries: MealEntry[]): MealListItem[] {
         totalProtein: sumOptional(groupEntries.map((item) => item.protein)),
         totalFat: sumOptional(groupEntries.map((item) => item.fat)),
         totalCarbs: sumOptional(groupEntries.map((item) => item.carbs)),
+        totalFiber: sumOptional(groupEntries.map((item) => item.fiber)),
+        totalSugar: sumOptional(groupEntries.map((item) => item.sugar)),
         createdAt: groupEntries[0]?.createdAt ?? entry.createdAt,
       });
       continue;
