@@ -16,6 +16,8 @@ type DailySummaryData = {
   totalProtein: number;
   totalFat: number;
   totalCarbs: number;
+  totalFiber?: number;
+  totalSugar?: number;
   totalWaterMl: number;
   goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
   target: { calories: number } | null;
@@ -116,11 +118,16 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
           </p>
         </div>
         <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xs text-slate-500">БЖУ</p>
+          <p className="text-xs text-slate-500">БЖУ / Кл / Сах</p>
           <p className="text-sm font-semibold text-slate-800">
             {entryCount > 0
               ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г`
               : "—"}
+            {entryCount > 0 && ((data.totalFiber ?? 0) > 0 || (data.totalSugar ?? 0) > 0) ? (
+              <span className="block text-xs font-normal text-slate-500">
+                Кл {data.totalFiber ?? 0} · Сах {data.totalSugar ?? 0}
+              </span>
+            ) : null}
           </p>
         </div>
         <div className="rounded-xl bg-white/70 px-3 py-2">

@@ -12,6 +12,8 @@ type StatsDay = {
   protein: number;
   fat: number;
   carbs: number;
+  fiber?: number;
+  sugar?: number;
   weightKg: number | null;
 };
 
@@ -389,7 +391,7 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
             <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
               <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
                 {total > 0 ? (
-                  <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г`}>
+                  <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · Кл ${day.fiber ?? 0}г · Сах ${day.sugar ?? 0}г`}>
                     <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-teal-500" />
                     <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
                     <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-violet-400" />

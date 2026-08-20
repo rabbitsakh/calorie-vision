@@ -119,6 +119,10 @@ export type DietTarget = {
   protein: number;
   fat: number;
   carbs: number;
+  /** Soft daily fiber goal (g). */
+  fiber: number;
+  /** Soft free-sugar cap (g), informational — not a “eat more” target. */
+  sugar: number;
 };
 
 export type NutrientComparison = {
@@ -198,8 +202,11 @@ export function recommendDiet(
   const protein = round1(macroWeight * coeff.protein);
   const fat = round1(macroWeight * coeff.fat);
   const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));
+  // WHO/EFSA-style soft targets: ~25–30 g fiber; free sugars ≤10% energy (~50 g at 2000 kcal).
+  const fiber = 28;
+  const sugar = Math.max(25, Math.round((calories * 0.1) / 4));
 
-  return { calories, protein, fat, carbs };
+  return { calories, protein, fat, carbs, fiber, sugar };
 }
 
 export function compareNutrient(actual: number, target: number): NutrientComparison {
