@@ -290,7 +290,7 @@ function InlineEdit({
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary text-sm" disabled={saving}>{saving ? "Сохраняем..." : "Сохранить"}</button>
+        <button type="submit" className="btn btn-on-tint text-sm text-teal-800" disabled={saving}>{saving ? "Сохраняем..." : "Сохранить"}</button>
         <button type="button" className="btn btn-secondary text-sm" onClick={onCancel} disabled={saving}>Отмена</button>
       </div>
     </form>
