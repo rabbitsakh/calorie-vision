@@ -11,6 +11,7 @@ import { StreakWidget } from "@/components/StreakWidget";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -48,6 +49,11 @@ export default function RationPage() {
             timezone={timezone}
             onChanged={() => setRefreshKey((value) => value + 1)}
             onTotalsChange={setTotalCalories}
+          />
+          <QuickAddMeals
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onSaved={() => setRefreshKey((value) => value + 1)}
           />
           {/* Secondary: streak, water, ai, favorites, note */}
           <StreakWidget selectedDate={date} refreshKey={refreshKey} />
