@@ -5,6 +5,7 @@ import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
 import { StreakGlyph } from "@/components/StreakIcon";
+import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 
 const PANEL_ID = "streak";
 
@@ -13,8 +14,11 @@ type StreakData = {
   longestStreak: number;
   nextMilestone: number | null;
   daysUntilNext: number | null;
-  last14: Array<{ date: string; logged: boolean }>;
+  last14: Array<{ date: string; logged: boolean; frozen?: boolean }>;
   daysLoggedTotal: number;
+  canFreezeYesterday?: boolean;
+  freezeAvailable?: boolean;
+  streakAtRisk?: boolean;
 };
 
 function streakLabel(streak: number): string {
@@ -45,22 +49,48 @@ export function StreakWidget({
 }) {
   const [data, setData] = useState<StreakData | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [freezing, setFreezing] = useState(false);
+
+  async function loadStreak() {
+    try {
+      const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`));
+      if (!resp.ok) return;
+      setData((await resp.json()) as StreakData);
+    } catch {
+      // non-critical
+    }
+  }
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
   }, [selectedDate]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`));
-        if (!resp.ok) return;
-        setData((await resp.json()) as StreakData);
-      } catch {
-        // non-critical
-      }
-    })();
+    void loadStreak();
   }, [selectedDate, refreshKey]);
+
+  async function useFreeze() {
+    if (!data?.canFreezeYesterday || freezing) return;
+    const yesterday = (() => {
+      const d = new Date(selectedDate + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })();
+
+    setFreezing(true);
+    try {
+      const resp = await fetch(withBasePath("/api/streak"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: yesterday, today: selectedDate }),
+      });
+      if (resp.ok) {
+        await loadStreak();
+      }
+    } finally {
+      setFreezing(false);
+    }
+  }
 
   if (!data) return null;
 
@@ -99,6 +129,7 @@ export function StreakWidget({
 
   return (
     <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+      {hasStreak ? <MilestoneCelebration streak={streak} /> : null}
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -158,24 +189,47 @@ export function StreakWidget({
         </p>
       ) : null}
 
+      {data.canFreezeYesterday ? (
+        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
+          <p className="text-sm text-sky-900">
+            Вчера не было записей — серия под угрозой. Используйте заморозку (1 раз в неделю)?
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-sm font-semibold text-sky-800 hover:text-sky-950 disabled:opacity-60"
+            disabled={freezing}
+            onClick={() => void useFreeze()}
+          >
+            {freezing ? "Сохраняем…" : "❄️ Заморозить вчера"}
+          </button>
+        </div>
+      ) : data.freezeAvailable && data.streakAtRisk ? null : data.freezeAvailable ? (
+        <p className="mt-2 text-xs text-sky-700">❄️ Заморозка доступна на этой неделе</p>
+      ) : null}
+
       {/* Last 14 days mini-calendar */}
       <div className="mt-3">
         <p className="mb-1.5 text-xs text-amber-700">Последние 14 дней</p>
         <div className="flex gap-0.5">
-          {last14.map(({ date, logged }) => {
+          {last14.map(({ date, logged, frozen }) => {
             const isToday = date === selectedDate;
+            const active = logged || frozen;
             return (
               <div
                 key={date}
                 className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
-                title={`${date}: ${logged ? "есть записи" : "нет записей"}`}
+                title={`${date}: ${logged ? "есть записи" : frozen ? "заморожено" : "нет записей"}`}
               >
                 <div
                   className={`h-6 w-full rounded-sm transition-colors ${
-                    logged
-                      ? isToday
-                        ? "bg-amber-500"
-                        : "bg-amber-400"
+                    active
+                      ? frozen && !logged
+                        ? isToday
+                          ? "bg-sky-500"
+                          : "bg-sky-400"
+                        : isToday
+                          ? "bg-amber-500"
+                          : "bg-amber-400"
                       : isToday
                         ? "bg-amber-100 ring-1 ring-amber-400"
                         : "bg-amber-100"
