@@ -96,6 +96,36 @@ function formatConfidence(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
+const DRINK_PORTION_CHIPS = [200, 250, 330, 500] as const;
+
+function looksLikeDrink(dish: DishDraft): boolean {
+  const name = `${dish.dishName} ${dish.original.dishName}`.toLowerCase();
+  return /напиток|сок|чай|кофе|кофе|молок|кефир|йогурт пить|пиво|вино|вода|лимонад|кола|smoothie|смузи|компот|морс|какао/i.test(
+    name,
+  );
+}
+
+function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: number }> {
+  const drink = looksLikeDrink(dish);
+  const base = (drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS).map((grams) => ({
+    label: drink ? `${grams} мл` : `${grams} г`,
+    grams,
+  }));
+
+  const packGrams = dish.original.portionGrams;
+  const packaged =
+    dish.original.photoKind === "package" ||
+    dish.original.photoKind === "barcode" ||
+    dish.original.photoKind === "label";
+
+  if (packaged && packGrams && packGrams > 0 && !base.some((chip) => chip.grams === packGrams)) {
+    base.push({ label: `Вся упаковка (${packGrams} г)`, grams: packGrams });
+  }
+
+  return base;
+}
+
 export function ConfirmationCard({
   result,
   selectedDate,
@@ -632,6 +662,26 @@ function DishFields({
             value={dish.portionGrams}
             onChange={(event) => onPortionChange(event.target.value)}
           />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {portionChipOptions(dish).map((chip) => {
+              const active = Number(dish.portionGrams) === chip.grams;
+              return (
+                <button
+                  key={chip.label}
+                  type="button"
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
+                    active
+                      ? "bg-teal-700 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  disabled={disabled}
+                  onClick={() => onPortionChange(String(chip.grams))}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
           <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
         </div>
 
