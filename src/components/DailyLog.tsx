@@ -8,6 +8,7 @@ import { formatDateTime, formatDateWords } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
+import { pluralDays } from "@/lib/russian-text";
 
 type EditPatch = {
   dishName: string;
@@ -153,7 +154,7 @@ function GroupedMealCard({
         <button
           type="button"
           className="shrink-0 self-start rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-          title="Удалить всё фото"
+          title="Удалить все блюда с фото"
           onClick={() => onDeleteGroup(group.entries.map((e) => e.id))}
         >
           <TrashIcon />
@@ -566,16 +567,16 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         <div className="flex flex-wrap items-end justify-between gap-3">
           {!compact ? (
             <div>
-              <h2 className="text-xl font-bold">Дневник за день</h2>
+              <h2 className="text-xl font-bold">Дневник питания</h2>
               <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
             </div>
           ) : (
-            <h2 className="text-lg font-bold">Дневник за день</h2>
+            <h2 className="text-lg font-bold">Дневник питания</h2>
           )}
           {streakDays >= 2 ? (
             <div className="flex items-center gap-1.5 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
               <span className="text-lg">🔥</span>
-              <span>{streakDays} {streakDays === 1 ? "день" : streakDays < 5 ? "дня" : "дней"} подряд</span>
+              <span>{streakDays} {pluralDays(streakDays)} подряд</span>
             </div>
           ) : null}
 

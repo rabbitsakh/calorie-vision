@@ -145,7 +145,7 @@ export default function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Не удалось отправить письмо. Проверьте email и настройки SMTP.");
+      setError("Не удалось отправить письмо. Проверьте адрес email и попробуйте позже.");
       return;
     }
 

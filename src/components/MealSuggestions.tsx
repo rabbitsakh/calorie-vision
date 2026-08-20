@@ -29,7 +29,7 @@ type ApiResponse = {
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  protein: { label: "Белок", color: "bg-teal-100 text-teal-800" },
+  protein: { label: "Белковое", color: "bg-teal-100 text-teal-800" },
   carbs: { label: "Углеводы", color: "bg-violet-100 text-violet-800" },
   fat: { label: "Жиры", color: "bg-amber-100 text-amber-800" },
   balanced: { label: "Баланс", color: "bg-slate-100 text-slate-700" },
