@@ -86,11 +86,8 @@ export function buildFoodLookupPrompt(dishName: string): string {
   "protein": 0,
   "fat": 0,
   "carbs": 0,
-  "fiber": 0,
-  "sugar": 0,
-  "saturatedFat": 0,
   "portionGrams": 0,
-  "per100g": { "calories": 0, "protein": 0, "fat": 0, "carbs": 0, "fiber": 0, "sugar": 0, "saturatedFat": 0 },
+  "per100g": { "calories": 0, "protein": 0, "fat": 0, "carbs": 0 },
   "confidence": 0.0,
   "alternatives": []
 }
@@ -101,7 +98,6 @@ export function buildFoodLookupPrompt(dishName: string): string {
 - portionGrams: примерный вес порции в граммах; для напитков 1 мл ≈ 1 г (бутылка 500 мл → 500)
 - для пива, лимонада, сока: типичная порция — бутылка/бокал (330–500 мл); светлое пиво ~40–45 ккал/100 мл → 500 мл ≈ 200–225 ккал на всю порцию
 - если указываешь КБЖУ на 100 г/100 мл — заполни per100g и пересчитай calories/БЖУ на portionGrams
-- fiber, sugar, saturatedFat: укажи если известны для этого блюда, иначе 0
 - confidence:
   - 0.9+: хорошо известное блюдо с устойчивой калорийностью
   - 0.7–0.9: типичное блюдо, вес может варьироваться

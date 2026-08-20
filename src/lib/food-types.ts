@@ -18,6 +18,7 @@ export type FoodRecognitionResult = {
   protein?: number;
   fat?: number;
   carbs?: number;
+  /** Parsed if the model still returns them; not shown or persisted yet. */
   fiber?: number;
   sugar?: number;
   saturatedFat?: number;
