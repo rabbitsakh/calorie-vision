@@ -250,6 +250,9 @@ export function ConfirmationCard({
         originalProtein: origProtein,
         originalFat: origFat,
         originalCarbs: origCarbs,
+        recognitionSource: dish.original.source,
+        photoKind: dish.original.photoKind,
+        barcode: dish.original.barcode,
       }),
     });
 

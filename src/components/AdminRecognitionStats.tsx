@@ -11,6 +11,8 @@ type RecognitionStats = {
   avgConfidence: number | null;
   topMisrecognized: Array<{ dish: string; count: number }>;
   savedCorrections: number;
+  bySource?: Array<{ source: string; label: string; count: number }>;
+  byPhotoKind?: Array<{ photoKind: string; count: number }>;
   error?: string;
 };
 
@@ -68,6 +70,54 @@ export function AdminRecognitionStats() {
             <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">Память исправлений</p>
             <p className="text-lg font-semibold">{stats.savedCorrections} уникальных блюд в базе</p>
           </div>
+
+          {stats.bySource && stats.bySource.length > 0 ? (
+            <div>
+              <p className="mb-3 text-sm font-semibold text-slate-700">По источнику распознавания</p>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Источник</th>
+                      <th>Записей</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.bySource.map((row) => (
+                      <tr key={row.source}>
+                        <td className="font-medium">{row.label}</td>
+                        <td>{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {stats.byPhotoKind && stats.byPhotoKind.length > 0 ? (
+            <div>
+              <p className="mb-3 text-sm font-semibold text-slate-700">По типу фото</p>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Тип</th>
+                      <th>Записей</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.byPhotoKind.map((row) => (
+                      <tr key={row.photoKind}>
+                        <td className="font-medium">{row.photoKind}</td>
+                        <td>{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
 
           {stats.topMisrecognized.length > 0 ? (
             <div>

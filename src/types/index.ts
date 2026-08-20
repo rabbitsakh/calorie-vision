@@ -32,6 +32,9 @@ export type MealEntry = {
   wasCorrected: boolean;
   originalDish: string | null;
   originalCalories: number | null;
+  recognitionSource?: string | null;
+  photoKind?: string | null;
+  barcode?: string | null;
   createdAt: string;
 };
 
