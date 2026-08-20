@@ -289,6 +289,21 @@ textarea {
   }
 }
 
+@keyframes milestone-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.milestone-confetti {
+  animation: milestone-fall 2.2s ease-in forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
