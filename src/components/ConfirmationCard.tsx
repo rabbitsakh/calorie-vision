@@ -108,7 +108,9 @@ function looksLikeDrink(dish: DishDraft): boolean {
 
 function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: number }> {
   const drink = looksLikeDrink(dish);
-  const base = (drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS).map((grams) => ({
+  const base: Array<{ label: string; grams: number }> = (
+    drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS
+  ).map((grams) => ({
     label: drink ? `${grams} мл` : `${grams} г`,
     grams,
   }));
