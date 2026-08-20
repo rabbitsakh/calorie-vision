@@ -19,6 +19,8 @@ test("scales calories and macros when portion doubles", () => {
     protein: 40,
     fat: 20,
     carbs: 80,
+    fiber: undefined,
+    sugar: undefined,
     portionGrams: 400,
   });
 });
@@ -61,6 +63,24 @@ test("returns null for empty or invalid portion input", () => {
   assert.equal(nutritionBaseline({ calories: 400, portionGrams: 0 }), null);
 });
 
+test("scales fiber and sugar with portion", () => {
+  const scaled = scaleNutritionByPortion(
+    {
+      calories: 200,
+      protein: 5,
+      fat: 2,
+      carbs: 30,
+      fiber: 8,
+      sugar: 12,
+      portionGrams: 100,
+    },
+    150,
+  );
+
+  assert.equal(scaled?.fiber, 12);
+  assert.equal(scaled?.sugar, 18);
+});
+
 test("leaves missing macros undefined instead of turning them into zero", () => {
   const scaled = scaleNutritionByPortion(
     {
@@ -76,5 +96,7 @@ test("leaves missing macros undefined instead of turning them into zero", () => 
     protein: undefined,
     fat: undefined,
     carbs: undefined,
+    fiber: undefined,
+    sugar: undefined,
   });
 });

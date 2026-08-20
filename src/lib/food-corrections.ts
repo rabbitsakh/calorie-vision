@@ -6,6 +6,8 @@ export type FoodCorrectionRecord = {
   protein?: number | null;
   fat?: number | null;
   carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
   portionGrams?: number | null;
   useCount: number;
 };
@@ -17,11 +19,15 @@ export type RememberFoodCorrectionInput = {
   protein?: number | null;
   fat?: number | null;
   carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
   portionGrams?: number | null;
   originalCalories?: number | null;
   originalProtein?: number | null;
   originalFat?: number | null;
   originalCarbs?: number | null;
+  originalFiber?: number | null;
+  originalSugar?: number | null;
 };
 
 /** Stable key for matching a misrecognized dish name. */
@@ -85,6 +91,8 @@ export function applyFoodCorrection(
     protein: correction.protein ?? undefined,
     fat: correction.fat ?? undefined,
     carbs: correction.carbs ?? undefined,
+    fiber: correction.fiber ?? undefined,
+    sugar: correction.sugar ?? undefined,
     portionGrams: correction.portionGrams ?? result.portionGrams,
     confidence: Math.max(result.confidence, 0.85),
     source: "correction-memory",
@@ -102,6 +110,8 @@ export function mergeRememberedCorrection(
     protein: input.protein ?? null,
     fat: input.fat ?? null,
     carbs: input.carbs ?? null,
+    fiber: input.fiber ?? null,
+    sugar: input.sugar ?? null,
     portionGrams: input.portionGrams ?? null,
     useCount: 1,
   };
@@ -139,6 +149,8 @@ export function mergeRememberedCorrection(
     protein: blend(existing.protein, next.protein),
     fat: blend(existing.fat, next.fat),
     carbs: blend(existing.carbs, next.carbs),
+    fiber: blend(existing.fiber, next.fiber),
+    sugar: blend(existing.sugar, next.sugar),
     portionGrams:
       next.portionGrams !== null && next.portionGrams !== undefined
         ? Math.round(((existing.portionGrams ?? next.portionGrams) * weight + next.portionGrams) / (weight + 1))
