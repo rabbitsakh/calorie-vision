@@ -62,9 +62,13 @@ export async function GET(request: NextRequest) {
     const dates = entries.map((e) => e.date);
     const dateSet = new Set(dates);
 
-    const streak = computeStreak(dateSet, today);
+    const loggedToday = dateSet.has(today);
+    const yesterday = shiftDate(today, -1);
+    const streakBeforeToday = computeStreak(dateSet, yesterday);
+    const streak = loggedToday ? computeStreak(dateSet, today) : streakBeforeToday;
     const longestStreak = computeLongestStreak(dates);
     const next = nextMilestone(streak);
+    const streakAtRisk = !loggedToday && streakBeforeToday >= 1;
 
     // Last 14 days with logged status
     const last14: Array<{ date: string; logged: boolean }> = [];
@@ -83,6 +87,9 @@ export async function GET(request: NextRequest) {
       daysUntilNext: next ? next - streak : null,
       last14,
       daysLoggedTotal,
+      loggedToday,
+      streakAtRisk,
+      streakBeforeToday,
     });
   } catch (error) {
     console.error(error);

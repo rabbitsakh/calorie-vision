@@ -85,7 +85,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
   ];
 
   return (
-    <section className="card p-4 md:p-6">
+    <section id="food-add-panel" className="card p-4 md:p-6 scroll-mt-4">
       <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
