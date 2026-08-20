@@ -96,7 +96,7 @@ function BarChart({
   const labelGap = 4;
   const totalHeight = plotHeight + labelAreaHeight;
 
-  const valueLabelClass = period === "month" ? "text-[8px] sm:text-[9px]" : "text-[9px] sm:text-[10px]";
+  const valueLabelClass = "text-xs";
 
   function barHeightPx(v: number | null | undefined): number {
     if (!v || v <= 0) return 0;
@@ -114,7 +114,7 @@ function BarChart({
     <div className="flex gap-2 sm:gap-3">
       {/* Y-axis labels */}
       <div
-        className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
+        className="relative shrink-0 text-right text-xs font-medium text-slate-400"
         style={{ height: totalHeight, width: "2.75rem" }}
         aria-hidden="true"
       >
@@ -199,7 +199,7 @@ function BarChart({
             const show = shouldShowDateLabel(index, days.length, period);
             return (
               <div key={`${day.date}-lbl`} className="min-w-0 flex-1 text-center">
-                <span className={`block truncate text-[10px] font-medium text-slate-500 sm:text-xs ${show ? "" : "invisible"}`}>
+                <span className={`block truncate text-xs font-medium text-slate-500 ${show ? "" : "invisible"}`}>
                   {formatDateShort(day.date)}
                 </span>
               </div>
@@ -249,7 +249,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
       <div className="flex gap-2 sm:gap-3">
         {/* Y-axis */}
         <div
-          className="relative shrink-0 text-right text-[10px] font-medium text-slate-400 sm:text-xs"
+          className="relative shrink-0 text-right text-xs font-medium text-slate-400"
           style={{ height: plotHeight, width: "2.75rem" }}
           aria-hidden="true"
         >
@@ -316,7 +316,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
                   title={`${formatDateShort(p.date)}: ${p.value} кг`}
                 />
                 <span
-                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-[9px] font-semibold leading-none text-slate-700 sm:text-[10px]"
+                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-xs font-semibold leading-none text-slate-700"
                   style={{ bottom: "14px" }}
                 >
                   {formatChartValue(p.value, "weightKg")}
@@ -331,7 +331,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
               const show = shouldShowDateLabel(index, days.length, period);
               return (
                 <div key={day.date} className="min-w-0 flex-1 text-center">
-                  <span className={`block truncate text-[10px] font-medium text-slate-500 sm:text-xs ${show ? "" : "invisible"}`}>
+                  <span className={`block truncate text-xs font-medium text-slate-500 ${show ? "" : "invisible"}`}>
                     {formatDateShort(day.date)}
                   </span>
                 </div>
@@ -365,7 +365,7 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
 
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
-  const labelClass = period === "month" ? "text-[8px]" : "text-[9px] sm:text-[10px]";
+  const labelClass = "text-xs";
 
   return (
     <div className="flex flex-col gap-2">
@@ -429,7 +429,7 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
                 <div className="h-px w-full bg-slate-100" />
               )}
             </div>
-            <span className={`text-[8px] font-medium text-slate-400 sm:text-[9px] ${show ? "" : "invisible"}`}>
+            <span className={`text-xs font-medium text-slate-400 ${show ? "" : "invisible"}`}>
               {LABELS[Math.floor(hour / 2)]}
             </span>
           </div>

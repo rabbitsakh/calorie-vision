@@ -38,7 +38,7 @@ function Meter({
         </span>
       </div>
       <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
-        <div className={`h-3 rounded-full ${barClass} transition-all`} style={{ width: `${capped}%` }} />
+        <div className={`h-3 rounded-full ${barClass} transition-all duration-500`} style={{ width: `${capped}%` }} />
         {overflow ? (
           <div className="absolute inset-y-0 right-0 w-2 rounded-r-full bg-red-400" />
         ) : null}
@@ -53,7 +53,7 @@ function Meter({
 export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex }: DietTargetsProps) {
   const sexText = sexNoun(sex);
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <p className="text-sm font-semibold text-slate-700">Рекомендуемый рацион на день</p>
       <p className="mt-1 text-xs text-slate-500">
         Норма для {weightKg} кг

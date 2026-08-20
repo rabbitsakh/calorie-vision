@@ -7,7 +7,14 @@
   --muted: #64748b;
   --accent: #0f766e;
   --accent-soft: #ccfbf1;
+  --accent-water: #0284c7;
+  --accent-water-soft: #e0f2fe;
+  --accent-streak: #d97706;
+  --accent-streak-soft: #fffbeb;
   --danger: #dc2626;
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
 }
 
 * {
@@ -23,12 +30,21 @@ body {
 body {
   color: var(--foreground);
   background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 24%),
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.06), transparent 36%),
     var(--background);
   background-attachment: fixed;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   min-height: 100vh;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 button,
@@ -40,17 +56,17 @@ textarea {
 .card {
   background: var(--card);
   border: 1px solid rgba(148, 163, 184, 0.25);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07);
 }
 
 .btn {
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
   font-weight: 600;
-  padding: 0.85rem 1.25rem;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  padding: 0.875rem 1.25rem;
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .btn:hover:not(:disabled) {
@@ -93,7 +109,7 @@ textarea {
 .field textarea {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 0.75rem 0.9rem;
 }
 
@@ -101,6 +117,35 @@ textarea {
 .field textarea:focus {
   border-color: var(--accent);
   outline: none;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn-quiet {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: #64748b;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 0.75rem;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-quiet:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .input-with-action {
@@ -117,7 +162,7 @@ textarea {
   align-items: center;
   background: var(--accent);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: white;
   cursor: pointer;
   display: inline-flex;

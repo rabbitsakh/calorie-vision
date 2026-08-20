@@ -140,7 +140,7 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
         </button>
         <button
           type="button"
-          className="text-xs text-slate-400 hover:text-slate-600"
+          className="btn-quiet"
           onClick={() => { hidePanelToday(PANEL_ID, selectedDate); setHidden(true); }}
         >
           Скрыть

@@ -100,8 +100,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               key={tab.id}
               type="button"
               disabled={disabled || loading}
-              className={`rounded-lg px-2 py-2 text-sm font-semibold ${
-                mode === tab.id ? "bg-white text-teal-800 shadow" : "text-slate-600"
+              className={`min-h-10 rounded-lg px-2 py-2 text-sm font-semibold transition-colors ${
+                mode === tab.id ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"
               }`}
               onClick={() => {
                 setMode(tab.id);

@@ -181,14 +181,14 @@ export default function LoginForm() {
         <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
           <button
             type="button"
-            className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "phone" ? "bg-white text-teal-800 shadow" : "text-slate-600"}`}
+            className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${tab === "phone" ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"}`}
             onClick={() => setTab("phone")}
           >
             Телефон
           </button>
           <button
             type="button"
-            className={`rounded-lg px-3 py-2 text-sm font-semibold ${tab === "email" ? "bg-white text-teal-800 shadow" : "text-slate-600"}`}
+            className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${tab === "email" ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"}`}
             onClick={() => setTab("email")}
           >
             Email
@@ -226,8 +226,15 @@ export default function LoginForm() {
               </div>
             ) : null}
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Подождите…" : codeSent ? "Войти" : "Получить код"}
+            <button type="submit" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="daisy-loading daisy-loading-sm" aria-hidden>
+                    <span /><span /><span />
+                  </span>
+                  Подождите…
+                </>
+              ) : codeSent ? "Войти" : "Получить код"}
             </button>
 
             {codeSent ? (
@@ -259,8 +266,15 @@ export default function LoginForm() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? "Отправляем…" : "Получить ссылку для входа"}
+            <button type="submit" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="daisy-loading daisy-loading-sm" aria-hidden>
+                    <span /><span /><span />
+                  </span>
+                  Отправляем…
+                </>
+              ) : "Получить ссылку для входа"}
             </button>
           </form>
         )}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
+import { StreakGlyph } from "@/components/StreakIcon";
 
 const PANEL_ID = "streak";
 
@@ -15,15 +16,6 @@ type StreakData = {
   last14: Array<{ date: string; logged: boolean }>;
   daysLoggedTotal: number;
 };
-
-function streakEmoji(streak: number): string {
-  if (streak >= 100) return "🏆";
-  if (streak >= 30) return "💎";
-  if (streak >= 14) return "⚡";
-  if (streak >= 7) return "🔥";
-  if (streak >= 3) return "✨";
-  return "🌱";
-}
 
 function streakLabel(streak: number): string {
   if (streak >= 100) return "Легенда!";
@@ -79,12 +71,13 @@ export function StreakWidget({
         className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
-        <span>
+        <span className="flex items-center gap-1.5">
+          <StreakGlyph streak={data.streak} className="h-4 w-4" />
           {data.streak >= 1
-            ? `${streakEmoji(data.streak)} ${data.streak} ${pluralDays(data.streak)} подряд`
+            ? `${data.streak} ${pluralDays(data.streak)} подряд`
             : data.daysLoggedTotal > 0
-              ? "📅 Продолжите серию сегодня"
-              : "📅 Начните серию сегодня"}
+              ? "Продолжите серию сегодня"
+              : "Начните серию сегодня"}
         </span>
         <span className="text-xs">Показать</span>
       </button>
@@ -94,9 +87,6 @@ export function StreakWidget({
   const { streak, longestStreak, nextMilestone, daysUntilNext, last14, daysLoggedTotal } = data;
   const isRecord = streak >= longestStreak && streak > 1;
   const hasStreak = streak >= 1;
-  const progressPct = nextMilestone
-    ? Math.round(((nextMilestone - daysUntilNext!) / nextMilestone) * 100)
-    : 100;
 
   // Find the previous milestone for progress bar start
   const MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365];
@@ -108,11 +98,11 @@ export function StreakWidget({
     : 100;
 
   return (
-    <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-4">
+    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-2xl leading-none">{hasStreak ? streakEmoji(streak) : "📅"}</span>
+          <StreakGlyph streak={hasStreak ? streak : 0} />
           <div>
             <p className="text-lg font-bold text-amber-900">
               {hasStreak
@@ -140,7 +130,7 @@ export function StreakWidget({
           ) : null}
           <button
             type="button"
-            className="text-xs text-amber-600 hover:text-amber-800"
+            className="btn-quiet text-amber-700 hover:bg-amber-100 hover:text-amber-900"
             onClick={() => { hidePanelToday(PANEL_ID, selectedDate); setHidden(true); }}
           >
             Скрыть
@@ -157,7 +147,7 @@ export function StreakWidget({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-amber-200">
             <div
-              className="h-2 rounded-full bg-amber-500 transition-all"
+              className="h-2 rounded-full bg-amber-500 transition-all duration-500"
               style={{ width: `${barPct}%` }}
             />
           </div>
@@ -191,7 +181,7 @@ export function StreakWidget({
                         : "bg-amber-100"
                   }`}
                 />
-                <span className="text-[8px] font-medium leading-none text-amber-700">
+                <span className="text-xs font-medium leading-none text-amber-700">
                   {dayNum(date)}
                 </span>
               </div>
@@ -201,7 +191,7 @@ export function StreakWidget({
         <div className="mt-1 flex gap-0.5">
           {last14.map(({ date }) => (
             <div key={`day-${date}`} className="min-w-0 flex-1 text-center">
-              <span className="text-[7px] text-amber-600">{dayAbbr(date)}</span>
+              <span className="text-xs text-amber-600">{dayAbbr(date)}</span>
             </div>
           ))}
         </div>

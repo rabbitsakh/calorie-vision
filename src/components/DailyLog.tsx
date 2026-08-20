@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
+import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { formatDateTime, formatDateWords } from "@/lib/dates";
@@ -575,15 +576,15 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           )}
           {streakDays >= 2 ? (
             <div className="flex items-center gap-1.5 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
-              <span className="text-lg">🔥</span>
+              <FlameIcon className="h-5 w-5 text-amber-600" />
               <span>{streakDays} {pluralDays(streakDays)} подряд</span>
             </div>
           ) : null}
 
           <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
-            <div className="text-xs uppercase tracking-wide text-teal-100">Итого</div>
+            <div className="text-xs uppercase tracking-wide text-teal-50">Итого</div>
             <div className="text-2xl font-bold">{totals.calories} ккал</div>
-            <div className="text-xs text-teal-100">
+            <div className="whitespace-nowrap text-xs text-teal-50">
               Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
             </div>
             {daySummary.comparison ? (() => {
@@ -599,9 +600,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                     aria-label={`${pct}% дневной нормы калорий`}
                     className="h-2 overflow-hidden rounded-full bg-teal-900/40"
                   >
-                    <div className="h-2 rounded-full bg-teal-200 transition-all" style={{ width: `${pct}%` }} />
+                    <div className="h-2 rounded-full bg-teal-200 transition-all duration-500" style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="mt-0.5 text-[10px] text-teal-200">{pct}% от {target} ккал</div>
+                  <div className="mt-0.5 text-xs text-teal-50">{pct}% от {target} ккал</div>
                 </div>
               );
             })() : null}
@@ -634,7 +635,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               const hasTypes = entries.some((e) => e.mealType);
               if (!hasTypes) return null;
               return (
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mb-3 text-sm font-semibold text-slate-700">Бюджет по приёмам пищи</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {budgets.map((b) => {
@@ -649,7 +650,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                             <span className={over ? "text-rose-600" : "text-slate-500"}>{used} / {alloc} ккал</span>
                           </div>
                           <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                            <div className={`h-2 rounded-full transition-all ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
+                            <div className={`h-2 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
                           </div>
                         </div>
                       );
