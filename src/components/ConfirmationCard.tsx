@@ -96,6 +96,7 @@ export function ConfirmationCard({
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -108,6 +109,7 @@ export function ConfirmationCard({
   useEffect(() => {
     setDishes(draftsFromRecognition(recognition));
     setImagePath(initialImagePath);
+    setImageLoaded(false);
   }, [recognition, initialImagePath]);
 
   function updateDish(id: string, patch: Partial<DishDraft>) {
@@ -307,12 +309,16 @@ export function ConfirmationCard({
 
         <div className={`grid gap-5 ${hasImage ? "md:grid-cols-[220px_1fr]" : ""}`}>
           {hasImage ? (
-            <div className="overflow-hidden rounded-2xl bg-slate-100">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-100">
+              {!imageLoaded ? (
+                <div className="absolute inset-0 min-h-52 animate-pulse bg-slate-200" aria-hidden />
+              ) : null}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={previewUrl ?? getImageUrl(imagePath)}
                 alt={dishes.map((dish) => dish.dishName).join(", ") || "Фото блюда"}
-                className="h-full min-h-52 w-full object-cover"
+                onLoad={() => setImageLoaded(true)}
+                className={`h-full min-h-52 w-full object-cover ${imageLoaded ? "" : "opacity-0"}`}
               />
             </div>
           ) : null}
@@ -415,8 +421,15 @@ export function ConfirmationCard({
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="btn btn-primary" disabled={saving || searching} onClick={() => void handleSave()}>
-            {saving ? "Сохраняем..." : multi ? "Сохранить все блюда" : "Да, сохранить"}
+          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
+            {saving ? (
+              <>
+                <span className="daisy-loading daisy-loading-sm" aria-hidden>
+                  <span /><span /><span />
+                </span>
+                Сохраняем...
+              </>
+            ) : multi ? "Сохранить все блюда" : "Да, сохранить"}
           </button>
           <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
             Отменить

@@ -51,7 +51,7 @@ function MacroBar({
   const over = eaten > target;
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex justify-between text-[10px] font-medium text-slate-600">
+      <div className="flex justify-between text-xs font-medium text-slate-600">
         <span>{label}</span>
         <span className={over ? "text-rose-600" : ""}>{eaten}/{target} г</span>
       </div>
@@ -137,7 +137,7 @@ export function MealSuggestions({
         <div className="flex gap-2">
           <button
             type="button"
-            className="text-xs text-slate-400 hover:text-slate-600"
+            className="btn-quiet"
             onClick={() => { setData(null); void load(); }}
             disabled={loading}
           >
@@ -145,7 +145,7 @@ export function MealSuggestions({
           </button>
           <button
             type="button"
-            className="text-xs text-slate-400 hover:text-slate-600"
+            className="btn-quiet"
             onClick={() => { hidePanelToday(PANEL_ID, selectedDate); setHidden(true); setVisible(false); }}
           >
             Скрыть
@@ -216,7 +216,7 @@ export function MealSuggestions({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="font-semibold text-slate-900">{s.name}</p>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${cat.color}`}>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cat.color}`}>
                         {cat.label}
                       </span>
                     </div>
@@ -228,7 +228,7 @@ export function MealSuggestions({
                   </div>
                 </div>
                 {(s.protein || s.fat || s.carbs) ? (
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400">
                     Б {s.protein} · Ж {s.fat} · У {s.carbs} г
                   </p>
                 ) : null}

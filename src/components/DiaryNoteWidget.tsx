@@ -96,7 +96,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         <h2 className="text-base font-semibold">Заметка о дне</h2>
         <button
           type="button"
-          className="text-xs text-slate-400 hover:text-slate-600"
+          className="btn-quiet"
           onClick={() => {
           hidePanelToday(PANEL_ID, selectedDate);
           setOpen(false);

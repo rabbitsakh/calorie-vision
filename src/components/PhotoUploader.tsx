@@ -147,7 +147,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
           <ThinkingAnimation preview={preview} />
           <button
             type="button"
-            className="mt-1 text-xs text-slate-400 hover:text-slate-600"
+            className="btn-quiet mt-1"
             onClick={handleCancel}
           >
             Отменить
