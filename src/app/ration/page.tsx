@@ -12,6 +12,7 @@ import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -71,6 +72,7 @@ export default function RationPage() {
           <WaterTracker selectedDate={date} />
           <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
           <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
+          <PushNotificationPrompt />
           <DiaryNoteWidget selectedDate={date} />
         </div>
       </AuthGate>
