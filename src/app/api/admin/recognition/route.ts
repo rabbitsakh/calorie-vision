@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
+import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 
@@ -16,21 +17,15 @@ export async function GET() {
       avgConfidenceRaw,
       topMisrecognized,
       corrections,
-      sourceBreakdown,
+      bySource,
+      byPhotoKind,
     ] = await Promise.all([
-      // Total meal entries from AI recognition (have confidence set)
       prisma.mealEntry.count({ where: { confidence: { not: null } } }),
-
-      // How many were user-corrected
       prisma.mealEntry.count({ where: { wasCorrected: true } }),
-
-      // Average confidence across recognized entries
       prisma.mealEntry.aggregate({
         _avg: { confidence: true },
         where: { confidence: { not: null } },
       }),
-
-      // Top misrecognized dishes (originalDish with most corrections)
       prisma.mealEntry.groupBy({
         by: ["originalDish"],
         where: { wasCorrected: true, originalDish: { not: null } },
@@ -38,21 +33,25 @@ export async function GET() {
         orderBy: { _count: { id: "desc" } },
         take: 10,
       }),
-
-      // Total corrections in memory
       prisma.foodCorrection.count(),
-
-      // Breakdown by source-like flags
       prisma.mealEntry.groupBy({
-        by: ["wasCorrected"],
+        by: ["recognitionSource"],
         _count: { id: true },
-        where: { confidence: { not: null } },
+        where: { recognitionSource: { not: null } },
+        orderBy: { _count: { id: "desc" } },
+      }),
+      prisma.mealEntry.groupBy({
+        by: ["photoKind"],
+        _count: { id: true },
+        where: { photoKind: { not: null } },
+        orderBy: { _count: { id: "desc" } },
       }),
     ]);
 
-    const correctionRate = totalRecognitions > 0
-      ? Math.round((correctedCount / totalRecognitions) * 100)
-      : 0;
+    const correctionRate =
+      totalRecognitions > 0
+        ? Math.round((correctedCount / totalRecognitions) * 100)
+        : 0;
 
     return NextResponse.json({
       totalRecognitions,
@@ -63,8 +62,23 @@ export async function GET() {
         : null,
       topMisrecognized: topMisrecognized
         .filter((row) => row.originalDish)
-        .map((row) => ({ dish: decodeHtmlEntities(row.originalDish!), count: row._count.id })),
+        .map((row) => ({
+          dish: decodeHtmlEntities(row.originalDish!),
+          count: row._count.id,
+        })),
       savedCorrections: corrections,
+      bySource: bySource.map((row) => ({
+        source: row.recognitionSource ?? "unknown",
+        label:
+          RECOGNITION_SOURCE_LABELS[row.recognitionSource ?? ""] ??
+          row.recognitionSource ??
+          "Неизвестно",
+        count: row._count.id,
+      })),
+      byPhotoKind: byPhotoKind.map((row) => ({
+        photoKind: row.photoKind ?? "unknown",
+        count: row._count.id,
+      })),
     });
   } catch (error) {
     console.error(error);

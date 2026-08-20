@@ -117,29 +117,33 @@ enum MealType {
 }
 
 model MealEntry {
-  id               String    @id @default(cuid())
-  userId           String
-  date             String    @db.VarChar(10)
-  dishName         String
-  calories         Int
-  protein          Float?
-  fat              Float?
-  carbs            Float?
-  portionGrams     Int?
-  confidence       Float?
-  imagePath        String?
-  mealGroupId      String?   @db.VarChar(191)
-  mealType         MealType?
-  wasCorrected     Boolean   @default(false)
-  originalDish     String?
-  originalCalories Int?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  userId             String
+  date               String    @db.VarChar(10)
+  dishName           String
+  calories           Int
+  protein            Float?
+  fat                Float?
+  carbs              Float?
+  portionGrams       Int?
+  confidence         Float?
+  imagePath          String?
+  mealGroupId        String?   @db.VarChar(191)
+  mealType           MealType?
+  wasCorrected       Boolean   @default(false)
+  originalDish       String?
+  originalCalories   Int?
+  recognitionSource  String?   @db.VarChar(64)
+  photoKind          String?   @db.VarChar(32)
+  barcode            String?   @db.VarChar(32)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
   @@index([date])
+  @@index([recognitionSource])
 }
 
 model WaterEntry {
