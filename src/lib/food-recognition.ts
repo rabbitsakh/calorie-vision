@@ -180,6 +180,7 @@ export async function enrichPackagedProduct(
 
 async function backfillMissingNutrition(
   result: FoodRecognitionResult,
+  userId?: string | null,
 ): Promise<FoodRecognitionResult> {
   if (!needsNutritionLookup(result)) {
     return result;
@@ -195,7 +196,7 @@ async function backfillMissingNutrition(
 
   for (const name of names) {
     try {
-      const looked = await lookupFoodByName(name);
+      const looked = await lookupFoodByName(name, userId);
       if (!hasUsableCalories(looked) && needsNutritionLookup(looked)) {
         continue;
       }
@@ -219,7 +220,10 @@ async function backfillMissingNutrition(
   return best;
 }
 
-async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecognitionResult> {
+async function enrichMealItem(
+  vision: FoodRecognitionResult,
+  userId?: string | null,
+): Promise<FoodRecognitionResult> {
   let result = normalizeRecognitionNutrition({
     ...vision,
     photoKind: vision.photoKind ?? "meal",
@@ -234,14 +238,15 @@ async function enrichMealItem(vision: FoodRecognitionResult): Promise<FoodRecogn
 
   // Fallback lookup whenever nutrition is missing — confidence reflects dish
   // identification, not whether calories/macros were actually returned.
-  result = await backfillMissingNutrition(result);
+  result = await backfillMissingNutrition(result, userId);
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
 export async function recognizeFoodWithAI(
   imageBuffer: Buffer,
   filename: string,
+  userId?: string | null,
 ): Promise<FoodRecognitionResult> {
   if (!process.env.GIGACHAT_CREDENTIALS) {
     throw new Error(
@@ -254,15 +259,15 @@ export async function recognizeFoodWithAI(
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
 
   if (plated && vision.items) {
-    const processed = await Promise.all(vision.items.map((item) => enrichMealItem(item)));
+    const processed = await Promise.all(vision.items.map((item) => enrichMealItem(item, userId)));
     return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
   }
 
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
   let result = normalizeRecognitionNutrition(enriched);
-  result = await backfillMissingNutrition(result);
+  result = await backfillMissingNutrition(result, userId);
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result));
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
 async function withFoodImage(
@@ -310,12 +315,15 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
   );
 }
 
-export async function lookupFoodByName(dishName: string): Promise<FoodRecognitionResult> {
+export async function lookupFoodByName(
+  dishName: string,
+  userId?: string | null,
+): Promise<FoodRecognitionResult> {
   if (!dishName.trim()) {
     throw new Error("Укажите название блюда");
   }
 
-  const remembered = await lookupStoredFoodCorrection(dishName);
+  const remembered = await lookupStoredFoodCorrection(dishName, userId);
   if (remembered) {
     return normalizeRecognitionNutrition(
       await withFoodImage(remembered, dishName),
@@ -356,5 +364,6 @@ export async function lookupFoodByName(dishName: string): Promise<FoodRecognitio
     normalizeRecognitionNutrition(
       await withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName),
     ),
+    userId,
   );
 }

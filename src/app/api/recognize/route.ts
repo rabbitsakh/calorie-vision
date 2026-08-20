@@ -6,7 +6,7 @@ import { saveImageBuffer } from "@/lib/upload";
 
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireSession();
+    const { session, response } = await requireSession();
     if (response) {
       return response;
     }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const original = Buffer.from(await file.arrayBuffer());
     const compressed = await compressFoodImage(original);
     const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
-    const recognition = await recognizeFoodWithAI(original, file.name);
+    const recognition = await recognizeFoodWithAI(original, file.name, session.user.id);
 
     return NextResponse.json({
       imagePath,

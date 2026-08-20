@@ -250,7 +250,9 @@ model UserBadge {
 
 model FoodCorrection {
   id            String   @id @default(cuid())
-  originalKey   String   @unique @db.VarChar(191)
+  /** Empty string = legacy/global shared corrections; otherwise scoped to a user. */
+  userId        String   @default("") @db.VarChar(191)
+  originalKey   String   @db.VarChar(191)
   correctedName String
   calories      Int
   protein       Float?
@@ -260,4 +262,7 @@ model FoodCorrection {
   useCount      Int      @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  @@unique([userId, originalKey])
+  @@index([userId])
 }
