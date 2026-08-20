@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   inferPer100gValues,
+  mergeNutritionBackfill,
   normalizeRecognitionNutrition,
   needsNutritionLookup,
+  simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
 
 test("normalizes zero calories from per100g data", () => {
@@ -106,4 +108,76 @@ test("detects when nutrition lookup is still needed", () => {
     }),
     false,
   );
+});
+
+test("simplifies dish names for a second nutrition lookup", () => {
+  assert.equal(
+    simplifyDishNameForLookup("Паста карбонара (домашняя, большая порция)"),
+    "Паста карбонара",
+  );
+  assert.equal(simplifyDishNameForLookup("Борщ"), null);
+});
+
+test("merges lookup nutrition onto a zero-calorie vision item and scales portion", () => {
+  const merged = mergeNutritionBackfill(
+    {
+      dishName: "Картофель фри",
+      calories: 0,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+      portionGrams: 150,
+      confidence: 0.8,
+      photoKind: "meal",
+      source: "gigachat",
+    },
+    {
+      dishName: "Картофель фри",
+      calories: 312,
+      protein: 4,
+      fat: 15,
+      carbs: 41,
+      portionGrams: 100,
+      confidence: 0.75,
+      source: "openfoodfacts-search",
+      photoKind: "package",
+    },
+  );
+
+  assert.equal(merged.dishName, "Картофель фри");
+  assert.equal(merged.portionGrams, 150);
+  assert.equal(merged.calories, 468);
+  assert.equal(merged.protein, 6);
+  assert.equal(merged.source, "openfoodfacts-search");
+  assert.equal(merged.photoKind, "meal");
+});
+
+test("keeps vision macros when only calories were missing", () => {
+  const merged = mergeNutritionBackfill(
+    {
+      dishName: "Салат",
+      calories: 0,
+      protein: 3,
+      fat: 8,
+      carbs: 4,
+      portionGrams: 120,
+      confidence: 0.6,
+      photoKind: "meal",
+    },
+    {
+      dishName: "Салат Цезарь",
+      calories: 180,
+      protein: 10,
+      fat: 12,
+      carbs: 8,
+      portionGrams: 120,
+      confidence: 0.7,
+      source: "gigachat-lookup",
+    },
+  );
+
+  assert.equal(merged.calories, 180);
+  assert.equal(merged.protein, 3);
+  assert.equal(merged.fat, 8);
+  assert.equal(merged.carbs, 4);
 });
