@@ -68,6 +68,17 @@ function pickMacro(
   return lookedValue;
 }
 
+/** Keep explicit zeros from vision (e.g. meat has 0 fiber); only fill when missing. */
+function pickOptionalMacro(
+  visionValue: number | undefined,
+  lookedValue: number | undefined,
+): number | undefined {
+  if (visionValue !== undefined) {
+    return visionValue;
+  }
+  return lookedValue;
+}
+
 /**
  * Fill missing calories/macros from a lookup result, scaling to the vision portion
  * when the model estimated grams but left nutrition empty.
@@ -122,8 +133,8 @@ export function mergeNutritionBackfill(
     protein: pickMacro(vision.protein, lookedProtein),
     fat: pickMacro(vision.fat, lookedFat),
     carbs: pickMacro(vision.carbs, lookedCarbs),
-    fiber: pickMacro(vision.fiber, lookedFiber),
-    sugar: pickMacro(vision.sugar, lookedSugar),
+    fiber: pickOptionalMacro(vision.fiber, lookedFiber),
+    sugar: pickOptionalMacro(vision.sugar, lookedSugar),
     portionGrams: targetGrams ?? vision.portionGrams ?? looked.portionGrams,
     brand: vision.brand ?? looked.brand,
     barcode: vision.barcode ?? looked.barcode,
