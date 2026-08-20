@@ -46,3 +46,31 @@ export function decodeHtmlEntities(value: string): string {
 
   return current;
 }
+
+export function mergeDecodedFoodStats(
+  rows: Array<{ dishName: string; count: number; avgCalories: number }>,
+  limit = 8,
+): Array<{ dishName: string; count: number; avgCalories: number }> {
+  const merged = new Map<string, { count: number; calorieSum: number }>();
+
+  for (const row of rows) {
+    const dishName = decodeHtmlEntities(row.dishName);
+    const calorieSum = row.avgCalories * row.count;
+    const prev = merged.get(dishName);
+    if (!prev) {
+      merged.set(dishName, { count: row.count, calorieSum });
+    } else {
+      prev.count += row.count;
+      prev.calorieSum += calorieSum;
+    }
+  }
+
+  return [...merged.entries()]
+    .map(([dishName, { count, calorieSum }]) => ({
+      dishName,
+      count,
+      avgCalories: count > 0 ? Math.round(calorieSum / count) : 0,
+    }))
+    .sort((a, b) => b.count - a.count || a.dishName.localeCompare(b.dishName, "ru"))
+    .slice(0, limit);
+}

@@ -16,7 +16,9 @@ export async function GET() {
       take: 100,
     });
 
-    return NextResponse.json({ foods });
+    return NextResponse.json({
+      foods: foods.map((food) => ({ ...food, name: decodeHtmlEntities(food.name) })),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Ошибка загрузки" }, { status: 500 });

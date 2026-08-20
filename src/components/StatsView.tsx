@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatDateShort } from "@/lib/dates";
+import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
 
 type StatsDay = {
@@ -579,7 +580,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                 {data.topFoods.map((food) => (
                   <li key={food.dishName} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{food.dishName}</p>
+                      <p className="truncate text-sm font-medium">{decodeHtmlEntities(food.dishName)}</p>
                       <p className="text-xs text-slate-500">~{food.avgCalories} ккал</p>
                     </div>
                     <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
