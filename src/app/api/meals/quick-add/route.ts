@@ -140,10 +140,18 @@ export async function GET(request: NextRequest) {
             : `Ели ${item.count} раз`,
       }));
 
+    const yesterday = shiftDateKey(today, -1);
+    const yesterdayCount = await prisma.mealEntry.count({
+      where: { userId: session.user.id, date: yesterday },
+    });
+
     return NextResponse.json({
       suggestions,
       mealType: currentMealType,
       mealTypeLabel: MEAL_TYPE_LABELS[currentMealType],
+      yesterdayDate: yesterday,
+      yesterdayCount,
+      today,
     });
   } catch (error) {
     console.error(error);
