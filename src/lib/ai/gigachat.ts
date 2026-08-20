@@ -2,8 +2,9 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
+import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 
 const OAUTH_URL =
@@ -267,13 +268,43 @@ export async function recognizeWithGigaChat(
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
 
-  const text = await completeChat([
-    {
-      role: "user",
-      content: `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`,
-      attachments: [fileId],
-    },
-  ]);
+  const ask = async (extraHint?: string) => {
+    const content = extraHint
+      ? `${FOOD_RECOGNITION_PROMPT}\n\n${extraHint}\n\nПроанализируй фото еды и верни только JSON.`
+      : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
+    return completeChat([
+      {
+        role: "user",
+        content,
+        attachments: [fileId],
+      },
+    ]);
+  };
 
-  return parseFoodRecognitionResponse(text);
+  let text = await ask();
+  let result: FoodRecognitionResult;
+  try {
+    result = parseFoodRecognitionResponse(text);
+  } catch {
+    text = await ask(FOOD_RECOGNITION_RETRY_HINT);
+    result = parseFoodRecognitionResponse(text);
+  }
+
+  if (shouldRetryFoodRecognition(result)) {
+    try {
+      text = await ask(FOOD_RECOGNITION_RETRY_HINT);
+      const retried = parseFoodRecognitionResponse(text);
+      if (
+        (retried.items?.length ?? 0) > (result.items?.length ?? 0) ||
+        retried.calories > result.calories ||
+        !shouldRetryFoodRecognition(retried)
+      ) {
+        result = retried;
+      }
+    } catch {
+      // keep first parse
+    }
+  }
+
+  return result;
 }
