@@ -82,6 +82,20 @@ function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] 
   );
 }
 
+const LOW_CONFIDENCE = 0.55;
+
+function dishNeedsReview(dish: DishDraft): { lowConfidence: boolean; missingCalories: boolean } {
+  const calories = Number(dish.calories);
+  return {
+    lowConfidence: dish.original.confidence < LOW_CONFIDENCE,
+    missingCalories: !Number.isFinite(calories) || calories <= 0,
+  };
+}
+
+function formatConfidence(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
 export function ConfirmationCard({
   result,
   selectedDate,
@@ -297,6 +311,10 @@ export function ConfirmationCard({
   const multi = dishes.length > 1;
   const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
   const searching = searchingId !== null;
+  const reviewFlags = dishes.map(dishNeedsReview);
+  const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
+  const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
+  const needsReview = anyMissingCalories || anyLowConfidence;
 
   return (
     <section className="card p-6">
@@ -309,6 +327,21 @@ export function ConfirmationCard({
               : "Измените порцию — калории и БЖУ пересчитаются сразу. Название можно уточнить поиском."}
           </p>
         </div>
+
+        {needsReview ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-semibold">
+              {anyMissingCalories
+                ? "Не хватает калорий по одной или нескольким позициям"
+                : "Низкая уверенность распознавания"}
+            </p>
+            <p className="mt-1 text-amber-900/90">
+              {anyMissingCalories
+                ? "Уточните название и нажмите «Уточнить по названию» — подтянем КБЖУ из базы."
+                : "Проверьте название и калории. Если блюдо другое — уточните по названию."}
+            </p>
+          </div>
+        ) : null}
 
         <div className={`grid gap-5 ${hasImage ? "md:grid-cols-[220px_1fr]" : ""}`}>
           {hasImage ? (
@@ -334,7 +367,7 @@ export function ConfirmationCard({
               <p className="mt-1 text-xs text-teal-800">
                 {multi
                   ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                  : `Уверенность: ${Math.round(recognition.confidence * 100)}%`}
+                  : `Уверенность: ${formatConfidence(recognition.confidence)}`}
                 {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
               </p>
             </div>
@@ -348,6 +381,7 @@ export function ConfirmationCard({
                 searching={searchingId === dish.id}
                 disabled={saving || searching}
                 canRemove={multi}
+                review={reviewFlags[index]!}
                 onChange={(patch) => updateDish(dish.id, patch)}
                 onBaselineChange={(patch) =>
                   updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
@@ -450,6 +484,7 @@ function DishFields({
   searching,
   disabled,
   canRemove,
+  review,
   onChange,
   onBaselineChange,
   onPortionChange,
@@ -463,6 +498,7 @@ function DishFields({
   searching: boolean;
   disabled: boolean;
   canRemove: boolean;
+  review: { lowConfidence: boolean; missingCalories: boolean };
   onChange: (patch: Partial<DishDraft>) => void;
   onBaselineChange: (patch: Partial<DishDraft>) => void;
   onPortionChange: (value: string) => void;
@@ -471,6 +507,7 @@ function DishFields({
   onRemove: () => void;
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
+  const showReviewCta = review.lowConfidence || review.missingCalories;
 
   const alternativesSection = !multi && dish.original.alternatives?.length ? (
     <div>
@@ -502,10 +539,25 @@ function DishFields({
   ) : null;
 
   return (
-    <div className={multi ? "rounded-2xl border border-slate-200 p-4" : "flex flex-col gap-4"}>
+    <div
+      className={
+        multi
+          ? `rounded-2xl border p-4 ${
+              showReviewCta ? "border-amber-300 bg-amber-50/40" : "border-slate-200"
+            }`
+          : "flex flex-col gap-4"
+      }
+    >
       {multi ? (
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-slate-700">Блюдо {index + 1}</p>
+          <div>
+            <p className="text-sm font-semibold text-slate-700">Блюдо {index + 1}</p>
+            <p className="text-xs text-slate-500">
+              Уверенность: {formatConfidence(dish.original.confidence)}
+              {review.missingCalories ? " · нет калорий" : ""}
+              {review.lowConfidence ? " · низкая уверенность" : ""}
+            </p>
+          </div>
           {canRemove ? (
             <button type="button" className="text-sm text-red-600 hover:text-red-700" disabled={disabled} onClick={onRemove}>
               Убрать
@@ -546,6 +598,16 @@ function DishFields({
             </button>
           </div>
           <p className="text-xs text-slate-500">Измените название и нажмите лупу или Enter для пересчёта</p>
+          {showReviewCta ? (
+            <button
+              type="button"
+              className="mt-2 text-sm font-semibold text-amber-800 underline-offset-2 hover:underline"
+              disabled={disabled}
+              onClick={() => onLookup()}
+            >
+              Уточнить по названию
+            </button>
+          ) : null}
         </div>
 
         {alternativesSection}
