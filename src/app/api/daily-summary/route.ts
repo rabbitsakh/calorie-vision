@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const [entries, weight, waterEntries] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: summaryDate },
-        select: { calories: true, protein: true, fat: true, carbs: true },
+        select: { calories: true, protein: true, fat: true, carbs: true, fiber: true, sugar: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id, date: { lte: summaryDate } },
@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
     const totalProtein = round1(entries.reduce((sum, e) => sum + (e.protein ?? 0), 0));
     const totalFat = round1(entries.reduce((sum, e) => sum + (e.fat ?? 0), 0));
     const totalCarbs = round1(entries.reduce((sum, e) => sum + (e.carbs ?? 0), 0));
+    const totalFiber = round1(entries.reduce((sum, e) => sum + (e.fiber ?? 0), 0));
+    const totalSugar = round1(entries.reduce((sum, e) => sum + (e.sugar ?? 0), 0));
     const totalWaterMl = waterEntries.reduce((sum, e) => sum + e.ml, 0);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
@@ -86,6 +88,8 @@ export async function GET(request: NextRequest) {
       totalProtein,
       totalFat,
       totalCarbs,
+      totalFiber,
+      totalSugar,
       totalWaterMl,
       goal,
       target: target
@@ -94,6 +98,8 @@ export async function GET(request: NextRequest) {
             protein: target.protein,
             fat: target.fat,
             carbs: target.carbs,
+            fiber: target.fiber,
+            sugar: target.sugar,
           }
         : null,
       comparison: target

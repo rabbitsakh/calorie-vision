@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
           protein: true,
           fat: true,
           carbs: true,
+          fiber: true,
+          sugar: true,
         },
       }),
       prisma.weightEntry.findMany({
@@ -101,13 +103,19 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const mealByDate = new Map<string, { calories: number; protein: number; fat: number; carbs: number }>();
+    const mealByDate = new Map<
+      string,
+      { calories: number; protein: number; fat: number; carbs: number; fiber: number; sugar: number }
+    >();
     for (const meal of meals) {
-      const current = mealByDate.get(meal.date) ?? { calories: 0, protein: 0, fat: 0, carbs: 0 };
+      const current =
+        mealByDate.get(meal.date) ?? { calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 };
       current.calories += meal.calories;
       current.protein += meal.protein ?? 0;
       current.fat += meal.fat ?? 0;
       current.carbs += meal.carbs ?? 0;
+      current.fiber += meal.fiber ?? 0;
+      current.sugar += meal.sugar ?? 0;
       mealByDate.set(meal.date, current);
     }
 
@@ -121,6 +129,8 @@ export async function GET(request: NextRequest) {
         protein: round1(mealTotals?.protein ?? 0),
         fat: round1(mealTotals?.fat ?? 0),
         carbs: round1(mealTotals?.carbs ?? 0),
+        fiber: round1(mealTotals?.fiber ?? 0),
+        sugar: round1(mealTotals?.sugar ?? 0),
         weightKg: weightByDate.get(date) ?? null,
       };
     });

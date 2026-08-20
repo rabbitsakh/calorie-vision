@@ -151,6 +151,8 @@ export async function GET(request: NextRequest) {
           protein: compareNutrient(totalProtein, target.protein),
           fat: compareNutrient(totalFat, target.fat),
           carbs: compareNutrient(totalCarbs, target.carbs),
+          fiber: compareNutrient(totalFiber, target.fiber),
+          sugar: compareNutrient(totalSugar, target.sugar),
         }
       : null;
 

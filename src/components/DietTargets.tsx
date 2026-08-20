@@ -6,6 +6,8 @@ type DietTargetsProps = {
     protein: NutrientComparison;
     fat: NutrientComparison;
     carbs: NutrientComparison;
+    fiber?: NutrientComparison;
+    sugar?: NutrientComparison;
   };
   calorieTone: "good" | "warn" | "ok";
   weightKg: number;
@@ -68,6 +70,22 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex 
         <Meter label="Белки" unit="г" comparison={comparison.protein} />
         <Meter label="Жиры" unit="г" comparison={comparison.fat} />
         <Meter label="Углеводы" unit="г" comparison={comparison.carbs} />
+        {comparison.fiber ? (
+          <Meter
+            label="Клетчатка"
+            unit="г"
+            comparison={comparison.fiber}
+            tone={comparison.fiber.kind === "deficit" ? "warn" : "good"}
+          />
+        ) : null}
+        {comparison.sugar ? (
+          <Meter
+            label="Сахар (мягкий лимит)"
+            unit="г"
+            comparison={comparison.sugar}
+            tone={comparison.sugar.kind === "surplus" ? "warn" : "ok"}
+          />
+        ) : null}
       </div>
     </div>
   );
