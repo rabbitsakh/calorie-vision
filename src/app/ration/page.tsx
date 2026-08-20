@@ -14,6 +14,7 @@ import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
+import { EveningCheckin } from "@/components/EveningCheckin";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -49,6 +50,7 @@ export default function RationPage() {
             refreshKey={refreshKey}
             onAddFood={scrollToFoodAdd}
           />
+          <EveningCheckin today={today} selectedDate={date} />
           {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}

@@ -24,12 +24,13 @@ function localHour(timezone: string | null | undefined): number {
   return Number(parts.find((p) => p.type === "hour")?.value ?? "12");
 }
 
-type ReminderKind = "breakfast" | "streak" | "water";
+type ReminderKind = "breakfast" | "streak" | "water" | "checkin";
 
 function reminderForHour(hour: number): ReminderKind | null {
   if (hour === 8) return "breakfast";
   if (hour === 14) return "water";
   if (hour === 20) return "streak";
+  if (hour === 21) return "checkin";
   return null;
 }
 
@@ -71,11 +72,15 @@ export async function GET(request: NextRequest) {
 
       const today = toDateKeyTz(new Date(), user.timezone);
 
-      const [mealCount, waterTotal] = await Promise.all([
+      const [mealCount, waterTotal, diary] = await Promise.all([
         prisma.mealEntry.count({ where: { userId: user.id, date: today } }),
         prisma.waterEntry.aggregate({
           where: { userId: user.id, date: today },
           _sum: { ml: true },
+        }),
+        prisma.diaryNote.findUnique({
+          where: { userId_date: { userId: user.id, date: today } },
+          select: { mood: true },
         }),
       ]);
 
@@ -101,6 +106,13 @@ export async function GET(request: NextRequest) {
           body: "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до конца дня.",
           url: withBasePath("/ration"),
           tag: "cv-streak",
+        };
+      } else if (kind === "checkin" && diary?.mood == null) {
+        payload = {
+          title: "Как прошёл день?",
+          body: "Три кнопки: норм, перебрал или не записывал. Без оценок — просто отметьте.",
+          url: withBasePath("/ration"),
+          tag: "cv-checkin",
         };
       }
 
