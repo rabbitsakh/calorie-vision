@@ -54,7 +54,7 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex 
   const sexText = sexNoun(sex);
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-      <p className="text-sm font-semibold text-slate-700">Планируемый рацион на день</p>
+      <p className="text-sm font-semibold text-slate-700">Рекомендуемый рацион на день</p>
       <p className="mt-1 text-xs text-slate-500">
         Норма для {weightKg} кг
         {sexText ? ` · ${sexText}` : ""}

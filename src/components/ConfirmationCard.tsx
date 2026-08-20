@@ -392,7 +392,7 @@ export function ConfirmationCard({
         ) : null}
         {!mealType ? (
           <p className="text-xs text-slate-400">
-            💡 Укажите тип приёма пищи — это поможет отслеживать бюджет по приёмам
+            💡 Укажите тип приёма пищи — это поможет отслеживать бюджет по приёмам пищи
           </p>
         ) : null}
 

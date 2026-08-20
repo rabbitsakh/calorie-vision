@@ -38,7 +38,7 @@ function ThinkingAnimation({ preview }: { preview: string | null }) {
         </div>
       )}
       <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-semibold text-teal-900">Анализирую фото</span>
+        <span className="text-sm font-semibold text-teal-900">Анализируем фото…</span>
         <div className="flex items-center gap-1">
           {[0, 0.2, 0.4].map((delay, i) => (
             <span

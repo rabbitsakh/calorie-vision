@@ -191,7 +191,7 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
 
       {!loading && foods.length === 0 && !showForm ? (
         <p className="mt-3 text-sm text-slate-500">
-          Нет сохранённых продуктов. Добавьте часто едите — можно будет быстро занести в дневник.
+          Нет сохранённых продуктов. Добавьте, что вы часто едите — их можно будет быстро занести в дневник.
         </p>
       ) : null}
 
