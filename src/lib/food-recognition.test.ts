@@ -93,3 +93,24 @@ test("parses fiber and sugar on meal and alternatives", () => {
   assert.equal(vision.alternatives?.[0]?.fiber, 3);
   assert.equal(vision.alternatives?.[0]?.sugar, 4);
 });
+
+test("keeps zero fiber and sugar for meat dishes", () => {
+  const vision = parseFoodRecognitionResponse(`{
+    "photoKind": "meal",
+    "dishName": "Куриная грудка вареная",
+    "calories": 180,
+    "protein": 28,
+    "fat": 6,
+    "carbs": 0,
+    "fiber": 0,
+    "sugar": 0,
+    "portionGrams": 150,
+    "confidence": 0.9,
+    "alternatives": [],
+    "items": []
+  }`);
+
+  assert.equal(vision.fiber, 0);
+  assert.equal(vision.sugar, 0);
+  assert.equal(vision.carbs, 0);
+});

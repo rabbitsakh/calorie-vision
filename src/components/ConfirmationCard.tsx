@@ -280,11 +280,11 @@ export function ConfirmationCard({
     const origCarbs = dish.original.carbs !== undefined ? Number(dish.original.carbs) : undefined;
     const origFiber = dish.original.fiber !== undefined ? Number(dish.original.fiber) : undefined;
     const origSugar = dish.original.sugar !== undefined ? Number(dish.original.sugar) : undefined;
-    const parsedProtein = dish.protein ? Number(dish.protein) : undefined;
-    const parsedFat = dish.fat ? Number(dish.fat) : undefined;
-    const parsedCarbs = dish.carbs ? Number(dish.carbs) : undefined;
-    const parsedFiber = dish.fiber ? Number(dish.fiber) : undefined;
-    const parsedSugar = dish.sugar ? Number(dish.sugar) : undefined;
+    const parsedProtein = parseOptionalNumber(dish.protein);
+    const parsedFat = parseOptionalNumber(dish.fat);
+    const parsedCarbs = parseOptionalNumber(dish.carbs);
+    const parsedFiber = parseOptionalNumber(dish.fiber);
+    const parsedSugar = parseOptionalNumber(dish.sugar);
 
     const wasCorrected =
       dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
@@ -302,11 +302,11 @@ export function ConfirmationCard({
         date: selectedDate,
         dishName: dish.dishName.trim(),
         calories: parsedCalories,
-        protein: dish.protein ? Number(dish.protein) : undefined,
-        fat: dish.fat ? Number(dish.fat) : undefined,
-        carbs: dish.carbs ? Number(dish.carbs) : undefined,
-        fiber: dish.fiber ? Number(dish.fiber) : undefined,
-        sugar: dish.sugar ? Number(dish.sugar) : undefined,
+        protein: parsedProtein,
+        fat: parsedFat,
+        carbs: parsedCarbs,
+        fiber: parsedFiber,
+        sugar: parsedSugar,
         portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
         confidence: dish.original.confidence,
         imagePath: imagePath || undefined,
