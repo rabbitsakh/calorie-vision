@@ -12,6 +12,7 @@ import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { useSelectedDate } from "@/lib/use-selected-date";
@@ -43,6 +44,7 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
+          {date === today ? <DailySummaryCard today={today} /> : null}
           <StreakNudge
             selectedDate={date}
             today={today}
