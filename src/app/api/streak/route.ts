@@ -80,6 +80,29 @@ export async function GET(request: NextRequest) {
 
     const daysLoggedTotal = new Set(mealDates).size;
 
+    // Soft week streak: Mon..today (meal days only)
+    const mealDateSet = new Set(mealDates);
+    const weekday = new Date(today + "T12:00:00Z").getUTCDay(); // 0=Sun
+    const mondayOffset = weekday === 0 ? 6 : weekday - 1;
+    let daysLoggedThisWeek = 0;
+    for (let i = 0; i <= mondayOffset; i++) {
+      if (mealDateSet.has(shiftDateKeyUtc(weekStart, i))) daysLoggedThisWeek += 1;
+    }
+    const daysInWeekSoFar = mondayOffset + 1;
+    let weekNudge: string | null = null;
+    if (daysLoggedThisWeek < daysInWeekSoFar && daysInWeekSoFar >= 3) {
+      const nextGoal = Math.min(7, daysLoggedThisWeek + 1);
+      if (daysLoggedThisWeek >= 3 && daysLoggedThisWeek < 5) {
+        weekNudge = `${daysLoggedThisWeek} из ${daysInWeekSoFar} дней на этой неделе — добейте до ${Math.max(nextGoal, 5)}.`;
+      } else if (daysLoggedThisWeek >= 5 && daysLoggedThisWeek < 7) {
+        weekNudge = `${daysLoggedThisWeek} из 7 — отличная регулярность, ещё немного до полной недели.`;
+      } else if (daysLoggedThisWeek > 0 && daysLoggedThisWeek < 3) {
+        weekNudge = `${daysLoggedThisWeek} из ${daysInWeekSoFar} дней с записями — каждый день считается.`;
+      }
+    } else if (daysLoggedThisWeek === daysInWeekSoFar && daysInWeekSoFar >= 3) {
+      weekNudge = `${daysLoggedThisWeek} из ${daysInWeekSoFar} — вы ведёте дневник каждый день на этой неделе!`;
+    }
+
     return NextResponse.json({
       streak,
       longestStreak: Math.max(longestStreak, streak),
@@ -94,6 +117,9 @@ export async function GET(request: NextRequest) {
       canFreezeYesterday,
       frozenDates,
       weekStart,
+      daysLoggedThisWeek,
+      daysInWeekSoFar,
+      weekNudge,
     });
   } catch (error) {
     console.error(error);
