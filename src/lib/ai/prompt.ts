@@ -16,18 +16,12 @@ export const FOOD_RECOGNITION_PROMPT = `Ты диетолог и эксперт 
   "protein": 0,
   "fat": 0,
   "carbs": 0,
-  "fiber": 0,
-  "sugar": 0,
-  "saturatedFat": 0,
   "portionGrams": 0,
   "per100g": {
     "calories": 0,
     "protein": 0,
     "fat": 0,
-    "carbs": 0,
-    "fiber": 0,
-    "sugar": 0,
-    "saturatedFat": 0
+    "carbs": 0
   },
   "confidence": 0.0,
   "alternatives": [
@@ -54,12 +48,11 @@ export const FOOD_RECOGNITION_PROMPT = `Ты диетолог и эксперт 
   - meal / items: оцени вес порции на фото (типично 150–300 г на позицию). Всегда указывай > 0 и пересчитывай calories/БЖУ на эту порцию
   - package / label / barcode: вес нетто с упаковки или этикетки (45, 50, 90…). Не подставляй 100, если на упаковке другой вес. Если вес нетто не виден — ставь 0
 - per100g: заполни только если на этикетке явно указано «на 100 г» / «per 100 g». Иначе все нули
-- calories/protein/fat/carbs/fiber/sugar/saturatedFat:
+- calories/protein/fat/carbs:
   - meal: оценка ВСЕЙ порции целиком. Если в items несколько блюд — это суммы по всем items
   - label: значения с этикетки для указанного веса (если есть «на 100 г» и нетто — пересчитай на нетто; иначе оставь calories=0 и заполни per100g)
   - package/barcode: если виден вес нетто — укажи его в portionGrams и пересчитай КБЖУ на эту порцию; если только «на 100 г» без нетто — заполни per100g, portionGrams=0, calories=0
   - ВАЖНО: calories/protein/fat/carbs — всегда для ВСЕЙ порции portionGrams, не на 100 г
-- fiber, sugar, saturatedFat: заполни если видны на этикетке, иначе 0
 - confidence:
   - 0.9–1.0: чётко видно название и КБЖУ / штрихкод сканируется
   - 0.7–0.9: уверен в блюде, но вес/калории оценочные
@@ -69,7 +62,16 @@ export const FOOD_RECOGNITION_PROMPT = `Ты диетолог и эксперт 
 - для готовых блюд на тарелке: называй конкретно (например «борщ», «стейк», «картофель отварной», «салат оливье»), не «еда» или «блюдо»
 - items: если на тарелке/в контейнере ВИДНЫ РАЗНЫЕ продукты (мясо, гарнир, несколько салатов, овощи) — перечисли КАЖДЫЙ отдельно, 2–8 позиций. Не сливай их в одно название. Для каждого ОБЯЗАТЕЛЬНО оцени calories, protein, fat, carbs, portionGrams (> 0) и confidence — не оставляй нули, если блюдо узнаваемо
 - items: если на фото одно блюдо, одна упаковка или этикетка — оставь []
-- если это не еда и не продукт питания: dishName "Не удалось распознать еду", calories 0, confidence 0.1, photoKind "meal", items []`;
+- если это не еда и не продукт питания: dishName "Не удалось распознать еду", calories 0, confidence 0.1, photoKind "meal", items []
+
+Примеры (формат ответа):
+1) Смешанная тарелка → несколько items с ненулевыми КБЖУ:
+{"photoKind":"meal","dishName":"Стейк, картофель, салат","brand":"","barcode":"","calories":670,"protein":46,"fat":33,"carbs":32,"portionGrams":430,"confidence":0.78,"alternatives":[],"items":[{"dishName":"Стейк говяжий","calories":400,"protein":40,"fat":20,"carbs":0,"portionGrams":150,"confidence":0.82},{"dishName":"Картофель запечённый","calories":180,"protein":4,"fat":6,"carbs":28,"portionGrams":200,"confidence":0.8},{"dishName":"Салат овощной","calories":90,"protein":2,"fat":7,"carbs":4,"portionGrams":80,"confidence":0.7}],"per100g":{"calories":0,"protein":0,"fat":0,"carbs":0}}
+2) Одно блюдо → items []:
+{"photoKind":"meal","dishName":"Борщ с мясом","brand":"","barcode":"","calories":280,"protein":14,"fat":12,"carbs":28,"portionGrams":350,"confidence":0.86,"alternatives":[],"items":[],"per100g":{"calories":0,"protein":0,"fat":0,"carbs":0}}`;
+
+export const FOOD_RECOGNITION_RETRY_HINT = `Предыдущий ответ был неполным или невалидным JSON.
+Верни ТОЛЬКО валидный JSON по схеме. Если на тарелке несколько разных продуктов — обязательно заполни items (2–8) с ненулевыми calories/portionGrams. Не используй markdown.`;
 
 export function buildFoodLookupPrompt(dishName: string): string {
   return `Ты диетолог. Пользователь указал название блюда: "${dishName}".
