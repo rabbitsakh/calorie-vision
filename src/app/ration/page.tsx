@@ -11,6 +11,7 @@ import { StreakWidget } from "@/components/StreakWidget";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -36,6 +37,7 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
+          {date === today ? <DailySummaryCard today={today} /> : null}
           {/* Primary: add food + diary */}
           <FoodAddPanel
             selectedDate={date}
