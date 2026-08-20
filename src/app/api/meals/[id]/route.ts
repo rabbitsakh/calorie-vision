@@ -20,6 +20,8 @@ export async function PATCH(
       protein?: number | null;
       fat?: number | null;
       carbs?: number | null;
+      fiber?: number | null;
+      sugar?: number | null;
       portionGrams?: number | null;
     };
 
@@ -38,6 +40,8 @@ export async function PATCH(
         ...(body.protein !== undefined ? { protein: body.protein } : {}),
         ...(body.fat !== undefined ? { fat: body.fat } : {}),
         ...(body.carbs !== undefined ? { carbs: body.carbs } : {}),
+        ...(body.fiber !== undefined ? { fiber: body.fiber } : {}),
+        ...(body.sugar !== undefined ? { sugar: body.sugar } : {}),
         ...(body.portionGrams !== undefined ? { portionGrams: body.portionGrams } : {}),
       },
     });

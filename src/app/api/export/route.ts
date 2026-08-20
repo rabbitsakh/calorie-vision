@@ -40,12 +40,14 @@ async function buildCsv(userId: string, from: string | null, to: string | null) 
       protein: true,
       fat: true,
       carbs: true,
+      fiber: true,
+      sugar: true,
       portionGrams: true,
       wasCorrected: true,
     },
   });
 
-  const header = ["Дата", "Время", "Приём пищи", "Блюдо", "Ккал", "Белки г", "Жиры г", "Углеводы г", "Порция г", "Исправлено"].join(",");
+  const header = ["Дата", "Время", "Приём пищи", "Блюдо", "Ккал", "Белки г", "Жиры г", "Углеводы г", "Клетчатка г", "Сахар г", "Порция г", "Исправлено"].join(",");
   const rows = entries.map((e) => {
     const time = new Date(e.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
     return [
@@ -57,6 +59,8 @@ async function buildCsv(userId: string, from: string | null, to: string | null) 
       escCsv(e.protein),
       escCsv(e.fat),
       escCsv(e.carbs),
+      escCsv(e.fiber),
+      escCsv(e.sugar),
       escCsv(e.portionGrams),
       escCsv(e.wasCorrected ? "да" : ""),
     ].join(",");
@@ -123,6 +127,8 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
           e.protein ? `P:${e.protein}g` : null,
           e.fat ? `F:${e.fat}g` : null,
           e.carbs ? `C:${e.carbs}g` : null,
+          e.fiber ? `Fi:${e.fiber}g` : null,
+          e.sugar ? `S:${e.sugar}g` : null,
         ].filter(Boolean).join(" ");
         const line = `  ${safeText(decodeHtmlEntities(e.dishName))} — ${e.calories} kcal${macros ? `  ${macros}` : ""}`;
         doc.fontSize(10).font("Helvetica").text(line);

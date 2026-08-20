@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       protein?: number | null;
       fat?: number | null;
       carbs?: number | null;
+      fiber?: number | null;
+      sugar?: number | null;
       portionGrams?: number | null;
     };
 
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest) {
         protein: body.protein ?? null,
         fat: body.fat ?? null,
         carbs: body.carbs ?? null,
+        fiber: body.fiber ?? null,
+        sugar: body.sugar ?? null,
         portionGrams: body.portionGrams ?? null,
       },
     });

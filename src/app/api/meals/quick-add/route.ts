@@ -14,6 +14,8 @@ type QuickAddItem = {
   protein: number | null;
   fat: number | null;
   carbs: number | null;
+  fiber: number | null;
+  sugar: number | null;
   portionGrams: number | null;
   mealType: MealType | null;
   count: number;
@@ -68,6 +70,8 @@ export async function GET(request: NextRequest) {
         protein: true,
         fat: true,
         carbs: true,
+        fiber: true,
+        sugar: true,
         portionGrams: true,
         mealType: true,
         createdAt: true,
@@ -82,6 +86,8 @@ export async function GET(request: NextRequest) {
       protein: number | null;
       fat: number | null;
       carbs: number | null;
+      fiber: number | null;
+      sugar: number | null;
       portionGrams: number | null;
       mealType: MealType | null;
       count: number;
@@ -104,6 +110,8 @@ export async function GET(request: NextRequest) {
           protein: entry.protein,
           fat: entry.fat,
           carbs: entry.carbs,
+          fiber: entry.fiber,
+          sugar: entry.sugar,
           portionGrams: entry.portionGrams,
           mealType: entry.mealType,
           count: 1,
@@ -131,6 +139,8 @@ export async function GET(request: NextRequest) {
         protein: item.protein,
         fat: item.fat,
         carbs: item.carbs,
+        fiber: item.fiber,
+        sugar: item.sugar,
         portionGrams: item.portionGrams,
         mealType: item.mealType ?? currentMealType,
         count: item.count,
