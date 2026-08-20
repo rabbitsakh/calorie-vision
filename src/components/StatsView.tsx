@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateShort } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
 type StatsDay = {
   date: string;
@@ -520,6 +521,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
       {data ? (
         <>
+          {period === "week" ? <WeeklyReportCard endDate={endDate} /> : null}
           {/* Summary tiles */}
           <div className="grid gap-3 sm:grid-cols-3">
             <StatCard
