@@ -15,6 +15,9 @@ type StreakData = {
   daysUntilNext: number | null;
   last14: Array<{ date: string; logged: boolean }>;
   daysLoggedTotal: number;
+  daysLoggedThisWeek?: number;
+  daysInWeekSoFar?: number;
+  weekNudge?: string | null;
 };
 
 function streakLabel(streak: number): string {
@@ -206,6 +209,30 @@ export function StreakWidget({
           <p className="text-xs text-amber-600">Лучший: {longestStreak} дней</p>
         ) : null}
       </div>
+
+      {typeof data.daysLoggedThisWeek === "number" && typeof data.daysInWeekSoFar === "number" ? (
+        <div className="mt-3 rounded-xl border border-amber-200/80 bg-white/60 px-3 py-2.5">
+          <div className="mb-1.5 flex items-center justify-between text-xs text-amber-800">
+            <span>На этой неделе</span>
+            <span className="font-semibold">
+              {data.daysLoggedThisWeek} / {data.daysInWeekSoFar}
+            </span>
+          </div>
+          <div className="flex gap-1">
+            {Array.from({ length: data.daysInWeekSoFar }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full ${
+                  i < (data.daysLoggedThisWeek ?? 0) ? "bg-amber-500" : "bg-amber-100"
+                }`}
+              />
+            ))}
+          </div>
+          {data.weekNudge ? (
+            <p className="mt-2 text-xs text-amber-800">{data.weekNudge}</p>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
