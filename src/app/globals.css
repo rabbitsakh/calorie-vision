@@ -377,8 +377,10 @@ textarea {
 }
 
 /* Pose-based mascot micro-motion (supportive, not noisy) */
+.mascot-root,
 .mascot-motion {
   display: inline-block;
+  overflow: visible;
   transform-box: fill-box;
   transform-origin: center bottom;
   will-change: transform;
@@ -390,7 +392,7 @@ textarea {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
   }
 }
 
@@ -400,13 +402,13 @@ textarea {
     transform: translateY(0) scale(1);
   }
   35% {
-    transform: translateY(-10px) scale(1.06);
+    transform: translateY(-14px) scale(1.07);
   }
   55% {
-    transform: translateY(-2px) scale(0.98);
+    transform: translateY(-2px) scale(0.97);
   }
   70% {
-    transform: translateY(-6px) scale(1.03);
+    transform: translateY(-8px) scale(1.04);
   }
 }
 
@@ -416,26 +418,26 @@ textarea {
     transform: translateY(0) rotate(0deg);
   }
   25% {
-    transform: translateY(-5px) rotate(-3deg);
+    transform: translateY(-6px) rotate(-3.5deg);
   }
   75% {
-    transform: translateY(-5px) rotate(3deg);
+    transform: translateY(-6px) rotate(3.5deg);
   }
 }
 
 @keyframes mascot-flame-flicker {
   0%,
   100% {
-    opacity: 0.85;
+    opacity: 0.9;
     transform: scale(1) translateY(0);
   }
   40% {
     opacity: 1;
-    transform: scale(1.12) translateY(-1px);
+    transform: scale(1.14) translateY(-2px);
   }
   70% {
-    opacity: 0.7;
-    transform: scale(0.94) translateY(1px);
+    opacity: 0.75;
+    transform: scale(0.92) translateY(1px);
   }
 }
 
@@ -445,7 +447,7 @@ textarea {
     transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-4px) scale(1.05);
+    transform: translateY(-5px) scale(1.06);
   }
 }
 
@@ -455,22 +457,22 @@ textarea {
     transform: translateY(0) rotate(0deg);
   }
   30% {
-    transform: translateY(-3px) rotate(-4deg);
+    transform: translateY(-4px) rotate(-5deg);
   }
   60% {
-    transform: translateY(-1px) rotate(3deg);
+    transform: translateY(-1px) rotate(4deg);
   }
 }
 
 @keyframes mascot-tip-dot {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.65;
     transform: scale(1);
   }
   50% {
     opacity: 1;
-    transform: scale(1.25);
+    transform: scale(1.28);
   }
 }
 
@@ -480,22 +482,65 @@ textarea {
     transform: translateY(0) rotate(0deg);
   }
   40% {
-    transform: translateY(-3px) rotate(-2deg);
+    transform: translateY(-4px) rotate(-2.5deg);
   }
   70% {
-    transform: translateY(-1px) rotate(2deg);
+    transform: translateY(-1px) rotate(2.5deg);
   }
 }
 
 @keyframes mascot-shadow-breathe {
   0%,
   100% {
-    opacity: 0.12;
+    opacity: 0.14;
     transform: scaleX(1);
   }
   50% {
-    opacity: 0.08;
-    transform: scaleX(0.86);
+    opacity: 0.09;
+    transform: scaleX(0.84);
+  }
+}
+
+@keyframes mascot-leaf-sway-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
+}
+
+@keyframes mascot-leaf-sway-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+
+@keyframes mascot-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes mascot-goal-sparkle {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(12deg);
   }
 }
 
@@ -521,6 +566,12 @@ textarea {
   animation: mascot-goal-pulse 2s ease-in-out infinite;
 }
 
+.mascot-goal .mascot-goal-star {
+  animation: mascot-goal-sparkle 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 .mascot-tip {
   animation: mascot-tip-nod 2.6s ease-in-out infinite;
 }
@@ -535,10 +586,34 @@ textarea {
   animation: mascot-empty-peek 3.2s ease-in-out infinite;
 }
 
-.mascot-motion .mascot-shadow {
+.mascot-motion .mascot-shadow,
+.mascot-root .mascot-shadow {
   animation: mascot-shadow-breathe 2.4s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: center;
+}
+
+.mascot-leaf-left {
+  transform-box: fill-box;
+  transform-origin: 62px 46px;
+  animation: mascot-leaf-sway-left 2.8s ease-in-out infinite;
+}
+
+.mascot-leaf-right {
+  transform-box: fill-box;
+  transform-origin: 66px 46px;
+  animation: mascot-leaf-sway-right 2.5s ease-in-out infinite;
+}
+
+.mascot-eye-left,
+.mascot-eye-right {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-blink 4.8s ease-in-out infinite;
+}
+
+.mascot-eye-right {
+  animation-delay: 0.08s;
 }
 
 .soft-celeb-ring-streak {
@@ -1257,8 +1332,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  height: 240px;
 }
 
 .fs-celeb-halo {

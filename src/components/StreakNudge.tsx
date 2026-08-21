@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Mascot } from "@/components/Mascot";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
-import { Mascot } from "@/components/Mascot";
-import { StreakGlyph } from "@/components/StreakIcon";
 
 const PANEL_ID = "streak-nudge";
 
@@ -63,7 +62,7 @@ export function StreakNudge({ selectedDate, today, refreshKey, onAddFood }: Stre
         }}
       >
         <span className="flex items-center gap-1.5">
-          <StreakGlyph streak={data.streakBeforeToday} className="h-4 w-4" />
+          <Mascot pose="tip" size="sm" animate={false} />
           Серия {data.streakBeforeToday} {pluralDays(data.streakBeforeToday)} под угрозой
         </span>
         <span className="text-xs">Показать</span>
@@ -74,7 +73,7 @@ export function StreakNudge({ selectedDate, today, refreshKey, onAddFood }: Stre
   return (
     <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <StreakGlyph streak={data.streakBeforeToday} className="mt-0.5 h-8 w-8 shrink-0" />
+        <Mascot pose="tip" size="md" className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-orange-900">
             Не потеряйте серию — {data.streakBeforeToday} {pluralDays(data.streakBeforeToday)}!
