@@ -247,6 +247,8 @@ async function enrichMealItem(
   // Fallback lookup whenever nutrition is missing — confidence reflects dish
   // identification, not whether calories/macros were actually returned.
   result = await backfillMissingNutrition(result, userId);
+  // Same fiber/sugar path as text + barcode (calories may already be complete).
+  result = await enrichMissingFiberSugar(result, result.dishName);
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
@@ -274,6 +276,7 @@ export async function recognizeFoodWithAI(
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
   let result = normalizeRecognitionNutrition(enriched);
   result = await backfillMissingNutrition(result, userId);
+  result = await enrichMissingFiberSugar(result, result.dishName);
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
@@ -396,6 +399,11 @@ export async function lookupFoodByName(
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
+/**
+ * Single fiber/sugar enrichment path for photo, text, and barcode.
+ * Order: OFF pack fields → short GigaChat fiber/sugar ask → full name lookup.
+ * Never overwrites explicit zeros (meat etc.).
+ */
 async function enrichMissingFiberSugar(
   result: FoodRecognitionResult,
   dishName: string,
