@@ -4,10 +4,13 @@ import {
   buildGoalAwareCalorieTip,
   calorieTone,
   compareNutrient,
+  dailyGoalCelebrationCopy,
   formatBalanceLabel,
   formatCalorieVsTargetLabel,
   formatGoalChoice,
   formatSignedKg,
+  isCalorieGoalCorridor,
+  isDangerousCalorieUndereat,
   recommendDiet,
 } from "./diet.ts";
 
@@ -145,4 +148,23 @@ test("GAIN under target still suggests eating more", () => {
     goal: "GAIN",
   });
   assert.match(tip, /не хватило|добавьте/i);
+});
+
+test("calorie goal corridor is ±8% of target", () => {
+  assert.equal(isCalorieGoalCorridor(2000, 2000), true);
+  assert.equal(isCalorieGoalCorridor(1850, 2000), true); // 7.5%
+  assert.equal(isCalorieGoalCorridor(1839, 2000), false); // >8%
+  assert.equal(isCalorieGoalCorridor(0, 2000), false);
+});
+
+test("dangerous LOSE undereat is below 75% of target", () => {
+  assert.equal(isDangerousCalorieUndereat(1400, 2000, "LOSE"), true);
+  assert.equal(isDangerousCalorieUndereat(1600, 2000, "LOSE"), false);
+  assert.equal(isDangerousCalorieUndereat(1400, 2000, "GAIN"), false);
+});
+
+test("daily goal celebration copy matches goal", () => {
+  assert.match(dailyGoalCelebrationCopy("LOSE").subtitle, /дефиците/i);
+  assert.match(dailyGoalCelebrationCopy("GAIN").subtitle, /набор/i);
+  assert.match(dailyGoalCelebrationCopy("MAINTAIN").subtitle, /нормой/i);
 });
