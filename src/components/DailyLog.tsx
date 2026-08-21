@@ -451,7 +451,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
 
     try {
-      const response = await fetch(withBasePath(`/api/meals?date=${date}`));
+      const response = await fetch(withBasePath(`/api/meals?date=${date}`), {
+        cache: "no-store",
+      });
       const data = (await response.json()) as DayMealsResponse & { error?: string };
 
       if (!response.ok) {
@@ -488,7 +490,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         setLoading(false);
       }
     }
-  }, [selectedDate]);
+  }, [selectedDate, onTotalsChange]);
 
   useEffect(() => {
     attemptedImageDates.current.delete(selectedDate);
@@ -498,7 +500,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   useEffect(() => {
     void (async () => {
       try {
-        const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`));
+        const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`), {
+          cache: "no-store",
+        });
         const data = (await resp.json()) as { streak?: number };
         if (resp.ok && data.streak != null) {
           setStreakDays(data.streak);
@@ -544,11 +548,37 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
+      cache: "no-store",
     });
     const data = (await response.json()) as { error?: string };
     if (!response.ok) {
       throw new Error(data.error ?? "Не удалось обновить запись");
     }
+
+    // Optimistic update so meal-type budget bars move immediately.
+    setEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.id !== id) return entry;
+        return {
+          ...entry,
+          dishName: patch.dishName,
+          calories: patch.calories,
+          protein: patch.protein ?? null,
+          fat: patch.fat ?? null,
+          carbs: patch.carbs ?? null,
+          fiber: patch.fiber ?? null,
+          sugar: patch.sugar ?? null,
+          portionGrams: patch.portionGrams ?? null,
+          mealType:
+            patch.mealType === undefined
+              ? entry.mealType
+              : patch.mealType === null || patch.mealType === ""
+                ? null
+                : (patch.mealType as MealEntry["mealType"]),
+        };
+      }),
+    );
+
     await loadEntries(true);
     onChanged?.();
   }
