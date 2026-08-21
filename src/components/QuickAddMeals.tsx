@@ -12,6 +12,8 @@ type QuickAddItem = {
   protein: number | null;
   fat: number | null;
   carbs: number | null;
+  fiber: number | null;
+  sugar: number | null;
   portionGrams: number | null;
   mealType: string | null;
   count: number;
@@ -70,6 +72,8 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
           protein: item.protein,
           fat: item.fat,
           carbs: item.carbs,
+          fiber: item.fiber,
+          sugar: item.sugar,
           portionGrams: item.portionGrams,
           mealType: item.mealType,
         }),
