@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Mascot } from "@/components/Mascot";
 import {
   getPushCapability,
   getPushPromptDismissed,
@@ -43,7 +44,6 @@ export function PushNotificationPrompt() {
         setPushPromptDismissed(false);
         setVisible(false);
       } else {
-        // Keep banner; user can retry from profile.
         setVisible(false);
         setPushPromptDismissed(true);
       }
@@ -62,18 +62,23 @@ export function PushNotificationPrompt() {
   if (hintOnly) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4">
-        <p className="font-semibold text-amber-950">Напоминания на iPhone</p>
-        <p className="mt-1 text-sm text-amber-900">
-          {hintText ??
-            "Откройте приложение с иконки на Home Screen — из Safari push не приходит."}
-        </p>
-        <p className="mt-1 text-sm text-amber-800">
-          Статус и повторное включение — в разделе «Профиль».
-        </p>
-        <div className="mt-3">
-          <button type="button" className="btn-quiet text-sm text-amber-800" onClick={dismiss}>
-            Понятно
-          </button>
+        <div className="flex items-start gap-3">
+          <Mascot pose="tip" size="sm" className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-amber-950">Напоминания на iPhone</p>
+            <p className="mt-1 text-sm text-amber-900">
+              {hintText ??
+                "Откройте приложение с иконки на Home Screen — из Safari push не приходит."}
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Статус можно проверить в разделе «Профиль».
+            </p>
+            <div className="mt-3">
+              <button type="button" className="btn-quiet text-sm text-amber-800" onClick={dismiss}>
+                Понятно
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -81,22 +86,27 @@ export function PushNotificationPrompt() {
 
   return (
     <div className="rounded-2xl border border-teal-100 bg-teal-50/80 p-4">
-      <p className="font-semibold text-teal-900">Включить напоминания?</p>
-      <p className="mt-1 text-sm text-teal-700">
-        Утром — про завтрак, днём — про воду, вечером — про серию записей.
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn btn-on-tint text-sm text-teal-800"
-          disabled={loading}
-          onClick={() => void subscribe()}
-        >
-          {loading ? "Подключаем…" : "Включить"}
-        </button>
-        <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
-          Не сейчас
-        </button>
+      <div className="flex items-start gap-3">
+        <Mascot pose="idle" size="sm" className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-teal-900">Могу мягко напомнить</p>
+          <p className="mt-1 text-sm text-teal-700">
+            Про завтрак утром, про воду днём и про серию записей вечером — без давления.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-on-tint text-sm text-teal-800"
+              disabled={loading}
+              onClick={() => void subscribe()}
+            >
+              {loading ? "Подключаем…" : "Включить"}
+            </button>
+            <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
+              Не сейчас
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

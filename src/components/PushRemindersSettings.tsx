@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Mascot, type MascotPose } from "@/components/Mascot";
 import {
   getPushCapability,
   setPushPromptDismissed,
@@ -13,6 +14,19 @@ type ServerPushStatus = {
   subscribed: boolean;
   count: number;
 };
+
+function poseForStatus(
+  cap: PushCapability,
+  activeOnServer: boolean,
+): MascotPose {
+  if (cap.kind === "denied" || cap.kind === "ios-old" || cap.kind === "unsupported") {
+    return "idle";
+  }
+  if (cap.kind === "ios-browser") return "tip";
+  if (activeOnServer && cap.kind === "granted") return "cheer";
+  if (cap.kind === "granted" || cap.kind === "default") return "tip";
+  return "idle";
+}
 
 export function PushRemindersSettings() {
   const [cap, setCap] = useState<PushCapability | null>(null);
@@ -44,12 +58,11 @@ export function PushRemindersSettings() {
     setLoading(true);
     setError(null);
     setMessage(null);
-    // Allow the ration banner to show again if this was dismissed earlier.
     setPushPromptDismissed(false);
 
     const result = await subscribeBrowserPush();
     if (result.ok) {
-      setMessage("Напоминания подключены на этом устройстве");
+      setMessage("Готово — буду напоминать на этом устройстве");
     } else {
       setError(result.error);
     }
@@ -68,13 +81,20 @@ export function PushRemindersSettings() {
 
   const activeOnServer = Boolean(server?.subscribed);
   const showEnable = cap.canSubscribe;
+  const pose = poseForStatus(cap, activeOnServer);
 
   return (
     <section className="card p-4 md:p-6">
-      <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Push о завтраке, воде и серии записей. На iPhone — только из приложения с Home Screen (iOS 16.4+).
-      </p>
+      <div className="flex items-start gap-3">
+        <Mascot pose={pose} size="md" className="shrink-0" />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Могу напомнить про завтрак, воду и серию. На iPhone — только из приложения с Home Screen
+            (iOS 16.4+).
+          </p>
+        </div>
+      </div>
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">{cap.title}</p>
