@@ -1,15 +1,14 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { LandingPage } from "@/components/LandingPage";
+import { authOptions } from "@/lib/auth-options";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { PageFallback } from "@/components/AppShell";
+export default async function HomePage() {
+  const session = await getServerSession(authOptions);
 
-export default function HomePage() {
-  const router = useRouter();
+  if (session?.user?.id) {
+    redirect("/ration/");
+  }
 
-  useEffect(() => {
-    router.replace("/ration/");
-  }, [router]);
-
-  return <PageFallback />;
+  return <LandingPage />;
 }
