@@ -376,6 +376,179 @@ textarea {
   animation: mascot-bob 2.4s ease-in-out infinite;
 }
 
+/* Pose-based mascot micro-motion (supportive, not noisy) */
+.mascot-motion {
+  display: inline-block;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  will-change: transform;
+}
+
+@keyframes mascot-idle-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes mascot-cheer-jump {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-10px) scale(1.06);
+  }
+  55% {
+    transform: translateY(-2px) scale(0.98);
+  }
+  70% {
+    transform: translateY(-6px) scale(1.03);
+  }
+}
+
+@keyframes mascot-streak-sway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(3deg);
+  }
+}
+
+@keyframes mascot-flame-flicker {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1) translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.12) translateY(-1px);
+  }
+  70% {
+    opacity: 0.7;
+    transform: scale(0.94) translateY(1px);
+  }
+}
+
+@keyframes mascot-goal-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.05);
+  }
+}
+
+@keyframes mascot-tip-nod {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-3px) rotate(-4deg);
+  }
+  60% {
+    transform: translateY(-1px) rotate(3deg);
+  }
+}
+
+@keyframes mascot-tip-dot {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes mascot-empty-peek {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+  70% {
+    transform: translateY(-1px) rotate(2deg);
+  }
+}
+
+@keyframes mascot-shadow-breathe {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 0.08;
+    transform: scaleX(0.86);
+  }
+}
+
+.mascot-idle {
+  animation: mascot-idle-bob 2.8s ease-in-out infinite;
+}
+
+.mascot-cheer {
+  animation: mascot-cheer-jump 1.35s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+.mascot-streak {
+  animation: mascot-streak-sway 2.2s ease-in-out infinite;
+}
+
+.mascot-streak .mascot-flame {
+  animation: mascot-flame-flicker 0.9s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+.mascot-goal {
+  animation: mascot-goal-pulse 2s ease-in-out infinite;
+}
+
+.mascot-tip {
+  animation: mascot-tip-nod 2.6s ease-in-out infinite;
+}
+
+.mascot-tip .mascot-tip-dot {
+  animation: mascot-tip-dot 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.mascot-empty {
+  animation: mascot-empty-peek 3.2s ease-in-out infinite;
+}
+
+.mascot-motion .mascot-shadow {
+  animation: mascot-shadow-breathe 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.soft-celeb-ring-streak {
+  background: rgb(254 243 199 / 0.9);
+}
+
+.soft-celeb-ring-goal {
+  background: rgb(204 251 241 / 0.95);
+}
+
 /* —— Marketing landing (guests on /) —— */
 .landing {
   --landing-ink: #061612;

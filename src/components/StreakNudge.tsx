@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
+import { Mascot } from "@/components/Mascot";
 import { StreakGlyph } from "@/components/StreakIcon";
 
 const PANEL_ID = "streak-nudge";

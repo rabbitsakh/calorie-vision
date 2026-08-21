@@ -46,11 +46,11 @@ export function SoftCelebration({
         className="soft-celeb-card relative w-full max-w-sm overflow-hidden rounded-3xl bg-white px-5 py-5 text-center shadow-xl ring-1 ring-teal-100"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-2 h-20 w-20 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
+        <div className={`soft-celeb-ring pointer-events-none absolute left-1/2 top-2 h-20 w-20 -translate-x-1/2 rounded-full ${pose === "streak" ? "soft-celeb-ring-streak" : pose === "goal" ? "soft-celeb-ring-goal" : "bg-teal-100/80"}`} aria-hidden />
         <div className="relative mx-auto mb-2 flex flex-col items-center">
-          <Mascot pose={pose} size="lg" className="mascot-bob" />
+          <Mascot pose={pose} size="lg" />
           {badge ? (
-            <span className="mt-1 rounded-full bg-teal-700 px-2.5 py-0.5 text-xs font-bold text-white">
+            <span className={`mt-1 rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${pose === "streak" ? "bg-amber-600" : "bg-teal-700"}`}>
               {badge}
             </span>
           ) : null}
