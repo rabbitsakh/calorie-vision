@@ -90,6 +90,7 @@ export function DailyGoalCelebration({
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}
+      pose="goal"
       onClose={close}
     />
   );

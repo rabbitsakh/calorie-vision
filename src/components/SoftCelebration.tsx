@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { Mascot, type MascotPose } from "@/components/Mascot";
 
 type SoftCelebrationProps = {
   open: boolean;
   title: string;
   subtitle?: string;
-  /** Glyph inside the teal badge; defaults to a checkmark. */
+  pose?: MascotPose;
+  /** Optional small badge (e.g. streak days); shown under the mascot. */
   badge?: string;
   durationMs?: number;
   onClose: () => void;
@@ -20,7 +22,8 @@ export function SoftCelebration({
   open,
   title,
   subtitle,
-  badge = "✓",
+  pose = "cheer",
+  badge,
   durationMs = 2600,
   onClose,
 }: SoftCelebrationProps) {
@@ -43,9 +46,14 @@ export function SoftCelebration({
         className="soft-celeb-card relative w-full max-w-sm overflow-hidden rounded-3xl bg-white px-5 py-5 text-center shadow-xl ring-1 ring-teal-100"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-3 h-16 w-16 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
-        <div className="soft-celeb-dot relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-lg font-bold text-white">
-          {badge}
+        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-2 h-20 w-20 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
+        <div className="relative mx-auto mb-2 flex flex-col items-center">
+          <Mascot pose={pose} size="lg" className="mascot-bob" />
+          {badge ? (
+            <span className="mt-1 rounded-full bg-teal-700 px-2.5 py-0.5 text-xs font-bold text-white">
+              {badge}
+            </span>
+          ) : null}
         </div>
         <p className="text-lg font-bold text-slate-900">{title}</p>
         {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}

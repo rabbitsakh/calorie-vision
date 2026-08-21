@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
+import { Mascot } from "@/components/Mascot";
 import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
@@ -758,7 +759,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <p>За этот день пока нет записей. Добавьте еду выше.</p>
+            <Mascot pose="empty" size="md" className="mascot-bob" />
+            <p>За этот день пока нет записей. Добавьте еду выше — я рядом.</p>
             <button
               type="button"
               className="btn btn-secondary text-sm"

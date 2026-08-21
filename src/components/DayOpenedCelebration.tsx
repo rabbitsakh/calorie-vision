@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findUnseenMilestone } from "@/components/MilestoneCelebration";
+import type { MascotPose } from "@/components/Mascot";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
@@ -24,7 +25,8 @@ type StreakPayload = {
 type SoftCopy = {
   title: string;
   subtitle: string;
-  badge: string;
+  badge?: string;
+  pose: MascotPose;
 };
 
 /**
@@ -41,7 +43,7 @@ export function DayOpenedCelebration({
   const [copy, setCopy] = useState<SoftCopy>({
     title: "День открыт",
     subtitle: "Первая запись сегодня — привычка снова в деле.",
-    badge: "✓",
+    pose: "cheer",
   });
   const prevLogged = useRef<boolean | null>(null);
 
@@ -62,7 +64,6 @@ export function DayOpenedCelebration({
           const milestonePending = findUnseenMilestone(streak) != null;
 
           if (milestonePending) {
-            // Milestone modal will celebrate — skip soft overlay this time.
             markSoftCelebrationSeen("day-opened", today);
             markSoftCelebrationSeen("streak-saved", today);
           } else if (
@@ -75,6 +76,7 @@ export function DayOpenedCelebration({
               title: "Серия сохранена",
               subtitle: `${streak} ${pluralDays(streak)} подряд — отличный ход.`,
               badge: String(streak > 99 ? "99+" : streak),
+              pose: "streak",
             });
             setOpen(true);
           } else if (!isSoftCelebrationSeen("day-opened", today)) {
@@ -82,7 +84,7 @@ export function DayOpenedCelebration({
             setCopy({
               title: "День открыт",
               subtitle: "Первая запись сегодня — привычка снова в деле.",
-              badge: "✓",
+              pose: "cheer",
             });
             setOpen(true);
           }
@@ -100,6 +102,7 @@ export function DayOpenedCelebration({
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}
+      pose={copy.pose}
       badge={copy.badge}
       onClose={close}
     />
