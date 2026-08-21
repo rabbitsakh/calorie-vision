@@ -7,6 +7,8 @@ import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { buildStickerVisionPrompt } from "@/lib/ai/category-prompts";
+import { isBetterStickerResult, shouldRunStickerPass } from "@/lib/ai/sticker-vision";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -382,6 +384,31 @@ export async function recognizeWithGigaChat(
       }
     } catch {
       // keep first parse
+    }
+  }
+
+  if (shouldRunStickerPass(result)) {
+    try {
+      const stickerText = await completeChat([
+        {
+          role: "user",
+          content: buildStickerVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const stickered = parseFoodRecognitionResponse(stickerText);
+      if (isBetterStickerResult(result, stickered)) {
+        result = {
+          ...result,
+          ...stickered,
+          photoKind: "label",
+          dishName: stickered.dishName || result.dishName,
+          brand: stickered.brand || result.brand,
+          barcode: stickered.barcode || result.barcode,
+        };
+      }
+    } catch {
+      // keep first/retry result
     }
   }
 
