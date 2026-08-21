@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { requireSession } from "@/lib/auth-session";
 import { lookupFoodByBarcode, lookupFoodByName } from "@/lib/food-recognition";
 import { normalizeBarcode } from "@/lib/barcode";
@@ -30,12 +31,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
   } catch (error) {
     console.error(error);
+    const status = isGigaChatApiError(error) ? error.status : 500;
     return NextResponse.json(
       {
         error:
           error instanceof Error ? error.message : "Не удалось найти данные о блюде",
       },
-      { status: 500 },
+      { status: status === 429 ? 429 : status >= 400 && status < 600 ? status : 500 },
     );
   }
 }

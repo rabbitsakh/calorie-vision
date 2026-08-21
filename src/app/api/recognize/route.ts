@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { compressFoodImage } from "@/lib/image-compress";
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error(error);
+    const status = isGigaChatApiError(error) ? error.status : 500;
     return NextResponse.json(
       {
         error:
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Не удалось распознать фото",
       },
-      { status: 500 },
+      { status: status === 429 ? 429 : status >= 400 && status < 600 ? status : 500 },
     );
   }
 }
