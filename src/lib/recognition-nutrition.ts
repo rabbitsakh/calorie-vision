@@ -144,6 +144,51 @@ export function mergeNutritionBackfill(
   };
 }
 
+/** True when fiber and/or sugar were omitted (empty confirm fields). */
+export function needsFiberSugarBackfill(
+  result: Pick<FoodRecognitionResult, "fiber" | "sugar">,
+): boolean {
+  return result.fiber === undefined || result.sugar === undefined;
+}
+
+/**
+ * Fill only missing fiber/sugar from another lookup, scaling to base portion.
+ * Keeps explicit zeros (e.g. meat) and never overwrites existing values.
+ */
+export function mergeFiberSugarBackfill(
+  base: FoodRecognitionResult,
+  looked: FoodRecognitionResult,
+): FoodRecognitionResult {
+  if (!needsFiberSugarBackfill(base)) {
+    return base;
+  }
+
+  let lookedFiber = looked.fiber;
+  let lookedSugar = looked.sugar;
+  const baseGrams = base.portionGrams;
+  const lookedGrams = looked.portionGrams;
+
+  if (
+    baseGrams &&
+    lookedGrams &&
+    baseGrams > 0 &&
+    lookedGrams > 0 &&
+    Math.abs(baseGrams - lookedGrams) >= 1
+  ) {
+    const ratio = baseGrams / lookedGrams;
+    lookedFiber =
+      lookedFiber !== undefined ? Math.round(lookedFiber * ratio * 10) / 10 : undefined;
+    lookedSugar =
+      lookedSugar !== undefined ? Math.round(lookedSugar * ratio * 10) / 10 : undefined;
+  }
+
+  return {
+    ...base,
+    fiber: base.fiber !== undefined ? base.fiber : lookedFiber,
+    sugar: base.sugar !== undefined ? base.sugar : lookedSugar,
+  };
+}
+
 type Per100gValues = {
   calories: number;
   protein?: number;

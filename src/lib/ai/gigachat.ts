@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
@@ -291,6 +291,41 @@ export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodReco
   ]);
 
   return parseFoodRecognitionResponse(text);
+}
+
+export async function lookupFiberSugarWithGigaChat(
+  dishName: string,
+  portionGrams?: number,
+): Promise<{ fiber?: number; sugar?: number }> {
+  const text = await completeChat(
+    [
+      {
+        role: "user",
+        content: buildFiberSugarLookupPrompt(dishName.trim(), portionGrams),
+      },
+    ],
+    0.2,
+  );
+
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) {
+    return {};
+  }
+
+  try {
+    const data = JSON.parse(match[0]) as { fiber?: unknown; sugar?: unknown };
+    const toNum = (value: unknown): number | undefined => {
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+      if (typeof value === "string" && value.trim()) {
+        const n = Number(value.replace(",", "."));
+        return Number.isFinite(n) ? n : undefined;
+      }
+      return undefined;
+    };
+    return { fiber: toNum(data.fiber), sugar: toNum(data.sugar) };
+  } catch {
+    return {};
+  }
 }
 
 export async function recognizeWithGigaChat(
