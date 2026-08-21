@@ -302,7 +302,7 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  return normalizeRecognitionNutrition(
+  let result = normalizeRecognitionNutrition(
     await withFoodImage(
       {
         dishName: off.dishName,
@@ -323,6 +323,10 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
       off.dishName,
     ),
   );
+
+  // Many OFF products omit fiber_100g / sugars_100g — same empty fields as text lookup.
+  result = await enrichMissingFiberSugar(result, off.dishName || barcode, off);
+  return normalizeRecognitionNutrition(result);
 }
 
 export async function lookupFoodByName(
@@ -424,15 +428,15 @@ async function enrichMissingFiberSugar(
   }
 
   try {
-    // Full lookup when we only had OFF (or empty AI macros); focused ask when AI already ran.
-    if (next.source === "gigachat-lookup") {
-      const partial = await lookupFiberSugarWithGigaChat(dishName, next.portionGrams);
-      next = {
-        ...next,
-        fiber: next.fiber !== undefined ? next.fiber : partial.fiber,
-        sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
-      };
-    } else {
+    // Prefer a short fiber/sugar ask — we already have calories/macros from OFF or text lookup.
+    const partial = await lookupFiberSugarWithGigaChat(dishName, next.portionGrams);
+    next = {
+      ...next,
+      fiber: next.fiber !== undefined ? next.fiber : partial.fiber,
+      sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
+    };
+
+    if (needsFiberSugarBackfill(next) && next.source !== "gigachat-lookup") {
       const ai = await lookupFoodWithGigaChat(dishName);
       next = mergeFiberSugarBackfill(
         next,
