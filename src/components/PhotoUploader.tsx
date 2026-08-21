@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
+import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { withBasePath } from "@/lib/paths";
 
 const MAX_FILE_SIZE_MB = 15;
@@ -78,7 +79,10 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
 
     try {
       const formData = new FormData();
-      formData.append("photo", file);
+      const uploadName =
+        file.name?.trim() ||
+        (file.type.includes("heic") || file.type.includes("heif") ? "photo.heic" : "photo.jpg");
+      formData.append("photo", file, uploadName);
 
       const response = await fetch(withBasePath("/api/recognize"), {
         method: "POST",
@@ -86,15 +90,15 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
         signal: controller.signal,
       });
 
-      const data = await response.json();
+      const data = await readApiJson<RecognitionResponse & { error?: string }>(response);
       if (!response.ok) {
         throw new Error(data.error ?? "Ошибка распознавания");
       }
 
-      onRecognized(data as RecognitionResponse);
+      onRecognized(data);
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      setError(err instanceof Error ? err.message : "Не удалось загрузить фото");
+      setError(humanizeClientFetchError(err, "Не удалось загрузить фото"));
     } finally {
       URL.revokeObjectURL(objectUrl);
       setPreview(null);
@@ -168,7 +172,8 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
               {dragOver ? "Отпустите для загрузки" : "Добавить фото еды"}
             </p>
             <p className="mt-1 text-xs text-slate-500 md:text-sm">
-              Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP · до {MAX_FILE_SIZE_MB} МБ
+              Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP, HEIC · до {MAX_FILE_SIZE_MB}{" "}
+              МБ
             </p>
           </div>
 
@@ -194,7 +199,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
           <input
             ref={cameraInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             capture="environment"
             className="hidden"
             disabled={disabled}
@@ -203,7 +208,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
           <input
             ref={galleryInputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             className="hidden"
             disabled={disabled}
             onChange={handleFileChange}

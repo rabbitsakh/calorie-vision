@@ -177,6 +177,14 @@ async function getAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+function parseJsonBody<T>(status: number, body: string): T {
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new GigaChatApiError(formatGigaChatHttpError(status, body), status || 502);
+  }
+}
+
 async function uploadImage(
   token: string,
   buffer: Buffer,
@@ -199,7 +207,10 @@ async function uploadImage(
       body,
     });
 
-    const data = JSON.parse(response.body) as { id?: string; message?: string };
+    const data = parseJsonBody<{ id?: string; message?: string }>(
+      response.status,
+      response.body,
+    );
 
     if (response.status < 200 || response.status >= 300 || !data.id) {
       throw new GigaChatApiError(
@@ -260,11 +271,11 @@ export async function completeChat(
       body: payload,
     });
 
-    const data = JSON.parse(response.body) as {
+    const data = parseJsonBody<{
       choices?: Array<{ message?: { content?: string } }>;
       message?: string;
       error?: { message?: string };
-    };
+    }>(response.status, response.body);
 
     if (response.status < 200 || response.status >= 300) {
       throw new GigaChatApiError(

@@ -5,6 +5,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
+import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { withBasePath } from "@/lib/paths";
 import type { RecognitionResponse } from "@/types";
 
@@ -44,11 +45,11 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = (await response.json()) as {
+      const data = await readApiJson<{
         recognition?: FoodRecognitionResult;
         imagePath?: string;
         error?: string;
-      };
+      }>(response);
 
       if (!response.ok || !data.recognition) {
         throw new Error(data.error ?? "Не удалось найти продукт");
@@ -56,7 +57,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
 
       setPendingResult(toRecognitionResponse(data.recognition, data.imagePath));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка поиска");
+      setError(humanizeClientFetchError(err, "Ошибка поиска"));
     } finally {
       setLoading(false);
     }
