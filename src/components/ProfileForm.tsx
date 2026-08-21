@@ -250,7 +250,7 @@ export function ProfileForm() {
                 onChange={(event) => setPhone(event.target.value)}
               />
               <p className="text-xs text-slate-500">
-                Можно указать вручную. Для входа по SMS номер должен быть российским.
+                Можно указать вручную — для профиля и напоминаний.
               </p>
             </div>
             <div className="field sm:col-span-2">

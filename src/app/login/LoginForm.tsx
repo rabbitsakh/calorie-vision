@@ -3,17 +3,14 @@
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import type { TelegramAuthPayload } from "@/lib/telegram-verify";
 import { withBasePath } from "@/lib/paths";
 
-type AuthTab = "phone" | "email";
-
 type LoginOptions = {
   email: boolean;
-  phone: boolean;
   telegram: boolean;
   telegramBotUsername: string | null;
   google: boolean;
@@ -34,7 +31,6 @@ const AUTH_ERRORS: Record<string, string> = {
 
 const EMPTY_OPTIONS: LoginOptions = {
   email: false,
-  phone: false,
   telegram: false,
   telegramBotUsername: null,
   google: false,
@@ -46,28 +42,17 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [options, setOptions] = useState<LoginOptions | null>(null);
-  const [tab, setTab] = useState<AuthTab>("phone");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showMore, setShowMore] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
 
   const verifyRequest = searchParams.get("verify") === "1";
   const authError = searchParams.get("error");
   const ready = options ?? EMPTY_OPTIONS;
 
   const hasSocial = ready.google || ready.vk || ready.telegram;
-  const hasSecondary = ready.email || ready.phone;
-  const secondaryTabs = useMemo(() => {
-    const tabs: AuthTab[] = [];
-    if (ready.phone) tabs.push("phone");
-    if (ready.email) tabs.push("email");
-    return tabs;
-  }, [ready.email, ready.phone]);
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -89,14 +74,8 @@ export default function LoginForm() {
       .then((data: LoginOptions) => {
         if (cancelled) return;
         setOptions(data);
-        if (data.phone) {
-          setTab("phone");
-        } else if (data.email) {
-          setTab("email");
-        }
-        // Open secondary section if no social methods configured
-        if (!data.google && !data.vk && !data.telegram && (data.email || data.phone)) {
-          setShowMore(true);
+        if (!data.google && !data.vk && !data.telegram && data.email) {
+          setShowEmail(true);
         }
       })
       .catch(() => {
@@ -109,59 +88,6 @@ export default function LoginForm() {
       cancelled = true;
     };
   }, []);
-
-  async function handleSendCode(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await fetch(withBasePath("/api/auth/phone/send"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = (await response.json()) as { error?: string; message?: string; devCode?: string };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? "Не удалось отправить код");
-      }
-
-      setCodeSent(true);
-      setMessage(
-        data.devCode
-          ? `Код для разработки: ${data.devCode}`
-          : (data.message ?? "Код отправлен по SMS"),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка отправки");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handlePhoneLogin(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const result = await signIn("phone", {
-      phone,
-      code,
-      redirect: false,
-      callbackUrl: withBasePath("/"),
-    });
-
-    setLoading(false);
-
-    if (!result?.ok) {
-      setError("Неверный или просроченный код");
-      return;
-    }
-
-    router.replace("/");
-  }
 
   async function handleEmailLogin(event: React.FormEvent) {
     event.preventDefault();
@@ -233,7 +159,7 @@ export default function LoginForm() {
         </div>
         <h1 className="mt-3 text-2xl font-bold">Вход в аккаунт</h1>
         <p className="mt-2 text-slate-600">
-          Войдите через Google, VK или Telegram — дневник сохранится в вашем аккаунте.
+          Войдите через Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
 
         {verifyRequest ? (
@@ -301,159 +227,61 @@ export default function LoginForm() {
               </div>
             ) : null}
 
-            {hasSecondary ? (
+            {ready.email ? (
               <div className={`${hasSocial ? "mt-6 border-t border-slate-200 pt-6" : "mt-6"}`}>
                 {hasSocial ? (
                   <button
                     type="button"
                     className="text-sm font-semibold text-teal-800 hover:underline"
-                    onClick={() => setShowMore((value) => !value)}
+                    onClick={() => setShowEmail((value) => !value)}
                   >
-                    {showMore ? "Скрыть другие способы" : "Email или SMS"}
+                    {showEmail ? "Скрыть вход по email" : "Войти по email"}
                   </button>
                 ) : (
-                  <p className="text-sm font-semibold text-slate-700">Email или SMS</p>
+                  <p className="text-sm font-semibold text-slate-700">Вход по email</p>
                 )}
 
-                {showMore || !hasSocial ? (
-                  <div className="mt-4">
-                    {secondaryTabs.length > 1 ? (
-                      <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
-                        {secondaryTabs.includes("phone") ? (
-                          <button
-                            type="button"
-                            className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${tab === "phone" ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"}`}
-                            onClick={() => setTab("phone")}
-                          >
-                            SMS
-                          </button>
-                        ) : null}
-                        {secondaryTabs.includes("email") ? (
-                          <button
-                            type="button"
-                            className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${tab === "email" ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"}`}
-                            onClick={() => setTab("email")}
-                          >
-                            Email
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
+                {showEmail || !hasSocial ? (
+                  <form className="mt-4 flex flex-col gap-4" onSubmit={handleEmailLogin}>
+                    <div className="field">
+                      <label htmlFor="email">Email</label>
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                    </div>
 
-                    {tab === "phone" && ready.phone ? (
-                      <form
-                        className="mt-4 flex flex-col gap-4"
-                        onSubmit={codeSent ? handlePhoneLogin : handleSendCode}
-                      >
-                        <div className="field">
-                          <label htmlFor="phone">Номер телефона</label>
-                          <input
-                            id="phone"
-                            type="tel"
-                            placeholder="+7 900 123-45-67"
-                            value={phone}
-                            onChange={(event) => setPhone(event.target.value)}
-                            disabled={loading}
-                            required
-                          />
-                        </div>
-
-                        {codeSent ? (
-                          <div className="field">
-                            <label htmlFor="code">Код из SMS</label>
-                            <input
-                              id="code"
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="123456"
-                              value={code}
-                              onChange={(event) => setCode(event.target.value)}
-                              disabled={loading}
-                              required
-                            />
-                          </div>
-                        ) : null}
-
-                        <button
-                          type="submit"
-                          className="btn btn-primary inline-flex items-center justify-center gap-2"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <span className="daisy-loading daisy-loading-sm" aria-hidden>
-                                <span />
-                                <span />
-                                <span />
-                              </span>
-                              Подождите…
-                            </>
-                          ) : codeSent ? (
-                            "Войти"
-                          ) : (
-                            "Получить код"
-                          )}
-                        </button>
-
-                        {codeSent ? (
-                          <button
-                            type="button"
-                            className="text-sm text-teal-700 hover:underline"
-                            onClick={() => {
-                              setCodeSent(false);
-                              setCode("");
-                              setMessage(null);
-                            }}
-                          >
-                            Изменить номер
-                          </button>
-                        ) : null}
-                      </form>
-                    ) : null}
-
-                    {tab === "email" && ready.email ? (
-                      <form className="mt-4 flex flex-col gap-4" onSubmit={handleEmailLogin}>
-                        <div className="field">
-                          <label htmlFor="email">Email</label>
-                          <input
-                            id="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
-                            disabled={loading}
-                            required
-                          />
-                        </div>
-
-                        <button
-                          type="submit"
-                          className="btn btn-primary inline-flex items-center justify-center gap-2"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <span className="daisy-loading daisy-loading-sm" aria-hidden>
-                                <span />
-                                <span />
-                                <span />
-                              </span>
-                              Отправляем…
-                            </>
-                          ) : (
-                            "Получить ссылку для входа"
-                          )}
-                        </button>
-                      </form>
-                    ) : null}
-                  </div>
+                    <button
+                      type="submit"
+                      className="btn btn-primary inline-flex items-center justify-center gap-2"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <span className="daisy-loading daisy-loading-sm" aria-hidden>
+                            <span />
+                            <span />
+                            <span />
+                          </span>
+                          Отправляем…
+                        </>
+                      ) : (
+                        "Получить ссылку для входа"
+                      )}
+                    </button>
+                  </form>
                 ) : null}
               </div>
             ) : null}
 
-            {!hasSocial && !hasSecondary ? (
+            {!hasSocial && !ready.email ? (
               <p className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                Способы входа ещё не настроены на сервере. Нужны Google, VK или Telegram (токен бота).
+                Способы входа ещё не настроены на сервере. Нужны Google, VK, Telegram или SMTP для email.
               </p>
             ) : null}
           </>

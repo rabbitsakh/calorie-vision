@@ -9,13 +9,13 @@
 - экран подтверждения с возможностью исправить название и калории;
 - сохранение приёмов пищи в MySQL по дням;
 - дневник с итогом калорий за выбранный день;
-- вход через Google, VK или Telegram; опционально email (magic link) и SMS — у каждого пользователя свой дневник.
+- вход через Google, VK, Telegram или email (magic link) — у каждого пользователя свой дневник.
 
 ## Стек
 
 - **Frontend + API:** Next.js 15 (App Router), React, TypeScript, Tailwind CSS
 - **База данных:** MySQL + Prisma ORM
-- **Авторизация:** NextAuth.js (Google, VK, Telegram, email, SMS)
+- **Авторизация:** NextAuth.js (Google, VK, Telegram, email)
 - **Распознавание:** GigaChat API (Сбер, поддержка фото)
 
 ## Расположение проекта
@@ -61,7 +61,6 @@ NEXTAUTH_URL=http://localhost:3000/calorie-vision
 
 EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
 EMAIL_FROM=noreply@calorievision.ru
-SMS_RU_API_ID=
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -119,7 +118,7 @@ npm run start
 
 ## Как это работает
 
-1. Вы входите через Google, VK, Telegram (или email/SMS, если настроены).
+1. Вы входите через Google, VK, Telegram или email (если настроен SMTP).
 2. Выбираете дату и загружаете фото.
 3. API `/api/recognize` сохраняет фото и возвращает предполагаемое блюдо.
 4. Вы подтверждаете или исправляете данные.
@@ -128,9 +127,9 @@ npm run start
 
 ## Настройка авторизации
 
-На странице входа показываются только **настроенные** способы. Email без `EMAIL_SERVER` и SMS без `SMS_RU_API_ID` скрыты (чтобы не выглядело «сломанным»).
+На странице входа показываются только **настроенные** способы. Email без SMTP скрыт.
 
-### Telegram (рекомендуется вместо SMS)
+### Telegram
 
 1. Создайте бота у [@BotFather](https://t.me/BotFather).
 2. Команда `/setdomain` → укажите `calorievision.ru` (для локалки — временный HTTPS-туннель, например ngrok).
@@ -140,14 +139,6 @@ npm run start
    TELEGRAM_BOT_TOKEN=123456:AA...
    ```
 4. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
-
-### Телефон (SMS)
-
-1. Зарегистрируйтесь на [sms.ru](https://sms.ru/) и получите `api_id`.
-2. Пополните баланс. На тестовом аккаунте SMS часто уходит только на номер, указанный в кабинете.
-3. Добавьте в `.env`: `SMS_RU_API_ID=ваш-ключ`.
-4. Без ключа вкладка SMS скрыта. Для локальной отладки: `ALLOW_DEV_PHONE_LOGIN=1` (код на экране и в логе).
-5. Если код «отправился», но SMS нет — на экране будет текст ошибки sms.ru (нет денег, номер не разрешён, неверный `api_id`).
 
 ### Email (magic link)
 
@@ -235,7 +226,7 @@ npm run dev
 ```text
 calorie-vision/
 ├── prisma/schema.prisma      # User, Account, Session, MealEntry
-├── src/app/api/auth/         # NextAuth + SMS OTP
+├── src/app/api/auth/         # NextAuth (Google, VK, Telegram, email)
 ├── src/components/           # UI-компоненты
 ├── src/lib/                  # Prisma, распознавание, даты
 └── public/uploads/           # загруженные фото
@@ -258,7 +249,12 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VK_CLIENT_ID=...
 VK_CLIENT_SECRET=...
-SMS_RU_API_ID=...
+EMAIL_SERVER_HOST=smtp.yandex.ru
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=noreply@calorievision.ru
+EMAIL_SERVER_PASSWORD=...
+EMAIL_SERVER_SECURE=1
+EMAIL_FROM=noreply@calorievision.ru
 GIGACHAT_CREDENTIALS=...
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 GIGACHAT_MODEL=GigaChat-2-Max

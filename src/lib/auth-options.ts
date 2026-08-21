@@ -14,8 +14,6 @@ import {
 } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
 import { isEmailLoginConfigured, resolveEmailServer, sendMagicLinkEmail } from "@/lib/email-auth";
-import { verifyPhoneOtp } from "@/lib/otp";
-import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import {
   findOrCreateTelegramUser,
@@ -25,48 +23,7 @@ import {
 } from "@/lib/telegram-auth";
 import { createVkIdProvider } from "@/lib/vk-auth";
 
-const providers: NextAuthOptions["providers"] = [
-  CredentialsProvider({
-    id: "phone",
-    name: "Phone",
-    credentials: {
-      phone: { label: "Телефон", type: "text" },
-      code: { label: "Код", type: "text" },
-    },
-    async authorize(credentials) {
-      const phone = normalizePhone(credentials?.phone ?? "");
-      const code = credentials?.code?.trim();
-
-      if (!phone || !code || !isValidPhone(phone)) {
-        return null;
-      }
-
-      const valid = await verifyPhoneOtp(phone, code);
-      if (!valid) {
-        return null;
-      }
-
-      let user = await prisma.user.findUnique({ where: { phone } });
-      if (!user) {
-        user = await prisma.user.create({
-          data: { phone, phoneVerified: new Date() },
-        });
-      } else if (!user.phoneVerified) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { phoneVerified: new Date() },
-        });
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.image,
-      };
-    },
-  }),
-];
+const providers: NextAuthOptions["providers"] = [];
 
 if (isTelegramLoginConfigured() && process.env.TELEGRAM_BOT_TOKEN) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
