@@ -13,6 +13,7 @@ import { getImageUrl, withBasePath } from "@/lib/paths";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { looksLikeDrinkName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 
 type NutritionFields = {
@@ -106,10 +107,7 @@ const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
 const DRINK_PORTION_CHIPS = [200, 250, 330, 500] as const;
 
 function looksLikeDrink(dish: DishDraft): boolean {
-  const name = `${dish.dishName} ${dish.original.dishName}`.toLowerCase();
-  return /напиток|сок|чай|кофе|кофе|молок|кефир|йогурт пить|пиво|вино|вода|лимонад|кола|smoothie|смузи|компот|морс|какао/i.test(
-    name,
-  );
+  return looksLikeDrinkName(dish.dishName, dish.original.dishName);
 }
 
 function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: number }> {
