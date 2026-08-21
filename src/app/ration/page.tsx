@@ -14,6 +14,7 @@ import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { MealSuggestions } from "@/components/MealSuggestions";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { DayOpenedCelebration } from "@/components/DayOpenedCelebration";
+import { DailyGoalCelebration } from "@/components/DailyGoalCelebration";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { EveningCheckin } from "@/components/EveningCheckin";
@@ -86,6 +87,7 @@ export default function RationPage() {
           <PushNotificationPrompt />
           <DiaryNoteWidget selectedDate={date} />
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
         </div>
       </AuthGate>
     </AppShell>

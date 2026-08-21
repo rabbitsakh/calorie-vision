@@ -295,6 +295,48 @@ export function formatCalorieVsTargetLabel(
  * For LOSE the target already includes a deficit — going moderately under it is OK.
  * Only warn on extreme undereating (<75% of target).
  */
+export const CALORIE_GOAL_CORRIDOR_RATIO = 0.08;
+export const CALORIE_LOSE_DANGEROUS_RATIO = 0.75;
+
+/** True when intake is within ±8% of the daily calorie target (tip “near” band). */
+export function isCalorieGoalCorridor(actual: number, target: number): boolean {
+  if (!(actual > 0) || !(target > 0)) return false;
+  return Math.abs(actual - target) <= target * CALORIE_GOAL_CORRIDOR_RATIO;
+}
+
+/** LOSE: extreme undereating that must not be celebrated. */
+export function isDangerousCalorieUndereat(
+  actual: number,
+  target: number,
+  goal: WeightGoal | null | undefined,
+): boolean {
+  if (goal !== "LOSE") return false;
+  if (!(actual > 0) || !(target > 0)) return false;
+  return actual < target * CALORIE_LOSE_DANGEROUS_RATIO;
+}
+
+export function dailyGoalCelebrationCopy(goal: WeightGoal | null | undefined): {
+  title: string;
+  subtitle: string;
+} {
+  if (goal === "LOSE") {
+    return {
+      title: "Цель по калориям",
+      subtitle: "Вы в целевом дефиците — отличная работа!",
+    };
+  }
+  if (goal === "GAIN") {
+    return {
+      title: "Цель по калориям",
+      subtitle: "Вы рядом с целью на набор — так и держите.",
+    };
+  }
+  return {
+    title: "Цель по калориям",
+    subtitle: "Вы рядом с нормой на сегодня.",
+  };
+}
+
 export function buildGoalAwareCalorieTip(params: {
   actual: number;
   target: number;
@@ -314,8 +356,8 @@ export function buildGoalAwareCalorieTip(params: {
 
   const diff = actual - target;
   const abs = Math.round(Math.abs(diff));
-  const near = Math.abs(diff) <= target * 0.08;
-  const veryLow = actual < target * 0.75;
+  const near = isCalorieGoalCorridor(actual, target);
+  const veryLow = actual < target * CALORIE_LOSE_DANGEROUS_RATIO;
 
   if (near) {
     if (goal === "LOSE") {
