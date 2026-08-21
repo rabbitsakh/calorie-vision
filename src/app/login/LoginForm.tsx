@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import type { TelegramAuthPayload } from "@/lib/telegram-auth";
+import type { TelegramAuthPayload } from "@/lib/telegram-verify";
 import { withBasePath } from "@/lib/paths";
 
 type AuthTab = "phone" | "email";
