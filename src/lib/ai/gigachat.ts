@@ -3,6 +3,8 @@ import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
 import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { buildBarcodeVisionPrompt } from "@/lib/ai/category-prompts";
+import { sanitizeVisionBarcode, shouldRunBarcodePass } from "@/lib/ai/barcode-vision";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
@@ -382,6 +384,33 @@ export async function recognizeWithGigaChat(
       }
     } catch {
       // keep first parse
+    }
+  }
+
+  result = sanitizeVisionBarcode(result);
+
+  if (shouldRunBarcodePass(result)) {
+    try {
+      const barcodeText = await completeChat([
+        {
+          role: "user",
+          content: buildBarcodeVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const refined = sanitizeVisionBarcode(parseFoodRecognitionResponse(barcodeText));
+      if (refined.barcode) {
+        result = {
+          ...result,
+          ...refined,
+          photoKind: "barcode",
+          barcode: refined.barcode,
+          dishName: refined.dishName || result.dishName,
+          brand: refined.brand || result.brand,
+        };
+      }
+    } catch {
+      // keep sanitized first pass
     }
   }
 
