@@ -7,6 +7,8 @@ import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { buildPlateVisionPrompt } from "@/lib/ai/category-prompts";
+import { isBetterPlateResult, shouldRunPlatePass } from "@/lib/ai/plate-vision";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -382,6 +384,28 @@ export async function recognizeWithGigaChat(
       }
     } catch {
       // keep first parse
+    }
+  }
+
+  if (shouldRunPlatePass(result)) {
+    try {
+      const plateText = await completeChat([
+        {
+          role: "user",
+          content: buildPlateVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const plated = parseFoodRecognitionResponse(plateText);
+      if (isBetterPlateResult(result, plated)) {
+        result = {
+          ...plated,
+          photoKind: "meal",
+          source: result.source,
+        };
+      }
+    } catch {
+      // keep first/retry result
     }
   }
 
