@@ -13,6 +13,7 @@ import {
   sanitizeAdapterUser,
 } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
+import { isEmailLoginConfigured, resolveEmailServer, sendMagicLinkEmail } from "@/lib/email-auth";
 import { verifyPhoneOtp } from "@/lib/otp";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
@@ -113,13 +114,32 @@ if (isTelegramLoginConfigured() && process.env.TELEGRAM_BOT_TOKEN) {
   );
 }
 
-if (process.env.EMAIL_SERVER) {
-  providers.unshift(
-    EmailProvider({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM ?? "noreply@calorievision.ru",
-    }),
-  );
+if (isEmailLoginConfigured()) {
+  const server = resolveEmailServer();
+  if (server) {
+    providers.unshift(
+      EmailProvider({
+        server,
+        from: process.env.EMAIL_FROM ?? "noreply@calorievision.ru",
+        maxAge: 24 * 60 * 60,
+        async sendVerificationRequest(params) {
+          try {
+            await sendMagicLinkEmail({
+              identifier: params.identifier,
+              url: params.url,
+              provider: {
+                server: params.provider.server,
+                from: params.provider.from,
+              },
+            });
+          } catch (error) {
+            console.error("[email-auth] Failed to send magic link:", error);
+            throw new Error("Не удалось отправить письмо для входа. Проверьте SMTP на сервере.");
+          }
+        },
+      }),
+    );
+  }
 }
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {

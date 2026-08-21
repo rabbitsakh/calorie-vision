@@ -151,12 +151,30 @@ npm run start
 
 ### Email (magic link)
 
-1. Настройте SMTP в `.env`:
+Нужен пакет `nodemailer` (уже в зависимостях проекта) и рабочий SMTP.
+
+1. Настройте SMTP в `.env` — один из вариантов:
+
+   **A. Connection string** (спецсимволы в пароле кодируйте: `@` → `%40`, `:` → `%3A`):
    ```env
    EMAIL_SERVER=smtp://user:pass@smtp.yandex.ru:465
    EMAIL_FROM=noreply@calorievision.ru
    ```
-2. Пользователь вводит email → получает ссылку для входа. Без `EMAIL_SERVER` вкладка Email скрыта.
+
+   **B. Отдельные поля** (удобнее для сложных паролей):
+   ```env
+   EMAIL_SERVER_HOST=smtp.yandex.ru
+   EMAIL_SERVER_PORT=465
+   EMAIL_SERVER_USER=noreply@calorievision.ru
+   EMAIL_SERVER_PASSWORD=ваш-пароль-приложения
+   EMAIL_SERVER_SECURE=1
+   EMAIL_FROM=noreply@calorievision.ru
+   ```
+
+2. Для Яндекса / Mail.ru: `EMAIL_FROM` должен совпадать с ящиком, от которого идёт SMTP; часто нужен **пароль приложения**, не обычный пароль.
+3. `NEXTAUTH_URL=https://calorievision.ru` — без `/api/auth`, иначе ссылка в письме будет битой.
+4. Пользователь вводит email → получает письмо «Вход в Calorie Vision» → клик по ссылке → сессия.
+5. Без SMTP вкладка Email на `/login` скрыта.
 
 ### Google (опционально)
 

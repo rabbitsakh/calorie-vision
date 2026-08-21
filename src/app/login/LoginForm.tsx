@@ -178,7 +178,11 @@ export default function LoginForm() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Не удалось отправить письмо. Проверьте адрес email и попробуйте позже.");
+      setError(
+        result.error === "EmailSignin" || result.error === "Configuration"
+          ? "Не удалось отправить письмо. Проверьте SMTP (EMAIL_SERVER) на сервере и адрес email."
+          : "Не удалось отправить письмо. Проверьте адрес email и попробуйте позже.",
+      );
       return;
     }
 
