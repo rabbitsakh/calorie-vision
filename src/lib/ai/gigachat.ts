@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_PROMPT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
@@ -347,10 +347,11 @@ export async function recognizeWithGigaChat(
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
 
-  const ask = async (extraHint?: string) => {
-    const content = extraHint
-      ? `${FOOD_RECOGNITION_PROMPT}\n\n${extraHint}\n\nПроанализируй фото еды и верни только JSON.`
-      : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
+  const ask = async (mode: "full" | "retry" = "full") => {
+    const content =
+      mode === "retry"
+        ? FOOD_RECOGNITION_RETRY_PROMPT
+        : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
     return completeChat([
       {
         role: "user",
@@ -360,18 +361,18 @@ export async function recognizeWithGigaChat(
     ]);
   };
 
-  let text = await ask();
+  let text = await ask("full");
   let result: FoodRecognitionResult;
   try {
     result = parseFoodRecognitionResponse(text);
   } catch {
-    text = await ask(FOOD_RECOGNITION_RETRY_HINT);
+    text = await ask("retry");
     result = parseFoodRecognitionResponse(text);
   }
 
   if (shouldRetryFoodRecognition(result)) {
     try {
-      text = await ask(FOOD_RECOGNITION_RETRY_HINT);
+      text = await ask("retry");
       const retried = parseFoodRecognitionResponse(text);
       if (
         (retried.items?.length ?? 0) > (result.items?.length ?? 0) ||
