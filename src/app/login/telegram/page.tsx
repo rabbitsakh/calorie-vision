@@ -1,0 +1,102 @@
+"use client";
+
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { BrandMark } from "@/components/BrandMark";
+import { withBasePath } from "@/lib/paths";
+
+function TelegramCallbackInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fromQuery = Object.fromEntries(searchParams.entries());
+    const fromHash: Record<string, string> = {};
+
+    if (typeof window !== "undefined" && window.location.hash.length > 1) {
+      const hash = window.location.hash.replace(/^#/, "");
+      for (const part of hash.split("&")) {
+        const [key, ...rest] = part.split("=");
+        if (key) {
+          fromHash[decodeURIComponent(key)] = decodeURIComponent(rest.join("=") || "");
+        }
+      }
+    }
+
+    const data = { ...fromHash, ...fromQuery };
+    const id = data.id?.trim();
+    const hash = data.hash?.trim();
+    const authDate = data.auth_date?.trim();
+
+    if (!id || !hash || !authDate) {
+      setError("Telegram не вернул данные входа. Проверьте /setdomain у бота (calorievision.ru).");
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      const result = await signIn("telegram", {
+        id,
+        first_name: data.first_name ?? "",
+        last_name: data.last_name ?? "",
+        username: data.username ?? "",
+        photo_url: data.photo_url ?? "",
+        auth_date: authDate,
+        hash,
+        redirect: false,
+        callbackUrl: withBasePath("/"),
+      });
+
+      if (cancelled) return;
+
+      if (!result?.ok) {
+        setError("Не удалось войти через Telegram. Попробуйте ещё раз.");
+        return;
+      }
+
+      router.replace("/ration/");
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router, searchParams]);
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+      <div className="card p-8 text-center">
+        <div className="flex items-center justify-center gap-3">
+          <BrandMark size={40} />
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">Calorie Vision</p>
+        </div>
+        {error ? (
+          <>
+            <p className="mt-4 text-sm text-red-600">{error}</p>
+            <a href={withBasePath("/login")} className="btn btn-primary mt-6 inline-flex">
+              Вернуться ко входу
+            </a>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-slate-600">Входим через Telegram…</p>
+        )}
+      </div>
+    </main>
+  );
+}
+
+export default function TelegramCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+          <p className="text-center text-sm text-slate-500">Загрузка…</p>
+        </main>
+      }
+    >
+      <TelegramCallbackInner />
+    </Suspense>
+  );
+}

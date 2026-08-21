@@ -6,13 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import type { TelegramAuthPayload } from "@/lib/telegram-verify";
 import { withBasePath } from "@/lib/paths";
 
 type LoginOptions = {
   email: boolean;
   telegram: boolean;
   telegramBotUsername: string | null;
+  telegramBotId: string | null;
   google: boolean;
   vk: boolean;
 };
@@ -33,6 +33,7 @@ const EMPTY_OPTIONS: LoginOptions = {
   email: false,
   telegram: false,
   telegramBotUsername: null,
+  telegramBotId: null,
   google: false,
   vk: false,
 };
@@ -121,33 +122,6 @@ export default function LoginForm() {
     void signIn(provider, { callbackUrl: withBasePath("/") });
   }
 
-  async function handleTelegramAuth(user: TelegramAuthPayload) {
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    const result = await signIn("telegram", {
-      id: String(user.id),
-      first_name: user.first_name ?? "",
-      last_name: user.last_name ?? "",
-      username: user.username ?? "",
-      photo_url: user.photo_url ?? "",
-      auth_date: String(user.auth_date),
-      hash: user.hash,
-      redirect: false,
-      callbackUrl: withBasePath("/"),
-    });
-
-    setLoading(false);
-
-    if (!result?.ok) {
-      setError("Не удалось войти через Telegram. Попробуйте ещё раз.");
-      return;
-    }
-
-    router.replace("/");
-  }
-
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <div className="card p-8">
@@ -215,14 +189,12 @@ export default function LoginForm() {
                     Продолжить с VK
                   </button>
                 ) : null}
-                {ready.telegram && ready.telegramBotUsername ? (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                    <TelegramLoginButton
-                      botUsername={ready.telegramBotUsername}
-                      disabled={loading}
-                      onAuth={handleTelegramAuth}
-                    />
-                  </div>
+                {ready.telegram && ready.telegramBotUsername && ready.telegramBotId ? (
+                  <TelegramLoginButton
+                    botId={ready.telegramBotId}
+                    botUsername={ready.telegramBotUsername}
+                    disabled={loading}
+                  />
                 ) : null}
               </div>
             ) : null}
