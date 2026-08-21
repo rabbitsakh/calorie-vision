@@ -6,17 +6,18 @@ import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { compressFoodImage } from "@/lib/image-compress";
 import { saveImageBuffer } from "@/lib/upload";
 
-function isUploadBlob(value: FormDataEntryValue | null): value is Blob {
+/** FormDataEntryValue is File | string — predicate must narrow to File, not Blob. */
+function isUploadFile(value: FormDataEntryValue | null): value is File {
   return (
     typeof value === "object" &&
     value !== null &&
-    typeof (value as Blob).arrayBuffer === "function" &&
-    typeof (value as Blob).size === "number"
+    typeof value.arrayBuffer === "function" &&
+    typeof value.size === "number"
   );
 }
 
-function uploadFilename(file: Blob): string {
-  if (file instanceof File && file.name.trim()) {
+function uploadFilename(file: File): string {
+  if (file.name.trim()) {
     return file.name;
   }
   const type = file.type?.toLowerCase() ?? "";
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("photo");
 
-    if (!isUploadBlob(file) || file.size <= 0) {
+    if (!isUploadFile(file) || file.size <= 0) {
       return NextResponse.json({ error: "Фото не найдено" }, { status: 400 });
     }
 
