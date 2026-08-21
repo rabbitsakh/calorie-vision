@@ -26,21 +26,54 @@ export async function sendMagicLinkEmail({ identifier, url, provider }: SendMagi
     }
   })();
 
-  const result = await transport.sendMail({
-    to: identifier,
-    from: from ?? "noreply@calorievision.ru",
-    subject: `Вход в Calorie Vision`,
-    text: textBody({ url, host }),
-    html: htmlBody({ url, host }),
-  });
+  try {
+    const result = await transport.sendMail({
+      to: identifier,
+      from: from ?? "noreply@calorievision.ru",
+      subject: `Вход в Calorie Vision`,
+      text: textBody({ url, host }),
+      html: htmlBody({ url, host }),
+    });
 
-  const info = result as { rejected?: unknown[]; pending?: unknown[] };
-  const rejected = [...(info.rejected ?? []), ...(info.pending ?? [])].filter(Boolean);
-  if (rejected.length) {
-    throw new Error(`SMTP не принял письмо для: ${rejected.join(", ")}`);
+    const info = result as { rejected?: unknown[]; pending?: unknown[] };
+    const rejected = [...(info.rejected ?? []), ...(info.pending ?? [])].filter(Boolean);
+    if (rejected.length) {
+      throw new Error(`SMTP не принял письмо для: ${rejected.join(", ")}`);
+    }
+
+    return result;
+  } catch (error) {
+    const detail = formatSmtpError(error);
+    console.error("[email-auth] SMTP send failed:", detail, error);
+    throw new Error(detail);
+  }
+}
+
+function formatSmtpError(error: unknown): string {
+  if (!error || typeof error !== "object") {
+    return "Не удалось отправить письмо через SMTP.";
   }
 
-  return result;
+  const err = error as {
+    code?: string;
+    responseCode?: number;
+    response?: string;
+    message?: string;
+  };
+
+  if (err.code === "EAUTH" || err.responseCode === 535) {
+    return "SMTP отклонил логин/пароль. Проверьте EMAIL_SERVER_USER и пароль приложения Яндекса.";
+  }
+  if (err.code === "ESOCKET" || err.code === "ETIMEDOUT" || err.code === "ECONNECTION") {
+    return "Нет связи с SMTP-сервером. Проверьте EMAIL_SERVER_HOST/PORT и исходящий порт 465 на VPS.";
+  }
+  if (typeof err.response === "string" && err.response.trim()) {
+    return `SMTP: ${err.response.trim()}`;
+  }
+  if (typeof err.message === "string" && err.message.trim()) {
+    return err.message.trim();
+  }
+  return "Не удалось отправить письмо через SMTP.";
 }
 
 function textBody({ url, host }: { url: string; host: string }) {
@@ -101,7 +134,7 @@ export function resolveEmailServer(): string | Record<string, unknown> | null {
   const pass = process.env.EMAIL_SERVER_PASSWORD;
   const portRaw = process.env.EMAIL_SERVER_PORT?.trim();
 
-  if (host && user && pass !== undefined) {
+  if (host && user && typeof pass === "string" && pass.length > 0) {
     const port = Number(portRaw || "465");
     const secure =
       process.env.EMAIL_SERVER_SECURE === "true" ||
@@ -117,7 +150,20 @@ export function resolveEmailServer(): string | Record<string, unknown> | null {
   }
 
   const connection = process.env.EMAIL_SERVER?.trim();
-  return connection || null;
+  if (!connection) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(connection);
+    if (!parsed.hostname || !parsed.username || !parsed.password) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+
+  return connection;
 }
 
 export function isEmailLoginConfigured(): boolean {

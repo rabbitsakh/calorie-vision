@@ -52,6 +52,27 @@ describe("resolveEmailServer", () => {
     }
   });
 
+  it("ignores empty password even if host/user are set", () => {
+    const prev = {
+      EMAIL_SERVER: process.env.EMAIL_SERVER,
+      EMAIL_SERVER_HOST: process.env.EMAIL_SERVER_HOST,
+      EMAIL_SERVER_USER: process.env.EMAIL_SERVER_USER,
+      EMAIL_SERVER_PASSWORD: process.env.EMAIL_SERVER_PASSWORD,
+    };
+
+    delete process.env.EMAIL_SERVER;
+    process.env.EMAIL_SERVER_HOST = "smtp.yandex.ru";
+    process.env.EMAIL_SERVER_USER = "noreply@calorievision.ru";
+    process.env.EMAIL_SERVER_PASSWORD = "";
+
+    try {
+      assert.equal(resolveEmailServer(), null);
+      assert.equal(isEmailLoginConfigured(), false);
+    } finally {
+      restoreEnv(prev);
+    }
+  });
+
   it("falls back to EMAIL_SERVER connection string", () => {
     const prev = {
       EMAIL_SERVER: process.env.EMAIL_SERVER,

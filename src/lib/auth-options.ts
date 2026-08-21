@@ -90,8 +90,10 @@ if (isEmailLoginConfigured()) {
               },
             });
           } catch (error) {
-            console.error("[email-auth] Failed to send magic link:", error);
-            throw new Error("Не удалось отправить письмо для входа. Проверьте SMTP на сервере.");
+            const message =
+              error instanceof Error ? error.message : "Не удалось отправить письмо для входа.";
+            console.error("[email-auth] Failed to send magic link:", message);
+            throw new Error(message);
           }
         },
       }),
