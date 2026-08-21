@@ -50,6 +50,7 @@ type MilestoneCelebrationProps = {
   streak: number;
 };
 
+/** Big streak milestones — same visual language as SoftCelebration, manual dismiss. */
 export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   const [milestone, setMilestone] = useState<number | null>(null);
 
@@ -69,61 +70,50 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]"
+      className="soft-celeb-root fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-[1px]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="milestone-title"
       onClick={dismiss}
     >
       <div
-        className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6 text-center shadow-xl ring-1 ring-amber-200"
+        className="soft-celeb-card relative w-full max-w-sm overflow-hidden rounded-3xl bg-white px-5 py-6 text-center shadow-xl ring-1 ring-teal-100"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-          {Array.from({ length: 18 }).map((_, i) => (
+          {Array.from({ length: 12 }).map((_, i) => (
             <span
               key={i}
-              className="milestone-confetti absolute h-2 w-2 rounded-sm"
+              className="milestone-confetti absolute h-1.5 w-1.5 rounded-sm"
               style={{
-                left: `${8 + ((i * 17) % 84)}%`,
-                top: `${-10 - (i % 5) * 4}%`,
-                backgroundColor: ["#f59e0b", "#ea580c", "#14b8a6", "#fbbf24", "#0d9488"][i % 5],
-                animationDelay: `${(i % 8) * 0.08}s`,
-                transform: `rotate(${i * 20}deg)`,
+                left: `${10 + ((i * 19) % 80)}%`,
+                top: `${-8 - (i % 4) * 3}%`,
+                backgroundColor: ["#0f766e", "#14b8a6", "#f59e0b", "#5eead4"][i % 4],
+                animationDelay: `${(i % 6) * 0.07}s`,
+                transform: `rotate(${i * 18}deg)`,
               }}
             />
           ))}
         </div>
 
-        <p className="text-5xl" aria-hidden>
-          🎉
-        </p>
-        <h2 id="milestone-title" className="mt-3 text-2xl font-bold text-amber-900">
-          {milestone} {pluralDays(milestone)}!
+        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-4 h-16 w-16 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
+        <div className="soft-celeb-dot relative mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
+          {milestone}
+        </div>
+        <h2 id="milestone-title" className="text-xl font-bold text-slate-900">
+          {milestone} {pluralDays(milestone)} подряд!
         </h2>
-        <p className="mt-2 text-sm text-amber-800">
+        <p className="mt-2 text-sm text-slate-600">
           {MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`}
         </p>
-        <button type="button" className="btn btn-on-tint mt-5 w-full text-amber-900" onClick={dismiss}>
+        <button
+          type="button"
+          className="btn btn-on-tint mt-5 w-full text-teal-800"
+          onClick={dismiss}
+        >
           Продолжить
         </button>
       </div>
-
-      <style jsx>{`
-        @keyframes milestone-fall {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(120vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-        .milestone-confetti {
-          animation: milestone-fall 2.2s ease-in forwards;
-        }
-      `}</style>
     </div>
   );
 }

@@ -6,6 +6,8 @@ type SoftCelebrationProps = {
   open: boolean;
   title: string;
   subtitle?: string;
+  /** Glyph inside the teal badge; defaults to a checkmark. */
+  badge?: string;
   durationMs?: number;
   onClose: () => void;
 };
@@ -18,6 +20,7 @@ export function SoftCelebration({
   open,
   title,
   subtitle,
+  badge = "✓",
   durationMs = 2600,
   onClose,
 }: SoftCelebrationProps) {
@@ -42,7 +45,7 @@ export function SoftCelebration({
       >
         <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-3 h-16 w-16 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
         <div className="soft-celeb-dot relative mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-teal-600 text-lg font-bold text-white">
-          ✓
+          {badge}
         </div>
         <p className="text-lg font-bold text-slate-900">{title}</p>
         {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
