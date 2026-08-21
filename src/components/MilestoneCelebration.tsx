@@ -99,7 +99,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
 
         <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-3 h-24 w-24 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
         <div className="relative mx-auto mb-2 flex flex-col items-center">
-          <Mascot pose="streak" size="lg" className="mascot-bob" />
+          <Mascot pose="streak" size="lg" />
           <span className="mt-1 rounded-full bg-teal-700 px-2.5 py-0.5 text-xs font-bold text-white">
             {milestone}
           </span>

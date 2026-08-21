@@ -759,7 +759,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <Mascot pose="empty" size="md" className="mascot-bob" />
+            <Mascot pose="empty" size="md" />
             <p>За этот день пока нет записей. Добавьте еду выше — я рядом.</p>
             <button
               type="button"
