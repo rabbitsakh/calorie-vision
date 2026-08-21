@@ -4,9 +4,14 @@ import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
 import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
-import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
+import {
+  getRecognitionRetryReason,
+  isBetterRecognitionResult,
+  shouldRetryFoodRecognition,
+} from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -369,21 +374,46 @@ export async function recognizeWithGigaChat(
     result = parseFoodRecognitionResponse(text);
   }
 
+  logRecognitionPass({
+    pass: "main",
+    photoKind: result.photoKind,
+    retryReason: getRecognitionRetryReason(result),
+    itemCount: result.items?.length ?? 0,
+    calories: result.calories,
+    confidence: result.confidence,
+    dishName: result.dishName,
+  });
+
   if (shouldRetryFoodRecognition(result)) {
     try {
       text = await ask(FOOD_RECOGNITION_RETRY_HINT);
       const retried = parseFoodRecognitionResponse(text);
-      if (
-        (retried.items?.length ?? 0) > (result.items?.length ?? 0) ||
-        retried.calories > result.calories ||
-        !shouldRetryFoodRecognition(retried)
-      ) {
+      logRecognitionPass({
+        pass: "retry",
+        photoKind: retried.photoKind,
+        retryReason: getRecognitionRetryReason(retried),
+        itemCount: retried.items?.length ?? 0,
+        calories: retried.calories,
+        confidence: retried.confidence,
+        dishName: retried.dishName,
+      });
+      if (isBetterRecognitionResult(result, retried)) {
         result = retried;
       }
     } catch {
       // keep first parse
     }
   }
+
+  logRecognitionPass({
+    pass: "accepted",
+    photoKind: result.photoKind,
+    retryReason: getRecognitionRetryReason(result),
+    itemCount: result.items?.length ?? 0,
+    calories: result.calories,
+    confidence: result.confidence,
+    dishName: result.dishName,
+  });
 
   return result;
 }
