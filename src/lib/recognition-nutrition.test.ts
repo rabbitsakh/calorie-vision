@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   inferPer100gValues,
+  mergeFiberSugarBackfill,
   mergeNutritionBackfill,
   normalizeRecognitionNutrition,
+  needsFiberSugarBackfill,
   needsNutritionLookup,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
@@ -180,4 +182,60 @@ test("keeps vision macros when only calories were missing", () => {
   assert.equal(merged.protein, 3);
   assert.equal(merged.fat, 8);
   assert.equal(merged.carbs, 4);
+});
+
+test("fills missing fiber and sugar from a second lookup with portion scale", () => {
+  const merged = mergeFiberSugarBackfill(
+    {
+      dishName: "Хурма",
+      calories: 102,
+      protein: 0.8,
+      fat: 0.5,
+      carbs: 23,
+      portionGrams: 150,
+      confidence: 0.85,
+      source: "gigachat-lookup",
+      photoKind: "meal",
+    },
+    {
+      dishName: "Хурма",
+      calories: 68,
+      fiber: 2.5,
+      sugar: 16,
+      portionGrams: 100,
+      confidence: 0.8,
+      source: "openfoodfacts-search",
+    },
+  );
+
+  assert.equal(merged.calories, 102);
+  assert.equal(merged.fiber, 3.8);
+  assert.equal(merged.sugar, 24);
+  assert.equal(needsFiberSugarBackfill(merged), false);
+});
+
+test("keeps explicit zero fiber and does not treat it as missing", () => {
+  const merged = mergeFiberSugarBackfill(
+    {
+      dishName: "Куриная грудка",
+      calories: 165,
+      fiber: 0,
+      sugar: 0,
+      portionGrams: 100,
+      confidence: 0.9,
+      photoKind: "meal",
+    },
+    {
+      dishName: "Куриная грудка",
+      calories: 165,
+      fiber: 3,
+      sugar: 2,
+      portionGrams: 100,
+      confidence: 0.5,
+    },
+  );
+
+  assert.equal(merged.fiber, 0);
+  assert.equal(merged.sugar, 0);
+  assert.equal(needsFiberSugarBackfill({ fiber: undefined, sugar: 1 }), true);
 });

@@ -1,5 +1,5 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
-import { lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { lookupFiberSugarWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { normalizeBarcode } from "@/lib/barcode";
 import {
   applyStoredFoodCorrection,
@@ -12,7 +12,9 @@ import {
 } from "@/lib/recognition-items";
 import {
   hasUsableCalories,
+  mergeFiberSugarBackfill,
   mergeNutritionBackfill,
+  needsFiberSugarBackfill,
   needsNutritionLookup,
   normalizeRecognitionNutrition,
   simplifyDishNameForLookup,
@@ -333,27 +335,33 @@ export async function lookupFoodByName(
 
   const remembered = await lookupStoredFoodCorrection(dishName, userId);
   if (remembered) {
-    return normalizeRecognitionNutrition(
+    let result = normalizeRecognitionNutrition(
       await withFoodImage(remembered, dishName),
     );
+    result = await enrichMissingFiberSugar(result, dishName);
+    return result;
   }
 
   const off = await searchOpenFoodFacts(dishName);
-  if (off && offMatchesQuery(dishName, off.dishName)) {
-    return normalizeRecognitionNutrition(
+  const offMatch =
+    off && offMatchesQuery(dishName, off.dishName) ? off : null;
+  let result: FoodRecognitionResult | null = null;
+
+  if (offMatch) {
+    result = normalizeRecognitionNutrition(
       await withFoodImage(
         {
-          dishName: off.dishName || dishName.trim(),
-          calories: off.calories,
-          protein: off.protein,
-          fat: off.fat,
-          carbs: off.carbs,
-          fiber: off.fiber,
-          sugar: off.sugar,
-          portionGrams: off.portionGrams,
-          barcode: off.barcode,
-          brand: off.brand,
-          imageUrl: off.imageUrl,
+          dishName: offMatch.dishName || dishName.trim(),
+          calories: offMatch.calories,
+          protein: offMatch.protein,
+          fat: offMatch.fat,
+          carbs: offMatch.carbs,
+          fiber: offMatch.fiber,
+          sugar: offMatch.sugar,
+          portionGrams: offMatch.portionGrams,
+          barcode: offMatch.barcode,
+          brand: offMatch.brand,
+          imageUrl: offMatch.imageUrl,
           confidence: 0.8,
           source: "openfoodfacts-search",
           photoKind: "package",
@@ -363,17 +371,81 @@ export async function lookupFoodByName(
     );
   }
 
-  if (!process.env.GIGACHAT_CREDENTIALS) {
-    throw new Error(
-      "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
+  if (!result) {
+    if (!process.env.GIGACHAT_CREDENTIALS) {
+      throw new Error(
+        "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
+      );
+    }
+
+    const ai = await lookupFoodWithGigaChat(dishName);
+    result = normalizeRecognitionNutrition(
+      await withFoodImage(
+        { ...ai, source: "gigachat-lookup", photoKind: "meal" },
+        dishName,
+      ),
     );
   }
 
-  const result = await lookupFoodWithGigaChat(dishName);
-  return applyStoredFoodCorrection(
-    normalizeRecognitionNutrition(
-      await withFoodImage({ ...result, source: "gigachat-lookup", photoKind: "meal" }, dishName),
-    ),
-    userId,
-  );
+  result = await enrichMissingFiberSugar(result, dishName, offMatch);
+
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+}
+
+async function enrichMissingFiberSugar(
+  result: FoodRecognitionResult,
+  dishName: string,
+  off?: PackNutrition | null,
+): Promise<FoodRecognitionResult> {
+  let next = result;
+
+  if (
+    needsFiberSugarBackfill(next) &&
+    off &&
+    (off.fiber !== undefined || off.sugar !== undefined)
+  ) {
+    next = mergeFiberSugarBackfill(next, {
+      dishName: off.dishName || dishName,
+      calories: off.calories,
+      protein: off.protein,
+      fat: off.fat,
+      carbs: off.carbs,
+      fiber: off.fiber,
+      sugar: off.sugar,
+      portionGrams: off.portionGrams,
+      confidence: 0.8,
+      source: "openfoodfacts-search",
+      photoKind: "package",
+    });
+  }
+
+  if (!needsFiberSugarBackfill(next) || !process.env.GIGACHAT_CREDENTIALS) {
+    return next;
+  }
+
+  try {
+    // Full lookup when we only had OFF (or empty AI macros); focused ask when AI already ran.
+    if (next.source === "gigachat-lookup") {
+      const partial = await lookupFiberSugarWithGigaChat(dishName, next.portionGrams);
+      next = {
+        ...next,
+        fiber: next.fiber !== undefined ? next.fiber : partial.fiber,
+        sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
+      };
+    } else {
+      const ai = await lookupFoodWithGigaChat(dishName);
+      next = mergeFiberSugarBackfill(
+        next,
+        normalizeRecognitionNutrition({
+          ...ai,
+          source: "gigachat-lookup",
+          photoKind: "meal",
+        }),
+      );
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  return next;
 }
