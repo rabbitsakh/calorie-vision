@@ -6,6 +6,7 @@ import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFoodLookupPr
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
+import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -182,71 +183,103 @@ async function uploadImage(
   mimeType: string,
   filename: string,
 ): Promise<string> {
-  const safeName =
-    filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? filename : "food.jpg";
-  const boundary = `----CalorieVision${randomUUID().replace(/-/g, "")}`;
-  const body = buildMultipartBody(boundary, buffer, mimeType, safeName);
+  return withRateLimitRetry(async () => {
+    const safeName =
+      filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? filename : "food.jpg";
+    const boundary = `----CalorieVision${randomUUID().replace(/-/g, "")}`;
+    const body = buildMultipartBody(boundary, buffer, mimeType, safeName);
 
-  const response = await httpsRequest(`${API_BASE}/files`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": `multipart/form-data; boundary=${boundary}`,
-      "Content-Length": String(body.length),
-    },
-    body,
+    const response = await httpsRequest(`${API_BASE}/files`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+        "Content-Length": String(body.length),
+      },
+      body,
+    });
+
+    const data = JSON.parse(response.body) as { id?: string; message?: string };
+
+    if (response.status < 200 || response.status >= 300 || !data.id) {
+      throw new GigaChatApiError(
+        formatGigaChatHttpError(response.status, response.body),
+        response.status,
+      );
+    }
+
+    return data.id;
   });
+}
 
-  const data = JSON.parse(response.body) as { id?: string; message?: string };
+async function withRateLimitRetry<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
 
-  if (response.status < 200 || response.status >= 300 || !data.id) {
-    throw new Error(data.message ?? `Upload error: ${response.status}`);
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await run();
+    } catch (error) {
+      lastError = error;
+      const retryable =
+        error instanceof GigaChatApiError &&
+        (error.status === 429 || error.status >= 500);
+
+      if (!retryable || attempt === attempts - 1) {
+        throw error;
+      }
+
+      // 1.2s, 2.4s — gentle backoff under GigaChat rate limits
+      await sleep(1200 * (attempt + 1));
+    }
   }
 
-  return data.id;
+  throw lastError;
 }
 
 export async function completeChat(
   messages: Array<{ role: string; content: string; attachments?: string[] }>,
   temperature = 0.35,
 ): Promise<string> {
-  const token = await getAccessToken();
-  const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
+  return withRateLimitRetry(async () => {
+    const token = await getAccessToken();
+    const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
 
-  const payload = JSON.stringify({
-    model,
-    temperature,
-    messages,
+    const payload = JSON.stringify({
+      model,
+      temperature,
+      messages,
+    });
+
+    const response = await httpsRequest(`${API_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(payload)),
+      },
+      body: payload,
+    });
+
+    const data = JSON.parse(response.body) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      message?: string;
+      error?: { message?: string };
+    };
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new GigaChatApiError(
+        formatGigaChatHttpError(response.status, response.body),
+        response.status,
+      );
+    }
+
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) {
+      throw new Error("GigaChat не вернул текст ответа");
+    }
+
+    return text;
   });
-
-  const response = await httpsRequest(`${API_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "Content-Length": String(Buffer.byteLength(payload)),
-    },
-    body: payload,
-  });
-
-  const data = JSON.parse(response.body) as {
-    choices?: Array<{ message?: { content?: string } }>;
-    message?: string;
-    error?: { message?: string };
-  };
-
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(
-      data.error?.message ?? data.message ?? `GigaChat error: ${response.status}`,
-    );
-  }
-
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if (!text) {
-    throw new Error("GigaChat не вернул текст ответа");
-  }
-
-  return text;
 }
 
 export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodRecognitionResult> {
