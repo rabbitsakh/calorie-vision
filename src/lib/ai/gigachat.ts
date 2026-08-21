@@ -7,6 +7,8 @@ import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
 import { prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { buildDrinkVisionPrompt } from "@/lib/ai/category-prompts";
+import { isBetterDrinkResult, shouldRunDrinkPass } from "@/lib/ai/drink-vision";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -382,6 +384,31 @@ export async function recognizeWithGigaChat(
       }
     } catch {
       // keep first parse
+    }
+  }
+
+  if (shouldRunDrinkPass(result)) {
+    try {
+      const drinkText = await completeChat([
+        {
+          role: "user",
+          content: buildDrinkVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const drink = parseFoodRecognitionResponse(drinkText);
+      if (isBetterDrinkResult(result, drink)) {
+        result = {
+          ...result,
+          ...drink,
+          dishName: drink.dishName || result.dishName,
+          brand: drink.brand || result.brand,
+          barcode: drink.barcode || result.barcode,
+          photoKind: drink.photoKind ?? result.photoKind ?? "package",
+        };
+      }
+    } catch {
+      // keep first/retry result
     }
   }
 
