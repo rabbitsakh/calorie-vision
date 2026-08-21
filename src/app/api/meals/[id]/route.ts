@@ -23,6 +23,7 @@ export async function PATCH(
       fiber?: number | null;
       sugar?: number | null;
       portionGrams?: number | null;
+      mealType?: string | null;
     };
 
     if (body.dishName !== undefined && !body.dishName.trim()) {
@@ -31,6 +32,14 @@ export async function PATCH(
     if (body.calories !== undefined && (!Number.isFinite(body.calories) || body.calories <= 0)) {
       return NextResponse.json({ error: "Укажите корректную калорийность" }, { status: 400 });
     }
+
+    const mealTypes = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as const;
+    const mealType =
+      body.mealType === null || body.mealType === ""
+        ? null
+        : mealTypes.includes(body.mealType as (typeof mealTypes)[number])
+          ? (body.mealType as (typeof mealTypes)[number])
+          : undefined;
 
     const updated = await prisma.mealEntry.updateMany({
       where: { id, userId: session.user.id },
@@ -43,6 +52,7 @@ export async function PATCH(
         ...(body.fiber !== undefined ? { fiber: body.fiber } : {}),
         ...(body.sugar !== undefined ? { sugar: body.sugar } : {}),
         ...(body.portionGrams !== undefined ? { portionGrams: body.portionGrams } : {}),
+        ...(mealType !== undefined ? { mealType } : {}),
       },
     });
 

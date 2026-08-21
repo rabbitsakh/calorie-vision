@@ -124,6 +124,12 @@ export async function GET(request: NextRequest) {
       if (entrySlot === currentMealType) {
         existing.slotCount += 1;
       }
+      // Prefer macros that later logs filled in (e.g. fiber/sugar after schema rollout).
+      if (existing.fiber == null && entry.fiber != null) existing.fiber = entry.fiber;
+      if (existing.sugar == null && entry.sugar != null) existing.sugar = entry.sugar;
+      if (existing.protein == null && entry.protein != null) existing.protein = entry.protein;
+      if (existing.fat == null && entry.fat != null) existing.fat = entry.fat;
+      if (existing.carbs == null && entry.carbs != null) existing.carbs = entry.carbs;
     }
 
     const suggestions: QuickAddItem[] = [...byDish.values()]

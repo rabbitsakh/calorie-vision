@@ -20,6 +20,7 @@ type EditPatch = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  mealType?: string | null;
 };
 
 function TrashIcon() {
@@ -228,6 +229,7 @@ function InlineEdit({
   const [fiber, setFiber] = useState(entry.fiber != null ? String(entry.fiber) : "");
   const [sugar, setSugar] = useState(entry.sugar != null ? String(entry.sugar) : "");
   const [portionGrams, setPortionGrams] = useState(entry.portionGrams != null ? String(entry.portionGrams) : "");
+  const [mealType, setMealType] = useState(entry.mealType ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -245,6 +247,7 @@ function InlineEdit({
         fiber: fiber ? Number(fiber) : null,
         sugar: sugar ? Number(sugar) : null,
         portionGrams: portionGrams ? Number(portionGrams) : null,
+        mealType: mealType || null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -286,6 +289,25 @@ function InlineEdit({
         <div className="field">
           <label className="text-xs">Сахар, г</label>
           <input type="number" min="0" step="0.1" value={sugar} onChange={(e) => setSugar(e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <p className="mb-1.5 text-xs font-semibold text-slate-500">Приём пищи</p>
+          <div className="flex flex-wrap gap-1">
+            {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  mealType === value
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                }`}
+                onClick={() => setMealType(mealType === value ? "" : value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
