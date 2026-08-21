@@ -22,6 +22,23 @@ export function needsNutritionLookup(result: FoodRecognitionResult): boolean {
   return macroCount < 2;
 }
 
+/**
+ * Vision already returned usable calories + macros — skip GigaChat/OFF backfill
+ * to save tokens on multi-item plates (zeros count as provided).
+ */
+export function hasSufficientVisionNutrition(result: FoodRecognitionResult): boolean {
+  if (isFailedName(result.dishName)) {
+    return false;
+  }
+  if (!(result.calories > 0)) {
+    return false;
+  }
+  const definedMacros = [result.protein, result.fat, result.carbs].filter(
+    (value) => value !== undefined && Number.isFinite(value),
+  ).length;
+  return definedMacros >= 2;
+}
+
 /** True when the result has at least usable calorie totals to merge from. */
 export function hasUsableCalories(result: FoodRecognitionResult): boolean {
   return Number.isFinite(result.calories) && result.calories > 0;
