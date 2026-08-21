@@ -6,6 +6,7 @@ const SIZE_PX = {
   sm: 40,
   md: 64,
   lg: 96,
+  xl: 200,
 } as const;
 
 /** CSS class per pose — supportive micro-motion (see globals.css). */

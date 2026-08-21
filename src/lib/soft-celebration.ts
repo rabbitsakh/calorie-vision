@@ -1,6 +1,11 @@
-/** Once-per-day soft celebration flags in localStorage. */
+/** Once-per-day / once-per-week soft celebration flags in localStorage. */
 
-export type SoftCelebrationKind = "day-opened" | "daily-goal" | "streak-saved";
+export type SoftCelebrationKind =
+  | "day-opened"
+  | "daily-goal"
+  | "streak-saved"
+  | "challenge-done"
+  | "badge-unlock";
 
 function storageKey(kind: SoftCelebrationKind, date: string): string {
   return `soft-celeb-${kind}-${date}`;
