@@ -156,27 +156,34 @@ export async function GET(request: NextRequest) {
         }
       : null;
 
-    return NextResponse.json({
-      entries: entries.map((entry) => ({
-        ...entry,
-        dishName: decodeHtmlEntities(entry.dishName),
-        originalDish: entry.originalDish ? decodeHtmlEntities(entry.originalDish) : entry.originalDish,
-      })),
-      totalCalories,
-      totalProtein,
-      totalFat,
-      totalCarbs,
-      totalFiber,
-      totalSugar,
-      goal,
-      goalPace,
-      dietLabel: goal ? formatGoalChoice(goal, goalPace) : null,
-      sex,
-      weightKg: weight?.weightKg ?? null,
-      target,
-      comparison,
-      calorieTone: goal && comparison ? calorieTone(comparison.calories, goal) : null,
-    });
+    return NextResponse.json(
+      {
+        entries: entries.map((entry) => ({
+          ...entry,
+          dishName: decodeHtmlEntities(entry.dishName),
+          originalDish: entry.originalDish ? decodeHtmlEntities(entry.originalDish) : entry.originalDish,
+        })),
+        totalCalories,
+        totalProtein,
+        totalFat,
+        totalCarbs,
+        totalFiber,
+        totalSugar,
+        goal,
+        goalPace,
+        dietLabel: goal ? formatGoalChoice(goal, goalPace) : null,
+        sex,
+        weightKg: weight?.weightKg ?? null,
+        target,
+        comparison,
+        calorieTone: goal && comparison ? calorieTone(comparison.calories, goal) : null,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    );
   } catch (error) {
     console.error(error);
     return NextResponse.json(
