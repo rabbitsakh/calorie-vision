@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import {
+  isSoftCelebrationSeen,
+  markSoftCelebrationSeen,
+} from "@/lib/soft-celebration";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 
@@ -38,16 +43,42 @@ export function WeeklyChallenge({ selectedDate, refreshKey }: WeeklyChallengePro
   const [data, setData] = useState<ChallengesResponse | null>(null);
   const [hidden, setHidden] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
+  const prevCompleted = useRef<boolean | null>(null);
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
   }, [selectedDate]);
 
+  const closeCelebrate = useCallback(() => setCelebrate(false), []);
+
   const load = useCallback(async () => {
     try {
       const resp = await fetch(withBasePath("/api/challenges"));
       if (!resp.ok) return;
-      setData((await resp.json()) as ChallengesResponse);
+      const next = (await resp.json()) as ChallengesResponse;
+      setData(next);
+
+      const active = next.active;
+      if (!active) {
+        prevCompleted.current = null;
+        return;
+      }
+
+      const doneKey = `${active.weekStart}-${active.challengeKey}`;
+      const justCompleted =
+        prevCompleted.current === false && active.completed;
+      const firstSightDone =
+        prevCompleted.current === null &&
+        active.completed &&
+        !isSoftCelebrationSeen("challenge-done", doneKey);
+
+      if ((justCompleted || firstSightDone) && !isSoftCelebrationSeen("challenge-done", doneKey)) {
+        markSoftCelebrationSeen("challenge-done", doneKey);
+        setCelebrate(true);
+      }
+
+      prevCompleted.current = active.completed;
     } catch {
       // non-critical
     }
@@ -148,6 +179,22 @@ export function WeeklyChallenge({ selectedDate, refreshKey }: WeeklyChallengePro
           ))}
         </div>
       )}
+
+      <FullscreenCelebration
+        open={celebrate}
+        variant="challenge"
+        pose="goal"
+        title="Челлендж закрыт!"
+        subtitle={
+          data.active
+            ? `${data.active.title} — неделя в копилку.`
+            : "Отличная работа на этой неделе."
+        }
+        badge="✓"
+        durationMs={0}
+        ctaLabel="Супер!"
+        onClose={closeCelebrate}
+      />
     </div>
   );
 }

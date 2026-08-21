@@ -1208,6 +1208,165 @@ textarea {
   }
 }
 
+/* ── Fullscreen celebration stage (Duolingo-style) ───────────── */
+
+.fs-celeb-root {
+  animation: fs-celeb-fade 0.28s ease-out;
+}
+
+.fs-celeb-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 20%, rgba(94, 234, 212, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 80% 90%, rgba(245, 158, 11, 0.2), transparent 50%),
+    linear-gradient(165deg, #0f766e 0%, #115e59 42%, #134e4a 100%);
+}
+
+.fs-celeb-streak .fs-celeb-bg,
+.fs-celeb-milestone .fs-celeb-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(251, 191, 36, 0.4), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 15% 85%, rgba(94, 234, 212, 0.25), transparent 50%),
+    linear-gradient(165deg, #92400e 0%, #b45309 35%, #0f766e 100%);
+}
+
+.fs-celeb-goal .fs-celeb-bg,
+.fs-celeb-challenge .fs-celeb-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(52, 211, 153, 0.4), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 90% 80%, rgba(94, 234, 212, 0.22), transparent 50%),
+    linear-gradient(165deg, #064e3b 0%, #047857 45%, #0f766e 100%);
+}
+
+.fs-celeb-badge .fs-celeb-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(167, 139, 250, 0.4), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 10% 85%, rgba(94, 234, 212, 0.25), transparent 50%),
+    linear-gradient(165deg, #4c1d95 0%, #0f766e 55%, #115e59 100%);
+}
+
+.fs-celeb-vignette {
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(15, 23, 42, 0.35) 100%);
+}
+
+.fs-celeb-content {
+  animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.fs-celeb-mascot-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 220px;
+  height: 220px;
+}
+
+.fs-celeb-halo {
+  position: absolute;
+  inset: 8%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 68%);
+  animation: fs-celeb-halo 1.6s ease-out infinite;
+}
+
+.fs-celeb-glow-teal .fs-celeb-halo {
+  box-shadow: 0 0 60px 18px rgba(94, 234, 212, 0.35);
+}
+
+.fs-celeb-glow-amber .fs-celeb-halo {
+  box-shadow: 0 0 60px 18px rgba(251, 191, 36, 0.35);
+}
+
+.fs-celeb-glow-emerald .fs-celeb-halo {
+  box-shadow: 0 0 60px 18px rgba(52, 211, 153, 0.35);
+}
+
+.fs-celeb-glow-violet .fs-celeb-halo {
+  box-shadow: 0 0 60px 18px rgba(167, 139, 250, 0.35);
+}
+
+.fs-celeb-mascot {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 18px 28px rgba(15, 23, 42, 0.35));
+  animation: fs-celeb-mascot-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+.fs-celeb-badge {
+  animation: fs-celeb-badge-in 0.45s ease-out 0.25s both;
+  z-index: 2;
+}
+
+.fs-celeb-title {
+  animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.fs-celeb-subtitle {
+  animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+.fs-celeb-cta,
+.fs-celeb-skip {
+  animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+@keyframes fs-celeb-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fs-celeb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fs-celeb-mascot-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.55);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fs-celeb-halo {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes fs-celeb-badge-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

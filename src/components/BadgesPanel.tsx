@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import {
+  isSoftCelebrationSeen,
+  markSoftCelebrationSeen,
+} from "@/lib/soft-celebration";
 import { withBasePath } from "@/lib/paths";
 
 type BadgeItem = {
@@ -14,7 +19,9 @@ type BadgeItem = {
 
 export function BadgesPanel() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
-  const [toast, setToast] = useState<BadgeItem | null>(null);
+  const [unlock, setUnlock] = useState<BadgeItem | null>(null);
+
+  const closeUnlock = useCallback(() => setUnlock(null), []);
 
   useEffect(() => {
     void (async () => {
@@ -23,10 +30,12 @@ export function BadgesPanel() {
         if (!resp.ok) return;
         const data = (await resp.json()) as { badges: BadgeItem[]; newlyUnlocked: BadgeItem[] };
         setBadges(data.badges);
-        if (data.newlyUnlocked?.[0]) {
-          setToast(data.newlyUnlocked[0]!);
-          setTimeout(() => setToast(null), 4000);
-        }
+        const next = data.newlyUnlocked?.[0];
+        if (!next) return;
+        const flagKey = next.key;
+        if (isSoftCelebrationSeen("badge-unlock", flagKey)) return;
+        markSoftCelebrationSeen("badge-unlock", flagKey);
+        setUnlock(next);
       } catch {
         // non-critical
       }
@@ -63,11 +72,17 @@ export function BadgesPanel() {
         ))}
       </div>
 
-      {toast ? (
-        <div className="fixed bottom-20 left-1/2 z-50 w-[min(90vw,22rem)] -translate-x-1/2 rounded-2xl border border-teal-200 bg-teal-900 px-4 py-3 text-center text-sm text-white shadow-lg">
-          Новое достижение: <span className="font-semibold">{toast.title}</span>
-        </div>
-      ) : null}
+      <FullscreenCelebration
+        open={unlock != null}
+        variant="badge"
+        pose="cheer"
+        title="Новое достижение!"
+        subtitle={unlock ? `${unlock.title} — ${unlock.description}` : undefined}
+        badge="★"
+        durationMs={0}
+        ctaLabel="Круто!"
+        onClose={closeUnlock}
+      />
     </div>
   );
 }
