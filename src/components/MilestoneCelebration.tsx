@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Mascot } from "@/components/Mascot";
 import { pluralDays } from "@/lib/russian-text";
 
 const CELEBRATION_MILESTONES = [7, 14, 30, 60, 100, 200, 365];
@@ -96,9 +97,12 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
           ))}
         </div>
 
-        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-4 h-16 w-16 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
-        <div className="soft-celeb-dot relative mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
-          {milestone}
+        <div className="soft-celeb-ring pointer-events-none absolute left-1/2 top-3 h-24 w-24 -translate-x-1/2 rounded-full bg-teal-100/80" aria-hidden />
+        <div className="relative mx-auto mb-2 flex flex-col items-center">
+          <Mascot pose="streak" size="lg" className="mascot-bob" />
+          <span className="mt-1 rounded-full bg-teal-700 px-2.5 py-0.5 text-xs font-bold text-white">
+            {milestone}
+          </span>
         </div>
         <h2 id="milestone-title" className="text-xl font-bold text-slate-900">
           {milestone} {pluralDays(milestone)} подряд!
