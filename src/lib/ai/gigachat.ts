@@ -5,8 +5,10 @@ import type { FoodRecognitionResult } from "../food-types";
 import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_HINT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
-import { prepareImageForVision } from "@/lib/ai/image-utils";
+import { prepareImageForLabelVision, prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { buildLabelVisionPrompt } from "@/lib/ai/category-prompts";
+import { isBetterLabelResult, shouldRunLabelPass } from "@/lib/ai/label-vision";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -382,6 +384,38 @@ export async function recognizeWithGigaChat(
       }
     } catch {
       // keep first parse
+    }
+  }
+
+  if (shouldRunLabelPass(result)) {
+    try {
+      const labelPrepared = await prepareImageForLabelVision(imageBuffer);
+      const labelFileId = await uploadImage(
+        token,
+        labelPrepared.buffer,
+        labelPrepared.mimeType,
+        filename,
+      );
+      const labelText = await completeChat([
+        {
+          role: "user",
+          content: buildLabelVisionPrompt(),
+          attachments: [labelFileId],
+        },
+      ]);
+      const labeled = parseFoodRecognitionResponse(labelText);
+      if (isBetterLabelResult(result, labeled)) {
+        result = {
+          ...result,
+          ...labeled,
+          photoKind: "label",
+          dishName: labeled.dishName || result.dishName,
+          brand: labeled.brand || result.brand,
+          barcode: labeled.barcode || result.barcode,
+        };
+      }
+    } catch {
+      // keep first/retry result
     }
   }
 
