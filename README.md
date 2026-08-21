@@ -9,13 +9,13 @@
 - экран подтверждения с возможностью исправить название и калории;
 - сохранение приёмов пищи в MySQL по дням;
 - дневник с итогом калорий за выбранный день;
-- вход по телефону (SMS-код), email (magic link), Google или VK — у каждого пользователя свой дневник.
+- вход через Google, VK, Telegram или email (magic link) — у каждого пользователя свой дневник.
 
 ## Стек
 
 - **Frontend + API:** Next.js 15 (App Router), React, TypeScript, Tailwind CSS
 - **База данных:** MySQL + Prisma ORM
-- **Авторизация:** NextAuth.js (телефон, email, Google, VK)
+- **Авторизация:** NextAuth.js (Google, VK, Telegram, email)
 - **Распознавание:** GigaChat API (Сбер, поддержка фото)
 
 ## Расположение проекта
@@ -61,7 +61,6 @@ NEXTAUTH_URL=http://localhost:3000/calorie-vision
 
 EMAIL_SERVER=smtp://user:pass@smtp.example.com:587
 EMAIL_FROM=noreply@calorievision.ru
-SMS_RU_API_ID=
 
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -119,7 +118,7 @@ npm run start
 
 ## Как это работает
 
-1. Вы входите по телефону, email, Google или VK.
+1. Вы входите через Google, VK, Telegram или email (если настроен SMTP).
 2. Выбираете дату и загружаете фото.
 3. API `/api/recognize` сохраняет фото и возвращает предполагаемое блюдо.
 4. Вы подтверждаете или исправляете данные.
@@ -128,22 +127,45 @@ npm run start
 
 ## Настройка авторизации
 
-### Телефон (SMS)
+На странице входа показываются только **настроенные** способы. Email без SMTP скрыт.
 
-1. Зарегистрируйтесь на [sms.ru](https://sms.ru/) и получите `api_id`.
-2. Пополните баланс. На тестовом аккаунте SMS часто уходит только на номер, указанный в кабинете.
-3. Добавьте в `.env`: `SMS_RU_API_ID=ваш-ключ`.
-4. Без ключа код показывается на экране входа и пишется в лог сервера (режим разработки).
-5. Если код «отправился», но SMS нет — на экране теперь будет текст ошибки sms.ru (нет денег, номер не разрешён, неверный `api_id`).
+### Telegram
+
+1. Создайте бота у [@BotFather](https://t.me/BotFather).
+2. Команда `/setdomain` → укажите `calorievision.ru` (для локалки — временный HTTPS-туннель, например ngrok).
+3. В `.env`:
+   ```env
+   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=YourBotUsername
+   TELEGRAM_BOT_TOKEN=123456:AA...
+   ```
+4. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
 
 ### Email (magic link)
 
-1. Настройте SMTP в `.env`:
+Нужен пакет `nodemailer` (уже в зависимостях проекта) и рабочий SMTP.
+
+1. Настройте SMTP в `.env` — один из вариантов:
+
+   **A. Connection string** (спецсимволы в пароле кодируйте: `@` → `%40`, `:` → `%3A`):
    ```env
    EMAIL_SERVER=smtp://user:pass@smtp.yandex.ru:465
    EMAIL_FROM=noreply@calorievision.ru
    ```
-2. Пользователь вводит email → получает ссылку для входа.
+
+   **B. Отдельные поля** (удобнее для сложных паролей):
+   ```env
+   EMAIL_SERVER_HOST=smtp.yandex.ru
+   EMAIL_SERVER_PORT=465
+   EMAIL_SERVER_USER=noreply@calorievision.ru
+   EMAIL_SERVER_PASSWORD=ваш-пароль-приложения
+   EMAIL_SERVER_SECURE=1
+   EMAIL_FROM=noreply@calorievision.ru
+   ```
+
+2. Для Яндекса / Mail.ru: `EMAIL_FROM` должен совпадать с ящиком, от которого идёт SMTP; часто нужен **пароль приложения**, не обычный пароль.
+3. `NEXTAUTH_URL=https://calorievision.ru` — без `/api/auth`, иначе ссылка в письме будет битой.
+4. Пользователь вводит email → получает письмо «Вход в Calorie Vision» → клик по ссылке → сессия.
+5. Без SMTP вкладка Email на `/login` скрыта.
 
 ### Google (опционально)
 
@@ -204,7 +226,7 @@ npm run dev
 ```text
 calorie-vision/
 ├── prisma/schema.prisma      # User, Account, Session, MealEntry
-├── src/app/api/auth/         # NextAuth + SMS OTP
+├── src/app/api/auth/         # NextAuth (Google, VK, Telegram, email)
 ├── src/components/           # UI-компоненты
 ├── src/lib/                  # Prisma, распознавание, даты
 └── public/uploads/           # загруженные фото
@@ -227,7 +249,12 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 VK_CLIENT_ID=...
 VK_CLIENT_SECRET=...
-SMS_RU_API_ID=...
+EMAIL_SERVER_HOST=smtp.yandex.ru
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=noreply@calorievision.ru
+EMAIL_SERVER_PASSWORD=...
+EMAIL_SERVER_SECURE=1
+EMAIL_FROM=noreply@calorievision.ru
 GIGACHAT_CREDENTIALS=...
 GIGACHAT_SCOPE=GIGACHAT_API_PERS
 GIGACHAT_MODEL=GigaChat-2-Max

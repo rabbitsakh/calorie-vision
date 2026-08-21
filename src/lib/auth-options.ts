@@ -13,61 +13,90 @@ import {
   sanitizeAdapterUser,
 } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
-import { verifyPhoneOtp } from "@/lib/otp";
-import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { isEmailLoginConfigured, resolveEmailServer, sendMagicLinkEmail } from "@/lib/email-auth";
 import { prisma } from "@/lib/prisma";
+import {
+  findOrCreateTelegramUser,
+  isTelegramLoginConfigured,
+  verifyTelegramAuth,
+  type TelegramAuthPayload,
+} from "@/lib/telegram-auth";
 import { createVkIdProvider } from "@/lib/vk-auth";
 
-const providers: NextAuthOptions["providers"] = [
-  CredentialsProvider({
-    id: "phone",
-    name: "Phone",
-    credentials: {
-      phone: { label: "Телефон", type: "text" },
-      code: { label: "Код", type: "text" },
-    },
-    async authorize(credentials) {
-      const phone = normalizePhone(credentials?.phone ?? "");
-      const code = credentials?.code?.trim();
+const providers: NextAuthOptions["providers"] = [];
 
-      if (!phone || !code || !isValidPhone(phone)) {
-        return null;
-      }
+if (isTelegramLoginConfigured() && process.env.TELEGRAM_BOT_TOKEN) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  providers.push(
+    CredentialsProvider({
+      id: "telegram",
+      name: "Telegram",
+      credentials: {
+        id: { label: "id", type: "text" },
+        first_name: { label: "first_name", type: "text" },
+        last_name: { label: "last_name", type: "text" },
+        username: { label: "username", type: "text" },
+        photo_url: { label: "photo_url", type: "text" },
+        auth_date: { label: "auth_date", type: "text" },
+        hash: { label: "hash", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.id || !credentials.hash || !credentials.auth_date) {
+          return null;
+        }
 
-      const valid = await verifyPhoneOtp(phone, code);
-      if (!valid) {
-        return null;
-      }
+        const payload: TelegramAuthPayload = {
+          id: credentials.id,
+          first_name: credentials.first_name || undefined,
+          last_name: credentials.last_name || undefined,
+          username: credentials.username || undefined,
+          photo_url: credentials.photo_url || undefined,
+          auth_date: credentials.auth_date,
+          hash: credentials.hash,
+        };
 
-      let user = await prisma.user.findUnique({ where: { phone } });
-      if (!user) {
-        user = await prisma.user.create({
-          data: { phone, phoneVerified: new Date() },
-        });
-      } else if (!user.phoneVerified) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { phoneVerified: new Date() },
-        });
-      }
+        if (!verifyTelegramAuth(payload, botToken)) {
+          return null;
+        }
 
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        image: user.image,
-      };
-    },
-  }),
-];
-
-if (process.env.EMAIL_SERVER) {
-  providers.unshift(
-    EmailProvider({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM ?? "noreply@calorievision.ru",
+        const user = await findOrCreateTelegramUser(payload);
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      },
     }),
   );
+}
+
+if (isEmailLoginConfigured()) {
+  const server = resolveEmailServer();
+  if (server) {
+    providers.unshift(
+      EmailProvider({
+        server,
+        from: process.env.EMAIL_FROM ?? "noreply@calorievision.ru",
+        maxAge: 24 * 60 * 60,
+        async sendVerificationRequest(params) {
+          try {
+            await sendMagicLinkEmail({
+              identifier: params.identifier,
+              url: params.url,
+              provider: {
+                server: params.provider.server,
+                from: params.provider.from,
+              },
+            });
+          } catch (error) {
+            console.error("[email-auth] Failed to send magic link:", error);
+            throw new Error("Не удалось отправить письмо для входа. Проверьте SMTP на сервере.");
+          }
+        },
+      }),
+    );
+  }
 }
 
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {

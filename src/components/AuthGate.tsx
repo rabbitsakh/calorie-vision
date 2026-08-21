@@ -16,7 +16,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <section className="card p-8 text-center">
         <h2 className="text-xl font-semibold">Войдите, чтобы начать</h2>
         <p className="mt-2 text-slate-600">
-          Дневник питания привязан к вашему аккаунту — войдите по телефону или email.
+          Дневник питания привязан к вашему аккаунту — войдите через Google, VK или Telegram.
         </p>
         <Link href="/login" className="btn btn-primary mt-6 inline-flex">
           Войти
