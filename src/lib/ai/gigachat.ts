@@ -20,12 +20,14 @@ import {
   buildPlateVisionPrompt,
   buildStickerVisionPrompt,
 } from "@/lib/ai/category-prompts";
-import { sanitizeVisionBarcode, shouldRunBarcodePass } from "@/lib/ai/barcode-vision";
-import { isBetterPlateResult, shouldRunPlatePass } from "@/lib/ai/plate-vision";
-import { isBetterLabelResult, shouldRunLabelPass } from "@/lib/ai/label-vision";
+import { sanitizeVisionBarcode } from "@/lib/ai/barcode-vision";
+import { isBetterPlateResult } from "@/lib/ai/plate-vision";
+import { isBetterLabelResult } from "@/lib/ai/label-vision";
 import { isBetterPackageResult, shouldRunPackagePass } from "@/lib/ai/package-vision";
-import { isBetterStickerResult, shouldRunStickerPass } from "@/lib/ai/sticker-vision";
-import { isBetterDrinkResult, shouldRunDrinkPass } from "@/lib/ai/drink-vision";
+import { isBetterStickerResult } from "@/lib/ai/sticker-vision";
+import { isBetterDrinkResult } from "@/lib/ai/drink-vision";
+import { pickSpecialistPass, type SpecialistPass } from "@/lib/ai/specialist-pass";
+import { normalizeBarcode } from "@/lib/barcode";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -269,7 +271,9 @@ async function withRateLimitRetry<T>(run: () => Promise<T>, attempts = 3): Promi
 export async function completeChat(
   messages: Array<{ role: string; content: string; attachments?: string[] }>,
   temperature = 0.35,
+  options?: { retries?: number },
 ): Promise<string> {
+  const attempts = Math.max(1, options?.retries ?? 3);
   return withRateLimitRetry(async () => {
     const token = await getAccessToken();
     const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
@@ -309,7 +313,7 @@ export async function completeChat(
     }
 
     return text;
-  });
+  }, attempts);
 }
 
 export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodRecognitionResult> {
@@ -366,18 +370,43 @@ export async function recognizeWithGigaChat(
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
 
+  // Budget: main + at most 2 follow-ups (retry and/or one specialist, optional barcode→package fallback).
+  const MAX_CHAT_CALLS = 3;
+  let chatCalls = 0;
+
   const ask = async (mode: "full" | "retry" = "full") => {
+    chatCalls += 1;
     const content =
       mode === "retry"
         ? FOOD_RECOGNITION_RETRY_PROMPT
         : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
-    return completeChat([
-      {
-        role: "user",
-        content,
-        attachments: [fileId],
-      },
-    ]);
+    return completeChat(
+      [
+        {
+          role: "user",
+          content,
+          attachments: [fileId],
+        },
+      ],
+      0.35,
+      { retries: mode === "retry" ? 1 : 2 },
+    );
+  };
+
+  const specialistChat = async (content: string, attachmentId: string) => {
+    chatCalls += 1;
+    return completeChat(
+      [
+        {
+          role: "user",
+          content,
+          attachments: [attachmentId],
+        },
+      ],
+      0.2,
+      // Specialists: fail fast on 429 — long backoff was pushing past nginx 180s.
+      { retries: 1 },
+    );
   };
 
   let text = await ask("full");
@@ -385,8 +414,12 @@ export async function recognizeWithGigaChat(
   try {
     result = parseFoodRecognitionResponse(text);
   } catch {
-    text = await ask("retry");
-    result = parseFoodRecognitionResponse(text);
+    if (chatCalls < MAX_CHAT_CALLS) {
+      text = await ask("retry");
+      result = parseFoodRecognitionResponse(text);
+    } else {
+      throw new Error("Не удалось разобрать ответ распознавания");
+    }
   }
 
   logRecognitionPass({
@@ -399,7 +432,7 @@ export async function recognizeWithGigaChat(
     dishName: result.dishName,
   });
 
-  if (shouldRetryFoodRecognition(result)) {
+  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS) {
     try {
       text = await ask("retry");
       const retried = parseFoodRecognitionResponse(text);
@@ -422,55 +455,29 @@ export async function recognizeWithGigaChat(
 
   result = sanitizeVisionBarcode(result);
 
-  if (shouldRunBarcodePass(result)) {
-    try {
-      const barcodeText = await completeChat([
-        {
-          role: "user",
-          content: buildBarcodeVisionPrompt(),
-          attachments: [fileId],
-        },
-      ]);
+  const runSpecialist = async (pass: SpecialistPass): Promise<FoodRecognitionResult> => {
+    if (pass === "barcode") {
+      const barcodeText = await specialistChat(buildBarcodeVisionPrompt(), fileId);
       const refined = sanitizeVisionBarcode(parseFoodRecognitionResponse(barcodeText));
-      if (refined.barcode) {
-        result = {
-          ...result,
-          ...refined,
-          photoKind: "barcode",
-          barcode: refined.barcode,
-          dishName: refined.dishName || result.dishName,
-          brand: refined.brand || result.brand,
-        };
-      }
-    } catch {
-      // keep sanitized first pass
+      if (!refined.barcode) return result;
+      return {
+        ...result,
+        ...refined,
+        photoKind: "barcode",
+        barcode: refined.barcode,
+        dishName: refined.dishName || result.dishName,
+        brand: refined.brand || result.brand,
+      };
     }
-  }
 
-  if (shouldRunPlatePass(result)) {
-    try {
-      const plateText = await completeChat([
-        {
-          role: "user",
-          content: buildPlateVisionPrompt(),
-          attachments: [fileId],
-        },
-      ]);
+    if (pass === "plate") {
+      const plateText = await specialistChat(buildPlateVisionPrompt(), fileId);
       const plated = parseFoodRecognitionResponse(plateText);
-      if (isBetterPlateResult(result, plated)) {
-        result = {
-          ...plated,
-          photoKind: "meal",
-          source: result.source,
-        };
-      }
-    } catch {
-      // keep first/retry result
+      if (!isBetterPlateResult(result, plated)) return result;
+      return { ...plated, photoKind: "meal", source: result.source };
     }
-  }
 
-  if (shouldRunLabelPass(result)) {
-    try {
+    if (pass === "label") {
       const labelPrepared = await prepareImageForLabelVision(imageBuffer);
       const labelFileId = await uploadImage(
         token,
@@ -478,105 +485,82 @@ export async function recognizeWithGigaChat(
         labelPrepared.mimeType,
         filename,
       );
-      const labelText = await completeChat([
-        {
-          role: "user",
-          content: buildLabelVisionPrompt(),
-          attachments: [labelFileId],
-        },
-      ]);
+      const labelText = await specialistChat(buildLabelVisionPrompt(), labelFileId);
       const labeled = parseFoodRecognitionResponse(labelText);
-      if (isBetterLabelResult(result, labeled)) {
-        result = {
-          ...result,
-          ...labeled,
-          photoKind: "label",
-          dishName: labeled.dishName || result.dishName,
-          brand: labeled.brand || result.brand,
-          barcode: labeled.barcode || result.barcode,
-        };
-      }
-    } catch {
-      // keep first/retry result
+      if (!isBetterLabelResult(result, labeled)) return result;
+      return {
+        ...result,
+        ...labeled,
+        photoKind: "label",
+        dishName: labeled.dishName || result.dishName,
+        brand: labeled.brand || result.brand,
+        barcode: labeled.barcode || result.barcode,
+      };
     }
-  }
 
-  if (shouldRunPackagePass(result)) {
-    try {
-      const packageText = await completeChat([
-        {
-          role: "user",
-          content: buildPackageVisionPrompt(),
-          attachments: [fileId],
-        },
-      ]);
+    if (pass === "package") {
+      const packageText = await specialistChat(buildPackageVisionPrompt(), fileId);
       const packaged = parseFoodRecognitionResponse(packageText);
-      if (isBetterPackageResult(result, packaged)) {
-        result = {
-          ...result,
-          dishName: packaged.dishName || result.dishName,
-          brand: packaged.brand || result.brand,
-          barcode: packaged.barcode || result.barcode,
-          portionGrams:
-            packaged.portionGrams && packaged.portionGrams > 0
-              ? packaged.portionGrams
-              : result.portionGrams,
-          photoKind: "package",
-          confidence: Math.max(result.confidence, packaged.confidence),
-        };
-      }
-    } catch {
-      // keep first/retry result
+      if (!isBetterPackageResult(result, packaged)) return result;
+      return {
+        ...result,
+        dishName: packaged.dishName || result.dishName,
+        brand: packaged.brand || result.brand,
+        barcode: packaged.barcode || result.barcode,
+        portionGrams:
+          packaged.portionGrams && packaged.portionGrams > 0
+            ? packaged.portionGrams
+            : result.portionGrams,
+        photoKind: "package",
+        confidence: Math.max(result.confidence, packaged.confidence),
+      };
     }
-  }
 
-  if (shouldRunStickerPass(result)) {
-    try {
-      const stickerText = await completeChat([
-        {
-          role: "user",
-          content: buildStickerVisionPrompt(),
-          attachments: [fileId],
-        },
-      ]);
+    if (pass === "sticker") {
+      const stickerText = await specialistChat(buildStickerVisionPrompt(), fileId);
       const stickered = parseFoodRecognitionResponse(stickerText);
-      if (isBetterStickerResult(result, stickered)) {
-        result = {
-          ...result,
-          ...stickered,
-          photoKind: "label",
-          dishName: stickered.dishName || result.dishName,
-          brand: stickered.brand || result.brand,
-          barcode: stickered.barcode || result.barcode,
-        };
-      }
-    } catch {
-      // keep first/retry result
+      if (!isBetterStickerResult(result, stickered)) return result;
+      return {
+        ...result,
+        ...stickered,
+        photoKind: "label",
+        dishName: stickered.dishName || result.dishName,
+        brand: stickered.brand || result.brand,
+        barcode: stickered.barcode || result.barcode,
+      };
     }
-  }
 
-  if (shouldRunDrinkPass(result)) {
+    // drink
+    const drinkText = await specialistChat(buildDrinkVisionPrompt(), fileId);
+    const drink = parseFoodRecognitionResponse(drinkText);
+    if (!isBetterDrinkResult(result, drink)) return result;
+    return {
+      ...result,
+      ...drink,
+      dishName: drink.dishName || result.dishName,
+      brand: drink.brand || result.brand,
+      barcode: drink.barcode || result.barcode,
+      photoKind: drink.photoKind ?? result.photoKind ?? "package",
+    };
+  };
+
+  const specialist = pickSpecialistPass(result);
+  if (specialist && chatCalls < MAX_CHAT_CALLS) {
     try {
-      const drinkText = await completeChat([
-        {
-          role: "user",
-          content: buildDrinkVisionPrompt(),
-          attachments: [fileId],
-        },
-      ]);
-      const drink = parseFoodRecognitionResponse(drinkText);
-      if (isBetterDrinkResult(result, drink)) {
-        result = {
-          ...result,
-          ...drink,
-          dishName: drink.dishName || result.dishName,
-          brand: drink.brand || result.brand,
-          barcode: drink.barcode || result.barcode,
-          photoKind: drink.photoKind ?? result.photoKind ?? "package",
-        };
+      result = await runSpecialist(specialist);
+
+      // Package with unreadable barcode: one identity fallback if budget remains.
+      if (
+        specialist === "barcode" &&
+        chatCalls < MAX_CHAT_CALLS &&
+        !normalizeBarcode(result.barcode ?? null) &&
+        (result.photoKind === "package" || result.photoKind === "barcode") &&
+        shouldRunPackagePass({ ...result, photoKind: "package" })
+      ) {
+        result = await runSpecialist("package");
       }
     } catch {
-      // keep first/retry result
+      // keep main/retry result
     }
   }
 

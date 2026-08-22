@@ -16,9 +16,10 @@ export function sanitizeVisionBarcode(result: FoodRecognitionResult): FoodRecogn
 
 /** Whether a short barcode-focused vision pass is worth it. */
 export function shouldRunBarcodePass(result: FoodRecognitionResult): boolean {
-  if (result.photoKind === "barcode") {
-    return !normalizeBarcode(result.barcode ?? null);
+  if (normalizeBarcode(result.barcode ?? null)) {
+    return false;
   }
-  // Package with unreadable/missing code — only if model claimed barcode kind earlier skipped
-  return false;
+
+  // Explicit barcode close-up, or factory package where digits were missed.
+  return result.photoKind === "barcode" || result.photoKind === "package";
 }

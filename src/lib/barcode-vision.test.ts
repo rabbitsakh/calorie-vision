@@ -24,23 +24,23 @@ test("normalizes package barcodes", () => {
   assert.equal(cleaned.barcode, "4600605023124");
 });
 
-test("barcode pass runs when kind is barcode but digits missing", () => {
+test("barcode pass also runs for package without digits", () => {
   assert.equal(
     shouldRunBarcodePass({
-      dishName: "Продукт",
+      dishName: "Батончик",
       calories: 0,
-      confidence: 0.5,
-      photoKind: "barcode",
+      confidence: 0.6,
+      photoKind: "package",
       barcode: "",
     }),
     true,
   );
   assert.equal(
     shouldRunBarcodePass({
-      dishName: "Продукт",
+      dishName: "Батончик",
       calories: 0,
-      confidence: 0.5,
-      photoKind: "barcode",
+      confidence: 0.6,
+      photoKind: "package",
       barcode: "4600605023124",
     }),
     false,
