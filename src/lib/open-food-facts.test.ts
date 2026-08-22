@@ -155,3 +155,31 @@ test("uses serving weight for a single snack bar in Open Food Facts", () => {
   assert.equal(nutrition?.calories, 225);
   assert.equal(nutrition?.explicitPackGrams, true);
 });
+
+test("defaults a snack bar without net weight to 60 g", () => {
+  const nutrition = offProductToNutrition({
+    code: "4680046724434",
+    product_name: "Natural bar pudding",
+    brands: "Bombbar",
+    nutriments: {
+      "energy-kcal_100g": 291.666666666667,
+      proteins_100g: 33.3333333333333,
+      fat_100g: 7.16666666666667,
+      carbohydrates_100g: 6.66666666666667,
+    },
+  });
+
+  assert.equal(nutrition?.portionGrams, 60);
+  assert.equal(nutrition?.calories, 175);
+  assert.equal(nutrition?.protein, 20);
+  assert.equal(nutrition?.explicitPackGrams, true);
+});
+
+test("reads bar weight from the product name", () => {
+  const nutrition = offProductToNutrition({
+    product_name: "Протеиновый батончик 40 г",
+    nutriments: { "energy-kcal_100g": 400, proteins_100g: 25, fat_100g: 12, carbohydrates_100g: 30 },
+  });
+  assert.equal(nutrition?.portionGrams, 40);
+  assert.equal(nutrition?.calories, 160);
+});

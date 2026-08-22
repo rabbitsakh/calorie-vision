@@ -1,3 +1,5 @@
+import { DEFAULT_SNACK_BAR_GRAMS, looksLikeSnackBarName } from "@/lib/portion-unit";
+
 export type PackNutrition = {
   dishName: string;
   calories: number;
@@ -178,6 +180,18 @@ export function resolvePackGrams(
     parsePackGrams(product.serving_quantity) ?? parsePackGrams(product.serving_size);
   if (fromServing !== undefined) {
     return { grams: fromServing, explicit: true };
+  }
+
+  const nameText = [product.product_name_ru, product.product_name, product.brands]
+    .filter(Boolean)
+    .join(" ");
+  const fromName = parsePackGrams(nameText);
+  if (fromName !== undefined && fromName >= 20 && fromName <= 150) {
+    return { grams: fromName, explicit: true };
+  }
+
+  if (looksLikeSnackBarName(nameText)) {
+    return { grams: DEFAULT_SNACK_BAR_GRAMS, explicit: true };
   }
 
   return { grams: 100, explicit: false };

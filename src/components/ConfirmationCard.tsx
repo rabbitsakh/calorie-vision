@@ -13,7 +13,7 @@ import { getImageUrl, withBasePath } from "@/lib/paths";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
-import { looksLikeDrinkName } from "@/lib/portion-unit";
+import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 
 type NutritionFields = {
@@ -126,7 +126,11 @@ function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: numb
     dish.original.photoKind === "label";
 
   if (packaged && packGrams && packGrams > 0 && !base.some((chip) => chip.grams === packGrams)) {
-    base.push({ label: `Вся упаковка (${packGrams} г)`, grams: packGrams });
+    const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName);
+    base.unshift({
+      label: bar ? `1 шт (${packGrams} г)` : `Вся упаковка (${packGrams} г)`,
+      grams: packGrams,
+    });
   }
 
   return base;
