@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { nutritionBaseline, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
@@ -281,6 +282,57 @@ export function inferPer100gValues(
   }
 
   return null;
+}
+
+const PER100G_REFERENCE_GRAMS = 100;
+
+/**
+ * Baseline for portion chip scaling. When label data is per 100 g/ml, anchor at 100
+ * so 38 kcal/100ml × 1500ml → 570 kcal (not 38×1500/700 ≈ 81).
+ */
+export function nutritionBaselineFromRecognition(
+  result: Pick<
+    FoodRecognitionResult,
+    "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g"
+  >,
+): NutritionValues | null {
+  const portionGrams =
+    result.portionGrams && result.portionGrams > 0 ? result.portionGrams : PER100G_REFERENCE_GRAMS;
+
+  if (result.per100g && result.per100g.calories > 0) {
+    return nutritionBaseline({
+      calories: result.per100g.calories,
+      protein: result.per100g.protein,
+      fat: result.per100g.fat,
+      carbs: result.per100g.carbs,
+      fiber: result.per100g.fiber,
+      sugar: result.per100g.sugar,
+      portionGrams: PER100G_REFERENCE_GRAMS,
+    });
+  }
+
+  const inferred = inferPer100gValues(result, result.calories, portionGrams);
+  if (inferred && portionGrams > PER100G_REFERENCE_GRAMS) {
+    return nutritionBaseline({
+      calories: inferred.calories,
+      protein: inferred.protein,
+      fat: inferred.fat,
+      carbs: inferred.carbs,
+      fiber: inferred.fiber,
+      sugar: inferred.sugar,
+      portionGrams: PER100G_REFERENCE_GRAMS,
+    });
+  }
+
+  return nutritionBaseline({
+    calories: result.calories,
+    protein: result.protein,
+    fat: result.fat,
+    carbs: result.carbs,
+    fiber: result.fiber,
+    sugar: result.sugar,
+    portionGrams,
+  });
 }
 
 function scaleMacro(value: number | undefined, ratio: number): number | undefined {

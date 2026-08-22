@@ -15,6 +15,7 @@ import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
+import { nutritionBaselineFromRecognition } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { Chip } from "@/components/Chip";
 
@@ -70,18 +71,24 @@ function parseOptionalNumber(value: string): number | undefined {
 }
 
 function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraft {
+  const baseline = nutritionBaselineFromRecognition(item);
+  const portionGrams =
+    item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
+  const scaled =
+    baseline && portionGrams ? scaleNutritionByPortion(baseline, portionGrams) : null;
+
   return {
     id,
     original: item,
     dishName: decodeHtmlEntities(item.dishName),
-    calories: String(item.calories || ""),
-    protein: item.protein !== undefined ? String(item.protein) : "",
-    fat: item.fat !== undefined ? String(item.fat) : "",
-    carbs: item.carbs !== undefined ? String(item.carbs) : "",
-    fiber: item.fiber !== undefined ? String(item.fiber) : "",
-    sugar: item.sugar !== undefined ? String(item.sugar) : "",
-    portionGrams: item.portionGrams !== undefined ? String(item.portionGrams) : "",
-    baseline: nutritionBaseline(item),
+    calories: String(scaled?.calories ?? item.calories || ""),
+    protein: (scaled?.protein ?? item.protein) !== undefined ? String(scaled?.protein ?? item.protein) : "",
+    fat: (scaled?.fat ?? item.fat) !== undefined ? String(scaled?.fat ?? item.fat) : "",
+    carbs: (scaled?.carbs ?? item.carbs) !== undefined ? String(scaled?.carbs ?? item.carbs) : "",
+    fiber: (scaled?.fiber ?? item.fiber) !== undefined ? String(scaled?.fiber ?? item.fiber) : "",
+    sugar: (scaled?.sugar ?? item.sugar) !== undefined ? String(scaled?.sugar ?? item.sugar) : "",
+    portionGrams: portionGrams !== undefined ? String(portionGrams) : "",
+    baseline,
   };
 }
 
@@ -118,7 +125,7 @@ function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): string {
 }
 
 const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
-const DRINK_PORTION_CHIPS = [200, 250, 330, 500] as const;
+const DRINK_PORTION_CHIPS = [200, 250, 330, 500, 1000, 1500] as const;
 
 function looksLikeDrink(dish: DishDraft): boolean {
   return looksLikeDrinkName(dish.dishName, dish.original.dishName);
@@ -237,23 +244,29 @@ export function ConfirmationCard({
     });
   }
 
+  function resolvePortionBaseline(dish: DishDraft, nextPortionGrams?: number): NutritionValues | null {
+    if (dish.baseline) {
+      return dish.baseline;
+    }
+    return nutritionBaselineFromRecognition({
+      calories: Number(dish.calories) || dish.original.calories,
+      protein: parseOptionalNumber(dish.protein) ?? dish.original.protein,
+      fat: parseOptionalNumber(dish.fat) ?? dish.original.fat,
+      carbs: parseOptionalNumber(dish.carbs) ?? dish.original.carbs,
+      fiber: parseOptionalNumber(dish.fiber) ?? dish.original.fiber,
+      sugar: parseOptionalNumber(dish.sugar) ?? dish.original.sugar,
+      portionGrams:
+        nextPortionGrams ??
+        (Number(dish.portionGrams) > 0 ? Number(dish.portionGrams) : dish.original.portionGrams),
+      per100g: dish.original.per100g,
+    });
+  }
+
   function handlePortionChange(dish: DishDraft, value: string) {
     const grams = Number(value);
-    let base = dish.baseline;
-    if (!base) {
-      const kcal = Number(dish.calories);
-      if (Number.isFinite(kcal) && kcal > 0 && Number.isFinite(grams) && grams > 0) {
-        base = nutritionBaseline({
-          calories: kcal,
-          protein: parseOptionalNumber(dish.protein),
-          fat: parseOptionalNumber(dish.fat),
-          carbs: parseOptionalNumber(dish.carbs),
-          fiber: parseOptionalNumber(dish.fiber),
-          sugar: parseOptionalNumber(dish.sugar),
-          portionGrams: grams,
-        });
-      }
-    }
+    const base =
+      resolvePortionBaseline(dish, Number.isFinite(grams) && grams > 0 ? grams : undefined) ??
+      dish.baseline;
 
     const scaled =
       base && Number.isFinite(grams) && grams > 0 ? scaleNutritionByPortion(base, grams) : null;
@@ -831,7 +844,9 @@ function DishFields({
         </div>
 
         <div className="field">
-          <label htmlFor={fieldId("portionGrams")}>Порция, г</label>
+          <label htmlFor={fieldId("portionGrams")}>
+            {looksLikeDrink(dish) ? "Порция, мл" : "Порция, г"}
+          </label>
           <input
             id={fieldId("portionGrams")}
             type="number"
