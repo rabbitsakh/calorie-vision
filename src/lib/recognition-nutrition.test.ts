@@ -13,11 +13,13 @@ import {
   needsNutritionLookup,
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
+  resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   scaleRecognitionToPortion,
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
+import { inferDrinkPackMlFromText } from "./portion-unit.ts";
 import { scaleNutritionByPortion } from "./nutrition.ts";
 
 test("normalizes zero calories from per100g data", () => {
@@ -599,4 +601,35 @@ test("shouldSkipSlowPostVisionEnrichment skips GigaChat backfill for label calor
     }),
     false,
   );
+});
+
+test("inferDrinkPackMlFromText parses liter and ml volumes", () => {
+  assert.equal(inferDrinkPackMlFromText("Пиво 1.5 л"), 1500);
+  assert.equal(inferDrinkPackMlFromText("Кола 0,5 л"), 500);
+  assert.equal(inferDrinkPackMlFromText("Сок 250 мл"), 250);
+});
+
+test("resolveDisplayPortionGrams uses label volume text for per-100 drinks", () => {
+  assert.equal(
+    resolveDisplayPortionGrams({
+      dishName: "Пиво светлое 1,5 л",
+      calories: 38,
+      portionGrams: 100,
+      photoKind: "label",
+      source: "label",
+    }),
+    1500,
+  );
+
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Пиво светлое 1,5 л",
+    calories: 38,
+    carbs: 4,
+    portionGrams: 100,
+    confidence: 0.95,
+    photoKind: "label",
+    source: "label",
+  });
+  assert.equal(normalized.portionGrams, 1500);
+  assert.equal(normalized.calories, 570);
 });

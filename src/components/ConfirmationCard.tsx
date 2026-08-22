@@ -10,9 +10,11 @@ import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
+import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
+  resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   scaleRecognitionToPortion,
 } from "@/lib/recognition-nutrition";
@@ -72,8 +74,7 @@ function parseOptionalNumber(value: string): number | undefined {
 
 function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraft {
   const baseline = nutritionBaselineFromRecognition(item);
-  const portionGrams =
-    item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
+  const portionGrams = resolveDisplayPortionGrams(item);
   const scaled = portionGrams ? scaleRecognitionToPortion(item, portionGrams) : null;
 
   return {
@@ -171,7 +172,7 @@ function mergeDishesFromRecognition(
   });
 }
 
-const LOW_CONFIDENCE = 0.55;
+const LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
 
 function dishNeedsReview(dish: DishDraft): { lowConfidence: boolean; missingCalories: boolean } {
   const calories = Number(dish.calories);
@@ -222,7 +223,11 @@ function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: numb
   if (packaged && packGrams && packGrams > 0 && !base.some((chip) => chip.grams === packGrams)) {
     const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName);
     base.unshift({
-      label: bar ? `1 шт (${packGrams} г)` : `Вся упаковка (${packGrams} г)`,
+      label: bar
+        ? `1 шт (${packGrams} г)`
+        : drink
+          ? `Вся упаковка (${packGrams} мл)`
+          : `Вся упаковка (${packGrams} г)`,
       grams: packGrams,
     });
   }

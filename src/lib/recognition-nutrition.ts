@@ -1,5 +1,5 @@
 import type { FoodRecognitionResult } from "./food-types";
-import { looksLikeDrinkName } from "./portion-unit";
+import { inferDrinkPackMlFromText, looksLikeDrinkName } from "./portion-unit";
 import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
@@ -478,6 +478,11 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
       result.photoKind === "meal" ? DEFAULT_MEAL_PORTION_GRAMS : DEFAULT_PORTION_GRAMS;
   }
 
+  const resolvedPortion = resolveDisplayPortionGrams({ ...result, portionGrams, per100g });
+  if (resolvedPortion && resolvedPortion !== portionGrams) {
+    portionGrams = resolvedPortion;
+  }
+
   const per100gSource = resolvePer100gForScaling({ ...result, per100g, portionGrams });
   if (per100gSource) {
     per100g = per100gSource;
@@ -505,6 +510,26 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     sugar,
     portionGrams,
   });
+}
+
+/** Resolve portion shown on confirm card (bottle ml from label text when vision omits volume). */
+export function resolveDisplayPortionGrams(
+  item: Pick<
+    FoodRecognitionResult,
+    "dishName" | "brand" | "portionGrams" | "calories" | "photoKind" | "source" | "per100g"
+  >,
+): number | undefined {
+  const explicit = item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
+  if (explicit && explicit > 100) {
+    return explicit;
+  }
+
+  const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
+  if (fromText) {
+    return fromText;
+  }
+
+  return explicit;
 }
 
 /** Scale vision/label nutrition to a portion for confirm-card display and save. */
