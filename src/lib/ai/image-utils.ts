@@ -85,3 +85,25 @@ export async function prepareImageForVision(buffer: Buffer): Promise<{
     throw new Error("Не удалось обработать изображение. Попробуйте другое фото или JPG.");
   }
 }
+
+/**
+ * Higher-resolution prep for nutrition-label reading.
+ * Keep text sharper than the default vision pass — do not shrink aggressively.
+ */
+export async function prepareImageForLabelVision(buffer: Buffer): Promise<{
+  buffer: Buffer;
+  mimeType: string;
+}> {
+  try {
+    const prepared = await sharp(buffer, SHARP_OPTIONS)
+      .rotate()
+      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+
+    return { buffer: prepared, mimeType: "image/jpeg" };
+  } catch {
+    // Fall back to the standard prep path (same user-facing errors).
+    return prepareImageForVision(buffer);
+  }
+}

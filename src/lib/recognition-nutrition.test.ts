@@ -241,6 +241,30 @@ test("keeps explicit zero fiber and does not treat it as missing", () => {
   assert.equal(needsFiberSugarBackfill({ fiber: undefined, sugar: 1 }), true);
 });
 
+
+test("fiber/sugar backfill is independent of calorie completeness", () => {
+  // Photo path often has calories+macros but omits fiber/sugar keys — still needs fill.
+  assert.equal(
+    needsFiberSugarBackfill({
+      fiber: undefined,
+      sugar: undefined,
+    }),
+    true,
+  );
+  assert.equal(
+    needsNutritionLookup({
+      dishName: "Хурма",
+      calories: 102,
+      protein: 0.8,
+      fat: 0.5,
+      carbs: 23,
+      confidence: 0.9,
+      photoKind: "meal",
+    }),
+    false,
+  );
+});
+
 test("hasSufficientVisionNutrition skips backfill when macros are present", () => {
   assert.equal(
     hasSufficientVisionNutrition({

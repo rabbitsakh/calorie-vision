@@ -4,9 +4,28 @@ import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
 import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_PROMPT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
-import { shouldRetryFoodRecognition } from "@/lib/ai/recognition-retry";
-import { prepareImageForVision } from "@/lib/ai/image-utils";
+import {
+  getRecognitionRetryReason,
+  isBetterRecognitionResult,
+  shouldRetryFoodRecognition,
+} from "@/lib/ai/recognition-retry";
+import { prepareImageForLabelVision, prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
+import {
+  buildBarcodeVisionPrompt,
+  buildDrinkVisionPrompt,
+  buildLabelVisionPrompt,
+  buildPackageVisionPrompt,
+  buildPlateVisionPrompt,
+  buildStickerVisionPrompt,
+} from "@/lib/ai/category-prompts";
+import { sanitizeVisionBarcode, shouldRunBarcodePass } from "@/lib/ai/barcode-vision";
+import { isBetterPlateResult, shouldRunPlatePass } from "@/lib/ai/plate-vision";
+import { isBetterLabelResult, shouldRunLabelPass } from "@/lib/ai/label-vision";
+import { isBetterPackageResult, shouldRunPackagePass } from "@/lib/ai/package-vision";
+import { isBetterStickerResult, shouldRunStickerPass } from "@/lib/ai/sticker-vision";
+import { isBetterDrinkResult, shouldRunDrinkPass } from "@/lib/ai/drink-vision";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -370,21 +389,206 @@ export async function recognizeWithGigaChat(
     result = parseFoodRecognitionResponse(text);
   }
 
+  logRecognitionPass({
+    pass: "main",
+    photoKind: result.photoKind,
+    retryReason: getRecognitionRetryReason(result),
+    itemCount: result.items?.length ?? 0,
+    calories: result.calories,
+    confidence: result.confidence,
+    dishName: result.dishName,
+  });
+
   if (shouldRetryFoodRecognition(result)) {
     try {
       text = await ask("retry");
       const retried = parseFoodRecognitionResponse(text);
-      if (
-        (retried.items?.length ?? 0) > (result.items?.length ?? 0) ||
-        retried.calories > result.calories ||
-        !shouldRetryFoodRecognition(retried)
-      ) {
+      logRecognitionPass({
+        pass: "retry",
+        photoKind: retried.photoKind,
+        retryReason: getRecognitionRetryReason(retried),
+        itemCount: retried.items?.length ?? 0,
+        calories: retried.calories,
+        confidence: retried.confidence,
+        dishName: retried.dishName,
+      });
+      if (isBetterRecognitionResult(result, retried)) {
         result = retried;
       }
     } catch {
       // keep first parse
     }
   }
+
+  result = sanitizeVisionBarcode(result);
+
+  if (shouldRunBarcodePass(result)) {
+    try {
+      const barcodeText = await completeChat([
+        {
+          role: "user",
+          content: buildBarcodeVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const refined = sanitizeVisionBarcode(parseFoodRecognitionResponse(barcodeText));
+      if (refined.barcode) {
+        result = {
+          ...result,
+          ...refined,
+          photoKind: "barcode",
+          barcode: refined.barcode,
+          dishName: refined.dishName || result.dishName,
+          brand: refined.brand || result.brand,
+        };
+      }
+    } catch {
+      // keep sanitized first pass
+    }
+  }
+
+  if (shouldRunPlatePass(result)) {
+    try {
+      const plateText = await completeChat([
+        {
+          role: "user",
+          content: buildPlateVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const plated = parseFoodRecognitionResponse(plateText);
+      if (isBetterPlateResult(result, plated)) {
+        result = {
+          ...plated,
+          photoKind: "meal",
+          source: result.source,
+        };
+      }
+    } catch {
+      // keep first/retry result
+    }
+  }
+
+  if (shouldRunLabelPass(result)) {
+    try {
+      const labelPrepared = await prepareImageForLabelVision(imageBuffer);
+      const labelFileId = await uploadImage(
+        token,
+        labelPrepared.buffer,
+        labelPrepared.mimeType,
+        filename,
+      );
+      const labelText = await completeChat([
+        {
+          role: "user",
+          content: buildLabelVisionPrompt(),
+          attachments: [labelFileId],
+        },
+      ]);
+      const labeled = parseFoodRecognitionResponse(labelText);
+      if (isBetterLabelResult(result, labeled)) {
+        result = {
+          ...result,
+          ...labeled,
+          photoKind: "label",
+          dishName: labeled.dishName || result.dishName,
+          brand: labeled.brand || result.brand,
+          barcode: labeled.barcode || result.barcode,
+        };
+      }
+    } catch {
+      // keep first/retry result
+    }
+  }
+
+  if (shouldRunPackagePass(result)) {
+    try {
+      const packageText = await completeChat([
+        {
+          role: "user",
+          content: buildPackageVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const packaged = parseFoodRecognitionResponse(packageText);
+      if (isBetterPackageResult(result, packaged)) {
+        result = {
+          ...result,
+          dishName: packaged.dishName || result.dishName,
+          brand: packaged.brand || result.brand,
+          barcode: packaged.barcode || result.barcode,
+          portionGrams:
+            packaged.portionGrams && packaged.portionGrams > 0
+              ? packaged.portionGrams
+              : result.portionGrams,
+          photoKind: "package",
+          confidence: Math.max(result.confidence, packaged.confidence),
+        };
+      }
+    } catch {
+      // keep first/retry result
+    }
+  }
+
+  if (shouldRunStickerPass(result)) {
+    try {
+      const stickerText = await completeChat([
+        {
+          role: "user",
+          content: buildStickerVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const stickered = parseFoodRecognitionResponse(stickerText);
+      if (isBetterStickerResult(result, stickered)) {
+        result = {
+          ...result,
+          ...stickered,
+          photoKind: "label",
+          dishName: stickered.dishName || result.dishName,
+          brand: stickered.brand || result.brand,
+          barcode: stickered.barcode || result.barcode,
+        };
+      }
+    } catch {
+      // keep first/retry result
+    }
+  }
+
+  if (shouldRunDrinkPass(result)) {
+    try {
+      const drinkText = await completeChat([
+        {
+          role: "user",
+          content: buildDrinkVisionPrompt(),
+          attachments: [fileId],
+        },
+      ]);
+      const drink = parseFoodRecognitionResponse(drinkText);
+      if (isBetterDrinkResult(result, drink)) {
+        result = {
+          ...result,
+          ...drink,
+          dishName: drink.dishName || result.dishName,
+          brand: drink.brand || result.brand,
+          barcode: drink.barcode || result.barcode,
+          photoKind: drink.photoKind ?? result.photoKind ?? "package",
+        };
+      }
+    } catch {
+      // keep first/retry result
+    }
+  }
+
+  logRecognitionPass({
+    pass: "accepted",
+    photoKind: result.photoKind,
+    retryReason: getRecognitionRetryReason(result),
+    itemCount: result.items?.length ?? 0,
+    calories: result.calories,
+    confidence: result.confidence,
+    dishName: result.dishName,
+  });
 
   return result;
 }

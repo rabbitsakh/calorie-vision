@@ -8,7 +8,7 @@
     "sync-version": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --experimental-strip-types --test src/lib/*.test.ts",
+    "test": "tsx --test src/lib/*.test.ts src/lib/ai/*.test.ts",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
     "db:generate": "prisma generate",
     "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
