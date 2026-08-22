@@ -185,6 +185,36 @@ test("keeps vision macros when only calories were missing", () => {
   assert.equal(merged.carbs, 4);
 });
 
+test("keeps enriched sugar when per100g omits sugars", () => {
+  // Package vision often returns per100g with fiber but no sugar; enrich fills sugar on the
+  // portion, then a second normalize must not wipe it back to blank.
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Протеиновый батончик",
+    calories: 100,
+    protein: 10,
+    fat: 6.4,
+    carbs: 3.4,
+    fiber: undefined,
+    sugar: 1.2,
+    portionGrams: 40,
+    confidence: 0.9,
+    photoKind: "package",
+    source: "openfoodfacts-barcode",
+    per100g: {
+      calories: 250,
+      protein: 25,
+      fat: 16,
+      carbs: 8.5,
+      fiber: 38,
+    },
+  });
+
+  assert.equal(normalized.portionGrams, 40);
+  assert.equal(normalized.fiber, 15.2);
+  assert.equal(normalized.sugar, 1.2);
+  assert.equal(normalized.protein, 10);
+});
+
 test("fills missing fiber and sugar from a second lookup with portion scale", () => {
   const merged = mergeFiberSugarBackfill(
     {

@@ -15,14 +15,29 @@ export type PackNutrition = {
 };
 
 type OffNutriments = {
-  "energy-kcal_100g"?: number;
-  "energy-kcal"?: number;
-  proteins_100g?: number;
-  fat_100g?: number;
-  carbohydrates_100g?: number;
-  fiber_100g?: number;
-  sugars_100g?: number;
+  "energy-kcal_100g"?: number | string;
+  "energy-kcal"?: number | string;
+  proteins_100g?: number | string;
+  fat_100g?: number | string;
+  carbohydrates_100g?: number | string;
+  fiber_100g?: number | string;
+  sugars_100g?: number | string;
+  /** Some OFF records only expose sugars without the _100g suffix. */
+  sugars?: number | string;
 };
+
+function offNutrimentNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value.replace(",", "."));
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
 
 type OffProduct = {
   code?: string;
@@ -210,8 +225,8 @@ export function offProductToNutrition(
   const nutriments = product.nutriments ?? {};
   // Use only the per-100g field — "energy-kcal" without suffix is per-serving in OFF schema
   // and would produce wrong calorie density if product_quantity differs from serving_quantity.
-  const kcal100 = nutriments["energy-kcal_100g"];
-  if (typeof kcal100 !== "number" || !Number.isFinite(kcal100) || kcal100 <= 0) {
+  const kcal100 = offNutrimentNumber(nutriments["energy-kcal_100g"]);
+  if (kcal100 === undefined || kcal100 <= 0) {
     return null;
   }
 
@@ -220,11 +235,12 @@ export function offProductToNutrition(
   const scaled = nutritionFromPer100g(
     {
       calories: kcal100,
-      protein: nutriments.proteins_100g,
-      fat: nutriments.fat_100g,
-      carbs: nutriments.carbohydrates_100g,
-      fiber: nutriments.fiber_100g,
-      sugar: nutriments.sugars_100g,
+      protein: offNutrimentNumber(nutriments.proteins_100g),
+      fat: offNutrimentNumber(nutriments.fat_100g),
+      carbs: offNutrimentNumber(nutriments.carbohydrates_100g),
+      fiber: offNutrimentNumber(nutriments.fiber_100g),
+      sugar:
+        offNutrimentNumber(nutriments.sugars_100g) ?? offNutrimentNumber(nutriments.sugars),
     },
     grams,
   );
