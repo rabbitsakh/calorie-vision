@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  formatMacro,
-  nutritionBaseline,
-  scaleNutritionByPortion,
-  type NutritionValues,
-} from "@/lib/nutrition";
+import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
@@ -17,7 +12,9 @@ import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import {
   nutritionBaselineFromRecognition,
+  recognitionNeedsPortionRescale,
   resolvePer100gForScaling,
+  scaleRecognitionToPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { Chip } from "@/components/Chip";
@@ -77,8 +74,7 @@ function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraf
   const baseline = nutritionBaselineFromRecognition(item);
   const portionGrams =
     item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
-  const scaled =
-    baseline && portionGrams ? scaleNutritionByPortion(baseline, portionGrams) : null;
+  const scaled = portionGrams ? scaleRecognitionToPortion(item, portionGrams) : null;
 
   return {
     id,
@@ -119,6 +115,31 @@ function mergeDishesFromRecognition(
 
     const preservedPortion = Number(previous.portionGrams);
     const incomingPortion = Number(draft.portionGrams);
+    const activePortion =
+      Number.isFinite(preservedPortion) && preservedPortion > 0 ? preservedPortion : incomingPortion;
+
+    const needsRescale =
+      Number.isFinite(activePortion) &&
+      activePortion > 0 &&
+      recognitionNeedsPortionRescale(draft.original, Number(draft.calories));
+
+    const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
+
+    if (needsRescale) {
+      const scaled = scaleRecognitionToPortion(draft.original, activePortion);
+      return {
+        ...draft,
+        portionGrams: String(activePortion),
+        baseline,
+        calories: String(scaled.calories),
+        protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
+        fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
+        carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
+        fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
+        sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
+      };
+    }
+
     if (
       !Number.isFinite(preservedPortion) ||
       preservedPortion <= 0 ||
@@ -127,7 +148,6 @@ function mergeDishesFromRecognition(
       return draft;
     }
 
-    const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
     if (!baseline) {
       return { ...draft, portionGrams: previous.portionGrams };
     }
@@ -286,6 +306,17 @@ export function ConfirmationCard({
   }
 
   function captureBaseline(dish: DishDraft, next: Partial<DishDraft>): NutritionValues | null {
+    if (resolvePer100gForScaling(dish.original)) {
+      const nextCalories =
+        next.calories !== undefined ? Number(next.calories) : Number(dish.calories);
+      if (
+        next.calories === undefined ||
+        recognitionNeedsPortionRescale(dish.original, nextCalories)
+      ) {
+        return nutritionBaselineFromRecognition(dish.original);
+      }
+    }
+
     return nutritionBaseline({
       calories: Number(next.calories ?? dish.calories),
       protein: parseOptionalNumber(next.protein ?? dish.protein),
@@ -327,8 +358,14 @@ export function ConfirmationCard({
       resolvePortionBaseline(dish, Number.isFinite(grams) && grams > 0 ? grams : undefined) ??
       dish.baseline;
 
-    const scaled =
-      base && Number.isFinite(grams) && grams > 0 ? scaleNutritionByPortion(base, grams) : null;
+    let scaled: ReturnType<typeof scaleRecognitionToPortion> | ReturnType<typeof scaleNutritionByPortion> = null;
+    if (Number.isFinite(grams) && grams > 0) {
+      if (resolvePer100gForScaling(dish.original)) {
+        scaled = scaleRecognitionToPortion(dish.original, grams);
+      } else if (base) {
+        scaled = scaleNutritionByPortion(base, grams);
+      }
+    }
 
     updateDish(dish.id, {
       portionGrams: value,

@@ -12,7 +12,9 @@ import {
   needsFiberSugarBackfill,
   needsNutritionLookup,
   nutritionBaselineFromRecognition,
+  recognitionNeedsPortionRescale,
   resolvePer100gForScaling,
+  scaleRecognitionToPortion,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
 import { scaleNutritionByPortion } from "./nutrition.ts";
@@ -542,4 +544,39 @@ test("hasCompleteVisionNutrition skips enrichment when vision is full", () => {
     }),
     false,
   );
+});
+
+test("resolvePer100gForScaling detects label drinks before portionGrams arrives", () => {
+  const per100 = resolvePer100gForScaling({
+    dishName: "Пиво светлое фильтрованное",
+    calories: 42,
+    carbs: 28,
+    photoKind: "label",
+    source: "label",
+  });
+
+  assert.equal(per100?.calories, 42);
+  assert.equal(scaleRecognitionToPortion({
+    dishName: "Пиво светлое фильтрованное",
+    calories: 42,
+    carbs: 28,
+    portionGrams: 1500,
+    photoKind: "label",
+    source: "label",
+  }, 1500).calories, 630);
+});
+
+test("recognitionNeedsPortionRescale catches unscaled label bottle totals", () => {
+  const item = {
+    dishName: "Пиво светлое",
+    calories: 42,
+    carbs: 28,
+    portionGrams: 1500,
+    photoKind: "label" as const,
+    source: "label" as const,
+  };
+
+  assert.equal(recognitionNeedsPortionRescale(item, 42), true);
+  assert.equal(recognitionNeedsPortionRescale(item, 630), false);
+  assert.equal(recognitionNeedsPortionRescale({ ...item, portionGrams: 100 }, 42), false);
 });
