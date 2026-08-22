@@ -68,7 +68,7 @@ export async function prepareImageForVision(buffer: Buffer): Promise<{
   try {
     const prepared = await sharp(buffer, SHARP_OPTIONS)
       .rotate()
-      .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
+      .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: 85 })
       .toBuffer();
 

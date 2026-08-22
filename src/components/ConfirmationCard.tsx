@@ -48,7 +48,7 @@ type ConfirmationCardProps = {
   result: RecognitionResponse;
   selectedDate: string;
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (meta?: { rememberedCorrection?: boolean }) => void;
 };
 
 function SearchIcon() {
@@ -229,7 +229,7 @@ export function ConfirmationCard({
 
     setSearchingId(signal ? "all" : dish.id);
     setError(null);
-    setLookupMessage(null);
+    setLookupMessage(signal ? "Подбираем БЖУ для всех позиций…" : "Подбираем БЖУ…");
 
     try {
       const response = await fetch(withBasePath("/api/food/lookup"), {
@@ -386,36 +386,36 @@ export function ConfirmationCard({
 
     try {
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
+      const payloads = await Promise.all(
+        dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
+      );
+      const rememberedCorrection = payloads.some((payload) => payload.wasCorrected);
 
       if (dishes.length > 1) {
-        const entries = await Promise.all(
-          dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
-        );
         const response = await fetch(withBasePath("/api/meals"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entries }),
+          body: JSON.stringify({ entries: payloads }),
         });
         const data = await readApiJson<{ error?: string }>(response);
         if (!response.ok) {
           throw new Error(data.error ?? "Ошибка сохранения");
         }
-        onSaved();
+        onSaved({ rememberedCorrection });
         return;
       }
 
-      const payload = await buildSavePayload(dishes[0]!);
       const response = await fetch(withBasePath("/api/meals"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payloads[0]!),
       });
       const data = await readApiJson<{ error?: string }>(response);
       if (!response.ok) {
         throw new Error(data.error ?? "Ошибка сохранения");
       }
 
-      onSaved();
+      onSaved({ rememberedCorrection });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
@@ -714,6 +714,12 @@ function DishFields({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {!multi && review.lowConfidence ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+          Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте название или нажмите «Уточнить по названию».
+        </p>
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">

@@ -23,12 +23,17 @@ import {
   buildStickerVisionPrompt,
 } from "@/lib/ai/category-prompts";
 import { sanitizeVisionBarcode } from "@/lib/ai/barcode-vision";
-import { isBetterPlateResult } from "@/lib/ai/plate-vision";
+import { isBetterPlateResult, shouldForcePlateBeforeRetry } from "@/lib/ai/plate-vision";
 import { isBetterLabelResult } from "@/lib/ai/label-vision";
 import { isBetterPackageResult, shouldRunPackagePass } from "@/lib/ai/package-vision";
 import { isBetterStickerResult } from "@/lib/ai/sticker-vision";
 import { isBetterDrinkResult } from "@/lib/ai/drink-vision";
 import { pickSpecialistPass, type SpecialistPass } from "@/lib/ai/specialist-pass";
+import {
+  getCachedFileId,
+  imageUploadCacheKey,
+  rememberCachedFileId,
+} from "@/lib/ai/gigachat-file-cache";
 import { normalizeBarcode } from "@/lib/barcode";
 
 const OAUTH_URL =
@@ -51,6 +56,12 @@ type HttpResult = {
 
 const GIGACHAT_HTTP_TIMEOUT_MS = 25_000;
 
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 10,
+  rejectUnauthorized: false,
+});
+
 function httpsRequest(
   url: string,
   options: {
@@ -70,6 +81,7 @@ function httpsRequest(
         headers: options.headers,
         rejectUnauthorized: false,
         timeout: GIGACHAT_HTTP_TIMEOUT_MS,
+        agent: httpsAgent,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -226,7 +238,13 @@ async function uploadImage(
   mimeType: string,
   filename: string,
 ): Promise<string> {
-  return withRateLimitRetry(async () => {
+  const cacheKey = imageUploadCacheKey(buffer);
+  const cached = getCachedFileId(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const fileId = await withRateLimitRetry(async () => {
     const safeName =
       filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? filename : "food.jpg";
     const boundary = `----CalorieVision${randomUUID().replace(/-/g, "")}`;
@@ -256,6 +274,9 @@ async function uploadImage(
 
     return data.id;
   });
+
+  rememberCachedFileId(cacheKey, fileId);
+  return fileId;
 }
 
 async function withRateLimitRetry<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
@@ -456,30 +477,6 @@ export async function recognizeWithGigaChat(
     ...telemetryBase(),
   });
 
-  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS - 1) {
-    // Leave chat slots for specialist + optional post-specialist retry.
-    try {
-      const reason = getRecognitionRetryReason(result);
-      text = await ask("retry", reason);
-      const retried = parseFoodRecognitionResponse(text);
-      logRecognitionPass({
-        pass: "retry",
-        photoKind: retried.photoKind,
-        retryReason: getRecognitionRetryReason(retried),
-        itemCount: retried.items?.length ?? 0,
-        calories: retried.calories,
-        confidence: retried.confidence,
-        dishName: retried.dishName,
-        ...telemetryBase(),
-      });
-      if (isBetterRecognitionResult(result, retried)) {
-        result = retried;
-      }
-    } catch (error) {
-      console.warn("Recognition quality retry failed", error);
-    }
-  }
-
   result = sanitizeVisionBarcode(result);
 
   const runSpecialist = async (pass: SpecialistPass): Promise<FoodRecognitionResult> => {
@@ -578,11 +575,61 @@ export async function recognizeWithGigaChat(
     };
   };
 
-  const specialist = pickSpecialistPass(result);
-  if (specialist && chatCalls < MAX_CHAT_CALLS) {
+  let plateForced = false;
+  let specialistRan: SpecialistPass | null = null;
+  if (shouldForcePlateBeforeRetry(result) && chatCalls < MAX_CHAT_CALLS) {
     try {
-      specialistPass = specialist;
-      result = await runSpecialist(specialist);
+      plateForced = true;
+      specialistPass = "plate";
+      specialistRan = "plate";
+      result = await runSpecialist("plate");
+      logRecognitionPass({
+        pass: "specialist",
+        photoKind: result.photoKind,
+        retryReason: getRecognitionRetryReason(result),
+        itemCount: result.items?.length ?? 0,
+        calories: result.calories,
+        confidence: result.confidence,
+        dishName: result.dishName,
+        ...telemetryBase(),
+      });
+    } catch (error) {
+      console.warn("Forced plate specialist failed", error);
+    }
+  }
+
+  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS - 1) {
+    // Leave chat slots for specialist + optional post-specialist retry.
+    try {
+      const reason = getRecognitionRetryReason(result);
+      text = await ask("retry", reason);
+      const retried = parseFoodRecognitionResponse(text);
+      logRecognitionPass({
+        pass: "retry",
+        photoKind: retried.photoKind,
+        retryReason: getRecognitionRetryReason(retried),
+        itemCount: retried.items?.length ?? 0,
+        calories: retried.calories,
+        confidence: retried.confidence,
+        dishName: retried.dishName,
+        ...telemetryBase(),
+      });
+      if (isBetterRecognitionResult(result, retried)) {
+        result = retried;
+      }
+    } catch (error) {
+      console.warn("Recognition quality retry failed", error);
+    }
+  }
+
+  const specialist = pickSpecialistPass(result);
+  const effectiveSpecialist =
+    specialist && specialist === "plate" && plateForced ? null : specialist;
+  if (effectiveSpecialist && chatCalls < MAX_CHAT_CALLS) {
+    try {
+      specialistPass = effectiveSpecialist;
+      specialistRan = effectiveSpecialist;
+      result = await runSpecialist(effectiveSpecialist);
       logRecognitionPass({
         pass: "specialist",
         photoKind: result.photoKind,
@@ -596,13 +643,14 @@ export async function recognizeWithGigaChat(
 
       // Package with unreadable barcode: one identity fallback if budget remains.
       if (
-        specialist === "barcode" &&
+        effectiveSpecialist === "barcode" &&
         chatCalls < MAX_CHAT_CALLS &&
         !normalizeBarcode(result.barcode ?? null) &&
         (result.photoKind === "package" || result.photoKind === "barcode") &&
         shouldRunPackagePass({ ...result, photoKind: "package" })
       ) {
         specialistPass = "package";
+        specialistRan = "package";
         result = await runSpecialist("package");
         logRecognitionPass({
           pass: "specialist",
@@ -616,11 +664,11 @@ export async function recognizeWithGigaChat(
         });
       }
     } catch (error) {
-      console.warn("Recognition specialist pass failed", specialist, error);
+      console.warn("Recognition specialist pass failed", effectiveSpecialist, error);
     }
   }
 
-  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS && specialist) {
+  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS && specialistRan) {
     try {
       const reason = getRecognitionRetryReason(result);
       text = await ask("retry", reason);

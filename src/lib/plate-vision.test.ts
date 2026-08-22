@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isBetterPlateResult, shouldRunPlatePass } from "./ai/plate-vision.ts";
+import { isBetterPlateResult, shouldForcePlateBeforeRetry, shouldRunPlatePass } from "./ai/plate-vision.ts";
 
 test("plate pass runs when dish name lists several foods without items", () => {
   assert.equal(
@@ -51,6 +51,31 @@ test("plate pass runs for mixed plate misclassified as package", () => {
       photoKind: "package",
     }),
     true,
+  );
+});
+
+test("forces plate specialist before retry for comma-list without items", () => {
+  assert.equal(
+    shouldForcePlateBeforeRetry({
+      dishName: "Курица, рис, овощи",
+      calories: 520,
+      confidence: 0.72,
+      photoKind: "meal",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldForcePlateBeforeRetry({
+      dishName: "Курица, рис",
+      calories: 520,
+      confidence: 0.72,
+      photoKind: "meal",
+      items: [
+        { dishName: "Курица", calories: 300, confidence: 0.8 },
+        { dishName: "Рис", calories: 220, confidence: 0.75 },
+      ],
+    }),
+    false,
   );
 });
 
