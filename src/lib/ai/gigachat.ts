@@ -47,6 +47,8 @@ type HttpResult = {
   body: string;
 };
 
+const GIGACHAT_HTTP_TIMEOUT_MS = 25_000;
+
 function httpsRequest(
   url: string,
   options: {
@@ -65,6 +67,7 @@ function httpsRequest(
         method: options.method ?? "GET",
         headers: options.headers,
         rejectUnauthorized: false,
+        timeout: GIGACHAT_HTTP_TIMEOUT_MS,
       },
       (res) => {
         const chunks: Buffer[] = [];
@@ -78,6 +81,9 @@ function httpsRequest(
       },
     );
 
+    req.on("timeout", () => {
+      req.destroy(new Error("GigaChat: превышено время ожидания ответа"));
+    });
     req.on("error", reject);
 
     if (options.body) {
@@ -339,6 +345,7 @@ export async function lookupFiberSugarWithGigaChat(
       },
     ],
     0.2,
+    { retries: 1 },
   );
 
   const match = text.match(/\{[\s\S]*\}/);

@@ -309,7 +309,9 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  let result = normalizeRecognitionNutrition(
+  // Barcode scans must stay fast: OFF only — no GigaChat backfill (avoids Safari "Load failed"
+  // when nginx closes a hung /api/food/lookup while waiting on AI for missing sugars).
+  const result = normalizeRecognitionNutrition(
     await withFoodImage(
       {
         dishName: off.dishName,
@@ -317,8 +319,8 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
         protein: off.protein,
         fat: off.fat,
         carbs: off.carbs,
-        fiber: off.fiber,
-        sugar: off.sugar,
+        fiber: off.fiber !== undefined ? off.fiber : 0,
+        sugar: off.sugar !== undefined ? off.sugar : 0,
         portionGrams: off.portionGrams,
         barcode: off.barcode ?? barcode,
         brand: off.brand,
@@ -331,9 +333,7 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     ),
   );
 
-  // Many OFF products omit fiber_100g / sugars_100g — same empty fields as text lookup.
-  result = await enrichMissingFiberSugar(result, off.dishName || barcode, off);
-  return normalizeRecognitionNutrition(result);
+  return result;
 }
 
 export async function lookupFoodByName(

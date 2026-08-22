@@ -32,6 +32,17 @@ describe("humanizeClientFetchError", () => {
     );
   });
 
+  it("maps Safari Load failed and Failed to fetch", () => {
+    assert.match(
+      humanizeClientFetchError(new Error("Load failed"), "fallback"),
+      /связаться с сервером/,
+    );
+    assert.match(
+      humanizeClientFetchError(new Error("Failed to fetch"), "fallback"),
+      /связаться с сервером/,
+    );
+  });
+
   it("keeps useful Russian API errors", () => {
     assert.equal(
       humanizeClientFetchError(new Error("Фото не найдено"), "fallback"),

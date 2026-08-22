@@ -41,6 +41,19 @@ export function humanizeClientFetchError(error: unknown, fallback: string): stri
     return "Не удалось получить ответ сервера. Попробуйте ещё раз.";
   }
 
+  // Safari/WebKit: "Load failed"; Chromium: "Failed to fetch"; Firefox: "NetworkError…"
+  if (
+    /^load failed$/i.test(message) ||
+    /failed to fetch/i.test(message) ||
+    /networkerror/i.test(message) ||
+    /network request failed/i.test(message) ||
+    /internet connection appears to be offline/i.test(message) ||
+    /the operation was aborted/i.test(message) ||
+    error.name === "AbortError"
+  ) {
+    return "Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз.";
+  }
+
   return message;
 }
 
