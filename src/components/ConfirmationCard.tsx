@@ -274,7 +274,7 @@ export function ConfirmationCard({
     }
   }
 
-  async function saveDish(dish: DishDraft, mealGroupId?: string) {
+  async function buildSavePayload(dish: DishDraft, mealGroupId?: string) {
     const parsedCalories = Number(dish.calories);
     if (!dish.dishName.trim() || !Number.isFinite(parsedCalories) || parsedCalories <= 0) {
       throw new Error("Проверьте название и калорийность каждого блюда");
@@ -300,40 +300,55 @@ export function ConfirmationCard({
       parsedFiber !== origFiber ||
       parsedSugar !== origSugar;
 
-    const response = await fetch(withBasePath("/api/meals"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: selectedDate,
-        dishName: dish.dishName.trim(),
-        calories: parsedCalories,
-        protein: parsedProtein,
-        fat: parsedFat,
-        carbs: parsedCarbs,
-        fiber: parsedFiber,
-        sugar: parsedSugar,
-        portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
-        confidence: dish.original.confidence,
-        imagePath: imagePath || undefined,
-        mealGroupId,
-        mealType: mealType || undefined,
-        wasCorrected,
-        originalDish: decodeHtmlEntities(dish.original.dishName),
-        originalCalories: dish.original.calories,
-        originalProtein: origProtein,
-        originalFat: origFat,
-        originalCarbs: origCarbs,
-        originalFiber: origFiber,
-        originalSugar: origSugar,
-        recognitionSource: dish.original.source,
-        photoKind: dish.original.photoKind,
-        barcode: dish.original.barcode,
-      }),
-    });
+    return {
+      date: selectedDate,
+      dishName: dish.dishName.trim(),
+      calories: parsedCalories,
+      protein: parsedProtein,
+      fat: parsedFat,
+      carbs: parsedCarbs,
+      fiber: parsedFiber,
+      sugar: parsedSugar,
+      portionGrams: dish.portionGrams ? Number(dish.portionGrams) : undefined,
+      confidence: dish.original.confidence,
+      imagePath: imagePath || undefined,
+      mealGroupId,
+      mealType: mealType || undefined,
+      wasCorrected,
+      originalDish: decodeHtmlEntities(dish.original.dishName),
+      originalCalories: dish.original.calories,
+      originalProtein: origProtein,
+      originalFat: origFat,
+      originalCarbs: origCarbs,
+      originalFiber: origFiber,
+      originalSugar: origSugar,
+      recognitionSource: dish.original.source,
+      photoKind: dish.original.photoKind,
+      barcode: dish.original.barcode,
+    };
+  }
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error ?? "Ошибка сохранения");
+  async function handleLookupAll() {
+    const targets = dishes.filter((dish) => {
+      const review = dishNeedsReview(dish);
+      return review.lowConfidence || review.missingCalories;
+    });
+    if (targets.length === 0) {
+      setLookupMessage("Все позиции уже выглядят достаточно точными");
+      return;
+    }
+
+    setSearchingId("all");
+    setError(null);
+    setLookupMessage(null);
+
+    try {
+      for (const dish of targets) {
+        await handleLookup(dish);
+      }
+      setLookupMessage(`Уточнено ${targets.length} из ${dishes.length}`);
+    } finally {
+      setSearchingId(null);
     }
   }
 
@@ -343,28 +358,33 @@ export function ConfirmationCard({
 
     try {
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
-      const results = await Promise.allSettled(
-        dishes.map((dish) => saveDish(dish, mealGroupId)),
-      );
 
-      const failures = results
-        .map((result, index) =>
-          result.status === "rejected"
-            ? `${dishes[index]?.dishName || `Блюдо ${index + 1}`}: ${result.reason instanceof Error ? result.reason.message : "ошибка"}`
-            : null,
-        )
-        .filter((message): message is string => message !== null);
-
-      const savedCount = results.filter((result) => result.status === "fulfilled").length;
-
-      if (failures.length > 0) {
-        if (savedCount > 0) {
-          setError(`Сохранено ${savedCount} из ${dishes.length}.\n${failures.join("\n")}`);
-          onSaved();
-          return;
+      if (dishes.length > 1) {
+        const entries = await Promise.all(
+          dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
+        );
+        const response = await fetch(withBasePath("/api/meals"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries }),
+        });
+        const data = await readApiJson<{ error?: string }>(response);
+        if (!response.ok) {
+          throw new Error(data.error ?? "Ошибка сохранения");
         }
-        setError(failures.join("\n"));
+        onSaved();
         return;
+      }
+
+      const payload = await buildSavePayload(dishes[0]!);
+      const response = await fetch(withBasePath("/api/meals"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await readApiJson<{ error?: string }>(response);
+      if (!response.ok) {
+        throw new Error(data.error ?? "Ошибка сохранения");
       }
 
       onSaved();
@@ -379,6 +399,7 @@ export function ConfirmationCard({
   const multi = dishes.length > 1;
   const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
   const searching = searchingId !== null;
+  const bulkLookupRunning = searchingId === "all";
   const reviewFlags = dishes.map(dishNeedsReview);
   const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
   const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
@@ -431,6 +452,16 @@ export function ConfirmationCard({
                 ? "Уточните название и нажмите «Уточнить по названию» — подтянем КБЖУ из базы."
                 : "Проверьте название и калории. Если блюдо другое — уточните по названию."}
             </p>
+            {multi ? (
+              <button
+                type="button"
+                className="mt-3 text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
+                disabled={saving || searching}
+                onClick={() => void handleLookupAll()}
+              >
+                {bulkLookupRunning ? "Уточняем все..." : "Уточнить все позиции"}
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -600,7 +631,7 @@ function DishFields({
     () => review.lowConfidence || review.missingCalories,
   );
 
-  const alternativesSection = !multi && dish.original.alternatives?.length ? (
+  const alternativesSection = dish.original.alternatives?.length ? (
     <div>
       <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
       <div className="flex flex-wrap gap-2">

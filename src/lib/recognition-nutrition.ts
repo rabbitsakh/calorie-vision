@@ -4,6 +4,8 @@ const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
 const PER100G_MAX_CALORIES = 120;
 const LOW_DENSITY_KCAL_PER_GRAM = 0.25;
+const MEAT_LIKE_DISH_RE =
+  /(куриц|говяд|свин|индейк|баран|телят|стейк|филе|ветчин|бекон|колбас|сосиск|яйц|рыб|лосос|форел|тунец|треск|кревет|кальмар|творог|сыр(?!\s*оп)|масло|сметан)/iu;
 
 function isFailedName(name: string): boolean {
   return /не удалось распознать/i.test(name);
@@ -167,6 +169,9 @@ export function clearSuspiciousZeroFiberSugar(
 ): FoodRecognitionResult {
   const carbs = result.carbs ?? 0;
   if (result.fiber === 0 && result.sugar === 0 && carbs >= 8) {
+    if (MEAT_LIKE_DISH_RE.test(result.dishName)) {
+      return result;
+    }
     return { ...result, fiber: undefined, sugar: undefined };
   }
   return result;

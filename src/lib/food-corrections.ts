@@ -42,6 +42,24 @@ export function foodCorrectionKey(name: string): string {
     .slice(0, 191);
 }
 
+function correctionTokens(name: string): string[] {
+  return foodCorrectionKey(name)
+    .split(" ")
+    .filter((token) => token.length >= 3);
+}
+
+/** Token overlap 0..1 for fuzzy correction lookup. */
+export function correctionTokenOverlap(a: string, b: string): number {
+  const left = correctionTokens(a);
+  const right = correctionTokens(b);
+  if (left.length === 0 || right.length === 0) {
+    return 0;
+  }
+  const rightSet = new Set(right);
+  const shared = left.filter((token) => rightSet.has(token)).length;
+  return shared / Math.max(left.length, right.length);
+}
+
 export function pickFoodCorrection(
   dishName: string,
   records: Array<FoodCorrectionRecord & { originalKey: string }>,
@@ -66,14 +84,18 @@ export function pickFoodCorrection(
     if (key.includes(row.originalKey) || row.originalKey.includes(key)) {
       const shorter = Math.min(key.length, row.originalKey.length);
       const longer = Math.max(key.length, row.originalKey.length);
-      // Only apply substring correction when keys are similar enough in length
-      // — prevents "борщ" (4 chars) correction from overriding "борщ со сметаной и хлебом" (27 chars)
-      // Threshold 0.5 means the shorter key must be at least half of the longer one
       const ratio = shorter / longer;
       if (ratio >= 0.5 && shorter > bestScore) {
         best = row;
         bestScore = shorter;
       }
+      continue;
+    }
+
+    const overlap = correctionTokenOverlap(key, row.originalKey);
+    if (overlap >= 0.66 && overlap > bestScore) {
+      best = row;
+      bestScore = overlap;
     }
   }
 

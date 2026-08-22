@@ -4,7 +4,11 @@ import { looksLikeImageBuffer } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { compressFoodImage } from "@/lib/image-compress";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { saveImageBuffer } from "@/lib/upload";
+
+const RECOGNIZE_RATE_LIMIT = 12;
+const RECOGNIZE_RATE_WINDOW_MS = 60_000;
 
 /** FormDataEntryValue is File | string — predicate must narrow to File, not Blob. */
 function isUploadFile(value: FormDataEntryValue | null): value is File {
@@ -32,6 +36,23 @@ export async function POST(request: NextRequest) {
     const { session, response } = await requireSession();
     if (response) {
       return response;
+    }
+
+    const rate = checkRateLimit(
+      `recognize:${session.user.id}`,
+      RECOGNIZE_RATE_LIMIT,
+      RECOGNIZE_RATE_WINDOW_MS,
+    );
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error: `Слишком много распознаваний. Подождите ${rate.retryAfterSec} сек.`,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rate.retryAfterSec) },
+        },
+      );
     }
 
     const formData = await request.formData();

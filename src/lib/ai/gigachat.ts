@@ -379,6 +379,7 @@ export async function recognizeWithGigaChat(
   imageBuffer: Buffer,
   filename: string,
 ): Promise<FoodRecognitionResult> {
+  const startedAtMs = Date.now();
   const prepared = await prepareImageForVision(imageBuffer);
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
@@ -386,6 +387,13 @@ export async function recognizeWithGigaChat(
   // Budget: main + at most 2 follow-ups (retry and/or one specialist, optional barcode→package fallback).
   const MAX_CHAT_CALLS = 3;
   let chatCalls = 0;
+  let specialistPass: SpecialistPass | null = null;
+
+  const telemetryBase = () => ({
+    chatCalls,
+    latencyMs: Date.now() - startedAtMs,
+    specialistPass,
+  });
 
   const ask = async (mode: "full" | "retry" = "full") => {
     chatCalls += 1;
@@ -443,6 +451,7 @@ export async function recognizeWithGigaChat(
     calories: result.calories,
     confidence: result.confidence,
     dishName: result.dishName,
+    ...telemetryBase(),
   });
 
   if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS - 1) {
@@ -458,6 +467,7 @@ export async function recognizeWithGigaChat(
         calories: retried.calories,
         confidence: retried.confidence,
         dishName: retried.dishName,
+        ...telemetryBase(),
       });
       if (isBetterRecognitionResult(result, retried)) {
         result = retried;
@@ -561,7 +571,18 @@ export async function recognizeWithGigaChat(
   const specialist = pickSpecialistPass(result);
   if (specialist && chatCalls < MAX_CHAT_CALLS) {
     try {
+      specialistPass = specialist;
       result = await runSpecialist(specialist);
+      logRecognitionPass({
+        pass: "specialist",
+        photoKind: result.photoKind,
+        retryReason: getRecognitionRetryReason(result),
+        itemCount: result.items?.length ?? 0,
+        calories: result.calories,
+        confidence: result.confidence,
+        dishName: result.dishName,
+        ...telemetryBase(),
+      });
 
       // Package with unreadable barcode: one identity fallback if budget remains.
       if (
@@ -571,7 +592,18 @@ export async function recognizeWithGigaChat(
         (result.photoKind === "package" || result.photoKind === "barcode") &&
         shouldRunPackagePass({ ...result, photoKind: "package" })
       ) {
+        specialistPass = "package";
         result = await runSpecialist("package");
+        logRecognitionPass({
+          pass: "specialist",
+          photoKind: result.photoKind,
+          retryReason: getRecognitionRetryReason(result),
+          itemCount: result.items?.length ?? 0,
+          calories: result.calories,
+          confidence: result.confidence,
+          dishName: result.dishName,
+          ...telemetryBase(),
+        });
       }
     } catch (error) {
       console.warn("Recognition specialist pass failed", specialist, error);
@@ -586,6 +618,8 @@ export async function recognizeWithGigaChat(
     calories: result.calories,
     confidence: result.confidence,
     dishName: result.dishName,
+    source: result.source,
+    ...telemetryBase(),
   });
 
   return result;
