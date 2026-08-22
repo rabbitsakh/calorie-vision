@@ -18,6 +18,12 @@ echo "==> Pull latest code"
 restore_generated_version_files
 git pull
 
+echo "==> Node $(node -v)"
+if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 24 ? 0 : 1)"; then
+  echo "Need Node.js 24 LTS. See README: «Node.js 24 на VPS» (NodeSource setup_24.x or nvm install 24)."
+  exit 1
+fi
+
 echo "==> Version"
 node --experimental-strip-types --no-warnings scripts/sync-app-version.ts
 
