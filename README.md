@@ -301,14 +301,27 @@ sudo npm install -g pm2
 cd /var/www/calorie-vision
 pm2 restart calorie-vision --update-env
 pm2 save
-# один раз после смены Node, чтобы systemd поднимал тот же node после ребута:
+```
+
+Один раз после смены Node — чтобы systemd поднимал тот же node после ребута:
+
+```bash
+pm2 save
 pm2 unstartup
 pm2 startup
 # выполните команду, которую напечатает pm2 startup
-pm2 save
 ```
 
-Проверка: `node -v` и `pm2 show calorie-vision` — в `node.js version` тоже 24. Дальше обычный деплой.
+`pm2 startup` часто поднимает **новый пустой** демон (`not managing any process`). Сразу верните приложение:
+
+```bash
+cd /var/www/calorie-vision
+pm2 resurrect || pm2 start deploy/ecosystem.config.cjs
+pm2 save
+pm2 status
+```
+
+В `pm2 status` процесс `calorie-vision` должен быть `online`. Проверка Node: `node -v` и `pm2 show calorie-vision` — в `node.js version` тоже 24. Дальше обычный деплой.
 
 ### 4. Запуск приложения
 
