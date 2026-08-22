@@ -9,6 +9,7 @@ import {
   lookupStoredFoodCorrection,
 } from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
+import { lookupFiberSugarTable } from "@/lib/fiber-sugar-table";
 import { lookupQueriesForName } from "@/lib/dish-lookup-synonyms";
 import {
   combineRecognitionItems,
@@ -692,6 +693,19 @@ async function enrichMissingFiberSugar(
       source: "openfoodfacts-search",
       photoKind: "package",
     });
+  }
+
+  if (!needsFiberSugarBackfill(next)) {
+    return next;
+  }
+
+  const tableHit = lookupFiberSugarTable(dishName, next.portionGrams);
+  if (tableHit) {
+    next = {
+      ...next,
+      fiber: next.fiber !== undefined ? next.fiber : tableHit.fiber,
+      sugar: next.sugar !== undefined ? next.sugar : tableHit.sugar,
+    };
   }
 
   if (!needsFiberSugarBackfill(next)) {
