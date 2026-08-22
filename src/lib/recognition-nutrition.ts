@@ -247,6 +247,72 @@ type Per100gValues = {
   sugar?: number;
 };
 
+/** Labels often expose 159 kJ/100ml — models sometimes put kJ into calories. */
+export function normalizePer100gEnergy(
+  per100g: Per100gValues | undefined,
+): Per100gValues | undefined {
+  if (!per100g || !(per100g.calories > 0)) {
+    return undefined;
+  }
+
+  let calories = per100g.calories;
+  // Typical drink labels: 150–400 kJ/100ml (≈36–96 kcal). Cottage cheese ~121 kcal stays.
+  if (calories >= 150 && calories <= 500) {
+    calories = Math.round((calories / 4.184) * 10) / 10;
+  }
+
+  return { ...per100g, calories };
+}
+
+function isPackagedPhoto(result: Pick<FoodRecognitionResult, "photoKind" | "source">): boolean {
+  return (
+    result.photoKind === "label" ||
+    result.photoKind === "barcode" ||
+    result.photoKind === "package" ||
+    result.source === "label" ||
+    result.source === "openfoodfacts-barcode" ||
+    result.source === "openfoodfacts-search"
+  );
+}
+
+/** Resolve per-100 g/ml values for portion chip scaling. */
+export function resolvePer100gForScaling(
+  result: Pick<
+    FoodRecognitionResult,
+    "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g" | "photoKind" | "source"
+  >,
+): Per100gValues | null {
+  const normalized = normalizePer100gEnergy(result.per100g);
+  if (normalized && normalized.calories > 0) {
+    return normalized;
+  }
+
+  const portionGrams =
+    result.portionGrams && result.portionGrams > 0 ? result.portionGrams : DEFAULT_PORTION_GRAMS;
+
+  const inferred = inferPer100gValues(result, result.calories, portionGrams);
+  if (inferred) {
+    return inferred;
+  }
+
+  if (isPackagedPhoto(result) && portionGrams > 100 && result.calories > 0) {
+    const per100Cal = Math.round((result.calories * 100) / portionGrams);
+    if (per100Cal > 0 && per100Cal <= PER100G_MAX_CALORIES) {
+      const ratio = 100 / portionGrams;
+      return {
+        calories: per100Cal,
+        protein: scaleMacro(result.protein, ratio),
+        fat: scaleMacro(result.fat, ratio),
+        carbs: scaleMacro(result.carbs, ratio),
+        fiber: scaleMacro(result.fiber, ratio),
+        sugar: scaleMacro(result.sugar, ratio),
+      };
+    }
+  }
+
+  return null;
+}
+
 /** GigaChat often returns per-100 g/ml values while portionGrams is the full bottle or plate. */
 export function inferPer100gValues(
   result: Pick<FoodRecognitionResult, "per100g" | "protein" | "fat" | "carbs" | "fiber" | "sugar">,
@@ -254,7 +320,7 @@ export function inferPer100gValues(
   portionGrams: number,
 ): Per100gValues | null {
   if (result.per100g && result.per100g.calories > 0) {
-    return result.per100g;
+    return normalizePer100gEnergy(result.per100g) ?? result.per100g;
   }
 
   if (portionGrams <= 100 || calories <= 0) {
@@ -293,36 +359,24 @@ const PER100G_REFERENCE_GRAMS = 100;
 export function nutritionBaselineFromRecognition(
   result: Pick<
     FoodRecognitionResult,
-    "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g"
+    "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g" | "photoKind" | "source"
   >,
 ): NutritionValues | null {
+  const per100 = resolvePer100gForScaling(result);
+  if (per100) {
+    return nutritionBaseline({
+      calories: per100.calories,
+      protein: per100.protein,
+      fat: per100.fat,
+      carbs: per100.carbs,
+      fiber: per100.fiber,
+      sugar: per100.sugar,
+      portionGrams: PER100G_REFERENCE_GRAMS,
+    });
+  }
+
   const portionGrams =
     result.portionGrams && result.portionGrams > 0 ? result.portionGrams : PER100G_REFERENCE_GRAMS;
-
-  if (result.per100g && result.per100g.calories > 0) {
-    return nutritionBaseline({
-      calories: result.per100g.calories,
-      protein: result.per100g.protein,
-      fat: result.per100g.fat,
-      carbs: result.per100g.carbs,
-      fiber: result.per100g.fiber,
-      sugar: result.per100g.sugar,
-      portionGrams: PER100G_REFERENCE_GRAMS,
-    });
-  }
-
-  const inferred = inferPer100gValues(result, result.calories, portionGrams);
-  if (inferred && portionGrams > PER100G_REFERENCE_GRAMS) {
-    return nutritionBaseline({
-      calories: inferred.calories,
-      protein: inferred.protein,
-      fat: inferred.fat,
-      carbs: inferred.carbs,
-      fiber: inferred.fiber,
-      sugar: inferred.sugar,
-      portionGrams: PER100G_REFERENCE_GRAMS,
-    });
-  }
 
   return nutritionBaseline({
     calories: result.calories,
@@ -367,14 +421,16 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
   let fiber = result.fiber;
   let sugar = result.sugar;
   let portionGrams = result.portionGrams;
+  let per100g = normalizePer100gEnergy(result.per100g);
 
   if (!portionGrams || portionGrams <= 0) {
     portionGrams =
       result.photoKind === "meal" ? DEFAULT_MEAL_PORTION_GRAMS : DEFAULT_PORTION_GRAMS;
   }
 
-  const per100gSource = inferPer100gValues(result, calories, portionGrams);
+  const per100gSource = resolvePer100gForScaling({ ...result, per100g, portionGrams });
   if (per100gSource) {
+    per100g = per100gSource;
     const scaled = scaleFromPer100g(per100gSource, portionGrams);
     if (scaled) {
       calories = scaled.calories;
@@ -390,6 +446,7 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
 
   return clearSuspiciousZeroFiberSugar({
     ...result,
+    per100g,
     calories: Math.max(0, Math.round(calories)),
     protein,
     fat,

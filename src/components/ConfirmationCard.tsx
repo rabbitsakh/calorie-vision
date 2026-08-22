@@ -259,6 +259,8 @@ export function ConfirmationCard({
         nextPortionGrams ??
         (Number(dish.portionGrams) > 0 ? Number(dish.portionGrams) : dish.original.portionGrams),
       per100g: dish.original.per100g,
+      photoKind: dish.original.photoKind,
+      source: dish.original.source,
     });
   }
 

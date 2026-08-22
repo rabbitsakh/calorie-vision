@@ -22,6 +22,7 @@ import {
   mergeNutritionBackfill,
   needsFiberSugarBackfill,
   needsNutritionLookup,
+  normalizePer100gEnergy,
   normalizeRecognitionNutrition,
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
@@ -56,12 +57,14 @@ function hasMacros(result: FoodRecognitionResult): boolean {
 }
 
 export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecognitionResult {
+  const per100g = normalizePer100gEnergy(vision.per100g);
   const grams = vision.portionGrams && vision.portionGrams > 0 ? vision.portionGrams : 100;
-  if (vision.per100g && vision.per100g.calories > 0) {
-    const scaled = nutritionFromPer100g(vision.per100g, grams);
+  if (per100g && per100g.calories > 0) {
+    const scaled = nutritionFromPer100g(per100g, grams);
     if (scaled) {
       return {
         ...vision,
+        per100g,
         calories: scaled.calories,
         protein: scaled.protein,
         fat: scaled.fat,
@@ -78,6 +81,7 @@ export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecogniti
 
   return {
     ...vision,
+    per100g,
     photoKind: "label",
     source: "label",
     confidence: Math.max(vision.confidence, 0.75),
@@ -129,6 +133,11 @@ function mergeOffNutrition(
 
   const fallbackKind: PhotoKind = source === "openfoodfacts-barcode" ? "barcode" : "package";
   const photoKind = vision.photoKind === "meal" ? fallbackKind : vision.photoKind ?? fallbackKind;
+  const portionForPer100 = scaled?.portionGrams ?? off.portionGrams;
+  const per100Calories =
+    portionForPer100 > 0
+      ? Math.round(((scaled?.calories ?? off.calories) / portionForPer100) * 100)
+      : 0;
 
   return {
     ...vision,
@@ -140,6 +149,32 @@ function mergeOffNutrition(
     fiber: scaled?.fiber ?? off.fiber,
     sugar: scaled?.sugar ?? off.sugar,
     portionGrams: scaled?.portionGrams ?? off.portionGrams,
+    per100g:
+      per100Calories > 0
+        ? {
+            calories: per100Calories,
+            protein:
+              portionForPer100 > 0 && (scaled?.protein ?? off.protein) !== undefined
+                ? Math.round(((scaled?.protein ?? off.protein)! / portionForPer100) * 1000) / 10
+                : undefined,
+            fat:
+              portionForPer100 > 0 && (scaled?.fat ?? off.fat) !== undefined
+                ? Math.round(((scaled?.fat ?? off.fat)! / portionForPer100) * 1000) / 10
+                : undefined,
+            carbs:
+              portionForPer100 > 0 && (scaled?.carbs ?? off.carbs) !== undefined
+                ? Math.round(((scaled?.carbs ?? off.carbs)! / portionForPer100) * 1000) / 10
+                : undefined,
+            fiber:
+              portionForPer100 > 0 && (scaled?.fiber ?? off.fiber) !== undefined
+                ? Math.round(((scaled?.fiber ?? off.fiber)! / portionForPer100) * 1000) / 10
+                : undefined,
+            sugar:
+              portionForPer100 > 0 && (scaled?.sugar ?? off.sugar) !== undefined
+                ? Math.round(((scaled?.sugar ?? off.sugar)! / portionForPer100) * 1000) / 10
+                : undefined,
+          }
+        : vision.per100g,
     barcode: barcode ?? off.barcode ?? vision.barcode,
     brand: off.brand ?? vision.brand,
     imageUrl: off.imageUrl ?? vision.imageUrl,

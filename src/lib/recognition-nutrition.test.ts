@@ -7,10 +7,12 @@ import {
   hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
   mergeNutritionBackfill,
+  normalizePer100gEnergy,
   normalizeRecognitionNutrition,
   needsFiberSugarBackfill,
   needsNutritionLookup,
   nutritionBaselineFromRecognition,
+  resolvePer100gForScaling,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
 import { scaleNutritionByPortion } from "./nutrition.ts";
@@ -402,11 +404,52 @@ test("nutritionBaselineFromRecognition uses explicit per100g for portion chips",
     carbs: 63,
     portionGrams: 700,
     per100g: { calories: 38, protein: 0.4, fat: 0, carbs: 9 },
+    photoKind: "label",
+    source: "label",
   });
 
   assert.equal(baseline?.calories, 38);
   assert.equal(baseline?.portionGrams, 100);
   assert.equal(scaleNutritionByPortion(baseline!, 1500)?.calories, 570);
+});
+
+test("label with wrong bottle total still scales from per100g", () => {
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Пиво Северное сияние",
+    calories: 322,
+    protein: 3,
+    fat: 0,
+    carbs: 28,
+    portionGrams: 700,
+    confidence: 0.9,
+    photoKind: "label",
+    source: "label",
+    per100g: { calories: 38, protein: 0.4, fat: 0, carbs: 4 },
+  });
+
+  assert.equal(normalized.calories, 266);
+  assert.equal(normalized.per100g?.calories, 38);
+
+  const baseline = nutritionBaselineFromRecognition(normalized);
+  assert.equal(scaleNutritionByPortion(baseline!, 1500)?.calories, 570);
+});
+
+test("normalizePer100gEnergy converts label kJ to kcal", () => {
+  const per100 = normalizePer100gEnergy({ calories: 159, protein: 0.4, carbs: 4 });
+  assert.equal(per100?.calories, 38);
+
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Пиво",
+    calories: 0,
+    portionGrams: 1500,
+    confidence: 0.9,
+    photoKind: "label",
+    source: "label",
+    per100g: { calories: 159, protein: 0.4, carbs: 4 },
+  });
+
+  assert.equal(normalized.per100g?.calories, 38);
+  assert.equal(normalized.calories, 570);
 });
 
 test("nutritionBaselineFromRecognition keeps true portion totals for dense meals", () => {
