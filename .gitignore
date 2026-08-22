@@ -4,6 +4,8 @@ node_modules
 .env.local
 public/uploads/*
 !public/uploads/.gitkeep
+eval-fixtures/*
+!eval-fixtures/.gitkeep
 *.log
 .DS_Store
 .mysql-client-*.cnf

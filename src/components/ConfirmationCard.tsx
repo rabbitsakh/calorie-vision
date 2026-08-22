@@ -657,10 +657,24 @@ export function ConfirmationCard({
                 active={index === activeDish}
                 title={
                   reviewFlags[index]?.lowConfidence
-                    ? "Низкая уверенность — проверьте название и калории"
+                    ? index === activeDish
+                      ? "Нажмите ещё раз, чтобы уточнить по названию"
+                      : "Низкая уверенность — выберите и нажмите ещё раз для уточнения"
                     : undefined
                 }
-                onClick={() => setActiveDish(index)}
+                onClick={() => {
+                  if (
+                    index === activeDish &&
+                    reviewFlags[index]?.lowConfidence &&
+                    searchingId === null &&
+                    !saving &&
+                    !enriching
+                  ) {
+                    void handleLookup(dish);
+                    return;
+                  }
+                  setActiveDish(index);
+                }}
               >
                 {index + 1}. {dish.dishName || "Блюдо"}
                 {reviewFlags[index]?.lowConfidence ? " · ?" : ""}

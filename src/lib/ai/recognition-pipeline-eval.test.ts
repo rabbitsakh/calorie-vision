@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildRecognitionRetryPrompt } from "./recognition-retry-prompt.ts";
-import { visionPromptCharLength, type PromptVariant } from "./prompt-variants.ts";
+import { buildVisionPrompt, visionPromptCharLength, type PromptVariant } from "./prompt-variants.ts";
 import { pickSpecialistPass } from "./specialist-pass.ts";
 import { shouldForcePlateBeforeRetry } from "./plate-vision.ts";
 import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
@@ -104,4 +104,13 @@ test("prompt variants are ordered by size for offline A/B", () => {
   assert.ok(lengths.slim < lengths.main);
   assert.ok(lengths["category-first"] > 0);
   assert.ok(lengths.main > 500);
+});
+
+test("all prompt variants mention JSON output shape", () => {
+  for (const variant of ["main", "slim", "category-first"] as const) {
+    const prompt = buildVisionPrompt(variant);
+    assert.match(prompt, /JSON/i);
+    assert.match(prompt, /photoKind/i);
+    assert.match(prompt, /dishName/i);
+  }
 });
