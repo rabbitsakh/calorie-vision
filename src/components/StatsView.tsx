@@ -18,7 +18,7 @@ type StatsDay = {
 };
 
 type StatsResponse = {
-  period: "week" | "month";
+  period: "week" | "month" | "quarter";
   days: StatsDay[];
   calorieTarget: number | null;
   hourlyCalories: number[];
@@ -55,9 +55,10 @@ function chartRange(values: number[], paddingRatio = 0.1): { min: number; max: n
   return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
 }
 
-function shouldShowDateLabel(index: number, total: number, period: "week" | "month"): boolean {
+function shouldShowDateLabel(index: number, total: number, period: "week" | "month" | "quarter"): boolean {
   if (period === "week") return true;
   if (index === 0 || index === total - 1) return true;
+  if (period === "quarter") return index % 14 === 0;
   return index % 7 === 0;
 }
 
@@ -86,7 +87,7 @@ function BarChart({
   days: StatsDay[];
   valueKey: "calories" | "weightKg";
   unit: string;
-  period: "week" | "month";
+  period: "week" | "month" | "quarter";
   targetValue?: number | null;
 }) {
   const values = days.map((d) => (valueKey === "weightKg" ? (d.weightKg ?? 0) : d.calories));
@@ -218,7 +219,7 @@ function BarChart({
 
 // ── WeightLineChart ───────────────────────────────────────────────────────────
 
-function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
+function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | "month" | "quarter" }) {
   const points = days
     .map((d, i) => ({ index: i, date: d.date, value: d.weightKg }))
     .filter((p): p is { index: number; date: string; value: number } => p.value !== null && p.value > 0);
@@ -365,7 +366,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 
 // ── MacroChart ────────────────────────────────────────────────────────────────
 
-function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "month" }) {
+function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "month" | "quarter" }) {
   const hasData = days.some((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
 
@@ -469,7 +470,7 @@ function StatCard({
 // ── StatsView ─────────────────────────────────────────────────────────────────
 
 export function StatsView({ endDate }: StatsViewProps) {
-  const [period, setPeriod] = useState<"week" | "month">("week");
+  const [period, setPeriod] = useState<"week" | "month" | "quarter">("week");
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -501,15 +502,19 @@ export function StatsView({ endDate }: StatsViewProps) {
     <div className="flex flex-col gap-6">
       {/* Period toggle — sticky so it stays visible when scrolling */}
       <div className="sticky top-0 z-20 -mx-4 bg-[var(--background)] px-4 pb-2 pt-1 md:static md:mx-0 md:bg-transparent md:p-0">
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1 sm:max-w-xs">
-          {(["week", "month"] as const).map((p) => (
+        <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:max-w-md">
+          {([
+            ["week", "7 дней"],
+            ["month", "30 дней"],
+            ["quarter", "90 дней"],
+          ] as const).map(([p, label]) => (
             <button
               key={p}
               type="button"
-              className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${period === p ? "bg-white text-teal-800 shadow" : "text-slate-600"}`}
+              className={`chip min-h-10 w-full justify-center ${period === p ? "chip-active" : ""}`}
               onClick={() => setPeriod(p)}
             >
-              {p === "week" ? "Неделя" : "Месяц"}
+              {label}
             </button>
           ))}
         </div>
@@ -521,6 +526,13 @@ export function StatsView({ endDate }: StatsViewProps) {
         </div>
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      {data && data.summary.totalMealDays === 0 ? (
+        <div className="card flex flex-col items-center gap-3 p-6 text-center">
+          <p className="text-sm text-slate-600">За этот период пока нет записей.</p>
+          <a href={withBasePath("/ration")} className="btn btn-primary text-sm">Добавить еду</a>
+        </div>
+      ) : null}
 
       {data ? (
         <>

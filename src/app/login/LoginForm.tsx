@@ -123,15 +123,15 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+    <main className="login-screen mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <div className="card p-8">
         <div className="flex items-center gap-3">
           <BrandMark size={48} />
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">
+          <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
             Calorie Vision
           </p>
         </div>
-        <h1 className="mt-3 text-2xl font-bold">Вход в аккаунт</h1>
+        <h1 className="font-display mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
         <p className="mt-2 text-slate-600">
           Войдите через Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
@@ -151,7 +151,7 @@ export default function LoginForm() {
                 {ready.google ? (
                   <button
                     type="button"
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-800 transition hover:border-teal-300 hover:bg-teal-50"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-800 transition hover:border-teal-300 hover:bg-teal-50"
                     disabled={loading}
                     onClick={() => handleOauthLogin("google")}
                   >
@@ -179,7 +179,7 @@ export default function LoginForm() {
                 {ready.vk ? (
                   <button
                     type="button"
-                    className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#0077FF] px-4 py-3 font-medium text-white transition hover:bg-[#0066dd]"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#0077FF] px-4 py-3 font-medium text-white transition hover:bg-[#0066dd]"
                     disabled={loading}
                     onClick={() => handleOauthLogin("vk")}
                   >

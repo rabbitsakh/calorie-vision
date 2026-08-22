@@ -32,23 +32,23 @@ function Ring({
   sub: string;
 }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 36;
+  const r = 52;
   const c = 2 * Math.PI * r;
   const offset = c - (clamped / 100) * c;
   const over = pct > 105;
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative h-20 w-20 shrink-0">
-        <svg viewBox="0 0 88 88" className="h-20 w-20 -rotate-90">
-          <circle cx="44" cy="44" r={r} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+    <div className="flex flex-col items-center text-center">
+      <div className="relative h-32 w-32 shrink-0">
+        <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
+          <circle cx="60" cy="60" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
           <circle
-            cx="44"
-            cy="44"
+            cx="60"
+            cy="60"
             r={r}
             fill="none"
             stroke={over ? "var(--danger)" : "var(--accent)"}
-            strokeWidth="8"
+            strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={c}
             strokeDashoffset={offset}
@@ -56,16 +56,14 @@ function Ring({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-sm font-bold ${over ? "text-rose-600" : "text-teal-800"}`}>
+          <span className={`text-xl font-bold ${over ? "text-rose-600" : "text-teal-800"}`}>
             {Math.round(clamped)}%
           </span>
+          <span className="text-[0.65rem] font-medium uppercase tracking-wide text-slate-500">{label}</span>
         </div>
       </div>
-      <div className="min-w-0">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="text-lg font-bold text-slate-800">{value}</p>
-        <p className="text-xs text-slate-500">{sub}</p>
-      </div>
+      <p className="mt-2 text-lg font-bold text-slate-800">{value}</p>
+      <p className="text-xs text-slate-500">{sub}</p>
     </div>
   );
 }
@@ -162,8 +160,8 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="mb-3 font-display text-sm font-semibold text-slate-800">Сегодня</p>
+    <div className="card p-4">
+      <p className="mb-3 text-center font-display text-sm font-semibold text-slate-800">Сегодня</p>
       <Ring
         pct={data.calorieTarget ? caloriePct : 0}
         label="Калории"

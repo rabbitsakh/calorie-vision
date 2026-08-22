@@ -209,6 +209,7 @@ export function ProfileForm() {
             </label>
 
             <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Я</p>
               <h2 className="text-xl font-bold">{displayName}</h2>
               <p className="text-sm text-slate-500">Имя, email и фото видны в шапке приложения</p>
             </div>
@@ -254,6 +255,7 @@ export function ProfileForm() {
               </p>
             </div>
             <div className="field sm:col-span-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Цель и расчёт</p>
               <label htmlFor="sex">Пол</label>
               <select
                 id="sex"

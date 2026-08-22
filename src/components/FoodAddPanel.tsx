@@ -112,7 +112,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         <div>
           <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
             <p className="mt-1 text-sm text-slate-500">
-            Фото блюда, название или сканер штрихкода — затем подтвердите калории и БЖУ.
+            Сфотографируйте блюдо — или найдите по названию и штрихкоду.
           </p>
         </div>
 
@@ -122,8 +122,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               key={tab.id}
               type="button"
               disabled={disabled || loading}
-              className={`min-h-10 rounded-lg px-2 py-2 text-sm font-semibold transition-colors ${
-                mode === tab.id ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"
+              className={`chip min-h-10 w-full justify-center ${
+                mode === tab.id ? "chip-active" : ""
               }`}
               onClick={() => {
                 lookupAbortRef.current?.abort();

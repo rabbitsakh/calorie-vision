@@ -52,7 +52,7 @@ function UndoToast({
   }, [onExpired]);
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
+    <div className="undo-toast flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
       <span>{message}</span>
       <button
         type="button"
@@ -72,6 +72,7 @@ type DailyLogProps = {
   onTotalsChange?: (calories: number) => void;
   compact?: boolean;
   timezone?: string | null;
+  onAddFood?: () => void;
 };
 
 function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">): string {
@@ -344,9 +345,23 @@ function SingleMealCard({
   }
 
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center">
+    <article className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+      <span
+        className={`meal-stripe ${
+          entry.mealType === "BREAKFAST"
+            ? "bg-amber-400"
+            : entry.mealType === "LUNCH"
+              ? "bg-teal-500"
+              : entry.mealType === "DINNER"
+                ? "bg-indigo-400"
+                : entry.mealType === "SNACK"
+                  ? "bg-rose-400"
+                  : "bg-slate-200"
+        }`}
+        aria-hidden
+      />
       {entry.imagePath ? (
-        <div className="h-24 w-full shrink-0 overflow-hidden rounded-xl bg-white md:w-28">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white self-center ml-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={getImageUrl(entry.imagePath)}
@@ -358,35 +373,37 @@ function SingleMealCard({
         </div>
       ) : null}
 
-      <div className="flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
-          {entry.wasCorrected ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-              исправлено
-            </span>
-          ) : null}
+      <div className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
+            {entry.wasCorrected ? (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                исправлено
+              </span>
+            ) : null}
+          </div>
+          <MealEntryDetails entry={entry} timezone={timezone} />
         </div>
-        <MealEntryDetails entry={entry} timezone={timezone} />
-      </div>
-
-      <div className="flex shrink-0 gap-1">
-        <button
-          type="button"
-          className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          title="Редактировать"
-          onClick={() => setEditing(true)}
-        >
-          <EditIcon />
-        </button>
-        <button
-          type="button"
-          className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-          title="Удалить"
-          onClick={() => onDelete(entry.id)}
-        >
-          <TrashIcon />
-        </button>
+        <p className="shrink-0 text-sm font-bold text-slate-800">{entry.calories}</p>
+        <div className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            title="Редактировать"
+            onClick={() => setEditing(true)}
+          >
+            <EditIcon />
+          </button>
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+            title="Удалить"
+            onClick={() => onDelete(entry.id)}
+          >
+            <TrashIcon />
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -424,7 +441,7 @@ function MealListRow({
   return <SingleMealCard entry={item.entry} timezone={timezone} onDelete={onDelete} onEdit={onEdit} />;
 }
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
   const [daySummary, setDaySummary] = useState<
@@ -659,7 +676,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             </div>
           ) : null}
 
-          <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
+          <div className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-white">
             <div className="text-xs uppercase tracking-wide text-teal-50">Итого за день</div>
             <div className="text-2xl font-bold">{totals.calories} ккал</div>
             <div className="text-xs text-teal-50">
@@ -759,14 +776,21 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             <Mascot pose="empty" size="md" />
-            <p>За этот день пока нет записей. Добавьте еду выше — я рядом.</p>
+            <p>За этот день пока нет записей.</p>
+            <button
+              type="button"
+              className="btn btn-primary text-sm"
+              onClick={() => onAddFood?.()}
+            >
+              Сфотографировать
+            </button>
             <button
               type="button"
               className="btn btn-secondary text-sm"
               disabled={copying}
               onClick={() => void handleCopyYesterday()}
             >
-              {copying ? "Копируем..." : "📋 Повторить вчерашний день"}
+              {copying ? "Копируем..." : "Повторить вчерашний день"}
             </button>
           </div>
         ) : null}

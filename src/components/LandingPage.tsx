@@ -74,8 +74,18 @@ function AppPreview() {
           <p className="landing-phone-brand">Calorie Vision</p>
           <p className="landing-phone-date">Сегодня</p>
           <div className="landing-phone-ring">
-            <span className="landing-phone-ring-value">1 420</span>
-            <span className="landing-phone-ring-label">из 1 800 ккал</span>
+            <span className="landing-phone-ring-value">79%</span>
+            <span className="landing-phone-ring-label">1 420 / 1 800</span>
+          </div>
+          <div className="landing-phone-bars" aria-hidden>
+            <div className="landing-phone-bar">
+              <span>Белок</span>
+              <span className="landing-phone-bar-track"><span style={{ width: "72%" }} /></span>
+            </div>
+            <div className="landing-phone-bar">
+              <span>Вода</span>
+              <span className="landing-phone-bar-track landing-phone-bar-water"><span style={{ width: "45%" }} /></span>
+            </div>
           </div>
           <div className="landing-phone-meals">
             <div className="landing-phone-meal">

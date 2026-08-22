@@ -13,10 +13,12 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type Period = "week" | "month";
+type Period = "week" | "month" | "quarter";
 
 function parsePeriod(value: string | null): Period {
-  return value === "month" ? "month" : "week";
+  if (value === "month") return "month";
+  if (value === "quarter") return "quarter";
+  return "week";
 }
 
 export async function GET(request: NextRequest) {
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
     const end =
       endDate ??
       `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const dayCount = period === "month" ? 30 : 7;
+    const dayCount = period === "quarter" ? 90 : period === "month" ? 30 : 7;
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
