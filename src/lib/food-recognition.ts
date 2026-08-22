@@ -26,6 +26,9 @@ import {
   needsNutritionLookup,
   normalizePer100gEnergy,
   normalizeRecognitionNutrition,
+  resolveDisplayPortionGrams,
+  resolvePer100gForScaling,
+  scaleRecognitionToPortion,
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
@@ -63,14 +66,35 @@ function hasMacros(result: FoodRecognitionResult): boolean {
 }
 
 export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecognitionResult {
-  const per100g = normalizePer100gEnergy(vision.per100g);
+  const portionGrams = resolveDisplayPortionGrams(vision) ?? vision.portionGrams ?? 100;
+  const per100g = resolvePer100gForScaling(vision) ?? normalizePer100gEnergy(vision.per100g);
+
+  if (per100g && per100g.calories > 0 && portionGrams > 0) {
+    const scaled = scaleRecognitionToPortion(vision, portionGrams);
+    return {
+      ...vision,
+      per100g,
+      calories: scaled.calories,
+      protein: scaled.protein ?? vision.protein,
+      fat: scaled.fat ?? vision.fat,
+      carbs: scaled.carbs ?? vision.carbs,
+      fiber: scaled.fiber ?? vision.fiber,
+      sugar: scaled.sugar ?? vision.sugar,
+      portionGrams: scaled.portionGrams ?? portionGrams,
+      photoKind: "label",
+      source: "label",
+      confidence: Math.max(vision.confidence, 0.8),
+    };
+  }
+
+  const legacyPer100g = normalizePer100gEnergy(vision.per100g);
   const grams = vision.portionGrams && vision.portionGrams > 0 ? vision.portionGrams : 100;
-  if (per100g && per100g.calories > 0) {
-    const scaled = nutritionFromPer100g(per100g, grams);
+  if (legacyPer100g && legacyPer100g.calories > 0) {
+    const scaled = nutritionFromPer100g(legacyPer100g, grams);
     if (scaled) {
       return {
         ...vision,
-        per100g,
+        per100g: legacyPer100g,
         calories: scaled.calories,
         protein: scaled.protein,
         fat: scaled.fat,
@@ -87,7 +111,7 @@ export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecogniti
 
   return {
     ...vision,
-    per100g,
+    per100g: legacyPer100g,
     photoKind: "label",
     source: "label",
     confidence: Math.max(vision.confidence, 0.75),
