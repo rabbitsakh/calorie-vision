@@ -105,6 +105,18 @@ function formatConfidence(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+/** Prefer saved upload URL — blob previews often fail on iOS PWA. */
+function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): string {
+  const persisted = imagePath.trim();
+  if (persisted) {
+    return getImageUrl(persisted);
+  }
+  if (previewUrl?.trim()) {
+    return previewUrl;
+  }
+  return "";
+}
+
 const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
 const DRINK_PORTION_CHIPS = [200, 250, 330, 500] as const;
 
@@ -152,9 +164,12 @@ export function ConfirmationCard({
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [heroSrc, setHeroSrc] = useState(() => resolveConfirmHeroSrc(initialImagePath, previewUrl));
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeDish, setActiveDish] = useState(0);
   const lookupAbortRef = useRef<AbortController | null>(null);
+  const heroImgRef = useRef<HTMLImageElement>(null);
+  const heroFallbackTriedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -167,9 +182,44 @@ export function ConfirmationCard({
 
   useEffect(() => {
     setDishes(draftsFromRecognition(recognition));
+  }, [recognition]);
+
+  useEffect(() => {
     setImagePath(initialImagePath);
+  }, [initialImagePath]);
+
+  useEffect(() => {
+    heroFallbackTriedRef.current = false;
+    setHeroSrc(resolveConfirmHeroSrc(imagePath, previewUrl));
     setImageLoaded(false);
-  }, [recognition, initialImagePath]);
+  }, [imagePath, previewUrl]);
+
+  useEffect(() => {
+    const img = heroImgRef.current;
+    if (img?.complete && img.naturalWidth > 0) {
+      setImageLoaded(true);
+    }
+  }, [heroSrc]);
+
+  function handleHeroLoad() {
+    setImageLoaded(true);
+  }
+
+  function handleHeroError() {
+    if (!heroFallbackTriedRef.current && previewUrl?.startsWith("blob:") && imagePath.trim()) {
+      heroFallbackTriedRef.current = true;
+      setHeroSrc(getImageUrl(imagePath));
+      setImageLoaded(false);
+      return;
+    }
+    if (!heroFallbackTriedRef.current && previewUrl?.startsWith("blob:") && heroSrc !== previewUrl) {
+      heroFallbackTriedRef.current = true;
+      setHeroSrc(previewUrl);
+      setImageLoaded(false);
+      return;
+    }
+    setImageLoaded(true);
+  }
 
   function updateDish(id: string, patch: Partial<DishDraft>) {
     setDishes((current) => current.map((dish) => (dish.id === id ? { ...dish, ...patch } : dish)));
@@ -423,7 +473,7 @@ export function ConfirmationCard({
     }
   }
 
-  const hasImage = Boolean(previewUrl || imagePath);
+  const hasImage = Boolean(heroSrc);
   const multi = dishes.length > 1;
   const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
   const searching = searchingId !== null;
@@ -443,9 +493,11 @@ export function ConfirmationCard({
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={previewUrl ?? getImageUrl(imagePath)}
+              ref={heroImgRef}
+              src={heroSrc}
               alt={dishes.map((dish) => dish.dishName).join(", ") || "Фото блюда"}
-              onLoad={() => setImageLoaded(true)}
+              onLoad={handleHeroLoad}
+              onError={handleHeroError}
               className={imageLoaded ? "" : "opacity-0"}
             />
             <div className="confirm-hero-overlay">
