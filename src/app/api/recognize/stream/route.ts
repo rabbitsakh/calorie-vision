@@ -97,7 +97,14 @@ export async function POST(request: NextRequest) {
         const vision = await recognizeWithGigaChat(compressed.buffer, visionFilename, {
           hints: visionHints,
         });
-        send("vision", { recognition: vision });
+        const visionPreview = normalizeRecognitionNutrition({
+          ...vision,
+          source:
+            vision.source ??
+            (vision.photoKind === "label" ? "label" : "gigachat"),
+          photoKind: vision.photoKind ?? "meal",
+        });
+        send("vision", { recognition: visionPreview });
 
         const recognition = await withTimeoutFallback(
           enrichRecognitionAfterVision(vision, session.user.id),

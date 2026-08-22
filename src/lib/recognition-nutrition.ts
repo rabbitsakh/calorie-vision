@@ -4,6 +4,7 @@ import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
+const PER100G_REFERENCE_GRAMS = 100;
 const PER100G_MAX_CALORIES = 120;
 const LOW_DENSITY_KCAL_PER_GRAM = 0.25;
 const MEAT_LIKE_DISH_RE =
@@ -329,10 +330,15 @@ export function resolvePer100gForScaling(
   const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories);
 
   // Label rows and drinks: models often put kcal/100 ml (or kJ/100 ml) in calories while portionGrams is pack volume.
+  const looksPer100Portion =
+    portionGrams > 100 ||
+    !explicitPortion ||
+    (explicitPortion === PER100G_REFERENCE_GRAMS && caloriesLookPer100g(topLevelCalories));
+
   if (
     caloriesLookPer100g(topLevelCalories) &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
-    (portionGrams > 100 || !explicitPortion)
+    looksPer100Portion
   ) {
     return {
       calories: topLevelCalories,
@@ -407,8 +413,6 @@ export function inferPer100gValues(
 
   return null;
 }
-
-const PER100G_REFERENCE_GRAMS = 100;
 
 /**
  * Baseline for portion chip scaling. When label data is per 100 g/ml, anchor at 100
@@ -612,6 +616,58 @@ export function scaleRecognitionToPortion(
     carbs: item.carbs,
     fiber: item.fiber,
     sugar: item.sugar,
+    portionGrams,
+  };
+}
+
+/**
+ * Scale to the confirm-card portion and force per-100 → pack math when the first pass
+ * still looks like kcal/100 ml on a large bottle (common on raw SSE vision payloads).
+ */
+export function scaleRecognitionToDisplayPortion(
+  item: Pick<
+    FoodRecognitionResult,
+    | "dishName"
+    | "calories"
+    | "protein"
+    | "fat"
+    | "carbs"
+    | "fiber"
+    | "sugar"
+    | "portionGrams"
+    | "per100g"
+    | "photoKind"
+    | "source"
+    | "brand"
+  >,
+  portionGrams: number,
+): Pick<
+  FoodRecognitionResult,
+  "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams"
+> {
+  const scaled = scaleRecognitionToPortion(item, portionGrams);
+  const per100 = resolvePer100gForScaling(item);
+  if (!per100 || portionGrams <= 100) {
+    return scaled;
+  }
+
+  const expectedCal = Math.round((per100.calories * portionGrams) / 100);
+  if (scaled.calories >= expectedCal * 0.85) {
+    return scaled;
+  }
+
+  const forced = scaleFromPer100g(per100, portionGrams);
+  if (!forced) {
+    return scaled;
+  }
+
+  return {
+    calories: forced.calories,
+    protein: forced.protein ?? scaled.protein ?? item.protein,
+    fat: forced.fat ?? scaled.fat ?? item.fat,
+    carbs: forced.carbs ?? scaled.carbs ?? item.carbs,
+    fiber: forced.fiber ?? scaled.fiber ?? item.fiber,
+    sugar: forced.sugar ?? scaled.sugar ?? item.sugar,
     portionGrams,
   };
 }

@@ -18,6 +18,7 @@ import {
   resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   scaleRecognitionToPortion,
+  scaleRecognitionToDisplayPortion,
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
@@ -721,4 +722,36 @@ test("applyAlternativeToPortion scales per-100 alternative to user portion", () 
   assert.equal(merged.calories, 645);
   assert.equal(merged.protein, 6);
   assert.equal(merged.carbs, 54);
+});
+
+test("scaleRecognitionToDisplayPortion forces pack scaling when first pass stays per-100", () => {
+  const item = {
+    dishName: "Пиво светлое фильтрованное",
+    calories: 42,
+    portionGrams: 1500,
+    photoKind: "label" as const,
+    source: "label" as const,
+  };
+
+  assert.equal(scaleRecognitionToPortion(item, 1500).calories, 630);
+  assert.equal(scaleRecognitionToDisplayPortion(item, 1500).calories, 630);
+});
+
+test("resolvePer100gForScaling treats 100 ml reference portion on label drinks", () => {
+  const per100 = resolvePer100gForScaling({
+    dishName: "Пиво светлое",
+    calories: 42,
+    portionGrams: 100,
+    photoKind: "label",
+    source: "label",
+  });
+
+  assert.equal(per100?.calories, 42);
+  assert.equal(scaleRecognitionToDisplayPortion({
+    dishName: "Пиво светлое",
+    calories: 42,
+    portionGrams: 100,
+    photoKind: "label",
+    source: "label",
+  }, 1500).calories, 630);
 });

@@ -230,7 +230,11 @@ export async function enrichPackagedProduct(
   }
 
   if (vision.photoKind === "label" || (vision.per100g && vision.per100g.calories > 0)) {
-    if (hasMacros(vision) || (vision.per100g && vision.per100g.calories > 0)) {
+    if (
+      hasMacros(vision) ||
+      (vision.per100g && vision.per100g.calories > 0) ||
+      (vision.photoKind === "label" && vision.calories > 0)
+    ) {
       return nutritionFromLabel(vision);
     }
   }
