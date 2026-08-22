@@ -3,7 +3,7 @@ import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { requireSession } from "@/lib/auth-session";
 import { lookupFoodByBarcode, lookupFoodByName } from "@/lib/food-recognition";
 import { normalizeBarcode } from "@/lib/barcode";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { cacheRemoteImage } from "@/lib/upload";
 
 const LOOKUP_RATE_LIMIT = 30;
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const rate = checkRateLimit(
+    const rate = await checkRateLimitAsync(
       `food-lookup:${session.user.id}`,
       LOOKUP_RATE_LIMIT,
       LOOKUP_RATE_WINDOW_MS,

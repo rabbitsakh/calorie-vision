@@ -7,6 +7,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "gigachat-lookup": "Оценка по названию",
   "openfoodfacts-barcode": "Данные из базы по штрихкоду",
   "openfoodfacts-search": "Данные из базы по названию на упаковке",
+  "usda-fdc": "Данные USDA FoodData Central",
   label: "Считано с этикетки",
   "correction-memory": "Уточнено по прошлым исправлениям",
   "gigachat-plate": "Несколько блюд на тарелке",

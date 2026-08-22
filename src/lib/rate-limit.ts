@@ -5,13 +5,17 @@ type Bucket = {
 
 const buckets = new Map<string, Bucket>();
 
-/** Sliding-window rate limiter (in-memory, per process). */
-export function checkRateLimit(
+export type RateLimitResult = {
+  allowed: boolean;
+  retryAfterSec: number;
+};
+
+function checkRateLimitMemory(
   key: string,
   limit: number,
   windowMs: number,
   nowMs = Date.now(),
-): { allowed: boolean; retryAfterSec: number } {
+): RateLimitResult {
   const bucket = buckets.get(key);
   if (!bucket || nowMs >= bucket.resetAtMs) {
     buckets.set(key, { count: 1, resetAtMs: nowMs + windowMs });
@@ -27,6 +31,31 @@ export function checkRateLimit(
 
   bucket.count += 1;
   return { allowed: true, retryAfterSec: 0 };
+}
+
+/** Sliding-window rate limiter (in-memory, per process). */
+export function checkRateLimit(
+  key: string,
+  limit: number,
+  windowMs: number,
+  nowMs = Date.now(),
+): RateLimitResult {
+  return checkRateLimitMemory(key, limit, windowMs, nowMs);
+}
+
+/** Shared rate limit when REDIS_URL is set; otherwise same as in-memory. */
+export async function checkRateLimitAsync(
+  key: string,
+  limit: number,
+  windowMs: number,
+  nowMs = Date.now(),
+): Promise<RateLimitResult> {
+  const { checkRateLimitRedis } = await import("@/lib/rate-limit-redis");
+  const redisResult = await checkRateLimitRedis(key, limit, windowMs, nowMs);
+  if (redisResult) {
+    return redisResult;
+  }
+  return checkRateLimitMemory(key, limit, windowMs, nowMs);
 }
 
 /** Test helper — reset all buckets. */

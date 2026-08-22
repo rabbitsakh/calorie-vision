@@ -4,7 +4,7 @@ import { looksLikeImageBuffer } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { compressFoodImage } from "@/lib/image-compress";
-import { checkRateLimit } from "@/lib/rate-limit";
+import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const rate = checkRateLimit(
+    const rate = await checkRateLimitAsync(
       `recognize:${session.user.id}`,
       RECOGNIZE_RATE_LIMIT,
       RECOGNIZE_RATE_WINDOW_MS,
