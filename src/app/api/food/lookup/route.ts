@@ -3,13 +3,29 @@ import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { requireSession } from "@/lib/auth-session";
 import { lookupFoodByBarcode, lookupFoodByName } from "@/lib/food-recognition";
 import { normalizeBarcode } from "@/lib/barcode";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { cacheRemoteImage } from "@/lib/upload";
+
+const LOOKUP_RATE_LIMIT = 30;
+const LOOKUP_RATE_WINDOW_MS = 60_000;
 
 export async function POST(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) {
       return response;
+    }
+
+    const rate = checkRateLimit(
+      `food-lookup:${session.user.id}`,
+      LOOKUP_RATE_LIMIT,
+      LOOKUP_RATE_WINDOW_MS,
+    );
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: `Слишком много запросов. Подождите ${rate.retryAfterSec} сек.` },
+        { status: 429, headers: { "Retry-After": String(rate.retryAfterSec) } },
+      );
     }
 
     const body = (await request.json()) as { dishName?: string; barcode?: string };

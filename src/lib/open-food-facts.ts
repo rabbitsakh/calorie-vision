@@ -65,6 +65,8 @@ const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 
 // In-process cache (5 min TTL) to avoid duplicate network calls for repeated scans.
 const OFF_CACHE_TTL_MS = 5 * 60 * 1000;
+/** Misses cached longer to avoid hammering OFF for unknown barcodes/names. */
+const OFF_MISS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 type OffCacheEntry = { value: PackNutrition | null; ts: number };
 const offBarcodeCache = new Map<string, OffCacheEntry>();
 const offSearchCache = new Map<string, OffCacheEntry>();
@@ -72,7 +74,8 @@ const offSearchCache = new Map<string, OffCacheEntry>();
 function offCacheGet(cache: Map<string, OffCacheEntry>, key: string): PackNutrition | null | undefined {
   const entry = cache.get(key);
   if (!entry) return undefined;
-  if (Date.now() - entry.ts > OFF_CACHE_TTL_MS) { cache.delete(key); return undefined; }
+  const ttl = entry.value === null ? OFF_MISS_CACHE_TTL_MS : OFF_CACHE_TTL_MS;
+  if (Date.now() - entry.ts > ttl) { cache.delete(key); return undefined; }
   return entry.value;
 }
 function offCacheSet(cache: Map<string, OffCacheEntry>, key: string, value: PackNutrition | null): void {
@@ -327,20 +330,31 @@ export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<Pac
   return result;
 }
 
-export function offMatchesQuery(query: string, dishName: string): boolean {
-  const normalize = (value: string) =>
+export function offMatchesQuery(query: string, dishName: string, brand?: string): boolean {
+  const translit = (value: string) =>
     value
       .toLowerCase()
       .replace(/ё/g, "е")
+      .replace(/sch/g, "sh")
+      .replace(/zh/g, "j")
+      .replace(/yu/g, "u")
+      .replace(/ya/g, "a");
+
+  const normalize = (value: string) =>
+    translit(value)
       .replace(/[^a-zа-я0-9]+/gi, " ")
       .trim();
 
   const q = normalize(query);
   const n = normalize(dishName);
+  const b = brand ? normalize(brand) : "";
   if (!q || !n) {
     return false;
   }
   if (n.includes(q) || q.includes(n)) {
+    return true;
+  }
+  if (b && (n.includes(b) || q.includes(b) || b.split(" ").some((token) => token.length > 2 && q.includes(token)))) {
     return true;
   }
 
@@ -349,8 +363,29 @@ export function offMatchesQuery(query: string, dishName: string): boolean {
     return false;
   }
 
-  const matched = tokens.filter((token) => n.includes(token));
+  const matched = tokens.filter((token) => n.includes(token) || (b && b.includes(token)));
   return matched.length >= Math.ceil(tokens.length / 2);
+}
+
+/** Parallel OFF search — first matching query wins. */
+export async function searchOpenFoodFactsBest(queries: string[]): Promise<PackNutrition | null> {
+  const unique = [...new Set(queries.map((q) => q.trim()).filter((q) => q.length >= 3))];
+  if (unique.length === 0) {
+    return null;
+  }
+  if (unique.length === 1) {
+    return searchOpenFoodFacts(unique[0]!);
+  }
+
+  const results = await Promise.all(unique.map((query) => searchOpenFoodFacts(query)));
+  for (let index = 0; index < unique.length; index += 1) {
+    const query = unique[index]!;
+    const hit = results[index];
+    if (hit && offMatchesQuery(query, hit.dishName, hit.brand)) {
+      return hit;
+    }
+  }
+  return results.find((item) => item !== null) ?? null;
 }
 
 export async function searchOpenFoodFacts(query: string): Promise<PackNutrition | null> {
@@ -391,7 +426,7 @@ export async function searchOpenFoodFacts(query: string): Promise<PackNutrition 
 
   // Only return a result when it actually matches the query — never silently substitute
   // an unrelated product that happened to be first in the result list.
-  const result = matches.find((item) => offMatchesQuery(trimmed, item.dishName)) ?? null;
+  const result = matches.find((item) => offMatchesQuery(trimmed, item.dishName, item.brand)) ?? null;
   offCacheSet(offSearchCache, trimmed.toLowerCase(), result);
   return result;
 }

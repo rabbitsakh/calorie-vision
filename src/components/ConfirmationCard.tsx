@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   formatMacro,
   nutritionBaseline,
@@ -154,9 +154,11 @@ export function ConfirmationCard({
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeDish, setActiveDish] = useState(0);
+  const lookupAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
+      lookupAbortRef.current?.abort();
       if (previewUrl?.startsWith("blob:")) {
         URL.revokeObjectURL(previewUrl);
       }
@@ -218,14 +220,14 @@ export function ConfirmationCard({
     });
   }
 
-  async function handleLookup(dish: DishDraft, nameOverride?: string) {
+  async function handleLookup(dish: DishDraft, nameOverride?: string, signal?: AbortSignal) {
     const query = (nameOverride ?? dish.dishName).trim();
     if (!query) {
       setError("Введите название блюда для поиска");
       return;
     }
 
-    setSearchingId(dish.id);
+    setSearchingId(signal ? "all" : dish.id);
     setError(null);
     setLookupMessage(null);
 
@@ -234,6 +236,7 @@ export function ConfirmationCard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dishName: query }),
+        signal,
       });
 
       const data = await readApiJson<{
@@ -268,10 +271,35 @@ export function ConfirmationCard({
       const sourceLabel = next.source ? RECOGNITION_SOURCE_LABELS[next.source] : undefined;
       setLookupMessage(sourceLabel ?? "Калорийность и БЖУ обновлены по названию блюда");
     } catch (err) {
+      if ((err as Error).name === "AbortError") {
+        return;
+      }
       setError(humanizeClientFetchError(err, "Ошибка поиска"));
     } finally {
-      setSearchingId(null);
+      if (!signal) {
+        setSearchingId(null);
+      }
     }
+  }
+
+  async function runLookupPool(targets: DishDraft[], concurrency = 3) {
+    const controller = new AbortController();
+    lookupAbortRef.current?.abort();
+    lookupAbortRef.current = controller;
+    let index = 0;
+
+    async function worker() {
+      while (index < targets.length) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        const current = targets[index]!;
+        index += 1;
+        await handleLookup(current, undefined, controller.signal);
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
   }
 
   async function buildSavePayload(dish: DishDraft, mealGroupId?: string) {
@@ -343,10 +371,10 @@ export function ConfirmationCard({
     setLookupMessage(null);
 
     try {
-      for (const dish of targets) {
-        await handleLookup(dish);
+      await runLookupPool(targets, 3);
+      if (!lookupAbortRef.current?.signal.aborted) {
+        setLookupMessage(`Уточнено ${targets.length} из ${dishes.length}`);
       }
-      setLookupMessage(`Уточнено ${targets.length} из ${dishes.length}`);
     } finally {
       setSearchingId(null);
     }

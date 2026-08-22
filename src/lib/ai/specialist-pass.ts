@@ -24,8 +24,9 @@ export function pickSpecialistPass(result: FoodRecognitionResult): SpecialistPas
   if (shouldRunLabelPass(result)) return "label";
   // Mixed plates are sometimes misclassified as package — split before package front.
   if (shouldRunPlatePass(result)) return "plate";
-  if (shouldRunPackagePass(result)) return "package";
+  // Bottles/cans before package front — volume matters more than brand artwork.
   if (shouldRunDrinkPass(result)) return "drink";
+  if (shouldRunPackagePass(result)) return "package";
   if (shouldRunStickerPass(result)) return "sticker";
   return null;
 }

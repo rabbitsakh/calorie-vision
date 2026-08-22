@@ -148,6 +148,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           ? "photo.heic"
           : "photo.jpg");
       formData.append("photo", file, uploadName);
+      if (localBarcode) {
+        formData.append("barcode", localBarcode);
+      }
 
       const response = await fetch(withBasePath("/api/recognize"), {
         method: "POST",

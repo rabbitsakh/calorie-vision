@@ -58,10 +58,16 @@ export function combineRecognitionItems(
       ? `${nameItems.map((item) => item.dishName).join(", ")} и ещё ${remaining}`
       : nameItems.map((item) => item.dishName).join(", ");
 
+  const itemCalories = cleaned.reduce((sum, item) => sum + Math.max(0, item.calories || 0), 0);
+  const baseCalories = Math.max(0, base.calories || 0);
+  const useItemTotals =
+    itemCalories > 0 &&
+    (baseCalories <= 0 || Math.abs(itemCalories - baseCalories) / Math.max(itemCalories, baseCalories) > 0.15);
+
   return {
     ...base,
     dishName,
-    calories: cleaned.reduce((sum, item) => sum + Math.max(0, item.calories || 0), 0),
+    calories: useItemTotals ? itemCalories : Math.max(baseCalories, itemCalories),
     protein: sumDefined(cleaned.map((item) => item.protein)),
     fat: sumDefined(cleaned.map((item) => item.fat)),
     carbs: sumDefined(cleaned.map((item) => item.carbs)),

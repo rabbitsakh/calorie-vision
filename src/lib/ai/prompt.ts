@@ -38,10 +38,10 @@ ${FOOD_JSON_SHAPE}
 - dishName: продукт/блюдо на русском (не «еда»/«упаковка»). Смешанная тарелка — краткий список через запятую
 - portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки или 0
 - per100g: только если явно «на 100 г»; иначе нули
-- calories/protein/fat/carbs/fiber/sugar — на ВСЮ порцию portionGrams (не на 100 г)
-- fiber/sugar: укажи числа ≥0 если знаешь; для мяса/рыбы/яиц — 0; если не знаешь — не добавляй ключи fiber/sugar
+- calories/protein/fat/carbs — на ВСЮ порцию portionGrams (не на 100 г)
+- fiber/sugar: не включай в JSON если не уверен; для мяса/рыбы/яиц можно 0
 - meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
-- alternatives: 0–3 если неочевидно; иначе []
+- alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
 
 Пример смешанной тарелки:
