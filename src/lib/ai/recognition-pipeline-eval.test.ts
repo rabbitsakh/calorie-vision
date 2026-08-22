@@ -8,6 +8,7 @@ import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
 import { runRecognitionEvalSuite } from "./recognition-eval-harness.ts";
 import { parseFoodRecognitionResponse } from "./parse-response.ts";
 import { hasCompleteVisionNutrition } from "../recognition-nutrition.ts";
+import { enrichAlternativesFromRuTable } from "../recognition-alternatives.ts";
 import { combineRecognitionItems } from "../recognition-items.ts";
 
 test("eval harness passes all fixtures", () => {
@@ -19,7 +20,7 @@ test("eval harness passes all fixtures", () => {
       .join("\n");
     assert.fail(`eval failures (${summary.failed}):\n${details}`);
   }
-  assert.ok(summary.passed >= 20);
+  assert.ok(summary.passed >= 50);
 });
 
 test("shouldForcePlateBeforeRetry targets comma-list meals without items", () => {
@@ -54,6 +55,17 @@ test("pickSpecialistPass routes drink before package for bottles", () => {
     portionGrams: 100,
   });
   assert.equal(pass, "drink");
+});
+
+test("enrichAlternativesFromRuTable fills calories-only vision alternatives", () => {
+  const enriched = enrichAlternativesFromRuTable(
+    parseFoodRecognitionResponse(
+      RECOGNITION_EVAL_CASES.find((c) => c.id === "alt-calories-only-borscht")!.rawModelJson,
+    ),
+  );
+  const alt = enriched.alternatives?.[0];
+  assert.equal(alt?.protein, 12);
+  assert.equal(alt?.carbs, 22);
 });
 
 test("pipeline/combine + complete vision on enriched plate item", () => {

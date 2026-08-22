@@ -10,6 +10,7 @@ import {
 } from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
 import { lookupFiberSugarTable } from "@/lib/fiber-sugar-table";
+import { enrichAlternativesFromRuTable } from "@/lib/recognition-alternatives";
 import { lookupQueriesForName } from "@/lib/dish-lookup-synonyms";
 import {
   combineRecognitionItems,
@@ -439,6 +440,16 @@ async function enrichPlateFiberSugarBatch(
   }
 }
 
+function finalizeRecognitionResult(
+  result: FoodRecognitionResult,
+  userId?: string | null,
+): Promise<FoodRecognitionResult> {
+  return applyStoredFoodCorrection(
+    normalizeRecognitionNutrition(enrichAlternativesFromRuTable(result)),
+    userId,
+  );
+}
+
 export async function enrichRecognitionAfterVision(
   vision: FoodRecognitionResult,
   userId?: string | null,
@@ -452,10 +463,8 @@ export async function enrichRecognitionAfterVision(
       enrichMealItem(item, userId, deadlineMs, { deferFiberSugar: true }),
     );
     const withFiberSugar = await enrichPlateFiberSugarBatch(processed, deadlineMs);
-    return applyStoredFoodCorrection(
-      normalizeRecognitionNutrition(
-        combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" }),
-      ),
+    return finalizeRecognitionResult(
+      combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" }),
       userId,
     );
   }
@@ -472,7 +481,7 @@ export async function enrichRecognitionAfterVision(
   );
   result = enrichedResult;
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  return finalizeRecognitionResult(result, userId);
 }
 
 export async function recognizeFoodWithAI(

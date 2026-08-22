@@ -1,0 +1,62 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import {
+  alternativeNeedsMacroBackfill,
+  backfillAlternativeFromPack,
+  enrichAlternativesFromRuTable,
+} from "./recognition-alternatives.ts";
+
+test("alternativeNeedsMacroBackfill detects calories-only alternatives", () => {
+  assert.equal(
+    alternativeNeedsMacroBackfill({ dishName: "Борщ", calories: 280 }),
+    true,
+  );
+  assert.equal(
+    alternativeNeedsMacroBackfill({
+      dishName: "Борщ",
+      calories: 280,
+      protein: 12,
+      fat: 14,
+      carbs: 22,
+    }),
+    false,
+  );
+});
+
+test("enrichAlternativesFromRuTable backfills macros from RU table", () => {
+  const enriched = enrichAlternativesFromRuTable({
+    dishName: "Щи",
+    calories: 220,
+    confidence: 0.6,
+    alternatives: [
+      { dishName: "Борщ с мясом", calories: 280 },
+      { dishName: "Цезарь с курицей", calories: 420, protein: 22, fat: 28, carbs: 18 },
+    ],
+  });
+
+  const borscht = enriched.alternatives?.[0];
+  assert.equal(borscht?.protein, 12);
+  assert.equal(borscht?.fat, 14);
+  assert.equal(borscht?.carbs, 22);
+
+  const caesar = enriched.alternatives?.[1];
+  assert.equal(caesar?.protein, 22);
+});
+
+test("backfillAlternativeFromPack scales macros to alternative calories", () => {
+  const filled = backfillAlternativeFromPack(
+    { dishName: "Борщ", calories: 140 },
+    {
+      dishName: "Борщ с мясом",
+      calories: 280,
+      protein: 12,
+      fat: 14,
+      carbs: 22,
+      portionGrams: 300,
+    },
+  );
+
+  assert.equal(filled.protein, 6);
+  assert.equal(filled.fat, 7);
+  assert.equal(filled.carbs, 11);
+});
