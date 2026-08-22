@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { shouldRetryFoodRecognition } from "./recognition-retry.ts";
+import {
+  getRecognitionRetryReason,
+  isBetterRecognitionResult,
+  shouldRetryFoodRecognition,
+} from "./recognition-retry.ts";
 
 test("retries when dish name looks like a plate list without items", () => {
   assert.equal(
@@ -11,6 +15,15 @@ test("retries when dish name looks like a plate list without items", () => {
       photoKind: "meal",
     }),
     true,
+  );
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Стейк, картофель, салат",
+      calories: 600,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    "plate-list-without-items",
   );
 });
 
@@ -34,6 +47,54 @@ test("retries failed recognition names", () => {
       confidence: 0.1,
       photoKind: "meal",
     }),
+    true,
+  );
+});
+
+test("retries vague meal names", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Обед",
+      calories: 400,
+      confidence: 0.6,
+      photoKind: "meal",
+    }),
+    "vague-name",
+  );
+});
+
+test("retries empty nutrition labels", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Творог",
+      calories: 0,
+      confidence: 0.7,
+      photoKind: "label",
+    }),
+    "empty-label",
+  );
+});
+
+test("prefers retry that splits plate items", () => {
+  assert.equal(
+    isBetterRecognitionResult(
+      {
+        dishName: "Стейк, картофель",
+        calories: 500,
+        confidence: 0.6,
+        photoKind: "meal",
+      },
+      {
+        dishName: "Стейк, картофель",
+        calories: 520,
+        confidence: 0.75,
+        photoKind: "meal",
+        items: [
+          { dishName: "Стейк", calories: 300, confidence: 0.8 },
+          { dishName: "Картофель", calories: 220, confidence: 0.7 },
+        ],
+      },
+    ),
     true,
   );
 });

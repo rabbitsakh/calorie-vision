@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   inferPer100gValues,
+  hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
   mergeNutritionBackfill,
   normalizeRecognitionNutrition,
@@ -238,4 +239,62 @@ test("keeps explicit zero fiber and does not treat it as missing", () => {
   assert.equal(merged.fiber, 0);
   assert.equal(merged.sugar, 0);
   assert.equal(needsFiberSugarBackfill({ fiber: undefined, sugar: 1 }), true);
+});
+
+
+test("fiber/sugar backfill is independent of calorie completeness", () => {
+  // Photo path often has calories+macros but omits fiber/sugar keys — still needs fill.
+  assert.equal(
+    needsFiberSugarBackfill({
+      fiber: undefined,
+      sugar: undefined,
+    }),
+    true,
+  );
+  assert.equal(
+    needsNutritionLookup({
+      dishName: "Хурма",
+      calories: 102,
+      protein: 0.8,
+      fat: 0.5,
+      carbs: 23,
+      confidence: 0.9,
+      photoKind: "meal",
+    }),
+    false,
+  );
+});
+
+test("hasSufficientVisionNutrition skips backfill when macros are present", () => {
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 400,
+      protein: 40,
+      fat: 20,
+      carbs: 0,
+      confidence: 0.8,
+    }),
+    true,
+  );
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 400,
+      protein: 40,
+      confidence: 0.8,
+    }),
+    false,
+  );
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 0,
+      protein: 40,
+      fat: 20,
+      carbs: 0,
+      confidence: 0.8,
+    }),
+    false,
+  );
 });
