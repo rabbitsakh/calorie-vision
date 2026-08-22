@@ -81,7 +81,7 @@ function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraf
     id,
     original: item,
     dishName: decodeHtmlEntities(item.dishName),
-    calories: String(scaled?.calories ?? item.calories || ""),
+    calories: String((scaled?.calories ?? item.calories) || ""),
     protein: (scaled?.protein ?? item.protein) !== undefined ? String(scaled?.protein ?? item.protein) : "",
     fat: (scaled?.fat ?? item.fat) !== undefined ? String(scaled?.fat ?? item.fat) : "",
     carbs: (scaled?.carbs ?? item.carbs) !== undefined ? String(scaled?.carbs ?? item.carbs) : "",
