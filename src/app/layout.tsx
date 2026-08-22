@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { AppVersion } from "@/components/AppVersion";
 import { PageFallback } from "@/components/AppShell";
 import { Providers } from "@/components/Providers";
+import { YandexMetrika } from "@/components/YandexMetrika";
+import { parseMetrikaId } from "@/lib/yandex-metrika";
 import "./globals.css";
 
 const body = Manrope({
@@ -44,6 +46,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const metrikaId = parseMetrikaId(
+    process.env.YANDEX_METRIKA_ID ?? process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID,
+  );
+
   return (
     <html lang="ru" className={`${body.variable} ${display.variable}`}>
       <head>
@@ -53,6 +59,11 @@ export default function RootLayout({
         <Providers>
           <Suspense fallback={<PageFallback />}>{children}</Suspense>
         </Providers>
+        {metrikaId ? (
+          <Suspense fallback={null}>
+            <YandexMetrika counterId={metrikaId} />
+          </Suspense>
+        ) : null}
         <AppVersion />
       </body>
     </html>

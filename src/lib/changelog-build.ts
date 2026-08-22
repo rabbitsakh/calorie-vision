@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^Add Yandex Metrika.*$/i, "На сайт подключена Яндекс Метрика"],
   [/^Design UX batch.*$/i, "Дизайн: кольцо дня, неделя дат, липкое сохранение и чипы"],
   [/^Fix app version.*commit count$/i, "Версия берётся из package.json, а не из числа коммитов"],
   [/^Fix deploy.*read-package-version.*$/i, "Исправлен деплой: чтение версии без лишних зависимостей"],
