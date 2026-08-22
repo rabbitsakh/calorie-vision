@@ -19,6 +19,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Recognition eval telemetry wave.*$/i, "Распознавание: eval harness и telemetry dashboard в админке"],
+  [/^Recognition 50-point wave 6.*$/i, "Распознавание: repair штрихкода, RU-справочник, фикстуры"],
   [/^Recognition 50-point wave 5.*$/i, "Распознавание: SSE-превью, slim-промпт, A/B варианты"],
   [/^Recognition 50-point wave 4.*$/i, "Распознавание: Redis rate limit, batch fiber/sugar, eval cron"],
   [/^Recognition 50-point wave 3.*$/i, "Распознавание: plate-first, скорость GigaChat и UX подтверждения"],
