@@ -284,8 +284,72 @@ export function normalizePer100gEnergy(
 }
 
 /** Vision sometimes puts kJ/100 ml into the top-level calories field (e.g. 150 instead of 38). */
-export function normalizeTopLevelEnergyCalories(calories: number): number {
-  return convertLabelEnergyKjToKcal(calories);
+export function normalizeTopLevelEnergyCalories(
+  calories: number,
+  portionGrams?: number | null,
+): number {
+  if (calories < 150 || calories > 500) {
+    return calories;
+  }
+
+  const converted = convertLabelEnergyKjToKcal(calories);
+
+  // Portion totals like 190 kcal @ 500 ml must not be treated as 190 kJ → 45 kcal.
+  if (portionGrams && portionGrams > 100) {
+    const per100FromRaw = (calories * 100) / portionGrams;
+    if (per100FromRaw >= 20 && per100FromRaw <= 65) {
+      return calories;
+    }
+    const per100FromConverted = (converted * 100) / portionGrams;
+    if (per100FromConverted >= 20 && per100FromConverted <= 65) {
+      return converted;
+    }
+  }
+
+  if (caloriesLookPer100g(converted)) {
+    return converted;
+  }
+
+  return calories;
+}
+
+/**
+ * Label vision often reads «38 ккал / 100 мл» into calories but leaves per100g at zero.
+ * Copy explicit per-100 values so scaling always uses the table row from the label.
+ */
+export function coalesceLabelPer100FromVision(result: FoodRecognitionResult): FoodRecognitionResult {
+  const isLabelLike =
+    result.photoKind === "label" ||
+    result.photoKind === "package" ||
+    isPackagedPhoto(result);
+
+  if (!isLabelLike && !looksLikeDrinkName(result.dishName)) {
+    return result;
+  }
+
+  const existing = normalizePer100gEnergy(result.per100g);
+  if (existing && existing.calories > 0) {
+    return { ...result, per100g: existing };
+  }
+
+  const portion = result.portionGrams && result.portionGrams > 0 ? result.portionGrams : undefined;
+  const topCal = normalizeTopLevelEnergyCalories(result.calories, portion);
+
+  if (!caloriesLookPer100g(topCal)) {
+    return result;
+  }
+
+  return {
+    ...result,
+    per100g: {
+      calories: topCal,
+      protein: result.protein,
+      fat: result.fat,
+      carbs: result.carbs,
+      fiber: result.fiber,
+      sugar: result.sugar,
+    },
+  };
 }
 
 function isPackagedPhoto(result: Pick<FoodRecognitionResult, "photoKind" | "source">): boolean {
@@ -327,7 +391,7 @@ export function resolvePer100gForScaling(
   const explicitPortion =
     result.portionGrams && result.portionGrams > 0 ? result.portionGrams : null;
   const portionGrams = explicitPortion ?? DEFAULT_PORTION_GRAMS;
-  const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories);
+  const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories, portionGrams);
 
   // Label rows and drinks: models often put kcal/100 ml (or kJ/100 ml) in calories while portionGrams is pack volume.
   const looksPer100Portion =
@@ -356,7 +420,7 @@ export function resolvePer100gForScaling(
   }
 
   if (
-    isPackagedPhoto(result) &&
+    (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     portionGrams > 100 &&
     result.calories > PER100G_MAX_CALORIES
   ) {
@@ -476,26 +540,27 @@ function scaleFromPer100g(per100g: Per100gValues, grams: number): Per100gValues 
 }
 
 export function normalizeRecognitionNutrition(result: FoodRecognitionResult): FoodRecognitionResult {
-  let calories = result.calories;
-  let protein = result.protein;
-  let fat = result.fat;
-  let carbs = result.carbs;
-  let fiber = result.fiber;
-  let sugar = result.sugar;
-  let portionGrams = result.portionGrams;
-  let per100g = normalizePer100gEnergy(result.per100g);
+  const coalesced = coalesceLabelPer100FromVision(result);
+  let calories = coalesced.calories;
+  let protein = coalesced.protein;
+  let fat = coalesced.fat;
+  let carbs = coalesced.carbs;
+  let fiber = coalesced.fiber;
+  let sugar = coalesced.sugar;
+  let portionGrams = coalesced.portionGrams;
+  let per100g = normalizePer100gEnergy(coalesced.per100g);
 
   if (!portionGrams || portionGrams <= 0) {
     portionGrams =
       result.photoKind === "meal" ? DEFAULT_MEAL_PORTION_GRAMS : DEFAULT_PORTION_GRAMS;
   }
 
-  const resolvedPortion = resolveDisplayPortionGrams({ ...result, portionGrams, per100g });
+  const resolvedPortion = resolveDisplayPortionGrams({ ...coalesced, portionGrams, per100g });
   if (resolvedPortion && resolvedPortion !== portionGrams) {
     portionGrams = resolvedPortion;
   }
 
-  const per100gSource = resolvePer100gForScaling({ ...result, per100g, portionGrams });
+  const per100gSource = resolvePer100gForScaling({ ...coalesced, per100g, portionGrams });
   if (per100gSource) {
     per100g = per100gSource;
     const scaled = scaleFromPer100g(per100gSource, portionGrams);
@@ -512,7 +577,7 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
   }
 
   return clearSuspiciousZeroFiberSugar({
-    ...result,
+    ...coalesced,
     per100g,
     calories: Math.max(0, Math.round(calories)),
     protein,
@@ -532,11 +597,16 @@ export function resolveDisplayPortionGrams(
   >,
 ): number | undefined {
   const explicit = item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
+  const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
+
+  if (fromText && explicit) {
+    return Math.max(explicit, fromText);
+  }
+
   if (explicit && explicit > 100) {
     return explicit;
   }
 
-  const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
   if (fromText) {
     return fromText;
   }
