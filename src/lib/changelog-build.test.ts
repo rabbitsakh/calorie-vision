@@ -34,6 +34,7 @@ test("builds one release per version from merge inputs", () => {
 });
 
 test("translates English PR titles to Russian", () => {
+  assert.equal(translateTitle("Add Yandex Metrika to the site"), "На сайт подключена Яндекс Метрика");
   assert.equal(translateTitle("Fix drink calories when lookup returns per-100 ml values"), "Калории напитков пересчитываются на полную порцию");
   assert.equal(translateTitle("feat: recognize several dishes on one plate separately"), "Распознавание нескольких блюд на одном фото");
   assert.equal(translateTitle("Some unknown title"), "Some unknown title");
