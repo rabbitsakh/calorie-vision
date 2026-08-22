@@ -36,9 +36,9 @@ ${FOOD_JSON_SHAPE}
 - barcode: только цифры EAN/UPC если видны, иначе ""
 - brand: с упаковки если виден
 - dishName: продукт/блюдо на русском (не «еда»/«упаковка»). Смешанная тарелка — краткий список через запятую
-- portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки или 0
-- per100g: только если явно «на 100 г»; иначе нули
-- calories/protein/fat/carbs — на ВСЮ порцию portionGrams (не на 100 г)
+- portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки (мл/г) или 0
+- label/package: если на этикетке «100 мл» / «100 г» — заполни per100g (calories, БЖУ); calories/protein/fat/carbs на порцию = per100g × (portionGrams/100)
+- meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
 - fiber/sugar: не включай в JSON — подтянутся отдельно; для мяса/рыбы/яиц можно 0 только в items если уверен
 - meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []

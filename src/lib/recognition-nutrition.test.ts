@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   applyAlternativeToPortion,
   applyFoodLookupToPortion,
+  coalesceLabelPer100FromVision,
   clearSuspiciousZeroFiberSugar,
   inferPer100gValues,
   hasCompleteVisionNutrition,
@@ -11,6 +12,7 @@ import {
   mergeNutritionBackfill,
   normalizePer100gEnergy,
   normalizeRecognitionNutrition,
+  normalizeTopLevelEnergyCalories,
   needsFiberSugarBackfill,
   needsNutritionLookup,
   nutritionBaselineFromRecognition,
@@ -754,4 +756,51 @@ test("resolvePer100gForScaling treats 100 ml reference portion on label drinks",
     photoKind: "label",
     source: "label",
   }, 1500).calories, 630);
+});
+
+test("coalesceLabelPer100FromVision copies 38 kcal/100ml from calories field", () => {
+  const coalesced = coalesceLabelPer100FromVision({
+    dishName: "Пиво светлое",
+    calories: 38,
+    portionGrams: 1500,
+    confidence: 0.9,
+    photoKind: "label",
+    source: "label",
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  });
+
+  assert.equal(coalesced.per100g?.calories, 38);
+  assert.equal(normalizeRecognitionNutrition(coalesced).calories, 570);
+});
+
+test("normalizeTopLevelEnergyCalories keeps 190 kcal portion total (not kJ)", () => {
+  assert.equal(normalizeTopLevelEnergyCalories(190, 500), 190);
+  assert.equal(
+    normalizeRecognitionNutrition({
+      dishName: "Пиво",
+      calories: 190,
+      portionGrams: 500,
+      confidence: 0.9,
+      photoKind: "label",
+      source: "label",
+    }).calories,
+    190,
+  );
+  assert.equal(
+    scaleRecognitionToDisplayPortion(
+      {
+        dishName: "Пиво",
+        calories: 190,
+        portionGrams: 500,
+        photoKind: "label",
+        source: "label",
+      },
+      1500,
+    ).calories,
+    570,
+  );
+});
+
+test("inferDrinkPackMlFromText parses volume in alcohol line", () => {
+  assert.equal(inferDrinkPackMlFromText("54.0 мл в 1500 мл"), 1500);
 });

@@ -52,9 +52,17 @@ export function inferDrinkPackMlFromText(...parts: Array<string | null | undefin
     }
   }
 
-  const ml = text.match(/(\d{2,4})\s*мл/u);
+  const ml = text.match(/(?:\bв|\bна)\s*(\d{3,4})\s*мл/u);
   if (ml) {
     const value = Number(ml[1]);
+    if (value >= 200 && value <= 5000) {
+      return value;
+    }
+  }
+
+  const mlPlain = text.match(/(\d{2,4})\s*мл/u);
+  if (mlPlain) {
+    const value = Number(mlPlain[1]);
     if (value >= 50 && value <= 5000) {
       return value;
     }
