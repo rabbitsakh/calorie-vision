@@ -30,7 +30,7 @@ test("plate pass skips when items already split", () => {
   );
 });
 
-test("plate pass skips packaged photos", () => {
+test("plate pass skips single packaged product names", () => {
   assert.equal(
     shouldRunPlatePass({
       dishName: "Йогурт",
@@ -39,6 +39,18 @@ test("plate pass skips packaged photos", () => {
       photoKind: "package",
     }),
     false,
+  );
+});
+
+test("plate pass runs for mixed plate misclassified as package", () => {
+  assert.equal(
+    shouldRunPlatePass({
+      dishName: "Стейк, картофель",
+      calories: 500,
+      confidence: 0.7,
+      photoKind: "package",
+    }),
+    true,
   );
 });
 

@@ -38,7 +38,8 @@ ${FOOD_JSON_SHAPE}
 - dishName: продукт/блюдо на русском (не «еда»/«упаковка»). Смешанная тарелка — краткий список через запятую
 - portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки или 0
 - per100g: только если явно «на 100 г»; иначе нули
-- calories/protein/fat/carbs/fiber/sugar — на ВСЮ порцию portionGrams (не на 100 г). fiber/sugar обязательны (0 если нет)
+- calories/protein/fat/carbs/fiber/sugar — на ВСЮ порцию portionGrams (не на 100 г)
+- fiber/sugar: укажи числа ≥0 если знаешь; для мяса/рыбы/яиц — 0; если не знаешь — не добавляй ключи fiber/sugar
 - meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
 - alternatives: 0–3 если неочевидно; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
@@ -50,7 +51,7 @@ ${FOOD_JSON_SHAPE}
 export const FOOD_RECOGNITION_RETRY_PROMPT = `По фото еды верни ТОЛЬКО валидный JSON (без markdown) по схеме:
 ${FOOD_JSON_SHAPE}
 
-Исправь предыдущий ответ: валидный JSON; для смешанной тарелки items 2–8 с ненулевыми calories/portionGrams; fiber и sugar всегда числа (≥0).`;
+Исправь предыдущий ответ: валидный JSON; для смешанной тарелки items 2–8 с ненулевыми calories/portionGrams; fiber/sugar — только если знаешь (не ставь 0 «на всякий случай»).`;
 
 /** @deprecated use FOOD_RECOGNITION_RETRY_PROMPT as a full retry message */
 export const FOOD_RECOGNITION_RETRY_HINT = `Предыдущий ответ был неполным или невалидным JSON.

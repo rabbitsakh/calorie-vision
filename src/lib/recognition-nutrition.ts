@@ -161,11 +161,26 @@ export function mergeNutritionBackfill(
   };
 }
 
+/** Treat model 0/0 fiber+sugar on carb-heavy foods as unknown so backfill can run. */
+export function clearSuspiciousZeroFiberSugar(
+  result: FoodRecognitionResult,
+): FoodRecognitionResult {
+  const carbs = result.carbs ?? 0;
+  if (result.fiber === 0 && result.sugar === 0 && carbs >= 8) {
+    return { ...result, fiber: undefined, sugar: undefined };
+  }
+  return result;
+}
+
 /** True when fiber and/or sugar were omitted (empty confirm fields). */
 export function needsFiberSugarBackfill(
-  result: Pick<FoodRecognitionResult, "fiber" | "sugar">,
+  result: Pick<FoodRecognitionResult, "fiber" | "sugar" | "carbs">,
 ): boolean {
-  return result.fiber === undefined || result.sugar === undefined;
+  if (result.fiber === undefined || result.sugar === undefined) {
+    return true;
+  }
+  const carbs = result.carbs ?? 0;
+  return result.fiber === 0 && result.sugar === 0 && carbs >= 8;
 }
 
 /**
@@ -305,7 +320,7 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     }
   }
 
-  return {
+  return clearSuspiciousZeroFiberSugar({
     ...result,
     calories: Math.max(0, Math.round(calories)),
     protein,
@@ -314,5 +329,5 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     fiber,
     sugar,
     portionGrams,
-  };
+  });
 }

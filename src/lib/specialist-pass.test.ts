@@ -2,6 +2,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { pickSpecialistPass } from "./ai/specialist-pass.ts";
 
+test("misclassified mixed plate as package still picks plate specialist", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Стейк, картофель",
+      calories: 500,
+      confidence: 0.7,
+      photoKind: "package",
+    }),
+    "plate",
+  );
+});
+
 test("package without barcode digits prefers barcode specialist only", () => {
   assert.equal(
     pickSpecialistPass({

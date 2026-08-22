@@ -33,8 +33,10 @@ export type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 export { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 
 /** Wall-clock budget for post-vision OFF/GigaChat enrichment (nginx is ~180s total). */
-const POST_VISION_BUDGET_MS = 45_000;
+const POST_VISION_BUDGET_MS = 60_000;
 const PLATE_ENRICH_CONCURRENCY = 2;
+/** Minimum per-item enrichment budget on multi-dish plates. */
+const PLATE_ITEM_MIN_BUDGET_MS = 10_000;
 /** Barcode path: short fiber/sugar ask only — keep /api/food/lookup under proxy limits. */
 const BARCODE_FIBER_SUGAR_MS = 10_000;
 
@@ -248,6 +250,17 @@ async function enrichMealItem(
     items: undefined,
   });
 
+  const barcode = normalizeBarcode(result.barcode);
+  const packagedOnPlate =
+    result.photoKind === "package" ||
+    result.photoKind === "barcode" ||
+    result.photoKind === "label" ||
+    (barcode !== null && result.photoKind !== "meal");
+
+  if (packagedOnPlate) {
+    result = normalizeRecognitionNutrition(await enrichPackagedProduct(result));
+  }
+
   // If the item has per100g data (e.g. a packaged snack on the plate), scale it
   if (result.per100g && result.per100g.calories > 0 && result.calories <= 0) {
     result = normalizeRecognitionNutrition(nutritionFromLabel(result));
@@ -293,8 +306,12 @@ export async function recognizeFoodWithAI(
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
 
   if (plated && vision.items) {
+    const perItemBudgetMs = Math.max(
+      PLATE_ITEM_MIN_BUDGET_MS,
+      Math.floor(POST_VISION_BUDGET_MS / vision.items.length),
+    );
     const processed = await mapPool(vision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
-      enrichMealItem(item, userId, deadlineMs),
+      enrichMealItem(item, userId, Date.now() + perItemBudgetMs),
     );
     return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
   }
