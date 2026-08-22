@@ -32,7 +32,6 @@ import {
   searchOpenFoodFactsBest,
   type PackNutrition,
 } from "@/lib/open-food-facts";
-import { searchUsdaFoodDataCentral } from "@/lib/usda-fdc";
 
 export type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 export { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
@@ -555,30 +554,6 @@ export async function lookupFoodByName(
         dishName,
       ),
     );
-  }
-
-  if (!result) {
-    const usda = await searchUsdaFoodDataCentral(dishName.trim(), 100);
-    if (usda && usda.calories > 0) {
-      result = normalizeRecognitionNutrition(
-        await withFoodImage(
-          {
-            dishName: usda.dishName || dishName.trim(),
-            calories: usda.calories,
-            protein: usda.protein,
-            fat: usda.fat,
-            carbs: usda.carbs,
-            fiber: usda.fiber,
-            sugar: usda.sugar,
-            portionGrams: usda.portionGrams,
-            confidence: 0.75,
-            source: "usda-fdc",
-            photoKind: "meal",
-          },
-          dishName,
-        ),
-      );
-    }
   }
 
   if (!result) {
