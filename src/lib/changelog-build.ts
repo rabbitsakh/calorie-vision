@@ -116,6 +116,7 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^feat: память исправлений распознавания.*$/i, "Приложение запоминает исправления при распознавании"],
   [/^feat: распознавать несколько блюд на одной тарелке$/i, "Распознавание нескольких блюд на одной тарелке"],
   [/^Require Node 24 LTS.*$/i, "Сервер и установка — Node.js 24 LTS"],
+  [/^Allow Prisma and sharp npm install scripts.*$/i, "Разрешены install-скрипты Prisma и sharp"],
 ];
 
 export function translateTitle(title: string): string {
