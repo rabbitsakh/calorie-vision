@@ -10,6 +10,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   label: "Считано с этикетки",
   "correction-memory": "Уточнено по прошлым исправлениям",
   "gigachat-plate": "Несколько блюд на тарелке",
+  "ru-nutrition-table": "Справочник типичных порций",
 };
 
 export type FoodRecognitionResult = {

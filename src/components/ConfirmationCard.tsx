@@ -584,7 +584,16 @@ export function ConfirmationCard({
         {multi ? (
           <div className="chip-row">
             {dishes.map((dish, index) => (
-              <Chip key={dish.id} active={index === activeDish} onClick={() => setActiveDish(index)}>
+              <Chip
+                key={dish.id}
+                active={index === activeDish}
+                title={
+                  reviewFlags[index]?.lowConfidence
+                    ? "Низкая уверенность — проверьте название и калории"
+                    : undefined
+                }
+                onClick={() => setActiveDish(index)}
+              >
                 {index + 1}. {dish.dishName || "Блюдо"}
                 {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
               </Chip>

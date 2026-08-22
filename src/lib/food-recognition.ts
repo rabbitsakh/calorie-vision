@@ -26,8 +26,9 @@ import {
   normalizeRecognitionNutrition,
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
+import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
 import {
-  lookupOpenFoodFactsByBarcode,
+  lookupOpenFoodFactsByBarcodeWithRepair,
   nutritionFromPer100g,
   offMatchesQuery,
   searchOpenFoodFacts,
@@ -190,7 +191,7 @@ export async function enrichPackagedProduct(
   // Skip barcode lookup for plated meals: the model sometimes invents a code.
   const barcode = vision.photoKind === "meal" ? null : normalizeBarcode(vision.barcode);
   if (barcode) {
-    const off = await lookupOpenFoodFactsByBarcode(barcode);
+    const off = await lookupOpenFoodFactsByBarcodeWithRepair(barcode);
     if (off) {
       return mergeOffNutrition(vision, off, "openfoodfacts-barcode", barcode);
     }
@@ -503,6 +504,36 @@ async function withFoodImage(
   return imageUrl ? { ...result, imageUrl } : result;
 }
 
+async function packToRecognitionResult(
+  pack: PackNutrition,
+  source: NonNullable<FoodRecognitionResult["source"]>,
+  photoKind: PhotoKind,
+  query: string,
+  confidence = 0.75,
+): Promise<FoodRecognitionResult> {
+  return normalizeRecognitionNutrition(
+    await withFoodImage(
+      {
+        dishName: pack.dishName,
+        calories: pack.calories,
+        protein: pack.protein,
+        fat: pack.fat,
+        carbs: pack.carbs,
+        fiber: pack.fiber,
+        sugar: pack.sugar,
+        portionGrams: pack.portionGrams,
+        barcode: pack.barcode,
+        brand: pack.brand,
+        imageUrl: pack.imageUrl,
+        confidence,
+        source,
+        photoKind,
+      },
+      query,
+    ),
+  );
+}
+
 export async function lookupFoodByBarcode(
   barcodeInput: string,
   userId?: string | null,
@@ -512,7 +543,7 @@ export async function lookupFoodByBarcode(
     throw new Error("Укажите корректный штрихкод (8, 12 или 13 цифр)");
   }
 
-  const off = await lookupOpenFoodFactsByBarcode(barcode);
+  const off = await lookupOpenFoodFactsByBarcodeWithRepair(barcode);
   if (!off) {
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
@@ -576,27 +607,28 @@ export async function lookupFoodByName(
   let result: FoodRecognitionResult | null = null;
 
   if (offMatch) {
-    result = normalizeRecognitionNutrition(
-      await withFoodImage(
-        {
-          dishName: offMatch.dishName || dishName.trim(),
-          calories: offMatch.calories,
-          protein: offMatch.protein,
-          fat: offMatch.fat,
-          carbs: offMatch.carbs,
-          fiber: offMatch.fiber,
-          sugar: offMatch.sugar,
-          portionGrams: offMatch.portionGrams,
-          barcode: offMatch.barcode,
-          brand: offMatch.brand,
-          imageUrl: offMatch.imageUrl,
-          confidence: 0.8,
-          source: "openfoodfacts-search",
-          photoKind: "package",
-        },
-        dishName,
-      ),
+    result = await packToRecognitionResult(
+      offMatch,
+      "openfoodfacts-search",
+      "package",
+      dishName,
+      0.8,
     );
+  }
+
+  if (!result) {
+    const ruQueries = lookupQueriesForName(
+      dishName,
+      simplifyDishNameForLookup(dishName),
+      3,
+    );
+    for (const query of ruQueries) {
+      const ru = lookupRuNutritionTable(query);
+      if (ru) {
+        result = await packToRecognitionResult(ru, "ru-nutrition-table", "meal", dishName, 0.72);
+        break;
+      }
+    }
   }
 
   if (!result) {

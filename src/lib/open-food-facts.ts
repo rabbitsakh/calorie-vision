@@ -1,3 +1,4 @@
+import { repairBarcodeCandidates } from "@/lib/barcode";
 import { DEFAULT_SNACK_BAR_GRAMS, looksLikeSnackBarName } from "@/lib/portion-unit";
 
 export type PackNutrition = {
@@ -328,6 +329,25 @@ export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<Pac
   const result = data.status === 1 && data.product ? offProductToNutrition(data.product) : null;
   offCacheSet(offBarcodeCache, barcode, result);
   return result;
+}
+
+/** Try direct barcode, then OCR/check-digit repair candidates. */
+export async function lookupOpenFoodFactsByBarcodeWithRepair(
+  barcode: string,
+): Promise<PackNutrition | null> {
+  const direct = await lookupOpenFoodFactsByBarcode(barcode);
+  if (direct) {
+    return direct;
+  }
+
+  for (const candidate of repairBarcodeCandidates(barcode)) {
+    const hit = await lookupOpenFoodFactsByBarcode(candidate);
+    if (hit) {
+      return { ...hit, barcode: candidate };
+    }
+  }
+
+  return null;
 }
 
 export function offMatchesQuery(query: string, dishName: string, brand?: string): boolean {
