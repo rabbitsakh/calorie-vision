@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^Refresh landing.*$/i, "Обновлены дизайн и тексты главной страницы"],
   [/^Fix Yandex Metrika.*$/i, "Яндекс Метрика считает визиты с первой загрузки страницы"],
   [/^Add Yandex Metrika.*$/i, "На сайт подключена Яндекс Метрика"],
   [/^Design UX batch.*$/i, "Дизайн: кольцо дня, неделя дат, липкое сохранение и чипы"],
