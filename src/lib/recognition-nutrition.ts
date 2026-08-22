@@ -1,6 +1,6 @@
 import type { FoodRecognitionResult } from "./food-types";
 import { looksLikeDrinkName } from "./portion-unit";
-import { nutritionBaseline, type NutritionValues } from "./nutrition";
+import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
@@ -301,14 +301,15 @@ export function resolvePer100gForScaling(
     return normalized;
   }
 
-  const portionGrams =
-    result.portionGrams && result.portionGrams > 0 ? result.portionGrams : DEFAULT_PORTION_GRAMS;
+  const explicitPortion =
+    result.portionGrams && result.portionGrams > 0 ? result.portionGrams : null;
+  const portionGrams = explicitPortion ?? DEFAULT_PORTION_GRAMS;
 
   // Label rows and drinks: models often put kcal/100 ml in calories while portionGrams is pack volume.
   if (
-    portionGrams > 100 &&
     caloriesLookPer100g(result.calories) &&
-    (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName))
+    (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
+    (portionGrams > 100 || !explicitPortion)
   ) {
     return {
       calories: result.calories,
@@ -489,4 +490,107 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     sugar,
     portionGrams,
   });
+}
+
+/** Scale vision/label nutrition to a portion for confirm-card display and save. */
+export function scaleRecognitionToPortion(
+  item: Pick<
+    FoodRecognitionResult,
+    | "dishName"
+    | "calories"
+    | "protein"
+    | "fat"
+    | "carbs"
+    | "fiber"
+    | "sugar"
+    | "portionGrams"
+    | "per100g"
+    | "photoKind"
+    | "source"
+  >,
+  portionGrams: number,
+): Pick<
+  FoodRecognitionResult,
+  "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams"
+> {
+  if (!Number.isFinite(portionGrams) || portionGrams <= 0) {
+    return {
+      calories: item.calories,
+      protein: item.protein,
+      fat: item.fat,
+      carbs: item.carbs,
+      fiber: item.fiber,
+      sugar: item.sugar,
+      portionGrams: item.portionGrams,
+    };
+  }
+
+  const per100 = resolvePer100gForScaling(item);
+  if (per100) {
+    const scaled = scaleFromPer100g(per100, portionGrams);
+    if (scaled) {
+      return {
+        calories: scaled.calories,
+        protein: scaled.protein ?? item.protein,
+        fat: scaled.fat ?? item.fat,
+        carbs: scaled.carbs ?? item.carbs,
+        fiber: scaled.fiber ?? item.fiber,
+        sugar: scaled.sugar ?? item.sugar,
+        portionGrams: scaled.portionGrams,
+      };
+    }
+  }
+
+  const baseline = nutritionBaselineFromRecognition(item);
+  if (baseline) {
+    const scaled = scaleNutritionByPortion(baseline, portionGrams);
+    if (scaled) {
+      return {
+        calories: scaled.calories,
+        protein: scaled.protein,
+        fat: scaled.fat,
+        carbs: scaled.carbs,
+        fiber: scaled.fiber,
+        sugar: scaled.sugar,
+        portionGrams: scaled.portionGrams,
+      };
+    }
+  }
+
+  return {
+    calories: item.calories,
+    protein: item.protein,
+    fat: item.fat,
+    carbs: item.carbs,
+    fiber: item.fiber,
+    sugar: item.sugar,
+    portionGrams,
+  };
+}
+
+/** True when calories look like per-100 g/ml but the portion is a full bottle or pack. */
+export function recognitionNeedsPortionRescale(
+  item: Pick<
+    FoodRecognitionResult,
+    "calories" | "portionGrams" | "per100g" | "photoKind" | "source"
+  > & { dishName?: string },
+  displayedCalories?: number,
+): boolean {
+  const per100 = resolvePer100gForScaling(item);
+  if (!per100) {
+    return false;
+  }
+
+  const portion = item.portionGrams && item.portionGrams > 0 ? item.portionGrams : 0;
+  if (portion <= 100) {
+    return false;
+  }
+
+  const expected = Math.round((per100.calories * portion) / 100);
+  const current = displayedCalories ?? item.calories;
+  if (!Number.isFinite(current) || current <= 0) {
+    return true;
+  }
+
+  return current <= 120 && expected > current + 10;
 }
