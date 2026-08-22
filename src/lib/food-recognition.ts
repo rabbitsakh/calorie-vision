@@ -435,32 +435,43 @@ async function enrichMissingFiberSugar(
     });
   }
 
-  if (!needsFiberSugarBackfill(next) || !process.env.GIGACHAT_CREDENTIALS) {
+  if (!needsFiberSugarBackfill(next)) {
     return next;
   }
 
-  try {
-    // Prefer a short fiber/sugar ask — we already have calories/macros from OFF or text lookup.
-    const partial = await lookupFiberSugarWithGigaChat(dishName, next.portionGrams);
+  if (process.env.GIGACHAT_CREDENTIALS) {
+    try {
+      // Prefer a short fiber/sugar ask — we already have calories/macros from OFF or text lookup.
+      const partial = await lookupFiberSugarWithGigaChat(dishName, next.portionGrams);
+      next = {
+        ...next,
+        fiber: next.fiber !== undefined ? next.fiber : partial.fiber,
+        sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
+      };
+
+      if (needsFiberSugarBackfill(next) && next.source !== "gigachat-lookup") {
+        const ai = await lookupFoodWithGigaChat(dishName);
+        next = mergeFiberSugarBackfill(
+          next,
+          normalizeRecognitionNutrition({
+            ...ai,
+            source: "gigachat-lookup",
+            photoKind: "meal",
+          }),
+        );
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Confirm UI shows blank inputs for undefined — prefer explicit 0 after all attempts.
+  if (needsFiberSugarBackfill(next)) {
     next = {
       ...next,
-      fiber: next.fiber !== undefined ? next.fiber : partial.fiber,
-      sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
+      fiber: next.fiber !== undefined ? next.fiber : 0,
+      sugar: next.sugar !== undefined ? next.sugar : 0,
     };
-
-    if (needsFiberSugarBackfill(next) && next.source !== "gigachat-lookup") {
-      const ai = await lookupFoodWithGigaChat(dishName);
-      next = mergeFiberSugarBackfill(
-        next,
-        normalizeRecognitionNutrition({
-          ...ai,
-          source: "gigachat-lookup",
-          photoKind: "meal",
-        }),
-      );
-    }
-  } catch (error) {
-    console.error(error);
   }
 
   return next;

@@ -53,6 +53,38 @@ test("scales fiber and sugar from OFF per-100g values", () => {
   assert.equal(scaled?.sugar, 20);
 });
 
+test("reads string sugars_100g and sugars fallback from OFF", () => {
+  const fromString = offProductToNutrition({
+    product_name: "Батончик",
+    quantity: "40 г",
+    nutriments: {
+      "energy-kcal_100g": "250",
+      proteins_100g: "25",
+      fat_100g: "16",
+      carbohydrates_100g: "8.5",
+      fiber_100g: "38",
+      sugars_100g: "3,2",
+    },
+  });
+  assert.equal(fromString?.portionGrams, 40);
+  assert.equal(fromString?.fiber, 15.2);
+  assert.equal(fromString?.sugar, 1.3);
+
+  const fromSugarsKey = offProductToNutrition({
+    product_name: "Батончик",
+    quantity: "40 г",
+    nutriments: {
+      "energy-kcal_100g": 250,
+      proteins_100g: 25,
+      fat_100g: 16,
+      carbohydrates_100g: 8.5,
+      fiber_100g: 38,
+      sugars: 5,
+    },
+  });
+  assert.equal(fromSugarsKey?.sugar, 2);
+});
+
 test("converts an Open Food Facts product to a portion", () => {
   const nutrition = offProductToNutrition({
     code: "4600605023124",

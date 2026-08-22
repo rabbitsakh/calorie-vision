@@ -295,11 +295,13 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     const scaled = scaleFromPer100g(per100gSource, portionGrams);
     if (scaled) {
       calories = scaled.calories;
-      protein = scaled.protein;
-      fat = scaled.fat;
-      carbs = scaled.carbs;
-      fiber = scaled.fiber;
-      sugar = scaled.sugar;
+      // per100g often omits fiber/sugar (and sometimes a macro). Never wipe values
+      // already filled on the portion (e.g. OFF/GigaChat enrich after vision).
+      protein = scaled.protein !== undefined ? scaled.protein : protein;
+      fat = scaled.fat !== undefined ? scaled.fat : fat;
+      carbs = scaled.carbs !== undefined ? scaled.carbs : carbs;
+      fiber = scaled.fiber !== undefined ? scaled.fiber : fiber;
+      sugar = scaled.sugar !== undefined ? scaled.sugar : sugar;
     }
   }
 
