@@ -1,6 +1,6 @@
-import type { RecognitionEvalCase } from "./recognition-eval-fixtures.ts";
-import { parseFoodRecognitionResponse } from "./parse-response.ts";
-import { getRecognitionRetryReason, shouldRetryFoodRecognition } from "./recognition-retry.ts";
+import type { RecognitionEvalCase } from "./recognition-eval-fixtures";
+import { parseFoodRecognitionResponse } from "./parse-response";
+import { getRecognitionRetryReason, shouldRetryFoodRecognition } from "./recognition-retry";
 
 export type EvalCaseResult = {
   id: string;
