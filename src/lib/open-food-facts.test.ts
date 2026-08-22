@@ -193,6 +193,30 @@ test("defaults a snack bar without net weight to 60 g", () => {
   assert.equal(nutrition?.explicitPackGrams, true);
 });
 
+test("parses liters from package quantity text", () => {
+  assert.equal(parsePackGrams("1.5 л"), 1500);
+  assert.equal(parsePackGrams("0.5 л"), 500);
+  assert.equal(parsePackGrams("1 л"), 1000);
+});
+
+test("stores full pack weight separately from default portion", () => {
+  const nutrition = offProductToNutrition({
+    product_name: "Пиво светлое",
+    quantity: "1.5 л",
+    nutriments: {
+      "energy-kcal_100g": 38,
+      proteins_100g: 0.4,
+      fat_100g: 0,
+      carbohydrates_100g: 4,
+    },
+  });
+
+  assert.ok(nutrition);
+  assert.equal(nutrition?.packGrams, 1500);
+  assert.equal(nutrition?.portionGrams, 100);
+  assert.equal(nutrition?.explicitPackGrams, true);
+});
+
 test("reads bar weight from the product name", () => {
   const nutrition = offProductToNutrition({
     product_name: "Протеиновый батончик 40 г",

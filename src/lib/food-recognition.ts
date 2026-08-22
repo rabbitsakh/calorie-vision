@@ -94,7 +94,10 @@ function pickPortionGrams(
   off: PackNutrition,
 ): number {
   if (off.explicitPackGrams) {
-    return off.portionGrams;
+    const pack = off.packGrams ?? off.portionGrams;
+    if (pack > 0) {
+      return pack;
+    }
   }
 
   const visionGrams = vision.portionGrams;
@@ -107,7 +110,7 @@ function pickPortionGrams(
     return visionGrams;
   }
 
-  return off.portionGrams;
+  return off.packGrams ?? off.portionGrams;
 }
 
 function mergeOffNutrition(
@@ -448,7 +451,12 @@ export async function enrichRecognitionAfterVision(
       enrichMealItem(item, userId, deadlineMs, { deferFiberSugar: true }),
     );
     const withFiberSugar = await enrichPlateFiberSugarBatch(processed, deadlineMs);
-    return combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" });
+    return applyStoredFoodCorrection(
+      normalizeRecognitionNutrition(
+        combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" }),
+      ),
+      userId,
+    );
   }
 
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });

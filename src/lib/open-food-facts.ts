@@ -10,6 +10,8 @@ export type PackNutrition = {
   fiber?: number;
   sugar?: number;
   portionGrams: number;
+  /** Net pack weight from OFF (may differ from default portionGrams for large packs). */
+  packGrams?: number;
   /** True when pack/serving weight came from product data, not a 100 g default. */
   explicitPackGrams?: boolean;
   barcode?: string;
@@ -146,6 +148,11 @@ export function parsePackGrams(value: string | number | null | undefined): numbe
   const kg = normalized.match(/(\d+(?:\.\d+)?)\s*(?:кг|kg)(?![a-zа-яё])/);
   if (kg) {
     return Math.round(Number(kg[1]) * 1000);
+  }
+
+  const liters = normalized.match(/(\d+(?:\.\d+)?)\s*(?:л|l)(?![a-zа-яё])/);
+  if (liters) {
+    return Math.round(Number(liters[1]) * 1000);
   }
 
   const grams = normalized.match(
@@ -285,6 +292,7 @@ export function offProductToNutrition(
     dishName,
     barcode: product.code,
     brand: brand || undefined,
+    packGrams: packGrams,
     explicitPackGrams: explicit,
     imageUrl: pickOffImageUrl(product),
   };

@@ -68,6 +68,7 @@ export async function GET() {
           chatCalls: true,
           retryReason: true,
           specialistPass: true,
+          promptVariant: true,
           enrichmentTimedOut: true,
         },
         orderBy: { createdAt: "desc" },
@@ -118,6 +119,13 @@ export async function GET() {
     const enrichmentRows = telemetryRows.filter((row) => row.pass === "enrichment");
     const enrichmentTimeouts = enrichmentRows.filter((row) => row.enrichmentTimedOut).length;
 
+    const promptVariantCounts = new Map<string, number>();
+    for (const row of telemetryRows) {
+      if (row.pass !== "accepted") continue;
+      const key = row.promptVariant?.trim() || "main";
+      promptVariantCounts.set(key, (promptVariantCounts.get(key) ?? 0) + 1);
+    }
+
     return NextResponse.json({
       totalRecognitions,
       correctedCount,
@@ -163,6 +171,9 @@ export async function GET() {
         ),
         enrichmentTimeouts,
         enrichmentTotal: enrichmentRows.length,
+        promptVariants: countByKey(
+          [...promptVariantCounts.entries()].map(([key, count]) => ({ key, count })),
+        ),
       },
     });
   } catch (error) {

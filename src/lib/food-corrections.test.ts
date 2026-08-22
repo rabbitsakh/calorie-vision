@@ -82,6 +82,45 @@ test("finds partial correction matches for close names", () => {
   assert.equal(picked?.correctedName, "Цезарь с курицей");
 });
 
+test("applies corrections to each plate item", () => {
+  const rows = [
+    {
+      originalKey: "картофель",
+      correctedName: "Картофель запечённый",
+      calories: 160,
+      protein: 4,
+      fat: 5,
+      carbs: 26,
+      portionGrams: 180,
+      useCount: 2,
+    },
+  ];
+
+  const items = [
+    {
+      dishName: "Стейк",
+      calories: 400,
+      confidence: 0.7,
+      photoKind: "meal" as const,
+    },
+    {
+      dishName: "Картофель",
+      calories: 180,
+      confidence: 0.8,
+      photoKind: "meal" as const,
+    },
+  ];
+
+  const correctedItems = items.map((item) => {
+    const match = pickFoodCorrection(item.dishName, rows);
+    return match ? applyFoodCorrection(item, match) : item;
+  });
+
+  assert.equal(correctedItems[0]?.dishName, "Стейк");
+  assert.equal(correctedItems[1]?.dishName, "Картофель запечённый");
+  assert.equal(correctedItems[1]?.calories, 160);
+});
+
 test("matches corrections by token overlap", () => {
   assert.ok(correctionTokenOverlap("греческий салат с фетой", "салат греческий") >= 0.66);
 

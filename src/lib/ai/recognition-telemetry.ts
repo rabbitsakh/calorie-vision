@@ -18,6 +18,7 @@ export type RecognitionPassEvent = {
   photoKind?: string;
   retryReason?: string | null;
   specialistPass?: string | null;
+  promptVariant?: string | null;
   itemCount: number;
   calories: number;
   confidence: number;
