@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   inferPer100gValues,
+  hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
   mergeNutritionBackfill,
   normalizeRecognitionNutrition,
@@ -238,4 +239,38 @@ test("keeps explicit zero fiber and does not treat it as missing", () => {
   assert.equal(merged.fiber, 0);
   assert.equal(merged.sugar, 0);
   assert.equal(needsFiberSugarBackfill({ fiber: undefined, sugar: 1 }), true);
+});
+
+test("hasSufficientVisionNutrition skips backfill when macros are present", () => {
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 400,
+      protein: 40,
+      fat: 20,
+      carbs: 0,
+      confidence: 0.8,
+    }),
+    true,
+  );
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 400,
+      protein: 40,
+      confidence: 0.8,
+    }),
+    false,
+  );
+  assert.equal(
+    hasSufficientVisionNutrition({
+      dishName: "Стейк",
+      calories: 0,
+      protein: 40,
+      fat: 20,
+      carbs: 0,
+      confidence: 0.8,
+    }),
+    false,
+  );
 });
