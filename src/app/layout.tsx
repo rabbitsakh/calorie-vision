@@ -22,7 +22,7 @@ const display = Unbounded({
 
 export const metadata: Metadata = {
   title: "Calorie Vision",
-  description: "Распознавание еды по фото и учёт калорий по дням",
+  description: "Сфотографируйте еду — Calorie Vision распознает порцию и КБЖУ и сохранит день в дневнике",
   applicationName: "Calorie Vision",
   appleWebApp: {
     capable: true,

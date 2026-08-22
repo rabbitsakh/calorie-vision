@@ -16,76 +16,35 @@ const body = Manrope({
   display: "swap",
 });
 
-function HeroVisual() {
+/** Product diary — the hero visual anchor. */
+function AppPreview({ className = "" }: { className?: string }) {
   return (
-    <div className="landing-hero-visual" aria-hidden>
-      <div className="landing-hero-glow" />
-      <svg className="landing-hero-art" viewBox="0 0 720 560" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="plateGrad" x1="120" y1="80" x2="600" y2="460" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#ecfdf8" />
-            <stop offset="0.4" stopColor="#5eead4" />
-            <stop offset="1" stopColor="#0f766e" />
-          </linearGradient>
-          <linearGradient id="bowlGrad" x1="260" y1="160" x2="480" y2="380" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#fff7ed" />
-            <stop offset="1" stopColor="#fdba74" />
-          </linearGradient>
-          <filter id="softBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="10" />
-          </filter>
-        </defs>
-        <ellipse cx="360" cy="470" rx="300" ry="52" fill="#0f766e" opacity="0.2" />
-        <ellipse cx="360" cy="458" rx="230" ry="30" fill="#134e4a" opacity="0.14" />
-        <ellipse cx="360" cy="310" rx="220" ry="158" fill="url(#plateGrad)" />
-        <ellipse cx="360" cy="310" rx="176" ry="124" fill="#f8fafc" opacity="0.5" />
-        <ellipse cx="338" cy="288" rx="98" ry="74" fill="url(#bowlGrad)" opacity="0.92" />
-        <ellipse cx="392" cy="322" rx="74" ry="54" fill="#4ade80" opacity="0.78" />
-        <ellipse cx="308" cy="332" rx="52" ry="38" fill="#fb923c" opacity="0.88" />
-        <ellipse cx="372" cy="258" rx="40" ry="30" fill="#f87171" opacity="0.72" />
-        <ellipse cx="428" cy="278" rx="36" ry="26" fill="#a3e635" opacity="0.82" />
-        <circle cx="240" cy="178" r="78" fill="#ffffff" opacity="0.32" filter="url(#softBlur)" />
-        <g stroke="#4BE0BC" strokeWidth="5" strokeLinecap="square" fill="none" opacity="0.95">
-          <path d="M200 140V96h44" />
-          <path d="M520 140V96h-44" />
-          <path d="M200 420v44h44" />
-          <path d="M520 420v44h-44" />
-        </g>
-        <path
-          d="M458 178a102 102 0 1 0 0 164"
-          stroke="#027678"
-          strokeWidth="18"
-          strokeLinecap="butt"
-          fill="none"
-          opacity="0.92"
-        />
-      </svg>
-    </div>
-  );
-}
-
-/** Stylized phone diary — product context, not a screenshot collage. */
-function AppPreview() {
-  return (
-    <div className="landing-phone" aria-hidden>
+    <div className={`landing-phone ${className}`.trim()} aria-hidden>
       <div className="landing-phone-bezel">
         <div className="landing-phone-notch" />
         <div className="landing-phone-screen">
           <p className="landing-phone-brand">Calorie Vision</p>
-          <p className="landing-phone-date">Сегодня</p>
-          <div className="landing-phone-ring">
-            <span className="landing-phone-ring-value">79%</span>
-            <span className="landing-phone-ring-label">1 420 / 1 800</span>
+          <p className="landing-phone-date">Сегодня · вторник</p>
+          <div className="landing-phone-ring-wrap">
+            <svg className="landing-phone-ring-svg" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" className="landing-phone-ring-track" />
+              <circle cx="60" cy="60" r="50" className="landing-phone-ring-progress" />
+            </svg>
+            <div className="landing-phone-ring-copy">
+              <span className="landing-phone-ring-value">1 420</span>
+              <span className="landing-phone-ring-label">из 1 800 ккал</span>
+            </div>
           </div>
-          <div className="landing-phone-bars" aria-hidden>
-            <div className="landing-phone-bar">
-              <span>Белок</span>
-              <span className="landing-phone-bar-track"><span style={{ width: "72%" }} /></span>
-            </div>
-            <div className="landing-phone-bar">
-              <span>Вода</span>
-              <span className="landing-phone-bar-track landing-phone-bar-water"><span style={{ width: "45%" }} /></span>
-            </div>
+          <div className="landing-phone-macros">
+            <span>
+              Б <b>92</b>
+            </span>
+            <span>
+              Ж <b>48</b>
+            </span>
+            <span>
+              У <b>142</b>
+            </span>
           </div>
           <div className="landing-phone-meals">
             <div className="landing-phone-meal">
@@ -97,12 +56,46 @@ function AppPreview() {
               <span>480</span>
             </div>
             <div className="landing-phone-meal landing-phone-meal-soft">
-              <span>Добавить по фото…</span>
+              <span>Добавить по фото</span>
               <span>+</span>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Soft food atmosphere behind the product — not the main idea. */
+function HeroAtmosphere() {
+  return (
+    <div className="landing-hero-atmosphere" aria-hidden>
+      <svg className="landing-hero-plate" viewBox="0 0 900 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lpPlate" x1="180" y1="120" x2="720" y2="560" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#dff7ef" />
+            <stop offset="0.55" stopColor="#5ec4b0" />
+            <stop offset="1" stopColor="#0b5f57" />
+          </linearGradient>
+          <linearGradient id="lpFood" x1="320" y1="220" x2="560" y2="420" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#ffe8c7" />
+            <stop offset="1" stopColor="#e8a35c" />
+          </linearGradient>
+        </defs>
+        <ellipse cx="450" cy="560" rx="310" ry="48" fill="#0b5f57" opacity="0.16" />
+        <ellipse cx="450" cy="340" rx="250" ry="180" fill="url(#lpPlate)" />
+        <ellipse cx="450" cy="340" rx="198" ry="140" fill="#f7fffc" opacity="0.42" />
+        <ellipse cx="420" cy="318" rx="108" ry="82" fill="url(#lpFood)" opacity="0.95" />
+        <ellipse cx="500" cy="352" rx="78" ry="58" fill="#6ecf7a" opacity="0.82" />
+        <ellipse cx="388" cy="366" rx="56" ry="40" fill="#ef8b4a" opacity="0.9" />
+        <ellipse cx="470" cy="278" rx="42" ry="32" fill="#e86b6b" opacity="0.78" />
+        <g stroke="#4BE0BC" strokeWidth="5" strokeLinecap="square" fill="none" opacity="0.9">
+          <path d="M250 170V118h52" />
+          <path d="M650 170V118h-52" />
+          <path d="M250 510v52h52" />
+          <path d="M650 510v52h-52" />
+        </g>
+      </svg>
     </div>
   );
 }
@@ -144,14 +137,14 @@ export function LandingPage() {
 
       <header className="landing-top">
         <Link href="/" className="landing-top-brand" aria-label="Calorie Vision — на главную">
-          <BrandMark size={36} decorative={false} />
+          <BrandMark size={34} decorative={false} />
           <span>Calorie Vision</span>
         </Link>
         <nav className="landing-top-nav" aria-label="Разделы">
           <a href="#how" className="landing-top-link">
             Как работает
           </a>
-          <a href="#features" className="landing-top-link">
+          <a href="#why" className="landing-top-link">
             Возможности
           </a>
           <a href="#install" className="landing-top-link">
@@ -164,148 +157,136 @@ export function LandingPage() {
       </header>
 
       <section className="landing-hero">
-        <div className="landing-hero-copy landing-fade-up">
+        <div className="landing-hero-stage" aria-hidden>
+          <HeroAtmosphere />
+          <AppPreview className="landing-phone-hero" />
+        </div>
+        <div className="landing-hero-copy landing-reveal">
           <p className="landing-brand">Calorie Vision</p>
-          <h1 className="landing-headline">Еда по фото — калории без таблиц</h1>
+          <h1 className="landing-headline">Снимок тарелки — и день уже в рационе</h1>
           <p className="landing-lead">
-            Сфотографируйте блюдо: распознаем порцию, КБЖУ и сохраним день в дневнике — спокойно, без
-            ручного поиска в справочниках.
+            Распознаём блюдо и порцию, вы подтверждаете калории. Без справочников и долгого ввода.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary">
               Начать бесплатно
             </Link>
             <a href="#how" className="landing-cta-secondary">
-              Смотреть, как устроено
+              Как это устроено
             </a>
           </div>
         </div>
-        <HeroVisual />
       </section>
 
-      <section id="how" className="landing-section landing-split landing-fade-up-delay">
-        <div className="landing-split-copy">
-          <p className="landing-kicker">Как это работает</p>
-          <h2 className="landing-section-title">От кадра до записи за минуту</h2>
-          <ol className="landing-steps">
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                01
-              </span>
-              <div>
-                <h3 className="landing-step-title">Снимок, название или штрихкод</h3>
-                <p className="landing-section-text">
-                  Камера или галерея — блюдо на тарелке, этикетка с КБЖУ или штрихкод упаковки. Можно
-                  просто ввести название.
-                </p>
-              </div>
-            </li>
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                02
-              </span>
-              <div>
-                <h3 className="landing-step-title">Проверьте порцию до сохранения</h3>
-                <p className="landing-section-text">
-                  Подправьте граммы или название — калории, белки, жиры и углеводы пересчитаются сразу.
-                </p>
-              </div>
-            </li>
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                03
-              </span>
-              <div>
-                <h3 className="landing-step-title">День собирается в рационе</h3>
-                <p className="landing-section-text">
-                  Завтрак, обед, ужин или перекус — с прогрессом по норме и мягкой поддержкой серии.
-                </p>
-              </div>
-            </li>
-          </ol>
-        </div>
-        <AppPreview />
-      </section>
-
-      <section id="features" className="landing-section landing-section-alt">
-        <p className="landing-kicker">Возможности</p>
-        <h2 className="landing-section-title">Всё нужное для дневника — без шума</h2>
-        <p className="landing-section-text landing-section-text-wide">
-          Calorie Vision рассчитан на ежедневное использование: быстро добавить еду, увидеть день и не
-          потерять привычку.
+      <section id="how" className="landing-section landing-reveal-late">
+        <p className="landing-kicker">Три шага</p>
+        <h2 className="landing-section-title">От кадра до записи за минуту</h2>
+        <p className="landing-section-text">
+          Открыли камеру, проверили порцию, сохранили — рацион дня обновляется сразу.
         </p>
-        <div className="landing-feature-grid">
-          <div className="landing-feature">
-            <h3 className="landing-feature-title">Распознавание</h3>
-            <p className="landing-section-text">
-              Фото, поиск по названию, штрихкод. Несколько блюд с одного кадра — каждое можно поправить
-              отдельно.
-            </p>
-          </div>
-          <div className="landing-feature">
-            <h3 className="landing-feature-title">Макросы дня</h3>
-            <p className="landing-section-text">
-              Калории, БЖУ, клетчатка и сахар относительно вашей нормы. Прогресс видно сразу в рационе.
-            </p>
-          </div>
-          <div className="landing-feature">
-            <h3 className="landing-feature-title">Вес и цель</h3>
-            <p className="landing-section-text">
-              Календарь веса, цель и темп — без давления, чтобы видеть динамику, а не только один день.
-            </p>
-          </div>
-          <div className="landing-feature">
-            <h3 className="landing-feature-title">Серия и напоминания</h3>
-            <p className="landing-section-text">
-              Мягкие отметки серии и push-напоминания. На iPhone — только если открыли с экрана «Домой».
-            </p>
-          </div>
-        </div>
+        <ol className="landing-steps">
+          <li className="landing-step">
+            <span className="landing-step-num" aria-hidden>
+              01
+            </span>
+            <div>
+              <h3 className="landing-step-title">Фото, название или штрихкод</h3>
+              <p className="landing-section-text">
+                Тарелка из кафе, этикетка с КБЖУ или упаковка из магазина. Можно просто написать, что
+                едите.
+              </p>
+            </div>
+          </li>
+          <li className="landing-step">
+            <span className="landing-step-num" aria-hidden>
+              02
+            </span>
+            <div>
+              <h3 className="landing-step-title">Подтвердите порцию</h3>
+              <p className="landing-section-text">
+                Подправьте граммы или название — калории, белки, жиры и углеводы пересчитаются до
+                сохранения.
+              </p>
+            </div>
+          </li>
+          <li className="landing-step">
+            <span className="landing-step-num" aria-hidden>
+              03
+            </span>
+            <div>
+              <h3 className="landing-step-title">День собирается в рационе</h3>
+              <p className="landing-section-text">
+                Завтрак, обед, ужин и перекусы — с прогрессом по норме и мягкой поддержкой серии.
+              </p>
+            </div>
+          </li>
+        </ol>
       </section>
 
-      <section className="landing-section">
-        <p className="landing-kicker">Для кого</p>
-        <h2 className="landing-section-title">Если хочется учитывать еду без таблицы Excel</h2>
-        <ul className="landing-audience">
-          <li>
-            <strong>Следите за калориями</strong> — но не хотите каждый раз искать блюдо вручную.
+      <section id="why" className="landing-section landing-section-band">
+        <p className="landing-kicker">Зачем это</p>
+        <h2 className="landing-section-title">Дневник, который не тормозит приём пищи</h2>
+        <p className="landing-section-text landing-section-text-wide">
+          Calorie Vision рассчитан на каждый день: быстро добавить еду, увидеть норму и не потерять
+          привычку.
+        </p>
+        <ul className="landing-points">
+          <li className="landing-point">
+            <h3 className="landing-point-title">Фото вместо таблицы</h3>
+            <p className="landing-section-text">
+              Несколько блюд с одного кадра, штрихкод упаковки или поиск по названию — каждое можно
+              поправить отдельно.
+            </p>
           </li>
-          <li>
-            <strong>Готовите дома или едите вне</strong> — фото тарелки часто быстрее, чем взвешивание
-            всего подряд.
+          <li className="landing-point">
+            <h3 className="landing-point-title">Норма дня на виду</h3>
+            <p className="landing-section-text">
+              Калории, БЖУ, клетчатка и сахар относительно вашей цели. Прогресс виден сразу в рационе.
+            </p>
           </li>
-          <li>
-            <strong>Нужна привычка, а не отчёт</strong> — серия и напоминания поддерживают, не стыдят.
+          <li className="landing-point">
+            <h3 className="landing-point-title">Вес и цель рядом</h3>
+            <p className="landing-section-text">
+              Календарь веса и темп — чтобы видеть динамику недели, а не только один удачный день.
+            </p>
+          </li>
+          <li className="landing-point">
+            <h3 className="landing-point-title">Серия без давления</h3>
+            <p className="landing-section-text">
+              Мягкие отметки серии и напоминания. На iPhone push работают, если открыли с экрана
+              «Домой».
+            </p>
           </li>
         </ul>
       </section>
 
-      <section id="install" className="landing-section landing-install">
+      <section id="install" className="landing-section">
         <p className="landing-kicker">На телефон</p>
-        <h2 className="landing-section-title">Установите как приложение</h2>
+        <h2 className="landing-section-title">Поставьте на экран «Домой»</h2>
         <p className="landing-section-text landing-section-text-wide">
           Это PWA: откройте{" "}
           <strong className="landing-inline-strong">calorievision.ru</strong> в браузере и добавьте на
-          экран «Домой». Появится иконка и полноэкранный режим — как у обычного приложения из магазина.
+          главный экран. Появится иконка и полноэкранный режим — как у приложения из магазина, без
+          App Store и Google Play.
         </p>
 
         <div className="landing-install-grid">
-          <article className="landing-install-col">
+          <div className="landing-install-col">
             <h3 className="landing-install-heading">
               <ShareIcon />
               iPhone · Safari
             </h3>
             <ol className="landing-install-steps">
-              <li>Откройте сайт в Safari (не Chrome).</li>
+              <li>Откройте сайт в Safari.</li>
               <li>
-                Нажмите «Поделиться» <ShareIcon /> внизу.
+                Нажмите «Поделиться» <ShareIcon /> внизу экрана.
               </li>
               <li>«На экран „Домой“» → «Добавить».</li>
               <li>Запускайте с иконки — так работают уведомления (iOS 16.4+).</li>
             </ol>
-          </article>
+          </div>
 
-          <article className="landing-install-col">
+          <div className="landing-install-col">
             <h3 className="landing-install-heading">
               <MenuIcon />
               Android · Chrome
@@ -318,51 +299,48 @@ export function LandingPage() {
               <li>Подтвердите установку.</li>
               <li>Открывайте с иконки — удобнее дневник и напоминания.</li>
             </ol>
-          </article>
+          </div>
         </div>
       </section>
 
-      <section className="landing-section landing-section-alt landing-faq">
+      <section className="landing-section landing-section-band landing-faq">
         <p className="landing-kicker">Коротко</p>
         <h2 className="landing-section-title">Частые вопросы</h2>
         <dl className="landing-faq-list">
           <div className="landing-faq-item">
             <dt>Это бесплатно?</dt>
-            <dd>Да. Вход через Google, VK, Telegram или email — без подписки в базовом сценарии.</dd>
+            <dd>Да. Вход через Google, VK, Telegram или email — без подписки для обычного дневника.</dd>
           </div>
           <div className="landing-faq-item">
-            <dt>Нужно ли скачивать из App Store / Google Play?</dt>
-            <dd>
-              Нет. Достаточно добавить сайт на экран «Домой» — получите иконку и почти нативное
-              ощущение.
-            </dd>
+            <dt>Нужно ли скачивать из магазина приложений?</dt>
+            <dd>Нет. Добавьте сайт на экран «Домой» — получите иконку и почти нативное ощущение.</dd>
           </div>
           <div className="landing-faq-item">
             <dt>Насколько точны калории по фото?</dt>
             <dd>
-              Это оценка: вы всегда подтверждаете порцию и можете поправить название или граммы до
-              сохранения.
+              Это оценка: перед сохранением вы всегда видите порцию и можете поправить название или
+              граммы.
             </dd>
           </div>
           <div className="landing-faq-item">
             <dt>Где хранятся данные?</dt>
-            <dd>Дневник привязан к вашему аккаунту на сервере Calorie Vision — доступен после входа.</dd>
+            <dd>Дневник привязан к вашему аккаунту на сервере Calorie Vision и доступен после входа.</dd>
           </div>
         </dl>
       </section>
 
       <section className="landing-footer-cta">
         <p className="landing-brand landing-brand-sm">Calorie Vision</p>
-        <h2 className="landing-section-title">Готовы вести день проще?</h2>
+        <h2 className="landing-section-title">Первый приём пищи — по фото</h2>
         <p className="landing-section-text">
-          Создайте аккаунт за минуту — и добавьте первый приём пищи по фото.
+          Создайте аккаунт за минуту и сохраните сегодняшний день без ручного поиска в справочниках.
         </p>
         <div className="landing-cta landing-cta-row">
           <Link href="/login" className="btn btn-primary landing-cta-primary">
             Войти и начать
           </Link>
           <a href="#install" className="landing-cta-secondary">
-            Сначала установить
+            Сначала на телефон
           </a>
         </div>
       </section>
