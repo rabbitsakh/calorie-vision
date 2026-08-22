@@ -32,9 +32,11 @@ type QuickAddMealsProps = {
   selectedDate: string;
   refreshKey: number;
   onSaved: () => void;
+  /** Inside QuickAddAgain — no outer chrome / hide chip. */
+  embedded?: boolean;
 };
 
-export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMealsProps) {
+export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = false }: QuickAddMealsProps) {
   const [data, setData] = useState<QuickAddResponse | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
@@ -113,7 +115,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
   const showSuggestions = data.suggestions.length > 0;
   if (!showCopy && !showSuggestions) return null;
 
-  if (hidden) {
+  if (hidden && !embedded) {
     return (
       <button
         type="button"
@@ -130,7 +132,8 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
   }
 
   return (
-    <div className="rounded-2xl border border-teal-100 bg-teal-50/50 p-4">
+    <div className={embedded ? "" : "rounded-2xl border border-teal-100 bg-teal-50/50 p-4"}>
+      {!embedded ? (
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <p className="font-semibold text-teal-900">Быстрое добавление</p>
@@ -151,6 +154,13 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved }: QuickAddMea
           Скрыть
         </button>
       </div>
+      ) : (
+        <p className="mb-3 text-xs text-slate-500">
+          {showSuggestions
+            ? `Частые блюда на ${data.mealTypeLabel}`
+            : "Повторите вчерашний рацион"}
+        </p>
+      )}
 
       {showCopy ? (
         <button

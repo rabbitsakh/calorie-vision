@@ -11,7 +11,7 @@ export default function StatsPage() {
   return (
     <AppShell
       title="Статистика"
-      description="Калории и вес за неделю или месяц."
+      compact
       date={date}
     >
       <AuthGate>

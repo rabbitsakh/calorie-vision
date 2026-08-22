@@ -10,17 +10,16 @@ import { WaterTracker } from "@/components/WaterTracker";
 import { StreakWidget } from "@/components/StreakWidget";
 import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
-import { FavoriteFoods } from "@/components/FavoriteFoods";
-import { MealSuggestions } from "@/components/MealSuggestions";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { DayOpenedCelebration } from "@/components/DayOpenedCelebration";
 import { DailyGoalCelebration } from "@/components/DailyGoalCelebration";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
-import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { EveningCheckin } from "@/components/EveningCheckin";
 import { MotivationTip } from "@/components/MotivationTip";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { TodayProgress } from "@/components/TodayProgress";
+import { MotivationQueue } from "@/components/MotivationQueue";
+import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -34,10 +33,12 @@ export default function RationPage() {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const bump = useCallback(() => setRefreshKey((value) => value + 1), []);
+
   return (
     <AppShell
       title="Рацион"
-      description="Добавляйте еду и смотрите дневник за выбранный день."
+      compact
       date={date}
       headerExtra={
         <DateNavBar
@@ -49,43 +50,50 @@ export default function RationPage() {
       }
     >
       <AuthGate>
-        <div className="flex flex-col gap-4 md:gap-6">
-          {date === today ? <DailySummaryCard today={today} /> : null}
-          <StreakNudge
-            selectedDate={date}
-            today={today}
-            refreshKey={refreshKey}
-            onAddFood={scrollToFoodAdd}
-          />
-          <EveningCheckin today={today} selectedDate={date} />
-          <MotivationTip today={today} selectedDate={date} />
+        <div className="flex flex-col gap-4 md:gap-5">
+          {/* Hero: one progress surface for the selected day */}
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
-          {/* Primary: add food + diary */}
-          <FoodAddPanel
-            selectedDate={date}
-            onSaved={() => setRefreshKey((value) => value + 1)}
-          />
+
+          {/* Primary job */}
+          <FoodAddPanel selectedDate={date} onSaved={bump} />
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}
             compact
             timezone={timezone}
-            onChanged={() => setRefreshKey((value) => value + 1)}
+            onChanged={bump}
             onTotalsChange={setTotalCalories}
           />
-          <QuickAddMeals
+
+          {/* At most one soft motivation card */}
+          <MotivationQueue>
+            <StreakNudge
+              selectedDate={date}
+              today={today}
+              refreshKey={refreshKey}
+              onAddFood={scrollToFoodAdd}
+              quietHide
+            />
+            {date === today ? <DailySummaryCard today={today} /> : null}
+            <EveningCheckin today={today} selectedDate={date} />
+            <MotivationTip today={today} selectedDate={date} quietHide />
+          </MotivationQueue>
+
+          {/* Secondary tools */}
+          <QuickAddAgain
             selectedDate={date}
             refreshKey={refreshKey}
-            onSaved={() => setRefreshKey((value) => value + 1)}
+            totalCalories={totalCalories}
+            onSaved={bump}
           />
+          <div className="grid gap-4 md:grid-cols-2">
+            <WaterTracker selectedDate={date} />
+            <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+          </div>
           <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-          {/* Secondary: streak, water, ai, favorites, note */}
-          <StreakWidget selectedDate={date} refreshKey={refreshKey} />
-          <WaterTracker selectedDate={date} />
-          <MealSuggestions selectedDate={date} totalCalories={totalCalories} />
-          <FavoriteFoods selectedDate={date} onSaved={() => setRefreshKey((v) => v + 1)} />
           <PushNotificationPrompt />
           <DiaryNoteWidget selectedDate={date} />
+
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
         </div>

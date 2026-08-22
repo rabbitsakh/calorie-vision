@@ -19,9 +19,17 @@ type StreakNudgeProps = {
   today: string;
   refreshKey: number;
   onAddFood: () => void;
+  /** When hidden, return null so MotivationQueue can show the next card. */
+  quietHide?: boolean;
 };
 
-export function StreakNudge({ selectedDate, today, refreshKey, onAddFood }: StreakNudgeProps) {
+export function StreakNudge({
+  selectedDate,
+  today,
+  refreshKey,
+  onAddFood,
+  quietHide = false,
+}: StreakNudgeProps) {
   const [data, setData] = useState<StreakNudgeData | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -52,6 +60,7 @@ export function StreakNudge({ selectedDate, today, refreshKey, onAddFood }: Stre
   }
 
   if (hidden) {
+    if (quietHide) return null;
     return (
       <button
         type="button"

@@ -391,7 +391,7 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
             <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
               <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
                 {total > 0 ? (
-                  <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · Кл ${day.fiber ?? 0}г · Сах ${day.sugar ?? 0}г`}>
+                  <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · клетчатка ${day.fiber ?? 0} г · сахар ${day.sugar ?? 0} г`}>
                     <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-teal-500" />
                     <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
                     <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-violet-400" />
@@ -527,8 +527,8 @@ export function StatsView({ endDate }: StatsViewProps) {
           {period === "week" ? <WeeklyReportCard endDate={endDate} /> : null}
 
           {data.moodInsight ? (
-            <div className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm text-violet-900">
-              <p className="text-xs font-medium uppercase tracking-wide text-violet-600">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+              <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
                 Настроение и еда
               </p>
               <p className="mt-1">{data.moodInsight}</p>
@@ -558,7 +558,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Calories */}
           <section className="card p-4 md:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold">Калории по дням</h2>
+              <h2 className="font-display text-lg font-bold">Калории по дням</h2>
               {data.calorieTarget ? (
                 <div className="flex items-center gap-1.5 text-xs text-amber-600">
                   <span className="inline-block h-0 w-6 border-t-2 border-dashed border-amber-400" />
@@ -573,7 +573,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Macros */}
           <section className="card p-4 md:p-6">
-            <h2 className="text-lg font-bold">БЖУ по дням</h2>
+            <h2 className="font-display text-lg font-bold">БЖУ, клетчатка и сахар</h2>
             <div className="mt-4">
               <MacroChart days={data.days} period={period} />
             </div>

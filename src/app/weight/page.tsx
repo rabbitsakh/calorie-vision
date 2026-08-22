@@ -16,7 +16,7 @@ export default function WeightPage() {
   return (
     <AppShell
       title="Вес"
-      description="Фиксируйте вес и следите за динамикой."
+      compact
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">

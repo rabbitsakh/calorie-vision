@@ -89,19 +89,19 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
       : "";
 
   return (
-    <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-indigo-50 p-4 shadow-sm">
+    <div className="rounded-2xl border border-teal-100 bg-[var(--accent-summary-soft)] p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-violet-600">
+          <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
             Итоги вчера
           </p>
-          <p className="mt-0.5 font-semibold text-violet-900">
+          <p className="mt-0.5 font-semibold text-teal-950">
             {formatDateShort(data.date)}
           </p>
         </div>
         <button
           type="button"
-          className="btn-quiet shrink-0 text-xs text-violet-700 hover:bg-violet-100"
+          className="btn-quiet shrink-0 text-xs text-teal-700 hover:bg-teal-100"
           onClick={dismiss}
           aria-label="Закрыть"
         >
@@ -142,11 +142,11 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-violet-800">{data.tip}</p>
+      <p className="mt-3 text-sm text-teal-900">{data.tip}</p>
 
       <button
         type="button"
-        className="mt-3 text-sm font-medium text-violet-700 hover:text-violet-900"
+        className="mt-3 text-sm font-medium text-teal-800 hover:text-teal-950"
         onClick={dismiss}
       >
         Понятно, спасибо

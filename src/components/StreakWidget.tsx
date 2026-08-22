@@ -46,13 +46,17 @@ function dayNum(dateKey: string): string {
 export function StreakWidget({
   selectedDate,
   refreshKey,
+  compact = false,
 }: {
   selectedDate: string;
   refreshKey: number;
+  /** Collapsed summary with expand for calendar/freeze details. */
+  compact?: boolean;
 }) {
   const [data, setData] = useState<StreakData | null>(null);
   const [hidden, setHidden] = useState(false);
   const [freezing, setFreezing] = useState(false);
+  const [expanded, setExpanded] = useState(!compact);
 
   async function loadStreak() {
     try {
@@ -131,35 +135,38 @@ export function StreakWidget({
     : 100;
 
   return (
-    <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+    <div className="rounded-2xl border border-amber-100 bg-[var(--accent-streak-soft)] p-4">
       {hasStreak ? <MilestoneCelebration streak={streak} /> : null}
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+        >
           <StreakGlyph streak={hasStreak ? streak : 0} />
-          <div>
+          <div className="min-w-0">
             <p className="text-lg font-bold text-amber-900">
               {hasStreak
                 ? `${streak} ${pluralDays(streak)} подряд`
                 : daysLoggedTotal > 0 ? "Продолжите серию сегодня" : "Начните серию сегодня"}
             </p>
             <p className="text-xs text-amber-700">
-              {hasStreak
-                ? streakLabel(streak)
-                : daysLoggedTotal > 0
-                  ? `Лучший результат: ${longestStreak} ${pluralDays(longestStreak)}. Добавьте еду — и серия возобновится`
-                  : "Добавьте первый приём пищи — и серия начнётся"}
+              {compact && !expanded
+                ? "Календарь и заморозка — нажмите"
+                : hasStreak
+                  ? streakLabel(streak)
+                  : daysLoggedTotal > 0
+                    ? `Лучший результат: ${longestStreak} ${pluralDays(longestStreak)}`
+                    : "Добавьте первый приём пищи"}
             </p>
           </div>
-        </div>
+        </button>
         <div className="flex items-center gap-2">
           {hasStreak && isRecord ? (
             <span className="shrink-0 rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
               Рекорд!
-            </span>
-          ) : hasStreak && longestStreak > streak ? (
-            <span className="shrink-0 text-right text-xs text-amber-700">
-              Рекорд: {longestStreak} {pluralDays(longestStreak)}
             </span>
           ) : null}
           <button
@@ -172,6 +179,8 @@ export function StreakWidget({
         </div>
       </div>
 
+      {expanded ? (
+        <>
       {/* Progress to next milestone */}
       {hasStreak && nextMilestone ? (
         <div className="mt-3">
@@ -286,6 +295,8 @@ export function StreakWidget({
             <p className="mt-2 text-xs text-amber-800">{data.weekNudge}</p>
           ) : null}
         </div>
+      ) : null}
+        </>
       ) : null}
     </div>
   );
