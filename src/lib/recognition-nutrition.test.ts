@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applyAlternativeToPortion,
   applyFoodLookupToPortion,
   clearSuspiciousZeroFiberSugar,
   inferPer100gValues,
@@ -696,4 +697,28 @@ test("applyFoodLookupToPortion keeps label calories and user portion", () => {
   assert.equal(merged.portionGrams, 1500);
   assert.ok(merged.calories >= 530);
   assert.ok((merged.carbs ?? 0) > 0);
+});
+
+test("applyAlternativeToPortion scales per-100 alternative to user portion", () => {
+  const merged = applyAlternativeToPortion(
+    {
+      dishName: "Пиво",
+      photoKind: "label",
+      source: "label",
+      portionGrams: 1500,
+    },
+    {
+      dishName: "Пиво светлое фильтрованное",
+      calories: 43,
+      protein: 0.4,
+      fat: 0,
+      carbs: 3.6,
+    },
+    1500,
+  );
+
+  assert.equal(merged.portionGrams, 1500);
+  assert.equal(merged.calories, 645);
+  assert.equal(merged.protein, 6);
+  assert.equal(merged.carbs, 54);
 });

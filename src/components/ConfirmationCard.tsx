@@ -12,6 +12,7 @@ import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
+  applyAlternativeToPortion,
   applyFoodLookupToPortion,
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
@@ -750,16 +751,26 @@ export function ConfirmationCard({
                   onPortionChange={(value) => handlePortionChange(dish, value)}
                   onLookup={(name) => void handleLookup(dish, name)}
                   onApplyAlternative={(alt) => {
+                    const targetPortion =
+                      Number(dish.portionGrams) > 0
+                        ? Number(dish.portionGrams)
+                        : Number(dish.original.portionGrams) || 100;
+
+                    const merged = applyAlternativeToPortion(dish.original, alt, targetPortion);
+
                     updateDish(dish.id, {
-                      dishName: decodeHtmlEntities(alt.dishName),
-                      calories: String(alt.calories),
-                      protein: alt.protein !== undefined ? String(alt.protein) : "",
-                      fat: alt.fat !== undefined ? String(alt.fat) : "",
-                      carbs: alt.carbs !== undefined ? String(alt.carbs) : "",
-                      fiber: alt.fiber !== undefined ? String(alt.fiber) : "",
-                      sugar: alt.sugar !== undefined ? String(alt.sugar) : "",
-                      portionGrams: alt.portionGrams !== undefined ? String(alt.portionGrams) : dish.portionGrams,
-                      baseline: null,
+                      dishName: decodeHtmlEntities(merged.dishName),
+                      calories: String(merged.calories),
+                      protein: merged.protein !== undefined ? formatMacro(merged.protein) : "",
+                      fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
+                      carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
+                      fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
+                      sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
+                      portionGrams: String(merged.portionGrams),
+                      baseline: nutritionBaselineFromRecognition({
+                        ...dish.original,
+                        ...merged,
+                      }),
                     });
                     setLookupMessage("Вариант применён");
                   }}

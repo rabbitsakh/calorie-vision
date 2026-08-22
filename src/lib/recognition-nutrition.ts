@@ -712,3 +712,62 @@ export function applyFoodLookupToPortion(
     portionGrams: portion,
   };
 }
+
+/** Scale a vision alternative to the portion already chosen on the confirm card. */
+export function applyAlternativeToPortion(
+  context: Pick<
+    FoodRecognitionResult,
+    "dishName" | "photoKind" | "source" | "portionGrams" | "per100g" | "brand"
+  >,
+  alternative: Pick<
+    FoodRecognitionResult,
+    | "dishName"
+    | "calories"
+    | "protein"
+    | "fat"
+    | "carbs"
+    | "fiber"
+    | "sugar"
+    | "portionGrams"
+  >,
+  targetPortionGrams: number,
+): Pick<
+  FoodRecognitionResult,
+  "dishName" | "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams"
+> {
+  const portion =
+    Number.isFinite(targetPortionGrams) && targetPortionGrams > 0
+      ? targetPortionGrams
+      : context.portionGrams && context.portionGrams > 0
+        ? context.portionGrams
+        : DEFAULT_PORTION_GRAMS;
+
+  const scaled = scaleRecognitionToPortion(
+    {
+      ...context,
+      dishName: alternative.dishName,
+      calories: alternative.calories,
+      protein: alternative.protein,
+      fat: alternative.fat,
+      carbs: alternative.carbs,
+      fiber: alternative.fiber,
+      sugar: alternative.sugar,
+      portionGrams:
+        alternative.portionGrams && alternative.portionGrams > 0
+          ? alternative.portionGrams
+          : context.portionGrams,
+    },
+    portion,
+  );
+
+  return {
+    dishName: alternative.dishName.trim() || context.dishName,
+    calories: scaled.calories,
+    protein: scaled.protein,
+    fat: scaled.fat,
+    carbs: scaled.carbs,
+    fiber: scaled.fiber,
+    sugar: scaled.sugar,
+    portionGrams: portion,
+  };
+}
