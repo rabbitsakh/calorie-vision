@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  clearSuspiciousZeroFiberSugar,
   inferPer100gValues,
   hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
@@ -282,6 +283,22 @@ test("fiber/sugar backfill is independent of calorie completeness", () => {
     true,
   );
   assert.equal(
+    needsFiberSugarBackfill({
+      fiber: 0,
+      sugar: 0,
+      carbs: 24,
+    }),
+    true,
+  );
+  assert.equal(
+    needsFiberSugarBackfill({
+      fiber: 0,
+      sugar: 0,
+      carbs: 0,
+    }),
+    false,
+  );
+  assert.equal(
     needsNutritionLookup({
       dishName: "Хурма",
       calories: 102,
@@ -292,6 +309,36 @@ test("fiber/sugar backfill is independent of calorie completeness", () => {
       photoKind: "meal",
     }),
     false,
+  );
+});
+
+test("clears suspicious zero fiber/sugar on carb-heavy vision results", () => {
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Овсянка с ягодами",
+    calories: 320,
+    protein: 10,
+    fat: 6,
+    carbs: 52,
+    fiber: 0,
+    sugar: 0,
+    portionGrams: 250,
+    confidence: 0.8,
+    photoKind: "meal",
+  });
+
+  assert.equal(normalized.fiber, undefined);
+  assert.equal(normalized.sugar, undefined);
+  assert.equal(
+    clearSuspiciousZeroFiberSugar({
+      dishName: "Куриная грудка",
+      calories: 165,
+      fiber: 0,
+      sugar: 0,
+      carbs: 0,
+      confidence: 0.9,
+      photoKind: "meal",
+    }).fiber,
+    0,
   );
 });
 

@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { normalizeBarcode } from "../barcode";
+import { looksLikeMultiDishName } from "./plate-vision";
 
 /** Drop invented barcodes on plated meals; normalize elsewhere. */
 export function sanitizeVisionBarcode(result: FoodRecognitionResult): FoodRecognitionResult {
@@ -17,6 +18,11 @@ export function sanitizeVisionBarcode(result: FoodRecognitionResult): FoodRecogn
 /** Whether a short barcode-focused vision pass is worth it. */
 export function shouldRunBarcodePass(result: FoodRecognitionResult): boolean {
   if (normalizeBarcode(result.barcode ?? null)) {
+    return false;
+  }
+
+  // Mixed plate sometimes misclassified as package — don't waste a barcode pass.
+  if (looksLikeMultiDishName(result.dishName)) {
     return false;
   }
 

@@ -45,4 +45,13 @@ test("barcode pass also runs for package without digits", () => {
     }),
     false,
   );
+  assert.equal(
+    shouldRunBarcodePass({
+      dishName: "Стейк, картофель",
+      calories: 500,
+      confidence: 0.7,
+      photoKind: "package",
+    }),
+    false,
+  );
 });

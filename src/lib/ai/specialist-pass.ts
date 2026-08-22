@@ -22,8 +22,9 @@ export function pickSpecialistPass(result: FoodRecognitionResult): SpecialistPas
   // Packaged goods: prefer reading the barcode before guessing the front.
   if (shouldRunBarcodePass(result)) return "barcode";
   if (shouldRunLabelPass(result)) return "label";
-  if (shouldRunPackagePass(result)) return "package";
+  // Mixed plates are sometimes misclassified as package — split before package front.
   if (shouldRunPlatePass(result)) return "plate";
+  if (shouldRunPackagePass(result)) return "package";
   if (shouldRunDrinkPass(result)) return "drink";
   if (shouldRunStickerPass(result)) return "sticker";
   return null;

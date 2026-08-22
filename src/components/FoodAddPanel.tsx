@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
-import { PhotoUploader } from "@/components/PhotoUploader";
+import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { withBasePath } from "@/lib/paths";
@@ -35,6 +35,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lookupAbortRef = useRef<AbortController | null>(null);
+  const photoAbortRef = useRef<PhotoUploaderHandle>(null);
 
   useEffect(() => {
     return () => {
@@ -127,6 +128,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
               }`}
               onClick={() => {
                 lookupAbortRef.current?.abort();
+                photoAbortRef.current?.abort();
                 setMode(tab.id);
                 setError(null);
                 setTextQuery("");
@@ -141,6 +143,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
 
         {mode === "photo" ? (
           <PhotoUploader
+            ref={photoAbortRef}
             disabled={disabled}
             compact
             onRecognized={(result) => setPendingResult(result)}

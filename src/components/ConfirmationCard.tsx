@@ -15,6 +15,7 @@ import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
+import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { Chip } from "@/components/Chip";
 
 type NutritionFields = {
@@ -235,11 +236,11 @@ export function ConfirmationCard({
         body: JSON.stringify({ dishName: query }),
       });
 
-      const data = (await response.json()) as {
+      const data = await readApiJson<{
         recognition?: NutritionFields;
         imagePath?: string;
         error?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(data.error ?? "Не удалось найти блюдо");
@@ -267,7 +268,7 @@ export function ConfirmationCard({
       const sourceLabel = next.source ? RECOGNITION_SOURCE_LABELS[next.source] : undefined;
       setLookupMessage(sourceLabel ?? "Калорийность и БЖУ обновлены по названию блюда");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка поиска");
+      setError(humanizeClientFetchError(err, "Ошибка поиска"));
     } finally {
       setSearchingId(null);
     }
@@ -354,7 +355,14 @@ export function ConfirmationCard({
         )
         .filter((message): message is string => message !== null);
 
+      const savedCount = results.filter((result) => result.status === "fulfilled").length;
+
       if (failures.length > 0) {
+        if (savedCount > 0) {
+          setError(`Сохранено ${savedCount} из ${dishes.length}.\n${failures.join("\n")}`);
+          onSaved();
+          return;
+        }
         setError(failures.join("\n"));
         return;
       }

@@ -50,9 +50,13 @@ export async function POST(request: NextRequest) {
 
     const compressed = await compressFoodImage(original);
     const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
+    const visionFilename =
+      compressed.mimeType.includes("webp")
+        ? uploadFilename(file).replace(/\.[^.]+$/, ".webp")
+        : uploadFilename(file);
     const recognition = await recognizeFoodWithAI(
-      original,
-      uploadFilename(file),
+      compressed.buffer,
+      visionFilename,
       session.user.id,
     );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
 import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
@@ -13,6 +13,10 @@ type PhotoUploaderProps = {
   onRecognized: (result: RecognitionResponse) => void;
   disabled?: boolean;
   compact?: boolean;
+};
+
+export type PhotoUploaderHandle = {
+  abort: () => void;
 };
 
 function ThinkingAnimation({ preview }: { preview: string | null }) {
@@ -64,7 +68,10 @@ function isLikelyImageFile(file: File): boolean {
   return /\.(heic|heif|jpe?g|png|webp|gif|avif)$/i.test(file.name);
 }
 
-export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploaderProps) {
+export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>(function PhotoUploader(
+  { onRecognized, disabled, compact },
+  ref,
+) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -72,6 +79,15 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    abort: () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setLoading(false);
+      setPreview(null);
+    },
+  }));
 
   useEffect(() => {
     return () => {
@@ -282,4 +298,4 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
   if (compact) return content;
 
   return <section className="card p-6">{content}</section>;
-}
+});
