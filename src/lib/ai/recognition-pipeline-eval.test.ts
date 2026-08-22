@@ -7,7 +7,7 @@ import { shouldForcePlateBeforeRetry } from "./plate-vision.ts";
 import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
 import { runRecognitionEvalSuite } from "./recognition-eval-harness.ts";
 import { parseFoodRecognitionResponse } from "./parse-response.ts";
-import { hasCompleteVisionNutrition } from "../recognition-nutrition.ts";
+import { hasCompleteVisionNutrition, normalizeRecognitionNutrition } from "../recognition-nutrition.ts";
 import { enrichAlternativesFromRuTable } from "../recognition-alternatives.ts";
 import { combineRecognitionItems } from "../recognition-items.ts";
 
@@ -88,6 +88,14 @@ test("pipeline/combine + complete vision on enriched plate item", () => {
     { dishName: "Обед", calories: 999, confidence: 0.5, photoKind: "meal" },
   );
   assert.equal(combined.calories, 580);
+});
+
+test("normalizeRecognitionNutrition scales drink label with bottle volume in name", () => {
+  const fixture = RECOGNITION_EVAL_CASES.find((c) => c.id === "drink-label-portion-1500");
+  assert.ok(fixture);
+  const parsed = parseFoodRecognitionResponse(fixture!.rawModelJson);
+  const normalized = normalizeRecognitionNutrition(parsed);
+  assert.ok(normalized.calories >= 500);
 });
 
 test("retry prompts cover all known reasons", () => {

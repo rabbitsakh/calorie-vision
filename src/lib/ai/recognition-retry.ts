@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "../food-types";
+import { getRecognitionLowConfidenceThreshold } from "./recognition-thresholds";
 
 export type RecognitionRetryReason =
   | "failed-name"
@@ -56,7 +57,7 @@ export function getRecognitionRetryReason(
 
   if (
     looksPlatedMeal &&
-    result.confidence < 0.55 &&
+    result.confidence < getRecognitionLowConfidenceThreshold() &&
     result.calories > 0 &&
     itemCount < 2
   ) {
@@ -76,7 +77,7 @@ export function getRecognitionRetryReason(
     result.calories > 0 &&
     positiveMacroCount(result) < 2 &&
     !hasAnyDefinedMacro(result) &&
-    result.confidence >= 0.55 &&
+    result.confidence >= getRecognitionLowConfidenceThreshold() &&
     result.confidence < 0.8 &&
     itemCount === 0
   ) {
@@ -133,7 +134,7 @@ export function isBetterRecognitionResult(
   }
 
   if (
-    current.confidence < 0.55 &&
+    current.confidence < getRecognitionLowConfidenceThreshold() &&
     candidate.confidence >= current.confidence + 0.08 &&
     candidate.calories >= current.calories
   ) {

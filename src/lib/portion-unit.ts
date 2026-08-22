@@ -36,3 +36,29 @@ export function looksLikeSnackBarName(...parts: Array<string | null | undefined>
 }
 
 export const DEFAULT_SNACK_BAR_GRAMS = 60;
+
+/** Parse bottle volume from label text, e.g. «1.5 л» → 1500 ml. */
+export function inferDrinkPackMlFromText(...parts: Array<string | null | undefined>): number | undefined {
+  const text = parts.filter(Boolean).join(" ");
+  if (!text.trim()) {
+    return undefined;
+  }
+
+  const liter = text.match(/(\d+(?:[.,]\d+)?)\s*л(?:ит(?:р|ра|ров)?)?(?:[^\p{L}\p{N}]|$)/iu);
+  if (liter) {
+    const value = Number(liter[1]!.replace(",", "."));
+    if (value > 0 && value <= 10) {
+      return Math.round(value * 1000);
+    }
+  }
+
+  const ml = text.match(/(\d{2,4})\s*мл/u);
+  if (ml) {
+    const value = Number(ml[1]);
+    if (value >= 50 && value <= 5000) {
+      return value;
+    }
+  }
+
+  return undefined;
+}

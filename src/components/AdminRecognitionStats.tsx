@@ -119,6 +119,9 @@ export function AdminRecognitionStats() {
                   <p className="text-lg font-bold">
                     {Math.round(stats.confidenceCalibration.suggestedLowConfidence * 100)}%
                   </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Env: RECOGNITION_LOW_CONFIDENCE или NEXT_PUBLIC_RECOGNITION_LOW_CONFIDENCE
+                  </p>
                 </div>
               </div>
               <div className="admin-table-wrap mt-4">

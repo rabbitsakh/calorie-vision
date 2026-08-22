@@ -3,13 +3,17 @@ import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { getImageDimensions } from "@/lib/ai/image-utils";
 import { recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { requireSession } from "@/lib/auth-session";
+import { withTimeoutFallback } from "@/lib/async-pool";
 import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-recognition";
+import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { prepareRecognizeUpload } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
 const RECOGNIZE_RATE_WINDOW_MS = 60_000;
+/** Never block SSE `done` longer — client unlocks save after vision preview. */
+const STREAM_ENRICH_TIMEOUT_MS = 10_000;
 
 function sseEncode(event: string, data: unknown): Uint8Array {
   return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -95,7 +99,15 @@ export async function POST(request: NextRequest) {
         });
         send("vision", { recognition: vision });
 
-        const recognition = await enrichRecognitionAfterVision(vision, session.user.id);
+        const recognition = await withTimeoutFallback(
+          enrichRecognitionAfterVision(vision, session.user.id),
+          STREAM_ENRICH_TIMEOUT_MS,
+          normalizeRecognitionNutrition({
+            ...vision,
+            source: vision.source ?? "gigachat",
+            photoKind: vision.photoKind ?? "meal",
+          }),
+        );
         send("done", { imagePath, recognition });
       } catch (error) {
         console.error(error);
