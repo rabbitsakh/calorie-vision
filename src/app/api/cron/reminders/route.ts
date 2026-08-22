@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import { sendPushNotification } from "@/lib/push";
-import { withBasePath } from "@/lib/paths";
+import {
+  buildReminderPayload,
+  computeCalorieTarget,
+  computeLastWeekStats,
+  computeStreakStats,
+  localHour,
+  localWeekday,
+  remindersForLocalTime,
+  resolvePushTimezone,
+  type ReminderKind,
+  type UserReminderContext,
+} from "@/lib/push-reminders";
+import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
-
-const WATER_DAILY_TARGET_ML = 2000;
 
 function authorizeCron(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET?.trim();
@@ -15,23 +25,75 @@ function authorizeCron(request: NextRequest): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-function localHour(timezone: string | null | undefined): number {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hour12: false,
-    timeZone: timezone ?? undefined,
-  }).formatToParts(new Date());
-  return Number(parts.find((p) => p.type === "hour")?.value ?? "12");
-}
+async function loadUserReminderContext(
+  userId: string,
+  today: string,
+  timezone: string,
+): Promise<UserReminderContext> {
+  const [meals, waterTotal, diary, user, latestWeight, recentMeals, freezes] = await Promise.all([
+    prisma.mealEntry.findMany({
+      where: { userId, date: today },
+      select: { calories: true, mealType: true },
+    }),
+    prisma.waterEntry.aggregate({
+      where: { userId, date: today },
+      _sum: { ml: true },
+    }),
+    prisma.diaryNote.findUnique({
+      where: { userId_date: { userId, date: today } },
+      select: { mood: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { goal: true, goalPace: true, sex: true },
+    }),
+    prisma.weightEntry.findFirst({
+      where: { userId },
+      orderBy: weightEntryOrderNewestFirst,
+      select: { weightKg: true },
+    }),
+    prisma.mealEntry.findMany({
+      where: { userId },
+      select: { date: true },
+      orderBy: { date: "desc" },
+      take: 400,
+    }),
+    prisma.streakFreeze.findMany({
+      where: { userId },
+      select: { date: true },
+      take: 100,
+    }),
+  ]);
 
-type ReminderKind = "breakfast" | "streak" | "water" | "checkin";
+  const mealDates = recentMeals.map((entry) => entry.date);
+  const frozenDates = freezes.map((entry) => entry.date);
+  const streakStats = computeStreakStats(mealDates, frozenDates, today);
+  const weekStats = computeLastWeekStats(mealDates, today, timezone);
 
-function reminderForHour(hour: number): ReminderKind | null {
-  if (hour === 8) return "breakfast";
-  if (hour === 14) return "water";
-  if (hour === 20) return "streak";
-  if (hour === 21) return "checkin";
-  return null;
+  const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const calorieTarget = computeCalorieTarget({
+    goal: user?.goal,
+    goalPace: user?.goalPace,
+    sex: user?.sex,
+    latestWeightKg: latestWeight?.weightKg ?? null,
+  });
+
+  return {
+    today,
+    mealCount: meals.length,
+    totalCalories,
+    calorieTarget,
+    waterMl: waterTotal._sum.ml ?? 0,
+    streak: streakStats.streak,
+    streakBeforeToday: streakStats.streakBeforeToday,
+    loggedToday: streakStats.loggedToday,
+    mood: diary?.mood ?? null,
+    hasBreakfast: meals.some((meal) => meal.mealType === "BREAKFAST"),
+    hasLunch: meals.some((meal) => meal.mealType === "LUNCH"),
+    hasDinner: meals.some((meal) => meal.mealType === "DINNER"),
+    daysLoggedLastWeek: weekStats.daysLoggedLastWeek,
+    daysInLastWeek: weekStats.daysInLastWeek,
+  };
 }
 
 export async function GET(request: NextRequest) {
@@ -43,6 +105,9 @@ export async function GET(request: NextRequest) {
   if (!vapidOk) {
     return NextResponse.json({ error: "VAPID not configured" }, { status: 503 });
   }
+
+  const dryRun = request.nextUrl.searchParams.get("dryRun") === "1";
+  const now = new Date();
 
   try {
     const users = await prisma.user.findMany({
@@ -61,89 +126,87 @@ export async function GET(request: NextRequest) {
     let sent = 0;
     let skipped = 0;
     const errors: string[] = [];
+    const preview: Array<{ userId: string; kind: ReminderKind; title: string; body: string }> = [];
 
     for (const user of users) {
-      const hour = localHour(user.timezone);
-      const kind = reminderForHour(hour);
-      if (!kind) {
+      const timezone = resolvePushTimezone(user.timezone);
+      const hour = localHour(timezone, now);
+      const weekday = localWeekday(timezone, now);
+      const kinds = remindersForLocalTime(hour, weekday);
+      if (kinds.length === 0) {
         skipped += 1;
         continue;
       }
 
-      const today = toDateKeyTz(new Date(), user.timezone);
+      const today = toDateKeyTz(now, timezone);
+      const ctx = await loadUserReminderContext(user.id, today, timezone);
 
-      const [mealCount, waterTotal, diary] = await Promise.all([
-        prisma.mealEntry.count({ where: { userId: user.id, date: today } }),
-        prisma.waterEntry.aggregate({
-          where: { userId: user.id, date: today },
-          _sum: { ml: true },
-        }),
-        prisma.diaryNote.findUnique({
-          where: { userId_date: { userId: user.id, date: today } },
-          select: { mood: true },
-        }),
-      ]);
+      for (const kind of kinds) {
+        const alreadySent = await prisma.pushReminderLog.findUnique({
+          where: {
+            userId_kind_date: { userId: user.id, kind, date: today },
+          },
+          select: { id: true },
+        });
+        if (alreadySent) {
+          skipped += 1;
+          continue;
+        }
 
-      let payload: { title: string; body: string; url: string; tag: string } | null = null;
+        const payload = buildReminderPayload(kind, ctx);
+        if (!payload) {
+          skipped += 1;
+          continue;
+        }
 
-      if (kind === "breakfast" && mealCount === 0) {
-        payload = {
-          title: "Доброе утро!",
-          body: "Не забудьте записать завтрак — серия начинается с первого приёма пищи.",
-          url: withBasePath("/ration"),
-          tag: "cv-breakfast",
-        };
-      } else if (kind === "water" && (waterTotal._sum.ml ?? 0) < WATER_DAILY_TARGET_ML / 2) {
-        payload = {
-          title: "Время пить воду",
-          body: `Сегодня ${waterTotal._sum.ml ?? 0} мл из ${WATER_DAILY_TARGET_ML} — добавьте стакан воды.`,
-          url: withBasePath("/ration"),
-          tag: "cv-water",
-        };
-      } else if (kind === "streak" && mealCount === 0) {
-        payload = {
-          title: "Сохраните серию!",
-          body: "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до конца дня.",
-          url: withBasePath("/ration"),
-          tag: "cv-streak",
-        };
-      } else if (kind === "checkin" && diary?.mood == null) {
-        payload = {
-          title: "Как прошёл день?",
-          body: "Три кнопки: норм, перебрал или не записывал. Без оценок — просто отметьте.",
-          url: withBasePath("/ration"),
-          tag: "cv-checkin",
-        };
-      }
+        if (dryRun) {
+          preview.push({
+            userId: user.id,
+            kind,
+            title: payload.title,
+            body: payload.body,
+          });
+          continue;
+        }
 
-      if (!payload) {
-        skipped += 1;
-        continue;
-      }
-
-      for (const sub of user.pushSubscriptions) {
-        try {
-          await sendPushNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: sub.p256dh, auth: sub.auth },
-            },
-            payload,
-          );
-          sent += 1;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          if (message.includes("410") || message.includes("404")) {
-            await prisma.pushSubscription.deleteMany({
-              where: { userId: user.id, endpoint: sub.endpoint },
-            });
+        let delivered = false;
+        for (const sub of user.pushSubscriptions) {
+          try {
+            await sendPushNotification(
+              {
+                endpoint: sub.endpoint,
+                keys: { p256dh: sub.p256dh, auth: sub.auth },
+              },
+              payload,
+            );
+            sent += 1;
+            delivered = true;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (message.includes("410") || message.includes("404")) {
+              await prisma.pushSubscription.deleteMany({
+                where: { userId: user.id, endpoint: sub.endpoint },
+              });
+            }
+            errors.push(`${user.id}/${kind}: ${message}`);
           }
-          errors.push(`${user.id}: ${message}`);
+        }
+
+        if (delivered) {
+          await prisma.pushReminderLog.create({
+            data: { userId: user.id, kind, date: today },
+          });
         }
       }
     }
 
-    return NextResponse.json({ sent, skipped, errors: errors.slice(0, 10) });
+    return NextResponse.json({
+      sent,
+      skipped,
+      dryRun,
+      preview: preview.slice(0, 20),
+      errors: errors.slice(0, 10),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Cron failed" }, { status: 500 });
