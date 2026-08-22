@@ -28,7 +28,7 @@ Apache может проксировать запросы к Next.js. Само �
 
 ## Что нужно установить
 
-1. [Node.js 20+](https://nodejs.org/)
+1. [Node.js 24 LTS](https://nodejs.org/) (`node -v` должен быть `v24.x`)
 2. [MySQL 8+](https://dev.mysql.com/downloads/mysql/)
 3. Apache 2.4 (у вас уже установлен)
 4. (Опционально) [Git](https://git-scm.com/)
