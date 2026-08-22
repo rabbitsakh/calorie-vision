@@ -48,3 +48,14 @@ export function normalizeBarcode(value: string | null | undefined): string | nul
 
   return digits;
 }
+
+/** First raw decoder value that looks like EAN/UPC. */
+export function pickDecodedBarcode(rawValues: Array<string | null | undefined>): string | null {
+  for (const raw of rawValues) {
+    const normalized = normalizeBarcode(raw);
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}

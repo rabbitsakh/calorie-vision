@@ -91,8 +91,8 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
       <div className="flex flex-col gap-4">
         <div>
           <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Фото, название или штрихкод — затем подтвердите калории и БЖУ.
+            <p className="mt-1 text-sm text-slate-500">
+            Фото блюда, название или сканер штрихкода — затем подтвердите калории и БЖУ.
           </p>
         </div>
 

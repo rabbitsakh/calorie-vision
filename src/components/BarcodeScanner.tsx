@@ -1,33 +1,27 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  captureVideoFrame,
+  decodeBarcodeFromCanvas,
+  decodeBarcodeFromImageFile,
+} from "@/lib/decode-barcode-client";
 
 type BarcodeScannerProps = {
   disabled?: boolean;
   onDetected: (code: string) => void;
 };
 
-type BarcodeDetectorLike = {
-  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
-};
-
-type BarcodeDetectorCtor = new (options?: { formats?: string[] }) => BarcodeDetectorLike;
-
-function getBarcodeDetector(): BarcodeDetectorCtor | null {
-  if (typeof window === "undefined") return null;
-  return (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector ?? null;
-}
-
 export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
-  const [supported, setSupported] = useState<boolean | null>(null);
+  const busyRef = useRef(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setSupported(Boolean(getBarcodeDetector()));
     return () => {
       stopScanning();
     };
@@ -39,6 +33,7 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    busyRef.current = false;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
     if (videoRef.current) {
@@ -49,10 +44,8 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
 
   async function startScanning() {
     setError(null);
-    const Detector = getBarcodeDetector();
-    if (!Detector) {
-      setSupported(false);
-      setError("Сканер штрихкода не поддерживается в этом браузере — введите код вручную.");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Камера недоступна в этом браузере — загрузите снимок штрихкода или введите код вручную.");
       return;
     }
 
@@ -71,29 +64,25 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
       await video.play();
       setScanning(true);
 
-      const detector = new Detector({
-        formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"],
-      });
-
-      let lastCode = "";
       const tick = async () => {
-        if (!videoRef.current || videoRef.current.readyState < 2) {
-          rafRef.current = requestAnimationFrame(() => {
-            void tick();
-          });
-          return;
-        }
-        try {
-          const codes = await detector.detect(videoRef.current);
-          const raw = codes[0]?.rawValue?.trim();
-          if (raw && raw !== lastCode) {
-            lastCode = raw;
-            onDetected(raw);
-            stopScanning();
-            return;
+        if (!videoRef.current) return;
+        if (!busyRef.current) {
+          const frame = captureVideoFrame(videoRef.current);
+          if (frame) {
+            busyRef.current = true;
+            try {
+              const code = await decodeBarcodeFromCanvas(frame);
+              if (code) {
+                onDetected(code);
+                stopScanning();
+                return;
+              }
+            } catch {
+              // keep scanning
+            } finally {
+              busyRef.current = false;
+            }
           }
-        } catch {
-          // keep scanning
         }
         rafRef.current = requestAnimationFrame(() => {
           void tick();
@@ -103,21 +92,26 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
         void tick();
       });
     } catch {
-      setError("Не удалось открыть камеру. Разрешите доступ или введите код вручную.");
+      setError("Не удалось открыть камеру. Разрешите доступ, загрузите снимок или введите код вручную.");
       stopScanning();
     }
   }
 
-  if (supported === false) {
-    return (
-      <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        Сканер камеры недоступен в этом браузере — введите EAN вручную или сфотографируйте упаковку во вкладке «Фото».
-      </p>
-    );
+  async function handleFile(file: File) {
+    setError(null);
+    const code = await decodeBarcodeFromImageFile(file);
+    if (code) {
+      onDetected(code);
+      return;
+    }
+    setError("Не удалось прочитать штрихкод на снимке. Наведите камеру ближе или введите цифры вручную.");
   }
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="text-xs text-slate-500">
+        Сканер читает штрихкод на устройстве и сразу получает цифры — фото в GigaChat не отправляется.
+      </p>
       <div className="overflow-hidden rounded-2xl bg-slate-900">
         <video
           ref={videoRef}
@@ -146,6 +140,27 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
             Остановить сканер
           </button>
         )}
+        <button
+          type="button"
+          className="btn btn-quiet"
+          disabled={disabled || scanning}
+          onClick={() => fileRef.current?.click()}
+        >
+          Снимок штрихкода
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,.heic,.heif"
+          capture="environment"
+          className="hidden"
+          disabled={disabled}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void handleFile(file);
+          }}
+        />
       </div>
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
     </div>
