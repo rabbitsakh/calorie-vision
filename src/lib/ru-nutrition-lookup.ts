@@ -70,6 +70,8 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["мороженое", "пломбир"], dishName: "Мороженое", calories: 220, protein: 4, fat: 12, carbs: 24, sugar: 22, portionGrams: 100 },
   { keys: ["печенье", "печенье овсяное"], dishName: "Печенье", calories: 180, protein: 3, fat: 8, carbs: 24, sugar: 12, portionGrams: 40 },
   { keys: ["торт", "торт медовик"], dishName: "Торт", calories: 420, protein: 5, fat: 18, carbs: 58, sugar: 38, portionGrams: 120 },
+  { keys: ["кarbonara", "паста карбонара", "carbonara"], dishName: "Паста карбонара", calories: 520, protein: 22, fat: 24, carbs: 48, portionGrams: 280 },
+  { keys: ["болоньезе", "паста болоньезе", "bolognese"], dishName: "Паста болоньезе", calories: 480, protein: 24, fat: 18, carbs: 52, portionGrams: 280 },
   { keys: ["хурма"], dishName: "Хурма", calories: 102, protein: 1, fat: 0, carbs: 26, fiber: 3, sugar: 18, portionGrams: 150 },
   { keys: ["банан"], dishName: "Банан", calories: 120, protein: 1, fat: 0, carbs: 28, fiber: 3, sugar: 16, portionGrams: 120 },
   { keys: ["яблоко"], dishName: "Яблоко", calories: 95, protein: 0, fat: 0, carbs: 22, fiber: 4, sugar: 18, portionGrams: 180 },
