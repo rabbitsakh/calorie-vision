@@ -19,6 +19,7 @@ import {
   resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   scaleRecognitionToPortion,
+  scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { Chip } from "@/components/Chip";
@@ -77,7 +78,7 @@ function parseOptionalNumber(value: string): number | undefined {
 function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraft {
   const baseline = nutritionBaselineFromRecognition(item);
   const portionGrams = resolveDisplayPortionGrams(item);
-  const scaled = portionGrams ? scaleRecognitionToPortion(item, portionGrams) : null;
+  const scaled = portionGrams ? scaleRecognitionToDisplayPortion(item, portionGrams) : null;
 
   return {
     id,
@@ -129,7 +130,7 @@ function mergeDishesFromRecognition(
     const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
 
     if (needsRescale) {
-      const scaled = scaleRecognitionToPortion(draft.original, activePortion);
+      const scaled = scaleRecognitionToDisplayPortion(draft.original, activePortion);
       return {
         ...draft,
         portionGrams: String(activePortion),
@@ -368,7 +369,7 @@ export function ConfirmationCard({
     let scaled: ReturnType<typeof scaleRecognitionToPortion> | ReturnType<typeof scaleNutritionByPortion> = null;
     if (Number.isFinite(grams) && grams > 0) {
       if (resolvePer100gForScaling(dish.original)) {
-        scaled = scaleRecognitionToPortion(dish.original, grams);
+        scaled = scaleRecognitionToDisplayPortion(dish.original, grams);
       } else if (base) {
         scaled = scaleNutritionByPortion(base, grams);
       }
