@@ -22,6 +22,7 @@ type CustomFood = {
 type FavoriteFoodsProps = {
   selectedDate: string;
   onSaved: () => void;
+  embedded?: boolean;
 };
 
 function TrashIcon() {
@@ -33,7 +34,7 @@ function TrashIcon() {
   );
 }
 
-export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
+export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: FavoriteFoodsProps) {
   const [foods, setFoods] = useState<CustomFood[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -121,23 +122,23 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
     await load();
   }
 
-  if (hidden) {
+  if (hidden && !embedded) {
     return (
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
-        <span>⭐ Мои продукты</span>
+        <span>Мои продукты</span>
         <span className="text-xs">Показать</span>
       </button>
     );
   }
 
   return (
-    <section className="card p-4 md:p-6">
+    <section className={embedded ? "" : "card p-4 md:p-6"}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">Мои продукты</h2>
+        {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-slate-700">Сохранённые</span>}
         <div className="flex gap-2">
         <button
           type="button"
@@ -146,6 +147,7 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
         >
           {showForm ? "Отмена" : "+ Добавить"}
         </button>
+        {!embedded ? (
         <button
           type="button"
           className="btn-quiet"
@@ -153,6 +155,7 @@ export function FavoriteFoods({ selectedDate, onSaved }: FavoriteFoodsProps) {
         >
           Скрыть
         </button>
+        ) : null}
         </div>
       </div>
 

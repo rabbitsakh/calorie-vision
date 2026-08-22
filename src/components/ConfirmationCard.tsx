@@ -374,11 +374,11 @@ export function ConfirmationCard({
     <section className="card p-6">
       <div className="flex flex-col gap-5">
         <div>
-          <h2 className="text-xl font-bold">Проверьте распознавание</h2>
+          <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
           <p className="mt-1 text-sm text-slate-500">
             {multi
-              ? "На фото несколько блюд — каждое можно поправить и сохранить отдельно."
-              : "Измените порцию — калории и БЖУ пересчитаются сразу. Название можно уточнить поиском."}
+              ? "Несколько блюд — поправьте порции и сохраните."
+              : "Проверьте порцию и калории. БЖУ можно уточнить ниже."}
           </p>
         </div>
 
@@ -490,8 +490,8 @@ export function ConfirmationCard({
           </div>
         ) : null}
         {!mealType ? (
-          <p className="text-xs text-slate-400">
-            💡 Укажите тип приёма пищи — это поможет отслеживать бюджет по приёмам пищи
+          <p className="text-xs text-slate-500">
+            Укажите приём пищи — так удобнее смотреть бюджет дня
           </p>
         ) : null}
 
@@ -564,6 +564,9 @@ function DishFields({
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
   const showReviewCta = review.lowConfidence || review.missingCalories;
+  const [showAdvanced, setShowAdvanced] = useState(
+    () => review.lowConfidence || review.missingCalories,
+  );
 
   const alternativesSection = !multi && dish.original.alternatives?.length ? (
     <div>
@@ -666,8 +669,6 @@ function DishFields({
           ) : null}
         </div>
 
-        {alternativesSection}
-
         <div className="field">
           <label htmlFor={fieldId("calories")}>Калории, ккал</label>
           <input
@@ -711,65 +712,81 @@ function DishFields({
           <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
         </div>
 
-        <div className="field">
-          <label htmlFor={fieldId("protein")}>Белки, г</label>
-          <input
-            id={fieldId("protein")}
-            type="number"
-            min="0"
-            step="0.1"
-            value={dish.protein}
-            onChange={(event) => onBaselineChange({ protein: event.target.value })}
-          />
+        <div className="sm:col-span-2">
+          <button
+            type="button"
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            onClick={() => setShowAdvanced((value) => !value)}
+          >
+            {showAdvanced ? "Скрыть уточнения" : "Уточнить БЖУ, клетчатку и сахар"}
+          </button>
         </div>
 
-        <div className="field">
-          <label htmlFor={fieldId("fat")}>Жиры, г</label>
-          <input
-            id={fieldId("fat")}
-            type="number"
-            min="0"
-            step="0.1"
-            value={dish.fat}
-            onChange={(event) => onBaselineChange({ fat: event.target.value })}
-          />
-        </div>
+        {showAdvanced ? (
+          <>
+            {alternativesSection}
 
-        <div className="field">
-          <label htmlFor={fieldId("carbs")}>Углеводы, г</label>
-          <input
-            id={fieldId("carbs")}
-            type="number"
-            min="0"
-            step="0.1"
-            value={dish.carbs}
-            onChange={(event) => onBaselineChange({ carbs: event.target.value })}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor={fieldId("protein")}>Белки, г</label>
+              <input
+                id={fieldId("protein")}
+                type="number"
+                min="0"
+                step="0.1"
+                value={dish.protein}
+                onChange={(event) => onBaselineChange({ protein: event.target.value })}
+              />
+            </div>
 
-        <div className="field">
-          <label htmlFor={fieldId("fiber")}>Клетчатка, г</label>
-          <input
-            id={fieldId("fiber")}
-            type="number"
-            min="0"
-            step="0.1"
-            value={dish.fiber}
-            onChange={(event) => onBaselineChange({ fiber: event.target.value })}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor={fieldId("fat")}>Жиры, г</label>
+              <input
+                id={fieldId("fat")}
+                type="number"
+                min="0"
+                step="0.1"
+                value={dish.fat}
+                onChange={(event) => onBaselineChange({ fat: event.target.value })}
+              />
+            </div>
 
-        <div className="field">
-          <label htmlFor={fieldId("sugar")}>Сахар, г</label>
-          <input
-            id={fieldId("sugar")}
-            type="number"
-            min="0"
-            step="0.1"
-            value={dish.sugar}
-            onChange={(event) => onBaselineChange({ sugar: event.target.value })}
-          />
-        </div>
+            <div className="field">
+              <label htmlFor={fieldId("carbs")}>Углеводы, г</label>
+              <input
+                id={fieldId("carbs")}
+                type="number"
+                min="0"
+                step="0.1"
+                value={dish.carbs}
+                onChange={(event) => onBaselineChange({ carbs: event.target.value })}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor={fieldId("fiber")}>Клетчатка, г</label>
+              <input
+                id={fieldId("fiber")}
+                type="number"
+                min="0"
+                step="0.1"
+                value={dish.fiber}
+                onChange={(event) => onBaselineChange({ fiber: event.target.value })}
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor={fieldId("sugar")}>Сахар, г</label>
+              <input
+                id={fieldId("sugar")}
+                type="number"
+                min="0"
+                step="0.1"
+                value={dish.sugar}
+                onChange={(event) => onBaselineChange({ sugar: event.target.value })}
+              />
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );

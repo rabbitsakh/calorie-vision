@@ -68,9 +68,11 @@ function MacroBar({
 export function MealSuggestions({
   selectedDate,
   totalCalories,
+  embedded = false,
 }: {
   selectedDate: string;
   totalCalories: number;
+  embedded?: boolean;
 }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,14 +96,14 @@ export function MealSuggestions({
     }
   }
 
-  if (hidden) {
+  if (hidden && !embedded) {
     return (
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
-        <span>🤖 Рекомендации AI</span>
+        <span>Рекомендации AI</span>
         <span className="text-xs">Показать</span>
       </button>
     );
@@ -111,18 +113,15 @@ export function MealSuggestions({
     return (
       <button
         type="button"
-        className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-teal-200 px-4 py-3.5 text-sm text-teal-700 hover:border-teal-400 hover:bg-teal-50"
+        className={`flex w-full items-center gap-3 rounded-2xl border border-dashed border-teal-200 px-4 py-3.5 text-sm text-teal-700 hover:border-teal-400 hover:bg-teal-50 ${embedded ? "border-slate-200" : ""}`}
         onClick={() => { setVisible(true); void load(); }}
       >
-        <span className="text-xl">🤖</span>
         <div className="text-left">
           <p className="font-semibold">
-            {totalCalories === 0 ? "Что съесть сегодня? Спросить AI" : "Что ещё съесть сегодня?"}
+            {totalCalories === 0 ? "Что съесть сегодня?" : "Что ещё съесть?"}
           </p>
           <p className="text-xs text-teal-600">
-            {totalCalories === 0
-              ? "AI подберёт блюда под вашу цель и норму калорий"
-              : "AI проанализирует остаток макросов и предложит блюда"}
+            AI подберёт блюда под остаток калорий и макросов
           </p>
         </div>
       </button>
@@ -130,10 +129,10 @@ export function MealSuggestions({
   }
 
   return (
-    <section className="card overflow-hidden">
+    <section className={embedded ? "overflow-hidden" : "card overflow-hidden"}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 md:px-6">
-        <h2 className="text-base font-semibold">Рекомендации AI</h2>
+      <div className={`flex items-center justify-between gap-2 ${embedded ? "pb-3" : "px-4 py-3 md:px-6"}`}>
+        {!embedded ? <h2 className="text-base font-semibold">Рекомендации AI</h2> : <span className="text-sm font-semibold text-slate-700">Подбор AI</span>}
         <div className="flex gap-2">
           <button
             type="button"
@@ -143,6 +142,7 @@ export function MealSuggestions({
           >
             Обновить
           </button>
+          {!embedded ? (
           <button
             type="button"
             className="btn-quiet"
@@ -150,6 +150,7 @@ export function MealSuggestions({
           >
             Скрыть
           </button>
+          ) : null}
         </div>
       </div>
 

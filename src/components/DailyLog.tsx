@@ -86,10 +86,10 @@ function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fibe
     parts.push(`У ${entry.carbs}`);
   }
   if (entry.fiber) {
-    parts.push(`Кл ${entry.fiber}`);
+    parts.push(`клетчатка ${entry.fiber}`);
   }
   if (entry.sugar) {
-    parts.push(`Сах ${entry.sugar}`);
+    parts.push(`сахар ${entry.sugar}`);
   }
   return parts.join(" · ");
 }
@@ -440,6 +440,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [streakDays, setStreakDays] = useState<number>(0);
+  const [showNormDetails, setShowNormDetails] = useState(false);
   const attemptedImageDates = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
@@ -659,92 +660,90 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           ) : null}
 
           <div className="rounded-2xl bg-teal-700 px-4 py-3 text-white">
-            <div className="text-xs uppercase tracking-wide text-teal-50">Итого</div>
+            <div className="text-xs uppercase tracking-wide text-teal-50">Итого за день</div>
             <div className="text-2xl font-bold">{totals.calories} ккал</div>
-            <div className="whitespace-nowrap text-xs text-teal-50">
-              Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
-              {(totals.fiber > 0 || totals.sugar > 0)
-                ? ` · Кл ${totals.fiber} · Сах ${totals.sugar}`
-                : ""}
+            <div className="text-xs text-teal-50">
+              Белки {totals.protein} · Жиры {totals.fat} · Углеводы {totals.carbs}
             </div>
-            {daySummary.comparison ? (() => {
-              const target = daySummary.comparison.calories.target;
-              const pct = target > 0 ? Math.min(100, Math.round((totals.calories / target) * 100)) : 0;
-              return (
-                <div className="mt-2">
-                  <div
-                    role="progressbar"
-                    aria-valuenow={pct}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`${pct}% дневной нормы калорий`}
-                    className="h-2 overflow-hidden rounded-full bg-teal-900/40"
-                  >
-                    <div className="h-2 rounded-full bg-teal-200 transition-all duration-500" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="mt-0.5 text-xs text-teal-50">{pct}% от {target} ккал</div>
-                </div>
-              );
-            })() : null}
+            {(totals.fiber > 0 || totals.sugar > 0) ? (
+              <div className="mt-1 text-xs text-teal-100">
+                {totals.fiber > 0 ? `Клетчатка ${totals.fiber} г` : null}
+                {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
+                {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
+              </div>
+            ) : null}
           </div>
         </div>
 
         {daySummary.comparison && daySummary.calorieTone && daySummary.weightKg != null ? (
-          <>
-            <DietTargets
-              comparison={daySummary.comparison}
-              calorieTone={daySummary.calorieTone}
-              weightKg={daySummary.weightKg}
-              dietLabel={daySummary.dietLabel}
-              sex={daySummary.sex}
-            />
-            {daySummary.comparison.calories.target > 0 ? (() => {
-              const target = daySummary.comparison!.calories.target;
-              const budgets = [
-                { label: "Завтрак", pct: 0.25 },
-                { label: "Обед", pct: 0.35 },
-                { label: "Ужин", pct: 0.30 },
-                { label: "Перекус", pct: 0.10 },
-              ];
-              const eaten = Object.fromEntries(
-                (["BREAKFAST","LUNCH","DINNER","SNACK"] as const).map((type, i) => [
-                  budgets[i]!.label,
-                  entries.filter((e) => e.mealType === type).reduce((s, e) => s + e.calories, 0),
-                ])
-              );
-              const hasTypes = entries.some((e) => e.mealType);
-              if (!hasTypes) return null;
-              return (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">Бюджет по приёмам пищи</p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {budgets.map((b) => {
-                      const alloc = Math.round(target * b.pct);
-                      const used = eaten[b.label] ?? 0;
-                      const pct = Math.min(100, Math.round((used / alloc) * 100));
-                      const over = used > alloc;
-                      return (
-                        <div key={b.label} className="flex flex-col gap-1">
-                          <div className="flex justify-between text-xs">
-                            <span className="font-medium text-slate-700">{b.label}</span>
-                            <span className={over ? "text-rose-600" : "text-slate-500"}>{used} / {alloc} ккал</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                            <div className={`h-2 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })() : null}
-          </>
-        ) : (
+          <div className="flex flex-col gap-3">
+            {compact ? (
+              <button
+                type="button"
+                className="self-start text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                onClick={() => setShowNormDetails((value) => !value)}
+              >
+                {showNormDetails ? "Скрыть норму и бюджет" : "Норма и бюджет по приёмам"}
+              </button>
+            ) : null}
+            {(!compact || showNormDetails) ? (
+              <>
+                <DietTargets
+                  comparison={daySummary.comparison}
+                  calorieTone={daySummary.calorieTone}
+                  weightKg={daySummary.weightKg}
+                  dietLabel={daySummary.dietLabel}
+                  sex={daySummary.sex}
+                />
+                {daySummary.comparison.calories.target > 0 ? (() => {
+                  const target = daySummary.comparison!.calories.target;
+                  const budgets = [
+                    { label: "Завтрак", pct: 0.25 },
+                    { label: "Обед", pct: 0.35 },
+                    { label: "Ужин", pct: 0.30 },
+                    { label: "Перекус", pct: 0.10 },
+                  ];
+                  const eaten = Object.fromEntries(
+                    (["BREAKFAST","LUNCH","DINNER","SNACK"] as const).map((type, i) => [
+                      budgets[i]!.label,
+                      entries.filter((e) => e.mealType === type).reduce((s, e) => s + e.calories, 0),
+                    ])
+                  );
+                  const hasTypes = entries.some((e) => e.mealType);
+                  if (!hasTypes) return null;
+                  return (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="mb-3 text-sm font-semibold text-slate-700">Бюджет по приёмам пищи</p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {budgets.map((b) => {
+                          const alloc = Math.round(target * b.pct);
+                          const used = eaten[b.label] ?? 0;
+                          const pct = Math.min(100, Math.round((used / alloc) * 100));
+                          const over = used > alloc;
+                          return (
+                            <div key={b.label} className="flex flex-col gap-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="font-medium text-slate-700">{b.label}</span>
+                                <span className={over ? "text-rose-600" : "text-slate-500"}>{used} / {alloc} ккал</span>
+                              </div>
+                              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                                <div className={`h-2 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })() : null}
+              </>
+            ) : null}
+          </div>
+        ) : !compact ? (
           <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
             Чтобы увидеть рекомендуемый рацион и дефицит/профицит, укажите вес и выберите цель.
           </p>
-        )}
+        ) : null}
 
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}

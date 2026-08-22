@@ -11,9 +11,10 @@ const CACHE_PREFIX = "motivation-tip-";
 type MotivationTipProps = {
   today: string;
   selectedDate: string;
+  quietHide?: boolean;
 };
 
-export function MotivationTip({ today, selectedDate }: MotivationTipProps) {
+export function MotivationTip({ today, selectedDate, quietHide = false }: MotivationTipProps) {
   const [tip, setTip] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -58,6 +59,7 @@ export function MotivationTip({ today, selectedDate }: MotivationTipProps) {
   if (!tip || selectedDate !== today) return null;
 
   if (hidden) {
+    if (quietHide) return null;
     return (
       <button
         type="button"

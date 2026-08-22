@@ -47,7 +47,7 @@ function Ring({
             cy="44"
             r={r}
             fill="none"
-            stroke={over ? "#f43f5e" : "#0f766e"}
+            stroke={over ? "var(--danger)" : "var(--accent)"}
             strokeWidth="8"
             strokeLinecap="round"
             strokeDasharray={c}
@@ -163,7 +163,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="mb-3 text-sm font-semibold text-slate-800">Путь к цели сегодня</p>
+      <p className="mb-3 font-display text-sm font-semibold text-slate-800">Сегодня</p>
       <Ring
         pct={data.calorieTarget ? caloriePct : 0}
         label="Калории"
@@ -172,7 +172,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
             ? `${data.calories} / ${data.calorieTarget}`
             : `${data.calories} ккал`
         }
-        sub={data.calorieTarget ? "ккал" : "цель не задана"}
+        sub={data.calorieTarget ? "ккал к цели" : "цель не задана"}
       />
       <div className="mt-3 flex flex-col gap-2.5">
         {data.proteinTarget ? (

@@ -15,37 +15,58 @@ type AppShellProps = {
   description?: string;
   date?: string;
   headerExtra?: ReactNode;
+  /** Compact mobile chrome: smaller brand + title, optional description hidden on small screens. */
+  compact?: boolean;
   children: ReactNode;
 };
 
-export function AppShell({ title, description, date, headerExtra, children }: AppShellProps) {
+export function AppShell({
+  title,
+  description,
+  date,
+  headerExtra,
+  compact = false,
+  children,
+}: AppShellProps) {
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
 
   return (
     <>
-      <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 md:gap-6 md:py-8">
-        <header className="card p-4 md:p-6">
-          <div className="flex items-start justify-between gap-3">
+      <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-3 px-3 py-3 md:gap-6 md:px-4 md:py-8">
+        <header className={`card ${compact ? "p-3 md:p-5" : "p-4 md:p-6"}`}>
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <Link href={homeHref} className="inline-flex items-center gap-2 md:gap-3">
-                <BrandMark size={40} className="md:hidden" />
-                <BrandMark size={48} className="hidden md:block" />
-                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700 md:text-sm md:tracking-[0.2em]">
+                <BrandMark size={compact ? 32 : 40} className="md:hidden" />
+                <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
+                <span className="font-display text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-teal-700 md:text-sm md:tracking-[0.2em]">
                   Calorie Vision
                 </span>
               </Link>
-              <h1 className="mt-2 text-2xl font-bold md:text-3xl">{title}</h1>
+              <h1
+                className={`font-display font-bold tracking-tight text-slate-900 ${
+                  compact ? "mt-1.5 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl"
+                }`}
+              >
+                {title}
+              </h1>
               {description ? (
-                <p className="mt-1 max-w-2xl text-sm text-slate-600 md:mt-2 md:text-base">{description}</p>
+                <p
+                  className={`max-w-2xl text-sm text-slate-600 ${
+                    compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
+                  }`}
+                >
+                  {description}
+                </p>
               ) : null}
             </div>
             <AuthPanel />
           </div>
 
-          {headerExtra ? <div className="mt-4">{headerExtra}</div> : null}
+          {headerExtra ? <div className={compact ? "mt-3" : "mt-4"}>{headerExtra}</div> : null}
 
-          <nav className="mt-4 hidden flex-wrap gap-2 md:flex md:mt-6">
+          <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
             {APP_NAV.map((item) => {
               const active = pathname === item.href;
               const href =
@@ -79,19 +100,18 @@ export function AppShell({ title, description, date, headerExtra, children }: Ap
 
 export function PageFallback() {
   return (
-    <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 px-4 py-4 md:gap-6 md:py-8">
-      <section className="card p-4 md:p-6">
-        <div className="h-5 w-36 animate-pulse rounded-md bg-slate-200 md:h-6 md:w-44" />
-        <div className="mt-3 h-8 w-48 animate-pulse rounded-md bg-slate-200 md:h-9 md:w-56" />
-        <div className="mt-2 h-4 w-full max-w-md animate-pulse rounded bg-slate-100" />
-        <div className="mt-6 hidden gap-2 md:flex">
+    <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-3 px-3 py-3 md:gap-6 md:px-4 md:py-8">
+      <section className="card p-3 md:p-5">
+        <div className="h-4 w-28 animate-pulse rounded-md bg-slate-200" />
+        <div className="mt-2 h-7 w-40 animate-pulse rounded-md bg-slate-200" />
+        <div className="mt-4 hidden gap-2 md:flex">
           {[0, 1, 2, 3].map((item) => (
             <div key={item} className="h-10 w-24 animate-pulse rounded-full bg-slate-200" />
           ))}
         </div>
       </section>
-      <div className="card h-52 animate-pulse p-6 md:h-56" />
-      <div className="card h-72 animate-pulse p-6" />
+      <div className="card h-40 animate-pulse p-6" />
+      <div className="card h-56 animate-pulse p-6" />
     </main>
   );
 }
