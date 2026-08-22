@@ -284,7 +284,6 @@ function caloriesLookPer100g(calories: number): boolean {
 export function resolvePer100gForScaling(
   result: Pick<
     FoodRecognitionResult,
-    | "dishName"
     | "calories"
     | "protein"
     | "fat"
@@ -295,7 +294,7 @@ export function resolvePer100gForScaling(
     | "per100g"
     | "photoKind"
     | "source"
-  >,
+  > & { dishName?: string },
 ): Per100gValues | null {
   const normalized = normalizePer100gEnergy(result.per100g);
   if (normalized && normalized.calories > 0) {
@@ -395,7 +394,7 @@ export function nutritionBaselineFromRecognition(
   result: Pick<
     FoodRecognitionResult,
     "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g" | "photoKind" | "source"
-  >,
+  > & { dishName?: string },
 ): NutritionValues | null {
   const per100 = resolvePer100gForScaling(result);
   if (per100) {
