@@ -261,7 +261,56 @@ GIGACHAT_MODEL=GigaChat-2-Max
 GIGACHAT_API_BASE=https://api.giga.chat/v1
 ```
 
-### 3. Запуск приложения
+### 3. Node.js 24 на VPS
+
+Нужен **Node.js 24 LTS** (`node -v` → `v24.x`). Debian/Ubuntu, под root или через `sudo`.
+
+Сначала посмотрите, что стоит сейчас:
+
+```bash
+node -v
+which node
+command -v nvm || true
+```
+
+**Если Node ставили через apt / NodeSource** (часто `/usr/bin/node`):
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt-get install -y nodejs
+hash -r
+node -v   # v24.…
+npm -v
+```
+
+**Если пользуетесь nvm** (`which node` вроде `/home/.../.nvm/versions/node/...`):
+
+```bash
+source ~/.nvm/nvm.sh
+nvm install 24
+nvm alias default 24
+hash -r
+node -v
+```
+
+Потом перепривяжите pm2 к новому бинарнику и перезапустите приложение:
+
+```bash
+which node
+sudo npm install -g pm2
+cd /var/www/calorie-vision
+pm2 restart calorie-vision --update-env
+pm2 save
+# один раз после смены Node, чтобы systemd поднимал тот же node после ребута:
+pm2 unstartup
+pm2 startup
+# выполните команду, которую напечатает pm2 startup
+pm2 save
+```
+
+Проверка: `node -v` и `pm2 show calorie-vision` — в `node.js version` тоже 24. Дальше обычный деплой.
+
+### 4. Запуск приложения
 
 ```bash
 cd /var/www/calorie-vision
@@ -269,7 +318,7 @@ git pull
 bash deploy/deploy.sh
 ```
 
-### 4. Nginx
+### 5. Nginx
 
 ```bash
 # Ubuntu/Debian
@@ -282,20 +331,20 @@ nginx -t && systemctl reload nginx
 # cp deploy/nginx-calorievision.ru.conf /etc/nginx/conf.d/calorievision.ru.conf
 ```
 
-### 5. HTTPS
+### 6. HTTPS
 
 ```bash
 apt install -y certbot python3-certbot-nginx
 certbot --nginx -d calorievision.ru -d www.calorievision.ru
 ```
 
-### 6. Google OAuth
+### 7. Google OAuth
 
 - **Origins:** `https://calorievision.ru`
 - **Redirect URI:** `https://calorievision.ru/api/auth/callback/google`
 - `NEXTAUTH_URL` должен быть `https://calorievision.ru` **без** суффикса `/api/auth`.
 
-### 7. VK ID
+### 8. VK ID
 
 - **Redirect URL (точно, без `/` на конце):** `https://calorievision.ru/api/auth/callback/vk`
 - Базовый домен: `calorievision.ru` (без `www`)
