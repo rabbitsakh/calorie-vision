@@ -135,7 +135,7 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
         .slice(0, 3)
     : undefined;
 
-  const result: FoodRecognitionResult = {
+  let result: FoodRecognitionResult = {
     dishName,
     calories,
     protein: toNumber(parsed.protein),
@@ -170,6 +170,43 @@ function parseRecognitionObject(parsed: RawRecognition, includeItems: boolean): 
       ...item,
       photoKind: item.photoKind ?? result.photoKind ?? "meal",
     }));
+  } else if (items.length === 1) {
+    // Model sometimes nests a single dish in items — promote onto the parent
+    // instead of discarding the only structured portion.
+    const only = items[0]!;
+    const failedName = /не удалось распознать/i.test(result.dishName);
+    const parentWeak = !(result.calories > 0) && only.calories > 0;
+    if (parentWeak) {
+      result = {
+        ...result,
+        dishName: failedName ? only.dishName : result.dishName,
+        calories: only.calories,
+        protein: only.protein,
+        fat: only.fat,
+        carbs: only.carbs,
+        fiber: only.fiber !== undefined ? only.fiber : result.fiber,
+        sugar: only.sugar !== undefined ? only.sugar : result.sugar,
+        portionGrams:
+          only.portionGrams && only.portionGrams > 0
+            ? only.portionGrams
+            : result.portionGrams,
+        confidence: Math.max(result.confidence, only.confidence),
+        per100g: result.per100g ?? only.per100g,
+      };
+    } else {
+      result = {
+        ...result,
+        dishName: failedName ? only.dishName : result.dishName,
+        fiber: result.fiber !== undefined ? result.fiber : only.fiber,
+        sugar: result.sugar !== undefined ? result.sugar : only.sugar,
+        portionGrams:
+          result.portionGrams && result.portionGrams > 0
+            ? result.portionGrams
+            : only.portionGrams,
+        per100g: result.per100g ?? only.per100g,
+        confidence: Math.max(result.confidence, only.confidence),
+      };
+    }
   }
 
   return result;

@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 import { lookupFiberSugarWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
 import {
   applyStoredFoodCorrection,
@@ -30,6 +31,12 @@ import {
 
 export type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 export { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
+
+/** Wall-clock budget for post-vision OFF/GigaChat enrichment (nginx is ~180s total). */
+const POST_VISION_BUDGET_MS = 45_000;
+const PLATE_ENRICH_CONCURRENCY = 2;
+/** Barcode path: short fiber/sugar ask only — keep /api/food/lookup under proxy limits. */
+const BARCODE_FIBER_SUGAR_MS = 10_000;
 
 function isFailedName(name: string): boolean {
   return /не удалось распознать/i.test(name);
@@ -232,6 +239,7 @@ async function backfillMissingNutrition(
 async function enrichMealItem(
   vision: FoodRecognitionResult,
   userId?: string | null,
+  deadlineMs?: number,
 ): Promise<FoodRecognitionResult> {
   let result = normalizeRecognitionNutrition({
     ...vision,
@@ -245,14 +253,27 @@ async function enrichMealItem(
     result = normalizeRecognitionNutrition(nutritionFromLabel(result));
   }
 
-  // Skip GC/OFF backfill when vision already filled calories + macros (saves tokens).
-  if (!hasSufficientVisionNutrition(result)) {
-    result = await backfillMissingNutrition(result, userId);
+  const remaining =
+    deadlineMs === undefined ? POST_VISION_BUDGET_MS : Math.max(0, deadlineMs - Date.now());
+  if (remaining <= 0) {
+    return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
   }
-  // Same fiber/sugar path as text + barcode (calories may already be complete).
-  result = await enrichMissingFiberSugar(result, result.dishName);
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  const enriched = await withTimeoutFallback(
+    (async () => {
+      let next = result;
+      // Skip GC/OFF backfill when vision already filled calories + macros (saves tokens).
+      if (!hasSufficientVisionNutrition(next)) {
+        next = await backfillMissingNutrition(next, userId);
+      }
+      next = await enrichMissingFiberSugar(next, next.dishName);
+      return next;
+    })(),
+    remaining,
+    result,
+  );
+
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(enriched), userId);
 }
 
 export async function recognizeFoodWithAI(
@@ -267,20 +288,33 @@ export async function recognizeFoodWithAI(
   }
 
   const vision = await recognizeWithGigaChat(imageBuffer, filename);
+  const deadlineMs = Date.now() + POST_VISION_BUDGET_MS;
   const plated =
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
 
   if (plated && vision.items) {
-    const processed = await Promise.all(vision.items.map((item) => enrichMealItem(item, userId)));
+    const processed = await mapPool(vision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
+      enrichMealItem(item, userId, deadlineMs),
+    );
     return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
   }
 
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
   let result = normalizeRecognitionNutrition(enriched);
-  if (!hasSufficientVisionNutrition(result)) {
-    result = await backfillMissingNutrition(result, userId);
-  }
-  result = await enrichMissingFiberSugar(result, result.dishName);
+
+  const remaining = Math.max(0, deadlineMs - Date.now());
+  result = await withTimeoutFallback(
+    (async () => {
+      let next = result;
+      if (!hasSufficientVisionNutrition(next)) {
+        next = await backfillMissingNutrition(next, userId);
+      }
+      next = await enrichMissingFiberSugar(next, next.dishName);
+      return next;
+    })(),
+    remaining,
+    result,
+  );
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
@@ -298,7 +332,10 @@ async function withFoodImage(
   return imageUrl ? { ...result, imageUrl } : result;
 }
 
-export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRecognitionResult> {
+export async function lookupFoodByBarcode(
+  barcodeInput: string,
+  userId?: string | null,
+): Promise<FoodRecognitionResult> {
   const barcode = normalizeBarcode(barcodeInput);
   if (!barcode) {
     throw new Error("Укажите корректный штрихкод (8, 12 или 13 цифр)");
@@ -309,9 +346,8 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  // Barcode scans must stay fast: OFF only — no GigaChat backfill (avoids Safari "Load failed"
-  // when nginx closes a hung /api/food/lookup while waiting on AI for missing sugars).
-  const result = normalizeRecognitionNutrition(
+  // Keep OFF gaps as undefined (not fake 0). Optional short fiber/sugar ask with hard timeout.
+  let result = normalizeRecognitionNutrition(
     await withFoodImage(
       {
         dishName: off.dishName,
@@ -319,8 +355,8 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
         protein: off.protein,
         fat: off.fat,
         carbs: off.carbs,
-        fiber: off.fiber !== undefined ? off.fiber : 0,
-        sugar: off.sugar !== undefined ? off.sugar : 0,
+        fiber: off.fiber,
+        sugar: off.sugar,
         portionGrams: off.portionGrams,
         barcode: off.barcode ?? barcode,
         brand: off.brand,
@@ -333,7 +369,15 @@ export async function lookupFoodByBarcode(barcodeInput: string): Promise<FoodRec
     ),
   );
 
-  return result;
+  if (needsFiberSugarBackfill(result)) {
+    result = await withTimeoutFallback(
+      enrichMissingFiberSugar(result, off.dishName || barcode, off, { skipFullLookup: true }),
+      BARCODE_FIBER_SUGAR_MS,
+      result,
+    );
+  }
+
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
 export async function lookupFoodByName(
@@ -407,11 +451,13 @@ export async function lookupFoodByName(
  * Single fiber/sugar enrichment path for photo, text, and barcode.
  * Order: OFF pack fields → short GigaChat fiber/sugar ask → full name lookup.
  * Never overwrites explicit zeros (meat etc.).
+ * Leaves gaps as undefined when unknown (do not fake 0 — that hides missing data).
  */
 async function enrichMissingFiberSugar(
   result: FoodRecognitionResult,
   dishName: string,
   off?: PackNutrition | null,
+  options?: { skipFullLookup?: boolean },
 ): Promise<FoodRecognitionResult> {
   let next = result;
 
@@ -449,7 +495,11 @@ async function enrichMissingFiberSugar(
         sugar: next.sugar !== undefined ? next.sugar : partial.sugar,
       };
 
-      if (needsFiberSugarBackfill(next) && next.source !== "gigachat-lookup") {
+      if (
+        !options?.skipFullLookup &&
+        needsFiberSugarBackfill(next) &&
+        next.source !== "gigachat-lookup"
+      ) {
         const ai = await lookupFoodWithGigaChat(dishName);
         next = mergeFiberSugarBackfill(
           next,
@@ -463,15 +513,6 @@ async function enrichMissingFiberSugar(
     } catch (error) {
       console.error(error);
     }
-  }
-
-  // Confirm UI shows blank inputs for undefined — prefer explicit 0 after all attempts.
-  if (needsFiberSugarBackfill(next)) {
-    next = {
-      ...next,
-      fiber: next.fiber !== undefined ? next.fiber : 0,
-      sugar: next.sugar !== undefined ? next.sugar : 0,
-    };
   }
 
   return next;

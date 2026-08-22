@@ -13,11 +13,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as { dishName?: string; barcode?: string };
-    const barcode = body.barcode ? normalizeBarcode(body.barcode) : null;
+    const rawBarcode = typeof body.barcode === "string" ? body.barcode.trim() : "";
+    const barcode = rawBarcode ? normalizeBarcode(rawBarcode) : null;
     const dishName = body.dishName?.trim();
 
-    if (barcode) {
-      const recognition = await lookupFoodByBarcode(barcode);
+    if (rawBarcode) {
+      if (!barcode) {
+        return NextResponse.json(
+          { error: "Укажите корректный штрихкод (8, 12 или 13 цифр)" },
+          { status: 400 },
+        );
+      }
+      const recognition = await lookupFoodByBarcode(barcode, session.user.id);
       const imagePath = await cacheRemoteImage(recognition.imageUrl);
       return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
     }

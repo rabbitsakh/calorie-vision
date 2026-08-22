@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
-import { decodeBarcodeFromBitmapSource } from "@/lib/decode-barcode-client";
+import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { withBasePath } from "@/lib/paths";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -56,18 +56,12 @@ function ThinkingAnimation({ preview }: { preview: string | null }) {
   );
 }
 
-async function decodeBarcodeFromPhotoIfObvious(file: File): Promise<string | null> {
-  if (typeof createImageBitmap !== "function") return null;
-  try {
-    const bitmap = await createImageBitmap(file);
-    try {
-      return await decodeBarcodeFromBitmapSource(bitmap);
-    } finally {
-      bitmap.close();
-    }
-  } catch {
-    return null;
+function isLikelyImageFile(file: File): boolean {
+  if (file.type.startsWith("image/")) {
+    return true;
   }
+  // Some OS/HEIC pickers leave type empty — still accept by extension.
+  return /\.(heic|heif|jpe?g|png|webp|gif|avif)$/i.test(file.name);
 }
 
 export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploaderProps) {
@@ -78,6 +72,12 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   async function processFile(file: File) {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
@@ -92,9 +92,11 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
 
     const controller = new AbortController();
     abortRef.current = controller;
+    let handedOffPreview = false;
 
     try {
-      const localBarcode = await decodeBarcodeFromPhotoIfObvious(file);
+      // Same ZXing + BarcodeDetector path as the barcode tab.
+      const localBarcode = await decodeBarcodeFromImageFile(file);
       if (localBarcode && !controller.signal.aborted) {
         const lookupResponse = await fetch(withBasePath("/api/food/lookup"), {
           method: "POST",
@@ -108,23 +110,27 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
           error?: string;
         }>(lookupResponse);
         if (lookupResponse.ok && lookupData.recognition) {
+          handedOffPreview = true;
           onRecognized({
             imagePath: lookupData.imagePath ?? "",
+            previewUrl: objectUrl,
             recognition: lookupData.recognition,
           });
           return;
         }
-        // Barcode digits were read locally; don't send the photo to GigaChat.
-        throw new Error(
-          lookupData.error ??
-            `Штрихкод ${localBarcode} прочитан на устройстве, но продукт не найден в базе.`,
-        );
+        // OFF miss: fall through to vision instead of hard-failing on a readable EAN.
+      }
+
+      if (controller.signal.aborted) {
+        return;
       }
 
       const formData = new FormData();
       const uploadName =
         file.name?.trim() ||
-        (file.type.includes("heic") || file.type.includes("heif") ? "photo.heic" : "photo.jpg");
+        (file.type.includes("heic") || file.type.includes("heif") || /\.hei[cf]$/i.test(file.name)
+          ? "photo.heic"
+          : "photo.jpg");
       formData.append("photo", file, uploadName);
 
       const response = await fetch(withBasePath("/api/recognize"), {
@@ -138,12 +144,22 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
         throw new Error(data.error ?? "Ошибка распознавания");
       }
 
-      onRecognized(data);
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      handedOffPreview = true;
+      onRecognized({
+        ...data,
+        previewUrl: objectUrl,
+      });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setError(humanizeClientFetchError(err, "Не удалось загрузить фото"));
     } finally {
-      URL.revokeObjectURL(objectUrl);
+      if (!handedOffPreview) {
+        URL.revokeObjectURL(objectUrl);
+      }
       setPreview(null);
       setLoading(false);
       abortRef.current = null;
@@ -172,7 +188,7 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
     setDragOver(false);
     if (disabled || loading) return;
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) void processFile(file);
+    if (file && isLikelyImageFile(file)) void processFile(file);
   }
 
   function handleCancel() {
