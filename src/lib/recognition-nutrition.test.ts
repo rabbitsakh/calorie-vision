@@ -10,8 +10,10 @@ import {
   normalizeRecognitionNutrition,
   needsFiberSugarBackfill,
   needsNutritionLookup,
+  nutritionBaselineFromRecognition,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
+import { scaleNutritionByPortion } from "./nutrition.ts";
 
 test("normalizes zero calories from per100g data", () => {
   const normalized = normalizeRecognitionNutrition({
@@ -375,6 +377,50 @@ test("hasSufficientVisionNutrition skips backfill when macros are present", () =
     }),
     false,
   );
+});
+
+test("nutritionBaselineFromRecognition anchors per-100 ml drinks at 100 ml", () => {
+  const baseline = nutritionBaselineFromRecognition({
+    calories: 38,
+    carbs: 9,
+    portionGrams: 700,
+  });
+
+  assert.equal(baseline?.calories, 38);
+  assert.equal(baseline?.portionGrams, 100);
+
+  const scaled = scaleNutritionByPortion(baseline!, 1500);
+  assert.equal(scaled?.calories, 570);
+  assert.equal(scaled?.carbs, 135);
+});
+
+test("nutritionBaselineFromRecognition uses explicit per100g for portion chips", () => {
+  const baseline = nutritionBaselineFromRecognition({
+    calories: 266,
+    protein: 3,
+    fat: 0,
+    carbs: 63,
+    portionGrams: 700,
+    per100g: { calories: 38, protein: 0.4, fat: 0, carbs: 9 },
+  });
+
+  assert.equal(baseline?.calories, 38);
+  assert.equal(baseline?.portionGrams, 100);
+  assert.equal(scaleNutritionByPortion(baseline!, 1500)?.calories, 570);
+});
+
+test("nutritionBaselineFromRecognition keeps true portion totals for dense meals", () => {
+  const baseline = nutritionBaselineFromRecognition({
+    calories: 520,
+    protein: 24,
+    fat: 12,
+    carbs: 60,
+    portionGrams: 250,
+  });
+
+  assert.equal(baseline?.calories, 520);
+  assert.equal(baseline?.portionGrams, 250);
+  assert.equal(scaleNutritionByPortion(baseline!, 500)?.calories, 1040);
 });
 
 test("hasCompleteVisionNutrition skips enrichment when vision is full", () => {
