@@ -5,13 +5,28 @@ export type RecognitionRetryReason =
   | "plate-list-without-items"
   | "zero-calorie-meal"
   | "vague-name"
-  | "empty-label";
+  | "empty-label"
+  | "low-confidence"
+  | "missing-macros"
+  | "package-no-barcode";
 
 const VAGUE_NAME_RE =
   /^(еда|блюдо|ужин|обед|завтрак|перекус|food|meal|snack|продукт|набор)$/i;
 
 function looksLikeMultiDishName(dishName: string): boolean {
   return (dishName.match(/,/g) ?? []).length >= 1 || /\s+и\s+/i.test(dishName);
+}
+
+function positiveMacroCount(result: FoodRecognitionResult): number {
+  return [result.protein, result.fat, result.carbs].filter(
+    (value) => value !== undefined && value > 0,
+  ).length;
+}
+
+function hasAnyDefinedMacro(result: FoodRecognitionResult): boolean {
+  return [result.protein, result.fat, result.carbs].some(
+    (value) => value !== undefined && Number.isFinite(value),
+  );
 }
 
 /** Why a second vision pass is warranted — null when the first result is fine. */
@@ -41,10 +56,40 @@ export function getRecognitionRetryReason(
 
   if (
     looksPlatedMeal &&
+    result.confidence < 0.55 &&
+    result.calories > 0 &&
+    itemCount < 2
+  ) {
+    return "low-confidence";
+  }
+
+  if (
+    looksPlatedMeal &&
     VAGUE_NAME_RE.test(result.dishName.trim()) &&
     result.confidence < 0.85
   ) {
     return "vague-name";
+  }
+
+  if (
+    looksPlatedMeal &&
+    result.calories > 0 &&
+    positiveMacroCount(result) < 2 &&
+    !hasAnyDefinedMacro(result) &&
+    result.confidence >= 0.55 &&
+    result.confidence < 0.8 &&
+    itemCount === 0
+  ) {
+    return "missing-macros";
+  }
+
+  if (
+    (result.photoKind === "package" || result.photoKind === "barcode") &&
+    !result.barcode?.trim() &&
+    result.calories <= 0 &&
+    (result.per100g?.calories ?? 0) <= 0
+  ) {
+    return "package-no-barcode";
   }
 
   if (
@@ -78,6 +123,22 @@ export function isBetterRecognitionResult(
   if (newItems > curItems) return true;
 
   if (candidate.calories > current.calories && current.calories <= 0) return true;
+
+  if (
+    current.calories > 0 &&
+    positiveMacroCount(current) < 2 &&
+    positiveMacroCount(candidate) >= 2
+  ) {
+    return true;
+  }
+
+  if (
+    current.confidence < 0.55 &&
+    candidate.confidence >= current.confidence + 0.08 &&
+    candidate.calories >= current.calories
+  ) {
+    return true;
+  }
 
   if (
     shouldRetryFoodRecognition(current) &&

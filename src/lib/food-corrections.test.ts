@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   applyFoodCorrection,
+  correctionTokenOverlap,
   foodCorrectionKey,
   mergeRememberedCorrection,
   pickFoodCorrection,
@@ -79,4 +80,23 @@ test("finds partial correction matches for close names", () => {
   ]);
 
   assert.equal(picked?.correctedName, "Цезарь с курицей");
+});
+
+test("matches corrections by token overlap", () => {
+  assert.ok(correctionTokenOverlap("греческий салат с фетой", "салат греческий") >= 0.66);
+
+  const picked = pickFoodCorrection("греческий салат с фетой", [
+    {
+      originalKey: "салат греческий",
+      correctedName: "Греческий салат",
+      calories: 260,
+      protein: null,
+      fat: null,
+      carbs: null,
+      portionGrams: null,
+      useCount: 2,
+    },
+  ]);
+
+  assert.equal(picked?.correctedName, "Греческий салат");
 });

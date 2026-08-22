@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
   [/^Improve food recognition quality.*$/i, "Улучшено распознавание: тарелки, клетчатка, упаковки на фото"],
   [/^Refresh landing.*$/i, "Обновлены дизайн и тексты главной страницы"],
   [/^Fix Yandex Metrika.*$/i, "Яндекс Метрика считает визиты с первой загрузки страницы"],

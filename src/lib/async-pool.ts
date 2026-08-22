@@ -20,22 +20,33 @@ export async function mapPool<T, R>(
   return results;
 }
 
-/** Resolve with `fallback` if `work` does not finish before `ms`. */
+/** Resolve with `fallback` if `work` does not finish before `ms`. Calls `onTimeout` when the budget expires. */
 export async function withTimeoutFallback<T>(
   work: Promise<T>,
   ms: number,
   fallback: T,
+  onTimeout?: () => void,
 ): Promise<T> {
   if (ms <= 0) {
+    onTimeout?.();
     return fallback;
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let settled = false;
   try {
     return await Promise.race([
-      work,
+      work.then((value) => {
+        settled = true;
+        return value;
+      }),
       new Promise<T>((resolve) => {
-        timer = setTimeout(() => resolve(fallback), ms);
+        timer = setTimeout(() => {
+          if (!settled) {
+            onTimeout?.();
+          }
+          resolve(fallback);
+        }, ms);
       }),
     ]);
   } finally {

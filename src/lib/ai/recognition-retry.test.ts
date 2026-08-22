@@ -98,3 +98,62 @@ test("prefers retry that splits plate items", () => {
     true,
   );
 });
+
+test("retries low-confidence meals", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Котлета с гарниром",
+      calories: 420,
+      confidence: 0.42,
+      photoKind: "meal",
+    }),
+    "low-confidence",
+  );
+});
+
+test("retries meals missing macros", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Гречка с курицей",
+      calories: 380,
+      confidence: 0.72,
+      photoKind: "meal",
+    }),
+    "missing-macros",
+  );
+});
+
+test("retries package without barcode or nutrition", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Печенье",
+      calories: 0,
+      confidence: 0.62,
+      photoKind: "package",
+    }),
+    "package-no-barcode",
+  );
+});
+
+test("prefers candidate with filled macros", () => {
+  assert.equal(
+    isBetterRecognitionResult(
+      {
+        dishName: "Гречка с курицей",
+        calories: 380,
+        confidence: 0.72,
+        photoKind: "meal",
+      },
+      {
+        dishName: "Гречка с курицей",
+        calories: 390,
+        protein: 28,
+        fat: 8,
+        carbs: 42,
+        confidence: 0.78,
+        photoKind: "meal",
+      },
+    ),
+    true,
+  );
+});

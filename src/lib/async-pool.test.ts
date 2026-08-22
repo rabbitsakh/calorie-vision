@@ -23,3 +23,13 @@ test("withTimeoutFallback returns fallback when work is slow", async () => {
   const value = await withTimeoutFallback(slow, 5, "fallback");
   assert.equal(value, "fallback");
 });
+
+test("withTimeoutFallback calls onTimeout when budget expires", async () => {
+  let timedOut = false;
+  const slow = new Promise<string>((resolve) => setTimeout(() => resolve("late"), 50));
+  const value = await withTimeoutFallback(slow, 5, "fallback", () => {
+    timedOut = true;
+  });
+  assert.equal(value, "fallback");
+  assert.equal(timedOut, true);
+});

@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 import { lookupFiberSugarWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
 import {
@@ -199,6 +200,7 @@ export async function enrichPackagedProduct(
 async function backfillMissingNutrition(
   result: FoodRecognitionResult,
   userId?: string | null,
+  isCancelled?: () => boolean,
 ): Promise<FoodRecognitionResult> {
   if (!needsNutritionLookup(result)) {
     return result;
@@ -213,6 +215,9 @@ async function backfillMissingNutrition(
   let best = result;
 
   for (const name of names) {
+    if (isCancelled?.()) {
+      break;
+    }
     try {
       const looked = await lookupFoodByName(name, userId);
       if (!hasUsableCalories(looked) && needsNutritionLookup(looked)) {
@@ -236,6 +241,45 @@ async function backfillMissingNutrition(
   }
 
   return best;
+}
+
+async function runEnrichmentWithBudget(
+  result: FoodRecognitionResult,
+  userId: string | null | undefined,
+  remainingMs: number,
+  dishName: string,
+): Promise<{ result: FoodRecognitionResult; timedOut: boolean }> {
+  const gate = { cancelled: false };
+  const enriched = await withTimeoutFallback(
+    (async () => {
+      let next = result;
+      if (!hasSufficientVisionNutrition(next)) {
+        next = await backfillMissingNutrition(next, userId, () => gate.cancelled);
+      }
+      if (!gate.cancelled) {
+        next = await enrichMissingFiberSugar(next, dishName);
+      }
+      return next;
+    })(),
+    remainingMs,
+    result,
+    () => {
+      gate.cancelled = true;
+    },
+  );
+
+  logRecognitionPass({
+    pass: "enrichment",
+    photoKind: enriched.photoKind,
+    itemCount: enriched.items?.length ?? 0,
+    calories: enriched.calories,
+    confidence: enriched.confidence,
+    dishName: enriched.dishName,
+    source: enriched.source,
+    enrichmentTimedOut: gate.cancelled,
+  });
+
+  return { result: enriched, timedOut: gate.cancelled };
 }
 
 async function enrichMealItem(
@@ -272,18 +316,11 @@ async function enrichMealItem(
     return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
   }
 
-  const enriched = await withTimeoutFallback(
-    (async () => {
-      let next = result;
-      // Skip GC/OFF backfill when vision already filled calories + macros (saves tokens).
-      if (!hasSufficientVisionNutrition(next)) {
-        next = await backfillMissingNutrition(next, userId);
-      }
-      next = await enrichMissingFiberSugar(next, next.dishName);
-      return next;
-    })(),
-    remaining,
+  const { result: enriched } = await runEnrichmentWithBudget(
     result,
+    userId,
+    remaining,
+    result.dishName,
   );
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(enriched), userId);
@@ -320,18 +357,13 @@ export async function recognizeFoodWithAI(
   let result = normalizeRecognitionNutrition(enriched);
 
   const remaining = Math.max(0, deadlineMs - Date.now());
-  result = await withTimeoutFallback(
-    (async () => {
-      let next = result;
-      if (!hasSufficientVisionNutrition(next)) {
-        next = await backfillMissingNutrition(next, userId);
-      }
-      next = await enrichMissingFiberSugar(next, next.dishName);
-      return next;
-    })(),
-    remaining,
+  const { result: enrichedResult } = await runEnrichmentWithBudget(
     result,
+    userId,
+    remaining,
+    result.dishName,
   );
+  result = enrichedResult;
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }

@@ -4,35 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
 import { calorieTone, compareNutrient, formatGoalChoice, isSex, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
-import { rememberFoodCorrection } from "@/lib/food-corrections-store";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
+import {
+  buildMealCreateData,
+  rememberMealCorrectionIfNeeded,
+  validateSaveMealInput,
+  type SaveMealInput,
+} from "@/lib/save-meal";
 
-type SaveMealBody = {
-  date: string;
-  dishName: string;
-  calories: number;
-  protein?: number;
-  fat?: number;
-  carbs?: number;
-  fiber?: number;
-  sugar?: number;
-  portionGrams?: number;
-  confidence?: number;
-  imagePath?: string;
-  mealGroupId?: string;
-  mealType?: string;
-  wasCorrected?: boolean;
-  originalDish?: string;
-  originalCalories?: number;
-  originalProtein?: number;
-  originalFat?: number;
-  originalCarbs?: number;
-  originalFiber?: number;
-  originalSugar?: number;
-  recognitionSource?: string;
-  photoKind?: string;
-  barcode?: string;
-};
+type SaveMealBody = SaveMealInput;
+type BatchSaveMealBody = { entries: SaveMealInput[] };
+
+function isBatchSaveBody(body: unknown): body is BatchSaveMealBody {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    Array.isArray((body as BatchSaveMealBody).entries)
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,61 +30,60 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const body = (await request.json()) as SaveMealBody;
-    const date = requireDateKey(body.date);
+    const body = (await request.json()) as SaveMealBody | BatchSaveMealBody;
 
-    if (!date || !body.dishName || !Number.isFinite(body.calories)) {
-      return NextResponse.json(
-        { error: "Укажите дату, блюдо и калорийность" },
-        { status: 400 },
+    if (isBatchSaveBody(body)) {
+      if (body.entries.length === 0) {
+        return NextResponse.json({ error: "Список блюд пуст" }, { status: 400 });
+      }
+      if (body.entries.length > 20) {
+        return NextResponse.json({ error: "Слишком много блюд за один раз" }, { status: 400 });
+      }
+
+      const validated = body.entries.map((entry) => ({
+        entry,
+        ...validateSaveMealInput(entry),
+      }));
+      const invalid = validated.find((row) => row.error);
+      if (invalid?.error) {
+        return NextResponse.json({ error: invalid.error }, { status: 400 });
+      }
+
+      const mealGroupId =
+        body.entries.length > 1
+          ? body.entries.find((entry) => entry.mealGroupId?.trim())?.mealGroupId?.trim() ||
+            crypto.randomUUID()
+          : body.entries[0]?.mealGroupId?.trim() || null;
+
+      const entries = await prisma.$transaction(async (tx) => {
+        const created = [];
+        for (const row of validated) {
+          const data = buildMealCreateData(session.user.id, row.entry, row.date);
+          if (mealGroupId && !data.mealGroupId) {
+            data.mealGroupId = mealGroupId;
+          }
+          created.push(await tx.mealEntry.create({ data }));
+        }
+        return created;
+      });
+
+      await Promise.all(
+        validated.map((row) => rememberMealCorrectionIfNeeded(session.user.id, row.entry)),
       );
+
+      return NextResponse.json({ entries });
+    }
+
+    const validation = validateSaveMealInput(body);
+    if (validation.error) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const entry = await prisma.mealEntry.create({
-      data: {
-        userId: session.user.id,
-        date,
-        dishName: decodeHtmlEntities(body.dishName.trim()),
-        calories: Math.round(body.calories),
-        protein: body.protein,
-        fat: body.fat,
-        carbs: body.carbs,
-        fiber: body.fiber,
-        sugar: body.sugar,
-        portionGrams: body.portionGrams,
-        confidence: body.confidence,
-        imagePath: body.imagePath?.trim() || null,
-        mealGroupId: body.mealGroupId?.trim() || null,
-        mealType: (["BREAKFAST","LUNCH","DINNER","SNACK"].includes(body.mealType ?? "") ? body.mealType : null) as "BREAKFAST"|"LUNCH"|"DINNER"|"SNACK"|null,
-        wasCorrected: body.wasCorrected ?? false,
-        originalDish: body.originalDish ? decodeHtmlEntities(body.originalDish) : body.originalDish,
-        originalCalories: body.originalCalories,
-        recognitionSource: body.recognitionSource?.trim().slice(0, 64) || null,
-        photoKind: body.photoKind?.trim().slice(0, 32) || null,
-        barcode: body.barcode?.trim().slice(0, 32) || null,
-      },
+      data: buildMealCreateData(session.user.id, body, validation.date),
     });
 
-    if (body.wasCorrected && body.originalDish?.trim()) {
-      await rememberFoodCorrection({
-        userId: session.user.id,
-        originalDish: body.originalDish,
-        dishName: body.dishName,
-        calories: body.calories,
-        protein: body.protein,
-        fat: body.fat,
-        carbs: body.carbs,
-        fiber: body.fiber,
-        sugar: body.sugar,
-        portionGrams: body.portionGrams,
-        originalCalories: body.originalCalories,
-        originalProtein: body.originalProtein,
-        originalFat: body.originalFat,
-        originalCarbs: body.originalCarbs,
-        originalFiber: body.originalFiber,
-        originalSugar: body.originalSugar,
-      });
-    }
+    await rememberMealCorrectionIfNeeded(session.user.id, body);
 
     return NextResponse.json({ entry });
   } catch (error) {
