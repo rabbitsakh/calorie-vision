@@ -1,0 +1,84 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { buildRecognitionRetryPrompt } from "./recognition-retry-prompt.ts";
+import { pickSpecialistPass } from "./specialist-pass.ts";
+import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
+import { runRecognitionEvalSuite } from "./recognition-eval-harness.ts";
+import { parseFoodRecognitionResponse } from "./parse-response.ts";
+import { hasCompleteVisionNutrition } from "../recognition-nutrition.ts";
+import { combineRecognitionItems } from "../recognition-items.ts";
+
+test("eval harness passes all fixtures", () => {
+  const summary = runRecognitionEvalSuite(RECOGNITION_EVAL_CASES);
+  if (summary.failed > 0) {
+    const details = summary.results
+      .filter((result) => !result.passed)
+      .map((result) => `${result.id}: ${result.errors.join("; ")}`)
+      .join("\n");
+    assert.fail(`eval failures (${summary.failed}):\n${details}`);
+  }
+  assert.ok(summary.passed >= 20);
+});
+
+test("pickSpecialistPass prefers barcode before plate on package photo", () => {
+  const pass = pickSpecialistPass({
+    dishName: "Молоко",
+    calories: 0,
+    confidence: 0.7,
+    photoKind: "barcode",
+  });
+  assert.equal(pass, "barcode");
+});
+
+test("pickSpecialistPass routes drink before package for bottles", () => {
+  const pass = pickSpecialistPass({
+    dishName: "Coca-Cola Zero",
+    brand: "Coca-Cola",
+    calories: 1,
+    confidence: 0.7,
+    photoKind: "package",
+    portionGrams: 100,
+  });
+  assert.equal(pass, "drink");
+});
+
+test("pipeline/combine + complete vision on enriched plate item", () => {
+  const item = parseFoodRecognitionResponse(
+    RECOGNITION_EVAL_CASES.find((c) => c.id === "plate-multi")!.rawModelJson,
+  ).items![0]!;
+  assert.equal(
+    hasCompleteVisionNutrition({
+      ...item,
+      photoKind: "meal",
+    }),
+    false,
+  );
+
+  const combined = combineRecognitionItems(
+    [
+      { dishName: "Стейк", calories: 400, protein: 40, fat: 20, carbs: 0, portionGrams: 150, confidence: 0.8 },
+      { dishName: "Картофель", calories: 180, protein: 4, fat: 6, carbs: 28, portionGrams: 200, confidence: 0.75 },
+    ],
+    { dishName: "Обед", calories: 999, confidence: 0.5, photoKind: "meal" },
+  );
+  assert.equal(combined.calories, 580);
+});
+
+test("retry prompts cover all known reasons", () => {
+  const reasons = [
+    "plate-list-without-items",
+    "missing-macros",
+    "package-no-barcode",
+    "empty-label",
+    "low-confidence",
+    "vague-name",
+    "zero-calorie-meal",
+    "failed-name",
+  ] as const;
+
+  for (const reason of reasons) {
+    const prompt = buildRecognitionRetryPrompt(reason);
+    assert.ok(prompt.length > 100);
+    assert.match(prompt, /JSON/i);
+  }
+});

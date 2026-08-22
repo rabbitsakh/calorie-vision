@@ -1,7 +1,10 @@
 /**
  * Lightweight recognition telemetry (stdout JSON lines).
  * Set RECOGNITION_TELEMETRY=0 to silence.
+ * Set RECOGNITION_TELEMETRY_PERSIST=0 to skip DB writes.
  */
+
+import { persistRecognitionPassEvent } from "@/lib/ai/recognition-telemetry-store";
 
 export type RecognitionPassKind =
   | "main"
@@ -36,4 +39,8 @@ export function logRecognitionPass(event: RecognitionPassEvent): void {
   };
 
   console.info("[recognition]", JSON.stringify(payload));
+
+  void persistRecognitionPassEvent(event).catch((error) => {
+    console.warn("Recognition telemetry persist failed", error);
+  });
 }

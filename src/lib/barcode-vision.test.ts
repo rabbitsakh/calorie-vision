@@ -24,6 +24,20 @@ test("normalizes package barcodes", () => {
   assert.equal(cleaned.barcode, "4600605023124");
 });
 
+test("barcode pass skips drink bottles on package front", () => {
+  assert.equal(
+    shouldRunBarcodePass({
+      dishName: "Coca-Cola Zero",
+      brand: "Coca-Cola",
+      calories: 1,
+      confidence: 0.7,
+      photoKind: "package",
+      portionGrams: 100,
+    }),
+    false,
+  );
+});
+
 test("barcode pass also runs for package without digits", () => {
   assert.equal(
     shouldRunBarcodePass({

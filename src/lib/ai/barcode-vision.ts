@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { normalizeBarcode } from "../barcode";
+import { shouldRunDrinkPass } from "./drink-vision";
 import { looksLikeMultiDishName } from "./plate-vision";
 
 /** Drop invented barcodes on plated meals; normalize elsewhere. */
@@ -23,6 +24,11 @@ export function shouldRunBarcodePass(result: FoodRecognitionResult): boolean {
 
   // Mixed plate sometimes misclassified as package — don't waste a barcode pass.
   if (looksLikeMultiDishName(result.dishName)) {
+    return false;
+  }
+
+  // Bottles: volume specialist beats hunting barcode on front label art.
+  if (result.photoKind !== "barcode" && shouldRunDrinkPass(result)) {
     return false;
   }
 
