@@ -14,6 +14,7 @@ describe("looksLikeDrinkName", () => {
     assert.equal(looksLikeDrinkName("Апельсиновый сок"), true);
     assert.equal(looksLikeDrinkName("Молоко 2.5%"), true);
     assert.equal(looksLikeDrinkName("Кофе латте"), true);
+    assert.equal(looksLikeDrinkName("Coca-Cola Zero", "Coca-Cola"), true);
   });
 
   it("does not treat sausage as juice", () => {

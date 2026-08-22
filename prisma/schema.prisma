@@ -148,6 +148,26 @@ model MealEntry {
   @@index([recognitionSource])
 }
 
+model RecognitionPassLog {
+  id                 String   @id @default(cuid())
+  pass               String   @db.VarChar(16)
+  photoKind          String?  @db.VarChar(32)
+  retryReason        String?  @db.VarChar(32)
+  specialistPass     String?  @db.VarChar(16)
+  itemCount          Int      @default(0)
+  calories           Int      @default(0)
+  confidence         Float    @default(0)
+  dishName           String?  @db.VarChar(80)
+  source             String?  @db.VarChar(64)
+  chatCalls          Int?
+  latencyMs          Int?
+  enrichmentTimedOut Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([pass])
+}
+
 model WaterEntry {
   id        String   @id @default(cuid())
   userId    String

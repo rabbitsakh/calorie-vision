@@ -1,15 +1,28 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
+import { summarizeLatencyMs } from "@/lib/ai/recognition-percentiles";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+const TELEMETRY_WINDOW_DAYS = 7;
+
+function countByKey<T extends string>(
+  rows: Array<{ key: T | null; count: number }>,
+): Array<{ key: T; count: number }> {
+  return rows
+    .filter((row): row is { key: T; count: number } => row.key !== null)
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function GET() {
   try {
     const { response } = await requireAdmin();
     if (response) return response;
+
+    const since = new Date(Date.now() - TELEMETRY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
     const [
       totalRecognitions,
@@ -19,6 +32,7 @@ export async function GET() {
       corrections,
       bySource,
       byPhotoKind,
+      telemetryRows,
     ] = await Promise.all([
       prisma.mealEntry.count({ where: { confidence: { not: null } } }),
       prisma.mealEntry.count({ where: { wasCorrected: true } }),
@@ -46,12 +60,63 @@ export async function GET() {
         where: { photoKind: { not: null } },
         orderBy: { _count: { id: "desc" } },
       }),
+      prisma.recognitionPassLog.findMany({
+        where: { createdAt: { gte: since } },
+        select: {
+          pass: true,
+          latencyMs: true,
+          chatCalls: true,
+          retryReason: true,
+          specialistPass: true,
+          enrichmentTimedOut: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5000,
+      }),
     ]);
 
     const correctionRate =
       totalRecognitions > 0
         ? Math.round((correctedCount / totalRecognitions) * 100)
         : 0;
+
+    const acceptedLatencies = telemetryRows
+      .filter((row) => row.pass === "accepted" && row.latencyMs !== null)
+      .map((row) => row.latencyMs!);
+    const latencySummary = summarizeLatencyMs(acceptedLatencies);
+
+    const chatCalls = telemetryRows
+      .filter((row) => row.pass === "accepted" && row.chatCalls !== null)
+      .map((row) => row.chatCalls!);
+    const chatCallsSummary = summarizeLatencyMs(chatCalls);
+
+    const byPassMap = new Map<string, number[]>();
+    for (const row of telemetryRows) {
+      if (row.latencyMs === null) continue;
+      const bucket = byPassMap.get(row.pass) ?? [];
+      bucket.push(row.latencyMs);
+      byPassMap.set(row.pass, bucket);
+    }
+
+    const latencyByPass = [...byPassMap.entries()].map(([pass, values]) => ({
+      pass,
+      ...summarizeLatencyMs(values),
+    }));
+
+    const retryReasonCounts = new Map<string, number>();
+    for (const row of telemetryRows) {
+      if (!row.retryReason) continue;
+      retryReasonCounts.set(row.retryReason, (retryReasonCounts.get(row.retryReason) ?? 0) + 1);
+    }
+
+    const specialistCounts = new Map<string, number>();
+    for (const row of telemetryRows) {
+      if (!row.specialistPass) continue;
+      specialistCounts.set(row.specialistPass, (specialistCounts.get(row.specialistPass) ?? 0) + 1);
+    }
+
+    const enrichmentRows = telemetryRows.filter((row) => row.pass === "enrichment");
+    const enrichmentTimeouts = enrichmentRows.filter((row) => row.enrichmentTimedOut).length;
 
     return NextResponse.json({
       totalRecognitions,
@@ -79,6 +144,26 @@ export async function GET() {
         photoKind: row.photoKind ?? "unknown",
         count: row._count.id,
       })),
+      telemetry: {
+        windowDays: TELEMETRY_WINDOW_DAYS,
+        eventCount: telemetryRows.length,
+        acceptedLatency: latencySummary,
+        chatCalls: {
+          count: chatCallsSummary.count,
+          p50: chatCallsSummary.p50Ms,
+          p95: chatCallsSummary.p95Ms,
+          max: chatCallsSummary.maxMs,
+        },
+        latencyByPass,
+        retryReasons: countByKey(
+          [...retryReasonCounts.entries()].map(([key, count]) => ({ key, count })),
+        ),
+        specialistPasses: countByKey(
+          [...specialistCounts.entries()].map(([key, count]) => ({ key, count })),
+        ),
+        enrichmentTimeouts,
+        enrichmentTotal: enrichmentRows.length,
+      },
     });
   } catch (error) {
     console.error(error);
