@@ -10,7 +10,7 @@ import {
 } from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
 import { lookupFiberSugarTable } from "@/lib/fiber-sugar-table";
-import { enrichAlternativesFromRuTable } from "@/lib/recognition-alternatives";
+import { enrichAlternatives } from "@/lib/recognition-alternatives";
 import { lookupQueriesForName } from "@/lib/dish-lookup-synonyms";
 import {
   combineRecognitionItems,
@@ -443,10 +443,10 @@ async function enrichPlateFiberSugarBatch(
 function finalizeRecognitionResult(
   result: FoodRecognitionResult,
   userId?: string | null,
+  deadlineMs?: number,
 ): Promise<FoodRecognitionResult> {
-  return applyStoredFoodCorrection(
-    normalizeRecognitionNutrition(enrichAlternativesFromRuTable(result)),
-    userId,
+  return enrichAlternatives(result, { deadlineMs }).then((withAlternatives) =>
+    applyStoredFoodCorrection(normalizeRecognitionNutrition(withAlternatives), userId),
   );
 }
 
@@ -466,6 +466,7 @@ export async function enrichRecognitionAfterVision(
     return finalizeRecognitionResult(
       combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" }),
       userId,
+      deadlineMs,
     );
   }
 
@@ -481,7 +482,7 @@ export async function enrichRecognitionAfterVision(
   );
   result = enrichedResult;
 
-  return finalizeRecognitionResult(result, userId);
+  return finalizeRecognitionResult(result, userId, deadlineMs);
 }
 
 export async function recognizeFoodWithAI(

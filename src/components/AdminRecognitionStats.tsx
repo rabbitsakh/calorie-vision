@@ -16,6 +16,17 @@ type RecognitionStats = {
   correctedCount: number;
   correctionRate: number;
   avgConfidence: number | null;
+  confidenceCalibration?: {
+    currentLowConfidence: number;
+    suggestedLowConfidence: number;
+    buckets: Array<{
+      bucketMin: number;
+      bucketMax: number;
+      count: number;
+      correctedCount: number;
+      correctionRate: number;
+    }>;
+  };
   topMisrecognized: Array<{ dish: string; count: number }>;
   savedCorrections: number;
   bySource?: Array<{ source: string; label: string; count: number }>;
@@ -92,6 +103,50 @@ export function AdminRecognitionStats() {
               </p>
             </div>
           </div>
+
+          {stats.confidenceCalibration && stats.confidenceCalibration.buckets.length > 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="mb-3 text-sm font-semibold text-slate-800">Калибровка confidence</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl bg-white px-3 py-2">
+                  <p className="text-xs text-slate-500">Порог «низкая уверенность» сейчас</p>
+                  <p className="text-lg font-bold">
+                    {Math.round(stats.confidenceCalibration.currentLowConfidence * 100)}%
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white px-3 py-2">
+                  <p className="text-xs text-slate-500">Рекомендация по данным</p>
+                  <p className="text-lg font-bold">
+                    {Math.round(stats.confidenceCalibration.suggestedLowConfidence * 100)}%
+                  </p>
+                </div>
+              </div>
+              <div className="admin-table-wrap mt-4">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Confidence</th>
+                      <th>N</th>
+                      <th>Исправлено</th>
+                      <th>% исправлений</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.confidenceCalibration.buckets.map((row) => (
+                      <tr key={row.bucketMin}>
+                        <td className="font-medium">
+                          {Math.round(row.bucketMin * 100)}–{Math.round(row.bucketMax * 100)}%
+                        </td>
+                        <td>{row.count}</td>
+                        <td>{row.correctedCount}</td>
+                        <td>{row.correctionRate}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
 
           {telemetry && telemetry.eventCount > 0 ? (
             <div className="rounded-2xl border border-teal-100 bg-teal-50/50 px-4 py-4">
