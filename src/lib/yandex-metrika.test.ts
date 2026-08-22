@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseMetrikaId, shouldTrackMetrikaPath } from "./yandex-metrika.ts";
+import {
+  buildMetrikaInitScript,
+  parseMetrikaId,
+  resolveMetrikaId,
+  shouldTrackMetrikaPath,
+} from "./yandex-metrika.ts";
 
 test("accepts numeric Metrika counter ids", () => {
   assert.equal(parseMetrikaId("12345678"), "12345678");
@@ -14,10 +19,24 @@ test("rejects empty and non-numeric ids", () => {
   assert.equal(parseMetrikaId("<script>"), null);
 });
 
+test("falls through empty primary env to fallback id", () => {
+  assert.equal(resolveMetrikaId("", "111847071"), "111847071");
+  assert.equal(resolveMetrikaId("111847071", "999"), "111847071");
+  assert.equal(resolveMetrikaId("", ""), null);
+});
+
 test("skips admin paths for Metrika hits", () => {
   assert.equal(shouldTrackMetrikaPath("/"), true);
   assert.equal(shouldTrackMetrikaPath("/ration"), true);
   assert.equal(shouldTrackMetrikaPath("/login"), true);
   assert.equal(shouldTrackMetrikaPath("/admin"), false);
   assert.equal(shouldTrackMetrikaPath("/admin/users"), false);
+});
+
+test("init snippet interpolates only a numeric id and sends the first hit", () => {
+  const script = buildMetrikaInitScript("111847071");
+  assert.match(script, /ym\(111847071,"init"/);
+  assert.match(script, /ym\(111847071,"hit",location\.href\)/);
+  assert.match(script, /mc\.yandex\.ru\/metrika\/tag\.js/);
+  assert.equal(buildMetrikaInitScript("<script>"), "");
 });
