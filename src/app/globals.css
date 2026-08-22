@@ -805,6 +805,12 @@ textarea {
   transform-origin: center;
 }
 
+.mascot-empty .mascot-empty-bubble {
+  animation: mascot-tip-dot 2.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
 .mascot-empty {
   animation: mascot-empty-peek 3.2s ease-in-out infinite;
 }
@@ -818,13 +824,13 @@ textarea {
 
 .mascot-leaf-left {
   transform-box: fill-box;
-  transform-origin: 62px 46px;
+  transform-origin: 52px 48px;
   animation: mascot-leaf-sway-left 2.8s ease-in-out infinite;
 }
 
 .mascot-leaf-right {
   transform-box: fill-box;
-  transform-origin: 66px 46px;
+  transform-origin: 76px 48px;
   animation: mascot-leaf-sway-right 2.5s ease-in-out infinite;
 }
 
