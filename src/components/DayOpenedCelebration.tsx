@@ -29,6 +29,8 @@ type SoftCopy = {
   pose: MascotPose;
 };
 
+const RETRY_DELAYS_MS = [0, 450, 1200];
+
 /**
  * Fires once when the user goes from “no meals today” → “at least one”.
  * If a streak continues (streak > 0) and there is no milestone modal pending,
@@ -42,20 +44,24 @@ export function DayOpenedCelebration({
   const [open, setOpen] = useState(false);
   const [copy, setCopy] = useState<SoftCopy>({
     title: "День открыт",
-    subtitle: "Первая запись сегодня — привычка снова в деле.",
+    subtitle: "Первая запись сегодня",
     pose: "cheer",
   });
   const prevLogged = useRef<boolean | null>(null);
+  const openedRef = useRef(false);
 
   const close = useCallback(() => setOpen(false), []);
 
   useEffect(() => {
     if (selectedDate !== today) return;
 
-    void (async () => {
+    let cancelled = false;
+    const timers: number[] = [];
+
+    async function pollStreak() {
       try {
         const resp = await fetch(withBasePath(`/api/streak?today=${encodeURIComponent(today)}`));
-        if (!resp.ok) return;
+        if (!resp.ok || cancelled || openedRef.current) return;
         const data = (await resp.json()) as StreakPayload;
         const logged = Boolean(data.loggedToday);
         const streak = data.streak ?? 0;
@@ -66,12 +72,10 @@ export function DayOpenedCelebration({
           if (milestonePending) {
             markSoftCelebrationSeen("day-opened", today);
             markSoftCelebrationSeen("streak-saved", today);
-          } else if (
-            streak > 0 &&
-            !isSoftCelebrationSeen("streak-saved", today)
-          ) {
+          } else if (streak > 0 && !isSoftCelebrationSeen("streak-saved", today)) {
             markSoftCelebrationSeen("day-opened", today);
             markSoftCelebrationSeen("streak-saved", today);
+            openedRef.current = true;
             setCopy({
               title: "Серия сохранена",
               subtitle: `${streak} ${pluralDays(streak)} подряд — отличный ход.`,
@@ -81,9 +85,10 @@ export function DayOpenedCelebration({
             setOpen(true);
           } else if (!isSoftCelebrationSeen("day-opened", today)) {
             markSoftCelebrationSeen("day-opened", today);
+            openedRef.current = true;
             setCopy({
               title: "День открыт",
-              subtitle: "Первая запись сегодня — привычка снова в деле.",
+              subtitle: "Первая запись сегодня",
               pose: "cheer",
             });
             setOpen(true);
@@ -94,7 +99,18 @@ export function DayOpenedCelebration({
       } catch {
         // non-critical
       }
-    })();
+    }
+
+    for (const delay of RETRY_DELAYS_MS) {
+      timers.push(window.setTimeout(() => void pollStreak(), delay));
+    }
+
+    return () => {
+      cancelled = true;
+      for (const timer of timers) {
+        window.clearTimeout(timer);
+      }
+    };
   }, [today, selectedDate, refreshKey]);
 
   return (

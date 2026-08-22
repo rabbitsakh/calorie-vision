@@ -102,6 +102,17 @@ function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] 
 }
 
 /** Keep user-selected portion when SSE enrichment updates recognition. */
+function userEditedDishName(dish: DishDraft): boolean {
+  return dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName).trim();
+}
+
+function preserveUserEdits(previous: DishDraft, draft: DishDraft): DishDraft {
+  if (!userEditedDishName(previous)) {
+    return draft;
+  }
+  return { ...draft, dishName: previous.dishName };
+}
+
 function mergeDishesFromRecognition(
   current: DishDraft[],
   recognition: FoodRecognitionResult,
@@ -131,7 +142,7 @@ function mergeDishesFromRecognition(
 
     if (needsRescale) {
       const scaled = scaleRecognitionToDisplayPortion(draft.original, activePortion);
-      return {
+      return preserveUserEdits(previous, {
         ...draft,
         portionGrams: String(activePortion),
         baseline,
@@ -141,7 +152,7 @@ function mergeDishesFromRecognition(
         carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
         fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
         sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-      };
+      });
     }
 
     if (
@@ -149,19 +160,19 @@ function mergeDishesFromRecognition(
       preservedPortion <= 0 ||
       preservedPortion === incomingPortion
     ) {
-      return draft;
+      return preserveUserEdits(previous, draft);
     }
 
     if (!baseline) {
-      return { ...draft, portionGrams: previous.portionGrams };
+      return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams });
     }
 
     const scaled = scaleNutritionByPortion(baseline, preservedPortion);
     if (!scaled) {
-      return { ...draft, portionGrams: previous.portionGrams, baseline };
+      return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams, baseline });
     }
 
-    return {
+    return preserveUserEdits(previous, {
       ...draft,
       portionGrams: previous.portionGrams,
       baseline,
@@ -171,8 +182,19 @@ function mergeDishesFromRecognition(
       carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
       fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
       sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-    };
+    });
   });
+}
+
+function dishLookupDisabled(
+  dishId: string,
+  saving: boolean,
+  searchingId: string | null,
+): boolean {
+  if (saving) return true;
+  if (searchingId === "all") return true;
+  if (searchingId !== null && searchingId !== dishId) return false;
+  return searchingId === dishId;
 }
 
 const DEFAULT_LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
@@ -735,26 +757,6 @@ export function ConfirmationCard({
                 </Chip>
               ))}
             </div>
-            {reviewFlags.some((flag) => flag.lowConfidence) ? (
-              <div className="flex flex-wrap gap-2">
-                {dishes.map((dish, index) =>
-                  reviewFlags[index]?.lowConfidence ? (
-                    <button
-                      key={`refine-${dish.id}`}
-                      type="button"
-                      className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
-                      disabled={saving || searching || enriching}
-                      onClick={() => {
-                        setActiveDish(index);
-                        void handleLookup(dish);
-                      }}
-                    >
-                      Уточнить: {dish.dishName || `блюдо ${index + 1}`}
-                    </button>
-                  ) : null,
-                )}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -769,7 +771,7 @@ export function ConfirmationCard({
                   index={index}
                   multi={multi}
                   searching={searchingId === dish.id}
-                  disabled={saving || searching || enriching}
+                  disabled={dishLookupDisabled(dish.id, saving, searchingId)}
                   canRemove={multi}
                   review={reviewFlags[index]!}
                   onChange={(patch) => updateDish(dish.id, patch)}
@@ -857,6 +859,7 @@ export function ConfirmationCard({
             </Chip>
           ))}
         </div>
+        <div className="confirm-card-scroll-spacer" aria-hidden />
         <div className="sticky-actions">
           <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? (
