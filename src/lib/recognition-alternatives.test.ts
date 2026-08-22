@@ -4,6 +4,7 @@ import {
   alternativeNeedsMacroBackfill,
   backfillAlternativeFromPack,
   enrichAlternatives,
+  enrichAlternativesFromGigaChat,
   enrichAlternativesFromOff,
   enrichAlternativesFromRuTable,
 } from "./recognition-alternatives.ts";
@@ -114,4 +115,58 @@ test("enrichAlternatives prefers RU table then OFF", async () => {
 
   assert.equal(enriched.alternatives?.[0]?.protein, 12);
   assert.equal(enriched.alternatives?.[1]?.protein, 20);
+});
+
+test("enrichAlternativesFromGigaChat backfills macros when RU/OFF miss", async () => {
+  const enriched = await enrichAlternativesFromGigaChat(
+    {
+      dishName: "Салат",
+      calories: 180,
+      confidence: 0.6,
+      alternatives: [{ dishName: "Цезарь с курицей", calories: 420 }],
+    },
+    {
+      lookup: async () => ({
+        dishName: "Цезарь с курицей",
+        calories: 420,
+        protein: 22,
+        fat: 28,
+        carbs: 18,
+        confidence: 0.7,
+      }),
+    },
+  );
+
+  const alt = enriched.alternatives?.[0];
+  assert.equal(alt?.protein, 22);
+  assert.equal(alt?.fat, 28);
+  assert.equal(alt?.carbs, 18);
+});
+
+test("enrichAlternatives prefers RU table, OFF, then GigaChat", async () => {
+  const enriched = await enrichAlternatives(
+    {
+      dishName: "Щи",
+      calories: 220,
+      confidence: 0.6,
+      alternatives: [
+        { dishName: "Борщ с мясом", calories: 280 },
+        { dishName: "Exotic salad bowl", calories: 320 },
+      ],
+    },
+    {
+      search: async () => null,
+      lookup: async (name) => ({
+        dishName: name,
+        calories: 320,
+        protein: 15,
+        fat: 12,
+        carbs: 30,
+        confidence: 0.7,
+      }),
+    },
+  );
+
+  assert.equal(enriched.alternatives?.[0]?.protein, 12);
+  assert.equal(enriched.alternatives?.[1]?.protein, 15);
 });

@@ -175,12 +175,15 @@ function mergeDishesFromRecognition(
   });
 }
 
-const LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
+const DEFAULT_LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
 
-function dishNeedsReview(dish: DishDraft): { lowConfidence: boolean; missingCalories: boolean } {
+function dishNeedsReview(
+  dish: DishDraft,
+  lowConfidenceThreshold: number,
+): { lowConfidence: boolean; missingCalories: boolean } {
   const calories = Number(dish.calories);
   return {
-    lowConfidence: dish.original.confidence < LOW_CONFIDENCE,
+    lowConfidence: dish.original.confidence < lowConfidenceThreshold,
     missingCalories: !Number.isFinite(calories) || calories <= 0,
   };
 }
@@ -255,6 +258,7 @@ export function ConfirmationCard({
   const [heroSrc, setHeroSrc] = useState(() => resolveConfirmHeroSrc(initialImagePath, previewUrl));
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeDish, setActiveDish] = useState(0);
+  const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const lookupAbortRef = useRef<AbortController | null>(null);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const heroFallbackTriedRef = useRef(false);
@@ -267,6 +271,21 @@ export function ConfirmationCard({
       }
     };
   }, [previewUrl]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/recognition/settings"));
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { lowConfidenceThreshold?: number };
+        if (Number.isFinite(data.lowConfidenceThreshold) && data.lowConfidenceThreshold! > 0) {
+          setLowConfidenceThreshold(data.lowConfidenceThreshold!);
+        }
+      } catch {
+        // keep env/default fallback
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     setDishes((current) => mergeDishesFromRecognition(current, recognition));
@@ -539,7 +558,7 @@ export function ConfirmationCard({
 
   async function handleLookupAll() {
     const targets = dishes.filter((dish) => {
-      const review = dishNeedsReview(dish);
+      const review = dishNeedsReview(dish, lowConfidenceThreshold);
       return review.lowConfidence || review.missingCalories;
     });
     if (targets.length === 0) {
@@ -609,7 +628,7 @@ export function ConfirmationCard({
   const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
   const searching = searchingId !== null;
   const bulkLookupRunning = searchingId === "all";
-  const reviewFlags = dishes.map(dishNeedsReview);
+  const reviewFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));
   const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
   const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
   const needsReview = anyMissingCalories || anyLowConfidence;
@@ -698,36 +717,44 @@ export function ConfirmationCard({
         </div>
 
         {multi ? (
-          <div className="chip-row">
-            {dishes.map((dish, index) => (
-              <Chip
-                key={dish.id}
-                active={index === activeDish}
-                title={
-                  reviewFlags[index]?.lowConfidence
-                    ? index === activeDish
-                      ? "Нажмите ещё раз, чтобы уточнить по названию"
-                      : "Низкая уверенность — выберите и нажмите ещё раз для уточнения"
-                    : undefined
-                }
-                onClick={() => {
-                  if (
-                    index === activeDish &&
-                    reviewFlags[index]?.lowConfidence &&
-                    searchingId === null &&
-                    !saving &&
-                    !enriching
-                  ) {
-                    void handleLookup(dish);
-                    return;
+          <div className="flex flex-col gap-2">
+            <div className="chip-row">
+              {dishes.map((dish, index) => (
+                <Chip
+                  key={dish.id}
+                  active={index === activeDish}
+                  title={
+                    reviewFlags[index]?.lowConfidence
+                      ? "Выберите позицию и нажмите «Уточнить»"
+                      : undefined
                   }
-                  setActiveDish(index);
-                }}
-              >
-                {index + 1}. {dish.dishName || "Блюдо"}
-                {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
-              </Chip>
-            ))}
+                  onClick={() => setActiveDish(index)}
+                >
+                  {index + 1}. {dish.dishName || "Блюдо"}
+                  {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
+                </Chip>
+              ))}
+            </div>
+            {reviewFlags.some((flag) => flag.lowConfidence) ? (
+              <div className="flex flex-wrap gap-2">
+                {dishes.map((dish, index) =>
+                  reviewFlags[index]?.lowConfidence ? (
+                    <button
+                      key={`refine-${dish.id}`}
+                      type="button"
+                      className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                      disabled={saving || searching || enriching}
+                      onClick={() => {
+                        setActiveDish(index);
+                        void handleLookup(dish);
+                      }}
+                    >
+                      Уточнить: {dish.dishName || `блюдо ${index + 1}`}
+                    </button>
+                  ) : null,
+                )}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
