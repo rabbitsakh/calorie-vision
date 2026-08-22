@@ -413,6 +413,53 @@ test("nutritionBaselineFromRecognition uses explicit per100g for portion chips",
   assert.equal(scaleNutritionByPortion(baseline!, 1500)?.calories, 570);
 });
 
+test("resolvePer100gForScaling treats label kcal/100ml in calories field", () => {
+  const per100 = resolvePer100gForScaling({
+    dishName: "Пиво светлое фильтрованное",
+    calories: 42,
+    carbs: 28,
+    portionGrams: 1500,
+    photoKind: "label",
+    source: "label",
+  });
+
+  assert.equal(per100?.calories, 42);
+
+  const baseline = nutritionBaselineFromRecognition({
+    dishName: "Пиво светлое фильтрованное",
+    calories: 42,
+    carbs: 28,
+    portionGrams: 1500,
+    photoKind: "label",
+    source: "label",
+  });
+  assert.equal(scaleNutritionByPortion(baseline!, 1500)?.calories, 630);
+});
+
+test("resolvePer100gForScaling detects drinks before label metadata arrives", () => {
+  const per100 = resolvePer100gForScaling({
+    dishName: "Пиво светлое",
+    calories: 38,
+    carbs: 9,
+    portionGrams: 1500,
+    photoKind: "meal",
+    source: "gigachat",
+  });
+
+  assert.equal(per100?.calories, 38);
+  assert.equal(
+    scaleNutritionByPortion(nutritionBaselineFromRecognition({
+      dishName: "Пиво светлое",
+      calories: 38,
+      carbs: 9,
+      portionGrams: 1500,
+      photoKind: "meal",
+      source: "gigachat",
+    })!, 1500)?.calories,
+    570,
+  );
+});
+
 test("label with wrong bottle total still scales from per100g", () => {
   const normalized = normalizeRecognitionNutrition({
     dishName: "Пиво Северное сияние",
