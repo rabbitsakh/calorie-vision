@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import {
   buildConfidenceBuckets,
-  DEFAULT_LOW_CONFIDENCE_THRESHOLD,
   suggestLowConfidenceThreshold,
 } from "@/lib/ai/recognition-confidence-calibration";
+import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import { summarizeLatencyMs } from "@/lib/ai/recognition-percentiles";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
+import {
+  loadLowConfidenceThresholdFromDb,
+  saveLowConfidenceThresholdToDb,
+} from "@/lib/recognition-threshold-store";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +30,9 @@ export async function GET() {
   try {
     const { response } = await requireAdmin();
     if (response) return response;
+
+    await loadLowConfidenceThresholdFromDb();
+    const currentLowConfidence = getRecognitionLowConfidenceThreshold();
 
     const since = new Date(Date.now() - TELEMETRY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
@@ -164,7 +171,7 @@ export async function GET() {
         ? Math.round(avgConfidenceRaw._avg.confidence * 100)
         : null,
       confidenceCalibration: {
-        currentLowConfidence: DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+        currentLowConfidence,
         suggestedLowConfidence,
         buckets: confidenceBuckets,
       },
@@ -214,5 +221,29 @@ export async function GET() {
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Ошибка загрузки" }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { response } = await requireAdmin();
+    if (response) return response;
+
+    const body = (await request.json()) as { lowConfidenceThreshold?: unknown };
+    const raw = body.lowConfidenceThreshold;
+    const value = typeof raw === "number" ? raw : Number(raw);
+    if (!Number.isFinite(value) || value <= 0 || value >= 1) {
+      return NextResponse.json({ error: "Некорректный порог confidence" }, { status: 400 });
+    }
+
+    const saved = await saveLowConfidenceThresholdToDb(value);
+
+    return NextResponse.json({
+      ok: true,
+      lowConfidenceThreshold: saved,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось сохранить порог" }, { status: 500 });
   }
 }

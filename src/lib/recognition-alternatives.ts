@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "@/lib/food-types";
+import { lookupFoodWithGigaChat } from "@/lib/ai/gigachat";
 import { mapPool } from "@/lib/async-pool";
 import { offMatchesQuery, searchOpenFoodFactsBest, type PackNutrition } from "@/lib/open-food-facts";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
@@ -7,12 +8,17 @@ import { simplifyDishNameForLookup } from "@/lib/recognition-nutrition";
 type Alternative = NonNullable<FoodRecognitionResult["alternatives"]>[number];
 
 const OFF_ALT_LOOKUP_CONCURRENCY = 2;
+const GIGACHAT_ALT_LOOKUP_CONCURRENCY = 1;
 const MAX_OFF_ALT_LOOKUPS = 3;
+const MAX_GIGACHAT_ALT_LOOKUPS = 2;
 const DEFAULT_OFF_ALT_BUDGET_MS = 2500;
+const DEFAULT_GIGACHAT_ALT_BUDGET_MS = 4000;
 
 export type AlternativeEnrichmentOptions = {
   search?: (queries: string[]) => Promise<PackNutrition | null>;
+  lookup?: (dishName: string) => Promise<FoodRecognitionResult>;
   maxLookups?: number;
+  maxGigaChatLookups?: number;
   deadlineMs?: number;
 };
 
@@ -124,10 +130,70 @@ export async function enrichAlternativesFromOff(
   return { ...result, alternatives };
 }
 
-/** RU table first, then OFF for calories-only vision alternatives. */
+/** Fill missing alternative macros via GigaChat name lookup when RU/OFF miss (#8). */
+export async function enrichAlternativesFromGigaChat(
+  result: FoodRecognitionResult,
+  options?: AlternativeEnrichmentOptions,
+): Promise<FoodRecognitionResult> {
+  if (!result.alternatives?.length) {
+    return result;
+  }
+
+  const lookup = options?.lookup ?? lookupFoodWithGigaChat;
+  const maxLookups = options?.maxGigaChatLookups ?? MAX_GIGACHAT_ALT_LOOKUPS;
+  const deadlineMs = options?.deadlineMs ?? Date.now() + DEFAULT_GIGACHAT_ALT_BUDGET_MS;
+
+  const targets = result.alternatives
+    .map((alt, index) => ({ alt, index }))
+    .filter(({ alt }) => alternativeNeedsMacroBackfill(alt))
+    .slice(0, maxLookups);
+
+  if (targets.length === 0) {
+    return result;
+  }
+
+  const updates = await mapPool(targets, GIGACHAT_ALT_LOOKUP_CONCURRENCY, async ({ alt, index }) => {
+    if (Date.now() >= deadlineMs) {
+      return { index, alt };
+    }
+
+    try {
+      const pack = await lookup(alt.dishName);
+      if (!(pack.calories > 0)) {
+        return { index, alt };
+      }
+      return {
+        index,
+        alt: backfillAlternativeFromPack(alt, {
+          dishName: pack.dishName,
+          calories: pack.calories,
+          protein: pack.protein,
+          fat: pack.fat,
+          carbs: pack.carbs,
+          fiber: pack.fiber,
+          sugar: pack.sugar,
+          portionGrams: pack.portionGrams,
+        }),
+      };
+    } catch {
+      return { index, alt };
+    }
+  });
+
+  const alternatives = [...result.alternatives];
+  for (const { index, alt } of updates) {
+    alternatives[index] = alt;
+  }
+
+  return { ...result, alternatives };
+}
+
+/** RU table first, then OFF, then GigaChat for calories-only vision alternatives. */
 export async function enrichAlternatives(
   result: FoodRecognitionResult,
   options?: AlternativeEnrichmentOptions,
 ): Promise<FoodRecognitionResult> {
-  return enrichAlternativesFromOff(enrichAlternativesFromRuTable(result), options);
+  const afterRu = enrichAlternativesFromRuTable(result);
+  const afterOff = await enrichAlternativesFromOff(afterRu, options);
+  return enrichAlternativesFromGigaChat(afterOff, options);
 }

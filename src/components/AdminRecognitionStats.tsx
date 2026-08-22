@@ -56,14 +56,20 @@ export function AdminRecognitionStats() {
   const [stats, setStats] = useState<RecognitionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [applyingThreshold, setApplyingThreshold] = useState(false);
+  const [thresholdMessage, setThresholdMessage] = useState<string | null>(null);
+
+  async function loadStats() {
+    const resp = await fetch(withBasePath("/api/admin/recognition"));
+    const data = (await resp.json()) as RecognitionStats;
+    if (!resp.ok) throw new Error(data.error ?? "Ошибка загрузки");
+    setStats(data);
+  }
 
   useEffect(() => {
     void (async () => {
       try {
-        const resp = await fetch(withBasePath("/api/admin/recognition"));
-        const data = (await resp.json()) as RecognitionStats;
-        if (!resp.ok) throw new Error(data.error ?? "Ошибка загрузки");
-        setStats(data);
+        await loadStats();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка");
       } finally {
@@ -71,6 +77,31 @@ export function AdminRecognitionStats() {
       }
     })();
   }, []);
+
+  async function applySuggestedThreshold() {
+    if (!stats?.confidenceCalibration) return;
+    setApplyingThreshold(true);
+    setThresholdMessage(null);
+    try {
+      const resp = await fetch(withBasePath("/api/admin/recognition"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lowConfidenceThreshold: stats.confidenceCalibration.suggestedLowConfidence,
+        }),
+      });
+      const data = (await resp.json()) as { error?: string; lowConfidenceThreshold?: number };
+      if (!resp.ok) throw new Error(data.error ?? "Не удалось применить порог");
+      setThresholdMessage(
+        `Порог обновлён: ${Math.round((data.lowConfidenceThreshold ?? stats.confidenceCalibration.suggestedLowConfidence) * 100)}%`,
+      );
+      await loadStats();
+    } catch (err) {
+      setThresholdMessage(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setApplyingThreshold(false);
+    }
+  }
 
   const telemetry = stats?.telemetry;
 
@@ -120,8 +151,24 @@ export function AdminRecognitionStats() {
                     {Math.round(stats.confidenceCalibration.suggestedLowConfidence * 100)}%
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Env: RECOGNITION_LOW_CONFIDENCE или NEXT_PUBLIC_RECOGNITION_LOW_CONFIDENCE
+                    Env перекрывает БД · иначе порог хранится в RecognitionConfig
                   </p>
+                  {Math.abs(
+                    stats.confidenceCalibration.currentLowConfidence -
+                      stats.confidenceCalibration.suggestedLowConfidence,
+                  ) >= 0.02 ? (
+                    <button
+                      type="button"
+                      className="mt-2 text-sm font-semibold text-teal-700 underline-offset-2 hover:underline disabled:opacity-50"
+                      disabled={applyingThreshold}
+                      onClick={() => void applySuggestedThreshold()}
+                    >
+                      {applyingThreshold ? "Сохраняем…" : "Применить рекомендацию"}
+                    </button>
+                  ) : null}
+                  {thresholdMessage ? (
+                    <p className="mt-1 text-xs text-teal-800">{thresholdMessage}</p>
+                  ) : null}
                 </div>
               </div>
               <div className="admin-table-wrap mt-4">
