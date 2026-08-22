@@ -875,7 +875,7 @@ function DishFields({
         </div>
       ) : null}
 
-      {!multi && review.lowConfidence ? (
+      {review.lowConfidence ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
           Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте название или нажмите «Уточнить по названию».
         </p>

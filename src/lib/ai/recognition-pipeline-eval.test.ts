@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildRecognitionRetryPrompt } from "./recognition-retry-prompt.ts";
+import { visionPromptCharLength, type PromptVariant } from "./prompt-variants.ts";
 import { pickSpecialistPass } from "./specialist-pass.ts";
 import { shouldForcePlateBeforeRetry } from "./plate-vision.ts";
 import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
@@ -94,4 +95,13 @@ test("retry prompts cover all known reasons", () => {
     assert.ok(prompt.length > 100);
     assert.match(prompt, /JSON/i);
   }
+});
+
+test("prompt variants are ordered by size for offline A/B", () => {
+  const variants: PromptVariant[] = ["main", "slim", "category-first"];
+  const lengths = Object.fromEntries(variants.map((variant) => [variant, visionPromptCharLength(variant)]));
+
+  assert.ok(lengths.slim < lengths.main);
+  assert.ok(lengths["category-first"] > 0);
+  assert.ok(lengths.main > 500);
 });
