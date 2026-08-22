@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
+import {
+  buildConfidenceBuckets,
+  DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+  suggestLowConfidenceThreshold,
+} from "@/lib/ai/recognition-confidence-calibration";
 import { summarizeLatencyMs } from "@/lib/ai/recognition-percentiles";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -33,6 +38,7 @@ export async function GET() {
       bySource,
       byPhotoKind,
       telemetryRows,
+      confidenceRows,
     ] = await Promise.all([
       prisma.mealEntry.count({ where: { confidence: { not: null } } }),
       prisma.mealEntry.count({ where: { wasCorrected: true } }),
@@ -72,6 +78,17 @@ export async function GET() {
           enrichmentTimedOut: true,
         },
         orderBy: { createdAt: "desc" },
+        take: 5000,
+      }),
+      prisma.mealEntry.findMany({
+        where: {
+          confidence: { not: null },
+          createdAt: { gte: since },
+        },
+        select: {
+          confidence: true,
+          wasCorrected: true,
+        },
         take: 5000,
       }),
     ]);
@@ -126,6 +143,19 @@ export async function GET() {
       promptVariantCounts.set(key, (promptVariantCounts.get(key) ?? 0) + 1);
     }
 
+    const confidenceBuckets = buildConfidenceBuckets(
+      confidenceRows
+        .filter((row) => row.confidence !== null)
+        .map((row) => ({
+          confidence: row.confidence!,
+          wasCorrected: row.wasCorrected,
+        })),
+    );
+    const suggestedLowConfidence = suggestLowConfidenceThreshold(
+      confidenceBuckets,
+      correctionRate,
+    );
+
     return NextResponse.json({
       totalRecognitions,
       correctedCount,
@@ -133,6 +163,11 @@ export async function GET() {
       avgConfidence: avgConfidenceRaw._avg.confidence
         ? Math.round(avgConfidenceRaw._avg.confidence * 100)
         : null,
+      confidenceCalibration: {
+        currentLowConfidence: DEFAULT_LOW_CONFIDENCE_THRESHOLD,
+        suggestedLowConfidence,
+        buckets: confidenceBuckets,
+      },
       topMisrecognized: topMisrecognized
         .filter((row) => row.originalDish)
         .map((row) => ({

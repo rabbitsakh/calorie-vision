@@ -728,7 +728,7 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
     expect: { photoKind: "label" },
   },
   {
-    id: "package-yogurt",
+    id: "package-yogurt-danone",
     description: "Yogurt package front",
     rawModelJson: JSON.stringify({
       photoKind: "package",

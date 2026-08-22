@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   alternativeNeedsMacroBackfill,
   backfillAlternativeFromPack,
+  enrichAlternatives,
+  enrichAlternativesFromOff,
   enrichAlternativesFromRuTable,
 } from "./recognition-alternatives.ts";
 
@@ -59,4 +61,57 @@ test("backfillAlternativeFromPack scales macros to alternative calories", () => 
   assert.equal(filled.protein, 6);
   assert.equal(filled.fat, 7);
   assert.equal(filled.carbs, 11);
+});
+
+test("enrichAlternativesFromOff backfills macros from OFF search", async () => {
+  const enriched = await enrichAlternativesFromOff(
+    {
+      dishName: "Паста",
+      calories: 420,
+      confidence: 0.6,
+      alternatives: [{ dishName: "Protein bar chocolate", calories: 220 }],
+    },
+    {
+      search: async () => ({
+        dishName: "Protein bar chocolate",
+        calories: 220,
+        protein: 20,
+        fat: 8,
+        carbs: 18,
+        portionGrams: 60,
+      }),
+    },
+  );
+
+  const alt = enriched.alternatives?.[0];
+  assert.equal(alt?.protein, 20);
+  assert.equal(alt?.fat, 8);
+  assert.equal(alt?.carbs, 18);
+});
+
+test("enrichAlternatives prefers RU table then OFF", async () => {
+  const enriched = await enrichAlternatives(
+    {
+      dishName: "Щи",
+      calories: 220,
+      confidence: 0.6,
+      alternatives: [
+        { dishName: "Борщ с мясом", calories: 280 },
+        { dishName: "Protein bar chocolate", calories: 220 },
+      ],
+    },
+    {
+      search: async () => ({
+        dishName: "Protein bar chocolate",
+        calories: 220,
+        protein: 20,
+        fat: 8,
+        carbs: 18,
+        portionGrams: 60,
+      }),
+    },
+  );
+
+  assert.equal(enriched.alternatives?.[0]?.protein, 12);
+  assert.equal(enriched.alternatives?.[1]?.protein, 20);
 });

@@ -1,8 +1,20 @@
 import type { FoodRecognitionResult } from "@/lib/food-types";
-import type { PackNutrition } from "@/lib/open-food-facts";
+import { mapPool } from "@/lib/async-pool";
+import { offMatchesQuery, searchOpenFoodFactsBest, type PackNutrition } from "@/lib/open-food-facts";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { simplifyDishNameForLookup } from "@/lib/recognition-nutrition";
 
 type Alternative = NonNullable<FoodRecognitionResult["alternatives"]>[number];
+
+const OFF_ALT_LOOKUP_CONCURRENCY = 2;
+const MAX_OFF_ALT_LOOKUPS = 3;
+const DEFAULT_OFF_ALT_BUDGET_MS = 2500;
+
+export type AlternativeEnrichmentOptions = {
+  search?: (queries: string[]) => Promise<PackNutrition | null>;
+  maxLookups?: number;
+  deadlineMs?: number;
+};
 
 export function alternativeNeedsMacroBackfill(alt: Alternative): boolean {
   if (!(alt.calories > 0)) {
@@ -55,4 +67,67 @@ export function enrichAlternativesFromRuTable(
   });
 
   return { ...result, alternatives };
+}
+
+function alternativeLookupQueries(alt: Alternative): string[] {
+  const simplified = simplifyDishNameForLookup(alt.dishName);
+  return [alt.dishName, simplified].filter(
+    (query): query is string => Boolean(query && query.trim().length >= 3),
+  );
+}
+
+/** Fill missing alternative macros from Open Food Facts when RU table misses (#8). */
+export async function enrichAlternativesFromOff(
+  result: FoodRecognitionResult,
+  options?: AlternativeEnrichmentOptions,
+): Promise<FoodRecognitionResult> {
+  if (!result.alternatives?.length) {
+    return result;
+  }
+
+  const search = options?.search ?? searchOpenFoodFactsBest;
+  const maxLookups = options?.maxLookups ?? MAX_OFF_ALT_LOOKUPS;
+  const deadlineMs = options?.deadlineMs ?? Date.now() + DEFAULT_OFF_ALT_BUDGET_MS;
+
+  const targets = result.alternatives
+    .map((alt, index) => ({ alt, index }))
+    .filter(({ alt }) => alternativeNeedsMacroBackfill(alt))
+    .slice(0, maxLookups);
+
+  if (targets.length === 0) {
+    return result;
+  }
+
+  const updates = await mapPool(targets, OFF_ALT_LOOKUP_CONCURRENCY, async ({ alt, index }) => {
+    if (Date.now() >= deadlineMs) {
+      return { index, alt };
+    }
+
+    const queries = alternativeLookupQueries(alt);
+    if (queries.length === 0) {
+      return { index, alt };
+    }
+
+    const pack = await search(queries);
+    if (!pack || !offMatchesQuery(alt.dishName, pack.dishName, pack.brand)) {
+      return { index, alt };
+    }
+
+    return { index, alt: backfillAlternativeFromPack(alt, pack) };
+  });
+
+  const alternatives = [...result.alternatives];
+  for (const { index, alt } of updates) {
+    alternatives[index] = alt;
+  }
+
+  return { ...result, alternatives };
+}
+
+/** RU table first, then OFF for calories-only vision alternatives. */
+export async function enrichAlternatives(
+  result: FoodRecognitionResult,
+  options?: AlternativeEnrichmentOptions,
+): Promise<FoodRecognitionResult> {
+  return enrichAlternativesFromOff(enrichAlternativesFromRuTable(result), options);
 }
