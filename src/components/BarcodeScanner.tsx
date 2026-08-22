@@ -18,6 +18,7 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const busyRef = useRef(false);
+  const lastDecodeAtRef = useRef(0);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +67,10 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
 
       const tick = async () => {
         if (!videoRef.current) return;
-        if (!busyRef.current) {
+        const now = Date.now();
+        // Throttle decode attempts — full native+ZXing every rAF burns mobile CPU.
+        if (!busyRef.current && now - lastDecodeAtRef.current >= 280) {
+          lastDecodeAtRef.current = now;
           const frame = captureVideoFrame(videoRef.current);
           if (frame) {
             busyRef.current = true;

@@ -85,6 +85,24 @@ test("reads string sugars_100g and sugars fallback from OFF", () => {
   assert.equal(fromSugarsKey?.sugar, 2);
 });
 
+test("converts energy-kj_100g when kcal_100g is missing", () => {
+  const nutrition = offProductToNutrition({
+    product_name: "Сок",
+    quantity: "200 мл",
+    nutriments: {
+      "energy-kj_100g": 180,
+      proteins_100g: 0.5,
+      fat_100g: 0,
+      carbohydrates_100g: 10,
+      sugars_100g: 9,
+    },
+  });
+  assert.ok(nutrition);
+  // 180 kJ / 4.184 ≈ 43.0 kcal/100g → 86 kcal for 200 g
+  assert.equal(nutrition?.calories, 86);
+  assert.equal(nutrition?.sugar, 18);
+});
+
 test("converts an Open Food Facts product to a portion", () => {
   const nutrition = offProductToNutrition({
     code: "4600605023124",

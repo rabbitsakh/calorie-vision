@@ -19,6 +19,8 @@ export type PackNutrition = {
 type OffNutriments = {
   "energy-kcal_100g"?: number | string;
   "energy-kcal"?: number | string;
+  "energy-kj_100g"?: number | string;
+  energy_100g?: number | string;
   proteins_100g?: number | string;
   fat_100g?: number | string;
   carbohydrates_100g?: number | string;
@@ -237,9 +239,17 @@ export function offProductToNutrition(
   preferredGrams?: number,
 ): PackNutrition | null {
   const nutriments = product.nutriments ?? {};
-  // Use only the per-100g field — "energy-kcal" without suffix is per-serving in OFF schema
-  // and would produce wrong calorie density if product_quantity differs from serving_quantity.
-  const kcal100 = offNutrimentNumber(nutriments["energy-kcal_100g"]);
+  // Prefer energy-kcal_100g. Fall back to kJ/100g (÷4.184). Never use unsuffixed
+  // "energy-kcal" — that field is often per-serving and would skew density.
+  let kcal100 = offNutrimentNumber(nutriments["energy-kcal_100g"]);
+  if (kcal100 === undefined || kcal100 <= 0) {
+    const kj100 =
+      offNutrimentNumber(nutriments["energy-kj_100g"]) ??
+      offNutrimentNumber(nutriments.energy_100g);
+    if (kj100 !== undefined && kj100 > 0) {
+      kcal100 = Math.round((kj100 / 4.184) * 10) / 10;
+    }
+  }
   if (kcal100 === undefined || kcal100 <= 0) {
     return null;
   }
@@ -307,7 +317,12 @@ export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<Pac
   const data = (await offGetJson(`${PRODUCT_URL}/${encodeURIComponent(barcode)}.json`)) as
     | { status?: number; product?: OffProduct }
     | null;
-  const result = data?.status === 1 && data.product ? offProductToNutrition(data.product) : null;
+  // Network/timeout/5xx → null from offGetJson; do not cache (avoid 5 min "not found").
+  if (data === null) {
+    return null;
+  }
+
+  const result = data.status === 1 && data.product ? offProductToNutrition(data.product) : null;
   offCacheSet(offBarcodeCache, barcode, result);
   return result;
 }
@@ -360,7 +375,12 @@ export async function searchOpenFoodFacts(query: string): Promise<PackNutrition 
   }).toString()}`;
 
   const data = (await offGetJson(url)) as { products?: OffProduct[] } | null;
-  const products = data?.products ?? [];
+  // Network failure — do not cache as "no match".
+  if (data === null) {
+    return null;
+  }
+
+  const products = data.products ?? [];
   const matches: PackNutrition[] = [];
   for (const product of products) {
     const nutrition = offProductToNutrition(product);

@@ -114,3 +114,37 @@ test("keeps zero fiber and sugar for meat dishes", () => {
   assert.equal(vision.sugar, 0);
   assert.equal(vision.carbs, 0);
 });
+
+test("promotes a single nested items entry onto the parent", () => {
+  const vision = parseFoodRecognitionResponse(`{
+    "photoKind": "meal",
+    "dishName": "",
+    "calories": 0,
+    "protein": 0,
+    "fat": 0,
+    "carbs": 0,
+    "portionGrams": 0,
+    "confidence": 0.5,
+    "items": [
+      {
+        "dishName": "Овсянка с ягодами",
+        "calories": 320,
+        "protein": 12,
+        "fat": 8,
+        "carbs": 48,
+        "fiber": 6,
+        "sugar": 14,
+        "portionGrams": 280,
+        "confidence": 0.82
+      }
+    ]
+  }`);
+
+  assert.equal(vision.items, undefined);
+  assert.equal(vision.dishName, "Овсянка с ягодами");
+  assert.equal(vision.calories, 320);
+  assert.equal(vision.protein, 12);
+  assert.equal(vision.fiber, 6);
+  assert.equal(vision.sugar, 14);
+  assert.equal(vision.portionGrams, 280);
+});

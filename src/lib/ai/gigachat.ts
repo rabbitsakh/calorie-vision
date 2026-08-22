@@ -82,7 +82,13 @@ function httpsRequest(
     );
 
     req.on("timeout", () => {
-      req.destroy(new Error("GigaChat: превышено время ожидания ответа"));
+      req.destroy();
+      reject(
+        new GigaChatApiError(
+          "Сервис распознавания не ответил вовремя. Попробуйте ещё раз.",
+          504,
+        ),
+      );
     });
     req.on("error", reject);
 
@@ -439,7 +445,8 @@ export async function recognizeWithGigaChat(
     dishName: result.dishName,
   });
 
-  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS) {
+  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS - 1) {
+    // Leave one chat slot for a specialist pass when possible.
     try {
       text = await ask("retry");
       const retried = parseFoodRecognitionResponse(text);
@@ -455,8 +462,8 @@ export async function recognizeWithGigaChat(
       if (isBetterRecognitionResult(result, retried)) {
         result = retried;
       }
-    } catch {
-      // keep first parse
+    } catch (error) {
+      console.warn("Recognition quality retry failed", error);
     }
   }
 
@@ -566,8 +573,8 @@ export async function recognizeWithGigaChat(
       ) {
         result = await runSpecialist("package");
       }
-    } catch {
-      // keep main/retry result
+    } catch (error) {
+      console.warn("Recognition specialist pass failed", specialist, error);
     }
   }
 

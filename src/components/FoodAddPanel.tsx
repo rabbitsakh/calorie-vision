@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader } from "@/components/PhotoUploader";
@@ -34,8 +34,19 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lookupAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      lookupAbortRef.current?.abort();
+    };
+  }, []);
 
   async function lookupFood(payload: { dishName?: string; barcode?: string }) {
+    lookupAbortRef.current?.abort();
+    const controller = new AbortController();
+    lookupAbortRef.current = controller;
+
     setLoading(true);
     setError(null);
 
@@ -44,6 +55,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
       const data = await readApiJson<{
         recognition?: FoodRecognitionResult;
@@ -55,11 +67,19 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         throw new Error(data.error ?? "Не удалось найти продукт");
       }
 
+      if (controller.signal.aborted) {
+        return;
+      }
+
       setPendingResult(toRecognitionResponse(data.recognition, data.imagePath));
     } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setError(humanizeClientFetchError(err, "Ошибка поиска"));
     } finally {
-      setLoading(false);
+      if (lookupAbortRef.current === controller) {
+        lookupAbortRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -106,10 +126,12 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
                 mode === tab.id ? "bg-white text-teal-800 shadow" : "text-slate-600 hover:text-slate-800"
               }`}
               onClick={() => {
+                lookupAbortRef.current?.abort();
                 setMode(tab.id);
                 setError(null);
                 setTextQuery("");
                 setBarcodeQuery("");
+                setLoading(false);
               }}
             >
               {tab.label}
