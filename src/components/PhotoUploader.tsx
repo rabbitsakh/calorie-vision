@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import type { RecognitionResponse } from "@/types";
 import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
+import { consumeRecognizeSse } from "@/lib/recognize-sse";
 import { withBasePath } from "@/lib/paths";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 
@@ -150,15 +151,6 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         formData.append("barcode", localBarcode);
       }
 
-      const recognizePromise = fetch(withBasePath("/api/recognize"), {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      }).then(async (response) => ({
-        response,
-        data: await readApiJson<RecognitionResponse & { error?: string }>(response),
-      }));
-
       if (localBarcode && !controller.signal.aborted) {
         const lookupResponse = await fetch(withBasePath("/api/food/lookup"), {
           method: "POST",
@@ -180,14 +172,70 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           });
           return;
         }
-        // OFF miss: vision request already in flight.
       }
 
       if (controller.signal.aborted) {
         return;
       }
 
-      const { response, data } = await recognizePromise;
+      let streamImagePath = "";
+      let usedStream = false;
+
+      try {
+        const streamResponse = await fetch(withBasePath("/api/recognize/stream"), {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+
+        if (streamResponse.ok && streamResponse.headers.get("content-type")?.includes("text/event-stream")) {
+          usedStream = true;
+          const data = await consumeRecognizeSse(streamResponse, {
+            onImage: (imagePath) => {
+              streamImagePath = imagePath;
+            },
+            onVision: (recognition) => {
+              if (controller.signal.aborted) {
+                return;
+              }
+              handedOffPreview = true;
+              onRecognized({
+                imagePath: streamImagePath,
+                previewUrl: objectUrl,
+                recognition,
+                enriching: true,
+              });
+            },
+          });
+
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          handedOffPreview = true;
+          onRecognized({
+            ...data,
+            previewUrl: objectUrl,
+            enriching: false,
+          });
+          return;
+        }
+      } catch (streamErr) {
+        if ((streamErr as Error).name === "AbortError") {
+          return;
+        }
+        if (usedStream) {
+          throw streamErr;
+        }
+        // Fall back to single-shot /api/recognize below.
+      }
+
+      const response = await fetch(withBasePath("/api/recognize"), {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      const data = await readApiJson<RecognitionResponse & { error?: string }>(response);
       if (!response.ok) {
         throw new Error(data.error ?? "Ошибка распознавания");
       }

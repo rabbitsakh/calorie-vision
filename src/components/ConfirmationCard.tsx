@@ -163,7 +163,7 @@ export function ConfirmationCard({
   onCancel,
   onSaved,
 }: ConfirmationCardProps) {
-  const { recognition, imagePath: initialImagePath, previewUrl } = result;
+  const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
   const [imagePath, setImagePath] = useState(initialImagePath);
   const [mealType, setMealType] = useState<string>("");
@@ -533,6 +533,15 @@ export function ConfirmationCard({
           </div>
         )}
 
+        {enriching ? (
+          <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-950">
+            <p className="font-semibold">Уточняем БЖУ и клетчатку…</p>
+            <p className="mt-1 text-teal-900/90">
+              Уже видим блюдо на фото — подтягиваем данные из базы. Можно проверять название и порцию.
+            </p>
+          </div>
+        ) : null}
+
         {needsReview ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <p className="font-semibold">
@@ -549,7 +558,7 @@ export function ConfirmationCard({
               <button
                 type="button"
                 className="mt-3 text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
-                disabled={saving || searching}
+                disabled={saving || searching || enriching}
                 onClick={() => void handleLookupAll()}
               >
                 {bulkLookupRunning ? "Уточняем все..." : "Уточнить все позиции"}
@@ -575,6 +584,7 @@ export function ConfirmationCard({
             {dishes.map((dish, index) => (
               <Chip key={dish.id} active={index === activeDish} onClick={() => setActiveDish(index)}>
                 {index + 1}. {dish.dishName || "Блюдо"}
+                {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
               </Chip>
             ))}
           </div>
@@ -591,7 +601,7 @@ export function ConfirmationCard({
                   index={index}
                   multi={multi}
                   searching={searchingId === dish.id}
-                  disabled={saving || searching}
+                  disabled={saving || searching || enriching}
                   canRemove={multi}
                   review={reviewFlags[index]!}
                   onChange={(patch) => updateDish(dish.id, patch)}
@@ -627,7 +637,7 @@ export function ConfirmationCard({
             <button
               type="button"
               className="btn btn-secondary self-start text-sm"
-              disabled={saving || searching}
+              disabled={saving || searching || enriching}
               onClick={() => {
                 setDishes((current) => [
                   ...current,
@@ -670,8 +680,13 @@ export function ConfirmationCard({
           ))}
         </div>
         <div className="sticky-actions">
-          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
-            {saving ? (
+          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching || enriching} onClick={() => void handleSave()}>
+            {enriching ? (
+              <>
+                <span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span>
+                Уточняем…
+              </>
+            ) : saving ? (
               <>
                 <span className="daisy-loading daisy-loading-sm" aria-hidden>
                   <span /><span /><span />
@@ -680,7 +695,7 @@ export function ConfirmationCard({
               </>
             ) : multi ? "Сохранить все блюда" : "Да, сохранить"}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" disabled={saving || searching || enriching} onClick={onCancel}>
             Отменить
           </button>
         </div>

@@ -61,6 +61,18 @@ export function bufferToBase64(buffer: Buffer): string {
   return buffer.toString("base64");
 }
 
+export async function getImageDimensions(buffer: Buffer): Promise<{ width: number; height: number } | null> {
+  try {
+    const meta = await sharp(buffer, SHARP_OPTIONS).rotate().metadata();
+    if (meta.width && meta.height && meta.width > 0 && meta.height > 0) {
+      return { width: meta.width, height: meta.height };
+    }
+  } catch {
+    // ignore — hints are optional
+  }
+  return null;
+}
+
 export async function prepareImageForVision(buffer: Buffer): Promise<{
   buffer: Buffer;
   mimeType: string;

@@ -1,35 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
-import { looksLikeImageBuffer } from "@/lib/ai/image-utils";
+import { getImageDimensions } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
-import { compressFoodImage } from "@/lib/image-compress";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
+import { prepareRecognizeUpload } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
 const RECOGNIZE_RATE_WINDOW_MS = 60_000;
-
-/** FormDataEntryValue is File | string — predicate must narrow to File, not Blob. */
-function isUploadFile(value: FormDataEntryValue | null): value is File {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof value.arrayBuffer === "function" &&
-    typeof value.size === "number"
-  );
-}
-
-function uploadFilename(file: File): string {
-  if (file.name.trim()) {
-    return file.name;
-  }
-  const type = file.type?.toLowerCase() ?? "";
-  if (type.includes("png")) return "photo.png";
-  if (type.includes("webp")) return "photo.webp";
-  if (type.includes("heic") || type.includes("heif")) return "photo.heic";
-  return "photo.jpg";
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,31 +35,24 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("photo");
-
-    if (!isUploadFile(file) || file.size <= 0) {
-      return NextResponse.json({ error: "Фото не найдено" }, { status: 400 });
+    const prepared = await prepareRecognizeUpload(formData);
+    if (!prepared.ok) {
+      return NextResponse.json({ error: prepared.error }, { status: prepared.status });
     }
 
-    const original = Buffer.from(await file.arrayBuffer());
-    const mimeOk = Boolean(file.type?.toLowerCase().startsWith("image/"));
-    const nameOk = /\.(jpe?g|png|webp|gif|heic|heif)$/i.test(uploadFilename(file));
-    if (!mimeOk && !nameOk && !looksLikeImageBuffer(original)) {
-      return NextResponse.json({ error: "Нужен файл изображения" }, { status: 400 });
-    }
-
-    const compressed = await compressFoodImage(original);
-    const visionFilename =
-      compressed.mimeType.includes("webp")
-        ? uploadFilename(file).replace(/\.[^.]+$/, ".webp")
-        : uploadFilename(file);
-    const barcodeField = formData.get("barcode");
-    const barcodeHint = typeof barcodeField === "string" ? barcodeField.trim() : "";
+    const { compressed, visionFilename, barcodeHint } = prepared.data;
+    const dimensions = await getImageDimensions(compressed.buffer);
+    const visionHints = {
+      barcodeHint: barcodeHint || undefined,
+      aspectRatio:
+        dimensions && dimensions.height > 0 ? dimensions.width / dimensions.height : undefined,
+    };
 
     const [imagePath, recognition] = await Promise.all([
       saveImageBuffer(compressed.buffer, compressed.mimeType),
       recognizeFoodWithAI(compressed.buffer, visionFilename, session.user.id, {
         barcode: barcodeHint || undefined,
+        visionHints,
       }),
     ]);
 

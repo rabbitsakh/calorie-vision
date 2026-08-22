@@ -5,6 +5,8 @@ export type RecognitionResponse = {
   imagePath: string;
   previewUrl?: string;
   recognition: FoodRecognitionResult;
+  /** True while post-vision enrichment (OFF / fiber-sugar) is still running. */
+  enriching?: boolean;
 };
 
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
