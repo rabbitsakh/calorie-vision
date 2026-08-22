@@ -15,7 +15,10 @@ import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
-import { nutritionBaselineFromRecognition } from "@/lib/recognition-nutrition";
+import {
+  nutritionBaselineFromRecognition,
+  resolvePer100gForScaling,
+} from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { Chip } from "@/components/Chip";
 
@@ -96,6 +99,52 @@ function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] 
   return flattenRecognitionItems(recognition).map((item, index) =>
     draftFromRecognition(item, `${item.dishName}-${index}`),
   );
+}
+
+/** Keep user-selected portion when SSE enrichment updates recognition. */
+function mergeDishesFromRecognition(
+  current: DishDraft[],
+  recognition: FoodRecognitionResult,
+): DishDraft[] {
+  const incoming = draftsFromRecognition(recognition);
+  if (current.length === 0 || current.length !== incoming.length) {
+    return incoming;
+  }
+
+  return incoming.map((draft, index) => {
+    const previous = current[index];
+    if (!previous) {
+      return draft;
+    }
+
+    const preservedPortion = Number(previous.portionGrams);
+    const incomingPortion = Number(draft.portionGrams);
+    if (
+      !Number.isFinite(preservedPortion) ||
+      preservedPortion <= 0 ||
+      preservedPortion === incomingPortion
+    ) {
+      return draft;
+    }
+
+    const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
+    if (!baseline) {
+      return { ...draft, portionGrams: previous.portionGrams };
+    }
+
+    const scaled = scaleNutritionByPortion(baseline, preservedPortion);
+    return {
+      ...draft,
+      portionGrams: previous.portionGrams,
+      baseline,
+      calories: String(scaled.calories),
+      protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
+      fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
+      carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
+      fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
+      sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
+    };
+  });
 }
 
 const LOW_CONFIDENCE = 0.55;
@@ -188,7 +237,7 @@ export function ConfirmationCard({
   }, [previewUrl]);
 
   useEffect(() => {
-    setDishes(draftsFromRecognition(recognition));
+    setDishes((current) => mergeDishesFromRecognition(current, recognition));
   }, [recognition]);
 
   useEffect(() => {
@@ -245,6 +294,10 @@ export function ConfirmationCard({
   }
 
   function resolvePortionBaseline(dish: DishDraft, nextPortionGrams?: number): NutritionValues | null {
+    if (resolvePer100gForScaling(dish.original)) {
+      return nutritionBaselineFromRecognition(dish.original);
+    }
+
     if (dish.baseline) {
       return dish.baseline;
     }
@@ -328,7 +381,11 @@ export function ConfirmationCard({
         fiber: next.fiber !== undefined ? String(next.fiber) : "",
         sugar: next.sugar !== undefined ? String(next.sugar) : "",
         portionGrams: next.portionGrams !== undefined ? String(next.portionGrams) : "",
-        baseline: nutritionBaseline(next),
+        baseline: nutritionBaselineFromRecognition({
+          ...next,
+          photoKind: next.photoKind ?? dish.original.photoKind,
+          source: next.source ?? dish.original.source,
+        }),
       });
       if (!previewUrl && data.imagePath && dishes.length === 1) {
         setImagePath(data.imagePath);

@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { looksLikeDrinkName } from "./portion-unit";
 import { nutritionBaseline, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
@@ -275,11 +276,25 @@ function isPackagedPhoto(result: Pick<FoodRecognitionResult, "photoKind" | "sour
   );
 }
 
+function caloriesLookPer100g(calories: number): boolean {
+  return calories > 0 && calories <= PER100G_MAX_CALORIES;
+}
+
 /** Resolve per-100 g/ml values for portion chip scaling. */
 export function resolvePer100gForScaling(
   result: Pick<
     FoodRecognitionResult,
-    "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams" | "per100g" | "photoKind" | "source"
+    | "dishName"
+    | "calories"
+    | "protein"
+    | "fat"
+    | "carbs"
+    | "fiber"
+    | "sugar"
+    | "portionGrams"
+    | "per100g"
+    | "photoKind"
+    | "source"
   >,
 ): Per100gValues | null {
   const normalized = normalizePer100gEnergy(result.per100g);
@@ -290,12 +305,32 @@ export function resolvePer100gForScaling(
   const portionGrams =
     result.portionGrams && result.portionGrams > 0 ? result.portionGrams : DEFAULT_PORTION_GRAMS;
 
+  // Label rows and drinks: models often put kcal/100 ml in calories while portionGrams is pack volume.
+  if (
+    portionGrams > 100 &&
+    caloriesLookPer100g(result.calories) &&
+    (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName))
+  ) {
+    return {
+      calories: result.calories,
+      protein: result.protein,
+      fat: result.fat,
+      carbs: result.carbs,
+      fiber: result.fiber,
+      sugar: result.sugar,
+    };
+  }
+
   const inferred = inferPer100gValues(result, result.calories, portionGrams);
   if (inferred) {
     return inferred;
   }
 
-  if (isPackagedPhoto(result) && portionGrams > 100 && result.calories > 0) {
+  if (
+    isPackagedPhoto(result) &&
+    portionGrams > 100 &&
+    result.calories > PER100G_MAX_CALORIES
+  ) {
     const per100Cal = Math.round((result.calories * 100) / portionGrams);
     if (per100Cal > 0 && per100Cal <= PER100G_MAX_CALORIES) {
       const ratio = 100 / portionGrams;
