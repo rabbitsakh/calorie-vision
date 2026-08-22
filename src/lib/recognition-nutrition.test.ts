@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   clearSuspiciousZeroFiberSugar,
   inferPer100gValues,
+  hasCompleteVisionNutrition,
   hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
   mergeNutritionBackfill,
@@ -371,6 +372,37 @@ test("hasSufficientVisionNutrition skips backfill when macros are present", () =
       fat: 20,
       carbs: 0,
       confidence: 0.8,
+    }),
+    false,
+  );
+});
+
+test("hasCompleteVisionNutrition skips enrichment when vision is full", () => {
+  assert.equal(
+    hasCompleteVisionNutrition({
+      dishName: "Стейк",
+      calories: 400,
+      protein: 40,
+      fat: 20,
+      carbs: 0,
+      fiber: 0,
+      sugar: 0,
+      portionGrams: 200,
+      confidence: 0.85,
+      photoKind: "meal",
+    }),
+    true,
+  );
+  assert.equal(
+    hasCompleteVisionNutrition({
+      dishName: "Овсянка",
+      calories: 320,
+      protein: 12,
+      fat: 6,
+      carbs: 52,
+      portionGrams: 250,
+      confidence: 0.8,
+      photoKind: "meal",
     }),
     false,
   );

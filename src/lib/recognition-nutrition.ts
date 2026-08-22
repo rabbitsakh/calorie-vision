@@ -41,6 +41,17 @@ export function hasSufficientVisionNutrition(result: FoodRecognitionResult): boo
   return definedMacros >= 2;
 }
 
+/** Vision + portion complete and no fiber/sugar gap — skip all post-vision enrichment. */
+export function hasCompleteVisionNutrition(result: FoodRecognitionResult): boolean {
+  if (!hasSufficientVisionNutrition(result)) {
+    return false;
+  }
+  if (!(result.portionGrams && result.portionGrams > 0)) {
+    return false;
+  }
+  return !needsFiberSugarBackfill(result);
+}
+
 /** True when the result has at least usable calorie totals to merge from. */
 export function hasUsableCalories(result: FoodRecognitionResult): boolean {
   return Number.isFinite(result.calories) && result.calories > 0;

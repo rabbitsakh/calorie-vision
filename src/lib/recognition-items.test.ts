@@ -30,3 +30,15 @@ test("combines plate items into a list with totals", () => {
   assert.equal(combined.source, "gigachat-plate");
   assert.equal(flattenRecognitionItems(combined).length, 3);
 });
+
+test("combineRecognitionItems prefers item totals when base calories diverge", () => {
+  const combined = combineRecognitionItems(
+    [
+      { dishName: "Стейк", calories: 400, confidence: 0.7 },
+      { dishName: "Картофель", calories: 180, confidence: 0.8 },
+    ],
+    { dishName: "Стейк, Картофель", calories: 200, confidence: 0.5, photoKind: "meal" },
+  );
+
+  assert.equal(combined.calories, 580);
+});

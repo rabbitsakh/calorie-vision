@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^Recognition 50-point plan batch.*$/i, "Распознавание: качество и скорость — промпты, OFF, plate budget, UX"],
   [/^Landing mascot parallax.*$/i, "Лендинг: маскот, parallax, тексты и блок «бесплатно»"],
   [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
   [/^Improve food recognition quality.*$/i, "Улучшено распознавание: тарелки, клетчатка, упаковки на фото"],

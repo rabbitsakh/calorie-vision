@@ -4,6 +4,7 @@ import {
   FOOD_RECOGNITION_PROMPT,
   FOOD_RECOGNITION_RETRY_PROMPT,
 } from "./ai/prompt.ts";
+import { buildRecognitionRetryPrompt } from "./ai/recognition-retry-prompt.ts";
 
 describe("vision prompt budget", () => {
   it("keeps the main vision prompt under 3500 chars", () => {
@@ -16,5 +17,7 @@ describe("vision prompt budget", () => {
   it("uses a much shorter retry prompt than the main one", () => {
     assert.ok(FOOD_RECOGNITION_RETRY_PROMPT.length < 900);
     assert.ok(FOOD_RECOGNITION_RETRY_PROMPT.length < FOOD_RECOGNITION_PROMPT.length / 2);
+    const reasonPrompt = buildRecognitionRetryPrompt("missing-macros");
+    assert.ok(reasonPrompt.length < 1200);
   });
 });

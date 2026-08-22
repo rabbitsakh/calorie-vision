@@ -8,11 +8,13 @@ import {
   lookupStoredFoodCorrection,
 } from "@/lib/food-corrections-store";
 import { findFoodImage } from "@/lib/food-image";
+import { lookupQueriesForName } from "@/lib/dish-lookup-synonyms";
 import {
   combineRecognitionItems,
   isMultiItemRecognition,
 } from "@/lib/recognition-items";
 import {
+  hasCompleteVisionNutrition,
   hasUsableCalories,
   hasSufficientVisionNutrition,
   mergeFiberSugarBackfill,
@@ -27,6 +29,7 @@ import {
   nutritionFromPer100g,
   offMatchesQuery,
   searchOpenFoodFacts,
+  searchOpenFoodFactsBest,
   type PackNutrition,
 } from "@/lib/open-food-facts";
 
@@ -35,9 +38,8 @@ export { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 
 /** Wall-clock budget for post-vision OFF/GigaChat enrichment (nginx is ~180s total). */
 const POST_VISION_BUDGET_MS = 60_000;
-const PLATE_ENRICH_CONCURRENCY = 2;
-/** Minimum per-item enrichment budget on multi-dish plates. */
-const PLATE_ITEM_MIN_BUDGET_MS = 10_000;
+const PLATE_ENRICH_CONCURRENCY = 3;
+const BACKFILL_LOOKUP_MAX = 2;
 /** Barcode path: short fiber/sugar ask only — keep /api/food/lookup under proxy limits. */
 const BARCODE_FIBER_SUGAR_MS = 10_000;
 
@@ -171,8 +173,8 @@ export async function enrichPackagedProduct(
     (Boolean(vision.brand) && vision.photoKind !== "meal");
 
   if (shouldSearchPackage && query && !isFailedName(query)) {
-    const off = await searchOpenFoodFacts(query);
-    if (off && offMatchesQuery(query, off.dishName)) {
+    const off = await searchOpenFoodFactsBest([query, vision.dishName.trim()].filter(Boolean));
+    if (off && offMatchesQuery(query, off.dishName, off.brand)) {
       return mergeOffNutrition(vision, off, "openfoodfacts-search", barcode);
     }
   }
@@ -206,11 +208,11 @@ async function backfillMissingNutrition(
     return result;
   }
 
-  const names = [result.dishName.trim()].filter(Boolean);
-  const simplified = simplifyDishNameForLookup(result.dishName);
-  if (simplified && !names.some((n) => n.toLowerCase() === simplified.toLowerCase())) {
-    names.push(simplified);
-  }
+  const names = lookupQueriesForName(
+    result.dishName.trim(),
+    simplifyDishNameForLookup(result.dishName),
+    BACKFILL_LOOKUP_MAX,
+  );
 
   let best = result;
 
@@ -253,10 +255,13 @@ async function runEnrichmentWithBudget(
   const enriched = await withTimeoutFallback(
     (async () => {
       let next = result;
+      if (hasCompleteVisionNutrition(next)) {
+        return next;
+      }
       if (!hasSufficientVisionNutrition(next)) {
         next = await backfillMissingNutrition(next, userId, () => gate.cancelled);
       }
-      if (!gate.cancelled) {
+      if (!gate.cancelled && needsFiberSugarBackfill(next)) {
         next = await enrichMissingFiberSugar(next, dishName);
       }
       return next;
@@ -330,11 +335,21 @@ export async function recognizeFoodWithAI(
   imageBuffer: Buffer,
   filename: string,
   userId?: string | null,
+  options?: { barcode?: string | null },
 ): Promise<FoodRecognitionResult> {
   if (!process.env.GIGACHAT_CREDENTIALS) {
     throw new Error(
       "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
     );
+  }
+
+  const barcodeHint = options?.barcode ? normalizeBarcode(options.barcode) : null;
+  if (barcodeHint) {
+    try {
+      return await lookupFoodByBarcode(barcodeHint, userId);
+    } catch {
+      // OFF miss — fall through to vision with the same code as hint.
+    }
   }
 
   const vision = await recognizeWithGigaChat(imageBuffer, filename);
@@ -343,12 +358,8 @@ export async function recognizeFoodWithAI(
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
 
   if (plated && vision.items) {
-    const perItemBudgetMs = Math.max(
-      PLATE_ITEM_MIN_BUDGET_MS,
-      Math.floor(POST_VISION_BUDGET_MS / vision.items.length),
-    );
     const processed = await mapPool(vision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
-      enrichMealItem(item, userId, Date.now() + perItemBudgetMs),
+      enrichMealItem(item, userId, deadlineMs),
     );
     return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
   }
@@ -446,9 +457,11 @@ export async function lookupFoodByName(
     return result;
   }
 
-  const off = await searchOpenFoodFacts(dishName);
+  const off = await searchOpenFoodFactsBest(
+    lookupQueriesForName(dishName, simplifyDishNameForLookup(dishName), 2),
+  );
   const offMatch =
-    off && offMatchesQuery(dishName, off.dishName) ? off : null;
+    off && offMatchesQuery(dishName, off.dishName, off.brand) ? off : null;
   let result: FoodRecognitionResult | null = null;
 
   if (offMatch) {

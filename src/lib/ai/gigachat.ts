@@ -2,12 +2,14 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, FOOD_RECOGNITION_RETRY_PROMPT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
+import { buildRecognitionRetryPrompt } from "@/lib/ai/recognition-retry-prompt";
 import {
   getRecognitionRetryReason,
   isBetterRecognitionResult,
   shouldRetryFoodRecognition,
+  type RecognitionRetryReason,
 } from "@/lib/ai/recognition-retry";
 import { prepareImageForLabelVision, prepareImageForVision } from "@/lib/ai/image-utils";
 import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
@@ -384,8 +386,8 @@ export async function recognizeWithGigaChat(
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
 
-  // Budget: main + at most 2 follow-ups (retry and/or one specialist, optional barcode→package fallback).
-  const MAX_CHAT_CALLS = 3;
+  // Budget: main + retry + specialist + optional post-specialist retry.
+  const MAX_CHAT_CALLS = 4;
   let chatCalls = 0;
   let specialistPass: SpecialistPass | null = null;
 
@@ -395,11 +397,11 @@ export async function recognizeWithGigaChat(
     specialistPass,
   });
 
-  const ask = async (mode: "full" | "retry" = "full") => {
+  const ask = async (mode: "full" | "retry" = "full", retryReason: RecognitionRetryReason | null = null) => {
     chatCalls += 1;
     const content =
       mode === "retry"
-        ? FOOD_RECOGNITION_RETRY_PROMPT
+        ? buildRecognitionRetryPrompt(retryReason)
         : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
     return completeChat(
       [
@@ -436,7 +438,7 @@ export async function recognizeWithGigaChat(
     result = parseFoodRecognitionResponse(text);
   } catch {
     if (chatCalls < MAX_CHAT_CALLS) {
-      text = await ask("retry");
+      text = await ask("retry", null);
       result = parseFoodRecognitionResponse(text);
     } else {
       throw new Error("Не удалось разобрать ответ распознавания");
@@ -455,9 +457,10 @@ export async function recognizeWithGigaChat(
   });
 
   if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS - 1) {
-    // Leave one chat slot for a specialist pass when possible.
+    // Leave chat slots for specialist + optional post-specialist retry.
     try {
-      text = await ask("retry");
+      const reason = getRecognitionRetryReason(result);
+      text = await ask("retry", reason);
       const retried = parseFoodRecognitionResponse(text);
       logRecognitionPass({
         pass: "retry",
@@ -502,13 +505,20 @@ export async function recognizeWithGigaChat(
     }
 
     if (pass === "label") {
-      const labelPrepared = await prepareImageForLabelVision(imageBuffer);
-      const labelFileId = await uploadImage(
-        token,
-        labelPrepared.buffer,
-        labelPrepared.mimeType,
-        filename,
-      );
+      const hasLabelTable =
+        (result.per100g?.calories ?? 0) > 0 &&
+        result.portionGrams !== undefined &&
+        result.portionGrams > 0;
+      let labelFileId = fileId;
+      if (!hasLabelTable) {
+        const labelPrepared = await prepareImageForLabelVision(imageBuffer);
+        labelFileId = await uploadImage(
+          token,
+          labelPrepared.buffer,
+          labelPrepared.mimeType,
+          filename,
+        );
+      }
       const labelText = await specialistChat(buildLabelVisionPrompt(), labelFileId);
       const labeled = parseFoodRecognitionResponse(labelText);
       if (!isBetterLabelResult(result, labeled)) return result;
@@ -607,6 +617,29 @@ export async function recognizeWithGigaChat(
       }
     } catch (error) {
       console.warn("Recognition specialist pass failed", specialist, error);
+    }
+  }
+
+  if (shouldRetryFoodRecognition(result) && chatCalls < MAX_CHAT_CALLS && specialist) {
+    try {
+      const reason = getRecognitionRetryReason(result);
+      text = await ask("retry", reason);
+      const retried = parseFoodRecognitionResponse(text);
+      logRecognitionPass({
+        pass: "retry",
+        photoKind: retried.photoKind,
+        retryReason: getRecognitionRetryReason(retried),
+        itemCount: retried.items?.length ?? 0,
+        calories: retried.calories,
+        confidence: retried.confidence,
+        dishName: retried.dishName,
+        ...telemetryBase(),
+      });
+      if (isBetterRecognitionResult(result, retried)) {
+        result = retried;
+      }
+    } catch (error) {
+      console.warn("Post-specialist recognition retry failed", error);
     }
   }
 

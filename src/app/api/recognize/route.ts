@@ -70,16 +70,19 @@ export async function POST(request: NextRequest) {
     }
 
     const compressed = await compressFoodImage(original);
-    const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
     const visionFilename =
       compressed.mimeType.includes("webp")
         ? uploadFilename(file).replace(/\.[^.]+$/, ".webp")
         : uploadFilename(file);
-    const recognition = await recognizeFoodWithAI(
-      compressed.buffer,
-      visionFilename,
-      session.user.id,
-    );
+    const barcodeField = formData.get("barcode");
+    const barcodeHint = typeof barcodeField === "string" ? barcodeField.trim() : "";
+
+    const [imagePath, recognition] = await Promise.all([
+      saveImageBuffer(compressed.buffer, compressed.mimeType),
+      recognizeFoodWithAI(compressed.buffer, visionFilename, session.user.id, {
+        barcode: barcodeHint || undefined,
+      }),
+    ]);
 
     return NextResponse.json({
       imagePath,
