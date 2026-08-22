@@ -9,23 +9,15 @@ function hasStickerNutrition(result: FoodRecognitionResult): boolean {
 }
 
 /**
- * Ready-meal stickers often come back as meal/package with empty macros.
- * Trigger when kind hints at a printed sticker and nutrition is missing.
+ * Ready-meal stickers often come back as label with empty macros.
+ * Do NOT run for factory `package` — that path already has package/barcode specialists
+ * and was cascading into extra GigaChat calls (timeouts + 429).
  */
 export function shouldRunStickerPass(result: FoodRecognitionResult): boolean {
   if (hasStickerNutrition(result)) return false;
 
-  // Explicit label with empty nutrition — sticker specialist can recover cafe print.
+  // Printed cafe/deli sticker misread as a nutrition label.
   if (result.photoKind === "label") return true;
-
-  // Package without barcode/brand often is a deli bowl sticker misclassified as package.
-  if (
-    result.photoKind === "package" &&
-    !result.barcode?.trim() &&
-    result.confidence >= 0.35
-  ) {
-    return true;
-  }
 
   return false;
 }

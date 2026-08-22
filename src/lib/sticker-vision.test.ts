@@ -14,7 +14,7 @@ test("sticker pass runs for empty label nutrition", () => {
   );
 });
 
-test("sticker pass runs for packageless deli bowl", () => {
+test("sticker pass does not run for factory package photos", () => {
   assert.equal(
     shouldRunStickerPass({
       dishName: "Оливье",
@@ -22,7 +22,7 @@ test("sticker pass runs for packageless deli bowl", () => {
       confidence: 0.55,
       photoKind: "package",
     }),
-    true,
+    false,
   );
 });
 
