@@ -264,6 +264,14 @@ type Per100gValues = {
 };
 
 /** Labels often expose 159 kJ/100ml — models sometimes put kJ into calories. */
+function convertLabelEnergyKjToKcal(calories: number): number {
+  // Typical drink labels: 150–400 kJ/100ml (≈36–96 kcal). Cottage cheese ~121 kcal stays.
+  if (calories >= 150 && calories <= 500) {
+    return Math.round((calories / 4.184) * 10) / 10;
+  }
+  return calories;
+}
+
 export function normalizePer100gEnergy(
   per100g: Per100gValues | undefined,
 ): Per100gValues | undefined {
@@ -271,13 +279,12 @@ export function normalizePer100gEnergy(
     return undefined;
   }
 
-  let calories = per100g.calories;
-  // Typical drink labels: 150–400 kJ/100ml (≈36–96 kcal). Cottage cheese ~121 kcal stays.
-  if (calories >= 150 && calories <= 500) {
-    calories = Math.round((calories / 4.184) * 10) / 10;
-  }
+  return { ...per100g, calories: convertLabelEnergyKjToKcal(per100g.calories) };
+}
 
-  return { ...per100g, calories };
+/** Vision sometimes puts kJ/100 ml into the top-level calories field (e.g. 150 instead of 38). */
+export function normalizeTopLevelEnergyCalories(calories: number): number {
+  return convertLabelEnergyKjToKcal(calories);
 }
 
 function isPackagedPhoto(result: Pick<FoodRecognitionResult, "photoKind" | "source">): boolean {
@@ -319,15 +326,16 @@ export function resolvePer100gForScaling(
   const explicitPortion =
     result.portionGrams && result.portionGrams > 0 ? result.portionGrams : null;
   const portionGrams = explicitPortion ?? DEFAULT_PORTION_GRAMS;
+  const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories);
 
-  // Label rows and drinks: models often put kcal/100 ml in calories while portionGrams is pack volume.
+  // Label rows and drinks: models often put kcal/100 ml (or kJ/100 ml) in calories while portionGrams is pack volume.
   if (
-    caloriesLookPer100g(result.calories) &&
+    caloriesLookPer100g(topLevelCalories) &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     (portionGrams > 100 || !explicitPortion)
   ) {
     return {
-      calories: result.calories,
+      calories: topLevelCalories,
       protein: result.protein,
       fat: result.fat,
       carbs: result.carbs,
@@ -336,7 +344,7 @@ export function resolvePer100gForScaling(
     };
   }
 
-  const inferred = inferPer100gValues(result, result.calories, portionGrams);
+  const inferred = inferPer100gValues(result, topLevelCalories, portionGrams);
   if (inferred) {
     return inferred;
   }
@@ -632,5 +640,75 @@ export function recognitionNeedsPortionRescale(
     return true;
   }
 
-  return current <= 120 && expected > current + 10;
+  if (current <= 120 && expected > current + 10) {
+    return true;
+  }
+
+  // Catch under-scaled bottle totals that match a wrong reverse-inferred per100 (e.g. 150 kcal @ 1500 ml beer).
+  return expected > current + 10 && current < expected * 0.85;
+}
+
+/** Merge name lookup into confirm card while keeping the user's portion and label totals. */
+export function applyFoodLookupToPortion(
+  current: FoodRecognitionResult,
+  looked: Pick<
+    FoodRecognitionResult,
+    | "dishName"
+    | "calories"
+    | "protein"
+    | "fat"
+    | "carbs"
+    | "fiber"
+    | "sugar"
+    | "portionGrams"
+    | "source"
+  >,
+  targetPortionGrams: number,
+): Pick<
+  FoodRecognitionResult,
+  "dishName" | "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar" | "portionGrams"
+> {
+  const portion =
+    Number.isFinite(targetPortionGrams) && targetPortionGrams > 0
+      ? targetPortionGrams
+      : looked.portionGrams && looked.portionGrams > 0
+        ? looked.portionGrams
+        : current.portionGrams ?? DEFAULT_PORTION_GRAMS;
+
+  const scaledCurrent = scaleRecognitionToPortion(current, portion);
+  const scaledLooked = scaleRecognitionToPortion(
+    {
+      ...current,
+      ...looked,
+      portionGrams: looked.portionGrams && looked.portionGrams > 0 ? looked.portionGrams : portion,
+    },
+    portion,
+  );
+
+  const fromLabel =
+    current.photoKind === "label" ||
+    current.source === "label" ||
+    current.photoKind === "package" ||
+    current.photoKind === "barcode";
+
+  const calories =
+    fromLabel &&
+    scaledCurrent.calories > 0 &&
+    scaledLooked.calories > 0 &&
+    scaledCurrent.calories > scaledLooked.calories * 1.25
+      ? scaledCurrent.calories
+      : scaledLooked.calories > 0
+        ? scaledLooked.calories
+        : scaledCurrent.calories;
+
+  return {
+    dishName: looked.dishName.trim() || current.dishName,
+    calories,
+    protein: pickMacro(scaledCurrent.protein, scaledLooked.protein),
+    fat: pickMacro(scaledCurrent.fat, scaledLooked.fat),
+    carbs: pickMacro(scaledCurrent.carbs, scaledLooked.carbs),
+    fiber: pickOptionalMacro(scaledCurrent.fiber, scaledLooked.fiber),
+    sugar: pickOptionalMacro(scaledCurrent.sugar, scaledLooked.sugar),
+    portionGrams: portion,
+  };
 }

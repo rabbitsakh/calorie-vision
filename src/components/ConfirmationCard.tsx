@@ -12,6 +12,7 @@ import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
+  applyFoodLookupToPortion,
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
   resolveDisplayPortionGrams,
@@ -418,24 +419,27 @@ export function ConfirmationCard({
       }
 
       const next = data.recognition;
+      const targetPortion =
+        Number(dish.portionGrams) > 0
+          ? Number(dish.portionGrams)
+          : next.portionGrams && next.portionGrams > 0
+            ? next.portionGrams
+            : Number(dish.original.portionGrams) || 100;
+
+      const merged = applyFoodLookupToPortion(dish.original, next, targetPortion);
+
       updateDish(dish.id, {
-        dishName: decodeHtmlEntities(next.dishName),
-        calories: String(next.calories),
-        protein: next.protein !== undefined ? String(next.protein) : "",
-        fat: next.fat !== undefined ? String(next.fat) : "",
-        carbs: next.carbs !== undefined ? String(next.carbs) : "",
-        fiber: next.fiber !== undefined ? String(next.fiber) : "",
-        sugar: next.sugar !== undefined ? String(next.sugar) : "",
-        portionGrams: next.portionGrams !== undefined ? String(next.portionGrams) : "",
+        dishName: decodeHtmlEntities(merged.dishName),
+        calories: String(merged.calories),
+        protein: merged.protein !== undefined ? formatMacro(merged.protein) : "",
+        fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
+        carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
+        fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
+        sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
+        portionGrams: String(merged.portionGrams),
         baseline: nutritionBaselineFromRecognition({
-          dishName: next.dishName,
-          calories: next.calories,
-          protein: next.protein,
-          fat: next.fat,
-          carbs: next.carbs,
-          fiber: next.fiber,
-          sugar: next.sugar,
-          portionGrams: next.portionGrams,
+          ...dish.original,
+          ...merged,
           photoKind: dish.original.photoKind,
           source: next.source ?? dish.original.source,
         }),

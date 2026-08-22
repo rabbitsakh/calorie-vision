@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applyFoodLookupToPortion,
   clearSuspiciousZeroFiberSugar,
   inferPer100gValues,
   hasCompleteVisionNutrition,
@@ -632,4 +633,67 @@ test("resolveDisplayPortionGrams uses label volume text for per-100 drinks", () 
   });
   assert.equal(normalized.portionGrams, 1500);
   assert.equal(normalized.calories, 570);
+});
+
+test("resolvePer100gForScaling converts top-level kJ on label drinks", () => {
+  const item = {
+    dishName: "Пиво светлое фильтрованное",
+    calories: 150,
+    carbs: 12,
+    protein: 0,
+    fat: 0,
+    portionGrams: 1500,
+    photoKind: "label" as const,
+    source: "label" as const,
+  };
+
+  const per100 = resolvePer100gForScaling(item);
+  assert.ok(per100);
+  assert.ok(per100!.calories >= 35 && per100!.calories <= 40);
+
+  const scaled = scaleRecognitionToPortion(item, 1500);
+  assert.equal(scaled.calories, Math.round(per100!.calories * 15));
+  assert.ok(scaled.calories >= 530);
+});
+
+test("recognitionNeedsPortionRescale catches kJ misread bottle totals", () => {
+  const item = {
+    dishName: "Пиво светлое",
+    calories: 150,
+    carbs: 12,
+    portionGrams: 1500,
+    photoKind: "label" as const,
+    source: "label" as const,
+  };
+
+  assert.equal(recognitionNeedsPortionRescale(item, 150), true);
+});
+
+test("applyFoodLookupToPortion keeps label calories and user portion", () => {
+  const current = {
+    dishName: "Пиво светлое фильтрованное",
+    calories: 150,
+    carbs: 12,
+    protein: 0,
+    fat: 0,
+    portionGrams: 1500,
+    confidence: 0.9,
+    photoKind: "label" as const,
+    source: "label" as const,
+  };
+
+  const looked = {
+    dishName: "Пиво светлое",
+    calories: 43,
+    protein: 0,
+    fat: 0,
+    carbs: 3.5,
+    portionGrams: 100,
+    source: "gigachat" as const,
+  };
+
+  const merged = applyFoodLookupToPortion(current, looked, 1500);
+  assert.equal(merged.portionGrams, 1500);
+  assert.ok(merged.calories >= 530);
+  assert.ok((merged.carbs ?? 0) > 0);
 });
