@@ -849,6 +849,7 @@ textarea {
 
 /* —— Marketing landing (guests on /) —— */
 .landing {
+  --landing-scroll-y: 0px;
   --landing-ink: #0a1f1c;
   --landing-muted: #3d5a54;
   --landing-deep: #0b4f48;
@@ -944,7 +945,7 @@ textarea {
 
 .landing-hero-stage {
   grid-area: 1 / 1;
-  min-height: 52vh;
+  min-height: 58vh;
   overflow: hidden;
   pointer-events: none;
   position: relative;
@@ -956,24 +957,13 @@ textarea {
   position: absolute;
 }
 
-.landing-parallax-layer {
-  pointer-events: none;
-  will-change: transform;
-}
-
-.landing-parallax-layer-plate {
+.landing-hero-parallax-plate {
   inset: 0;
+  pointer-events: none;
   position: absolute;
-}
-
-.landing-phone-hero-wrap {
-  bottom: auto;
-  left: 50%;
-  position: absolute;
-  top: 6%;
-  transform: translateX(-50%);
-  width: min(220px, 52vw);
-  z-index: 1;
+  transform: translate3d(0, calc(var(--landing-scroll-y) * 0.42), 0);
+  will-change: transform;
+  z-index: 0;
 }
 
 .landing-hero-plate {
@@ -981,15 +971,26 @@ textarea {
   display: block;
   height: 100%;
   margin-left: auto;
+  margin-right: auto;
   max-width: none;
-  object-fit: cover;
-  opacity: 0.88;
-  width: min(920px, 130%);
+  object-fit: contain;
+  opacity: 0.95;
+  width: min(920px, 140%);
 }
 
 .landing-phone-hero {
-  position: relative;
-  width: 100%;
+  bottom: auto;
+  left: 50%;
+  position: absolute;
+  top: 6%;
+  transform: translateX(-50%);
+  width: min(220px, 52vw);
+  z-index: 2;
+}
+
+.landing-hero-parallax-phone {
+  transform: translate3d(0, calc(var(--landing-scroll-y) * 0.16), 0);
+  will-change: transform;
 }
 
 .landing-hero-copy {
@@ -1058,45 +1059,74 @@ textarea {
   opacity: 0.92;
 }
 
-.landing-parallax-blob {
-  border-radius: 50%;
-  filter: blur(40px);
+.landing-parallax-band {
+  position: relative;
+}
+
+.landing-parallax-band::before {
+  animation: landing-blob-drift-b 22s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.22), transparent 70%);
+  content: "";
+  filter: blur(28px);
+  height: 280px;
   pointer-events: none;
   position: absolute;
+  right: -5%;
+  top: 10%;
+  transform: translate3d(0, calc(var(--landing-scroll-y) * -0.12), 0);
+  width: 280px;
+  will-change: transform;
+}
+
+.landing-section-with-mascot {
+  position: relative;
+}
+
+.landing-section-body {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-section-mascot-wrap {
+  pointer-events: none;
+  position: absolute;
+  transform: translate3d(0, calc(var(--landing-scroll-y) * -0.08), 0);
+  will-change: transform;
   z-index: 0;
 }
 
-.landing-parallax-blob-a {
-  animation: landing-blob-drift-a 18s ease-in-out infinite;
-  background: rgba(94, 234, 212, 0.35);
-  height: 220px;
-  left: 8%;
-  top: 12%;
-  width: 220px;
+.landing-section-mascot-wrap-right {
+  right: 0;
+  top: 0.5rem;
 }
 
-.landing-parallax-blob-b {
-  animation: landing-blob-drift-b 22s ease-in-out infinite;
-  background: rgba(11, 79, 72, 0.16);
-  height: 280px;
-  right: 6%;
-  top: 28%;
-  width: 280px;
+.landing-section-mascot-wrap-left {
+  left: 0;
+  top: 1rem;
 }
 
-.landing-hero-mascot {
-  filter: drop-shadow(0 18px 28px rgba(11, 79, 72, 0.18));
-  left: 12%;
-  position: absolute;
-  top: 18%;
-  width: min(200px, 34vw);
-  z-index: 2;
+.landing-section-mascot {
+  animation: landing-mascot-float 7s ease-in-out infinite;
+  filter: drop-shadow(0 14px 24px rgba(11, 79, 72, 0.14));
+  width: min(140px, 28vw);
 }
 
-.landing-hero-mascot svg {
+.landing-section-mascot svg {
   display: block;
   height: auto;
   width: 100%;
+}
+
+.landing-section-mascot-right {
+  margin-left: auto;
+}
+
+.landing-section-mascot-left {
+  margin-right: auto;
+}
+
+.landing-mascot-float {
+  animation: landing-mascot-float 7s ease-in-out infinite;
 }
 
 .landing-scroll-reveal {
@@ -1558,6 +1588,16 @@ textarea {
   padding: 4.5rem 1.25rem 5.75rem;
 }
 
+@keyframes landing-mascot-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
 @keyframes landing-blob-drift-a {
   0%,
   100% {
@@ -1624,14 +1664,26 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .landing {
+    --landing-scroll-y: 0px !important;
+  }
+
   .landing-reveal,
   .landing-reveal-late,
   .landing-hero-plate,
   .landing-phone-bezel,
   .landing-phone-ring-progress,
-  .landing-parallax-blob-a,
-  .landing-parallax-blob-b {
+  .landing-section-mascot,
+  .landing-mascot-float,
+  .landing-parallax-band::before {
     animation: none !important;
+  }
+
+  .landing-hero-parallax-plate,
+  .landing-hero-parallax-phone,
+  .landing-section-mascot-wrap,
+  .landing-parallax-band::before {
+    transform: none !important;
   }
 
   .landing-scroll-reveal {
@@ -1659,30 +1711,45 @@ textarea {
   .landing-hero-stage {
     flex: 1 1 auto;
     grid-area: auto;
-    min-height: 38vh;
+    min-height: 42vh;
     position: relative;
   }
 
-  .landing-hero-plate {
-    animation: none;
-    left: 50%;
-    opacity: 0.95;
-    position: absolute;
-    top: 45%;
-    transform: translate(-50%, -50%);
-    width: min(520px, 118%);
+  .landing-hero-parallax-plate {
+    align-items: center;
+    display: flex;
+    justify-content: center;
   }
 
-  .landing-phone-hero-wrap {
-    bottom: 0.5rem;
+  .landing-hero-plate {
+    animation: landing-drift 14s ease-in-out infinite;
+    height: auto;
+    margin: 0;
+    max-height: 100%;
+    opacity: 1;
+    position: relative;
+    width: min(480px, 115%);
+  }
+
+  .landing-phone-hero {
+    bottom: 0.25rem;
     left: 50%;
     top: auto;
     transform: translateX(-50%);
     width: min(200px, 48vw);
   }
 
-  .landing-hero-mascot {
-    display: none;
+  .landing-section-mascot-wrap {
+    width: min(108px, 24vw);
+  }
+
+  .landing-section-mascot-wrap-right {
+    right: -0.25rem;
+    top: -0.5rem;
+  }
+
+  .landing-section-mascot-wrap-left {
+    left: -0.25rem;
   }
 
   .landing-hero-copy {
@@ -1718,27 +1785,36 @@ textarea {
   }
 
   .landing-hero-plate {
-    margin-right: -4%;
+    margin-right: -2%;
     opacity: 1;
-    width: min(70%, 820px);
+    width: min(78%, 860px);
   }
 
-  .landing-phone-hero-wrap {
-    bottom: 10%;
+  .landing-phone-hero {
+    bottom: 8%;
     left: auto;
-    right: 10%;
+    right: 8%;
     top: auto;
     transform: none;
     width: min(272px, 24vw);
   }
 
-  .landing-hero-mascot {
-    bottom: 14%;
-    display: block;
-    left: auto;
-    right: 34%;
-    top: auto;
-    width: min(220px, 18vw);
+  .landing-section-with-mascot {
+    padding-top: 5rem;
+  }
+
+  .landing-section-mascot {
+    width: min(160px, 14vw);
+  }
+
+  .landing-section-mascot-wrap-right {
+    right: 3rem;
+    top: 3.5rem;
+  }
+
+  .landing-section-mascot-wrap-left {
+    left: 3rem;
+    top: 4rem;
   }
 
   .landing-hero-copy {

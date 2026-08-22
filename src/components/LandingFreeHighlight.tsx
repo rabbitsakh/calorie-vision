@@ -7,7 +7,7 @@ export function LandingFreeHighlight() {
   return (
     <section id="free" className="landing-section landing-free-section">
       <div className="landing-free-layout">
-        <Mascot pose="tip" size="lg" className="landing-free-mascot" title="Талисман рассказывает о бесплатном доступе" />
+        <Mascot pose="tip" size="lg" className="landing-free-mascot landing-mascot-float" title="Талисман рассказывает о бесплатном доступе" />
         <div className="landing-free-copy">
           <p className="landing-kicker">Бесплатно на старте</p>
           <h2 className="landing-section-title">Пока всё — без оплаты</h2>

@@ -8,7 +8,7 @@ export function LandingFooterCta() {
   return (
     <LandingScrollReveal>
       <section className="landing-footer-cta">
-        <Mascot pose="tip" size="lg" className="landing-footer-mascot" title="Талисман подсказывает начать" />
+        <Mascot pose="goal" size="lg" className="landing-footer-mascot landing-mascot-float" title="Талисман подсказывает начать" />
         <p className="landing-brand landing-brand-sm">Calorie Vision</p>
         <h2 className="landing-section-title">Попробуйте на сегодняшнем обеде</h2>
         <p className="landing-section-text">
