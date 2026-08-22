@@ -180,6 +180,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
 
       let streamImagePath = "";
       let usedStream = false;
+      let enrichingSnapshot: RecognitionResponse | null = null;
+      let enrichUiTimer: ReturnType<typeof setTimeout> | undefined;
+      const ENRICHING_UI_TIMEOUT_MS = 18_000;
 
       try {
         const streamResponse = await fetch(withBasePath("/api/recognize/stream"), {
@@ -199,14 +202,28 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
                 return;
               }
               handedOffPreview = true;
-              onRecognized({
+              enrichingSnapshot = {
                 imagePath: streamImagePath,
                 previewUrl: objectUrl,
                 recognition,
                 enriching: true,
-              });
+              };
+              onRecognized(enrichingSnapshot);
+              if (enrichUiTimer) {
+                clearTimeout(enrichUiTimer);
+              }
+              enrichUiTimer = setTimeout(() => {
+                if (enrichingSnapshot?.enriching) {
+                  enrichingSnapshot = { ...enrichingSnapshot, enriching: false };
+                  onRecognized(enrichingSnapshot);
+                }
+              }, ENRICHING_UI_TIMEOUT_MS);
             },
           });
+
+          if (enrichUiTimer) {
+            clearTimeout(enrichUiTimer);
+          }
 
           if (controller.signal.aborted) {
             return;
@@ -221,6 +238,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           return;
         }
       } catch (streamErr) {
+        if (enrichUiTimer) {
+          clearTimeout(enrichUiTimer);
+        }
         if ((streamErr as Error).name === "AbortError") {
           return;
         }

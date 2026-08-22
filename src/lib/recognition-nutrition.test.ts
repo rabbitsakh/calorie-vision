@@ -15,6 +15,7 @@ import {
   recognitionNeedsPortionRescale,
   resolvePer100gForScaling,
   scaleRecognitionToPortion,
+  shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "./recognition-nutrition.ts";
 import { scaleNutritionByPortion } from "./nutrition.ts";
@@ -579,4 +580,23 @@ test("recognitionNeedsPortionRescale catches unscaled label bottle totals", () =
   assert.equal(recognitionNeedsPortionRescale(item, 42), true);
   assert.equal(recognitionNeedsPortionRescale(item, 630), false);
   assert.equal(recognitionNeedsPortionRescale({ ...item, portionGrams: 100 }, 42), false);
+});
+
+test("shouldSkipSlowPostVisionEnrichment skips GigaChat backfill for label calories", () => {
+  assert.equal(
+    shouldSkipSlowPostVisionEnrichment({
+      photoKind: "label",
+      source: "label",
+      calories: 38,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldSkipSlowPostVisionEnrichment({
+      photoKind: "meal",
+      source: "gigachat",
+      calories: 38,
+    }),
+    false,
+  );
 });

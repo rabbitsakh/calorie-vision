@@ -26,6 +26,7 @@ import {
   needsNutritionLookup,
   normalizePer100gEnergy,
   normalizeRecognitionNutrition,
+  shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
@@ -43,6 +44,8 @@ export { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 
 /** Wall-clock budget for post-vision OFF/GigaChat enrichment (nginx is ~180s total). */
 const POST_VISION_BUDGET_MS = 60_000;
+/** Label/package/barcode — vision calories are enough; keep SSE phase short. */
+const PACKAGED_ENRICH_BUDGET_MS = 12_000;
 const PLATE_ENRICH_CONCURRENCY = 3;
 const BACKFILL_LOOKUP_MAX = 2;
 /** Barcode path: short fiber/sugar ask only — keep /api/food/lookup under proxy limits. */
@@ -298,7 +301,7 @@ async function runEnrichmentWithBudget(
   const enriched = await withTimeoutFallback(
     (async () => {
       let next = result;
-      if (hasCompleteVisionNutrition(next)) {
+      if (hasCompleteVisionNutrition(next) || shouldSkipSlowPostVisionEnrichment(next)) {
         return next;
       }
       if (!hasSufficientVisionNutrition(next)) {
@@ -440,21 +443,29 @@ async function enrichPlateFiberSugarBatch(
   }
 }
 
-function finalizeRecognitionResult(
+async function finalizeRecognitionResult(
   result: FoodRecognitionResult,
   userId?: string | null,
   deadlineMs?: number,
 ): Promise<FoodRecognitionResult> {
-  return enrichAlternatives(result, { deadlineMs }).then((withAlternatives) =>
-    applyStoredFoodCorrection(normalizeRecognitionNutrition(withAlternatives), userId),
+  const remainingMs = deadlineMs ? Math.max(0, deadlineMs - Date.now()) : 2500;
+  const withAlternatives = await withTimeoutFallback(
+    enrichAlternatives(result, { deadlineMs }),
+    Math.min(Math.max(remainingMs, 500), 3000),
+    result,
   );
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(withAlternatives), userId);
 }
 
 export async function enrichRecognitionAfterVision(
   vision: FoodRecognitionResult,
   userId?: string | null,
 ): Promise<FoodRecognitionResult> {
-  const deadlineMs = Date.now() + POST_VISION_BUDGET_MS;
+  const packaged =
+    vision.photoKind === "label" ||
+    vision.photoKind === "package" ||
+    vision.photoKind === "barcode";
+  const deadlineMs = Date.now() + (packaged ? PACKAGED_ENRICH_BUDGET_MS : POST_VISION_BUDGET_MS);
   const plated =
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
 
@@ -470,7 +481,11 @@ export async function enrichRecognitionAfterVision(
     );
   }
 
-  const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });
+  const enriched = await withTimeoutFallback(
+    enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined }),
+    Math.max(0, deadlineMs - Date.now()),
+    { ...vision, source: "gigachat", items: undefined },
+  );
   let result = normalizeRecognitionNutrition(enriched);
 
   const remaining = Math.max(0, deadlineMs - Date.now());

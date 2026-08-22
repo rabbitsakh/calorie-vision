@@ -20,6 +20,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Recognition eval telemetry wave.*$/i, "Распознавание: eval harness и telemetry dashboard в админке"],
   [/^Fix label drink scaling.*$/i, "Исправление: масштабирование калорий напитков с этикетки"],
+  [/^Fix enriching hang.*$/i, "Исправление: зависание «Уточняем» на этикетках"],
   [/^Recognition 50-point wave 11.*$/i, "Распознавание: OFF alternatives, калибровка confidence, eval fix"],
   [/^Recognition 50-point wave 10.*$/i, "Распознавание: alternatives БЖУ, 50 фикстур, RU-паста"],
   [/^Recognition 50-point wave 9.*$/i, "Распознавание: live eval cron, drill-down слабых позиций, фикстуры"],

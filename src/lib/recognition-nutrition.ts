@@ -190,6 +190,21 @@ export function clearSuspiciousZeroFiberSugar(
   return result;
 }
 
+/** Labels/packages with calorie totals — skip slow GigaChat macro/fiber backfill in SSE phase. */
+export function shouldSkipSlowPostVisionEnrichment(
+  result: Pick<FoodRecognitionResult, "photoKind" | "source" | "calories">,
+): boolean {
+  const packaged =
+    result.photoKind === "label" ||
+    result.photoKind === "package" ||
+    result.photoKind === "barcode" ||
+    result.source === "label" ||
+    result.source === "openfoodfacts-barcode" ||
+    result.source === "openfoodfacts-search";
+
+  return packaged && Number.isFinite(result.calories) && result.calories > 0;
+}
+
 /** True when fiber and/or sugar were omitted (empty confirm fields). */
 export function needsFiberSugarBackfill(
   result: Pick<FoodRecognitionResult, "fiber" | "sugar" | "carbs">,

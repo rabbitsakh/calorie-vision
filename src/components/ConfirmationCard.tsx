@@ -642,9 +642,9 @@ export function ConfirmationCard({
 
         {enriching ? (
           <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-950">
-            <p className="font-semibold">Уточняем БЖУ и клетчатку…</p>
+            <p className="font-semibold">Подтягиваем данные из базы…</p>
             <p className="mt-1 text-teal-900/90">
-              Уже видим блюдо на фото — подтягиваем данные из базы. Можно проверять название и порцию.
+              Название и калории уже на экране — можно проверить порцию и сохранить, не дожидаясь уточнения.
             </p>
           </div>
         ) : null}
@@ -810,22 +810,23 @@ export function ConfirmationCard({
           ))}
         </div>
         <div className="sticky-actions">
-          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching || enriching} onClick={() => void handleSave()}>
-            {enriching ? (
-              <>
-                <span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span>
-                Уточняем…
-              </>
-            ) : saving ? (
+          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
+            {saving ? (
               <>
                 <span className="daisy-loading daisy-loading-sm" aria-hidden>
                   <span /><span /><span />
                 </span>
                 Сохраняем...
               </>
-            ) : multi ? "Сохранить все блюда" : "Да, сохранить"}
+            ) : enriching ? (
+              "Да, сохранить"
+            ) : multi ? (
+              "Сохранить все блюда"
+            ) : (
+              "Да, сохранить"
+            )}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={saving || searching || enriching} onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
             Отменить
           </button>
         </div>
