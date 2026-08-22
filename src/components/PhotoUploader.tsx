@@ -241,9 +241,10 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         if (enrichUiTimer) {
           clearTimeout(enrichUiTimer);
         }
-        if (enrichingSnapshot?.enriching) {
-          onRecognized({ ...enrichingSnapshot, enriching: false });
-          enrichingSnapshot = { ...enrichingSnapshot, enriching: false };
+        const snapshot = enrichingSnapshot as RecognitionResponse | null;
+        if (snapshot) {
+          onRecognized({ ...snapshot, enriching: false });
+          enrichingSnapshot = { ...snapshot, enriching: false };
         }
         if ((streamErr as Error).name === "AbortError") {
           return;

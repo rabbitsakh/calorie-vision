@@ -56,7 +56,7 @@ export function DayOpenedCelebration({
     if (selectedDate !== today) return;
 
     let cancelled = false;
-    const timers: ReturnType<typeof setTimeout>[] = [];
+    const timers: number[] = [];
 
     async function pollStreak() {
       try {
