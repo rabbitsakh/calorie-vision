@@ -28,6 +28,7 @@ export default function RationPage() {
   const { date, setDate, today } = useSelectedDate(timezone);
   const [refreshKey, setRefreshKey] = useState(0);
   const [totalCalories, setTotalCalories] = useState(0);
+  const [showExtras, setShowExtras] = useState(false);
 
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -51,10 +52,8 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-5">
-          {/* Hero: one progress surface for the selected day */}
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
-          {/* Primary job */}
           <FoodAddPanel selectedDate={date} onSaved={bump} />
           <DailyLog
             selectedDate={date}
@@ -63,9 +62,9 @@ export default function RationPage() {
             timezone={timezone}
             onChanged={bump}
             onTotalsChange={setTotalCalories}
+            onAddFood={scrollToFoodAdd}
           />
 
-          {/* At most one soft motivation card */}
           <MotivationQueue>
             <StreakNudge
               selectedDate={date}
@@ -79,25 +78,39 @@ export default function RationPage() {
             <MotivationTip today={today} selectedDate={date} quietHide />
           </MotivationQueue>
 
-          {/* Secondary tools */}
           <QuickAddAgain
             selectedDate={date}
             refreshKey={refreshKey}
             totalCalories={totalCalories}
             onSaved={bump}
           />
-          <div className="grid gap-4 md:grid-cols-2">
-            <WaterTracker selectedDate={date} />
-            <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-          </div>
-          <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-          <PushNotificationPrompt />
-          <DiaryNoteWidget selectedDate={date} />
+
+          <button
+            type="button"
+            className="self-start text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+            onClick={() => setShowExtras((value) => !value)}
+          >
+            {showExtras ? "Скрыть детали дня" : "Ещё за день"}
+          </button>
+          {showExtras ? (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <WaterTracker selectedDate={date} />
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+              </div>
+              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+              <PushNotificationPrompt />
+              <DiaryNoteWidget selectedDate={date} />
+            </div>
+          ) : null}
 
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
         </div>
       </AuthGate>
+      <button type="button" className="fab-add md:hidden" aria-label="Добавить еду" onClick={scrollToFoodAdd}>
+        +
+      </button>
     </AppShell>
   );
 }

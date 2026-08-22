@@ -7,6 +7,7 @@ import {
   formatYearMonth,
   getMonthGrid,
   isDateKey,
+  mondayOfWeek,
   monthDateRange,
   parseYearMonth,
   shiftDateKey,
@@ -44,6 +45,11 @@ test("shifts date keys and builds inclusive ranges", () => {
   assert.equal(shiftDateKey("2026-09-01", -1), "2026-08-31");
   assert.equal(shiftDateKey("2026-09-01", 1), "2026-09-02");
   assert.deepEqual(dateRangeEnding("2026-09-03", 3), ["2026-09-01", "2026-09-02", "2026-09-03"]);
+});
+
+test("mondayOfWeek starts ISO weeks on Monday", () => {
+  assert.equal(mondayOfWeek("2026-08-22"), "2026-08-17");
+  assert.equal(mondayOfWeek("2026-08-17"), "2026-08-17");
 });
 
 test("toDateKeyTz returns YYYY-MM-DD in the given timezone", () => {

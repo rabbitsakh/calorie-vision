@@ -167,31 +167,31 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
   }
 
   const grouped = groupWeightEntriesByDate(data?.entries ?? []);
+  const spark = [...(data?.entries ?? [])]
+    .slice()
+    .reverse()
+    .slice(-12);
+  const sparkMin = spark.length ? Math.min(...spark.map((e) => e.weightKg)) : 0;
+  const sparkMax = spark.length ? Math.max(...spark.map((e) => e.weightKg)) : 1;
+  const sparkSpan = Math.max(0.4, sparkMax - sparkMin);
+  const sparkPoints = spark
+    .map((entry, index) => {
+      const x = spark.length === 1 ? 50 : (index / (spark.length - 1)) * 100;
+      const y = 18 - ((entry.weightKg - sparkMin) / sparkSpan) * 16;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   return (
     <section className="card p-4 md:p-6">
       <div className="flex flex-col gap-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
-            <div className="mt-1 text-2xl font-bold">
-              {data?.currentWeightKg != null ? `${data.currentWeightKg} кг` : "—"}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-            <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
-            <div className="mt-1 text-2xl font-bold">
-              {data?.weightChangeKg != null ? formatSignedKg(data.weightChangeKg) : "—"}
-            </div>
-          </div>
-        </div>
-
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
           <div className="field flex-1">
             <label htmlFor="weight-now">Вес сейчас, кг</label>
             <input
               id="weight-now"
               type="number"
+              inputMode="decimal"
               min="20"
               max="300"
               step="0.1"
@@ -206,6 +206,31 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
             {saving ? "Сохраняем..." : "Добавить измерение"}
           </button>
         </form>
+
+        <div className="rounded-2xl bg-teal-50 px-4 py-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-teal-800">Текущий вес</div>
+          <div className="mt-1 flex items-end justify-between gap-3">
+            <p className="font-display text-4xl font-bold text-slate-900">
+              {data?.currentWeightKg != null ? `${data.currentWeightKg}` : "—"}
+              {data?.currentWeightKg != null ? <span className="text-lg font-semibold text-slate-500"> кг</span> : null}
+            </p>
+            <p className="text-sm font-semibold text-slate-600">
+              {data?.weightChangeKg != null ? formatSignedKg(data.weightChangeKg) : "с начала —"}
+            </p>
+          </div>
+          {spark.length >= 2 ? (
+            <svg viewBox="0 0 100 20" className="mt-3 h-10 w-full" aria-hidden>
+              <polyline
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                points={sparkPoints}
+              />
+            </svg>
+          ) : null}
+        </div>
 
         {/* Undo toast */}
         {pendingDelete ? (

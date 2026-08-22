@@ -106,6 +106,19 @@ export function shiftDateKey(dateKey: string, deltaDays: number): string {
   return formatDateInput(date);
 }
 
+/** Monday of the ISO-style week that contains `dateKey` (Mon–Sun). */
+export function mondayOfWeek(dateKey: string): string {
+  const date = parseDateInput(dateKey);
+  const weekday = date.getDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  date.setDate(date.getDate() + diff);
+  return formatDateInput(date);
+}
+
+export function weekdayShort(dateKey: string): string {
+  return new Intl.DateTimeFormat("ru-RU", { weekday: "short" }).format(parseDateInput(dateKey));
+}
+
 /** Inclusive list of `days` calendar days ending on `endDate`. */
 export function dateRangeEnding(endDate: string, days: number): string[] {
   const end = parseDateInput(endDate);

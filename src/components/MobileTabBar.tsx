@@ -27,17 +27,16 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
             <Link
               key={item.href}
               href={href}
-              className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-xs font-semibold transition-colors ${
-                active ? "text-teal-700" : "text-slate-500"
+              className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-semibold transition-colors ${
+                active ? "text-[var(--accent)]" : "text-slate-500"
               }`}
             >
-              <div className={`relative flex h-8 w-10 items-center justify-center rounded-xl transition-colors ${
-                active ? "bg-teal-50" : ""
-              }`}>
-                <NavIcon name={item.icon} className={`h-5 w-5 ${active ? "text-teal-700" : "text-slate-500"}`} />
-                {active ? (
-                  <span className="absolute -bottom-0.5 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-teal-600" />
-                ) : null}
+              <div
+                className={`flex h-8 w-full max-w-[4.5rem] items-center justify-center rounded-full transition-colors ${
+                  active ? "bg-teal-50" : ""
+                }`}
+              >
+                <NavIcon name={item.icon} className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-slate-500"}`} />
               </div>
               <span className="truncate">{item.shortLabel}</span>
             </Link>

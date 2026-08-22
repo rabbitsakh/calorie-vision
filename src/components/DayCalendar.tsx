@@ -117,7 +117,7 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
               onClick={() => onSelect(date)}
               className={`relative flex h-10 flex-col items-center justify-center rounded-xl text-sm font-medium ${
                 isSelected
-                  ? "bg-teal-700 text-white"
+                  ? "bg-[var(--accent)] text-white"
                   : isToday
                     ? "bg-teal-50 text-teal-800"
                     : "text-slate-700 hover:bg-slate-100"

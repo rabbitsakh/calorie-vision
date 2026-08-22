@@ -15,6 +15,7 @@ import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
+import { Chip } from "@/components/Chip";
 
 type NutritionFields = {
   dishName: string;
@@ -151,6 +152,7 @@ export function ConfirmationCard({
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [activeDish, setActiveDish] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -375,16 +377,39 @@ export function ConfirmationCard({
   const needsReview = anyMissingCalories || anyLowConfidence;
 
   return (
-    <section className="card p-6">
-      <div className="flex flex-col gap-5">
-        <div>
-          <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {multi
-              ? "Несколько блюд — поправьте порции и сохраните."
-              : "Проверьте порцию и калории. БЖУ можно уточнить ниже."}
-          </p>
-        </div>
+    <section id="food-add-panel" className="card overflow-hidden p-0 md:p-6">
+      <div className="flex flex-col gap-5 p-4 md:p-0">
+        {hasImage ? (
+          <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl">
+            {!imageLoaded ? (
+              <div className="absolute inset-0 min-h-44 animate-pulse bg-slate-200" aria-hidden />
+            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewUrl ?? getImageUrl(imagePath)}
+              alt={dishes.map((dish) => dish.dishName).join(", ") || "Фото блюда"}
+              onLoad={() => setImageLoaded(true)}
+              className={imageLoaded ? "" : "opacity-0"}
+            />
+            <div className="confirm-hero-overlay">
+              <h2 className="font-display text-lg font-bold">Проверьте и сохраните</h2>
+              <p className="mt-0.5 text-sm text-white/80">
+                {multi
+                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+                  : dishes[0]?.dishName || "Проверьте порцию и калории"}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {multi
+                ? "Несколько блюд — поправьте порции и сохраните."
+                : "Проверьте порцию и калории. БЖУ можно уточнить ниже."}
+            </p>
+          </div>
+        )}
 
         {needsReview ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
@@ -401,91 +426,93 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        <div className={`grid gap-5 ${hasImage ? "md:grid-cols-[220px_1fr]" : ""}`}>
-          {hasImage ? (
-            <div className="relative overflow-hidden rounded-2xl bg-slate-100">
-              {!imageLoaded ? (
-                <div className="absolute inset-0 min-h-52 animate-pulse bg-slate-200" aria-hidden />
-              ) : null}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={previewUrl ?? getImageUrl(imagePath)}
-                alt={dishes.map((dish) => dish.dishName).join(", ") || "Фото блюда"}
-                onLoad={() => setImageLoaded(true)}
-                className={`h-full min-h-52 w-full object-cover ${imageLoaded ? "" : "opacity-0"}`}
-              />
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-4">
-            <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
-              <p>
-                {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
-              </p>
-              <p className="mt-1 text-xs text-teal-800">
-                {multi
-                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                  : `Уверенность: ${formatConfidence(recognition.confidence)}`}
-                {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
-              </p>
-            </div>
-
-            {dishes.map((dish, index) => (
-              <DishFields
-                key={dish.id}
-                dish={dish}
-                index={index}
-                multi={multi}
-                searching={searchingId === dish.id}
-                disabled={saving || searching}
-                canRemove={multi}
-                review={reviewFlags[index]!}
-                onChange={(patch) => updateDish(dish.id, patch)}
-                onBaselineChange={(patch) =>
-                  updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
-                }
-                onPortionChange={(value) => handlePortionChange(dish, value)}
-                onLookup={(name) => void handleLookup(dish, name)}
-                onApplyAlternative={(alt) => {
-                  updateDish(dish.id, {
-                    dishName: decodeHtmlEntities(alt.dishName),
-                    calories: String(alt.calories),
-                    protein: alt.protein !== undefined ? String(alt.protein) : "",
-                    fat: alt.fat !== undefined ? String(alt.fat) : "",
-                    carbs: alt.carbs !== undefined ? String(alt.carbs) : "",
-                    fiber: alt.fiber !== undefined ? String(alt.fiber) : "",
-                    sugar: alt.sugar !== undefined ? String(alt.sugar) : "",
-                    portionGrams: alt.portionGrams !== undefined ? String(alt.portionGrams) : dish.portionGrams,
-                    baseline: null,
-                  });
-                  setLookupMessage("Вариант применён");
-                }}
-                onRemove={() => setDishes((current) => current.filter((item) => item.id !== dish.id))}
-              />
-            ))}
-
-            {multi ? (
-              <button
-                type="button"
-                className="btn btn-secondary self-start text-sm"
-                disabled={saving || searching}
-                onClick={() =>
-                  setDishes((current) => [
-                    ...current,
-                    draftFromRecognition(
-                      { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
-                      `new-${Date.now()}`,
-                    ),
-                  ])
-                }
-              >
-                Добавить блюдо
-              </button>
-            ) : null}
-          </div>
+        <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
+          <p>
+            {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
+          </p>
+          <p className="mt-1 text-xs text-teal-800">
+            {multi
+              ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+              : `Уверенность: ${formatConfidence(recognition.confidence)}`}
+            {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
+          </p>
         </div>
 
-        {lookupMessage ? <p className="text-sm text-teal-700">{lookupMessage}</p> : null}
+        {multi ? (
+          <div className="chip-row">
+            {dishes.map((dish, index) => (
+              <Chip key={dish.id} active={index === activeDish} onClick={() => setActiveDish(index)}>
+                {index + 1}. {dish.dishName || "Блюдо"}
+              </Chip>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-4">
+          {(multi ? dishes.filter((_, index) => index === Math.min(activeDish, dishes.length - 1)) : dishes).map(
+            (dish) => {
+              const index = dishes.findIndex((item) => item.id === dish.id);
+              return (
+                <DishFields
+                  key={dish.id}
+                  dish={dish}
+                  index={index}
+                  multi={multi}
+                  searching={searchingId === dish.id}
+                  disabled={saving || searching}
+                  canRemove={multi}
+                  review={reviewFlags[index]!}
+                  onChange={(patch) => updateDish(dish.id, patch)}
+                  onBaselineChange={(patch) =>
+                    updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
+                  }
+                  onPortionChange={(value) => handlePortionChange(dish, value)}
+                  onLookup={(name) => void handleLookup(dish, name)}
+                  onApplyAlternative={(alt) => {
+                    updateDish(dish.id, {
+                      dishName: decodeHtmlEntities(alt.dishName),
+                      calories: String(alt.calories),
+                      protein: alt.protein !== undefined ? String(alt.protein) : "",
+                      fat: alt.fat !== undefined ? String(alt.fat) : "",
+                      carbs: alt.carbs !== undefined ? String(alt.carbs) : "",
+                      fiber: alt.fiber !== undefined ? String(alt.fiber) : "",
+                      sugar: alt.sugar !== undefined ? String(alt.sugar) : "",
+                      portionGrams: alt.portionGrams !== undefined ? String(alt.portionGrams) : dish.portionGrams,
+                      baseline: null,
+                    });
+                    setLookupMessage("Вариант применён");
+                  }}
+                  onRemove={() => {
+                    setDishes((current) => current.filter((item) => item.id !== dish.id));
+                    setActiveDish((value) => Math.max(0, value - 1));
+                  }}
+                />
+              );
+            },
+          )}
+
+          {multi ? (
+            <button
+              type="button"
+              className="btn btn-secondary self-start text-sm"
+              disabled={saving || searching}
+              onClick={() => {
+                setDishes((current) => [
+                  ...current,
+                  draftFromRecognition(
+                    { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
+                    `new-${Date.now()}`,
+                  ),
+                ]);
+                setActiveDish(dishes.length);
+              }}
+            >
+              Добавить блюдо
+            </button>
+          ) : null}
+        </div>
+
+        {lookupMessage ? <p className="text-sm text-[var(--accent)]">{lookupMessage}</p> : null}
         {error ? (
           <div className="rounded-xl bg-red-50 px-3 py-2">
             {error.split("\n").map((line, i) => (
@@ -499,25 +526,18 @@ export function ConfirmationCard({
           </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap gap-1">
-            {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  mealType === value
-                    ? "bg-teal-700 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-                onClick={() => setMealType(mealType === value ? "" : value)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="chip-row-fill">
+          {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
+            <Chip
+              key={value}
+              active={mealType === value}
+              onClick={() => setMealType(mealType === value ? "" : value)}
+            >
+              {label}
+            </Chip>
+          ))}
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="sticky-actions">
           <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? (
               <>
@@ -678,6 +698,7 @@ function DishFields({
           <input
             id={fieldId("calories")}
             type="number"
+            inputMode="decimal"
             min="1"
             value={dish.calories}
             onChange={(event) => onBaselineChange({ calories: event.target.value })}
@@ -689,27 +710,24 @@ function DishFields({
           <input
             id={fieldId("portionGrams")}
             type="number"
+            inputMode="decimal"
             min="1"
             value={dish.portionGrams}
             onChange={(event) => onPortionChange(event.target.value)}
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {portionChipOptions(dish).map((chip) => {
+            {portionChipOptions(dish).map((chip, chipIndex) => {
               const active = Number(dish.portionGrams) === chip.grams;
               return (
-                <button
+                <Chip
                   key={chip.label}
-                  type="button"
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold transition-colors ${
-                    active
-                      ? "bg-teal-700 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                  active={active}
                   disabled={disabled}
+                  className={chipIndex === 0 && /упаковка|шт/i.test(chip.label) ? "min-h-11" : ""}
                   onClick={() => onPortionChange(String(chip.grams))}
                 >
                   {chip.label}
-                </button>
+                </Chip>
               );
             })}
           </div>
