@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
 import { lookupFiberSugarWithGigaChat, lookupFiberSugarBatchWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import type { VisionPromptHints } from "@/lib/ai/prompt-variants";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
@@ -398,28 +399,10 @@ async function enrichPlateFiberSugarBatch(
   }
 }
 
-export async function recognizeFoodWithAI(
-  imageBuffer: Buffer,
-  filename: string,
+export async function enrichRecognitionAfterVision(
+  vision: FoodRecognitionResult,
   userId?: string | null,
-  options?: { barcode?: string | null },
 ): Promise<FoodRecognitionResult> {
-  if (!process.env.GIGACHAT_CREDENTIALS) {
-    throw new Error(
-      "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
-    );
-  }
-
-  const barcodeHint = options?.barcode ? normalizeBarcode(options.barcode) : null;
-  if (barcodeHint) {
-    try {
-      return await lookupFoodByBarcode(barcodeHint, userId);
-    } catch {
-      // OFF miss — fall through to vision with the same code as hint.
-    }
-  }
-
-  const vision = await recognizeWithGigaChat(imageBuffer, filename);
   const deadlineMs = Date.now() + POST_VISION_BUDGET_MS;
   const plated =
     (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
@@ -445,6 +428,31 @@ export async function recognizeFoodWithAI(
   result = enrichedResult;
 
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+}
+
+export async function recognizeFoodWithAI(
+  imageBuffer: Buffer,
+  filename: string,
+  userId?: string | null,
+  options?: { barcode?: string | null; visionHints?: VisionPromptHints },
+): Promise<FoodRecognitionResult> {
+  if (!process.env.GIGACHAT_CREDENTIALS) {
+    throw new Error(
+      "Не задан GIGACHAT_CREDENTIALS в .env. Получите ключ: https://developers.sber.ru/studio/workspaces",
+    );
+  }
+
+  const barcodeHint = options?.barcode ? normalizeBarcode(options.barcode) : null;
+  if (barcodeHint) {
+    try {
+      return await lookupFoodByBarcode(barcodeHint, userId);
+    } catch {
+      // OFF miss — fall through to vision with the same code as hint.
+    }
+  }
+
+  const vision = await recognizeWithGigaChat(imageBuffer, filename, { hints: options?.visionHints });
+  return enrichRecognitionAfterVision(vision, userId);
 }
 
 async function withFoodImage(

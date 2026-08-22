@@ -2,7 +2,12 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, buildFiberSugarLookupPrompt, buildFiberSugarBatchLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { buildFiberSugarLookupPrompt, buildFiberSugarBatchLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import {
+  buildVisionPrompt,
+  resolvePromptVariant,
+  type VisionPromptHints,
+} from "@/lib/ai/prompt-variants";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { buildRecognitionRetryPrompt } from "@/lib/ai/recognition-retry-prompt";
 import {
@@ -464,6 +469,7 @@ export async function lookupFiberSugarBatchWithGigaChat(
 export async function recognizeWithGigaChat(
   imageBuffer: Buffer,
   filename: string,
+  options?: { hints?: VisionPromptHints },
 ): Promise<FoodRecognitionResult> {
   const startedAtMs = Date.now();
   const prepared = await prepareImageForVision(imageBuffer);
@@ -486,7 +492,7 @@ export async function recognizeWithGigaChat(
     const content =
       mode === "retry"
         ? buildRecognitionRetryPrompt(retryReason)
-        : `${FOOD_RECOGNITION_PROMPT}\n\nПроанализируй фото еды и верни только JSON.`;
+        : `${buildVisionPrompt(resolvePromptVariant(), options?.hints)}\n\nПроанализируй фото еды и верни только JSON.`;
     return completeChat(
       [
         {
