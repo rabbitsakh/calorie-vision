@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { looksLikeDrinkName } from "./portion-unit.ts";
+import { looksLikeDrinkName, looksLikeSnackBarName } from "./portion-unit.ts";
 
 describe("looksLikeDrinkName", () => {
   it("does not treat grapes as wine", () => {
@@ -18,5 +18,17 @@ describe("looksLikeDrinkName", () => {
 
   it("does not treat sausage as juice", () => {
     assert.equal(looksLikeDrinkName("Сосиски"), false);
+  });
+});
+
+describe("looksLikeSnackBarName", () => {
+  it("detects protein and snack bars", () => {
+    assert.equal(looksLikeSnackBarName("Bombbar", "Natural bar pudding"), true);
+    assert.equal(looksLikeSnackBarName("Протеиновый батончик"), true);
+  });
+
+  it("does not treat a brand like Bombbar alone as a bar", () => {
+    assert.equal(looksLikeSnackBarName("Bombbar"), false);
+    assert.equal(looksLikeSnackBarName("Простоквашино Кефир 2.5%"), false);
   });
 });
