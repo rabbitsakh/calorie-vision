@@ -102,68 +102,35 @@ function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] 
 }
 
 /** Keep user-selected portion when SSE enrichment updates recognition. */
-function mergeDishesFromRecognition(
-  current: DishDraft[],
-  recognition: FoodRecognitionResult,
-): DishDraft[] {
-  const incoming = draftsFromRecognition(recognition);
-  if (current.length === 0 || current.length !== incoming.length) {
-    return incoming;
+function userEditedDishName(dish: DishDraft): boolean {
+  return dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName).trim();
+}
+
+function preserveUserEdits(previous: DishDraft, draft: DishDraft): DishDraft {
+  if (!userEditedDishName(previous)) {
+    return draft;
   }
+  return { ...draft, dishName: previous.dishName };
+}
 
-  return incoming.map((draft, index) => {
-    const previous = current[index];
-    if (!previous) {
-      return draft;
-    }
+function mergeOneDishDraft(previous: DishDraft, draft: DishDraft): DishDraft {
+  const preservedPortion = Number(previous.portionGrams);
+  const incomingPortion = Number(draft.portionGrams);
+  const activePortion =
+    Number.isFinite(preservedPortion) && preservedPortion > 0 ? preservedPortion : incomingPortion;
 
-    const preservedPortion = Number(previous.portionGrams);
-    const incomingPortion = Number(draft.portionGrams);
-    const activePortion =
-      Number.isFinite(preservedPortion) && preservedPortion > 0 ? preservedPortion : incomingPortion;
+  const needsRescale =
+    Number.isFinite(activePortion) &&
+    activePortion > 0 &&
+    recognitionNeedsPortionRescale(draft.original, Number(draft.calories));
 
-    const needsRescale =
-      Number.isFinite(activePortion) &&
-      activePortion > 0 &&
-      recognitionNeedsPortionRescale(draft.original, Number(draft.calories));
+  const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
 
-    const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
-
-    if (needsRescale) {
-      const scaled = scaleRecognitionToDisplayPortion(draft.original, activePortion);
-      return {
-        ...draft,
-        portionGrams: String(activePortion),
-        baseline,
-        calories: String(scaled.calories),
-        protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
-        fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
-        carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
-        fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
-        sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-      };
-    }
-
-    if (
-      !Number.isFinite(preservedPortion) ||
-      preservedPortion <= 0 ||
-      preservedPortion === incomingPortion
-    ) {
-      return draft;
-    }
-
-    if (!baseline) {
-      return { ...draft, portionGrams: previous.portionGrams };
-    }
-
-    const scaled = scaleNutritionByPortion(baseline, preservedPortion);
-    if (!scaled) {
-      return { ...draft, portionGrams: previous.portionGrams, baseline };
-    }
-
-    return {
+  if (needsRescale) {
+    const scaled = scaleRecognitionToDisplayPortion(draft.original, activePortion);
+    return preserveUserEdits(previous, {
       ...draft,
-      portionGrams: previous.portionGrams,
+      portionGrams: String(activePortion),
       baseline,
       calories: String(scaled.calories),
       protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
@@ -171,8 +138,81 @@ function mergeDishesFromRecognition(
       carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
       fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
       sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-    };
+    });
+  }
+
+  if (
+    !Number.isFinite(preservedPortion) ||
+    preservedPortion <= 0 ||
+    preservedPortion === incomingPortion
+  ) {
+    return preserveUserEdits(previous, draft);
+  }
+
+  if (!baseline) {
+    return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams });
+  }
+
+  const scaled = scaleNutritionByPortion(baseline, preservedPortion);
+  if (!scaled) {
+    return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams, baseline });
+  }
+
+  return preserveUserEdits(previous, {
+    ...draft,
+    portionGrams: previous.portionGrams,
+    baseline,
+    calories: String(scaled.calories),
+    protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
+    fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
+    carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
+    fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
+    sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
   });
+}
+
+function mergeDishesFromRecognition(
+  current: DishDraft[],
+  recognition: FoodRecognitionResult,
+  options?: { preserveListShape?: boolean },
+): DishDraft[] {
+  const incoming = draftsFromRecognition(recognition);
+  if (current.length === 0) {
+    return incoming;
+  }
+
+  const preserveListShape = options?.preserveListShape ?? false;
+
+  if (!preserveListShape && current.length !== incoming.length) {
+    return incoming;
+  }
+
+  if (current.length !== incoming.length) {
+    return current.map((previous, index) => {
+      const draft = incoming[index];
+      if (!draft) {
+        return previous;
+      }
+      return mergeOneDishDraft(previous, draft);
+    });
+  }
+
+  return incoming.map((draft, index) => mergeOneDishDraft(current[index]!, draft));
+}
+
+function dishFormDisabled(saving: boolean, searchingId: string | null): boolean {
+  return saving || searchingId === "all";
+}
+
+function dishLookupDisabled(
+  dishId: string,
+  saving: boolean,
+  searchingId: string | null,
+): boolean {
+  if (saving) return true;
+  if (searchingId === "all") return true;
+  if (searchingId !== null && searchingId !== dishId) return false;
+  return searchingId === dishId;
 }
 
 const DEFAULT_LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
@@ -260,6 +300,7 @@ export function ConfirmationCard({
   const [activeDish, setActiveDish] = useState(0);
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const lookupAbortRef = useRef<AbortController | null>(null);
+  const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const heroFallbackTriedRef = useRef(false);
 
@@ -288,7 +329,15 @@ export function ConfirmationCard({
   }, []);
 
   useEffect(() => {
-    setDishes((current) => mergeDishesFromRecognition(current, recognition));
+    dishesListTouchedRef.current = false;
+  }, [initialImagePath, previewUrl]);
+
+  useEffect(() => {
+    setDishes((current) =>
+      mergeDishesFromRecognition(current, recognition, {
+        preserveListShape: dishesListTouchedRef.current,
+      }),
+    );
   }, [recognition]);
 
   useEffect(() => {
@@ -626,8 +675,9 @@ export function ConfirmationCard({
   const hasImage = Boolean(heroSrc);
   const multi = dishes.length > 1;
   const totalCalories = dishes.reduce((sum, dish) => sum + (Number(dish.calories) || 0), 0);
-  const searching = searchingId !== null;
   const bulkLookupRunning = searchingId === "all";
+  const formDisabled = dishFormDisabled(saving, searchingId);
+  const searching = searchingId !== null;
   const reviewFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));
   const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
   const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
@@ -695,7 +745,7 @@ export function ConfirmationCard({
               <button
                 type="button"
                 className="mt-3 text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
-                disabled={saving || searching || enriching}
+                disabled={formDisabled || enriching}
                 onClick={() => void handleLookupAll()}
               >
                 {bulkLookupRunning ? "Уточняем все..." : "Уточнить все позиции"}
@@ -735,26 +785,6 @@ export function ConfirmationCard({
                 </Chip>
               ))}
             </div>
-            {reviewFlags.some((flag) => flag.lowConfidence) ? (
-              <div className="flex flex-wrap gap-2">
-                {dishes.map((dish, index) =>
-                  reviewFlags[index]?.lowConfidence ? (
-                    <button
-                      key={`refine-${dish.id}`}
-                      type="button"
-                      className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
-                      disabled={saving || searching || enriching}
-                      onClick={() => {
-                        setActiveDish(index);
-                        void handleLookup(dish);
-                      }}
-                    >
-                      Уточнить: {dish.dishName || `блюдо ${index + 1}`}
-                    </button>
-                  ) : null,
-                )}
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -769,7 +799,8 @@ export function ConfirmationCard({
                   index={index}
                   multi={multi}
                   searching={searchingId === dish.id}
-                  disabled={saving || searching || enriching}
+                  lookupDisabled={dishLookupDisabled(dish.id, saving, searchingId)}
+                  formDisabled={formDisabled}
                   canRemove={multi}
                   review={reviewFlags[index]!}
                   onChange={(patch) => updateDish(dish.id, patch)}
@@ -803,8 +834,9 @@ export function ConfirmationCard({
                     setLookupMessage("Вариант применён");
                   }}
                   onRemove={() => {
+                    dishesListTouchedRef.current = true;
                     setDishes((current) => current.filter((item) => item.id !== dish.id));
-                    setActiveDish((value) => Math.max(0, value - 1));
+                    setActiveDish((value) => Math.max(0, Math.min(value, dishes.length - 2)));
                   }}
                 />
               );
@@ -815,16 +847,20 @@ export function ConfirmationCard({
             <button
               type="button"
               className="btn btn-secondary self-start text-sm"
-              disabled={saving || searching || enriching}
+              disabled={formDisabled}
               onClick={() => {
-                setDishes((current) => [
-                  ...current,
-                  draftFromRecognition(
-                    { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
-                    `new-${Date.now()}`,
-                  ),
-                ]);
-                setActiveDish(dishes.length);
+                dishesListTouchedRef.current = true;
+                setDishes((current) => {
+                  const next = [
+                    ...current,
+                    draftFromRecognition(
+                      { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
+                      `new-${Date.now()}`,
+                    ),
+                  ];
+                  setActiveDish(next.length - 1);
+                  return next;
+                });
               }}
             >
               Добавить блюдо
@@ -888,7 +924,8 @@ function DishFields({
   index,
   multi,
   searching,
-  disabled,
+  lookupDisabled,
+  formDisabled,
   canRemove,
   review,
   onChange,
@@ -902,7 +939,8 @@ function DishFields({
   index: number;
   multi: boolean;
   searching: boolean;
-  disabled: boolean;
+  lookupDisabled: boolean;
+  formDisabled: boolean;
   canRemove: boolean;
   review: { lowConfidence: boolean; missingCalories: boolean };
   onChange: (patch: Partial<DishDraft>) => void;
@@ -968,7 +1006,12 @@ function DishFields({
             </p>
           </div>
           {canRemove ? (
-            <button type="button" className="text-sm text-red-600 hover:text-red-700" disabled={disabled} onClick={onRemove}>
+            <button
+              type="button"
+              className="text-sm text-red-600 hover:text-red-700"
+              disabled={formDisabled}
+              onClick={onRemove}
+            >
               Убрать
             </button>
           ) : null}
@@ -1002,7 +1045,7 @@ function DishFields({
               className="btn-icon"
               title="Найти калорийность и БЖУ"
               aria-label="Найти калорийность и БЖУ"
-              disabled={disabled}
+              disabled={lookupDisabled}
               onClick={() => onLookup()}
             >
               {searching ? (
@@ -1017,7 +1060,7 @@ function DishFields({
             <button
               type="button"
               className="mt-2 text-sm font-semibold text-amber-800 underline-offset-2 hover:underline"
-              disabled={disabled}
+              disabled={lookupDisabled}
               onClick={() => onLookup()}
             >
               Уточнить по названию
@@ -1056,7 +1099,7 @@ function DishFields({
                 <Chip
                   key={chip.label}
                   active={active}
-                  disabled={disabled}
+                  disabled={formDisabled}
                   className={chipIndex === 0 && /упаковка|шт/i.test(chip.label) ? "min-h-11" : ""}
                   onClick={() => onPortionChange(String(chip.grams))}
                 >

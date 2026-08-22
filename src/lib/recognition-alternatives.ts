@@ -172,7 +172,7 @@ export async function enrichAlternativesFromGigaChat(
           carbs: pack.carbs,
           fiber: pack.fiber,
           sugar: pack.sugar,
-          portionGrams: pack.portionGrams,
+          portionGrams: pack.portionGrams ?? alt.portionGrams ?? 100,
         }),
       };
     } catch {
