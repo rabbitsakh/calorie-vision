@@ -9,6 +9,14 @@ const SIZE_PX = {
   xl: 220,
 } as const;
 
+const STROKE = "#134E4A";
+const LEAF_DARK = "#166534";
+const LEAF_MID = "#15803D";
+const LIMB = "#86EFAC";
+const LIMB_LIGHT = "#A7F3D0";
+const BODY = "#FFFFFF";
+const BODY_TINT = "#F0FDFA";
+
 /** CSS class per pose — supportive micro-motion (see globals.css). */
 export function mascotMotionClass(pose: MascotPose): string {
   switch (pose) {
@@ -37,8 +45,8 @@ type MascotProps = {
 } & Omit<SVGProps<SVGSVGElement>, "children">;
 
 /**
- * Soft teal sprout companion — plump chibi body, leaf ears, glossy eyes.
- * Supportive tone only (not guilt nudges). Poses tweak arms / face / props.
+ * Soft white blob-leaf companion — sprout ears, leaf limbs, chest emblem.
+ * Supportive tone only (not guilt nudges). No name in UI.
  */
 export function Mascot({
   pose = "idle",
@@ -49,15 +57,11 @@ export function Mascot({
   ...rest
 }: MascotProps) {
   const uid = useId().replace(/:/g, "");
-  const bodyGrad = `mascotBodyGrad-${uid}`;
-  const bellyGrad = `mascotBellyGrad-${uid}`;
-  const leafDark = `mascotLeafDark-${uid}`;
-  const leafLight = `mascotLeafLight-${uid}`;
-  const armGrad = `mascotArmGrad-${uid}`;
-  const cheekGrad = `mascotCheek-${uid}`;
+  const bodyShade = `mascotBodyShade-${uid}`;
 
   const px = SIZE_PX[size];
-  const armsUp = pose === "cheer" || pose === "streak" || pose === "goal";
+  const armsUp = pose === "cheer" || pose === "streak";
+  const goalArm = pose === "goal";
   const tipArm = pose === "tip";
   const curious = pose === "empty";
   const proud = pose === "streak" || pose === "goal";
@@ -65,19 +69,26 @@ export function Mascot({
   const classes = ["mascot-root", motion, className].filter(Boolean).join(" ");
 
   const leftArm = armsUp
-    ? "rotate(-48deg) translate(-4px, -10px)"
-    : tipArm
-      ? "rotate(6deg) translate(0, 2px)"
-      : curious
-        ? "rotate(14deg) translate(1px, 3px)"
-        : "rotate(-6deg)";
+    ? "rotate(-52deg) translate(-6px, -16px)"
+    : goalArm
+      ? "rotate(-8deg)"
+      : tipArm
+        ? "rotate(8deg) translate(0, 2px)"
+        : curious
+          ? "rotate(18deg) translate(2px, 4px)"
+          : "rotate(-8deg)";
   const rightArm = armsUp
-    ? "rotate(48deg) translate(4px, -10px)"
-    : tipArm
-      ? "rotate(-38deg) translate(6px, -14px)"
-      : curious
-        ? "rotate(-12deg) translate(-1px, 2px)"
-        : "rotate(6deg)";
+    ? "rotate(52deg) translate(6px, -16px)"
+    : goalArm
+      ? "rotate(42deg) translate(4px, -12px)"
+      : tipArm
+        ? "rotate(-44deg) translate(8px, -18px)"
+        : curious
+          ? "rotate(-14deg) translate(-2px, 3px)"
+          : "rotate(8deg)";
+
+  const bodyShift = curious ? "translate(0 4px)" : undefined;
+  const faceShift = curious ? "translate(0 2)" : undefined;
 
   return (
     <svg
@@ -93,99 +104,98 @@ export function Mascot({
     >
       <title>{title}</title>
       <defs>
-        <linearGradient id={bodyGrad} x1="28" y1="28" x2="96" y2="108" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#E6FFFA" />
-          <stop offset="0.45" stopColor="#99F6E4" />
-          <stop offset="1" stopColor="#2DD4BF" />
-        </linearGradient>
-        <linearGradient id={bellyGrad} x1="48" y1="70" x2="80" y2="100" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFFFFF" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.15" />
-        </linearGradient>
-        <linearGradient id={leafDark} x1="54" y1="8" x2="78" y2="42" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#0F766E" />
-          <stop offset="1" stopColor="#115E59" />
-        </linearGradient>
-        <linearGradient id={leafLight} x1="40" y1="10" x2="58" y2="44" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#2DD4BF" />
-          <stop offset="1" stopColor="#0D9488" />
-        </linearGradient>
-        <linearGradient id={armGrad} x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#5EEAD4" />
-          <stop offset="1" stopColor="#14B8A6" />
-        </linearGradient>
-        <radialGradient id={cheekGrad} cx="50%" cy="50%" r="50%">
-          <stop stopColor="#FB7185" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#FB7185" stopOpacity="0" />
+        <radialGradient id={bodyShade} cx="50%" cy="40%" r="58%">
+          <stop stopColor={BODY} />
+          <stop offset="1" stopColor={BODY_TINT} />
         </radialGradient>
       </defs>
 
-      <ellipse className="mascot-shadow" cx="64" cy="118" rx="28" ry="5" fill="#0F766E" opacity="0.14" />
+      <ellipse className="mascot-shadow" cx="64" cy="118" rx="26" ry="4.5" fill={STROKE} opacity="0.1" />
 
-      <g className="mascot-arm-left" style={{ transformOrigin: "38px 78px", transform: leftArm }}>
+      <g className="mascot-legs" transform={bodyShift}>
         <path
-          d="M40 74c-12 2-20 14-16 22 3 6 12 7 18 2 4-3 5-9 3-14-2-4-4-8-5-10Z"
-          fill={`url(#${armGrad})`}
+          d="M52 102c-2 6-1 10 2 12 3 2 6-1 7-5 1-3 0-6-2-8-2-2-5-2-7 1Z"
+          fill={LIMB}
+          stroke={STROKE}
+          strokeWidth="1.6"
+          strokeLinejoin="round"
         />
-        <ellipse cx="28" cy="92" rx="7" ry="5.5" fill="#5EEAD4" />
-        <ellipse cx="28" cy="91" rx="3.5" ry="2.2" fill="#FFFFFF" opacity="0.35" />
-      </g>
-
-      <g className="mascot-arm-right" style={{ transformOrigin: "90px 78px", transform: rightArm }}>
         <path
-          d="M88 74c12 2 20 14 16 22-3 6-12 7-18 2-4-3-5-9-3-14 2-4 4-8 5-10Z"
-          fill={`url(#${armGrad})`}
+          d="M76 102c2 6 1 10-2 12-3 2-6-1-7-5-1-3 0-6 2-8 2-2 5-2 7 1Z"
+          fill={LIMB}
+          stroke={STROKE}
+          strokeWidth="1.6"
+          strokeLinejoin="round"
         />
-        <ellipse cx="100" cy="92" rx="7" ry="5.5" fill="#5EEAD4" />
-        <ellipse cx="100" cy="91" rx="3.5" ry="2.2" fill="#FFFFFF" opacity="0.35" />
-        {tipArm ? (
-          <g className="mascot-tip-dot">
-            <circle cx="108" cy="52" r="5.5" fill="#0F766E" />
-            <circle cx="108" cy="52" r="2.4" fill="#5EEAD4" />
-          </g>
-        ) : null}
       </g>
 
-      <g className="mascot-body">
-        <ellipse cx="64" cy="78" rx="34" ry="36" fill={`url(#${bodyGrad})`} />
-        <ellipse cx="64" cy="78" rx="34" ry="36" fill="#99F6E4" opacity="0.25" />
-        <ellipse cx="54" cy="62" rx="12" ry="9" fill="#FFFFFF" opacity="0.45" />
-        <ellipse cx="64" cy="92" rx="18" ry="16" fill={`url(#${bellyGrad})`} />
+      <g className="mascot-arm-left" style={{ transformOrigin: "42px 82px", transform: leftArm }}>
+        <path
+          d="M40 78c-10 2-18 12-16 22 2 6 10 8 16 4 4-3 5-10 2-16-2-4-2-8-2-10Z"
+          fill={LIMB_LIGHT}
+          stroke={STROKE}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
       </g>
 
-      <g className="mascot-leaves">
+      <g className="mascot-arm-right" style={{ transformOrigin: "86px 82px", transform: rightArm }}>
+        <path
+          d="M88 78c10 2 18 12 16 22-2 6-10 8-16 4-4-3-5-10-2-16 2-4 2-8 2-10Z"
+          fill={LIMB_LIGHT}
+          stroke={STROKE}
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+      </g>
+
+      <g className="mascot-body" transform={bodyShift}>
+        <ellipse cx="64" cy="76" rx="30" ry="32" fill={`url(#${bodyShade})`} />
+        <ellipse
+          cx="64"
+          cy="76"
+          rx="30"
+          ry="32"
+          fill="none"
+          stroke={STROKE}
+          strokeWidth="2.2"
+        />
+
+        <g className="mascot-emblem" opacity="0.95">
+          <path
+            d="M64 82c-4-6-10-8-14-6 2 6 6 10 14 12 8-2 12-6 14-12-4-2-10 0-14 6Z"
+            fill={LIMB}
+            stroke={STROKE}
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+          <path d="M64 84v6" stroke={LEAF_MID} strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      </g>
+
+      <g className="mascot-leaves" transform={bodyShift}>
         <g className="mascot-leaf-right">
           <path
-            d="M66 46c2-18 16-28 26-30-4 14-10 24-22 32-2 1-5 0-4-2Z"
-            fill={`url(#${leafDark})`}
-          />
-          <path d="M72 28c6-2 12-2 16 0-4 5-9 8-14 10-2 1-3-1-2-3Z" fill="#5EEAD4" opacity="0.45" />
-          <path
-            d="M70 42c8-8 16-14 20-22"
-            stroke="#5EEAD4"
+            d="M66 48c2-16 14-26 24-28-4 12-10 22-20 30-2 1-5 0-4-2Z"
+            fill={LEAF_DARK}
+            stroke={STROKE}
             strokeWidth="1.4"
-            strokeLinecap="round"
-            opacity="0.55"
+            strokeLinejoin="round"
           />
         </g>
         <g className="mascot-leaf-left">
           <path
-            d="M62 46c-4-16-16-26-26-30 6 14 12 24 22 32 2 1 5 0 4-2Z"
-            fill={`url(#${leafLight})`}
-          />
-          <path d="M48 26c-5-1-10 0-14 3 5 4 10 7 15 8 2 0 2-2-1-3Z" fill="#CCFBF1" opacity="0.5" />
-          <path
-            d="M58 42c-8-8-15-14-20-22"
-            stroke="#CCFBF1"
+            d="M62 48c-4-14-14-24-24-28 6 12 12 22 22 30 2 1 5 0 4-2Z"
+            fill={LEAF_MID}
+            stroke={STROKE}
             strokeWidth="1.4"
-            strokeLinecap="round"
-            opacity="0.65"
+            strokeLinejoin="round"
           />
         </g>
-        <path d="M64 44v10" stroke="#0F766E" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
+        <path d="M64 46v10" stroke={STROKE} strokeWidth="2.4" strokeLinecap="round" opacity="0.65" />
       </g>
 
-      <g className="mascot-face" transform={curious ? "translate(0 1.5)" : undefined}>
+      <g className="mascot-face" transform={faceShift}>
         <path
           className="mascot-brow-left"
           d={
@@ -195,11 +205,11 @@ export function Mascot({
                 ? "M42 60c4-1 10-2 14-1"
                 : "M42 59c4-2.5 10-2.5 14 0"
           }
-          stroke="#0F766E"
-          strokeWidth="2.4"
+          stroke={STROKE}
+          strokeWidth="2"
           strokeLinecap="round"
           fill="none"
-          opacity="0.75"
+          opacity="0.7"
         />
         <path
           className="mascot-brow-right"
@@ -210,42 +220,31 @@ export function Mascot({
                 ? "M72 59c4-2 10-1 14 2"
                 : "M72 59c4-2.5 10-2.5 14 0"
           }
-          stroke="#0F766E"
-          strokeWidth="2.4"
+          stroke={STROKE}
+          strokeWidth="2"
           strokeLinecap="round"
           fill="none"
-          opacity="0.75"
+          opacity="0.7"
         />
 
-        <g className="mascot-eye-left">
-          <ellipse cx="50" cy="68" rx="7.2" ry="7.8" fill="#0F172A" />
-          <circle cx="52.4" cy="65.6" r="2.6" fill="#FFFFFF" />
-          <circle cx="48.2" cy="70.2" r="1.1" fill="#FFFFFF" opacity="0.7" />
-        </g>
-        <g className="mascot-eye-right">
-          <ellipse cx="78" cy="68" rx="7.2" ry="7.8" fill="#0F172A" />
-          <circle cx="80.4" cy="65.6" r="2.6" fill="#FFFFFF" />
-          <circle cx="76.2" cy="70.2" r="1.1" fill="#FFFFFF" opacity="0.7" />
-        </g>
-
-        <ellipse cx="40" cy="76" rx="7" ry="4.5" fill={`url(#${cheekGrad})`} />
-        <ellipse cx="88" cy="76" rx="7" ry="4.5" fill={`url(#${cheekGrad})`} />
+        <circle className="mascot-eye-left" cx="50" cy="68" r="3.4" fill="#0F172A" />
+        <circle className="mascot-eye-right" cx="78" cy="68" r="3.4" fill="#0F172A" />
 
         {pose === "empty" ? (
-          <ellipse cx="64" cy="82" rx="4.2" ry="5" fill="#0F766E" opacity="0.8" />
-        ) : armsUp || pose === "tip" ? (
+          <ellipse cx="64" cy="82" rx="3.6" ry="4.2" fill={STROKE} opacity="0.75" />
+        ) : armsUp || goalArm || pose === "tip" ? (
           <path
             d="M54 80c4 8 12 8 16 0"
-            stroke="#0F766E"
-            strokeWidth="3.2"
+            stroke={STROKE}
+            strokeWidth="2.6"
             strokeLinecap="round"
             fill="none"
           />
         ) : (
           <path
             d="M55 81c3.5 5 10.5 5 14 0"
-            stroke="#0F766E"
-            strokeWidth="2.8"
+            stroke={STROKE}
+            strokeWidth="2.4"
             strokeLinecap="round"
             fill="none"
           />
@@ -253,18 +252,74 @@ export function Mascot({
       </g>
 
       {pose === "streak" ? (
-        <g className="mascot-flame" style={{ transformOrigin: "102px 42px" }}>
-          <path d="M102 28c0 10-7 16-12 16 7-5 5-12 3-16 5 2 9 7 9 0Z" fill="#F59E0B" />
-          <path d="M98 34c0 6-3.5 9-6.5 9 3.5-2.5 2.5-6.5 1.5-9 3 1 5 4 5 0Z" fill="#FDE68A" />
+        <g className="mascot-flame" style={{ transformOrigin: "100px 40px" }}>
+          <path
+            d="M100 26c0 10-7 16-12 16 7-5 5-12 3-16 5 2 9 7 9 0Z"
+            fill="#F59E0B"
+            stroke="#D97706"
+            strokeWidth="1.2"
+          />
+          <path d="M96 32c0 6-3.5 9-6.5 9 3.5-2.5 2.5-6.5 1.5-9 3 1 5 4 5 0Z" fill="#FDE68A" />
+          <circle cx="104" cy="22" r="3" fill="#FDE68A" opacity="0.85" className="mascot-goal-star" />
         </g>
       ) : null}
 
       {pose === "goal" ? (
-        <g className="mascot-goal-star" opacity="0.95">
+        <g className="mascot-goal-star">
+          <circle cx="104" cy="38" r="11" fill={LIMB_LIGHT} stroke={STROKE} strokeWidth="1.8" />
           <path
-            d="M104 34l2.2 4.6 5 .7-3.6 3.5.9 5.1-4.5-2.4-4.5 2.4.9-5.1-3.6-3.5 5-.7Z"
-            fill="#FBBF24"
+            d="M99 38l3 3 6-7"
+            stroke={STROKE}
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
           />
+        </g>
+      ) : null}
+
+      {pose === "tip" ? (
+        <g className="mascot-tip-dot">
+          <circle cx="108" cy="36" r="12" fill={LIMB_LIGHT} stroke={STROKE} strokeWidth="1.8" />
+          <path
+            d="M108 30v4M108 42v2"
+            stroke={STROKE}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M102 34h12c0 4-2.5 6-6 6s-6-2-6-6Z"
+            fill="#FDE68A"
+            stroke={STROKE}
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+        </g>
+      ) : null}
+
+      {pose === "empty" ? (
+        <g className="mascot-empty-bubble" opacity="0.95">
+          <rect x="88" y="24" width="26" height="18" rx="6" fill={LIMB_LIGHT} stroke={STROKE} strokeWidth="1.6" />
+          <path d="M94 42l-4 6 8-4" fill={LIMB_LIGHT} stroke={STROKE} strokeWidth="1.4" strokeLinejoin="round" />
+          <text
+            x="101"
+            y="37"
+            textAnchor="middle"
+            fill={STROKE}
+            fontSize="12"
+            fontWeight="700"
+            fontFamily="system-ui, sans-serif"
+          >
+            ?
+          </text>
+        </g>
+      ) : null}
+
+      {pose === "cheer" ? (
+        <g className="mascot-cheer-sparkles" opacity="0.75">
+          <circle cx="28" cy="36" r="2" fill={LIMB} />
+          <circle cx="34" cy="28" r="1.5" fill={LEAF_MID} />
+          <path d="M22 44l4-4M26 40l-4-4" stroke={LEAF_MID} strokeWidth="1.6" strokeLinecap="round" />
         </g>
       ) : null}
     </svg>

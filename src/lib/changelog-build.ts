@@ -33,6 +33,7 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Recognition 50-point wave 4.*$/i, "Распознавание: Redis rate limit, batch fiber/sugar, eval cron"],
   [/^Recognition 50-point wave 3.*$/i, "Распознавание: plate-first, скорость GigaChat и UX подтверждения"],
   [/^Recognition 50-point plan batch.*$/i, "Распознавание: качество и скорость — промпты, OFF, plate budget, UX"],
+  [/^Mascot blob-leaf redesign.*$/i, "Маскот: мягкий blob-leaf на лендинге и в приложении"],
   [/^Landing mascot parallax.*$/i, "Лендинг: маскот, parallax, тексты и блок «бесплатно»"],
   [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
   [/^Improve food recognition quality.*$/i, "Улучшено распознавание: тарелки, клетчатка, упаковки на фото"],
