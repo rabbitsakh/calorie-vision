@@ -133,6 +133,10 @@ function mergeDishesFromRecognition(
     }
 
     const scaled = scaleNutritionByPortion(baseline, preservedPortion);
+    if (!scaled) {
+      return { ...draft, portionGrams: previous.portionGrams, baseline };
+    }
+
     return {
       ...draft,
       portionGrams: previous.portionGrams,
@@ -382,8 +386,15 @@ export function ConfirmationCard({
         sugar: next.sugar !== undefined ? String(next.sugar) : "",
         portionGrams: next.portionGrams !== undefined ? String(next.portionGrams) : "",
         baseline: nutritionBaselineFromRecognition({
-          ...next,
-          photoKind: next.photoKind ?? dish.original.photoKind,
+          dishName: next.dishName,
+          calories: next.calories,
+          protein: next.protein,
+          fat: next.fat,
+          carbs: next.carbs,
+          fiber: next.fiber,
+          sugar: next.sugar,
+          portionGrams: next.portionGrams,
+          photoKind: dish.original.photoKind,
           source: next.source ?? dish.original.source,
         }),
       });
