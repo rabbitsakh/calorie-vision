@@ -19,6 +19,7 @@ export async function persistRecognitionPassEvent(event: RecognitionPassEvent): 
       photoKind: event.photoKind?.slice(0, 32) ?? null,
       retryReason: event.retryReason?.slice(0, 32) ?? null,
       specialistPass: event.specialistPass?.slice(0, 16) ?? null,
+      promptVariant: event.promptVariant?.slice(0, 24) ?? null,
       itemCount: event.itemCount,
       calories: Math.round(event.calories),
       confidence: event.confidence,

@@ -28,6 +28,7 @@ type RecognitionStats = {
     latencyByPass: Array<{ pass: string; count: number; p50Ms: number | null; p95Ms: number | null }>;
     retryReasons: Array<{ key: string; count: number }>;
     specialistPasses: Array<{ key: string; count: number }>;
+    promptVariants: Array<{ key: string; count: number }>;
     enrichmentTimeouts: number;
     enrichmentTotal: number;
   };
@@ -175,6 +176,24 @@ export function AdminRecognitionStats() {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {telemetry.specialistPasses.map((row) => (
+                      <span
+                        key={row.key}
+                        className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                      >
+                        {row.key} · {row.count}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {telemetry.promptVariants.length > 0 ? (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    Prompt variants (accepted)
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {telemetry.promptVariants.map((row) => (
                       <span
                         key={row.key}
                         className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700"

@@ -480,11 +480,13 @@ export async function recognizeWithGigaChat(
   const MAX_CHAT_CALLS = 4;
   let chatCalls = 0;
   let specialistPass: SpecialistPass | null = null;
+  const promptVariant = resolvePromptVariant();
 
   const telemetryBase = () => ({
     chatCalls,
     latencyMs: Date.now() - startedAtMs,
     specialistPass,
+    promptVariant,
   });
 
   const ask = async (mode: "full" | "retry" = "full", retryReason: RecognitionRetryReason | null = null) => {

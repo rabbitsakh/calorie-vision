@@ -154,6 +154,7 @@ model RecognitionPassLog {
   photoKind          String?  @db.VarChar(32)
   retryReason        String?  @db.VarChar(32)
   specialistPass     String?  @db.VarChar(16)
+  promptVariant      String?  @db.VarChar(24)
   itemCount          Int      @default(0)
   calories           Int      @default(0)
   confidence         Float    @default(0)
