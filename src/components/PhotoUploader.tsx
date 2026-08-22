@@ -2,8 +2,10 @@
 
 import { useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
+import { decodeBarcodeFromBitmapSource } from "@/lib/decode-barcode-client";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { withBasePath } from "@/lib/paths";
+import type { FoodRecognitionResult } from "@/lib/food-types";
 
 const MAX_FILE_SIZE_MB = 15;
 
@@ -54,6 +56,20 @@ function ThinkingAnimation({ preview }: { preview: string | null }) {
   );
 }
 
+async function decodeBarcodeFromPhotoIfObvious(file: File): Promise<string | null> {
+  if (typeof createImageBitmap !== "function") return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    try {
+      return await decodeBarcodeFromBitmapSource(bitmap);
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
 export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploaderProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +94,33 @@ export function PhotoUploader({ onRecognized, disabled, compact }: PhotoUploader
     abortRef.current = controller;
 
     try {
+      const localBarcode = await decodeBarcodeFromPhotoIfObvious(file);
+      if (localBarcode && !controller.signal.aborted) {
+        const lookupResponse = await fetch(withBasePath("/api/food/lookup"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ barcode: localBarcode }),
+          signal: controller.signal,
+        });
+        const lookupData = await readApiJson<{
+          recognition?: FoodRecognitionResult;
+          imagePath?: string;
+          error?: string;
+        }>(lookupResponse);
+        if (lookupResponse.ok && lookupData.recognition) {
+          onRecognized({
+            imagePath: lookupData.imagePath ?? "",
+            recognition: lookupData.recognition,
+          });
+          return;
+        }
+        // Barcode digits were read locally; don't send the photo to GigaChat.
+        throw new Error(
+          lookupData.error ??
+            `Штрихкод ${localBarcode} прочитан на устройстве, но продукт не найден в базе.`,
+        );
+      }
+
       const formData = new FormData();
       const uploadName =
         file.name?.trim() ||
