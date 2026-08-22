@@ -1,5 +1,5 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
-import { lookupFiberSugarWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { lookupFiberSugarWithGigaChat, lookupFiberSugarBatchWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
@@ -250,6 +250,7 @@ async function runEnrichmentWithBudget(
   userId: string | null | undefined,
   remainingMs: number,
   dishName: string,
+  options?: { skipFiberSugar?: boolean },
 ): Promise<{ result: FoodRecognitionResult; timedOut: boolean }> {
   const gate = { cancelled: false };
   const enriched = await withTimeoutFallback(
@@ -261,7 +262,7 @@ async function runEnrichmentWithBudget(
       if (!hasSufficientVisionNutrition(next)) {
         next = await backfillMissingNutrition(next, userId, () => gate.cancelled);
       }
-      if (!gate.cancelled && needsFiberSugarBackfill(next)) {
+      if (!options?.skipFiberSugar && !gate.cancelled && needsFiberSugarBackfill(next)) {
         next = await enrichMissingFiberSugar(next, dishName);
       }
       return next;
@@ -291,6 +292,7 @@ async function enrichMealItem(
   vision: FoodRecognitionResult,
   userId?: string | null,
   deadlineMs?: number,
+  options?: { deferFiberSugar?: boolean },
 ): Promise<FoodRecognitionResult> {
   let result = normalizeRecognitionNutrition({
     ...vision,
@@ -321,14 +323,79 @@ async function enrichMealItem(
     return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
   }
 
-  const { result: enriched } = await runEnrichmentWithBudget(
+  const { result: enriched, timedOut } = await runEnrichmentWithBudget(
     result,
     userId,
     remaining,
     result.dishName,
+    { skipFiberSugar: options?.deferFiberSugar },
   );
+  result = enriched;
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(enriched), userId);
+  if (options?.deferFiberSugar && !timedOut && needsFiberSugarBackfill(result)) {
+    // Plate batch path fills fiber/sugar after all items are processed.
+    return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  }
+
+  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+}
+
+async function enrichPlateFiberSugarBatch(
+  items: FoodRecognitionResult[],
+  deadlineMs: number,
+): Promise<FoodRecognitionResult[]> {
+  if (!process.env.GIGACHAT_CREDENTIALS) {
+    return items;
+  }
+  if (Date.now() >= deadlineMs) {
+    return items;
+  }
+
+  const targets = items
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => needsFiberSugarBackfill(item));
+  if (targets.length < 2) {
+    if (targets.length === 1) {
+      const only = targets[0]!;
+      const enriched = await enrichMissingFiberSugar(only.item, only.item.dishName);
+      return items.map((item, index) => (index === only.index ? enriched : item));
+    }
+    return items;
+  }
+
+  try {
+    const partials = await lookupFiberSugarBatchWithGigaChat(
+      targets.map(({ item }) => ({
+        dishName: item.dishName,
+        portionGrams: item.portionGrams,
+      })),
+    );
+
+    return items.map((item, index) => {
+      const target = targets.find((entry) => entry.index === index);
+      if (!target) {
+        return item;
+      }
+
+      const partial =
+        partials.find(
+          (entry) => entry.dishName.trim().toLowerCase() === item.dishName.trim().toLowerCase(),
+        ) ?? partials[targets.findIndex((entry) => entry.index === index)];
+
+      if (!partial) {
+        return item;
+      }
+
+      return normalizeRecognitionNutrition({
+        ...item,
+        fiber: item.fiber !== undefined ? item.fiber : partial.fiber,
+        sugar: item.sugar !== undefined ? item.sugar : partial.sugar,
+      });
+    });
+  } catch (error) {
+    console.warn("Batch fiber/sugar enrichment failed", error);
+    return items;
+  }
 }
 
 export async function recognizeFoodWithAI(
@@ -359,9 +426,10 @@ export async function recognizeFoodWithAI(
 
   if (plated && vision.items) {
     const processed = await mapPool(vision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
-      enrichMealItem(item, userId, deadlineMs),
+      enrichMealItem(item, userId, deadlineMs, { deferFiberSugar: true }),
     );
-    return combineRecognitionItems(processed, { ...vision, source: "gigachat" });
+    const withFiberSugar = await enrichPlateFiberSugarBatch(processed, deadlineMs);
+    return combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" });
   }
 
   const enriched = await enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined });

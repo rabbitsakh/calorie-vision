@@ -112,3 +112,31 @@ export function buildFiberSugarLookupPrompt(dishName: string, portionGrams?: num
 - фрукты/овощи/каши/хлеб: обычно оба > 0 (хурма ~150 г → fiber 2.5–4, sugar 18–25)
 - мясо/рыба/яйца/масло: fiber 0, sugar 0`;
 }
+
+export function buildFiberSugarBatchLookupPrompt(
+  items: Array<{ dishName: string; portionGrams?: number }>,
+): string {
+  const lines = items
+    .map((item, index) => {
+      const portion =
+        item.portionGrams && item.portionGrams > 0
+          ? `, порция ${Math.round(item.portionGrams)} г`
+          : "";
+      return `${index + 1}. ${item.dishName.trim()}${portion}`;
+    })
+    .join("\n");
+
+  return `Для каждого блюда оцени клетчатку и сахара (граммы на всю порцию).
+
+Верни ТОЛЬКО JSON-массив без markdown:
+[{"dishName":"название","fiber":0,"sugar":0}]
+
+Правила:
+- порядок элементов как в списке; dishName совпадает с запросом
+- fiber/sugar — граммы на всю порцию (не на 100 г)
+- мясо/рыба/яйца: fiber 0, sugar 0
+- фрукты/овощи/каши/хлеб: обычно оба > 0
+
+Блюда:
+${lines}`;
+}

@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { FOOD_RECOGNITION_PROMPT, buildFiberSugarLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import { FOOD_RECOGNITION_PROMPT, buildFiberSugarLookupPrompt, buildFiberSugarBatchLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
 import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { buildRecognitionRetryPrompt } from "@/lib/ai/recognition-retry-prompt";
 import {
@@ -395,6 +395,69 @@ export async function lookupFiberSugarWithGigaChat(
     return { fiber: toNum(data.fiber), sugar: toNum(data.sugar) };
   } catch {
     return {};
+  }
+}
+
+function parseFiberSugarNumbers(data: { fiber?: unknown; sugar?: unknown }): {
+  fiber?: number;
+  sugar?: number;
+} {
+  const toNum = (value: unknown): number | undefined => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const n = Number(value.replace(",", "."));
+      return Number.isFinite(n) ? n : undefined;
+    }
+    return undefined;
+  };
+  return { fiber: toNum(data.fiber), sugar: toNum(data.sugar) };
+}
+
+export async function lookupFiberSugarBatchWithGigaChat(
+  items: Array<{ dishName: string; portionGrams?: number }>,
+): Promise<Array<{ dishName: string; fiber?: number; sugar?: number }>> {
+  if (items.length === 0) {
+    return [];
+  }
+  if (items.length === 1) {
+    const single = items[0]!;
+    const partial = await lookupFiberSugarWithGigaChat(single.dishName, single.portionGrams);
+    return [{ dishName: single.dishName, ...partial }];
+  }
+
+  const text = await completeChat(
+    [
+      {
+        role: "user",
+        content: buildFiberSugarBatchLookupPrompt(items),
+      },
+    ],
+    0.2,
+    { retries: 1 },
+  );
+
+  const arrayMatch = text.match(/\[[\s\S]*\]/);
+  if (!arrayMatch) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(arrayMatch[0]) as Array<{
+      dishName?: unknown;
+      fiber?: unknown;
+      sugar?: unknown;
+    }>;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed
+      .filter((entry) => typeof entry.dishName === "string" && entry.dishName.trim())
+      .map((entry) => ({
+        dishName: String(entry.dishName).trim(),
+        ...parseFiberSugarNumbers(entry),
+      }));
+  } catch {
+    return [];
   }
 }
 
