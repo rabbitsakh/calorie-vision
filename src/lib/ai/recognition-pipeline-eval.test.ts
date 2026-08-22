@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildRecognitionRetryPrompt } from "./recognition-retry-prompt.ts";
 import { pickSpecialistPass } from "./specialist-pass.ts";
+import { shouldForcePlateBeforeRetry } from "./plate-vision.ts";
 import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
 import { runRecognitionEvalSuite } from "./recognition-eval-harness.ts";
 import { parseFoodRecognitionResponse } from "./parse-response.ts";
@@ -18,6 +19,18 @@ test("eval harness passes all fixtures", () => {
     assert.fail(`eval failures (${summary.failed}):\n${details}`);
   }
   assert.ok(summary.passed >= 20);
+});
+
+test("shouldForcePlateBeforeRetry targets comma-list meals without items", () => {
+  assert.equal(
+    shouldForcePlateBeforeRetry({
+      dishName: "Суп, хлеб, салат",
+      calories: 400,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    true,
+  );
 });
 
 test("pickSpecialistPass prefers barcode before plate on package photo", () => {

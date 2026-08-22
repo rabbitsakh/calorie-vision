@@ -30,6 +30,7 @@ function toRecognitionResponse(
 export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelProps) {
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
+  const [savedToast, setSavedToast] = useState<string | null>(null);
   const [textQuery, setTextQuery] = useState("");
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,14 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
       lookupAbortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!savedToast) {
+      return;
+    }
+    const timer = window.setTimeout(() => setSavedToast(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [savedToast]);
 
   async function lookupFood(payload: { dishName?: string; barcode?: string }) {
     lookupAbortRef.current?.abort();
@@ -90,11 +99,14 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         result={pendingResult}
         selectedDate={selectedDate}
         onCancel={() => setPendingResult(null)}
-        onSaved={() => {
+        onSaved={(meta) => {
           setPendingResult(null);
           setTextQuery("");
           setBarcodeQuery("");
           setError(null);
+          if (meta?.rememberedCorrection) {
+            setSavedToast("Запомнили исправление — в следующий раз подставим автоматически");
+          }
           onSaved();
         }}
       />
@@ -210,6 +222,10 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
         ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+        {savedToast ? (
+          <p className="rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">{savedToast}</p>
+        ) : null}
       </div>
     </section>
   );

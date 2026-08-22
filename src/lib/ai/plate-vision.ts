@@ -1,4 +1,6 @@
 import type { FoodRecognitionResult } from "../food-types";
+import { getRecognitionRetryReason } from "./recognition-retry";
+
 function looksLikeMultiDishName(dishName: string): boolean {
   return (dishName.match(/,/g) ?? []).length >= 1 || /\s+и\s+/i.test(dishName);
 }
@@ -25,6 +27,13 @@ export function shouldRunPlatePass(result: FoodRecognitionResult): boolean {
     result.calories <= 0 &&
     itemCount === 0 &&
     result.confidence >= 0.4
+  );
+}
+
+/** Comma-list plate with no items — run plate specialist before a text retry. */
+export function shouldForcePlateBeforeRetry(result: FoodRecognitionResult): boolean {
+  return (
+    getRecognitionRetryReason(result) === "plate-list-without-items" && shouldRunPlatePass(result)
   );
 }
 

@@ -9,6 +9,13 @@ import type { FoodRecognitionResult } from "@/lib/food-types";
 
 const MAX_FILE_SIZE_MB = 15;
 
+const RECOGNITION_STAGES = [
+  "Загружаем фото…",
+  "Анализируем изображение…",
+  "Подбираем блюда и порции…",
+  "Ищем в базе продуктов…",
+] as const;
+
 type PhotoUploaderProps = {
   onRecognized: (result: RecognitionResponse) => void;
   disabled?: boolean;
@@ -19,7 +26,7 @@ export type PhotoUploaderHandle = {
   abort: () => void;
 };
 
-function ThinkingAnimation({ preview }: { preview: string | null }) {
+function ThinkingAnimation({ preview, stage }: { preview: string | null; stage: string }) {
   return (
     <div className="flex flex-col items-center gap-3">
       {preview ? (
@@ -45,7 +52,7 @@ function ThinkingAnimation({ preview }: { preview: string | null }) {
         </div>
       )}
       <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-semibold text-teal-900">Анализируем фото…</span>
+        <span className="text-sm font-semibold text-teal-900">{stage}</span>
         <div className="flex items-center gap-1">
           {[0, 0.2, 0.4].map((delay, i) => (
             <span
@@ -76,6 +83,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const [loading, setLoading] = useState(false);
+  const [stage, setStage] = useState<string>(RECOGNITION_STAGES[0]);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -88,6 +96,22 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       setPreview(null);
     },
   }));
+
+  useEffect(() => {
+    if (!loading) {
+      setStage(RECOGNITION_STAGES[0]);
+      return;
+    }
+
+    let index = 0;
+    setStage(RECOGNITION_STAGES[index]!);
+    const timer = window.setInterval(() => {
+      index = Math.min(index + 1, RECOGNITION_STAGES.length - 1);
+      setStage(RECOGNITION_STAGES[index]!);
+    }, 2800);
+
+    return () => window.clearInterval(timer);
+  }, [loading]);
 
   useEffect(() => {
     return () => {
@@ -104,6 +128,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     setLoading(true);
+    setStage(RECOGNITION_STAGES[0]);
     setError(null);
 
     const controller = new AbortController();
@@ -113,6 +138,27 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     try {
       // Same ZXing + BarcodeDetector path as the barcode tab.
       const localBarcode = await decodeBarcodeFromImageFile(file);
+      const uploadName =
+        file.name?.trim() ||
+        (file.type.includes("heic") || file.type.includes("heif") || /\.hei[cf]$/i.test(file.name)
+          ? "photo.heic"
+          : "photo.jpg");
+
+      const formData = new FormData();
+      formData.append("photo", file, uploadName);
+      if (localBarcode) {
+        formData.append("barcode", localBarcode);
+      }
+
+      const recognizePromise = fetch(withBasePath("/api/recognize"), {
+        method: "POST",
+        body: formData,
+        signal: controller.signal,
+      }).then(async (response) => ({
+        response,
+        data: await readApiJson<RecognitionResponse & { error?: string }>(response),
+      }));
+
       if (localBarcode && !controller.signal.aborted) {
         const lookupResponse = await fetch(withBasePath("/api/food/lookup"), {
           method: "POST",
@@ -134,31 +180,14 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           });
           return;
         }
-        // OFF miss: fall through to vision instead of hard-failing on a readable EAN.
+        // OFF miss: vision request already in flight.
       }
 
       if (controller.signal.aborted) {
         return;
       }
 
-      const formData = new FormData();
-      const uploadName =
-        file.name?.trim() ||
-        (file.type.includes("heic") || file.type.includes("heif") || /\.hei[cf]$/i.test(file.name)
-          ? "photo.heic"
-          : "photo.jpg");
-      formData.append("photo", file, uploadName);
-      if (localBarcode) {
-        formData.append("barcode", localBarcode);
-      }
-
-      const response = await fetch(withBasePath("/api/recognize"), {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      });
-
-      const data = await readApiJson<RecognitionResponse & { error?: string }>(response);
+      const { response, data } = await recognizePromise;
       if (!response.ok) {
         throw new Error(data.error ?? "Ошибка распознавания");
       }
@@ -227,7 +256,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
 
       {loading ? (
         <div className="flex min-h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-teal-200 bg-teal-50/60 px-4 py-6 md:min-h-44">
-          <ThinkingAnimation preview={preview} />
+          <ThinkingAnimation preview={preview} stage={stage} />
           <button type="button" className="btn-quiet mt-1" onClick={handleCancel}>
             Отменить
           </button>
