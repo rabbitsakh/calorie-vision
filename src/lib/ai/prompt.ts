@@ -97,13 +97,17 @@ export function buildFoodLookupPrompt(dishName: string): string {
 - если название расплывчатое («салат», «каша») — уточни типичный вариант для России`;
 }
 
-/** When Open Food Facts has no hit for an EAN/UPC — ask GigaChat by barcode digits. */
-export function buildBarcodeLookupPrompt(barcode: string): string {
+/** When Open Food Facts has no hit for an EAN/UPC — ask GigaChat by barcode + optional web evidence. */
+export function buildBarcodeLookupPrompt(barcode: string, webContext?: string): string {
   const code = barcode.trim();
+  const webBlock = webContext?.trim()
+    ? `\n\n${webContext.trim()}\n`
+    : `\n\nИнтернет-подсказок нет — опирайся на знание штрихкодов РФ (префиксы 460…) и типичные товары.\n`;
+
   return `Ты диетолог и эксперт по фасованным продуктам из магазинов России/СНГ.
 Пользователь отсканировал штрихкод (EAN-8/EAN-13/UPC): "${code}".
-
-Определи продукт с этим штрихкодом (если знаешь) или наиболее вероятный товар розницы РФ с таким кодом. Верни ТОЛЬКО JSON без markdown:
+${webBlock}
+Задача: определить КОНКРЕТНЫЙ продукт по этому штрихкоду, используя интернет-подсказки если они есть. Верни ТОЛЬКО JSON без markdown:
 {
   "photoKind": "barcode",
   "dishName": "название продукта на русском",
@@ -123,21 +127,19 @@ export function buildBarcodeLookupPrompt(barcode: string): string {
 }
 
 Правила:
-- barcode: верни ровно "${code}" без пробелов и лишних символов
-- dishName: как на упаковке (русский), без лишних пояснений
-- brand: производитель/бренд, если известен
-- portionGrams: вес/объём всей упаковки в граммах (для напитков 1 мл ≈ 1 г). Если фасовка неизвестна — типичная порция или 100
-- calories, protein, fat, carbs, fiber, sugar: на ВСЮ порцию (portionGrams), не на 100 г/100 мл
-- если знаешь КБЖУ на 100 г/100 мл — заполни per100g и пересчитай на portionGrams
-- fiber и sugar ОБЯЗАТЕЛЬНЫ (ключи всегда есть, числа ≥ 0)
-  - фрукты/овощи/каши/хлеб: обычно оба > 0
-  - мясо/рыба/яйца/масло: fiber 0, sugar 0
+- barcode: верни ровно "${code}" без пробелов
+- dishName: как на упаковке (русский). Если в title/snippet есть название — возьми его и почисти от магазинов (Ozon, WB…)
+- brand: из подсказок или известный бренд
+- portionGrams: вес/объём упаковки в граммах (напитки: 1 мл ≈ 1 г). Нет данных → 100
+- calories/protein/fat/carbs/fiber/sugar: на ВСЮ порцию (portionGrams)
+- если знаешь КБЖУ на 100 г — заполни per100g и пересчитай на portionGrams
+- fiber и sugar обязательны (≥ 0)
 - confidence:
-  - 0.65–0.7: уверенно узнаёшь продукт по этому штрихкоду
-  - 0.5–0.65: вероятный товар, код мог быть редким
-  - ниже 0.5: только общая оценка категории — всё равно укажи наиболее правдоподобный вариант
-- alternatives: пустой массив
-- опирайся на распространённые товары РФ (префиксы вроде 460…); не выдумывай несуществующую этикетку`;
+  - 0.65–0.7: название подтверждено интернет-подсказками
+  - 0.5–0.65: вероятный товар
+  - ниже 0.5: слабые данные — всё равно заполни наиболее правдоподобный вариант
+- alternatives: []
+- НЕ возвращай пустой dishName и нулевые calories, если можешь оценить типичные КБЖУ для найденного названия`;
 }
 
 /** Short follow-up when the main lookup omitted fiber/sugar. */

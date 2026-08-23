@@ -6,6 +6,11 @@ import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
 import {
+  formatBarcodeWebContext,
+  gatherBarcodeWebEvidence,
+  pickBarcodeWebProductName,
+} from "@/lib/barcode-web-lookup";
+import {
   applyStoredFoodCorrection,
   lookupStoredFoodCorrection,
 } from "@/lib/food-corrections-store";
@@ -293,18 +298,107 @@ async function upgradeBarcodeGigaChatWithOff(
   return null;
 }
 
+/** Try OFF / RU table by a web- or AI-derived product name. */
+async function lookupNutritionByProductName(
+  name: string,
+  brand?: string,
+): Promise<FoodRecognitionResult | null> {
+  const query = [brand, name].filter(Boolean).join(" ").trim();
+  if (!query || isFailedName(query)) {
+    return null;
+  }
+
+  const off = await searchOpenFoodFactsBest(
+    [query, name.trim()].filter(Boolean),
+  );
+  if (off && offMatchesQuery(query, off.dishName, off.brand)) {
+    return packToRecognitionResult(off, "openfoodfacts-search", "barcode", query, 0.78);
+  }
+
+  const ruQueries = lookupQueriesForName(name, simplifyDishNameForLookup(name), 3);
+  for (const q of ruQueries) {
+    const ru = lookupRuNutritionTable(q);
+    if (ru) {
+      return packToRecognitionResult(ru, "ru-nutrition-table", "barcode", name, 0.68);
+    }
+  }
+
+  return null;
+}
+
 async function lookupBarcodeViaGigaChat(
   barcode: string,
   options?: { rethrowApiErrors?: boolean },
 ): Promise<FoodRecognitionResult | null> {
   if (!process.env.GIGACHAT_CREDENTIALS) {
+    console.warn("GigaChat barcode fallback skipped: GIGACHAT_CREDENTIALS missing");
     return null;
   }
+
   try {
-    const ai = await lookupFoodByBarcodeWithGigaChat(barcode);
-    if (!hasUsableCalories(ai)) {
+    const evidence = await gatherBarcodeWebEvidence(barcode);
+    const webContext = formatBarcodeWebContext(evidence);
+    const webName = pickBarcodeWebProductName(evidence);
+
+    // Fast path: internet already named the product → OFF / RU before calling the LLM.
+    if (webName) {
+      const named = await lookupNutritionByProductName(webName, evidence.brand);
+      if (named && hasUsableCalories(named)) {
+        return {
+          ...named,
+          barcode,
+          brand: named.brand || evidence.brand || named.brand,
+          photoKind: "barcode",
+          confidence: Math.min(named.confidence || 0.75, 0.85),
+        };
+      }
+    }
+
+    const ai = await lookupFoodByBarcodeWithGigaChat(barcode, webContext || undefined);
+    const dishName = ai.dishName?.trim();
+
+    if (dishName && !isFailedName(dishName) && !hasUsableCalories(ai)) {
+      const named = await lookupNutritionByProductName(dishName, ai.brand || evidence.brand);
+      if (named && hasUsableCalories(named)) {
+        return {
+          ...named,
+          barcode,
+          dishName: named.dishName || dishName,
+          brand: named.brand || ai.brand || evidence.brand,
+          photoKind: "barcode",
+          confidence: Math.min(Math.max(ai.confidence, 0.55), 0.8),
+        };
+      }
+
+      // Name-only AI fallback: ask GigaChat for macros by dish name.
+      try {
+        const byName = await lookupFoodWithGigaChat(dishName);
+        if (hasUsableCalories(byName)) {
+          return finalizeGigaChatBarcodeResult(
+            {
+              ...byName,
+              dishName: byName.dishName || dishName,
+              brand: byName.brand || ai.brand || evidence.brand,
+            },
+            barcode,
+          );
+        }
+      } catch (error) {
+        console.warn("GigaChat name enrichment after barcode failed", error);
+      }
+    }
+
+    if (!hasUsableCalories(ai) || !dishName || isFailedName(dishName)) {
+      console.warn("GigaChat barcode fallback returned unusable result", {
+        barcode,
+        dishName,
+        calories: ai.calories,
+        webTitles: evidence.titles.slice(0, 3),
+        webSources: evidence.sources,
+      });
       return null;
     }
+
     const upgraded = await upgradeBarcodeGigaChatWithOff(ai, barcode);
     return upgraded ?? finalizeGigaChatBarcodeResult(ai, barcode);
   } catch (error) {
@@ -756,7 +850,9 @@ export async function lookupFoodByBarcode(
 
   const gc = await lookupBarcodeViaGigaChat(barcode, { rethrowApiErrors: true });
   if (!gc) {
-    throw new Error("Продукт не найден в базе Open Food Facts");
+    throw new Error(
+      "Продукт не найден по штрихкоду: нет в Open Food Facts, и не удалось определить через интернет / GigaChat",
+    );
   }
 
   result = normalizeRecognitionNutrition(await withFoodImage(gc, gc.dishName || barcode));

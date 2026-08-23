@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import {
+  formatBarcodeWebContext,
+  pickBarcodeWebProductName,
+  type BarcodeWebEvidence,
+} from "../barcode-web-lookup.ts";
 import { buildBarcodeLookupPrompt } from "./prompt.ts";
 import { finalizeGigaChatBarcodeResult } from "../food-recognition.ts";
 import { shouldSkipSlowPostVisionEnrichment } from "../recognition-nutrition.ts";
@@ -12,6 +17,37 @@ test("barcode lookup prompt embeds the EAN and asks for pack macros", () => {
   assert.match(prompt, /portionGrams/);
   assert.match(prompt, /per100g/);
   assert.match(prompt, /confidence/);
+});
+
+test("barcode lookup prompt includes web evidence when provided", () => {
+  const prompt = buildBarcodeLookupPrompt(
+    "4600605023124",
+    "Данные из интернета:\n- title 1: Молоко Простоквашино 3.2%",
+  );
+  assert.match(prompt, /Молоко Простоквашино/);
+  assert.match(prompt, /интернет-подсказки/i);
+});
+
+test("formatBarcodeWebContext lists titles and sources", () => {
+  const evidence: BarcodeWebEvidence = {
+    titles: ["Творог 5% Домик в деревне"],
+    brand: "Домик в деревне",
+    snippets: ["Белки 16 г, жиры 5 г"],
+    sources: ["upcitemdb", "duckduckgo"],
+  };
+  const block = formatBarcodeWebContext(evidence);
+  assert.match(block, /Творог 5%/);
+  assert.match(block, /Домик в деревне/);
+  assert.match(block, /upcitemdb/);
+});
+
+test("pickBarcodeWebProductName prefers Russian titles", () => {
+  const evidence: BarcodeWebEvidence = {
+    titles: ["Milk 3.2%", "Молоко Простоквашино 3.2% 930 мл"],
+    snippets: [],
+    sources: ["duckduckgo"],
+  };
+  assert.equal(pickBarcodeWebProductName(evidence), "Молоко Простоквашино 3.2%");
 });
 
 test("finalizeGigaChatBarcodeResult caps confidence and sets source", () => {
