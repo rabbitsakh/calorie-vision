@@ -9,6 +9,7 @@ import {
 } from "@/lib/push-client";
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { withBasePath } from "@/lib/paths";
+import { REMINDER_SCHEDULE, reminderKindLabel } from "@/lib/push-reminder-schedule";
 
 type ServerPushStatus = {
   subscribed: boolean;
@@ -32,6 +33,7 @@ export function PushRemindersSettings() {
   const [cap, setCap] = useState<PushCapability | null>(null);
   const [server, setServer] = useState<ServerPushStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +72,24 @@ export function PushRemindersSettings() {
     setLoading(false);
   }
 
+  async function handleTestPush() {
+    setTesting(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const resp = await fetch(withBasePath("/api/push/test"), { method: "POST" });
+      const data = (await resp.json()) as { message?: string; error?: string };
+      if (!resp.ok) {
+        setError(data.error ?? "Не удалось отправить тест");
+      } else {
+        setMessage(data.message ?? "Тестовое уведомление отправлено");
+      }
+    } catch {
+      setError("Не удалось отправить тест");
+    }
+    setTesting(false);
+  }
+
   if (!cap || cap.kind === "loading") {
     return (
       <section className="card p-4 md:p-6">
@@ -90,7 +110,8 @@ export function PushRemindersSettings() {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Могу напомнить про завтрак, воду и серию. На iPhone — только из приложения с Home Screen
+            Завтрак, обед, вода (днём и вечером), сводка калорий, серия и вечерний чек-ин. По
+            понедельникам — итог прошлой недели. На iPhone — только из приложения с Home Screen
             (iOS 16.4+).
           </p>
         </div>
@@ -127,6 +148,11 @@ export function PushRemindersSettings() {
             </span>
           </div>
         </dl>
+        <ul className="mt-3 space-y-1 text-xs text-slate-600">
+          {REMINDER_SCHEDULE.map((slot) => (
+            <li key={slot.kind}>• {reminderKindLabel(slot.kind)}</li>
+          ))}
+        </ul>
       </div>
 
       {showEnable ? (
@@ -143,6 +169,16 @@ export function PushRemindersSettings() {
                 ? "Обновить подписку"
                 : "Включить напоминания"}
           </button>
+          {activeOnServer && cap.kind === "granted" ? (
+            <button
+              type="button"
+              className="btn btn-secondary text-sm"
+              disabled={testing}
+              onClick={() => void handleTestPush()}
+            >
+              {testing ? "Отправляем…" : "Проверить уведомление"}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
