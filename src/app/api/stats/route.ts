@@ -6,7 +6,7 @@ import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 import {
   computeWeightChangeKg,
-  latestWeightByDate,
+  medianWeightByDate,
   weightEntryOrderNewestFirst,
   weightEntryOrderOldestFirst,
 } from "@/lib/weight-entries";
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
       mealByDate.set(meal.date, current);
     }
 
-    const weightByDate = latestWeightByDate(weights);
+    const weightByDate = medianWeightByDate(weights);
 
     const days = dates.map((date) => {
       const mealTotals = mealByDate.get(date);

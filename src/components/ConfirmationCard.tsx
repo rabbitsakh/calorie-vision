@@ -538,6 +538,9 @@ export function ConfirmationCard({
     lookupAbortRef.current?.abort();
     lookupAbortRef.current = controller;
     let index = 0;
+    let completed = 0;
+    const total = targets.length;
+    setLookupMessage(`Уточняем БЖУ: 0/${total}…`);
 
     async function worker() {
       while (index < targets.length) {
@@ -547,10 +550,17 @@ export function ConfirmationCard({
         const current = targets[index]!;
         index += 1;
         await handleLookup(current, undefined, controller.signal);
+        completed += 1;
+        if (!controller.signal.aborted) {
+          setLookupMessage(`Уточняем БЖУ: ${completed}/${total}…`);
+        }
       }
     }
 
     await Promise.all(Array.from({ length: Math.min(concurrency, targets.length) }, () => worker()));
+    if (!controller.signal.aborted) {
+      setLookupMessage(`Готово: уточнено ${completed} из ${total}`);
+    }
   }
 
   async function buildSavePayload(dish: DishDraft, mealGroupId?: string) {
@@ -975,6 +985,9 @@ function DishFields({
         {dish.original.alternatives.map((item) => {
           const altName = decodeHtmlEntities(item.dishName);
           const hasMacros = item.protein !== undefined || item.fat !== undefined || item.carbs !== undefined;
+          const macroHint = hasMacros
+            ? ` · Б ${formatMacro(item.protein ?? 0)} Ж ${formatMacro(item.fat ?? 0)} У ${formatMacro(item.carbs ?? 0)}`
+            : "";
           const handleAltClick = () => {
             if (hasMacros) {
               onApplyAlternative(item);
@@ -989,8 +1002,9 @@ function DishFields({
               className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200 disabled:opacity-50"
               disabled={formDisabled || lookupDisabled}
               onClick={handleAltClick}
+              title={hasMacros ? "Применить вариант с БЖУ" : "Уточнить по названию"}
             >
-              {altName} · {item.calories} ккал
+              {altName} · {item.calories} ккал{macroHint}
             </button>
           );
         })}

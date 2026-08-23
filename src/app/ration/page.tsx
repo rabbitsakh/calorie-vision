@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { DateNavBar } from "@/components/DateNavBar";
@@ -26,6 +26,7 @@ import { TodayProgress } from "@/components/TodayProgress";
 import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -57,6 +58,12 @@ export default function RationPage() {
   }, []);
 
   const bump = useCallback(() => setRefreshKey((value) => value + 1), []);
+
+  useEffect(() => {
+    const onDietTargetsChanged = () => bump();
+    window.addEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
+    return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
+  }, [bump]);
 
   return (
     <AppShell
@@ -138,11 +145,11 @@ export default function RationPage() {
           <CelebrationOrchestrator>
             <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           </CelebrationOrchestrator>
         </div>
       </AuthGate>

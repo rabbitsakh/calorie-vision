@@ -38,12 +38,10 @@ export async function GET(request: NextRequest) {
         select: { date: true },
         distinct: ["date"],
         orderBy: { date: "desc" },
-        take: 400,
       }),
       prisma.streakFreeze.findMany({
         where: { userId: session.user.id },
         select: { date: true },
-        take: 100,
       }),
       prisma.streakFreeze.findFirst({
         where: { userId: session.user.id, weekStart },

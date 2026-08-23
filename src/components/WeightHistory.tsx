@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { formatDateWords, formatTimeShort } from "@/lib/dates";
 import { formatSignedKg } from "@/lib/diet";
+import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 import { groupWeightEntriesByDate } from "@/lib/weight-entries";
 
@@ -121,6 +122,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
       }
       setWeightInput("");
       await load();
+      notifyDietTargetsChanged();
       onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -140,6 +142,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
         throw new Error(payload.error ?? "Не удалось удалить запись");
       }
       await load(limit);
+      notifyDietTargetsChanged();
       onChanged?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка удаления");

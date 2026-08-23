@@ -26,9 +26,16 @@ export function BadgesPanel() {
   useEffect(() => {
     void (async () => {
       try {
-        const resp = await fetch(withBasePath("/api/badges"));
-        if (!resp.ok) return;
-        const data = (await resp.json()) as { badges: BadgeItem[]; newlyUnlocked: BadgeItem[] };
+        // GET is read-only; POST unlocks newly earned badges (#29)
+        const unlockResp = await fetch(withBasePath("/api/badges"), { method: "POST" });
+        if (!unlockResp.ok) {
+          const listResp = await fetch(withBasePath("/api/badges"));
+          if (!listResp.ok) return;
+          const listData = (await listResp.json()) as { badges: BadgeItem[] };
+          setBadges(listData.badges);
+          return;
+        }
+        const data = (await unlockResp.json()) as { badges: BadgeItem[]; newlyUnlocked: BadgeItem[] };
         setBadges(data.badges);
         const next = data.newlyUnlocked?.[0];
         if (!next) return;

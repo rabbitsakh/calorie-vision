@@ -14,6 +14,7 @@ import {
   type GoalPace,
   type WeightGoal,
 } from "@/lib/diet";
+import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 
 type ProfileResponse = {
@@ -118,6 +119,7 @@ export function WeightGoalCard({
         setGoalDeadline(data.goalDeadline ?? null);
         setEditingGoal(false);
       }
+      notifyDietTargetsChanged();
       onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения цели");

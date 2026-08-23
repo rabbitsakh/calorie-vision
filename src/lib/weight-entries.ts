@@ -72,7 +72,25 @@ export function computeWeightChangeKg(
   return Math.round((newest.weightKg - oldest.weightKg) * 10) / 10;
 }
 
-/** Latest weight per calendar day (for charts / stats by date). */
+/** Median weight per calendar day (for charts / stats by date). */
+export function medianWeightByDate<T extends SortableWeightEntry & { date: string; weightKg: number }>(
+  entries: T[],
+): Map<string, number> {
+  const grouped = groupWeightEntriesByDate(entries);
+  const map = new Map<string, number>();
+  for (const { date, items } of grouped) {
+    const weights = items.map((item) => item.weightKg).sort((a, b) => a - b);
+    const mid = Math.floor(weights.length / 2);
+    const median =
+      weights.length % 2 === 0
+        ? (weights[mid - 1]! + weights[mid]!) / 2
+        : weights[mid]!;
+    map.set(date, Math.round(median * 10) / 10);
+  }
+  return map;
+}
+
+/** Latest weight per calendar day (kept for callers that need the last measurement). */
 export function latestWeightByDate<T extends SortableWeightEntry & { date: string; weightKg: number }>(
   entries: T[],
 ): Map<string, number> {

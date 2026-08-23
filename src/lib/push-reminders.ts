@@ -135,22 +135,61 @@ export function computeLastWeekStats(
   return { daysLoggedLastWeek, daysInLastWeek: 7 };
 }
 
+/** A/B copy bucket for push reminder text. */
+export type PushCopyVariant = "A" | "B";
+
+/**
+ * Stable A/B assignment from userId (+ reminder kind).
+ * Same user always gets the same variant for a given kind across cron runs.
+ */
+export function pickPushCopyVariant(userId: string, kind: ReminderKind): PushCopyVariant {
+  const key = `${userId}:${kind}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return hash % 2 === 0 ? "A" : "B";
+}
+
+export type BuildReminderOptions = {
+  /** Prefer explicit variant in tests; otherwise derived from userId. */
+  variant?: PushCopyVariant;
+  /** Used to pick a stable A/B variant when `variant` is omitted. */
+  userId?: string;
+};
+
+function resolveCopyVariant(
+  kind: ReminderKind,
+  options?: BuildReminderOptions,
+): PushCopyVariant {
+  if (options?.variant) return options.variant;
+  if (options?.userId) return pickPushCopyVariant(options.userId, kind);
+  return "A";
+}
+
 export function buildReminderPayload(
   kind: ReminderKind,
   ctx: UserReminderContext,
+  options?: BuildReminderOptions,
 ): PushPayload | null {
   const rationUrl = withBasePath("/ration");
   const statsUrl = withBasePath("/stats");
+  const variant = resolveCopyVariant(kind, options);
+  const isB = variant === "B";
 
   switch (kind) {
     case "breakfast":
       if (ctx.mealCount > 0 || ctx.hasBreakfast) return null;
       return {
-        title: "Доброе утро!",
+        title: isB ? "Завтрак ждёт" : "Доброе утро!",
         body:
           ctx.streakBeforeToday >= 3
-            ? `Серия ${ctx.streakBeforeToday} дн. — запишите завтрак, чтобы сохранить её.`
-            : "Первая запись дня — завтрак. Это занимает меньше минуты.",
+            ? isB
+              ? `Не потеряйте серию ${ctx.streakBeforeToday} дн. — отметьте завтрак.`
+              : `Серия ${ctx.streakBeforeToday} дн. — запишите завтрак, чтобы сохранить её.`
+            : isB
+              ? "Отметьте завтрак сейчас — потом вспомнить сложнее."
+              : "Первая запись дня — завтрак. Это занимает меньше минуты.",
         url: rationUrl,
         tag: "cv-breakfast",
       };
@@ -159,18 +198,24 @@ export function buildReminderPayload(
       if (ctx.hasLunch) return null;
       if (ctx.mealCount === 0) {
         return {
-          title: "Обед без записей",
-          body: "Сегодня ещё нет приёмов пищи — добавьте хотя бы обед.",
+          title: isB ? "Пора обедать" : "Обед без записей",
+          body: isB
+            ? "День пока пустой — добавьте обед, чтобы открыть дневник."
+            : "Сегодня ещё нет приёмов пищи — добавьте хотя бы обед.",
           url: rationUrl,
           tag: "cv-lunch",
         };
       }
       return {
-        title: "Время обеда",
+        title: isB ? "Не забудьте обед" : "Время обеда",
         body:
           ctx.totalCalories > 0
-            ? `Уже ${ctx.totalCalories} ккал — не забудьте записать обед.`
-            : "Запишите обед, пока помните состав и порцию.",
+            ? isB
+              ? `Уже ${ctx.totalCalories} ккал за день — запишите обед, пока свежо.`
+              : `Уже ${ctx.totalCalories} ккал — не забудьте записать обед.`
+            : isB
+              ? "Пара кликов — и обед в дневнике."
+              : "Запишите обед, пока помните состав и порцию.",
         url: rationUrl,
         tag: "cv-lunch",
       };
@@ -178,8 +223,10 @@ export function buildReminderPayload(
     case "water_midday":
       if (ctx.waterMl >= WATER_DAILY_TARGET_ML / 2) return null;
       return {
-        title: "Стакан воды?",
-        body: `${waterProgressLine(ctx.waterMl)}. До половины цели ~${WATER_DAILY_TARGET_ML / 2 - ctx.waterMl} мл.`,
+        title: isB ? "Напомните себе про воду" : "Стакан воды?",
+        body: isB
+          ? `${waterProgressLine(ctx.waterMl)}. До середины цели осталось ~${WATER_DAILY_TARGET_ML / 2 - ctx.waterMl} мл.`
+          : `${waterProgressLine(ctx.waterMl)}. До половины цели ~${WATER_DAILY_TARGET_ML / 2 - ctx.waterMl} мл.`,
         url: rationUrl,
         tag: "cv-water-mid",
       };
@@ -187,8 +234,10 @@ export function buildReminderPayload(
     case "water_evening":
       if (ctx.waterMl >= WATER_DAILY_TARGET_ML) return null;
       return {
-        title: "Вечерняя вода",
-        body: `${waterProgressLine(ctx.waterMl)}. До цели ещё ${WATER_DAILY_TARGET_ML - ctx.waterMl} мл.`,
+        title: isB ? "Допить до цели?" : "Вечерняя вода",
+        body: isB
+          ? `${waterProgressLine(ctx.waterMl)}. Ещё ${WATER_DAILY_TARGET_ML - ctx.waterMl} мл — и день по воде закрыт.`
+          : `${waterProgressLine(ctx.waterMl)}. До цели ещё ${WATER_DAILY_TARGET_ML - ctx.waterMl} мл.`,
         url: rationUrl,
         tag: "cv-water-eve",
       };
@@ -200,30 +249,38 @@ export function buildReminderPayload(
         const left = ctx.calorieTarget - ctx.totalCalories;
         if (left > ctx.calorieTarget * 0.15) {
           return {
-            title: "Сводка за день",
-            body: `${ctx.totalCalories} / ${ctx.calorieTarget} ккал (${pct}%). Осталось ~${left} ккал.`,
+            title: isB ? "Калории за день" : "Сводка за день",
+            body: isB
+              ? `${ctx.totalCalories} из ${ctx.calorieTarget} ккал (${pct}%). Запас ~${left} ккал.`
+              : `${ctx.totalCalories} / ${ctx.calorieTarget} ккал (${pct}%). Осталось ~${left} ккал.`,
             url: statsUrl,
             tag: "cv-calories",
           };
         }
         if (ctx.totalCalories > ctx.calorieTarget * 1.1) {
           return {
-            title: "Сводка за день",
-            body: `${ctx.totalCalories} ккал — выше цели ${ctx.calorieTarget} на ${ctx.totalCalories - ctx.calorieTarget} ккал.`,
+            title: isB ? "Выше цели на сегодня" : "Сводка за день",
+            body: isB
+              ? `${ctx.totalCalories} ккал при цели ${ctx.calorieTarget} (+${ctx.totalCalories - ctx.calorieTarget}).`
+              : `${ctx.totalCalories} ккал — выше цели ${ctx.calorieTarget} на ${ctx.totalCalories - ctx.calorieTarget} ккал.`,
             url: statsUrl,
             tag: "cv-calories",
           };
         }
         return {
-          title: "Вы в цели!",
-          body: `${ctx.totalCalories} / ${ctx.calorieTarget} ккал (${pct}%) — хороший баланс на сегодня.`,
+          title: isB ? "Цель по калориям закрыта" : "Вы в цели!",
+          body: isB
+            ? `${ctx.totalCalories} / ${ctx.calorieTarget} ккал (${pct}%) — день в балансе.`
+            : `${ctx.totalCalories} / ${ctx.calorieTarget} ккал (${pct}%) — хороший баланс на сегодня.`,
           url: statsUrl,
           tag: "cv-calories",
         };
       }
       return {
-        title: "Сводка за день",
-        body: `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал. Запишите ужин, если ещё не добавили.`,
+        title: isB ? "Итог по еде" : "Сводка за день",
+        body: isB
+          ? `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал. Ужин ещё можно добавить.`
+          : `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал. Запишите ужин, если ещё не добавили.`,
         url: rationUrl,
         tag: "cv-calories",
       };
@@ -232,8 +289,10 @@ export function buildReminderPayload(
       if (ctx.loggedToday) {
         if (ctx.streak >= 7 && ctx.streak % 7 === 0) {
           return {
-            title: `Серия ${ctx.streak} дней!`,
-            body: "Сегодня уже есть запись — отличная регулярность.",
+            title: isB ? `${ctx.streak} дней подряд!` : `Серия ${ctx.streak} дней!`,
+            body: isB
+              ? "Сегодня уже отмечено — так держать."
+              : "Сегодня уже есть запись — отличная регулярность.",
             url: rationUrl,
             tag: "cv-streak",
           };
@@ -242,15 +301,21 @@ export function buildReminderPayload(
       }
       if (ctx.streakBeforeToday >= 1) {
         return {
-          title: `Серия ${ctx.streakBeforeToday} дн. под угрозой`,
-          body: "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до полуночи.",
+          title: isB
+            ? `Серия ${ctx.streakBeforeToday} дн. может оборваться`
+            : `Серия ${ctx.streakBeforeToday} дн. под угрозой`,
+          body: isB
+            ? "До полуночи ещё есть время — одна запись сохранит серию."
+            : "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до полуночи.",
           url: rationUrl,
           tag: "cv-streak",
         };
       }
       return {
-        title: "Откройте день записью",
-        body: "Одна отметка — и день уже «открыт». Это занимает меньше минуты.",
+        title: isB ? "Одна запись — и день ваш" : "Откройте день записью",
+        body: isB
+          ? "Минута сейчас — и день уже засчитан."
+          : "Одна отметка — и день уже «открыт». Это занимает меньше минуты.",
         url: rationUrl,
         tag: "cv-streak",
       };
@@ -258,11 +323,15 @@ export function buildReminderPayload(
     case "checkin":
       if (ctx.mood != null) return null;
       return {
-        title: "Как прошёл день?",
+        title: isB ? "Вечерний чек-ин" : "Как прошёл день?",
         body:
           ctx.mealCount > 0
-            ? `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал — отметьте настроение в дневнике.`
-            : "Три кнопки: норм, перебрал или не записывал — без оценок.",
+            ? isB
+              ? `Сегодня ${ctx.mealCount} ${pluralMeals(ctx.mealCount)} и ${ctx.totalCalories} ккал — как настроение?`
+              : `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал — отметьте настроение в дневнике.`
+            : isB
+              ? "Норм / перебрал / не записывал — три кнопки, без оценок."
+              : "Три кнопки: норм, перебрал или не записывал — без оценок.",
         url: rationUrl,
         tag: "cv-checkin",
       };
@@ -270,8 +339,10 @@ export function buildReminderPayload(
     case "weekly":
       if (ctx.daysLoggedLastWeek >= 5) return null;
       return {
-        title: "Итог прошлой недели",
-        body: `${ctx.daysLoggedLastWeek} из ${ctx.daysInLastWeek} дней с записями. Новая неделя — хороший момент начать с чистого листа.`,
+        title: isB ? "Неделя позади" : "Итог прошлой недели",
+        body: isB
+          ? `Записей: ${ctx.daysLoggedLastWeek} из ${ctx.daysInLastWeek} дней. Новая неделя — свежий старт.`
+          : `${ctx.daysLoggedLastWeek} из ${ctx.daysInLastWeek} дней с записями. Новая неделя — хороший момент начать с чистого листа.`,
         url: statsUrl,
         tag: "cv-weekly",
       };

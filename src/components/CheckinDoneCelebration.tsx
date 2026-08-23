@@ -5,6 +5,7 @@ import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import {
   isSoftCelebrationSeen,
+  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 
@@ -37,6 +38,7 @@ export function CheckinDoneCelebration({
         if (
           prevHasMood.current === false &&
           hasMood &&
+          !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("checkin-done", today)
         ) {
           markSoftCelebrationSeen("checkin-done", today);
@@ -52,6 +54,7 @@ export function CheckinDoneCelebration({
 
   return (
     <SoftCelebration
+      muteDate={today}
       open={open}
       title="День закрыт"
       subtitle="Чек-ин сохранён — завтра продолжим без давления."

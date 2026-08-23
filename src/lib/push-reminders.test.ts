@@ -6,10 +6,12 @@ import {
   computeStreakStats,
   localHour,
   localWeekday,
+  pickPushCopyVariant,
   remindersForLocalTime,
   REMINDER_SCHEDULE,
   resolvePushTimezone,
   WATER_DAILY_TARGET_ML,
+  type ReminderKind,
 } from "./push-reminders.ts";
 
 const baseCtx = {
@@ -173,4 +175,65 @@ test("localHour and weekday use timezone", () => {
   const noonUtc = new Date("2026-08-22T12:00:00Z");
   assert.equal(localHour("Europe/Moscow", noonUtc), 15);
   assert.equal(typeof localWeekday("Europe/Moscow", noonUtc), "number");
+});
+
+test("pickPushCopyVariant is stable for same user and kind", () => {
+  const a = pickPushCopyVariant("user-abc", "breakfast");
+  const b = pickPushCopyVariant("user-abc", "breakfast");
+  assert.equal(a, b);
+  assert.ok(a === "A" || a === "B");
+});
+
+test("pickPushCopyVariant covers both buckets across users", () => {
+  const kinds: ReminderKind[] = [
+    "breakfast",
+    "lunch",
+    "water_midday",
+    "water_evening",
+    "calories",
+    "streak",
+    "checkin",
+    "weekly",
+  ];
+  const seen = new Set<string>();
+  for (let i = 0; i < 40; i += 1) {
+    for (const kind of kinds) {
+      seen.add(pickPushCopyVariant(`user-${i}`, kind));
+    }
+  }
+  assert.deepEqual([...seen].sort(), ["A", "B"]);
+});
+
+test("push copy A/B differs for breakfast title", () => {
+  const a = buildReminderPayload("breakfast", baseCtx, { variant: "A" });
+  const b = buildReminderPayload("breakfast", baseCtx, { variant: "B" });
+  assert.ok(a && b);
+  assert.notEqual(a.title, b.title);
+  assert.match(a.body, /5 дн/);
+  assert.match(b.body, /5 дн/);
+});
+
+test("push copy A/B differs for streak at risk", () => {
+  const a = buildReminderPayload("streak", baseCtx, { variant: "A" });
+  const b = buildReminderPayload("streak", baseCtx, { variant: "B" });
+  assert.ok(a && b);
+  assert.notEqual(a.title, b.title);
+  assert.notEqual(a.body, b.body);
+});
+
+test("buildReminderPayload uses userId to pick variant", () => {
+  const variant = pickPushCopyVariant("stable-user-1", "weekly");
+  const viaUser = buildReminderPayload("weekly", baseCtx, { userId: "stable-user-1" });
+  const viaVariant = buildReminderPayload("weekly", baseCtx, { variant });
+  assert.ok(viaUser && viaVariant);
+  assert.equal(viaUser.title, viaVariant.title);
+  assert.equal(viaUser.body, viaVariant.body);
+});
+
+test("default buildReminderPayload stays on variant A", () => {
+  const def = buildReminderPayload("checkin", baseCtx);
+  const a = buildReminderPayload("checkin", baseCtx, { variant: "A" });
+  assert.ok(def && a);
+  assert.equal(def.title, a.title);
+  assert.equal(def.body, a.body);
 });

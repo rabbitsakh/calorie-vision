@@ -8,6 +8,7 @@ import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
   isSoftCelebrationSeen,
+  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 
@@ -72,7 +73,8 @@ export function DayOpenedCelebration({
           if (milestonePending) {
             markSoftCelebrationSeen("day-opened", today);
             markSoftCelebrationSeen("streak-saved", today);
-          } else if (streak > 0 && !isSoftCelebrationSeen("streak-saved", today)) {
+          } else if (streak > 0 && !isSoftCelebrationsMutedToday(today) &&
+          !isSoftCelebrationSeen("streak-saved", today)) {
             markSoftCelebrationSeen("day-opened", today);
             markSoftCelebrationSeen("streak-saved", today);
             openedRef.current = true;
@@ -83,7 +85,8 @@ export function DayOpenedCelebration({
               pose: "streak",
             });
             setOpen(true);
-          } else if (!isSoftCelebrationSeen("day-opened", today)) {
+          } else if (!isSoftCelebrationsMutedToday(today) &&
+          !isSoftCelebrationSeen("day-opened", today)) {
             markSoftCelebrationSeen("day-opened", today);
             openedRef.current = true;
             setCopy({
@@ -115,6 +118,7 @@ export function DayOpenedCelebration({
 
   return (
     <SoftCelebration
+      muteDate={today}
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}
