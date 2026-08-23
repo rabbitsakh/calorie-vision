@@ -658,7 +658,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const listItems = useMemo(() => groupMealEntries(entries), [entries]);
 
   return (
-    <section className="card p-6">
+    <section className={`card ${compact ? "p-4 md:p-5" : "p-6"}`}>
       <div className="flex flex-col gap-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           {!compact ? (

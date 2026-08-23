@@ -19,8 +19,9 @@ export function LandingFreeHighlight() {
           </p>
           <ul className="landing-free-list">
             <li>Неограниченные записи в дневнике</li>
-            <li>Распознавание по фото, названию и штрихкоду</li>
-            <li>Вес, цель, серия и недельная статистика</li>
+            <li>Распознавание: тарелка, этикетка, штрихкод, текст</li>
+            <li>Вода, серия, статистика, вес и недельные отчёты</li>
+            <li>Push-напоминания и мягкая мотивация</li>
             <li>Вход через Google, VK, Telegram или email</li>
           </ul>
           <Link href="/login" className="btn btn-primary landing-cta-primary landing-free-cta">

@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { Manrope, Unbounded } from "next/font/google";
-import { BrandMark } from "@/components/BrandMark";
+import { LandingAudience } from "@/components/LandingAudience";
+import { LandingFeatureGrid } from "@/components/LandingFeatureGrid";
 import { LandingFooterCta } from "@/components/LandingFooterCta";
 import { LandingFreeHighlight } from "@/components/LandingFreeHighlight";
+import { LandingRecognitionShowcase } from "@/components/LandingRecognitionShowcase";
 import { LandingScrollReveal } from "@/components/LandingScrollReveal";
 import { LandingSectionMascot } from "@/components/LandingSectionMascot";
 import { LandingShell } from "@/components/LandingShell";
+import { LandingStatsStrip } from "@/components/LandingStatsStrip";
+import { LandingTopNav } from "@/components/LandingTopNav";
 
 const display = Unbounded({
   subsets: ["latin", "cyrillic"],
@@ -20,6 +24,8 @@ const body = Manrope({
   variable: "--font-landing-body",
   display: "swap",
 });
+
+const HERO_CHIPS = ["Фото тарелки", "Этикетка КБЖУ", "Штрихкод", "Текстом", "Вода и серия"] as const;
 
 /** Product diary mockup in the hero. */
 function AppPreview({ className = "" }: { className?: string }) {
@@ -50,6 +56,10 @@ function AppPreview({ className = "" }: { className?: string }) {
             <span>
               У <b>142</b>
             </span>
+          </div>
+          <div className="landing-phone-water">
+            <span>💧 Вода</span>
+            <span>1 200 / 2 000 мл</span>
           </div>
           <div className="landing-phone-meals">
             <div className="landing-phone-meal">
@@ -140,29 +150,7 @@ export function LandingPage() {
     <LandingShell className={`landing ${display.variable} ${body.variable}`}>
       <div className="landing-noise" aria-hidden />
 
-      <header className="landing-top">
-        <Link href="/" className="landing-top-brand" aria-label="Calorie Vision — на главную">
-          <BrandMark size={34} decorative={false} />
-          <span>Calorie Vision</span>
-        </Link>
-        <nav className="landing-top-nav" aria-label="Разделы">
-          <a href="#how" className="landing-top-link">
-            Как работает
-          </a>
-          <a href="#inside" className="landing-top-link">
-            Возможности
-          </a>
-          <a href="#free" className="landing-top-link">
-            Бесплатно
-          </a>
-          <a href="#install" className="landing-top-link">
-            Установка
-          </a>
-          <Link href="/login" className="landing-top-cta">
-            Войти
-          </Link>
-        </nav>
-      </header>
+      <LandingTopNav />
 
       <section className="landing-hero">
         <div className="landing-hero-stage" aria-hidden>
@@ -178,11 +166,20 @@ export function LandingPage() {
         <div className="landing-hero-copy landing-reveal">
           <p className="landing-free-badge">Сейчас полностью бесплатно</p>
           <p className="landing-brand">Calorie Vision</p>
-          <h1 className="landing-headline">Дневник питания по фото — без ручного ввода</h1>
+          <h1 className="landing-headline">
+            Умный дневник питания: сфотографировали — и калории уже в дневнике
+          </h1>
           <p className="landing-lead">
-            Сфотографируйте тарелку, этикетку или штрихкод — мы подскажем калории и БЖУ. Вы
-            проверяете порцию и сохраняете за пару секунд.
+            Тарелка, этикетка, штрихкод или название блюда. ИИ оценивает порцию, вы проверяете и
+            сохраняете за пару секунд — с водой, серией и статистикой в одном месте.
           </p>
+          <ul className="landing-hero-chips" aria-label="Возможности">
+            {HERO_CHIPS.map((chip) => (
+              <li key={chip} className="landing-hero-chip">
+                {chip}
+              </li>
+            ))}
+          </ul>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary">
               Начать бесплатно
@@ -192,11 +189,15 @@ export function LandingPage() {
             </a>
           </div>
           <p className="landing-hero-note">
-            Без подписки и скрытых платежей на этапе запуска. Вход через Google, VK, Telegram или
-            email.
+            Без подписки на этапе запуска. Вход через Google, VK, Telegram или email. Работает в
+            браузере и как PWA на телефоне.
           </p>
         </div>
       </section>
+
+      <LandingScrollReveal>
+        <LandingStatsStrip />
+      </LandingScrollReveal>
 
       <LandingScrollReveal>
         <section id="how" className="landing-section landing-section-with-mascot">
@@ -241,13 +242,17 @@ export function LandingPage() {
                   <h3 className="landing-step-title">Следите за днём</h3>
                   <p className="landing-section-text">
                     Завтрак, обед, ужин и перекусы собираются в рационе. Видно, сколько осталось до
-                    вашей нормы, и как идёт серия записей.
+                    вашей нормы, как идёт вода и серия записей.
                   </p>
                 </div>
               </li>
             </ol>
           </div>
         </section>
+      </LandingScrollReveal>
+
+      <LandingScrollReveal>
+        <LandingRecognitionShowcase />
       </LandingScrollReveal>
 
       <LandingScrollReveal>
@@ -260,45 +265,29 @@ export function LandingPage() {
               Calorie Vision заточен под реальную жизнь: быстро добавить еду, не потерять привычку и
               понимать, куда уходит калорийный бюджет дня.
             </p>
-            <ul className="landing-points">
+            <LandingFeatureGrid />
+            <ul className="landing-points landing-points-compact">
               <li className="landing-point">
-                <h3 className="landing-point-title">Распознавание по фото и штрихкоду</h3>
+                <h3 className="landing-point-title">Клетчатка и сахар</h3>
                 <p className="landing-section-text">
-                  Несколько блюд с одного кадра, упаковки с полки, напитки и готовая еда. Если
-                  распознавание ошиблось — поправьте название, и мы подтянем данные из базы.
-                </p>
-              </li>
-              <li className="landing-point">
-                <h3 className="landing-point-title">Калории, БЖУ, клетчатка и сахар</h3>
-                <p className="landing-section-text">
-                  Норма дня на кольце прогресса и в карточках приёмов пищи. Видно не только калории, но
-                  и баланс макронутриентов относительно вашей цели.
-                </p>
-              </li>
-              <li className="landing-point">
-                <h3 className="landing-point-title">Вес, цель и статистика</h3>
-                <p className="landing-section-text">
-                  Календарь веса, темп снижения или набора, недельные отчёты и графики — чтобы видеть
-                  динамику, а не один удачный день.
-                </p>
-              </li>
-              <li className="landing-point">
-                <h3 className="landing-point-title">Мягкая мотивация без давления</h3>
-                <p className="landing-section-text">
-                  Серия записей, напоминания и маленькие отметки прогресса. Без жёстких штрафов — только
-                  поддержка, когда удобно вернуться к дневнику.
+                  С этикеток и базы — не только калории и БЖУ, но и дополнительные нутриенты, когда
+                  они есть в данных.
                 </p>
               </li>
               <li className="landing-point">
                 <h3 className="landing-point-title">Работает как приложение на телефоне</h3>
                 <p className="landing-section-text">
-                  PWA: добавьте сайт на экран «Домой» — появится иконка и полноэкранный режим. На iPhone
-                  push-уведомления работают при запуске с домашнего экрана (iOS 16.4+).
+                  PWA: добавьте сайт на экран «Домой» — появится иконка и полноэкранный режим. На
+                  iPhone push-уведомления работают при запуске с домашнего экрана (iOS 16.4+).
                 </p>
               </li>
             </ul>
           </div>
         </section>
+      </LandingScrollReveal>
+
+      <LandingScrollReveal>
+        <LandingAudience />
       </LandingScrollReveal>
 
       <LandingScrollReveal>
@@ -351,7 +340,7 @@ export function LandingPage() {
       </LandingScrollReveal>
 
       <LandingScrollReveal>
-        <section className="landing-section landing-faq">
+        <section id="faq" className="landing-section landing-faq">
           <p className="landing-kicker">Вопросы</p>
           <h2 className="landing-section-title">Частые вопросы</h2>
           <dl className="landing-faq-list">
@@ -374,6 +363,20 @@ export function LandingPage() {
               <dd>
                 Это умная оценка, а не лабораторный анализ. Перед сохранением вы всегда видите порцию
                 и можете поправить название или граммы — приложение запомнит ваши исправления.
+              </dd>
+            </div>
+            <div className="landing-faq-item">
+              <dt>Что распознаётся кроме тарелки?</dt>
+              <dd>
+                Этикетки с КБЖУ, лицевые стороны упаковок, напитки, штрихкоды и готовые блюда со
+                стикерами в кулинарии. Можно и просто ввести название текстом.
+              </dd>
+            </div>
+            <div className="landing-faq-item">
+              <dt>Есть ли учёт воды и напоминания?</dt>
+              <dd>
+                Да. В разделе «Рацион» — трекер воды с быстрыми кнопками. Push-напоминания о еде и
+                воде можно включить в профиле (на iOS — после добавления на домашний экран).
               </dd>
             </div>
             <div className="landing-faq-item">
