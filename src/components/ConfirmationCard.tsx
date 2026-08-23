@@ -686,7 +686,7 @@ export function ConfirmationCard({
   const needsReview = anyMissingCalories || anyLowConfidence;
 
   return (
-    <section id="food-add-panel" className="card overflow-hidden p-0 md:p-6">
+    <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
       <div className="flex flex-col gap-5 p-4 md:p-0">
         {hasImage ? (
           <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl">
@@ -897,7 +897,7 @@ export function ConfirmationCard({
           ))}
         </div>
         <div className="h-2 shrink-0" aria-hidden />
-        <div className="sticky-actions">
+        <div className="confirm-card-actions">
           <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? (
               <>
