@@ -5,6 +5,7 @@ export const PHOTO_KINDS = new Set<PhotoKind>(["meal", "package", "label", "barc
 export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   gigachat: "Оценка по фото блюда",
   "gigachat-lookup": "Оценка по названию",
+  "gigachat-barcode": "Оценка по штрихкоду (ИИ)",
   "openfoodfacts-barcode": "Данные из базы по штрихкоду",
   "openfoodfacts-search": "Данные из базы по названию на упаковке",
   label: "Считано с этикетки",

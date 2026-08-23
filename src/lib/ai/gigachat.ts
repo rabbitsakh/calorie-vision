@@ -2,7 +2,12 @@ import { randomUUID } from "crypto";
 import https from "https";
 import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
-import { buildFiberSugarLookupPrompt, buildFiberSugarBatchLookupPrompt, buildFoodLookupPrompt } from "@/lib/ai/prompt";
+import {
+  buildBarcodeLookupPrompt,
+  buildFiberSugarLookupPrompt,
+  buildFiberSugarBatchLookupPrompt,
+  buildFoodLookupPrompt,
+} from "@/lib/ai/prompt";
 import {
   buildVisionPrompt,
   resolvePromptVariant,
@@ -365,6 +370,29 @@ export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodReco
   ]);
 
   return parseFoodRecognitionResponse(text);
+}
+
+/** OFF miss for a scanned EAN — ask GigaChat keyed on the barcode digits. */
+export async function lookupFoodByBarcodeWithGigaChat(
+  barcode: string,
+): Promise<FoodRecognitionResult> {
+  const code = barcode.trim();
+  const text = await completeChat([
+    {
+      role: "user",
+      content: buildBarcodeLookupPrompt(code),
+    },
+  ]);
+
+  const parsed = parseFoodRecognitionResponse(text);
+  const confidence = Math.min(Math.max(parsed.confidence || 0.55, 0.45), 0.7);
+  return {
+    ...parsed,
+    barcode: code,
+    photoKind: "barcode",
+    source: "gigachat-barcode",
+    confidence,
+  };
 }
 
 export async function lookupFiberSugarWithGigaChat(
