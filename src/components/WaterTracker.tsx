@@ -12,7 +12,13 @@ type WaterResponse = {
 const QUICK_AMOUNTS = [200, 250, 350, 500];
 const PANEL_ID = "water";
 
-export function WaterTracker({ selectedDate }: { selectedDate: string }) {
+export function WaterTracker({
+  selectedDate,
+  onChanged,
+}: {
+  selectedDate: string;
+  onChanged?: () => void;
+}) {
   const [totalMl, setTotalMl] = useState(0);
   const [target, setTarget] = useState(2000);
   const [loading, setLoading] = useState(false);
@@ -55,6 +61,7 @@ export function WaterTracker({ selectedDate }: { selectedDate: string }) {
         const data = (await resp.json()) as WaterResponse;
         setTotalMl(data.totalMl);
         setTarget(data.target);
+        onChanged?.();
       }
     } finally {
       setLoading(false);
@@ -83,62 +90,63 @@ export function WaterTracker({ selectedDate }: { selectedDate: string }) {
   const dash = (pct / 100) * circ;
 
   return (
-    <section className="card p-4 md:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base font-semibold">Вода</h2>
-            <button type="button" className="btn-quiet" onClick={handleHide}>
+    <section className="card overflow-hidden">
+      <div className="border-b border-sky-100 bg-[var(--accent-water-soft)] px-4 py-3 md:px-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-lg" aria-hidden>💧</span>
+              <h2 className="text-base font-semibold text-sky-950">Вода</h2>
+            </div>
+            <p className="mt-0.5 text-sm text-sky-900/80">
+              {totalMl} / {target} мл
+              {remaining > 0 ? ` · осталось ${remaining} мл` : " · норма выполнена"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative shrink-0">
+              <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden>
+                <circle cx="36" cy="36" r={r} fill="none" stroke="#bae6fd" strokeWidth="5" />
+                <circle
+                  cx="36" cy="36" r={r} fill="none"
+                  stroke={done ? "var(--accent)" : "var(--accent-water)"}
+                  strokeWidth="5" strokeLinecap="round"
+                  strokeDasharray={`${dash} ${circ}`}
+                  strokeDashoffset={circ / 4}
+                  className="transition-all duration-500"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-sky-900">
+                {done ? "✓" : `${pct}%`}
+              </span>
+            </div>
+            <button type="button" className="btn-quiet text-sky-800" onClick={handleHide}>
               Скрыть
             </button>
           </div>
-          <p className="mt-0.5 text-sm text-slate-500">
-            {totalMl} мл из {target} мл
-            {remaining > 0 ? ` · ещё ${remaining} мл` : " · норма выполнена!"}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {glasses > 0
-              ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}`
-              : "Начните пить воду сегодня"}
-          </p>
-        </div>
-
-        <div className="relative shrink-0">
-          <svg width="72" height="72" viewBox="0 0 72 72">
-            <circle cx="36" cy="36" r={r} fill="none" stroke="#e2e8f0" strokeWidth="5" />
-            <circle
-              cx="36" cy="36" r={r} fill="none"
-              stroke={done ? "var(--accent)" : "var(--accent-water)"}
-              strokeWidth="5" strokeLinecap="round"
-              strokeDasharray={`${dash} ${circ}`}
-              strokeDashoffset={circ / 4}
-              className="transition-all duration-500"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-slate-700">
-            {done ? (
-              <svg aria-hidden="true" className="h-6 w-6 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                <path d="M5 12.5l5 5L19 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : (
-              `${pct}%`
-            )}
-          </span>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {QUICK_AMOUNTS.map((ml) => (
-          <button
-            key={ml} type="button"
-            className="min-h-10 rounded-xl px-4 text-sm font-semibold transition-colors hover:opacity-90 disabled:opacity-50"
-            style={{ background: "var(--accent-water-soft)", color: "var(--accent-water)" }}
-            disabled={loading}
-            onClick={() => void add(ml)}
-          >
-            +{ml} мл
-          </button>
-        ))}
+      <div className="px-4 py-3 md:px-5">
+        <p className="mb-3 text-xs text-slate-500">
+          {glasses > 0
+            ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}`
+            : "Быстрые кнопки — добавьте стакан воды"}
+        </p>
+        <div className="chip-row-fill">
+          {QUICK_AMOUNTS.map((ml) => (
+            <button
+              key={ml}
+              type="button"
+              className="chip min-h-10 justify-center font-semibold text-sky-800"
+              style={{ background: "var(--accent-water-soft)" }}
+              disabled={loading}
+              onClick={() => void add(ml)}
+            >
+              +{ml} мл
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );

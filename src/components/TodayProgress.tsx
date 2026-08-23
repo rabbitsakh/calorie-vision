@@ -4,14 +4,11 @@ import { useEffect, useState } from "react";
 import { buildGoalAwareCalorieTip } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 
-const WATER_TARGET = 2000;
-
 type ProgressData = {
   calories: number;
   calorieTarget: number | null;
   protein: number;
   proteinTarget: number | null;
-  waterMl: number;
   goal: "LOSE" | "GAIN" | "MAINTAIN" | null;
 };
 
@@ -32,15 +29,15 @@ function Ring({
   sub: string;
 }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 52;
+  const r = 44;
   const c = 2 * Math.PI * r;
   const offset = c - (clamped / 100) * c;
   const over = pct > 105;
 
   return (
-    <div className="flex flex-col items-center text-center">
-      <div className="relative h-32 w-32 shrink-0">
-        <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
+    <div className="flex shrink-0 flex-col items-center text-center">
+      <div className="relative h-28 w-28">
+        <svg viewBox="0 0 120 120" className="h-28 w-28 -rotate-90">
           <circle cx="60" cy="60" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
           <circle
             cx="60"
@@ -56,14 +53,14 @@ function Ring({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={`text-xl font-bold ${over ? "text-rose-600" : "text-teal-800"}`}>
+          <span className={`text-lg font-bold ${over ? "text-rose-600" : "text-teal-800"}`}>
             {Math.round(clamped)}%
           </span>
-          <span className="text-[0.65rem] font-medium uppercase tracking-wide text-slate-500">{label}</span>
+          <span className="text-[0.6rem] font-medium uppercase tracking-wide text-slate-500">{label}</span>
         </div>
       </div>
-      <p className="mt-2 text-lg font-bold text-slate-800">{value}</p>
-      <p className="text-xs text-slate-500">{sub}</p>
+      <p className="mt-1.5 text-sm font-bold text-slate-800">{value}</p>
+      <p className="text-[0.65rem] text-slate-500">{sub}</p>
     </div>
   );
 }
@@ -102,10 +99,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   useEffect(() => {
     void (async () => {
       try {
-        const [mealsResp, waterResp] = await Promise.all([
-          fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
-          fetch(withBasePath(`/api/water?date=${selectedDate}`)),
-        ]);
+        const mealsResp = await fetch(withBasePath(`/api/meals?date=${selectedDate}`));
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
           totalCalories: number;
@@ -113,16 +107,12 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
           target: { calories: number; protein: number } | null;
         };
-        const water = waterResp.ok
-          ? ((await waterResp.json()) as { totalMl: number })
-          : { totalMl: 0 };
 
         setData({
           calories: meals.totalCalories,
           calorieTarget: meals.target?.calories ?? null,
           protein: meals.totalProtein,
           proteinTarget: meals.target?.protein ?? null,
-          waterMl: water.totalMl,
           goal: meals.goal ?? null,
         });
       } catch {
@@ -131,7 +121,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
     })();
   }, [selectedDate, refreshKey]);
 
-  if (!data || (data.calories === 0 && data.waterMl === 0 && !data.calorieTarget)) {
+  if (!data || (data.calories === 0 && !data.calorieTarget)) {
     return null;
   }
 
@@ -143,7 +133,6 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
     data.proteinTarget && data.proteinTarget > 0
       ? (data.protein / data.proteinTarget) * 100
       : 0;
-  const waterPct = (data.waterMl / WATER_TARGET) * 100;
 
   let tip = "Добавьте первый приём пищи — и прогресс появится.";
   if (data.calorieTarget && data.calories > 0) {
@@ -161,34 +150,32 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
 
   return (
     <div className="card p-4">
-      <p className="mb-3 text-center font-display text-sm font-semibold text-slate-800">Сегодня</p>
-      <Ring
-        pct={data.calorieTarget ? caloriePct : 0}
-        label="Калории"
-        value={
-          data.calorieTarget
-            ? `${data.calories} / ${data.calorieTarget}`
-            : `${data.calories} ккал`
-        }
-        sub={data.calorieTarget ? "ккал к цели" : "цель не задана"}
-      />
-      <div className="mt-3 flex flex-col gap-2.5">
-        {data.proteinTarget ? (
-          <ThinBar
-            label="Белок"
-            pct={proteinPct}
-            detail={`${Math.round(data.protein)} / ${data.proteinTarget} г`}
-            color={proteinPct > 105 ? "bg-rose-400" : "bg-teal-500"}
-          />
-        ) : null}
-        <ThinBar
-          label="Вода"
-          pct={waterPct}
-          detail={`${data.waterMl} / ${WATER_TARGET} мл`}
-          color={waterPct >= 100 ? "bg-sky-500" : "bg-sky-400"}
+      <div className="flex items-center gap-4">
+        <Ring
+          pct={data.calorieTarget ? caloriePct : 0}
+          label="Калории"
+          value={
+            data.calorieTarget
+              ? `${data.calories} / ${data.calorieTarget}`
+              : `${data.calories} ккал`
+          }
+          sub={data.calorieTarget ? "ккал к цели" : "цель не задана"}
         />
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <p className="font-display text-sm font-semibold text-slate-800">Сводка дня</p>
+          {data.proteinTarget ? (
+            <ThinBar
+              label="Белок"
+              pct={proteinPct}
+              detail={`${Math.round(data.protein)} / ${data.proteinTarget} г`}
+              color={proteinPct > 105 ? "bg-rose-400" : "bg-teal-500"}
+            />
+          ) : (
+            <p className="text-xs text-slate-500">Укажите цель в профиле — появится норма белка.</p>
+          )}
+          <p className="text-xs leading-snug text-slate-600">{tip}</p>
+        </div>
       </div>
-      <p className="mt-3 text-sm text-slate-600">{tip}</p>
     </div>
   );
 }

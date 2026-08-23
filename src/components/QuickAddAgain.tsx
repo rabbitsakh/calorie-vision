@@ -27,6 +27,10 @@ export function QuickAddAgain({
 
   return (
     <section className="card overflow-hidden">
+      <div className="border-b border-slate-100 px-4 py-3 md:px-5">
+        <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
+        <p className="mt-0.5 text-xs text-slate-500">Повтор вчерашнего, избранное или подсказка AI</p>
+      </div>
       <div className="flex border-b border-slate-100">
         {(
           [

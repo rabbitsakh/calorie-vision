@@ -61,6 +61,12 @@ body {
   display: none !important;
 }
 
+.ration-page > .card,
+.ration-page > section.card,
+.ration-page > .motivation-queue > * {
+  scroll-margin-top: 5rem;
+}
+
 :focus:not(:focus-visible) {
   outline: none;
 }

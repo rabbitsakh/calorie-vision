@@ -28,12 +28,27 @@ import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function RationPage() {
   const timezone = useTimezone();
   const { date, setDate, today } = useSelectedDate(timezone);
   const [refreshKey, setRefreshKey] = useState(0);
   const [totalCalories, setTotalCalories] = useState(0);
-  const [showExtras, setShowExtras] = useState(false);
+  const [showHabits, setShowHabits] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const scrollToFoodAdd = useCallback(() => {
@@ -57,10 +72,11 @@ export default function RationPage() {
       }
     >
       <AuthGate>
-        <div className="flex flex-col gap-4 md:gap-5">
+        <div className="ration-page flex flex-col gap-4 md:gap-5">
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
           <FoodAddPanel selectedDate={date} onSaved={bump} onPendingChange={setConfirmOpen} />
+
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}
@@ -70,6 +86,8 @@ export default function RationPage() {
             onTotalsChange={setTotalCalories}
             onAddFood={scrollToFoodAdd}
           />
+
+          <WaterTracker selectedDate={date} onChanged={bump} />
 
           <MotivationQueue>
             <StreakNudge
@@ -91,24 +109,30 @@ export default function RationPage() {
             onSaved={bump}
           />
 
-          <button
-            type="button"
-            className="self-start text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
-            onClick={() => setShowExtras((value) => !value)}
-          >
-            {showExtras ? "Скрыть детали дня" : "Ещё за день"}
-          </button>
-          {showExtras ? (
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <WaterTracker selectedDate={date} />
-                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+          <section className="card overflow-hidden">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left md:px-5"
+              onClick={() => setShowHabits((value) => !value)}
+              aria-expanded={showHabits}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">Привычки и заметки</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Серия, недельный челлендж, заметка о дне, напоминания
+                </p>
               </div>
-              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-              <PushNotificationPrompt />
-              <DiaryNoteWidget selectedDate={date} />
-            </div>
-          ) : null}
+              <ChevronIcon open={showHabits} />
+            </button>
+            {showHabits ? (
+              <div className="flex flex-col gap-4 border-t border-slate-100 p-4 md:p-5">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+                <DiaryNoteWidget selectedDate={date} />
+                <PushNotificationPrompt />
+              </div>
+            ) : null}
+          </section>
 
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
