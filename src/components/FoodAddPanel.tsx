@@ -15,6 +15,7 @@ type FoodAddPanelProps = {
   selectedDate: string;
   disabled?: boolean;
   onSaved: () => void;
+  onPendingChange?: (open: boolean) => void;
 };
 
 function toRecognitionResponse(
@@ -27,7 +28,7 @@ function toRecognitionResponse(
   };
 }
 
-export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelProps) {
+export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange }: FoodAddPanelProps) {
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
@@ -51,6 +52,16 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
     const timer = window.setTimeout(() => setSavedToast(null), 4000);
     return () => window.clearTimeout(timer);
   }, [savedToast]);
+
+  useEffect(() => {
+    onPendingChange?.(pendingResult != null);
+  }, [pendingResult, onPendingChange]);
+
+  useEffect(() => {
+    return () => {
+      onPendingChange?.(false);
+    };
+  }, [onPendingChange]);
 
   async function lookupFood(payload: { dishName?: string; barcode?: string }) {
     lookupAbortRef.current?.abort();
@@ -98,7 +109,11 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
       <ConfirmationCard
         result={pendingResult}
         selectedDate={selectedDate}
-        onCancel={() => setPendingResult(null)}
+        onCancel={() => {
+          photoAbortRef.current?.abort();
+          lookupAbortRef.current?.abort();
+          setPendingResult(null);
+        }}
         onSaved={(meta) => {
           setPendingResult(null);
           setTextQuery("");

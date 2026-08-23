@@ -34,6 +34,7 @@ export default function RationPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [totalCalories, setTotalCalories] = useState(0);
   const [showExtras, setShowExtras] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -59,7 +60,7 @@ export default function RationPage() {
         <div className="flex flex-col gap-4 md:gap-5">
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
-          <FoodAddPanel selectedDate={date} onSaved={bump} />
+          <FoodAddPanel selectedDate={date} onSaved={bump} onPendingChange={setConfirmOpen} />
           <DailyLog
             selectedDate={date}
             refreshKey={refreshKey}
@@ -118,7 +119,14 @@ export default function RationPage() {
           <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
         </div>
       </AuthGate>
-      <button type="button" className="fab-add md:hidden" aria-label="Добавить еду" onClick={scrollToFoodAdd}>
+      <button
+        type="button"
+        className={`fab-add md:hidden ${confirmOpen ? "pointer-events-none opacity-0" : ""}`}
+        aria-label="Добавить еду"
+        aria-hidden={confirmOpen}
+        tabIndex={confirmOpen ? -1 : 0}
+        onClick={scrollToFoodAdd}
+      >
         +
       </button>
     </AppShell>
