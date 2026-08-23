@@ -199,6 +199,8 @@ textarea {
 .input-with-action {
   display: flex;
   gap: 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .input-with-action input {
@@ -218,6 +220,8 @@ textarea {
   height: 46px;
   justify-content: center;
   padding: 0;
+  position: relative;
+  z-index: 2;
   transition: opacity 0.15s ease, transform 0.15s ease;
   width: 46px;
 }
@@ -278,6 +282,25 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.chip-row .chip {
+  max-width: min(100%, 15rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-card-scroll-spacer {
+  flex-shrink: 0;
+  height: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+@media (min-width: 768px) {
+  .confirm-card-scroll-spacer {
+    height: 0;
+  }
 }
 
 .chip-row-fill {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 
@@ -69,7 +70,7 @@ const VARIANT_THEME: Record<
 
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
- * Full-bleed backdrop, large mascot, particle burst — not a white card toast.
+ * Portaled to document.body so sticky chrome never hides it.
  */
 export function FullscreenCelebration({
   open,
@@ -107,11 +108,11 @@ export function FullscreenCelebration({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className={`fs-celeb-root fs-celeb-${variant} fixed inset-0 z-[60] flex flex-col`}
+      className={`fs-celeb-root fs-celeb-${variant} fixed inset-0 z-[100] flex flex-col`}
       role={autoClose ? "status" : "dialog"}
       aria-modal={autoClose ? undefined : true}
       aria-live="polite"
@@ -168,6 +169,7 @@ export function FullscreenCelebration({
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

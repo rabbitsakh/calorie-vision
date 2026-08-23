@@ -227,8 +227,34 @@ export function Mascot({
           opacity="0.7"
         />
 
-        <circle className="mascot-eye-left" cx="50" cy="68" r="3.4" fill="#0F172A" />
-        <circle className="mascot-eye-right" cx="78" cy="68" r="3.4" fill="#0F172A" />
+        {pose === "cheer" ? (
+          <>
+            <path
+              className="mascot-eye-left"
+              d="M46 68c2-3 6-3 8 0"
+              stroke="#0F172A"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              fill="none"
+            />
+            <path
+              className="mascot-eye-right"
+              d="M74 68c2-3 6-3 8 0"
+              stroke="#0F172A"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </>
+        ) : (
+          <>
+            <circle className="mascot-eye-left" cx="50" cy="68" r="3.4" fill="#0F172A" />
+            <circle className="mascot-eye-right" cx="78" cy="68" r="3.4" fill="#0F172A" />
+          </>
+        )}
+
+        <ellipse cx="40" cy="76" rx="6.5" ry="3.5" fill="#FB7185" opacity="0.28" />
+        <ellipse cx="88" cy="76" rx="6.5" ry="3.5" fill="#FB7185" opacity="0.28" />
 
         {pose === "empty" ? (
           <ellipse cx="64" cy="82" rx="3.6" ry="4.2" fill={STROKE} opacity="0.75" />
