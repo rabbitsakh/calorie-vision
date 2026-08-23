@@ -36,6 +36,8 @@ export type FoodRecognitionResult = {
   }>;
   source?: string;
   photoKind?: PhotoKind;
+  /** True when post-vision OFF / nutrition enrichment hit its time budget. */
+  enrichmentTimedOut?: boolean;
   barcode?: string;
   brand?: string;
   imageUrl?: string;

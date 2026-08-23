@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
         });
         send("vision", { recognition: visionPreview });
 
+        let enrichmentTimedOut = false;
         const recognition = await withTimeoutFallback(
           enrichRecognitionAfterVision(vision, session.user.id),
           STREAM_ENRICH_TIMEOUT_MS,
@@ -116,8 +117,16 @@ export async function POST(request: NextRequest) {
             source: vision.source ?? "gigachat",
             photoKind: vision.photoKind ?? "meal",
           }),
+          () => {
+            enrichmentTimedOut = true;
+          },
         );
-        send("done", { imagePath, recognition });
+        send("done", {
+          imagePath,
+          recognition: enrichmentTimedOut
+            ? { ...recognition, enrichmentTimedOut: true }
+            : recognition,
+        });
       } catch (error) {
         console.error(error);
         const message =

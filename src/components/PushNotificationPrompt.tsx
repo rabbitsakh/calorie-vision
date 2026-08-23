@@ -14,6 +14,7 @@ export function PushNotificationPrompt() {
   const [loading, setLoading] = useState(false);
   const [hintOnly, setHintOnly] = useState(false);
   const [hintText, setHintText] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -38,19 +39,23 @@ export function PushNotificationPrompt() {
 
   const subscribe = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const result = await subscribeBrowserPush();
       if (result.ok) {
         setPushPromptDismissed(false);
         setVisible(false);
       } else {
-        setVisible(false);
-        setPushPromptDismissed(true);
+        // Transient fetch/subscribe errors must not permanently dismiss the prompt.
+        setError(result.error || "Не удалось подключить уведомления. Попробуйте ещё раз.");
       }
+    } catch {
+      setError("Не удалось подключить уведомления. Попробуйте ещё раз.");
     } finally {
       setLoading(false);
     }
   }, []);
+
 
   function dismiss() {
     setPushPromptDismissed(true);
@@ -93,6 +98,7 @@ export function PushNotificationPrompt() {
           <p className="mt-1 text-sm text-teal-700">
             Завтрак, обед, вода, сводка калорий, серия и вечерний чек-ин — без давления.
           </p>
+          {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"

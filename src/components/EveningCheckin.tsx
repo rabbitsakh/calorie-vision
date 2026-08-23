@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { localHour, resolvePushTimezone } from "@/lib/push-reminders";
 
 const SEEN_PREFIX = "evening-checkin-";
 
@@ -34,17 +35,15 @@ function markSeen(date: string): void {
   }
 }
 
-/** Local hour 0–23 for optional evening gating. */
-function localHour(): number {
-  return new Date().getHours();
-}
 
 type EveningCheckinProps = {
   today: string;
   selectedDate: string;
+  /** Profile IANA timezone; falls back to browser local hour when unset. */
+  timezone?: string | null;
 };
 
-export function EveningCheckin({ today, selectedDate }: EveningCheckinProps) {
+export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckinProps) {
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -58,8 +57,11 @@ export function EveningCheckin({ today, selectedDate }: EveningCheckinProps) {
       setVisible(false);
       return;
     }
-    // Show from 18:00, or always if user opens ration late / testing via ? — keep 18+
-    if (localHour() < 18) {
+    // Show from 18:00 in the user's profile timezone (browser local as fallback).
+    const hour = timezone
+      ? localHour(resolvePushTimezone(timezone))
+      : new Date().getHours();
+    if (hour < 18) {
       setVisible(false);
       return;
     }
@@ -82,7 +84,7 @@ export function EveningCheckin({ today, selectedDate }: EveningCheckinProps) {
         setVisible(true);
       }
     })();
-  }, [today, selectedDate]);
+  }, [today, selectedDate, timezone]);
 
   async function choose(choice: Choice) {
     setSaving(true);

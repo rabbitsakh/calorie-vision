@@ -731,6 +731,14 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
+        {!enriching && recognition.enrichmentTimedOut ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-semibold">
+              Уточнение из базы не завершилось — проверьте калории
+            </p>
+          </div>
+        ) : null}
+
         {needsReview ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             <p className="font-semibold">

@@ -358,7 +358,10 @@ async function runEnrichmentWithBudget(
     enrichmentTimedOut: gate.cancelled,
   });
 
-  return { result: enriched, timedOut: gate.cancelled };
+  return {
+    result: gate.cancelled ? { ...enriched, enrichmentTimedOut: true } : enriched,
+    timedOut: gate.cancelled,
+  };
 }
 
 async function enrichMealItem(
