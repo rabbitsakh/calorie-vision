@@ -5,6 +5,7 @@ import { dateRangeEnding, requireDateKey, shiftDateKey, toDateKeyTz } from "@/li
 import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (avgWaterMl >= 1500) {
+    if (avgWaterMl >= WATER_HABIT_DAY_ML) {
       insights.push(`Средняя вода ${avgWaterMl} мл/день — хороший результат.`);
     } else if (avgWaterMl > 0) {
       insights.push(`Вода: в среднем ${avgWaterMl} мл/день — можно больше.`);

@@ -1,12 +1,45 @@
 [
   {
-    "version": "1.2.9",
+    "version": "1.2.12",
     "date": "2026-08-23",
-    "summary": "fix: milk lookup + recognition audit (молоко ≠ латте)",
+    "summary": "fix: mascot v1 blob-sprout — убрать боковые «усы»",
     "items": [
       {
         "kind": "fix",
-        "text": "fix: milk lookup + recognition audit (молоко ≠ латте)"
+        "text": "fix: mascot v1 blob-sprout — убрать боковые «усы»"
+      }
+    ]
+  },
+  {
+    "version": "1.2.11",
+    "date": "2026-08-23",
+    "summary": "fix: changelog parse Co-authored-by trailers",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: changelog parse Co-authored-by trailers"
+      }
+    ]
+  },
+  {
+    "version": "1.2.10",
+    "date": "2026-08-23",
+    "summary": "Рацион: вода на главном экране; лендинг — новые секции и мобильное меню",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Рацион: вода на главном экране; лендинг — новые секции и мобильное меню"
+      }
+    ]
+  },
+  {
+    "version": "1.2.9",
+    "date": "2026-08-23",
+    "summary": "Исправление: «молоко» больше не подставляет «кофе латте»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Исправление: «молоко» больше не подставляет «кофе латте»"
       }
     ]
   },
@@ -46,11 +79,11 @@
   {
     "version": "1.2.5",
     "date": "2026-08-23",
-    "summary": "Маскот: мягкий blob-leaf на лендинге и в приложении",
+    "summary": "Маскот: круглый blob с ростком сверху (без боковых «усов»)",
     "items": [
       {
         "kind": "improvement",
-        "text": "Маскот: мягкий blob-leaf на лендинге и в приложении"
+        "text": "Маскот: круглый blob с ростком сверху (без боковых «усов»)"
       }
     ]
   },

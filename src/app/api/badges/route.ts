@@ -5,6 +5,7 @@ import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet } from "@/lib/diet";
 import { BADGE_DEFS, type BadgeDef } from "@/lib/badges";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export async function GET() {
     let waterStreak = 0;
     let cursor = today;
     for (let i = 0; i < 60; i++) {
-      if ((waterByDate.get(cursor) ?? 0) >= 1500) {
+      if ((waterByDate.get(cursor) ?? 0) >= WATER_HABIT_DAY_ML) {
         waterStreak += 1;
         cursor = shiftDate(cursor, -1);
       } else {

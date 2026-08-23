@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
-
-const WATER_DAILY_TARGET_ML = 2000;
 
 export async function GET(request: NextRequest) {
   try {

@@ -1,3 +1,5 @@
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+
 export type ChallengeDef = {
   key: string;
   title: string;
@@ -15,7 +17,7 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
   {
     key: "water_5",
     title: "Пять дней с водой",
-    description: "≥1500 мл воды в 5 днях этой недели",
+    description: `≥${WATER_HABIT_DAY_ML} мл воды в 5 днях этой недели`,
     target: 5,
   },
   {

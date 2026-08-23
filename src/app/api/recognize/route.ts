@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     };
 
     const [imagePath, recognition] = await Promise.all([
-      saveImageBuffer(compressed.buffer, compressed.mimeType),
+      saveImageBuffer(compressed.buffer, compressed.mimeType, {
+        ownerUserId: session.user.id,
+      }),
       recognizeFoodWithAI(compressed.buffer, visionFilename, session.user.id, {
         barcode: barcodeHint || undefined,
         visionHints,

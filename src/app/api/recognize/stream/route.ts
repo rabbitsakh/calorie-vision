@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
+        const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType, {
+          ownerUserId: session.user.id,
+        });
         send("image", { imagePath });
 
         if (barcodeHint) {

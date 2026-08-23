@@ -1,3 +1,5 @@
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+
 export type BadgeDef = {
   key: string;
   title: string;
@@ -23,7 +25,7 @@ export const BADGE_DEFS: BadgeDef[] = [
   {
     key: "water_7",
     title: "Неделя воды",
-    description: "Вода ≥1500 мл семь дней подряд",
+    description: `Вода ≥${WATER_HABIT_DAY_ML} мл семь дней подряд`,
   },
   {
     key: "first_log",

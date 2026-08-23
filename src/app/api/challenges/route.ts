@@ -7,6 +7,7 @@ import {
   challengeDef,
   weekStartMonday,
 } from "@/lib/challenges";
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ async function computeProgress(
       where: { userId, date: { in: dates } },
       _sum: { ml: true },
     });
-    return rows.filter((r) => (r._sum.ml ?? 0) >= 1500).length;
+    return rows.filter((r) => (r._sum.ml ?? 0) >= WATER_HABIT_DAY_ML).length;
   }
 
   if (challengeKey === "log_5") {
