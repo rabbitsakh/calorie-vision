@@ -208,8 +208,10 @@ function dishLookupDisabled(
   dishId: string,
   saving: boolean,
   searchingId: string | null,
+  enriching: boolean,
 ): boolean {
   if (saving) return true;
+  if (enriching) return false;
   if (searchingId === "all") return true;
   if (searchingId !== null && searchingId !== dishId) return false;
   return searchingId === dishId;
@@ -799,7 +801,7 @@ export function ConfirmationCard({
                   index={index}
                   multi={multi}
                   searching={searchingId === dish.id}
-                  lookupDisabled={dishLookupDisabled(dish.id, saving, searchingId)}
+                  lookupDisabled={dishLookupDisabled(dish.id, saving, searchingId, enriching)}
                   formDisabled={formDisabled}
                   canRemove={multi}
                   review={reviewFlags[index]!}
@@ -887,12 +889,14 @@ export function ConfirmationCard({
             <Chip
               key={value}
               active={mealType === value}
+              disabled={saving}
               onClick={() => setMealType(mealType === value ? "" : value)}
             >
               {label}
             </Chip>
           ))}
         </div>
+        <div className="h-2 shrink-0" aria-hidden />
         <div className="sticky-actions">
           <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? (
@@ -910,7 +914,7 @@ export function ConfirmationCard({
               "Да, сохранить"
             )}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={saving || searching} onClick={onCancel}>
+          <button type="button" className="btn btn-secondary" disabled={saving} onClick={onCancel}>
             Отменить
           </button>
         </div>
@@ -974,7 +978,8 @@ function DishFields({
             <button
               key={altName}
               type="button"
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
+              className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200 disabled:opacity-50"
+              disabled={formDisabled || lookupDisabled}
               onClick={handleAltClick}
             >
               {altName} · {item.calories} ккал

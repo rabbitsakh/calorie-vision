@@ -98,7 +98,11 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved }: FoodAddPanelPr
       <ConfirmationCard
         result={pendingResult}
         selectedDate={selectedDate}
-        onCancel={() => setPendingResult(null)}
+        onCancel={() => {
+          photoAbortRef.current?.abort();
+          lookupAbortRef.current?.abort();
+          setPendingResult(null);
+        }}
         onSaved={(meta) => {
           setPendingResult(null);
           setTextQuery("");
