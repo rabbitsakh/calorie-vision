@@ -6,6 +6,7 @@ import {
   decodeBarcodeFromCanvas,
   decodeBarcodeFromImageFile,
 } from "@/lib/decode-barcode-client";
+import { playScannerBeep } from "@/lib/scanner-beep";
 
 type BarcodeScannerProps = {
   disabled?: boolean;
@@ -77,6 +78,7 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
             try {
               const code = await decodeBarcodeFromCanvas(frame);
               if (code) {
+                playScannerBeep();
                 onDetected(code);
                 stopScanning();
                 return;
@@ -105,6 +107,7 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
     setError(null);
     const code = await decodeBarcodeFromImageFile(file);
     if (code) {
+      playScannerBeep();
       onDetected(code);
       return;
     }
