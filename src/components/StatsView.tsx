@@ -258,9 +258,22 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
   const span = Math.max(max - min, 0.1);
   const ticks = yAxisTicks(min, max);
   const totalDays = days.length;
+  // Keep first/last points inset so value labels are not clipped by the card edge.
+  const xPadPct = 6;
 
-  function xPct(i: number) { return totalDays <= 1 ? 50 : (i / (totalDays - 1)) * plotWidth; }
-  function yPct(v: number) { return ((max - v) / span) * 100; }
+  function xPct(i: number) {
+    if (totalDays <= 1) return 50;
+    const t = i / (totalDays - 1);
+    return xPadPct + t * (100 - xPadPct * 2);
+  }
+  function yPct(v: number) {
+    return ((max - v) / span) * 100;
+  }
+  function labelAnchor(x: number): "start" | "center" | "end" {
+    if (x <= 14) return "start";
+    if (x >= 86) return "end";
+    return "center";
+  }
 
   const svgPoints = points.map((p) => `${xPct(p.index)},${yPct(p.value)}`).join(" ");
 
@@ -274,7 +287,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
   const avgPoints = points.length >= 3 ? rollingAvg() : null;
   const xLabels = axisLabelIndices(days.length, period);
   const compactAxis = days.length > 5;
-  const maxValueLabels = period === "week" ? 5 : period === "month" ? 4 : 3;
+  const maxValueLabels = period === "week" ? 4 : period === "month" ? 3 : 2;
   const valueLabelIdx = sparseValueLabelIndices(points, maxValueLabels);
 
   return (
@@ -299,7 +312,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 
         {/* Plot */}
         <div className="min-w-0 flex-1 overflow-hidden border-l border-slate-200 pl-2 sm:pl-3">
-          <div className="relative" style={{ height: plotHeight }}>
+          <div className="relative overflow-visible" style={{ height: plotHeight }}>
             {ticks.map((tick, i) => (
               <div
                 key={`grid-${i}`}
@@ -337,14 +350,18 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
               ) : null}
             </svg>
 
-            {/* Dots + sparse value labels */}
+            {/* Dots + edge-aware value labels */}
             {points.map((p) => {
               const showLabel = valueLabelIdx.has(p.index);
+              const x = xPct(p.index);
+              const y = yPct(p.value);
+              const anchor = labelAnchor(x);
+              const labelBelow = y < 18;
               return (
                 <div
                   key={p.date}
                   className="absolute -translate-x-1/2 -translate-y-1/2"
-                  style={{ left: `${xPct(p.index)}%`, top: `${yPct(p.value)}%` }}
+                  style={{ left: `${x}%`, top: `${y}%` }}
                 >
                   <div
                     className="h-2.5 w-2.5 rounded-full border-2 border-sky-600 bg-white"
@@ -352,8 +369,17 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
                   />
                   {showLabel ? (
                     <span
-                      className="absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--background)]/90 px-0.5 text-center text-[10px] font-semibold leading-none text-slate-700 sm:text-xs"
-                      style={{ bottom: "14px" }}
+                      className="absolute z-10 whitespace-nowrap rounded bg-white/95 px-0.5 text-center text-[10px] font-semibold leading-none text-slate-700 shadow-sm sm:text-xs"
+                      style={{
+                        ...(labelBelow
+                          ? { top: "14px" }
+                          : { bottom: "14px" }),
+                        ...(anchor === "start"
+                          ? { left: 0 }
+                          : anchor === "end"
+                            ? { right: 0 }
+                            : { left: "50%", transform: "translateX(-50%)" }),
+                      }}
                     >
                       {formatChartValue(p.value, "weightKg")}
                     </span>
