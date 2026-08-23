@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateShort } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
 type StatsDay = {
@@ -55,11 +56,12 @@ function chartRange(values: number[], paddingRatio = 0.1): { min: number; max: n
   return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
 }
 
-function shouldShowDateLabel(index: number, total: number, period: "week" | "month" | "quarter"): boolean {
-  if (period === "week") return true;
-  if (index === 0 || index === total - 1) return true;
-  if (period === "quarter") return index % 14 === 0;
-  return index % 7 === 0;
+/** Day number for dense axes; full short date only when there is room. */
+function formatAxisDate(dateKey: string, compact: boolean): string {
+  if (!compact) return formatDateShort(dateKey);
+  const short = formatDateShort(dateKey);
+  const day = short.match(/\d+/)?.[0];
+  return day ?? short;
 }
 
 function formatChartValue(value: number, key: "calories" | "weightKg"): string {
@@ -98,7 +100,8 @@ function BarChart({
   const span = Math.max(max - min, 1);
   const ticks = yAxisTicks(min, max);
   const plotHeight = 144;
-  const labelAreaHeight = period === "month" ? 32 : 28; // reserved above bars for vertical labels
+  const showValueLabels = period === "week";
+  const labelAreaHeight = showValueLabels ? 36 : 8;
   const labelGap = 4;
   const totalHeight = plotHeight + labelAreaHeight;
 
@@ -115,6 +118,20 @@ function BarChart({
   }
 
   const targetYPx = targetValue && targetValue > 0 ? yPxFromTop(targetValue) : null;
+  const xLabels = axisLabelIndices(days.length, period);
+  const compactAxis = days.length > 7;
+  // Value callouts only on week — denser periods clip into each other on mobile.
+  const valueLabelIdx = showValueLabels
+    ? sparseValueLabelIndices(
+        days
+          .map((d, index) => ({
+            index,
+            value: valueKey === "weightKg" ? (d.weightKg ?? 0) : d.calories,
+          }))
+          .filter((p) => p.value > 0),
+        5,
+      )
+    : new Set<number>();
 
   return (
     <div className="flex gap-2 sm:gap-3">
@@ -136,7 +153,7 @@ function BarChart({
       </div>
 
       {/* Plot area */}
-      <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
+      <div className="min-w-0 flex-1 overflow-hidden border-l border-slate-200 pl-2 sm:pl-3">
         <div className="relative" style={{ height: totalHeight }}>
           {/* Dashed grid lines in bar zone */}
           {ticks.map((tick, i) => (
@@ -156,8 +173,8 @@ function BarChart({
           ) : null}
 
           {/* Bars + labels */}
-          <div className="absolute inset-0 flex gap-0.5 sm:gap-1">
-            {days.map((day) => {
+          <div className="absolute inset-0 flex gap-px sm:gap-0.5">
+            {days.map((day, index) => {
               const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
               const heightPx = barHeightPx(value);
               const barColor = valueKey === "calories"
@@ -167,31 +184,33 @@ function BarChart({
                     ? "bg-teal-500"
                     : "bg-teal-600"
                 : "bg-sky-600";
+              const labelValue = value && value > 0 && valueLabelIdx.has(index);
 
               return (
-                <div key={day.date} className="relative min-w-0 flex-1">
+                <div key={day.date} className="relative min-w-0 flex-1 overflow-hidden">
                   {value && value > 0 ? (
                     <>
                       <div
-                        className={`absolute bottom-0 left-1/2 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded-t-md ${barColor}`}
+                        className={`absolute bottom-0 left-1/2 w-[70%] max-w-8 -translate-x-1/2 rounded-t-md ${barColor}`}
                         style={{ height: `${heightPx}px` }}
                         title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
                       />
-                      {/* Vertical label above bar */}
-                      <div
-                        className="absolute inset-x-0 flex justify-center"
-                        style={{ bottom: `${heightPx + labelGap}px` }}
-                      >
-                        <span
-                          className={`whitespace-nowrap font-semibold leading-none text-slate-600 ${valueLabelClass}`}
-                          style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+                      {labelValue ? (
+                        <div
+                          className="pointer-events-none absolute inset-x-0 flex justify-center overflow-hidden"
+                          style={{ bottom: `${heightPx + labelGap}px` }}
                         >
-                          {formatChartValue(value, valueKey)}
-                        </span>
-                      </div>
+                          <span
+                            className={`font-semibold leading-none text-slate-600 ${valueLabelClass}`}
+                            style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
+                          >
+                            {formatChartValue(value, valueKey)}
+                          </span>
+                        </div>
+                      ) : null}
                     </>
                   ) : (
-                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[55%] max-w-6 min-w-2 -translate-x-1/2 rounded bg-slate-100" />
+                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[70%] max-w-8 -translate-x-1/2 rounded bg-slate-100" />
                   )}
                 </div>
               );
@@ -200,14 +219,18 @@ function BarChart({
         </div>
 
         {/* X-axis date labels */}
-        <div className="mt-1 flex gap-0.5 sm:gap-1">
+        <div className="mt-1 flex gap-px overflow-hidden sm:gap-0.5" aria-hidden="true">
           {days.map((day, index) => {
-            const show = shouldShowDateLabel(index, days.length, period);
+            const show = xLabels.has(index);
             return (
-              <div key={`${day.date}-lbl`} className="min-w-0 flex-1 text-center">
-                <span className={`block truncate text-xs font-medium text-slate-500 ${show ? "" : "invisible"}`}>
-                  {formatDateShort(day.date)}
-                </span>
+              <div key={`${day.date}-lbl`} className="min-w-0 flex-1 overflow-hidden text-center">
+                {show ? (
+                  <span className="block truncate text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
+                    {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
+                  </span>
+                ) : (
+                  <span className="block h-3" />
+                )}
               </div>
             );
           })}
@@ -249,6 +272,10 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
     });
   }
   const avgPoints = points.length >= 3 ? rollingAvg() : null;
+  const xLabels = axisLabelIndices(days.length, period);
+  const compactAxis = days.length > 10;
+  const maxValueLabels = period === "week" ? 5 : period === "month" ? 4 : 3;
+  const valueLabelIdx = sparseValueLabelIndices(points, maxValueLabels);
 
   return (
     <div className="flex flex-col gap-2">
@@ -271,7 +298,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
         </div>
 
         {/* Plot */}
-        <div className="min-w-0 flex-1 border-l border-slate-200 pl-2 sm:pl-3">
+        <div className="min-w-0 flex-1 overflow-hidden border-l border-slate-200 pl-2 sm:pl-3">
           <div className="relative" style={{ height: plotHeight }}>
             {ticks.map((tick, i) => (
               <div
@@ -310,36 +337,45 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
               ) : null}
             </svg>
 
-            {/* Dots + value labels */}
-            {points.map((p) => (
-              <div
-                key={p.date}
-                className="absolute -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${xPct(p.index)}%`, top: `${yPct(p.value)}%` }}
-              >
+            {/* Dots + sparse value labels */}
+            {points.map((p) => {
+              const showLabel = valueLabelIdx.has(p.index);
+              return (
                 <div
-                  className="h-2.5 w-2.5 rounded-full border-2 border-sky-600 bg-white"
-                  title={`${formatDateShort(p.date)}: ${p.value} кг`}
-                />
-                <span
-                  className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center text-xs font-semibold leading-none text-slate-700"
-                  style={{ bottom: "14px" }}
+                  key={p.date}
+                  className="absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{ left: `${xPct(p.index)}%`, top: `${yPct(p.value)}%` }}
                 >
-                  {formatChartValue(p.value, "weightKg")}
-                </span>
-              </div>
-            ))}
+                  <div
+                    className="h-2.5 w-2.5 rounded-full border-2 border-sky-600 bg-white"
+                    title={`${formatDateShort(p.date)}: ${p.value} кг`}
+                  />
+                  {showLabel ? (
+                    <span
+                      className="absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--background)]/90 px-0.5 text-center text-[10px] font-semibold leading-none text-slate-700 sm:text-xs"
+                      style={{ bottom: "14px" }}
+                    >
+                      {formatChartValue(p.value, "weightKg")}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
 
           {/* X-axis */}
-          <div className="mt-1 flex">
+          <div className="mt-1 flex overflow-hidden" aria-hidden="true">
             {days.map((day, index) => {
-              const show = shouldShowDateLabel(index, days.length, period);
+              const show = xLabels.has(index);
               return (
-                <div key={day.date} className="min-w-0 flex-1 text-center">
-                  <span className={`block truncate text-xs font-medium text-slate-500 ${show ? "" : "invisible"}`}>
-                    {formatDateShort(day.date)}
-                  </span>
+                <div key={day.date} className="min-w-0 flex-1 overflow-hidden text-center">
+                  {show ? (
+                    <span className="block truncate text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
+                      {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
+                    </span>
+                  ) : (
+                    <span className="block h-3" />
+                  )}
                 </div>
               );
             })}
@@ -371,7 +407,8 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
 
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
-  const labelClass = "text-xs";
+  const xLabels = axisLabelIndices(days.length, period);
+  const compactAxis = days.length > 10;
 
   return (
     <div className="flex flex-col gap-2">
@@ -383,13 +420,13 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
           </span>
         ))}
       </div>
-      <div className="flex gap-0.5 sm:gap-1">
+      <div className="flex gap-px overflow-hidden sm:gap-0.5">
         {days.map((day, index) => {
           const total = day.protein + day.fat + day.carbs;
-          const show = shouldShowDateLabel(index, days.length, period);
+          const show = xLabels.has(index);
           const barH = total > 0 ? Math.max(4, Math.round((total / maxTotal) * 100)) : 0;
           return (
-            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 overflow-hidden">
               <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
                 {total > 0 ? (
                   <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · клетчатка ${day.fiber ?? 0} г · сахар ${day.sugar ?? 0} г`}>
@@ -401,9 +438,13 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
                   <div className="h-0.5 w-full rounded bg-slate-100" />
                 )}
               </div>
-              <span className={`block truncate text-center font-medium text-slate-500 ${labelClass} ${show ? "" : "invisible"}`}>
-                {formatDateShort(day.date)}
-              </span>
+              {show ? (
+                <span className="block w-full truncate text-center text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
+                  {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
+                </span>
+              ) : (
+                <span className="block h-3" />
+              )}
             </div>
           );
         })}
@@ -416,14 +457,14 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
 
 function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
   const maxVal = Math.max(...hourlyCalories, 1);
-  const LABELS = ["00", "02", "04", "06", "08", "10", "12", "14", "16", "18", "20", "22"];
+  const LABELS = ["00", "04", "08", "12", "16", "20"];
   return (
-    <div className="flex items-end gap-0.5">
+    <div className="flex items-end gap-px overflow-hidden sm:gap-0.5">
       {hourlyCalories.map((val, hour) => {
         const h = Math.max(0, Math.round((val / maxVal) * 100));
-        const show = hour % 2 === 0;
+        const show = hour % 4 === 0;
         return (
-          <div key={hour} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
+          <div key={hour} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 overflow-hidden">
             <div className="flex w-full flex-col justify-end" style={{ height: "64px" }}>
               {val > 0 ? (
                 <div
@@ -435,9 +476,13 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
                 <div className="h-px w-full bg-slate-100" />
               )}
             </div>
-            <span className={`text-xs font-medium text-slate-400 ${show ? "" : "invisible"}`}>
-              {LABELS[Math.floor(hour / 2)]}
-            </span>
+            {show ? (
+              <span className="truncate text-[10px] font-medium text-slate-400 sm:text-xs">
+                {LABELS[Math.floor(hour / 4)]}
+              </span>
+            ) : (
+              <span className="block h-3" />
+            )}
           </div>
         );
       })}
