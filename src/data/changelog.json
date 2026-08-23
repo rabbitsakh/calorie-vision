@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.2.9",
+    "date": "2026-08-23",
+    "summary": "fix: milk lookup + recognition audit (молоко ≠ латте)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: milk lookup + recognition audit (молоко ≠ латте)"
+      }
+    ]
+  },
+  {
     "version": "1.2.8",
     "date": "2026-08-23",
     "summary": "Batch: multi-dish, push reminders, celebrations, mascot & recognition UX",
