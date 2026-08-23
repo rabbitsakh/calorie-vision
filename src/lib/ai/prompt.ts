@@ -97,6 +97,49 @@ export function buildFoodLookupPrompt(dishName: string): string {
 - если название расплывчатое («салат», «каша») — уточни типичный вариант для России`;
 }
 
+/** When Open Food Facts has no hit for an EAN/UPC — ask GigaChat by barcode digits. */
+export function buildBarcodeLookupPrompt(barcode: string): string {
+  const code = barcode.trim();
+  return `Ты диетолог и эксперт по фасованным продуктам из магазинов России/СНГ.
+Пользователь отсканировал штрихкод (EAN-8/EAN-13/UPC): "${code}".
+
+Определи продукт с этим штрихкодом (если знаешь) или наиболее вероятный товар розницы РФ с таким кодом. Верни ТОЛЬКО JSON без markdown:
+{
+  "photoKind": "barcode",
+  "dishName": "название продукта на русском",
+  "brand": "бренд или пустая строка",
+  "barcode": "${code}",
+  "calories": 0,
+  "protein": 0,
+  "fat": 0,
+  "carbs": 0,
+  "fiber": 0,
+  "sugar": 0,
+  "saturatedFat": 0,
+  "portionGrams": 0,
+  "per100g": { "calories": 0, "protein": 0, "fat": 0, "carbs": 0, "fiber": 0, "sugar": 0, "saturatedFat": 0 },
+  "confidence": 0.0,
+  "alternatives": []
+}
+
+Правила:
+- barcode: верни ровно "${code}" без пробелов и лишних символов
+- dishName: как на упаковке (русский), без лишних пояснений
+- brand: производитель/бренд, если известен
+- portionGrams: вес/объём всей упаковки в граммах (для напитков 1 мл ≈ 1 г). Если фасовка неизвестна — типичная порция или 100
+- calories, protein, fat, carbs, fiber, sugar: на ВСЮ порцию (portionGrams), не на 100 г/100 мл
+- если знаешь КБЖУ на 100 г/100 мл — заполни per100g и пересчитай на portionGrams
+- fiber и sugar ОБЯЗАТЕЛЬНЫ (ключи всегда есть, числа ≥ 0)
+  - фрукты/овощи/каши/хлеб: обычно оба > 0
+  - мясо/рыба/яйца/масло: fiber 0, sugar 0
+- confidence:
+  - 0.65–0.7: уверенно узнаёшь продукт по этому штрихкоду
+  - 0.5–0.65: вероятный товар, код мог быть редким
+  - ниже 0.5: только общая оценка категории — всё равно укажи наиболее правдоподобный вариант
+- alternatives: пустой массив
+- опирайся на распространённые товары РФ (префиксы вроде 460…); не выдумывай несуществующую этикетку`;
+}
+
 /** Short follow-up when the main lookup omitted fiber/sugar. */
 export function buildFiberSugarLookupPrompt(dishName: string, portionGrams?: number): string {
   const portion =

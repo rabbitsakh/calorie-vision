@@ -201,7 +201,8 @@ export function shouldSkipSlowPostVisionEnrichment(
     result.photoKind === "barcode" ||
     result.source === "label" ||
     result.source === "openfoodfacts-barcode" ||
-    result.source === "openfoodfacts-search";
+    result.source === "openfoodfacts-search" ||
+    result.source === "gigachat-barcode";
 
   return packaged && Number.isFinite(result.calories) && result.calories > 0;
 }
@@ -359,7 +360,8 @@ function isPackagedPhoto(result: Pick<FoodRecognitionResult, "photoKind" | "sour
     result.photoKind === "package" ||
     result.source === "label" ||
     result.source === "openfoodfacts-barcode" ||
-    result.source === "openfoodfacts-search"
+    result.source === "openfoodfacts-search" ||
+    result.source === "gigachat-barcode"
   );
 }
 

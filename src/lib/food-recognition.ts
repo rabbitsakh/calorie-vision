@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult, PhotoKind } from "@/lib/food-types";
-import { lookupFiberSugarWithGigaChat, lookupFiberSugarBatchWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
+import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
+import { lookupFiberSugarWithGigaChat, lookupFiberSugarBatchWithGigaChat, lookupFoodByBarcodeWithGigaChat, lookupFoodWithGigaChat, recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import type { VisionPromptHints } from "@/lib/ai/prompt-variants";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
@@ -217,6 +218,104 @@ function mergeOffNutrition(
   };
 }
 
+/** Cap AI barcode estimates so the UI shows lower confidence than OFF hits. */
+export function finalizeGigaChatBarcodeResult(
+  ai: FoodRecognitionResult,
+  barcode: string,
+): FoodRecognitionResult {
+  const confidence = Math.min(Math.max(ai.confidence || 0.55, 0.45), 0.7);
+  return {
+    ...ai,
+    barcode,
+    photoKind: "barcode",
+    source: "gigachat-barcode",
+    confidence,
+  };
+}
+
+function mergeGigaChatBarcodeNutrition(
+  vision: FoodRecognitionResult,
+  ai: FoodRecognitionResult,
+  barcode: string,
+): FoodRecognitionResult {
+  const finalized = finalizeGigaChatBarcodeResult(ai, barcode);
+  const useAiNutrition = !hasUsableCalories(vision) || vision.calories <= 0;
+  const photoKind =
+    vision.photoKind === "meal" ? "barcode" : vision.photoKind ?? "barcode";
+
+  return {
+    ...vision,
+    dishName: finalized.dishName || vision.dishName,
+    brand: finalized.brand || vision.brand,
+    barcode,
+    photoKind,
+    source: "gigachat-barcode",
+    confidence: Math.min(Math.max(vision.confidence, finalized.confidence), 0.7),
+    imageUrl: finalized.imageUrl ?? vision.imageUrl,
+    ...(useAiNutrition
+      ? {
+          calories: finalized.calories,
+          protein: finalized.protein,
+          fat: finalized.fat,
+          carbs: finalized.carbs,
+          fiber: finalized.fiber ?? vision.fiber,
+          sugar: finalized.sugar ?? vision.sugar,
+          portionGrams: finalized.portionGrams || vision.portionGrams,
+          per100g: finalized.per100g ?? vision.per100g,
+        }
+      : {
+          fiber: vision.fiber !== undefined ? vision.fiber : finalized.fiber,
+          sugar: vision.sugar !== undefined ? vision.sugar : finalized.sugar,
+        }),
+  };
+}
+
+/** After GigaChat names a barcode product, try OFF search by name/brand for stronger data. */
+async function upgradeBarcodeGigaChatWithOff(
+  ai: FoodRecognitionResult,
+  barcode: string,
+): Promise<FoodRecognitionResult | null> {
+  const query = [ai.brand, ai.dishName].filter(Boolean).join(" ").trim();
+  if (!query || isFailedName(query)) {
+    return null;
+  }
+  const off = await searchOpenFoodFactsBest(
+    [query, ai.dishName.trim()].filter(Boolean),
+  );
+  if (off && offMatchesQuery(query, off.dishName, off.brand)) {
+    return mergeOffNutrition(
+      { ...ai, barcode, photoKind: "barcode" },
+      off,
+      "openfoodfacts-search",
+      barcode,
+    );
+  }
+  return null;
+}
+
+async function lookupBarcodeViaGigaChat(
+  barcode: string,
+  options?: { rethrowApiErrors?: boolean },
+): Promise<FoodRecognitionResult | null> {
+  if (!process.env.GIGACHAT_CREDENTIALS) {
+    return null;
+  }
+  try {
+    const ai = await lookupFoodByBarcodeWithGigaChat(barcode);
+    if (!hasUsableCalories(ai)) {
+      return null;
+    }
+    const upgraded = await upgradeBarcodeGigaChatWithOff(ai, barcode);
+    return upgraded ?? finalizeGigaChatBarcodeResult(ai, barcode);
+  } catch (error) {
+    if (options?.rethrowApiErrors && isGigaChatApiError(error)) {
+      throw error;
+    }
+    console.warn("GigaChat barcode fallback failed", error);
+    return null;
+  }
+}
+
 export async function enrichPackagedProduct(
   vision: FoodRecognitionResult,
 ): Promise<FoodRecognitionResult> {
@@ -226,6 +325,15 @@ export async function enrichPackagedProduct(
     const off = await lookupOpenFoodFactsByBarcodeWithRepair(barcode);
     if (off) {
       return mergeOffNutrition(vision, off, "openfoodfacts-barcode", barcode);
+    }
+
+    // OFF miss: ask GigaChat keyed on the scanned digits, then optionally OFF-by-name.
+    const gc = await lookupBarcodeViaGigaChat(barcode);
+    if (gc) {
+      if (gc.source === "openfoodfacts-search") {
+        return gc;
+      }
+      return mergeGigaChatBarcodeNutrition(vision, gc, barcode);
     }
   }
 
@@ -609,36 +717,54 @@ export async function lookupFoodByBarcode(
   }
 
   const off = await lookupOpenFoodFactsByBarcodeWithRepair(barcode);
-  if (!off) {
+  let result: FoodRecognitionResult;
+
+  if (off) {
+    // Keep OFF gaps as undefined (not fake 0). Optional short fiber/sugar ask with hard timeout.
+    result = normalizeRecognitionNutrition(
+      await withFoodImage(
+        {
+          dishName: off.dishName,
+          calories: off.calories,
+          protein: off.protein,
+          fat: off.fat,
+          carbs: off.carbs,
+          fiber: off.fiber,
+          sugar: off.sugar,
+          portionGrams: off.portionGrams,
+          barcode: off.barcode ?? barcode,
+          brand: off.brand,
+          imageUrl: off.imageUrl,
+          confidence: 0.9,
+          source: "openfoodfacts-barcode",
+          photoKind: "barcode",
+        },
+        off.dishName,
+      ),
+    );
+
+    if (needsFiberSugarBackfill(result)) {
+      result = await withTimeoutFallback(
+        enrichMissingFiberSugar(result, off.dishName || barcode, off, { skipFullLookup: true }),
+        BARCODE_FIBER_SUGAR_MS,
+        result,
+      );
+    }
+
+    return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  }
+
+  const gc = await lookupBarcodeViaGigaChat(barcode, { rethrowApiErrors: true });
+  if (!gc) {
     throw new Error("Продукт не найден в базе Open Food Facts");
   }
 
-  // Keep OFF gaps as undefined (not fake 0). Optional short fiber/sugar ask with hard timeout.
-  let result = normalizeRecognitionNutrition(
-    await withFoodImage(
-      {
-        dishName: off.dishName,
-        calories: off.calories,
-        protein: off.protein,
-        fat: off.fat,
-        carbs: off.carbs,
-        fiber: off.fiber,
-        sugar: off.sugar,
-        portionGrams: off.portionGrams,
-        barcode: off.barcode ?? barcode,
-        brand: off.brand,
-        imageUrl: off.imageUrl,
-        confidence: 0.9,
-        source: "openfoodfacts-barcode",
-        photoKind: "barcode",
-      },
-      off.dishName,
-    ),
-  );
+  result = normalizeRecognitionNutrition(await withFoodImage(gc, gc.dishName || barcode));
 
-  if (needsFiberSugarBackfill(result)) {
+  if (needsFiberSugarBackfill(result) && result.source === "gigachat-barcode") {
+    // GigaChat already returned macros; only a short fiber/sugar fill if still missing.
     result = await withTimeoutFallback(
-      enrichMissingFiberSugar(result, off.dishName || barcode, off, { skipFullLookup: true }),
+      enrichMissingFiberSugar(result, gc.dishName || barcode, null, { skipFullLookup: true }),
       BARCODE_FIBER_SUGAR_MS,
       result,
     );
@@ -781,7 +907,8 @@ async function enrichMissingFiberSugar(
       if (
         !options?.skipFullLookup &&
         needsFiberSugarBackfill(next) &&
-        next.source !== "gigachat-lookup"
+        next.source !== "gigachat-lookup" &&
+        next.source !== "gigachat-barcode"
       ) {
         const ai = await lookupFoodWithGigaChat(dishName);
         next = mergeFiberSugarBackfill(
