@@ -47,3 +47,28 @@ export function markSoftCelebrationSeen(kind: SoftCelebrationKind, date: string)
     // ignore
   }
 }
+
+function muteKey(date: string): string {
+  return `soft-celeb-muted-${date}`;
+}
+
+/** User opted out of soft celebrations for the rest of the day (#33). */
+export function isSoftCelebrationsMutedToday(date: string): boolean {
+  const storage = getLocalStorage();
+  if (!storage) return false;
+  try {
+    return storage.getItem(muteKey(date)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function muteSoftCelebrationsToday(date: string): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    storage.setItem(muteKey(date), "1");
+  } catch {
+    // ignore
+  }
+}

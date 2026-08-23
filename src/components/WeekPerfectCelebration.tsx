@@ -6,6 +6,7 @@ import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
   isSoftCelebrationSeen,
+  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 
@@ -51,6 +52,7 @@ export function WeekPerfectCelebration({
         if (
           prevPerfect.current === false &&
           perfect &&
+          !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("week-perfect", weekStart)
         ) {
           markSoftCelebrationSeen("week-perfect", weekStart);
@@ -71,6 +73,7 @@ export function WeekPerfectCelebration({
 
   return (
     <SoftCelebration
+      muteDate={today}
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}

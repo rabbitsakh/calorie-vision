@@ -5,6 +5,7 @@ import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import {
   isSoftCelebrationSeen,
+  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
@@ -45,6 +46,7 @@ export function WaterGoalCelebration({
         if (
           prevDone.current === false &&
           done &&
+          !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("water-goal", today)
         ) {
           markSoftCelebrationSeen("water-goal", today);
@@ -60,6 +62,7 @@ export function WaterGoalCelebration({
 
   return (
     <SoftCelebration
+      muteDate={today}
       open={open}
       title="Норма воды!"
       subtitle="Дневная цель по воде закрыта — отличная привычка."

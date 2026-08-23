@@ -12,6 +12,25 @@ type WaterResponse = {
 
 const QUICK_AMOUNTS = [200, 250, 350, 500];
 const PANEL_ID = "water";
+const TIP_KEY = "water-onboarding-tip";
+
+function hasSeenWaterTip(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return localStorage.getItem(TIP_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markWaterTipSeen(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(TIP_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
 
 export function WaterTracker({
   selectedDate,
@@ -24,9 +43,11 @@ export function WaterTracker({
   const [target, setTarget] = useState(WATER_DAILY_TARGET_ML);
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [showTip, setShowTip] = useState(false);
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
+    setShowTip(!hasSeenWaterTip());
   }, [selectedDate]);
 
   const load = useCallback(async () => {
@@ -129,6 +150,24 @@ export function WaterTracker({
       </div>
 
       <div className="px-4 py-3 md:px-5">
+        {showTip ? (
+          <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-950">
+            <p className="font-medium">Норма воды — {WATER_DAILY_TARGET_ML} мл в день.</p>
+            <p className="mt-1 text-xs text-sky-900/80">
+              Жмите быстрые кнопки после каждого стакана — так проще держать привычку.
+            </p>
+            <button
+              type="button"
+              className="mt-2 text-xs font-semibold text-sky-800 underline-offset-2 hover:underline"
+              onClick={() => {
+                markWaterTipSeen();
+                setShowTip(false);
+              }}
+            >
+              Понятно
+            </button>
+          </div>
+        ) : null}
         <p className="mb-3 text-xs text-slate-500">
           {glasses > 0
             ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}`

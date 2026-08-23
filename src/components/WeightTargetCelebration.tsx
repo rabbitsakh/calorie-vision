@@ -6,6 +6,7 @@ import { isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 import {
   isSoftCelebrationSeen,
+  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 
@@ -61,6 +62,7 @@ export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationP
         if (
           prevReached.current === false &&
           reached &&
+          !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("weight-target", flagKey)
         ) {
           markSoftCelebrationSeen("weight-target", flagKey);
@@ -80,6 +82,7 @@ export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationP
 
   return (
     <SoftCelebration
+      muteDate={today}
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}
