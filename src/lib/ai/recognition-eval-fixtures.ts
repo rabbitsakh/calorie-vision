@@ -312,6 +312,31 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
     },
   },
   {
+    id: "drink-glass-milk",
+    description: "Glass of milk parses as meal drink",
+    rawModelJson: JSON.stringify({
+      photoKind: "meal",
+      dishName: "Молоко",
+      brand: "",
+      barcode: "",
+      calories: 120,
+      protein: 3,
+      fat: 2.5,
+      carbs: 5,
+      portionGrams: 250,
+      confidence: 0.86,
+      alternatives: [],
+      items: [],
+      per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+    }),
+    expect: {
+      dishNameIncludes: "Молоко",
+      photoKind: "meal",
+      minCalories: 80,
+      shouldRetry: false,
+    },
+  },
+  {
     id: "drink-bottle",
     description: "Drink bottle parses with calories",
     rawModelJson: JSON.stringify({

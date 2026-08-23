@@ -9,6 +9,8 @@ const DISH_SYNONYMS: Record<string, string> = {
   салат: "салат",
   кофе: "кофе",
   чай: "чай",
+  молоко: "молоко 2.5%",
+  латте: "латте",
 };
 
 function normalizeLookupKey(name: string): string {
