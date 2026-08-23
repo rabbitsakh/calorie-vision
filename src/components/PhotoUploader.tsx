@@ -6,6 +6,7 @@ import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { consumeRecognizeSse } from "@/lib/recognize-sse";
 import { withBasePath } from "@/lib/paths";
+import { playScannerBeep } from "@/lib/scanner-beep";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 
 const MAX_FILE_SIZE_MB = 15;
@@ -139,6 +140,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     try {
       // Same ZXing + BarcodeDetector path as the barcode tab.
       const localBarcode = await decodeBarcodeFromImageFile(file);
+      if (localBarcode) {
+        playScannerBeep();
+      }
       const uploadName =
         file.name?.trim() ||
         (file.type.includes("heic") || file.type.includes("heif") || /\.hei[cf]$/i.test(file.name)
