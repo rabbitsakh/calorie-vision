@@ -7,10 +7,13 @@ type LandingScrollRevealProps = {
   className?: string;
 };
 
-/** Fade sections in on scroll — respects reduced motion via CSS. */
+/**
+ * Fade / rise on scroll. Content stays visible by default (SSR / no-JS);
+ * JS only applies the pending+visible dance when motion is allowed.
+ */
 export function LandingScrollReveal({ children, className = "" }: LandingScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [phase, setPhase] = useState<"static" | "pending" | "visible">("static");
 
   useEffect(() => {
     const node = ref.current;
@@ -20,25 +23,40 @@ export function LandingScrollReveal({ children, className = "" }: LandingScrollR
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      setVisible(true);
+      setPhase("visible");
       return;
     }
+
+    setPhase("pending");
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setVisible(true);
+          setPhase("visible");
           observer.disconnect();
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.08, rootMargin: "0px 0px -4% 0px" },
     );
 
     observer.observe(node);
+
+    // If already in view on mount (short screens), reveal immediately.
+    const rect = node.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
+      setPhase("visible");
+      observer.disconnect();
+    }
+
     return () => observer.disconnect();
   }, []);
 
-  const classes = ["landing-scroll-reveal", visible ? "landing-scroll-reveal-visible" : "", className]
+  const classes = [
+    "landing-scroll-reveal",
+    phase === "pending" ? "landing-scroll-reveal-pending" : "",
+    phase === "visible" ? "landing-scroll-reveal-visible" : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 

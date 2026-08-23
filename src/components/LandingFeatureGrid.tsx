@@ -1,54 +1,47 @@
 const FEATURES = [
   {
-    icon: "📸",
     title: "Фото за секунды",
-    text: "Камера или галерея — результат сразу на экране проверки, можно сохранить не дожидаясь уточнения из базы.",
-    tone: "teal",
+    text: "Камера или галерея — результат сразу на экране проверки; можно сохранить, не дожидаясь уточнения из базы.",
   },
   {
-    icon: "🎯",
     title: "Кольцо дня",
-    text: "Калории и белок относительно вашей цели: похудение, набор или поддержание веса.",
-    tone: "mint",
+    text: "Калории и белок относительно цели: похудение, набор или поддержание — бюджет виден с первого взгляда.",
   },
   {
-    icon: "💧",
     title: "Вода и привычки",
-    text: "Трекер воды, серия записей, недельный челлендж и мягкие напоминания — без давления.",
-    tone: "sky",
+    text: "Трекер воды, серия записей, недельный челлендж и мягкие напоминания — без давления и штрафов.",
   },
   {
-    icon: "📈",
     title: "Статистика и вес",
-    text: "Графики калорий и макросов, календарь веса, недельный отчёт и динамика к цели.",
-    tone: "amber",
+    text: "Графики калорий и макросов, календарь веса, недельный отчёт и динамика к вашей цели.",
   },
   {
-    icon: "🔔",
     title: "Умные push",
-    text: "Завтрак, обед, вода, сводка дня и вечерний чек-ин — только если вы включили уведомления.",
-    tone: "violet",
+    text: "Завтрак, обед, вода, сводка дня и вечерний чек-ин — только если вы сами включили уведомления.",
   },
   {
-    icon: "🧠",
     title: "Запоминает правки",
     text: "Исправили название или порцию — в следующий раз подставим ваш вариант автоматически.",
-    tone: "rose",
+  },
+  {
+    title: "Клетчатка и сахар",
+    text: "С этикеток и базы — не только калории и БЖУ, но и дополнительные нутриенты, когда они есть.",
+  },
+  {
+    title: "Как приложение",
+    text: "PWA: иконка на экране «Домой», полноэкранный режим. На iPhone push — с домашнего экрана (iOS 16.4+).",
   },
 ] as const;
 
 export function LandingFeatureGrid() {
   return (
-    <ul className="landing-bento">
+    <dl className="landing-feature-matrix landing-stagger">
       {FEATURES.map((item) => (
-        <li key={item.title} className={`landing-bento-card landing-bento-${item.tone}`}>
-          <span className="landing-bento-icon" aria-hidden>
-            {item.icon}
-          </span>
-          <h3 className="landing-bento-title">{item.title}</h3>
-          <p className="landing-bento-text">{item.text}</p>
-        </li>
+        <div key={item.title} className="landing-feature-cell">
+          <dt className="landing-feature-title">{item.title}</dt>
+          <dd className="landing-feature-text">{item.text}</dd>
+        </div>
       ))}
-    </ul>
+    </dl>
   );
 }

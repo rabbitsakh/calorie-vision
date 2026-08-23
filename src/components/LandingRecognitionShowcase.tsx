@@ -1,32 +1,32 @@
 const TYPES = [
   {
-    emoji: "🍽️",
+    index: "01",
     title: "Тарелка и контейнер",
-    text: "Несколько блюд с одного кадра — салат, гарнир и мясо отдельными позициями.",
+    text: "Несколько блюд с одного кадра — салат, гарнир и мясо отдельными позициями с порциями.",
     tag: "meal",
   },
   {
-    emoji: "🏷️",
+    index: "02",
     title: "Этикетка КБЖУ",
     text: "Читаем таблицу с упаковки: калории, белки, жиры, углеводы, клетчатка и сахар.",
     tag: "label",
   },
   {
-    emoji: "📦",
+    index: "03",
     title: "Упаковка и напитки",
-    text: "Лицевая сторона пачки, бутылка сока или стакан молока — с объёмом порции.",
+    text: "Лицевая сторона пачки, бутылка или стакан — с объёмом порции и пересчётом на граммы.",
     tag: "package",
   },
   {
-    emoji: "📊",
+    index: "04",
     title: "Штрихкод",
-    text: "Сканируете EAN — подтягиваем продукт из Open Food Facts и уточняем порцию.",
+    text: "Скан EAN → продукт из базы; если кода нет — оценка по номеру штрихкода с проверкой порции.",
     tag: "barcode",
   },
   {
-    emoji: "✍️",
+    index: "05",
     title: "Текстом",
-    text: "«Гречка с курицей» или «творог 5%» — поиск по названию без камеры.",
+    text: "«Гречка с курицей» или «творог 5%» — поиск по названию без камеры, за пару секунд.",
     tag: "text",
   },
 ] as const;
@@ -34,24 +34,28 @@ const TYPES = [
 export function LandingRecognitionShowcase() {
   return (
     <section id="recognition" className="landing-section">
-      <p className="landing-kicker">Распознавание</p>
-      <h2 className="landing-section-title">Понимает не только тарелку</h2>
-      <p className="landing-section-text landing-section-text-wide">
-        Calorie Vision подстраивается под то, что вы реально фотографируете в магазине, дома или в
-        кафе — и не заставляет вбивать граммы вручную.
-      </p>
-      <ul className="landing-recog-grid">
+      <div className="landing-section-head">
+        <p className="landing-kicker">Распознавание</p>
+        <h2 className="landing-section-title">Понимает не только тарелку</h2>
+        <p className="landing-section-text landing-section-text-wide">
+          Подстраивается под то, что вы реально снимаете в магазине, дома или в кафе — и не
+          заставляет вбивать граммы вручную.
+        </p>
+      </div>
+      <ol className="landing-spec-list landing-stagger">
         {TYPES.map((item) => (
-          <li key={item.tag} className="landing-recog-card">
-            <span className="landing-recog-emoji" aria-hidden>
-              {item.emoji}
+          <li key={item.tag} className="landing-spec-row">
+            <span className="landing-spec-index" aria-hidden>
+              {item.index}
             </span>
-            <h3 className="landing-recog-title">{item.title}</h3>
-            <p className="landing-section-text">{item.text}</p>
-            <span className="landing-recog-tag">{item.tag}</span>
+            <div className="landing-spec-body">
+              <h3 className="landing-spec-title">{item.title}</h3>
+              <p className="landing-spec-text">{item.text}</p>
+            </div>
+            <span className="landing-spec-meta">{item.tag}</span>
           </li>
         ))}
-      </ul>
+      </ol>
     </section>
   );
 }
