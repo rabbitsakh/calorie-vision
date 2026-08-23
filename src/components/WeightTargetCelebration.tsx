@@ -37,6 +37,7 @@ function weightGoalReached(
 export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationProps) {
   const [open, setOpen] = useState(false);
   const [copy, setCopy] = useState({ title: "", subtitle: "" });
+  const [muteDate, setMuteDate] = useState(() => new Date().toISOString().slice(0, 10));
   const prevReached = useRef<boolean | null>(null);
   const close = useCallback(() => setOpen(false), []);
 
@@ -50,6 +51,8 @@ export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationP
         const goal = isWeightGoal(profile.goal) ? profile.goal : null;
         const targetKg = profile.targetWeightKg ?? null;
         const currentKg = profile.currentWeightKg ?? null;
+        const today = new Date().toISOString().slice(0, 10);
+        setMuteDate(today);
 
         if (!goal || targetKg == null || currentKg == null) {
           prevReached.current = false;
@@ -82,7 +85,7 @@ export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationP
 
   return (
     <SoftCelebration
-      muteDate={today}
+      muteDate={muteDate}
       open={open}
       title={copy.title}
       subtitle={copy.subtitle}
