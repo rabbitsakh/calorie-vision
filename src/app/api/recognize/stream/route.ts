@@ -85,8 +85,9 @@ export async function POST(request: NextRequest) {
             const recognition = await lookupFoodByBarcode(barcodeHint, session.user.id);
             send("done", { imagePath, recognition });
             return;
-          } catch {
-            // OFF miss — fall through to vision with hint.
+          } catch (error) {
+            // OFF + web/GigaChat miss — fall through to vision with hint.
+            console.warn("Barcode hint lookup failed, falling back to vision", error);
           }
         }
 

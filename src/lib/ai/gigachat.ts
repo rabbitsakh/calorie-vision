@@ -372,17 +372,22 @@ export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodReco
   return parseFoodRecognitionResponse(text);
 }
 
-/** OFF miss for a scanned EAN — ask GigaChat keyed on the barcode digits. */
+/** OFF miss for a scanned EAN — web evidence + GigaChat keyed on the barcode digits. */
 export async function lookupFoodByBarcodeWithGigaChat(
   barcode: string,
+  webContext?: string,
 ): Promise<FoodRecognitionResult> {
   const code = barcode.trim();
-  const text = await completeChat([
-    {
-      role: "user",
-      content: buildBarcodeLookupPrompt(code),
-    },
-  ]);
+  const text = await completeChat(
+    [
+      {
+        role: "user",
+        content: buildBarcodeLookupPrompt(code, webContext),
+      },
+    ],
+    0.2,
+    { retries: 2 },
+  );
 
   const parsed = parseFoodRecognitionResponse(text);
   const confidence = Math.min(Math.max(parsed.confidence || 0.55, 0.45), 0.7);
