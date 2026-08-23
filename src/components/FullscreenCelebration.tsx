@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { Mascot, type MascotPose } from "@/components/Mascot";
@@ -83,10 +83,15 @@ export function FullscreenCelebration({
   ctaLabel = "Продолжить",
   onClose,
 }: FullscreenCelebrationProps) {
+  const [mounted, setMounted] = useState(false);
   const theme = VARIANT_THEME[variant];
   const resolvedPose = pose ?? theme.pose;
   const colors = useMemo(() => theme.colors, [theme.colors]);
   const autoClose = durationMs > 0;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open || !autoClose) return;
@@ -108,7 +113,7 @@ export function FullscreenCelebration({
     };
   }, [open, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (!open || !mounted || typeof document === "undefined") return null;
 
   return createPortal(
     <div

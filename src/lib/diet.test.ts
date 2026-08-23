@@ -167,4 +167,5 @@ test("daily goal celebration copy matches goal", () => {
   assert.match(dailyGoalCelebrationCopy("LOSE").subtitle, /дефиците/i);
   assert.match(dailyGoalCelebrationCopy("GAIN").subtitle, /набор/i);
   assert.match(dailyGoalCelebrationCopy("MAINTAIN").subtitle, /нормой/i);
+  assert.match(dailyGoalCelebrationCopy("LOSE", 1840, 2000).subtitle, /1840 \/ 2000/);
 });

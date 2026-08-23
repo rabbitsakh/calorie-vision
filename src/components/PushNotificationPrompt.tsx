@@ -91,7 +91,7 @@ export function PushNotificationPrompt() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-teal-900">Могу мягко напомнить</p>
           <p className="mt-1 text-sm text-teal-700">
-            Про завтрак утром, про воду днём и про серию записей вечером — без давления.
+            Завтрак, обед, вода, сводка калорий, серия и вечерний чек-ин — без давления.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button

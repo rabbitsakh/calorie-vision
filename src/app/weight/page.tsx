@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
 import { WeightHistory } from "@/components/WeightHistory";
+import { WeightTargetCelebration } from "@/components/WeightTargetCelebration";
 import { toDateKeyTz } from "@/lib/dates";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -30,6 +31,7 @@ export default function WeightPage() {
             refreshKey={refreshKey}
             onChanged={() => setRefreshKey((value) => value + 1)}
           />
+          <WeightTargetCelebration refreshKey={refreshKey} />
         </div>
       </AuthGate>
     </AppShell>

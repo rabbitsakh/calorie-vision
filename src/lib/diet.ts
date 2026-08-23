@@ -315,25 +315,34 @@ export function isDangerousCalorieUndereat(
   return actual < target * CALORIE_LOSE_DANGEROUS_RATIO;
 }
 
-export function dailyGoalCelebrationCopy(goal: WeightGoal | null | undefined): {
+export function dailyGoalCelebrationCopy(
+  goal: WeightGoal | null | undefined,
+  actual?: number,
+  target?: number,
+): {
   title: string;
   subtitle: string;
 } {
+  const stats =
+    actual != null && target != null && actual > 0 && target > 0
+      ? `${actual} / ${target} ккал — `
+      : "";
+
   if (goal === "LOSE") {
     return {
       title: "Цель по калориям",
-      subtitle: "Вы в целевом дефиците — отличная работа!",
+      subtitle: `${stats}вы в целевом дефиците — отличная работа!`,
     };
   }
   if (goal === "GAIN") {
     return {
       title: "Цель по калориям",
-      subtitle: "Вы рядом с целью на набор — так и держите.",
+      subtitle: `${stats}вы рядом с целью на набор — так и держите.`,
     };
   }
   return {
     title: "Цель по калориям",
-    subtitle: "Вы рядом с нормой на сегодня.",
+    subtitle: `${stats}вы рядом с нормой на сегодня.`,
   };
 }
 

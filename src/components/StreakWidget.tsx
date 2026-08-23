@@ -5,7 +5,6 @@ import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
 import { StreakGlyph } from "@/components/StreakIcon";
-import { MilestoneCelebration } from "@/components/MilestoneCelebration";
 
 const PANEL_ID = "streak";
 
@@ -136,7 +135,6 @@ export function StreakWidget({
 
   return (
     <div className="rounded-2xl border border-amber-100 bg-[var(--accent-streak-soft)] p-4">
-      {hasStreak ? <MilestoneCelebration streak={streak} /> : null}
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
         <button
