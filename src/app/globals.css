@@ -1592,6 +1592,9 @@ textarea {
 }
 
 .landing-cta-primary {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
   min-height: 2.75rem;
   padding-inline: 1.25rem;
 }
@@ -1896,6 +1899,14 @@ textarea {
   gap: 1.25rem;
 }
 
+.landing-free-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  width: 100%;
+}
+
 .landing-free-mascot-stage {
   justify-self: center;
   position: relative;
@@ -1932,6 +1943,7 @@ textarea {
   list-style: none;
   margin: 1.1rem 0 0;
   padding: 0;
+  width: 100%;
 }
 
 .landing-free-list li {
@@ -1942,7 +1954,9 @@ textarea {
 }
 
 .landing-free-cta {
-  margin-top: 1.25rem;
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-top: 1.35rem;
 }
 
 /* Install */
