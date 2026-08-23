@@ -1,5 +1,6 @@
 import { looksLikeImageBuffer } from "@/lib/ai/image-utils";
 import { compressFoodImage } from "@/lib/image-compress";
+import { MAX_UPLOAD_INPUT_BYTES } from "@/lib/upload-limits";
 
 /** FormDataEntryValue is File | string — predicate must narrow to File, not Blob. */
 export function isUploadFile(value: FormDataEntryValue | null): value is File {
@@ -36,6 +37,14 @@ export async function prepareRecognizeUpload(formData: FormData): Promise<
 
   if (!isUploadFile(file) || file.size <= 0) {
     return { ok: false, error: "Фото не найдено", status: 400 };
+  }
+
+  if (file.size > MAX_UPLOAD_INPUT_BYTES) {
+    return {
+      ok: false,
+      error: `Фото слишком большое (макс. ${Math.round(MAX_UPLOAD_INPUT_BYTES / (1024 * 1024))} МБ)`,
+      status: 413,
+    };
   }
 
   const original = Buffer.from(await file.arrayBuffer());

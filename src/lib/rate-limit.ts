@@ -44,12 +44,25 @@ export function checkRateLimit(
 }
 
 /** Shared rate limit when REDIS_URL is set; otherwise same as in-memory. */
+let warnedMissingRedis = false;
+
 export async function checkRateLimitAsync(
   key: string,
   limit: number,
   windowMs: number,
   nowMs = Date.now(),
 ): Promise<RateLimitResult> {
+  if (
+    !warnedMissingRedis &&
+    process.env.NODE_ENV === "production" &&
+    !process.env.REDIS_URL?.trim()
+  ) {
+    warnedMissingRedis = true;
+    console.warn(
+      "[rate-limit] REDIS_URL is not set — in-memory limiter is per-process and not shared across instances",
+    );
+  }
+
   const { checkRateLimitRedis } = await import("@/lib/rate-limit-redis");
   const redisResult = await checkRateLimitRedis(key, limit, windowMs, nowMs);
   if (redisResult) {

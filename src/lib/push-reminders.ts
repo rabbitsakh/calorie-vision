@@ -9,8 +9,10 @@ import {
 
 export { REMINDER_SCHEDULE, reminderKindLabel, type ReminderKind } from "@/lib/push-reminder-schedule";
 
+export { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+
 export const DEFAULT_PUSH_TIMEZONE = "Europe/Moscow";
-export const WATER_DAILY_TARGET_ML = 2000;
 
 export type UserReminderContext = {
   today: string;

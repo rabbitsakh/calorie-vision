@@ -1,3 +1,5 @@
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+
 export type ChallengeDef = {
   key: string;
   title: string;
@@ -15,7 +17,7 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
   {
     key: "water_5",
     title: "Пять дней с водой",
-    description: "≥1500 мл воды в 5 днях этой недели",
+    description: `≥${WATER_HABIT_DAY_ML} мл воды в 5 днях этой недели`,
     target: 5,
   },
   {
@@ -30,11 +32,5 @@ export function challengeDef(key: string): ChallengeDef | undefined {
   return CHALLENGE_DEFS.find((c) => c.key === key);
 }
 
-/** Monday YYYY-MM-DD for a date key (UTC noon anchor). */
-export function weekStartMonday(dateKey: string): string {
-  const d = new Date(dateKey + "T12:00:00Z");
-  const day = d.getUTCDay();
-  const offset = day === 0 ? 6 : day - 1;
-  d.setUTCDate(d.getUTCDate() - offset);
-  return d.toISOString().slice(0, 10);
-}
+/** Timezone-aware Monday YYYY-MM-DD (re-exported from streak-utils). */
+export { weekStartMonday } from "@/lib/streak-utils";

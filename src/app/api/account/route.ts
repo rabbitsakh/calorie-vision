@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Загрузите фото" }, { status: 400 });
     }
 
-    const imagePath = await saveUploadedImage(file);
+    const imagePath = await saveUploadedImage(file, { ownerUserId: session.user.id });
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: { image: imagePath },

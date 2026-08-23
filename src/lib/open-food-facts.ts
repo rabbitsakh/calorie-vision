@@ -395,17 +395,20 @@ export function offMatchesQuery(query: string, dishName: string, brand?: string)
   return matched.length >= Math.ceil(tokens.length / 2);
 }
 
-/** Parallel OFF search — first matching query wins. */
-export async function searchOpenFoodFactsBest(queries: string[]): Promise<PackNutrition | null> {
+/** Parallel OFF search — first matching query wins. Never returns unmatched hits. */
+export async function searchOpenFoodFactsBest(
+  queries: string[],
+  search: (query: string) => Promise<PackNutrition | null> = searchOpenFoodFacts,
+): Promise<PackNutrition | null> {
   const unique = [...new Set(queries.map((q) => q.trim()).filter((q) => q.length >= 3))];
   if (unique.length === 0) {
     return null;
   }
   if (unique.length === 1) {
-    return searchOpenFoodFacts(unique[0]!);
+    return search(unique[0]!);
   }
 
-  const results = await Promise.all(unique.map((query) => searchOpenFoodFacts(query)));
+  const results = await Promise.all(unique.map((query) => search(query)));
   for (let index = 0; index < unique.length; index += 1) {
     const query = unique[index]!;
     const hit = results[index];
@@ -413,7 +416,8 @@ export async function searchOpenFoodFactsBest(queries: string[]): Promise<PackNu
       return hit;
     }
   }
-  return results.find((item) => item !== null) ?? null;
+  // Never return an unmatched OFF hit — wrong product is worse than a miss.
+  return null;
 }
 
 export async function searchOpenFoodFacts(query: string): Promise<PackNutrition | null> {

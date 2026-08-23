@@ -24,6 +24,7 @@ import { MotivationTip } from "@/components/MotivationTip";
 import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { TodayProgress } from "@/components/TodayProgress";
 import { MotivationQueue } from "@/components/MotivationQueue";
+import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -98,7 +99,7 @@ export default function RationPage() {
               quietHide
             />
             {date === today ? <DailySummaryCard today={today} /> : null}
-            <EveningCheckin today={today} selectedDate={date} />
+            <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
             <MotivationTip today={today} selectedDate={date} quietHide />
           </MotivationQueue>
 
@@ -134,13 +135,15 @@ export default function RationPage() {
             ) : null}
           </section>
 
-          <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <CelebrationOrchestrator>
+            <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          </CelebrationOrchestrator>
         </div>
       </AuthGate>
       <button

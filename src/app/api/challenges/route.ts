@@ -7,6 +7,7 @@ import {
   challengeDef,
   weekStartMonday,
 } from "@/lib/challenges";
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ async function computeProgress(
       where: { userId, date: { in: dates } },
       _sum: { ml: true },
     });
-    return rows.filter((r) => (r._sum.ml ?? 0) >= 1500).length;
+    return rows.filter((r) => (r._sum.ml ?? 0) >= WATER_HABIT_DAY_ML).length;
   }
 
   if (challengeKey === "log_5") {
@@ -62,8 +63,9 @@ export async function GET() {
       where: { id: session.user.id },
       select: { timezone: true },
     });
-    const today = toDateKeyTz(new Date(), user?.timezone);
-    const weekStart = weekStartMonday(today);
+    const timezone = user?.timezone ?? null;
+    const today = toDateKeyTz(new Date(), timezone);
+    const weekStart = weekStartMonday(today, timezone);
 
     const active = await prisma.userChallenge.findUnique({
       where: {
@@ -130,8 +132,9 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id },
       select: { timezone: true },
     });
-    const today = toDateKeyTz(new Date(), user?.timezone);
-    const weekStart = weekStartMonday(today);
+    const timezone = user?.timezone ?? null;
+    const today = toDateKeyTz(new Date(), timezone);
+    const weekStart = weekStartMonday(today, timezone);
 
     const existing = await prisma.userChallenge.findUnique({
       where: { userId_weekStart: { userId: session.user.id, weekStart } },

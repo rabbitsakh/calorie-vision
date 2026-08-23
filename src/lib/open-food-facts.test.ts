@@ -6,6 +6,7 @@ import {
   parsePackGrams,
   nutritionFromPer100g,
   resolvePackGrams,
+  searchOpenFoodFactsBest,
 } from "./open-food-facts.ts";
 
 test("parses net weight from package quantity text", () => {
@@ -224,4 +225,55 @@ test("reads bar weight from the product name", () => {
   });
   assert.equal(nutrition?.portionGrams, 40);
   assert.equal(nutrition?.calories, 160);
+});
+
+test("searchOpenFoodFactsBest ignores unmatched multi-query hits", async () => {
+  const hits = new Map([
+    [
+      "бренд икс",
+      {
+        dishName: "Совершенно другой продукт",
+        brand: "Other",
+        calories: 100,
+        portionGrams: 100,
+      },
+    ],
+    [
+      "молоко 3.2",
+      {
+        dishName: "Йогурт клубничный",
+        brand: "Danone",
+        calories: 80,
+        portionGrams: 125,
+      },
+    ],
+  ]);
+
+  const result = await searchOpenFoodFactsBest(
+    ["бренд икс", "молоко 3.2"],
+    async (query) => hits.get(query) ?? null,
+  );
+  assert.equal(result, null);
+});
+
+test("searchOpenFoodFactsBest returns first matching query", async () => {
+  const result = await searchOpenFoodFactsBest(
+    ["xyzunknown", "гречка"],
+    async (query) => {
+      if (query === "гречка") {
+        return {
+          dishName: "Гречка отварная",
+          calories: 180,
+          portionGrams: 200,
+        };
+      }
+      return {
+        dishName: "Чипсы",
+        calories: 500,
+        portionGrams: 50,
+      };
+    },
+  );
+  assert.ok(result);
+  assert.match(result!.dishName, /Греч/i);
 });

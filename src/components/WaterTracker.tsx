@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 type WaterResponse = {
   totalMl: number;
@@ -20,7 +21,7 @@ export function WaterTracker({
   onChanged?: () => void;
 }) {
   const [totalMl, setTotalMl] = useState(0);
-  const [target, setTarget] = useState(2000);
+  const [target, setTarget] = useState(WATER_DAILY_TARGET_ML);
   const [loading, setLoading] = useState(false);
   const [hidden, setHidden] = useState(false);
 

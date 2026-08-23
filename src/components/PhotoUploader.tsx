@@ -214,7 +214,14 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
               }
               enrichUiTimer = setTimeout(() => {
                 if (enrichingSnapshot?.enriching) {
-                  enrichingSnapshot = { ...enrichingSnapshot, enriching: false };
+                  enrichingSnapshot = {
+                    ...enrichingSnapshot,
+                    enriching: false,
+                    recognition: {
+                      ...enrichingSnapshot.recognition,
+                      enrichmentTimedOut: true,
+                    },
+                  };
                   onRecognized(enrichingSnapshot);
                 }
               }, ENRICHING_UI_TIMEOUT_MS);
@@ -243,8 +250,22 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         }
         const snapshot = enrichingSnapshot as RecognitionResponse | null;
         if (snapshot) {
-          onRecognized({ ...snapshot, enriching: false });
-          enrichingSnapshot = { ...snapshot, enriching: false };
+          onRecognized({
+            ...snapshot,
+            enriching: false,
+            recognition: {
+              ...snapshot.recognition,
+              enrichmentTimedOut: snapshot.recognition.enrichmentTimedOut ?? true,
+            },
+          });
+          enrichingSnapshot = {
+            ...snapshot,
+            enriching: false,
+            recognition: {
+              ...snapshot.recognition,
+              enrichmentTimedOut: snapshot.recognition.enrichmentTimedOut ?? true,
+            },
+          };
         }
         if ((streamErr as Error).name === "AbortError") {
           return;

@@ -5,6 +5,7 @@ import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet } from "@/lib/diet";
 import { BADGE_DEFS, type BadgeDef } from "@/lib/badges";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
+import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export async function GET() {
     let waterStreak = 0;
     let cursor = today;
     for (let i = 0; i < 60; i++) {
-      if ((waterByDate.get(cursor) ?? 0) >= 1500) {
+      if ((waterByDate.get(cursor) ?? 0) >= WATER_HABIT_DAY_ML) {
         waterStreak += 1;
         cursor = shiftDate(cursor, -1);
       } else {
@@ -111,20 +112,24 @@ export async function GET() {
     if (waterStreak >= 7) candidates.push("water_7");
     if (onTargetDays >= 5) candidates.push("week_on_target");
 
-    for (const key of candidates) {
-      if (earnedKeys.has(key)) continue;
-      await prisma.userBadge.create({
-        data: { userId, badgeKey: key },
+    const toUnlock = candidates.filter((key) => !earnedKeys.has(key));
+    if (toUnlock.length > 0) {
+      await prisma.userBadge.createMany({
+        data: toUnlock.map((badgeKey) => ({ userId, badgeKey })),
+        skipDuplicates: true,
       });
-      newlyUnlocked.push(key);
-      earnedKeys.add(key);
     }
 
     const unlockedAt = new Map(existing.map((b) => [b.badgeKey, b.unlockedAt]));
-    // refresh for newly created
-    if (newlyUnlocked.length > 0) {
+    if (toUnlock.length > 0) {
       const fresh = await prisma.userBadge.findMany({ where: { userId } });
-      for (const b of fresh) unlockedAt.set(b.badgeKey, b.unlockedAt);
+      for (const b of fresh) {
+        unlockedAt.set(b.badgeKey, b.unlockedAt);
+        if (toUnlock.includes(b.badgeKey) && !earnedKeys.has(b.badgeKey)) {
+          newlyUnlocked.push(b.badgeKey);
+          earnedKeys.add(b.badgeKey);
+        }
+      }
     }
 
     const badges = BADGE_DEFS.map((def: BadgeDef) => ({

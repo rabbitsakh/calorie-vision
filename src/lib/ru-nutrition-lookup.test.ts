@@ -38,9 +38,15 @@ test("lookupRuNutritionTable still matches coffee queries", () => {
   assert.match(hit!.dishName, /Кофе/i);
 });
 
-test("lookupRuNutritionTable does not match cheese to syrniki", () => {
-  const hit = lookupRuNutritionTable("сыр");
+test("lookupRuNutritionTable matches rice milk not boiled rice", () => {
+  const hit = lookupRuNutritionTable("рисовое молоко");
   assert.ok(hit);
-  assert.match(hit!.dishName, /Сыр/i);
-  assert.doesNotMatch(hit!.dishName, /Сырник/i);
+  assert.match(hit!.dishName, /Рисовое молоко/i);
+});
+
+test("lookupRuNutritionTable matches plain rice", () => {
+  const hit = lookupRuNutritionTable("рис");
+  assert.ok(hit);
+  assert.match(hit!.dishName, /Рис/i);
+  assert.doesNotMatch(hit!.dishName, /молоко/i);
 });

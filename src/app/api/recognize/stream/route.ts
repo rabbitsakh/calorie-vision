@@ -8,6 +8,7 @@ import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-re
 import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { prepareRecognizeUpload } from "@/lib/recognize-upload";
+import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (response) {
     return response;
   }
+
+  await loadLowConfidenceThresholdFromDb();
 
   const rate = await checkRateLimitAsync(
     `recognize:${session.user.id}`,
@@ -72,7 +75,9 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType);
+        const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType, {
+          ownerUserId: session.user.id,
+        });
         send("image", { imagePath });
 
         if (barcodeHint) {
@@ -106,6 +111,7 @@ export async function POST(request: NextRequest) {
         });
         send("vision", { recognition: visionPreview });
 
+        let enrichmentTimedOut = false;
         const recognition = await withTimeoutFallback(
           enrichRecognitionAfterVision(vision, session.user.id),
           STREAM_ENRICH_TIMEOUT_MS,
@@ -114,8 +120,16 @@ export async function POST(request: NextRequest) {
             source: vision.source ?? "gigachat",
             photoKind: vision.photoKind ?? "meal",
           }),
+          () => {
+            enrichmentTimedOut = true;
+          },
         );
-        send("done", { imagePath, recognition });
+        send("done", {
+          imagePath,
+          recognition: enrichmentTimedOut
+            ? { ...recognition, enrichmentTimedOut: true }
+            : recognition,
+        });
       } catch (error) {
         console.error(error);
         const message =

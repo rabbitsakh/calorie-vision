@@ -289,7 +289,7 @@ export function createVkIdProvider(options: {
       }
       return user;
     },
-    allowDangerousEmailAccountLinking: true,
+    allowDangerousEmailAccountLinking: false,
   };
 }
 

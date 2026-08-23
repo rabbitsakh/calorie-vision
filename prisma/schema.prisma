@@ -233,7 +233,7 @@ model StreakFreeze {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
-  @@index([userId, weekStart])
+  @@unique([userId, weekStart])
 }
 
 model PushSubscription {

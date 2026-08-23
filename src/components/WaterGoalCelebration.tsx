@@ -7,6 +7,7 @@ import {
   isSoftCelebrationSeen,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 type WaterGoalCelebrationProps = {
   today: string;
@@ -38,7 +39,7 @@ export function WaterGoalCelebration({
         if (!resp.ok) return;
         const data = (await resp.json()) as WaterPayload;
         const total = data.totalMl ?? 0;
-        const target = data.target ?? 2000;
+        const target = data.target ?? WATER_DAILY_TARGET_ML;
         const done = total >= target && target > 0;
 
         if (

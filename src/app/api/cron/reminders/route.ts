@@ -169,6 +169,20 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        // Claim the reminder slot before send to avoid double-delivery on overlapping crons.
+        try {
+          await prisma.pushReminderLog.create({
+            data: { userId: user.id, kind, date: today },
+          });
+        } catch (error) {
+          const code = (error as { code?: string } | null)?.code;
+          if (code === "P2002") {
+            skipped += 1;
+            continue;
+          }
+          throw error;
+        }
+
         let delivered = false;
         for (const sub of user.pushSubscriptions) {
           try {
@@ -192,9 +206,9 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        if (delivered) {
-          await prisma.pushReminderLog.create({
-            data: { userId: user.id, kind, date: today },
+        if (!delivered) {
+          await prisma.pushReminderLog.deleteMany({
+            where: { userId: user.id, kind, date: today },
           });
         }
       }

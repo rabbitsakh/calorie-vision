@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
+import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 
 export type CelebrationVariant =
@@ -84,23 +85,40 @@ export function FullscreenCelebration({
   onClose,
 }: FullscreenCelebrationProps) {
   const [mounted, setMounted] = useState(false);
+  const gate = useCelebrationGate();
+  const celebrationId = useId();
   const theme = VARIANT_THEME[variant];
   const resolvedPose = pose ?? theme.pose;
   const colors = useMemo(() => theme.colors, [theme.colors]);
   const autoClose = durationMs > 0;
+  const isActive = !gate || gate.activeId === celebrationId;
+  const show = open && isActive;
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!open || !autoClose) return;
-    const timer = window.setTimeout(onClose, durationMs);
-    return () => window.clearTimeout(timer);
-  }, [open, autoClose, durationMs, onClose]);
+  const requestCelebration = gate?.requestCelebration;
+  const releaseCelebration = gate?.releaseCelebration;
 
   useEffect(() => {
-    if (!open) return;
+    if (!requestCelebration || !releaseCelebration) return;
+    if (open) {
+      requestCelebration(celebrationId);
+    } else {
+      releaseCelebration(celebrationId);
+    }
+    return () => releaseCelebration(celebrationId);
+  }, [open, celebrationId, requestCelebration, releaseCelebration]);
+
+  useEffect(() => {
+    if (!show || !autoClose) return;
+    const timer = window.setTimeout(onClose, durationMs);
+    return () => window.clearTimeout(timer);
+  }, [show, autoClose, durationMs, onClose]);
+
+  useEffect(() => {
+    if (!show) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -111,9 +129,9 @@ export function FullscreenCelebration({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [show, onClose]);
 
-  if (!open || !mounted || typeof document === "undefined") return null;
+  if (!show || !mounted || typeof document === "undefined") return null;
 
   return createPortal(
     <div
@@ -126,7 +144,7 @@ export function FullscreenCelebration({
     >
       <div className="fs-celeb-bg absolute inset-0" aria-hidden />
       <div className="fs-celeb-vignette absolute inset-0" aria-hidden />
-      <CelebrationBurst active={open} colors={colors} />
+      <CelebrationBurst active={show} colors={colors} />
 
       <div
         className="fs-celeb-content relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] text-center"
