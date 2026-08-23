@@ -51,6 +51,16 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["пицца", "пizza", "пицца маргарита"], dishName: "Пицца", calories: 680, protein: 28, fat: 26, carbs: 78, portionGrams: 250 },
   { keys: ["суши", "ролл", "филадельфия"], dishName: "Ролл Филадельфия", calories: 320, protein: 14, fat: 12, carbs: 38, portionGrams: 120 },
   { keys: ["компот"], dishName: "Компот", calories: 80, protein: 0, fat: 0, carbs: 20, sugar: 18, portionGrams: 250 },
+  {
+    keys: ["молоко", "молоко 2.5%", "молоко 2,5%", "молоко 3.2%", "молоко 3,2%", "молоко ультрапастеризованное"],
+    dishName: "Молоко 2,5%",
+    calories: 120,
+    protein: 3,
+    fat: 2.5,
+    carbs: 5,
+    sugar: 5,
+    portionGrams: 250,
+  },
   { keys: ["кофе", "кофе с молоком", "латte", "латте"], dishName: "Кофе латте", calories: 120, protein: 6, fat: 5, carbs: 12, sugar: 10, portionGrams: 250 },
   { keys: ["чай", "чай с сахаром"], dishName: "Чай с сахаром", calories: 40, protein: 0, fat: 0, carbs: 10, sugar: 10, portionGrams: 250 },
   { keys: ["квас"], dishName: "Квас", calories: 90, protein: 0, fat: 0, carbs: 22, sugar: 18, portionGrams: 330 },
@@ -85,21 +95,48 @@ function normalizeRuLookupKey(name: string): string {
     .replace(/\s+/g, " ");
 }
 
+function tokenizeRuLookupKey(name: string): string[] {
+  return normalizeRuLookupKey(name).split(" ").filter(Boolean);
+}
+
 function matchScore(query: string, key: string): number {
   const q = normalizeRuLookupKey(query);
   const k = normalizeRuLookupKey(key);
   if (q === k) {
     return 100;
   }
-  if (q.includes(k) || k.includes(q)) {
-    return 80 - Math.abs(q.length - k.length);
+
+  const qTokens = tokenizeRuLookupKey(query);
+  const kTokens = tokenizeRuLookupKey(key);
+  if (qTokens.length === 0 || kTokens.length === 0) {
+    return 0;
   }
-  const qTokens = q.split(" ");
-  const kTokens = k.split(" ");
+
+  if (kTokens.length >= qTokens.length && qTokens.every((token, index) => kTokens[index] === token)) {
+    return 95 - (kTokens.length - qTokens.length);
+  }
+
+  if (kTokens.every((token) => qTokens.includes(token))) {
+    return 90 - Math.abs(qTokens.length - kTokens.length);
+  }
+
+  if (qTokens.every((token) => kTokens.includes(token))) {
+    if (qTokens.length === 1 && kTokens.length > 1 && kTokens[0] !== qTokens[0]) {
+      return 0;
+    }
+    return 80 - Math.abs(qTokens.length - kTokens.length);
+  }
+
+  if (qTokens[0] === kTokens[0]) {
+    return 75;
+  }
+
   const overlap = qTokens.filter((token) => kTokens.includes(token)).length;
   if (overlap > 0) {
-    return 40 + overlap * 10;
+    const coverage = overlap / Math.max(qTokens.length, kTokens.length);
+    return Math.round(30 + coverage * 30);
   }
+
   return 0;
 }
 

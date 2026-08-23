@@ -1,5 +1,38 @@
 [
   {
+    "version": "1.2.8",
+    "date": "2026-08-23",
+    "summary": "Batch: multi-dish, push reminders, celebrations, mascot & recognition UX",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch: multi-dish, push reminders, celebrations, mascot & recognition UX"
+      }
+    ]
+  },
+  {
+    "version": "1.2.7",
+    "date": "2026-08-23",
+    "summary": "Batch: multi-dish fix, push reminders, expanded celebrations",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch: multi-dish fix, push reminders, expanded celebrations"
+      }
+    ]
+  },
+  {
+    "version": "1.2.6",
+    "date": "2026-08-23",
+    "summary": "Fix celebration, confirm-card lookup UX, and mascot polish",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix celebration, confirm-card lookup UX, and mascot polish"
+      }
+    ]
+  },
+  {
     "version": "1.2.5",
     "date": "2026-08-23",
     "summary": "Маскот: мягкий blob-leaf на лендинге и в приложении",

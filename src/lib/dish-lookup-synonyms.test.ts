@@ -11,3 +11,8 @@ test("lookupQueriesForName returns original and synonym", () => {
 test("lookupQueriesForName respects limit", () => {
   assert.equal(lookupQueriesForName("борщ домашний", "борщ", 2).length, 2);
 });
+
+test("lookupQueriesForName adds milk synonym", () => {
+  const queries = lookupQueriesForName("молоко", null, 2);
+  assert.ok(queries.some((q) => q.includes("2.5") || q.includes("2,5")));
+});

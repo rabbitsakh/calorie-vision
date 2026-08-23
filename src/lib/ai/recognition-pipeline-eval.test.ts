@@ -68,6 +68,25 @@ test("enrichAlternativesFromRuTable fills calories-only vision alternatives", ()
   assert.equal(alt?.carbs, 22);
 });
 
+test("enrichAlternativesFromRuTable maps milk alt without coffee latte bleed", () => {
+  const enriched = enrichAlternativesFromRuTable(
+    parseFoodRecognitionResponse(
+      JSON.stringify({
+        photoKind: "meal",
+        dishName: "Напиток",
+        calories: 0,
+        confidence: 0.5,
+        alternatives: [{ dishName: "молоко", calories: 120 }],
+        items: [],
+        per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+      }),
+    ),
+  );
+  const alt = enriched.alternatives?.[0];
+  assert.equal(alt?.protein, 3);
+  assert.notEqual(alt?.protein, 6);
+});
+
 test("pipeline/combine + complete vision on enriched plate item", () => {
   const item = parseFoodRecognitionResponse(
     RECOGNITION_EVAL_CASES.find((c) => c.id === "plate-multi")!.rawModelJson,
