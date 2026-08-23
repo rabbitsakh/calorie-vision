@@ -344,6 +344,9 @@ export function ProfileForm() {
             >
               📥 Скачать CSV
             </a>
+            <a href={withBasePath("/#install")} className="btn btn-secondary">
+              Установить приложение
+            </a>
           </div>
         </form>
       ) : null}
