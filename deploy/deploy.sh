@@ -44,8 +44,12 @@ fi
 if npm run db:push; then
   echo "   db:push ok"
 else
-  echo "   db:push failed — often duplicate FK names already created by SQL migrations."
-  echo "   If new tables exist (e.g. PushSubscription), continuing deploy."
+  if [[ "${ALLOW_DB_PUSH_FAIL:-}" == "1" ]]; then
+    echo "   db:push failed — ALLOW_DB_PUSH_FAIL=1, continuing"
+  else
+    echo "   db:push failed — aborting deploy (set ALLOW_DB_PUSH_FAIL=1 to override)"
+    exit 1
+  fi
 fi
 
 echo "==> Compress and backfill meal images"

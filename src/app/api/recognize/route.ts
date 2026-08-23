@@ -4,6 +4,7 @@ import { getImageDimensions } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
+import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { prepareRecognizeUpload } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
 
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
     if (response) {
       return response;
     }
+
+    await loadLowConfidenceThresholdFromDb();
 
     const rate = await checkRateLimitAsync(
       `recognize:${session.user.id}`,

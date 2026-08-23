@@ -8,6 +8,7 @@ import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-re
 import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { prepareRecognizeUpload } from "@/lib/recognize-upload";
+import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest) {
   if (response) {
     return response;
   }
+
+  await loadLowConfidenceThresholdFromDb();
 
   const rate = await checkRateLimitAsync(
     `recognize:${session.user.id}`,
