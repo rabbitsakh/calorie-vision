@@ -21,14 +21,14 @@ export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekda
 
 export function reminderKindLabel(kind: ReminderKind): string {
   const labels: Record<ReminderKind, string> = {
-    breakfast: "Завтрак (8:00)",
-    lunch: "Обед (13:00)",
-    water_midday: "Вода днём (14:00)",
-    water_evening: "Вода вечером (18:00)",
-    calories: "Сводка калорий (19:00)",
-    streak: "Серия (20:00)",
-    checkin: "Чек-ин (21:00)",
-    weekly: "Итог недели (пн 9:00)",
+    breakfast: "Завтрак (8:00 местного)",
+    lunch: "Обед (13:00 местного)",
+    water_midday: "Вода днём (14:00 местного)",
+    water_evening: "Вода вечером (18:00 местного)",
+    calories: "Сводка калорий (19:00 местного)",
+    streak: "Серия (20:00 местного)",
+    checkin: "Чек-ин (21:00 местного)",
+    weekly: "Итог недели (пн 9:00 местного)",
   };
   return labels[kind];
 }

@@ -33,6 +33,7 @@ test("resolvePushTimezone falls back to Europe/Moscow", () => {
   assert.equal(resolvePushTimezone(null), "Europe/Moscow");
   assert.equal(resolvePushTimezone(""), "Europe/Moscow");
   assert.equal(resolvePushTimezone("Asia/Yekaterinburg"), "Asia/Yekaterinburg");
+  assert.equal(resolvePushTimezone("Not/AZone"), "Europe/Moscow");
 });
 
 test("remindersForLocalTime returns breakfast at 8", () => {
@@ -46,6 +47,24 @@ test("remindersForLocalTime returns weekly only on Monday 9", () => {
 
 test("schedule has 8 reminder slots", () => {
   assert.equal(REMINDER_SCHEDULE.length, 8);
+});
+
+test("Sakhalin local hour is +8 from Moscow schedule slots", () => {
+  // Check-in at 21:00 Moscow = 05:00 Sakhalin — the bug from wrong default TZ.
+  const moscowCheckin = new Date("2026-08-22T18:00:00Z"); // 21:00 Europe/Moscow
+  assert.equal(localHour("Europe/Moscow", moscowCheckin), 21);
+  assert.equal(localHour("Asia/Sakhalin", moscowCheckin), 5);
+  assert.deepEqual(remindersForLocalTime(21, 5), ["checkin"]);
+  assert.deepEqual(remindersForLocalTime(5, 5), []);
+
+  const moscowWater = new Date("2026-08-22T11:00:00Z"); // 14:00 Europe/Moscow
+  assert.equal(localHour("Europe/Moscow", moscowWater), 14);
+  assert.equal(localHour("Asia/Sakhalin", moscowWater), 22);
+});
+
+test("localHour midnight normalizes within 0-23", () => {
+  const moscowMidnight = new Date("2026-08-22T21:00:00Z");
+  assert.equal(localHour("Europe/Moscow", moscowMidnight), 0);
 });
 
 test("breakfast reminder mentions streak when at risk", () => {

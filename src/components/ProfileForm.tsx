@@ -3,8 +3,10 @@
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { SEX_OPTIONS, isSex, type Sex } from "@/lib/diet";
+import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { clearTimezoneCache } from "@/lib/use-timezone";
 
 type AccountResponse = {
   firstName: string;
@@ -22,16 +24,17 @@ type AccountResponse = {
 };
 
 const COMMON_TIMEZONES = [
-  { label: "По умолчанию (устройство)", value: "" },
   { label: "Калининград (UTC+2)", value: "Europe/Kaliningrad" },
   { label: "Москва, Санкт-Петербург (UTC+3)", value: "Europe/Moscow" },
   { label: "Самара (UTC+4)", value: "Europe/Samara" },
   { label: "Екатеринбург (UTC+5)", value: "Asia/Yekaterinburg" },
   { label: "Омск (UTC+6)", value: "Asia/Omsk" },
+  { label: "Бишкек (UTC+6)", value: "Asia/Bishkek" },
   { label: "Красноярск (UTC+7)", value: "Asia/Krasnoyarsk" },
   { label: "Иркутск (UTC+8)", value: "Asia/Irkutsk" },
   { label: "Якутск (UTC+9)", value: "Asia/Yakutsk" },
   { label: "Владивосток (UTC+10)", value: "Asia/Vladivostok" },
+  { label: "Сахалин (UTC+11)", value: "Asia/Sakhalin" },
   { label: "Магадан, Южно-Сахалинск (UTC+11)", value: "Asia/Magadan" },
   { label: "Камчатка (UTC+12)", value: "Asia/Kamchatka" },
   { label: "Минск (UTC+3)", value: "Europe/Minsk" },
@@ -79,7 +82,8 @@ export function ProfileForm() {
       setEmail(data.email ?? "");
       setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
       setImage(data.image);
-      setTimezone(data.timezone ?? "");
+      const savedTz = data.timezone?.trim() || "";
+      setTimezone(savedTz || detectDeviceTimezone() || "");
       setSex(isSex(data.sex) ? data.sex : "");
       setHeightCm(data.heightCm ? String(data.heightCm) : "");
       setBirthYear(data.birthYear ? String(data.birthYear) : "");
@@ -111,7 +115,7 @@ export function ProfileForm() {
           ...(emailLocked ? {} : { email: email.trim() || null }),
           phone: phone.trim() || null,
           image,
-          timezone: timezone || null,
+          timezone: timezone.trim() || detectDeviceTimezone() || null,
           sex: sex || null,
           heightCm: heightCm && Number.isFinite(Number(heightCm)) ? Math.round(Number(heightCm)) : null,
           birthYear: birthYear && Number.isFinite(Number(birthYear)) ? Math.round(Number(birthYear)) : null,
@@ -130,6 +134,7 @@ export function ProfileForm() {
       setTimezone(data.timezone ?? "");
       setSex(isSex(data.sex) ? data.sex : "");
       setMessage("Профиль сохранён");
+      clearTimezoneCache(data.timezone ?? null);
       await update();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -175,9 +180,13 @@ export function ProfileForm() {
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
 
   const knownValues = COMMON_TIMEZONES.map((tz) => tz.value);
+  const deviceTz = typeof window !== "undefined" ? detectDeviceTimezone() : null;
   const timezoneOptions = [
+    ...(deviceTz && !knownValues.includes(deviceTz)
+      ? [{ label: `Устройство (${deviceTz})`, value: deviceTz }]
+      : []),
     ...COMMON_TIMEZONES,
-    ...(timezone && !knownValues.includes(timezone)
+    ...(timezone && !knownValues.includes(timezone) && timezone !== deviceTz
       ? [{ label: timezone, value: timezone }]
       : []),
   ];
@@ -315,7 +324,8 @@ export function ProfileForm() {
                 ))}
               </select>
               <p className="text-xs text-slate-500">
-                Влияет на отображение даты и времени в дневнике и на запись веса
+                Нужен для push-напоминаний: завтрак в 8:00, чек-ин в 21:00 — по этому поясу, не по
+                Москве. Если пусто — подставим пояс устройства при открытии приложения.
               </p>
             </div>
           </div>

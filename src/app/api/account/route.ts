@@ -111,12 +111,8 @@ export async function PUT(request: NextRequest) {
     const linkedProviders = accounts.map((account) => account.provider);
     const emailLocked = linkedProviders.includes("google") || linkedProviders.includes("vk");
 
-    const firstName = body.firstName?.trim() ?? "";
-    const lastName = body.lastName?.trim() ?? "";
-    const name = [firstName, lastName].filter(Boolean).join(" ").trim() || null;
-
     const data: {
-      name: string | null;
+      name?: string | null;
       email?: string | null;
       phone?: string | null;
       phoneVerified?: Date | null;
@@ -125,7 +121,13 @@ export async function PUT(request: NextRequest) {
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
-    } = { name };
+    } = {};
+
+    if (body.firstName !== undefined || body.lastName !== undefined) {
+      const firstName = body.firstName?.trim() ?? "";
+      const lastName = body.lastName?.trim() ?? "";
+      data.name = [firstName, lastName].filter(Boolean).join(" ").trim() || null;
+    }
 
     if (body.image !== undefined) {
       data.image = body.image;

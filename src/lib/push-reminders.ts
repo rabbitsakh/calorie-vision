@@ -33,16 +33,27 @@ export type UserReminderContext = {
 
 export function resolvePushTimezone(timezone: string | null | undefined): string {
   const trimmed = timezone?.trim();
-  return trimmed || DEFAULT_PUSH_TIMEZONE;
+  if (!trimmed) return DEFAULT_PUSH_TIMEZONE;
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: trimmed });
+    return trimmed;
+  } catch {
+    return DEFAULT_PUSH_TIMEZONE;
+  }
 }
 
 export function localHour(timezone: string, now = new Date()): number {
   const parts = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
+    hourCycle: "h23",
     hour12: false,
     timeZone: timezone,
   }).formatToParts(now);
-  return Number(parts.find((p) => p.type === "hour")?.value ?? "12");
+  const raw = Number(parts.find((p) => p.type === "hour")?.value ?? "12");
+  // Some engines still emit 24 at midnight; normalize to 0–23.
+  if (!Number.isFinite(raw)) return 12;
+  if (raw === 24) return 0;
+  return Math.min(23, Math.max(0, Math.trunc(raw)));
 }
 
 /** 0 = Sunday … 6 = Saturday in the given timezone. */
