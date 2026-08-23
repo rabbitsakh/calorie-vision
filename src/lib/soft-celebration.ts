@@ -5,7 +5,12 @@ export type SoftCelebrationKind =
   | "daily-goal"
   | "streak-saved"
   | "challenge-done"
-  | "badge-unlock";
+  | "badge-unlock"
+  | "water-goal"
+  | "week-perfect"
+  | "checkin-done"
+  | "protein-goal"
+  | "weight-target";
 
 function storageKey(kind: SoftCelebrationKind, date: string): string {
   return `soft-celeb-${kind}-${date}`;

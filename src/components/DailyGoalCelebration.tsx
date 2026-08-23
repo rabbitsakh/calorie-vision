@@ -74,7 +74,7 @@ export function DailyGoalCelebration({
           !isSoftCelebrationSeen("daily-goal", today)
         ) {
           markSoftCelebrationSeen("daily-goal", today);
-          setCopy(dailyGoalCelebrationCopy(goal));
+          setCopy(dailyGoalCelebrationCopy(goal, actual, target));
           setOpen(true);
         }
 

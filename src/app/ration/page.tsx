@@ -13,6 +13,11 @@ import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
 import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { DayOpenedCelebration } from "@/components/DayOpenedCelebration";
 import { DailyGoalCelebration } from "@/components/DailyGoalCelebration";
+import { WaterGoalCelebration } from "@/components/WaterGoalCelebration";
+import { WeekPerfectCelebration } from "@/components/WeekPerfectCelebration";
+import { CheckinDoneCelebration } from "@/components/CheckinDoneCelebration";
+import { ProteinGoalCelebration } from "@/components/ProteinGoalCelebration";
+import { StreakMilestoneCelebration } from "@/components/StreakMilestoneCelebration";
 import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
 import { EveningCheckin } from "@/components/EveningCheckin";
 import { MotivationTip } from "@/components/MotivationTip";
@@ -106,6 +111,11 @@ export default function RationPage() {
 
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
         </div>
       </AuthGate>
       <button type="button" className="fab-add md:hidden" aria-label="Добавить еду" onClick={scrollToFoodAdd}>
