@@ -8,6 +8,7 @@ import { normalizeBarcode } from "@/lib/barcode";
 import {
   formatBarcodeWebContext,
   gatherBarcodeWebEvidence,
+  hasTrustedBarcodeWebName,
   pickBarcodeWebProductName,
 } from "@/lib/barcode-web-lookup";
 import {
@@ -326,6 +327,29 @@ async function lookupNutritionByProductName(
   return null;
 }
 
+async function lookupBarcodeByWebProductName(
+  webName: string,
+  barcode: string,
+  brand?: string,
+): Promise<FoodRecognitionResult | null> {
+  try {
+    const byName = await lookupFoodWithGigaChat(webName);
+    if (hasUsableCalories(byName)) {
+      return finalizeGigaChatBarcodeResult(
+        {
+          ...byName,
+          dishName: byName.dishName || webName,
+          brand: byName.brand || brand,
+        },
+        barcode,
+      );
+    }
+  } catch (error) {
+    console.warn("GigaChat web-name barcode enrichment failed", { barcode, webName, error });
+  }
+  return null;
+}
+
 async function lookupBarcodeViaGigaChat(
   barcode: string,
   options?: { rethrowApiErrors?: boolean },
@@ -351,6 +375,18 @@ async function lookupBarcodeViaGigaChat(
           photoKind: "barcode",
           confidence: Math.min(named.confidence || 0.75, 0.85),
         };
+      }
+
+      // go-upc / upcitemdb often name import SKUs (CN 692…) that OFF lacks.
+      if (hasTrustedBarcodeWebName(evidence)) {
+        const fromWebName = await lookupBarcodeByWebProductName(
+          webName,
+          barcode,
+          evidence.brand,
+        );
+        if (fromWebName) {
+          return fromWebName;
+        }
       }
     }
 
@@ -389,6 +425,17 @@ async function lookupBarcodeViaGigaChat(
     }
 
     if (!hasUsableCalories(ai) || !dishName || isFailedName(dishName)) {
+      if (webName) {
+        const fromWebName = await lookupBarcodeByWebProductName(
+          webName,
+          barcode,
+          evidence.brand || ai.brand,
+        );
+        if (fromWebName) {
+          return fromWebName;
+        }
+      }
+
       console.warn("GigaChat barcode fallback returned unusable result", {
         barcode,
         dishName,
