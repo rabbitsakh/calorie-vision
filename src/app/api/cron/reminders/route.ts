@@ -55,13 +55,12 @@ async function loadUserReminderContext(
     prisma.mealEntry.findMany({
       where: { userId },
       select: { date: true },
+      distinct: ["date"],
       orderBy: { date: "desc" },
-      take: 400,
     }),
     prisma.streakFreeze.findMany({
       where: { userId },
       select: { date: true },
-      take: 100,
     }),
   ]);
 

@@ -138,11 +138,11 @@ export default function RationPage() {
           <CelebrationOrchestrator>
             <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           </CelebrationOrchestrator>
         </div>
       </AuthGate>
