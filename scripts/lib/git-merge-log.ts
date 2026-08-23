@@ -8,9 +8,14 @@ export type GitMergeEntry = {
 };
 
 function parseTitle(subject: string, body: string): string {
-  const fromBody = body.trim().split("\n").find((line) => line.trim());
+  const skip = /^(co-authored-by:|made-with:|cursor |<!--)/i;
+  const fromBody = body
+    .trim()
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0 && !skip.test(line));
   if (fromBody) {
-    return fromBody.trim();
+    return fromBody;
   }
   return subject.trim();
 }
