@@ -35,6 +35,8 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Recognition 50-point plan batch.*$/i, "Распознавание: качество и скорость — промпты, OFF, plate budget, UX"],
   [/^feat: ration redesign \+ landing refresh.*$/i, "Рацион: вода на главном экране; лендинг — новые секции и мобильное меню"],
   [/^fix: milk lookup \+ recognition audit.*$/i, "Исправление: «молоко» больше не подставляет «кофе латте»"],
+  [/^fix: secure meal photos.*$/i, "Безопасность фото, OFF lookup, серия/вес, UX распознавания и празднований"],
+  [/^Audit batch.*10 PR.*$/i, "Аудит: безопасность, распознавание, рацион, серия, празднования, деплой"],
   [/^Mascot blob-leaf redesign.*$/i, "Маскот: круглый blob с ростком сверху (без боковых «усов»)"],
   [/^Landing mascot parallax.*$/i, "Лендинг: маскот, parallax, тексты и блок «бесплатно»"],
   [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
