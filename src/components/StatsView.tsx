@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateShort } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
@@ -247,8 +248,16 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
     .map((d, i) => ({ index: i, date: d.date, value: d.weightKg }))
     .filter((p): p is { index: number; date: string; value: number } => p.value !== null && p.value > 0);
 
-  if (points.length === 0) {
-    return <p className="py-6 text-center text-sm text-slate-400">Нет измерений веса за период</p>;
+  const minDaysForTrend = 3;
+  if (points.length < minDaysForTrend) {
+    const need = minDaysForTrend - points.length;
+    return (
+      <p className="py-6 text-center text-sm text-slate-500">
+        {points.length === 0
+          ? `Пока нет измерений — добавьте ${minDaysForTrend} ${pluralDays(minDaysForTrend)}, чтобы увидеть тренд.`
+          : `Мало данных для графика — добавьте ещё ${need} ${pluralDays(need)}.`}
+      </p>
+    );
   }
 
   const plotHeight = 120;

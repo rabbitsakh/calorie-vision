@@ -6,6 +6,7 @@ import { SEX_OPTIONS, isSex, type Sex } from "@/lib/diet";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 
 type AccountResponse = {
@@ -136,6 +137,7 @@ export function ProfileForm() {
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
+      notifyDietTargetsChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
     } finally {
@@ -343,6 +345,9 @@ export function ProfileForm() {
               className="btn btn-secondary"
             >
               📥 Скачать CSV
+            </a>
+            <a href={withBasePath("/#install")} className="btn btn-secondary">
+              Установить приложение
             </a>
           </div>
         </form>

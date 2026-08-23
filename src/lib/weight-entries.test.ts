@@ -4,6 +4,7 @@ import {
   computeWeightChangeKg,
   groupWeightEntriesByDate,
   latestWeightByDate,
+  medianWeightByDate,
   sortWeightEntriesNewestFirst,
 } from "./weight-entries.ts";
 
@@ -95,4 +96,26 @@ test("keeps the latest measurement per day for stats", () => {
   ];
   const map = latestWeightByDate(entries);
   assert.equal(map.get("2024-08-16"), 139);
+});
+
+test("uses median of all measurements per day for charts", () => {
+  const entries = [
+    { id: "a", measuredAt: "2024-08-16T08:00:00.000Z", date: "2024-08-16", weightKg: 138 },
+    { id: "b", measuredAt: "2024-08-16T12:00:00.000Z", date: "2024-08-16", weightKg: 140 },
+    { id: "c", measuredAt: "2024-08-16T20:00:00.000Z", date: "2024-08-16", weightKg: 142 },
+    { id: "d", measuredAt: "2024-08-17T08:00:00.000Z", date: "2024-08-17", weightKg: 139 },
+    { id: "e", measuredAt: "2024-08-17T20:00:00.000Z", date: "2024-08-17", weightKg: 141 },
+  ];
+  const map = medianWeightByDate(entries);
+  assert.equal(map.get("2024-08-16"), 140);
+  assert.equal(map.get("2024-08-17"), 140);
+});
+
+test("median rounds even counts to one decimal", () => {
+  const entries = [
+    { id: "a", measuredAt: "2024-08-16T08:00:00.000Z", date: "2024-08-16", weightKg: 80.1 },
+    { id: "b", measuredAt: "2024-08-16T20:00:00.000Z", date: "2024-08-16", weightKg: 80.4 },
+  ];
+  const map = medianWeightByDate(entries);
+  assert.equal(map.get("2024-08-16"), 80.3);
 });
