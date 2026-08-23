@@ -14,6 +14,38 @@ const FETCH_MS = 7_000;
 const USER_AGENT =
   "CalorieVision/1.0 (https://calorievision.ru; barcode product lookup)";
 
+/** Generic barcode tools / calorie calculators — not product names. */
+const JUNK_TITLE_PATTERNS = [
+  /barcode lookup/i,
+  /barcode search/i,
+  /upc.*search/i,
+  /ean.*search/i,
+  /gtin/i,
+  /калькулятор/i,
+  /таблица калор/i,
+  /таблица продукт/i,
+  /проверк[аи] штрих/i,
+  /parcel tracking/i,
+  /invalid value/i,
+  /go-upc$/i,
+  /retailerapi/i,
+  /barcodereport/i,
+  /ean-search/i,
+  /упаковк.*штрих/i,
+  /tablicakalor/i,
+  /customer support/i,
+  /identify your product/i,
+  /oral supplement ensure/i,
+];
+
+export function isJunkBarcodeWebTitle(title: string): boolean {
+  const normalized = title.trim();
+  if (!normalized || normalized.length < 3) {
+    return true;
+  }
+  return JUNK_TITLE_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 async function fetchText(url: string, init?: RequestInit): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_MS);
@@ -65,7 +97,7 @@ function cleanTitle(raw: string): string | null {
   const title = decodeHtml(raw)
     .replace(/\s+/g, " ")
     .replace(/\|\s*.+$/, "")
-    .replace(/\s+[—–-]\s+(Ozon|Wildberries|Яндекс|Wikipedia|Amazon).*$/i, "")
+    .replace(/\s+[—–-]\s+(Ozon|Wildberries|Яндекс|Wikipedia|Amazon|Go-UPC).*$/i, "")
     .trim();
   if (title.length < 3 || title.length > 160) {
     return null;
@@ -74,7 +106,14 @@ function cleanTitle(raw: string): string | null {
   if (/^\d{8,14}$/.test(title)) {
     return null;
   }
+  if (isJunkBarcodeWebTitle(title)) {
+    return null;
+  }
   return title;
+}
+
+function looksLikeProductTitle(title: string): boolean {
+  return /(?:\d[\d.,]*\s*(?:г|гр|ml|мл|л|l)\b|\d[\d.,]*\s*%|1\/\d+)/i.test(title);
 }
 
 async function lookupUpcItemDb(barcode: string): Promise<Partial<BarcodeWebEvidence>> {
@@ -91,27 +130,61 @@ async function lookupUpcItemDb(barcode: string): Promise<Partial<BarcodeWebEvide
     titles: title ? [title] : [],
     brand: item.brand?.trim() || undefined,
     snippets: item.description ? [item.description.slice(0, 280)] : [],
-    sources: ["upcitemdb"],
+    sources: title ? ["upcitemdb"] : [],
   };
 }
 
-/** DuckDuckGo Lite — titles mentioning the EAN / product pages. */
-async function lookupDuckDuckGo(barcode: string): Promise<Partial<BarcodeWebEvidence>> {
-  const query = `${barcode} продукт состав кбжу`;
+/** Go-UPC search — strong for import / CN / US barcodes missing from OFF. */
+async function lookupGoUpc(barcode: string): Promise<Partial<BarcodeWebEvidence>> {
   const html = await fetchText(
-    `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`,
+    `https://go-upc.com/search?q=${encodeURIComponent(barcode)}`,
   );
   if (!html) {
     return {};
   }
 
+  const pageTitle = html.match(/<title>([^<]+)/i)?.[1]?.trim() ?? "";
+  if (/invalid value/i.test(pageTitle)) {
+    return {};
+  }
+
+  const h1Raw = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+  const h1 = h1Raw ? cleanTitle(h1Raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()) : null;
+
+  let titleFromTag: string | null = null;
+  if (pageTitle.includes(barcode)) {
+    titleFromTag = cleanTitle(pageTitle.split("—")[0]?.trim() ?? "");
+  }
+
+  const productTitle = h1 ?? titleFromTag;
+  if (!productTitle) {
+    return {};
+  }
+
+  const descMatch = html.match(/Description\s*<\/h2>\s*<span>\s*([\s\S]*?)<\/span>/i);
+  const snippet = descMatch
+    ? decodeHtml(descMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+    : null;
+
+  const brand = /(?:Harbin|Харбин)/i.test(productTitle)
+    ? "Harbin"
+    : snippet?.match(/\/([A-Za-z][A-Za-z .'-]{2,20})(?:\s|$|\*)/)?.[1]?.trim();
+
+  return {
+    titles: [productTitle],
+    brand,
+    snippets: snippet ? [snippet.slice(0, 280)] : [],
+    sources: ["go-upc"],
+  };
+}
+
+function parseDuckDuckGoHtml(html: string): Partial<BarcodeWebEvidence> {
   const titles: string[] = [];
   const snippets: string[] = [];
 
-  // Lite results: <a rel="nofollow" href="...">Title</a>
   const linkRe = /<a[^>]*rel="nofollow"[^>]*>([^<]{3,160})<\/a>/gi;
   let match: RegExpExecArray | null;
-  while ((match = linkRe.exec(html)) !== null && titles.length < 6) {
+  while ((match = linkRe.exec(html)) !== null && titles.length < 8) {
     const title = cleanTitle(match[1] ?? "");
     if (title && !titles.includes(title)) {
       titles.push(title);
@@ -124,7 +197,7 @@ async function lookupDuckDuckGo(barcode: string): Promise<Partial<BarcodeWebEvid
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    if (snip.length > 20) {
+    if (snip.length > 20 && !isJunkBarcodeWebTitle(snip)) {
       snippets.push(snip.slice(0, 220));
     }
   }
@@ -134,6 +207,24 @@ async function lookupDuckDuckGo(barcode: string): Promise<Partial<BarcodeWebEvid
     snippets,
     sources: titles.length || snippets.length ? ["duckduckgo"] : [],
   };
+}
+
+/** DuckDuckGo Lite — multiple queries; filter generic barcode/calorie sites. */
+async function lookupDuckDuckGo(barcode: string): Promise<Partial<BarcodeWebEvidence>> {
+  const queries = [
+    `"${barcode}" купить`,
+    `${barcode} product name`,
+    `${barcode} состав калории`,
+  ];
+
+  const pages = await Promise.all(
+    queries.map((query) =>
+      fetchText(`https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`),
+    ),
+  );
+
+  const parts = pages.filter(Boolean).map((html) => parseDuckDuckGoHtml(html!));
+  return mergeEvidence(parts);
 }
 
 function mergeEvidence(parts: Array<Partial<BarcodeWebEvidence>>): BarcodeWebEvidence {
@@ -178,7 +269,11 @@ export async function gatherBarcodeWebEvidence(barcode: string): Promise<Barcode
     return { titles: [], snippets: [], sources: [] };
   }
 
-  const parts = await Promise.all([lookupUpcItemDb(code), lookupDuckDuckGo(code)]);
+  const parts = await Promise.all([
+    lookupGoUpc(code),
+    lookupUpcItemDb(code),
+    lookupDuckDuckGo(code),
+  ]);
   return mergeEvidence(parts);
 }
 
@@ -204,18 +299,35 @@ export function formatBarcodeWebContext(evidence: BarcodeWebEvidence): string {
   return lines.join("\n");
 }
 
-/** Best product name guess from web titles (for OFF / RU name search). */
-export function pickBarcodeWebProductName(evidence: BarcodeWebEvidence): string | null {
-  const preferred = evidence.titles.find((title) =>
-    /[а-яё]/i.test(title) || /ккал|белк|жир|углевод|состав/i.test(title),
-  );
-  const title = preferred ?? evidence.titles[0];
-  if (!title) {
-    return null;
-  }
-  // Strip trailing shop noise.
+/** Normalize marketplace / case-pack noise from a web product title. */
+export function normalizeBarcodeWebProductName(title: string): string {
   return title
+    .replace(/\s*1\/\d+\s*$/i, "")
     .replace(/\s+\d+\s*г\.?$/i, "")
     .replace(/\s+\d+\s*мл\.?$/i, "")
-    .trim() || null;
+    .replace(/\s*[—–-]\s*EAN\s+\d+.*$/i, "")
+    .trim();
+}
+
+/** Best product name guess from web titles (for OFF / RU name search). */
+export function pickBarcodeWebProductName(evidence: BarcodeWebEvidence): string | null {
+  const candidates = evidence.titles.filter((title) => !isJunkBarcodeWebTitle(title));
+  if (!candidates.length) {
+    return null;
+  }
+
+  const preferred =
+    candidates.find((title) => /[а-яё]/i.test(title) && looksLikeProductTitle(title)) ??
+    candidates.find((title) => /[а-яё]/i.test(title)) ??
+    candidates.find((title) => looksLikeProductTitle(title)) ??
+    candidates.find((title) => /ккал|белк|жир|углевод|состав/i.test(title)) ??
+    candidates[0];
+
+  const normalized = normalizeBarcodeWebProductName(preferred);
+  return normalized || null;
+}
+
+/** True when go-upc or upcitemdb returned a concrete product title. */
+export function hasTrustedBarcodeWebName(evidence: BarcodeWebEvidence): boolean {
+  return evidence.sources.some((source) => source === "go-upc" || source === "upcitemdb");
 }
