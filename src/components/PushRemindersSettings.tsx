@@ -183,6 +183,19 @@ export function PushRemindersSettings() {
         </div>
       ) : null}
 
+      <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
+        <p className="text-sm font-semibold text-slate-900">Установка на телефон</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Добавьте приложение на экран «Домой» — на iPhone так работают push-напоминания.
+        </p>
+        <a
+          href={withBasePath("/#install")}
+          className="mt-2 inline-flex text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+        >
+          Открыть инструкцию по установке
+        </a>
+      </div>
+
       {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
     </section>

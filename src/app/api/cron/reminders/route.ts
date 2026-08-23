@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const payload = buildReminderPayload(kind, ctx);
+        const payload = buildReminderPayload(kind, ctx, { userId: user.id });
         if (!payload) {
           skipped += 1;
           continue;
