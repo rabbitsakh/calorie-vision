@@ -1,7 +1,9 @@
 "use client";
 
+import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { withBasePath } from "@/lib/paths";
 import { urlBase64ToUint8Array } from "@/lib/push-client";
+import { clearTimezoneCache } from "@/lib/use-timezone";
 
 export type PushSubscribeResult =
   | { ok: true }
@@ -60,12 +62,14 @@ export async function subscribeBrowserPush(): Promise<PushSubscribeResult> {
       return { ok: false, error: "Браузер вернул неполную подписку" };
     }
 
+    const timezone = detectDeviceTimezone();
     const saveResp = await fetch(withBasePath("/api/push/subscribe"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         endpoint: json.endpoint,
         keys: json.keys,
+        ...(timezone ? { timezone } : {}),
       }),
     });
 
@@ -74,6 +78,7 @@ export async function subscribeBrowserPush(): Promise<PushSubscribeResult> {
       return { ok: false, error: data.error ?? "Не удалось сохранить подписку" };
     }
 
+    if (timezone) clearTimezoneCache(timezone);
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ошибка подписки";

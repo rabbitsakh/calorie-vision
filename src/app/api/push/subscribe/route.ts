@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
+import { isValidIanaTimezone } from "@/lib/device-timezone";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +8,8 @@ export const dynamic = "force-dynamic";
 type SubscribeBody = {
   endpoint: string;
   keys: { p256dh: string; auth: string };
+  /** Device IANA timezone — used so reminder cron matches local hours. */
+  timezone?: string | null;
 };
 
 export async function GET() {
@@ -33,6 +36,15 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as SubscribeBody;
     if (!body.endpoint?.trim() || !body.keys?.p256dh || !body.keys?.auth) {
       return NextResponse.json({ error: "Некорректная подписка" }, { status: 400 });
+    }
+
+    const deviceTz = body.timezone?.trim() || null;
+    if (deviceTz && isValidIanaTimezone(deviceTz)) {
+      // Keep reminder hours aligned with the device that enabled push.
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: { timezone: deviceTz },
+      });
     }
 
     const subscription = await prisma.pushSubscription.upsert({
