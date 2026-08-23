@@ -47,29 +47,31 @@ export function BadgesPanel() {
   const unlockedCount = badges.filter((b) => b.unlocked).length;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold text-slate-800">Достижения</h2>
-        <span className="text-xs text-slate-500">
-          {unlockedCount} / {badges.length}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {badges.map((badge) => (
-          <div
-            key={badge.key}
-            className={`rounded-xl border px-3 py-2.5 ${
-              badge.unlocked
-                ? "border-teal-200 bg-teal-50"
-                : "border-slate-100 bg-slate-50 opacity-60"
-            }`}
-          >
-            <p className={`text-sm font-semibold ${badge.unlocked ? "text-teal-900" : "text-slate-500"}`}>
-              {badge.title}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-500">{badge.description}</p>
-          </div>
-        ))}
+    <>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-3 flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-bold text-slate-800">Достижения</h2>
+          <span className="text-xs text-slate-500">
+            {unlockedCount} / {badges.length}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {badges.map((badge) => (
+            <div
+              key={badge.key}
+              className={`rounded-xl border px-3 py-2.5 ${
+                badge.unlocked
+                  ? "border-teal-200 bg-teal-50"
+                  : "border-slate-100 bg-slate-50 opacity-60"
+              }`}
+            >
+              <p className={`text-sm font-semibold ${badge.unlocked ? "text-teal-900" : "text-slate-500"}`}>
+                {badge.title}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">{badge.description}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <FullscreenCelebration
@@ -83,6 +85,6 @@ export function BadgesPanel() {
         ctaLabel="Круто!"
         onClose={closeUnlock}
       />
-    </div>
+    </>
   );
 }

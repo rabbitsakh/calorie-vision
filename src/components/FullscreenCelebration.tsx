@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot, type MascotPose } from "@/components/Mascot";
+import { getCelebrationPortalHost } from "@/lib/celebration-portal";
 
 export type CelebrationVariant =
   | "cheer"
@@ -71,7 +72,7 @@ const VARIANT_THEME: Record<
 
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
- * Portaled to document.body so sticky chrome never hides it.
+ * Portaled to a host on <html> so body overflow-x never clips it on iOS.
  */
 export function FullscreenCelebration({
   open,
@@ -85,6 +86,7 @@ export function FullscreenCelebration({
   onClose,
 }: FullscreenCelebrationProps) {
   const [mounted, setMounted] = useState(false);
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const gate = useCelebrationGate();
   const celebrationId = useId();
   const theme = VARIANT_THEME[variant];
@@ -95,6 +97,7 @@ export function FullscreenCelebration({
   const show = open && isActive;
 
   useEffect(() => {
+    setPortalHost(getCelebrationPortalHost());
     setMounted(true);
   }, []);
 
@@ -131,11 +134,11 @@ export function FullscreenCelebration({
     };
   }, [show, onClose]);
 
-  if (!show || !mounted || typeof document === "undefined") return null;
+  if (!show || !mounted || !portalHost) return null;
 
   return createPortal(
     <div
-      className={`fs-celeb-root fs-celeb-${variant} fixed inset-0 z-[100] flex flex-col`}
+      className={`fs-celeb-root fs-celeb-${variant} flex flex-col`}
       role={autoClose ? "status" : "dialog"}
       aria-modal={autoClose ? undefined : true}
       aria-live="polite"
@@ -193,6 +196,6 @@ export function FullscreenCelebration({
         )}
       </div>
     </div>,
-    document.body,
+    portalHost,
   );
 }
