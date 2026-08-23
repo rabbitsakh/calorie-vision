@@ -504,10 +504,10 @@ export function Mascot({
                     strokeWidth="1.25"
                     strokeOpacity="0.32"
                   />
-                  <ellipse cx="7.2" cy="27.8" rx="1.85" ry="2.7" fill="#CCFBF1" />
-                  <ellipse cx="10.8" cy="26.6" rx="1.75" ry="2.5" fill="#CCFBF1" />
-                  <ellipse cx="14.4" cy="28" rx="1.55" ry="2.2" fill="#99F6E4" />
-                  <ellipse cx="8.4" cy="25.4" rx="1.9" ry="1.35" fill="#FFFFFF" opacity="0.7" />
+                  <ellipse cx="6.4" cy="28.6" rx="2.1" ry="3.1" fill="#99F6E4" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="10" cy="27" rx="2.05" ry="3.2" fill="#CCFBF1" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="13.6" cy="28.4" rx="1.9" ry="2.9" fill="#99F6E4" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="8.2" cy="25.8" rx="2" ry="1.4" fill="#FFFFFF" opacity="0.75" />
                 </g>
               </g>
             </g>
@@ -533,10 +533,10 @@ export function Mascot({
                     strokeWidth="1.25"
                     strokeOpacity="0.32"
                   />
-                  <ellipse cx="88.8" cy="27.8" rx="1.85" ry="2.7" fill="#CCFBF1" />
-                  <ellipse cx="85.2" cy="26.6" rx="1.75" ry="2.5" fill="#CCFBF1" />
-                  <ellipse cx="81.6" cy="28" rx="1.55" ry="2.2" fill="#99F6E4" />
-                  <ellipse cx="87.6" cy="25.4" rx="1.9" ry="1.35" fill="#FFFFFF" opacity="0.7" />
+                  <ellipse cx="89.6" cy="28.6" rx="2.1" ry="3.1" fill="#99F6E4" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="86" cy="27" rx="2.05" ry="3.2" fill="#CCFBF1" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="82.4" cy="28.4" rx="1.9" ry="2.9" fill="#99F6E4" stroke={INK_DARK} strokeWidth="0.7" strokeOpacity="0.25" />
+                  <ellipse cx="87.8" cy="25.8" rx="2" ry="1.4" fill="#FFFFFF" opacity="0.75" />
                 </g>
               </g>
             </g>
