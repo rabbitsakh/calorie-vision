@@ -457,10 +457,31 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [error, setError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [streakDays, setStreakDays] = useState<number>(0);
-  const [showNormDetails, setShowNormDetails] = useState(false);
+  const [showNormDetails, setShowNormDetails] = useState(() => {
+    if (typeof window === "undefined") return !compact;
+    if (!compact) return true;
+    try {
+      // First visit (no flag): open meal budget by default (#18)
+      return localStorage.getItem("ration-norm-details") !== "0";
+    } catch {
+      return true;
+    }
+  });
   const attemptedImageDates = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
+
+  function toggleNormDetails() {
+    setShowNormDetails((value) => {
+      const next = !value;
+      try {
+        localStorage.setItem("ration-norm-details", next ? "1" : "0");
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }
 
   const loadEntries = useCallback(async (quiet = false) => {
     const date = selectedDate;
@@ -698,7 +719,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               <button
                 type="button"
                 className="self-start text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
-                onClick={() => setShowNormDetails((value) => !value)}
+                onClick={toggleNormDetails}
               >
                 {showNormDetails ? "Скрыть норму и бюджет" : "Норма и бюджет по приёмам"}
               </button>

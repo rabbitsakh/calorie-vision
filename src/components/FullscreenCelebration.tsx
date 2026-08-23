@@ -25,6 +25,9 @@ type FullscreenCelebrationProps = {
   /** Auto-close after ms; omit / 0 = manual dismiss only. */
   durationMs?: number;
   ctaLabel?: string;
+  /** Optional mute-for-today control (#33). */
+  muteTodayLabel?: string;
+  onMuteToday?: () => void;
   onClose: () => void;
 };
 
@@ -83,6 +86,8 @@ export function FullscreenCelebration({
   pose,
   durationMs = 3200,
   ctaLabel = "Продолжить",
+  muteTodayLabel = "Не показывать сегодня",
+  onMuteToday,
   onClose,
 }: FullscreenCelebrationProps) {
   const [mounted, setMounted] = useState(false);
@@ -194,6 +199,18 @@ export function FullscreenCelebration({
             Закрыть
           </button>
         )}
+        {onMuteToday ? (
+          <button
+            type="button"
+            className="mt-3 text-xs font-semibold text-white/55 underline-offset-2 hover:text-white/85 hover:underline"
+            onClick={() => {
+              onMuteToday();
+              onClose();
+            }}
+          >
+            {muteTodayLabel}
+          </button>
+        ) : null}
       </div>
     </div>,
     portalHost,

@@ -5,6 +5,7 @@ import {
   type CelebrationVariant,
 } from "@/components/FullscreenCelebration";
 import type { MascotPose } from "@/components/Mascot";
+import { muteSoftCelebrationsToday } from "@/lib/soft-celebration";
 
 type SoftCelebrationProps = {
   open: boolean;
@@ -14,6 +15,8 @@ type SoftCelebrationProps = {
   /** Optional small badge (e.g. streak days); shown under the mascot. */
   badge?: string;
   durationMs?: number;
+  /** When set, shows «Не показывать сегодня» and mutes soft celebrations for this date. */
+  muteDate?: string;
   onClose: () => void;
 };
 
@@ -34,6 +37,7 @@ export function SoftCelebration({
   pose = "cheer",
   badge,
   durationMs = 3400,
+  muteDate,
   onClose,
 }: SoftCelebrationProps) {
   return (
@@ -45,6 +49,7 @@ export function SoftCelebration({
       badge={badge}
       variant={variantFromPose(pose)}
       durationMs={durationMs}
+      onMuteToday={muteDate ? () => muteSoftCelebrationsToday(muteDate) : undefined}
       onClose={onClose}
     />
   );
