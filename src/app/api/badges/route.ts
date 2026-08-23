@@ -68,7 +68,7 @@ async function loadBadgeStats(userId: string): Promise<{
   for (let i = 0; i < 60; i++) {
     if ((waterByDate.get(cursor) ?? 0) >= WATER_HABIT_DAY_ML) {
       waterStreak += 1;
-      cursor = shiftDateKey(today, -(i + 1));
+      cursor = shiftDateKey(cursor, -1);
     } else {
       break;
     }
