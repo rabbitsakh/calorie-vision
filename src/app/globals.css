@@ -704,100 +704,110 @@ textarea {
 @keyframes mascot-arm-spin-left-cheer {
   0%,
   100% {
-    transform: rotate(-12deg);
+    transform: rotate(-18deg);
   }
   50% {
-    transform: rotate(14deg);
+    transform: rotate(10deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-cheer {
   0%,
   100% {
-    transform: rotate(12deg);
+    transform: rotate(18deg);
   }
   50% {
-    transform: rotate(-14deg);
+    transform: rotate(-10deg);
   }
 }
 
 @keyframes mascot-arm-spin-left-idle {
   0%,
   100% {
-    transform: rotate(-6deg);
+    transform: rotate(-8deg);
   }
   50% {
-    transform: rotate(8deg);
+    transform: rotate(10deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-idle {
   0%,
   100% {
-    transform: rotate(6deg);
+    transform: rotate(8deg);
   }
   50% {
-    transform: rotate(-8deg);
+    transform: rotate(-10deg);
   }
 }
 
 @keyframes mascot-arm-spin-left-proud {
   0%,
   100% {
-    transform: rotate(-38deg);
+    transform: rotate(-22deg);
   }
   50% {
-    transform: rotate(-48deg);
+    transform: rotate(-32deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-proud {
   0%,
   100% {
-    transform: rotate(38deg);
+    transform: rotate(22deg);
   }
   50% {
-    transform: rotate(48deg);
+    transform: rotate(32deg);
   }
 }
 
 @keyframes mascot-arm-spin-left-tip {
   0%,
   100% {
-    transform: rotate(10deg);
+    transform: rotate(6deg);
   }
   50% {
-    transform: rotate(16deg);
+    transform: rotate(12deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-tip {
   0%,
   100% {
-    transform: rotate(-42deg);
+    transform: rotate(-28deg);
   }
   50% {
-    transform: rotate(-52deg);
+    transform: rotate(-38deg);
   }
 }
 
 @keyframes mascot-arm-spin-left-empty {
   0%,
   100% {
-    transform: rotate(14deg);
+    transform: rotate(8deg);
   }
   50% {
-    transform: rotate(20deg);
+    transform: rotate(14deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-empty {
   0%,
   100% {
-    transform: rotate(-12deg);
+    transform: rotate(-8deg);
   }
   50% {
-    transform: rotate(-18deg);
+    transform: rotate(-14deg);
+  }
+}
+
+@keyframes mascot-feet-bounce {
+  0%,
+  100% {
+    transform: translateY(0) scaleX(1);
+  }
+  50% {
+    transform: translateY(1.5px) scaleX(1.06);
   }
 }
 
@@ -1174,6 +1184,12 @@ textarea {
   transform-box: fill-box;
   transform-origin: center 70%;
   animation: mascot-body-breathe 2.8s ease-in-out infinite;
+}
+
+.mascot-feet {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-feet-bounce 2.8s ease-in-out infinite;
 }
 
 .mascot-face {
