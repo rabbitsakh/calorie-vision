@@ -42,7 +42,7 @@ type MascotProps = {
 
 /** Soft pear / egg blob — matches the 3D vinyl reference silhouette. */
 const BODY_PATH =
-  "M48 20c17.5 0 31.5 13.2 31.5 32.5 0 13.5-6.8 24.2-16.5 29.8C56.2 86.2 51.4 88.5 48 88.5c-3.4 0-8.2-2.3-15-6.2C23.3 76.7 16.5 66 16.5 52.5 16.5 33.2 30.5 20 48 20Z";
+  "M48 18c16.8 0 30 12.8 30 31.5 0 14.2-7.2 25.5-17.2 31.2C54.8 85.5 50.8 88 48 88c-2.8 0-6.8-2.5-12.8-7.3C25.2 75 18 63.7 18 49.5 18 30.8 31.2 18 48 18Z";
 
 /**
  * Soft 3D mint sprout blob — faithful to the vinyl reference:
@@ -105,47 +105,47 @@ export function Mascot({
       <title>{title}</title>
       <defs>
         <radialGradient id={bodyGrad} cx="38%" cy="28%" r="72%" gradientUnits="objectBoundingBox">
-          <stop offset="0%" stopColor="#F0FDFA" />
-          <stop offset="22%" stopColor="#CCFBF1" />
-          <stop offset="48%" stopColor="#99F6E4" />
-          <stop offset="78%" stopColor="#5EEAD4" />
-          <stop offset="100%" stopColor="#2DD4BF" />
+          <stop offset="0%" stopColor="#F7FFFC" />
+          <stop offset="18%" stopColor="#E6FFFA" />
+          <stop offset="42%" stopColor="#C5F2E6" />
+          <stop offset="72%" stopColor="#9FDBC8" />
+          <stop offset="100%" stopColor="#7BC4AE" />
         </radialGradient>
         <radialGradient id={bodyShade} cx="55%" cy="88%" r="58%" gradientUnits="objectBoundingBox">
           <stop offset="0%" stopColor="#0F766E" stopOpacity="0" />
-          <stop offset="45%" stopColor="#0D9488" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#115E59" stopOpacity="0.28" />
+          <stop offset="45%" stopColor="#0D9488" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="#115E59" stopOpacity="0.22" />
         </radialGradient>
         <radialGradient id={sheen} cx="32%" cy="22%" r="40%" gradientUnits="objectBoundingBox">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-          <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.28" />
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.7" />
+          <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
         <radialGradient id={belly} cx="50%" cy="45%" r="55%" gradientUnits="objectBoundingBox">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.72" />
-          <stop offset="55%" stopColor="#E6FFFA" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.55" />
+          <stop offset="55%" stopColor="#F0FDFA" stopOpacity="0.28" />
           <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
         </radialGradient>
         <linearGradient id={leafL} x1="26" y1="28" x2="50" y2="-2" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#5EEAD4" />
-          <stop offset="0.35" stopColor="#14B8A6" />
-          <stop offset="0.75" stopColor="#0F766E" />
+          <stop stopColor="#2DD4BF" />
+          <stop offset="0.35" stopColor="#0F766E" />
+          <stop offset="0.75" stopColor="#115E59" />
           <stop offset="1" stopColor="#134E4A" />
         </linearGradient>
         <linearGradient id={leafR} x1="70" y1="26" x2="46" y2="-4" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#CCFBF1" />
+          <stop stopColor="#99F6E4" />
           <stop offset="0.3" stopColor="#5EEAD4" />
-          <stop offset="0.7" stopColor="#2DD4BF" />
+          <stop offset="0.7" stopColor="#14B8A6" />
           <stop offset="1" stopColor="#0D9488" />
         </linearGradient>
         <linearGradient id={armGrad} x1="0" y1="0" x2="1" y2="1">
-          <stop stopColor="#2DD4BF" />
-          <stop offset="0.45" stopColor="#0D9488" />
-          <stop offset="1" stopColor="#115E59" />
+          <stop stopColor="#14B8A6" />
+          <stop offset="0.4" stopColor="#0F766E" />
+          <stop offset="1" stopColor="#134E4A" />
         </linearGradient>
         <linearGradient id={footGrad} x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="#5EEAD4" />
-          <stop offset="1" stopColor="#14B8A6" />
+          <stop stopColor="#9FDBC8" />
+          <stop offset="1" stopColor="#7BC4AE" />
         </linearGradient>
         <radialGradient id={cheek} cx="50%" cy="50%" r="50%" gradientUnits="objectBoundingBox">
           <stop offset="0%" stopColor={BLUSH} stopOpacity="0.75" />
@@ -317,14 +317,14 @@ export function Mascot({
         ) : (
           <g className="mascot-eyes-open">
             <g className="mascot-eye-left">
-              <circle cx="38.5" cy="53" r="6.2" fill={`url(#${iris})`} />
-              <circle cx="40.8" cy="50.6" r="2.15" fill="#FFFFFF" />
-              <circle cx="36.2" cy="54.8" r="1.05" fill="#FFFFFF" opacity="0.65" />
+              <circle cx="38.5" cy="52.5" r="6.8" fill={`url(#${iris})`} />
+              <circle cx="41" cy="49.8" r="2.35" fill="#FFFFFF" />
+              <circle cx="36" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
             </g>
             <g className="mascot-eye-right">
-              <circle cx="57.5" cy="53" r="6.2" fill={`url(#${iris})`} />
-              <circle cx="59.8" cy="50.6" r="2.15" fill="#FFFFFF" />
-              <circle cx="55.2" cy="54.8" r="1.05" fill="#FFFFFF" opacity="0.65" />
+              <circle cx="57.5" cy="52.5" r="6.8" fill={`url(#${iris})`} />
+              <circle cx="60" cy="49.8" r="2.35" fill="#FFFFFF" />
+              <circle cx="55" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
             </g>
           </g>
         )}
