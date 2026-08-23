@@ -119,7 +119,7 @@ function BarChart({
 
   const targetYPx = targetValue && targetValue > 0 ? yPxFromTop(targetValue) : null;
   const xLabels = axisLabelIndices(days.length, period);
-  const compactAxis = days.length > 7;
+  const compactAxis = days.length > 5;
   // Value callouts only on week — denser periods clip into each other on mobile.
   const valueLabelIdx = showValueLabels
     ? sparseValueLabelIndices(
