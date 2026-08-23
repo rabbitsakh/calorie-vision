@@ -7,8 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 const LINKS = [
   { href: "#how", label: "Как работает" },
   { href: "#recognition", label: "Распознавание" },
-  { href: "#inside", label: "Возможности" },
-  { href: "#for-whom", label: "Для кого" },
+  { href: "#inside", label: "Внутри" },
   { href: "#free", label: "Бесплатно" },
   { href: "#install", label: "Установка" },
   { href: "#faq", label: "Вопросы" },
@@ -30,7 +29,7 @@ export function LandingTopNav() {
             {link.label}
           </a>
         ))}
-        <Link href="/login" className="landing-top-cta">
+        <Link href="/login" className="landing-top-cta landing-cta-sheen">
           Войти
         </Link>
       </nav>

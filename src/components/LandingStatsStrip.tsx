@@ -1,19 +1,19 @@
 const STATS = [
-  { value: "3", label: "способа добавить еду", detail: "фото · текст · штрихкод" },
-  { value: "~10 с", label: "от снимка до записи", detail: "с проверкой порции" },
-  { value: "0 ₽", label: "на этапе запуска", detail: "без подписки" },
-  { value: "PWA", label: "как приложение", detail: "иконка на экране «Домой»" },
+  { value: "фото · текст · EAN", label: "три входа в дневник" },
+  { value: "~10 с", label: "от снимка до записи" },
+  { value: "0 ₽", label: "на этапе запуска" },
+  { value: "PWA", label: "иконка на «Домой»" },
 ] as const;
 
+/** Dense typographic proof line — not a card strip. */
 export function LandingStatsStrip() {
   return (
-    <section className="landing-stats" aria-label="Ключевые факты">
-      <ul className="landing-stats-grid">
+    <section className="landing-proof" aria-label="Ключевые факты">
+      <ul className="landing-proof-list">
         {STATS.map((item) => (
-          <li key={item.label} className="landing-stat-card">
-            <p className="landing-stat-value">{item.value}</p>
-            <p className="landing-stat-label">{item.label}</p>
-            <p className="landing-stat-detail">{item.detail}</p>
+          <li key={item.label} className="landing-proof-item">
+            <span className="landing-proof-value">{item.value}</span>
+            <span className="landing-proof-label">{item.label}</span>
           </li>
         ))}
       </ul>

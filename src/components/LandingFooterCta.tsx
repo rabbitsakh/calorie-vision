@@ -1,14 +1,10 @@
-"use client";
-
 import Link from "next/link";
-import { Mascot } from "@/components/Mascot";
 import { LandingScrollReveal } from "@/components/LandingScrollReveal";
 
 export function LandingFooterCta() {
   return (
     <LandingScrollReveal>
       <section className="landing-footer-cta">
-        <Mascot pose="goal" size="lg" className="landing-footer-mascot landing-mascot-float" title="Талисман подсказывает начать" />
         <p className="landing-brand landing-brand-sm">Calorie Vision</p>
         <h2 className="landing-section-title">Попробуйте на сегодняшнем обеде</h2>
         <p className="landing-section-text">
@@ -17,7 +13,7 @@ export function LandingFooterCta() {
         </p>
         <p className="landing-footer-free">Сейчас полностью бесплатно — без подписки.</p>
         <div className="landing-cta landing-cta-row">
-          <Link href="/login" className="btn btn-primary landing-cta-primary">
+          <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
             Войти и начать
           </Link>
           <a href="#install" className="landing-cta-secondary">
