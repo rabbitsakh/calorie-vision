@@ -76,16 +76,27 @@ export async function POST(request: NextRequest) {
     }
 
     const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
-    const measuredAt = body.measuredAt ? new Date(body.measuredAt) : new Date();
+    const measuredAtRaw = body.measuredAt ? new Date(body.measuredAt) : new Date();
+    const measuredAt = isNaN(measuredAtRaw.getTime()) ? new Date() : measuredAtRaw;
 
-    const entry = await prisma.weightEntry.create({
-      data: {
-        userId: session.user.id,
-        date,
-        weightKg,
-        measuredAt: isNaN(measuredAt.getTime()) ? new Date() : measuredAt,
-      },
+    const existing = await prisma.weightEntry.findFirst({
+      where: { userId: session.user.id, date },
+      orderBy: weightEntryOrderOldestFirst,
     });
+
+    const entry = existing
+      ? await prisma.weightEntry.update({
+          where: { id: existing.id },
+          data: { weightKg, measuredAt },
+        })
+      : await prisma.weightEntry.create({
+          data: {
+            userId: session.user.id,
+            date,
+            weightKg,
+            measuredAt,
+          },
+        });
 
     return NextResponse.json({
       id: entry.id,

@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       prisma.mealEntry.findMany({
         where: { userId: session.user.id },
         select: { date: true },
+        distinct: ["date"],
         orderBy: { date: "desc" },
         take: 400,
       }),
@@ -78,12 +79,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const daysLoggedTotal = new Set(mealDates).size;
+    const daysLoggedTotal = mealDates.length;
 
-    // Soft week streak: Mon..today (meal days only)
+    // Soft week streak: Mon..today in user timezone (meal days only)
     const mealDateSet = new Set(mealDates);
-    const weekday = new Date(today + "T12:00:00Z").getUTCDay(); // 0=Sun
-    const mondayOffset = weekday === 0 ? 6 : weekday - 1;
+    const mondayOffset = Math.round(
+      (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${weekStart}T12:00:00Z`)) / 86_400_000,
+    );
     let daysLoggedThisWeek = 0;
     for (let i = 0; i <= mondayOffset; i++) {
       if (mealDateSet.has(shiftDateKeyUtc(weekStart, i))) daysLoggedThisWeek += 1;
@@ -151,37 +153,56 @@ export async function POST(request: NextRequest) {
     const timezone = user?.timezone ?? null;
     const weekStart = weekStartMonday(today, timezone);
 
-    const [existingMeal, existingFreeze, usedThisWeek] = await Promise.all([
-      prisma.mealEntry.findFirst({
-        where: { userId: session.user.id, date },
-      }),
-      prisma.streakFreeze.findFirst({
-        where: { userId: session.user.id, date },
-      }),
-      prisma.streakFreeze.findFirst({
-        where: { userId: session.user.id, weekStart },
-      }),
-    ]);
+    try {
+      const freeze = await prisma.$transaction(async (tx) => {
+        const [existingMeal, existingFreeze, usedThisWeek] = await Promise.all([
+          tx.mealEntry.findFirst({
+            where: { userId: session.user.id, date },
+          }),
+          tx.streakFreeze.findFirst({
+            where: { userId: session.user.id, date },
+          }),
+          tx.streakFreeze.findFirst({
+            where: { userId: session.user.id, weekStart },
+          }),
+        ]);
 
-    if (existingMeal) {
-      return NextResponse.json({ error: "В этот день уже есть записи" }, { status: 400 });
-    }
-    if (existingFreeze) {
-      return NextResponse.json({ error: "Этот день уже заморожен" }, { status: 400 });
-    }
-    if (usedThisWeek) {
-      return NextResponse.json({ error: "Заморозка уже использована на этой неделе" }, { status: 400 });
-    }
+        if (existingMeal) {
+          throw Object.assign(new Error("HAS_MEAL"), { code: "HAS_MEAL" });
+        }
+        if (existingFreeze) {
+          throw Object.assign(new Error("ALREADY_FROZEN"), { code: "ALREADY_FROZEN" });
+        }
+        if (usedThisWeek) {
+          throw Object.assign(new Error("WEEK_USED"), { code: "WEEK_USED" });
+        }
 
-    const freeze = await prisma.streakFreeze.create({
-      data: {
-        userId: session.user.id,
-        date,
-        weekStart,
-      },
-    });
+        return tx.streakFreeze.create({
+          data: {
+            userId: session.user.id,
+            date,
+            weekStart,
+          },
+        });
+      });
 
-    return NextResponse.json({ freeze, message: "Серия сохранена!" });
+      return NextResponse.json({ freeze, message: "Серия сохранена!" });
+    } catch (error) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code: unknown }).code)
+          : null;
+      if (code === "HAS_MEAL") {
+        return NextResponse.json({ error: "В этот день уже есть записи" }, { status: 400 });
+      }
+      if (code === "ALREADY_FROZEN") {
+        return NextResponse.json({ error: "Этот день уже заморожен" }, { status: 400 });
+      }
+      if (code === "WEEK_USED" || code === "P2002") {
+        return NextResponse.json({ error: "Заморозка уже использована на этой неделе" }, { status: 400 });
+      }
+      throw error;
+    }
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось заморозить серию" }, { status: 500 });

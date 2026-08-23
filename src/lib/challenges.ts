@@ -32,11 +32,5 @@ export function challengeDef(key: string): ChallengeDef | undefined {
   return CHALLENGE_DEFS.find((c) => c.key === key);
 }
 
-/** Monday YYYY-MM-DD for a date key (UTC noon anchor). */
-export function weekStartMonday(dateKey: string): string {
-  const d = new Date(dateKey + "T12:00:00Z");
-  const day = d.getUTCDay();
-  const offset = day === 0 ? 6 : day - 1;
-  d.setUTCDate(d.getUTCDate() - offset);
-  return d.toISOString().slice(0, 10);
-}
+/** Timezone-aware Monday YYYY-MM-DD (re-exported from streak-utils). */
+export { weekStartMonday } from "@/lib/streak-utils";

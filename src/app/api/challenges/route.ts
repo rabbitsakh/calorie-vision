@@ -63,8 +63,9 @@ export async function GET() {
       where: { id: session.user.id },
       select: { timezone: true },
     });
-    const today = toDateKeyTz(new Date(), user?.timezone);
-    const weekStart = weekStartMonday(today);
+    const timezone = user?.timezone ?? null;
+    const today = toDateKeyTz(new Date(), timezone);
+    const weekStart = weekStartMonday(today, timezone);
 
     const active = await prisma.userChallenge.findUnique({
       where: {
@@ -131,8 +132,9 @@ export async function POST(request: NextRequest) {
       where: { id: session.user.id },
       select: { timezone: true },
     });
-    const today = toDateKeyTz(new Date(), user?.timezone);
-    const weekStart = weekStartMonday(today);
+    const timezone = user?.timezone ?? null;
+    const today = toDateKeyTz(new Date(), timezone);
+    const weekStart = weekStartMonday(today, timezone);
 
     const existing = await prisma.userChallenge.findUnique({
       where: { userId_weekStart: { userId: session.user.id, weekStart } },
