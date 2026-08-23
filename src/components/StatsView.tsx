@@ -273,7 +273,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
   }
   const avgPoints = points.length >= 3 ? rollingAvg() : null;
   const xLabels = axisLabelIndices(days.length, period);
-  const compactAxis = days.length > 10;
+  const compactAxis = days.length > 5;
   const maxValueLabels = period === "week" ? 5 : period === "month" ? 4 : 3;
   const valueLabelIdx = sparseValueLabelIndices(points, maxValueLabels);
 
@@ -408,7 +408,7 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
 
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
   const xLabels = axisLabelIndices(days.length, period);
-  const compactAxis = days.length > 10;
+  const compactAxis = days.length > 5;
 
   return (
     <div className="flex flex-col gap-2">
