@@ -704,20 +704,20 @@ textarea {
 @keyframes mascot-arm-spin-left-cheer {
   0%,
   100% {
-    transform: rotate(-58deg);
+    transform: rotate(-12deg);
   }
   50% {
-    transform: rotate(-82deg);
+    transform: rotate(14deg);
   }
 }
 
 @keyframes mascot-arm-spin-right-cheer {
   0%,
   100% {
-    transform: rotate(58deg);
+    transform: rotate(12deg);
   }
   50% {
-    transform: rotate(82deg);
+    transform: rotate(-14deg);
   }
 }
 
@@ -2396,6 +2396,41 @@ textarea {
 
   .landing-phone-ring-progress {
     stroke-dashoffset: 66;
+  }
+}
+
+@media (max-width: 899px) {
+  .landing-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: auto;
+  }
+
+  .landing-hero-stage {
+    flex: 0 0 auto;
+    grid-area: auto;
+    max-height: 40vh;
+    min-height: 200px;
+    position: relative;
+  }
+
+  .landing-hero-copy {
+    flex: 0 0 auto;
+    grid-area: auto;
+    justify-content: flex-start;
+    padding: 0.35rem 1.5rem 1.5rem;
+    position: relative;
+    z-index: 3;
+  }
+
+  .landing-phone-hero {
+    bottom: 6%;
+    left: auto;
+    right: 6%;
+    top: auto;
+    transform: none;
+    width: min(148px, 28vw);
   }
 }
 

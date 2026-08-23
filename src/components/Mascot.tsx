@@ -96,7 +96,7 @@ export function Mascot({
     <svg
       width={px}
       height={px}
-      viewBox="-6 -8 108 112"
+      viewBox="-10 -14 116 118"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
@@ -479,73 +479,139 @@ export function Mascot({
       {/*
         Arms — nested translate → spin → translate-back so CSS rotate
         always pivots on shoulder joints in viewBox space.
+        Cheer uses dedicated raised geometry so hands stay readable above the head.
       */}
-      <g className={`mascot-arm-left ${armPoseClass}`}>
-        <g transform="translate(28 54)">
-          <g className="mascot-arm-left-spin">
-            <g transform="translate(-28 -54)">
-              <path
-                d="M30 50c-11.5-.5-20.5 8.5-19.2 19.5.8 6.8 8 9.8 15.2 4.2 3.8-2.8 6.2-7.8 5.8-12.5C31.4 56 31 52.2 30 50Z"
-                fill={`url(#${armGrad})`}
-                stroke={INK_DARK}
-                strokeWidth="1.4"
-                strokeOpacity="0.34"
-              />
-              <ellipse
-                cx="18.8"
-                cy="68.2"
-                rx="6.6"
-                ry="5.6"
-                fill="#E6FFFA"
-                stroke={INK_DARK}
-                strokeWidth="1.2"
-                strokeOpacity="0.3"
-              />
-              <ellipse cx="16.2" cy="66.6" rx="1.65" ry="2.4" fill="#CCFBF1" />
-              <ellipse cx="19.5" cy="65.6" rx="1.55" ry="2.2" fill="#CCFBF1" />
-              <ellipse cx="22.6" cy="66.8" rx="1.4" ry="2" fill="#99F6E4" />
-              <ellipse cx="17.2" cy="64.4" rx="1.7" ry="1.2" fill="#FFFFFF" opacity="0.6" />
-            </g>
-          </g>
-        </g>
-      </g>
-
-      <g className={`mascot-arm-right ${armPoseClass}`}>
-        <g transform="translate(68 54)">
-          <g className="mascot-arm-right-spin">
-            <g transform="translate(-68 -54)">
-              <path
-                d="M66 50c11.5-.5 20.5 8.5 19.2 19.5-.8 6.8-8 9.8-15.2 4.2-3.8-2.8-6.2-7.8-5.8-12.5C64.6 56 65 52.2 66 50Z"
-                fill={`url(#${armGrad})`}
-                stroke={INK_DARK}
-                strokeWidth="1.4"
-                strokeOpacity="0.34"
-              />
-              <ellipse
-                cx="77.2"
-                cy="68.2"
-                rx="6.6"
-                ry="5.6"
-                fill="#E6FFFA"
-                stroke={INK_DARK}
-                strokeWidth="1.2"
-                strokeOpacity="0.3"
-              />
-              <ellipse cx="79.8" cy="66.6" rx="1.65" ry="2.4" fill="#CCFBF1" />
-              <ellipse cx="76.5" cy="65.6" rx="1.55" ry="2.2" fill="#CCFBF1" />
-              <ellipse cx="73.4" cy="66.8" rx="1.4" ry="2" fill="#99F6E4" />
-              <ellipse cx="78.8" cy="64.4" rx="1.7" ry="1.2" fill="#FFFFFF" opacity="0.6" />
-              {pose === "tip" ? (
-                <g className="mascot-tip-dot">
-                  <circle cx="80" cy="34" r="5.2" fill="#F0FDFA" stroke={INK} strokeWidth="1.55" />
-                  <circle cx="80" cy="34" r="2.1" fill={INK} />
-                  <circle cx="81.3" cy="32.7" r="0.95" fill="#FFFFFF" opacity="0.75" />
+      {cheering ? (
+        <>
+          <g className="mascot-arm-left mascot-arm-pose-cheer">
+            <g transform="translate(30 42)">
+              <g className="mascot-arm-left-spin">
+                <g transform="translate(-30 -42)">
+                  <path
+                    d="M32 44c-8-14-20-18-26-10-4.5 6 0 16 10 18 5.5 1.2 12-1 16-8Z"
+                    fill={`url(#${armGrad})`}
+                    stroke={INK_DARK}
+                    strokeWidth="1.45"
+                    strokeOpacity="0.36"
+                  />
+                  <ellipse
+                    cx="10"
+                    cy="30"
+                    rx="7.4"
+                    ry="6.2"
+                    fill="#E6FFFA"
+                    stroke={INK_DARK}
+                    strokeWidth="1.25"
+                    strokeOpacity="0.32"
+                  />
+                  <ellipse cx="7.2" cy="27.8" rx="1.85" ry="2.7" fill="#CCFBF1" />
+                  <ellipse cx="10.8" cy="26.6" rx="1.75" ry="2.5" fill="#CCFBF1" />
+                  <ellipse cx="14.4" cy="28" rx="1.55" ry="2.2" fill="#99F6E4" />
+                  <ellipse cx="8.4" cy="25.4" rx="1.9" ry="1.35" fill="#FFFFFF" opacity="0.7" />
                 </g>
-              ) : null}
+              </g>
             </g>
           </g>
-        </g>
-      </g>
+          <g className="mascot-arm-right mascot-arm-pose-cheer">
+            <g transform="translate(66 42)">
+              <g className="mascot-arm-right-spin">
+                <g transform="translate(-66 -42)">
+                  <path
+                    d="M64 44c8-14 20-18 26-10 4.5 6 0 16-10 18-5.5 1.2-12-1-16-8Z"
+                    fill={`url(#${armGrad})`}
+                    stroke={INK_DARK}
+                    strokeWidth="1.45"
+                    strokeOpacity="0.36"
+                  />
+                  <ellipse
+                    cx="86"
+                    cy="30"
+                    rx="7.4"
+                    ry="6.2"
+                    fill="#E6FFFA"
+                    stroke={INK_DARK}
+                    strokeWidth="1.25"
+                    strokeOpacity="0.32"
+                  />
+                  <ellipse cx="88.8" cy="27.8" rx="1.85" ry="2.7" fill="#CCFBF1" />
+                  <ellipse cx="85.2" cy="26.6" rx="1.75" ry="2.5" fill="#CCFBF1" />
+                  <ellipse cx="81.6" cy="28" rx="1.55" ry="2.2" fill="#99F6E4" />
+                  <ellipse cx="87.6" cy="25.4" rx="1.9" ry="1.35" fill="#FFFFFF" opacity="0.7" />
+                </g>
+              </g>
+            </g>
+          </g>
+        </>
+      ) : (
+        <>
+          <g className={`mascot-arm-left ${armPoseClass}`}>
+            <g transform="translate(26 48)">
+              <g className="mascot-arm-left-spin">
+                <g transform="translate(-26 -48)">
+                  <path
+                    d="M28 46c-12.5 1.5-20.5 12-18.2 22.5 1.2 5.8 7.8 8.2 14.5 3.2 3.5-2.6 5.8-7.2 5.2-11.8C29.2 54.2 29 48.8 28 46Z"
+                    fill={`url(#${armGrad})`}
+                    stroke={INK_DARK}
+                    strokeWidth="1.45"
+                    strokeOpacity="0.36"
+                  />
+                  <ellipse
+                    cx="17.5"
+                    cy="66"
+                    rx="7.2"
+                    ry="6"
+                    fill="#E6FFFA"
+                    stroke={INK_DARK}
+                    strokeWidth="1.25"
+                    strokeOpacity="0.32"
+                  />
+                  <ellipse cx="14.6" cy="64.2" rx="1.8" ry="2.6" fill="#CCFBF1" />
+                  <ellipse cx="18.2" cy="63" rx="1.7" ry="2.4" fill="#CCFBF1" />
+                  <ellipse cx="21.6" cy="64.4" rx="1.5" ry="2.15" fill="#99F6E4" />
+                  <ellipse cx="15.8" cy="61.8" rx="1.85" ry="1.3" fill="#FFFFFF" opacity="0.65" />
+                </g>
+              </g>
+            </g>
+          </g>
+
+          <g className={`mascot-arm-right ${armPoseClass}`}>
+            <g transform="translate(70 48)">
+              <g className="mascot-arm-right-spin">
+                <g transform="translate(-70 -48)">
+                  <path
+                    d="M68 46c12.5 1.5 20.5 12 18.2 22.5-1.2 5.8-7.8 8.2-14.5 3.2-3.5-2.6-5.8-7.2-5.2-11.8C66.8 54.2 67 48.8 68 46Z"
+                    fill={`url(#${armGrad})`}
+                    stroke={INK_DARK}
+                    strokeWidth="1.45"
+                    strokeOpacity="0.36"
+                  />
+                  <ellipse
+                    cx="78.5"
+                    cy="66"
+                    rx="7.2"
+                    ry="6"
+                    fill="#E6FFFA"
+                    stroke={INK_DARK}
+                    strokeWidth="1.25"
+                    strokeOpacity="0.32"
+                  />
+                  <ellipse cx="81.4" cy="64.2" rx="1.8" ry="2.6" fill="#CCFBF1" />
+                  <ellipse cx="77.8" cy="63" rx="1.7" ry="2.4" fill="#CCFBF1" />
+                  <ellipse cx="74.4" cy="64.4" rx="1.5" ry="2.15" fill="#99F6E4" />
+                  <ellipse cx="80.2" cy="61.8" rx="1.85" ry="1.3" fill="#FFFFFF" opacity="0.65" />
+                  {pose === "tip" ? (
+                    <g className="mascot-tip-dot">
+                      <circle cx="82" cy="30" r="5.2" fill="#F0FDFA" stroke={INK} strokeWidth="1.55" />
+                      <circle cx="82" cy="30" r="2.1" fill={INK} />
+                      <circle cx="83.3" cy="28.7" r="0.95" fill="#FFFFFF" opacity="0.75" />
+                    </g>
+                  ) : null}
+                </g>
+              </g>
+            </g>
+          </g>
+        </>
+      )}
 
       {pose === "streak" ? (
         <g className="mascot-flame">
