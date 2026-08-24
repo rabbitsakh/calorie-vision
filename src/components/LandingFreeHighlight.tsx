@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Mascot } from "@/components/Mascot";
 
-/** Единственное место маскота на лендинге — он ведёт блок про бесплатный доступ. */
+/** Маскот на лендинге (1/2): блок «Бесплатно» — pose tip, ведёт к регистрации. */
 export function LandingFreeHighlight() {
   return (
     <section id="free" className="landing-section landing-free-section">
