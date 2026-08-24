@@ -18,6 +18,54 @@ export function shouldTrackMetrikaPath(pathname: string): boolean {
   return !pathname.startsWith("/admin");
 }
 
+/** Funnel goals used in client components. */
+export const METRIKA_GOALS = {
+  login: "login",
+  firstMealSave: "first_meal_save",
+  d7Return: "d7_return",
+} as const;
+
+export type MetrikaGoal = (typeof METRIKA_GOALS)[keyof typeof METRIKA_GOALS];
+
+let clientCounterId: string | null = null;
+
+/** Called from YandexMetrika so reachGoal works without NEXT_PUBLIC id. */
+export function setMetrikaClientId(counterId: string | null | undefined): void {
+  clientCounterId = parseMetrikaId(counterId);
+}
+
+export function getMetrikaClientId(): string | null {
+  return (
+    clientCounterId ??
+    parseMetrikaId(
+      typeof process !== "undefined" ? process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID : undefined,
+    )
+  );
+}
+
+declare global {
+  interface Window {
+    ym?: (counterId: number, method: string, ...args: unknown[]) => void;
+  }
+}
+
+/** Fire a Yandex Metrika reachGoal when the counter is available. */
+export function trackMetrikaGoal(goal: MetrikaGoal | string): void {
+  const win =
+    typeof globalThis !== "undefined"
+      ? (globalThis as { window?: Window & { ym?: (counterId: number, method: string, ...args: unknown[]) => void } })
+          .window
+      : undefined;
+  if (!win?.ym) {
+    return;
+  }
+  const id = getMetrikaClientId();
+  if (!id) {
+    return;
+  }
+  win.ym(Number(id), "reachGoal", goal);
+}
+
 /** Official tag.js stub + first hit. `counterId` must already be parseMetrikaId-safe. */
 export function buildMetrikaInitScript(counterId: string): string {
   const id = parseMetrikaId(counterId);

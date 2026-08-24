@@ -22,6 +22,7 @@ import {
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
+import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
 import { Chip } from "@/components/Chip";
 
 type NutritionFields = {
@@ -662,6 +663,7 @@ export function ConfirmationCard({
         if (!response.ok) {
           throw new Error(data.error ?? "Ошибка сохранения");
         }
+        trackFirstMealSaveGoal();
         onSaved({ rememberedCorrection });
         return;
       }
@@ -676,6 +678,7 @@ export function ConfirmationCard({
         throw new Error(data.error ?? "Ошибка сохранения");
       }
 
+      trackFirstMealSaveGoal();
       onSaved({ rememberedCorrection });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить");

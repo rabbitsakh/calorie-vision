@@ -1,12 +1,18 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useCallback, useEffect, useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { SEX_OPTIONS, isSex, type Sex } from "@/lib/diet";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
+import {
+  buildReferralShareUrl,
+  telegramShareUrl,
+  vkShareUrl,
+} from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 
 type AccountResponse = {
@@ -21,6 +27,7 @@ type AccountResponse = {
   birthYear: number | null;
   linkedProviders: string[];
   emailLocked: boolean;
+  referralCode?: string;
   error?: string;
 };
 
@@ -61,9 +68,14 @@ export function ProfileForm() {
   const [heightCm, setHeightCm] = useState("");
   const [birthYear, setBirthYear] = useState("");
   const [emailLocked, setEmailLocked] = useState(false);
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTyped, setDeleteTyped] = useState("");
+  const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +101,7 @@ export function ProfileForm() {
       setHeightCm(data.heightCm ? String(data.heightCm) : "");
       setBirthYear(data.birthYear ? String(data.birthYear) : "");
       setEmailLocked(data.emailLocked);
+      setReferralCode(data.referralCode?.trim() || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
@@ -176,6 +189,53 @@ export function ProfileForm() {
     } finally {
       setUploading(false);
       event.target.value = "";
+    }
+  }
+
+  const referralUrl = useMemo(() => {
+    if (!referralCode) return "";
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return buildReferralShareUrl(referralCode, origin);
+  }, [referralCode]);
+
+  const shareText = "Присоединяйся к Calorie Vision — считай калории по фото";
+
+  async function handleCopyReferral() {
+    if (!referralUrl) return;
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setCopyStatus("Ссылка скопирована");
+    } catch {
+      setCopyStatus("Не удалось скопировать");
+    }
+    window.setTimeout(() => setCopyStatus(null), 2500);
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteTyped.trim() !== ACCOUNT_DELETE_CONFIRM) {
+      setError(`Введите ${ACCOUNT_DELETE_CONFIRM}, чтобы подтвердить удаление`);
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(withBasePath("/api/account"), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: ACCOUNT_DELETE_CONFIRM }),
+      });
+      const data = (await response.json()) as { error?: string; ok?: boolean };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Не удалось удалить аккаунт");
+      }
+
+      await signOut({ callbackUrl: withBasePath("/login") });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка удаления аккаунта");
+      setDeleting(false);
     }
   }
 
@@ -336,7 +396,7 @@ export function ProfileForm() {
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
           <div className="flex flex-wrap gap-3">
-            <button type="submit" className="btn btn-primary" disabled={saving || uploading}>
+            <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
               {saving ? "Сохраняем..." : "Сохранить профиль"}
             </button>
             <a
@@ -351,6 +411,98 @@ export function ProfileForm() {
             </a>
           </div>
         </form>
+      ) : null}
+
+      {!loading && referralCode ? (
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <h3 className="font-display text-base font-semibold text-slate-800">Пригласить друзей</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения.
+          </p>
+          <p className="mt-3 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+            {referralUrl}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="btn btn-secondary text-sm" onClick={() => void handleCopyReferral()}>
+              Копировать
+            </button>
+            <a
+              className="btn btn-secondary text-sm"
+              href={telegramShareUrl(referralUrl, shareText)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Telegram
+            </a>
+            <a
+              className="btn btn-secondary text-sm"
+              href={vkShareUrl(referralUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              VK
+            </a>
+          </div>
+          {copyStatus ? <p className="mt-2 text-sm text-teal-700">{copyStatus}</p> : null}
+        </div>
+      ) : null}
+
+      {!loading ? (
+        <div className="mt-6 border-t border-slate-200 pt-5">
+          <h3 className="font-display text-base font-semibold text-red-700">Удаление аккаунта</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
+          </p>
+          {!deleteConfirmOpen ? (
+            <button
+              type="button"
+              className="btn btn-danger mt-3"
+              onClick={() => {
+                setDeleteConfirmOpen(true);
+                setDeleteTyped("");
+                setError(null);
+              }}
+            >
+              Удалить аккаунт
+            </button>
+          ) : (
+            <div className="mt-3 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm text-red-800">
+                Введите <span className="font-mono font-semibold">{ACCOUNT_DELETE_CONFIRM}</span> для
+                подтверждения:
+              </p>
+              <input
+                value={deleteTyped}
+                onChange={(event) => setDeleteTyped(event.target.value)}
+                autoComplete="off"
+                placeholder={ACCOUNT_DELETE_CONFIRM}
+                className="input"
+                disabled={deleting}
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={deleting || deleteTyped.trim() !== ACCOUNT_DELETE_CONFIRM}
+                  onClick={() => void handleDeleteAccount()}
+                >
+                  {deleting ? "Удаляем..." : "Удалить навсегда"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={deleting}
+                  onClick={() => {
+                    setDeleteConfirmOpen(false);
+                    setDeleteTyped("");
+                  }}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       ) : null}
     </section>
   );
