@@ -1,20 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { Mascot } from "@/components/Mascot";
+import { LiveMascot } from "@/components/LiveMascot";
 
 /** Маскот на лендинге (1/2): блок «Бесплатно» — pose tip, ведёт к регистрации. */
 export function LandingFreeHighlight() {
   return (
     <section id="free" className="landing-section landing-free-section">
       <div className="landing-free-layout">
-        <div className="landing-free-mascot-stage" aria-hidden>
-          <div className="landing-free-mascot-glow" />
-          <Mascot
+        <div className="landing-free-mascot-stage">
+          <div className="landing-free-mascot-glow" aria-hidden />
+          <LiveMascot
             pose="tip"
             size="lg"
             className="landing-free-mascot landing-mascot-float"
             title="Талисман Calorie Vision"
+            idleReel={false}
+            interactive
           />
         </div>
         <div className="landing-free-copy">

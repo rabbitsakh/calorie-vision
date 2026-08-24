@@ -796,7 +796,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <Mascot pose="empty" size="md" title="Пустой дневник" />
+            <Mascot pose="empty" size="md" title="Пустой дневник" entrance />
             <p className="font-medium text-slate-700">Дневник пуст — добавьте первый приём пищи</p>
             <p className="max-w-xs text-sm">Сфотографируйте тарелку или введите название — прогресс появится сразу.</p>
             <button
