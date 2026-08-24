@@ -1348,29 +1348,53 @@ textarea {
   }
 }
 
-/* One-shot gestures */
-.mascot-gesture-pet {
-  animation: mascot-pet-hop 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) both !important;
+/* One-shot gestures — on inner layer so idle bob can pause instead of restarting */
+.mascot-gesture-active {
+  animation-play-state: paused !important;
 }
 
-.mascot-gesture-react {
-  animation: mascot-cheer-jump 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) both !important;
+.mascot-gesture-active .mascot-shadow,
+.mascot-gesture-active .mascot-arm-left-spin,
+.mascot-gesture-active .mascot-arm-right-spin,
+.mascot-gesture-active .mascot-leaf-left-spin,
+.mascot-gesture-active .mascot-leaf-right-spin {
+  animation-play-state: paused !important;
 }
 
-.mascot-gesture-wave {
-  animation: mascot-tip-nod 1.2s ease-in-out both !important;
+.mascot-gesture-layer.mascot-gesture-pet {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-pet-hop 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
-.mascot-gesture-yawn {
-  animation: mascot-yawn-body 1.4s ease-in-out both !important;
+.mascot-gesture-layer.mascot-gesture-react {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-cheer-jump 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
-.mascot-gesture-stretch {
-  animation: mascot-stretch-body 1.3s ease-in-out both !important;
+.mascot-gesture-layer.mascot-gesture-wave {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-tip-nod 1.2s ease-in-out both;
 }
 
-.mascot-gesture-look {
-  animation: mascot-idle-bob 1.6s ease-in-out both !important;
+.mascot-gesture-layer.mascot-gesture-yawn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-yawn-body 1.4s ease-in-out both;
+}
+
+.mascot-gesture-layer.mascot-gesture-stretch {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: mascot-stretch-body 1.3s ease-in-out both;
+}
+
+.mascot-gesture-layer.mascot-gesture-look {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-idle-bob 1.6s ease-in-out both;
 }
 
 @keyframes mascot-pet-hop {
@@ -1428,6 +1452,11 @@ textarea {
   45% {
     transform: scale(1.05, 1.15);
   }
+}
+
+/* Entrance on a wrapper — never fights gesture/idle animations on the SVG */
+.mascot-entrance-wrap {
+  animation: mascot-entrance-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
 .mascot-entrance {
@@ -1496,6 +1525,7 @@ textarea {
   .mascot-root *,
   .mascot-gesture,
   .mascot-entrance,
+  .mascot-entrance-wrap,
   .mascot-exit,
   .mascot-save-toast {
     animation: none !important;
@@ -3030,6 +3060,14 @@ textarea {
   filter: hue-rotate(28deg) saturate(1.05);
 }
 
+.mascot-skin-newyear .mascot-aura {
+  filter: saturate(1.12) brightness(1.04);
+}
+
+.mascot-skin-halloween .mascot-aura {
+  filter: hue-rotate(-8deg) saturate(0.9);
+}
+
 .mascot-snowflake-a,
 .mascot-snowflake-b {
   animation: mascot-snow-drift 4.5s ease-in-out infinite;
@@ -3097,6 +3135,47 @@ textarea {
   }
   50% {
     transform: translateY(6px) rotate(8deg);
+  }
+}
+
+.mascot-ny-sparkle-a,
+.mascot-ny-sparkle-b {
+  animation: mascot-goal-sparkle 1.8s ease-in-out infinite;
+}
+
+.mascot-ny-sparkle-b {
+  animation-delay: -0.9s;
+}
+
+.mascot-bat {
+  animation: mascot-bat-flutter 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes mascot-bat-flutter {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.mascot-pumpkin {
+  animation: mascot-pumpkin-wobble 3s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@keyframes mascot-pumpkin-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(4deg);
   }
 }
 
