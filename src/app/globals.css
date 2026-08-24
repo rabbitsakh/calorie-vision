@@ -3013,6 +3013,99 @@ textarea {
   }
 }
 
+/* --- Mascot seasonal skins --- */
+.mascot-skin-winter .mascot-aura {
+  filter: hue-rotate(18deg) saturate(0.92);
+}
+
+.mascot-skin-spring .mascot-aura {
+  filter: hue-rotate(-12deg) saturate(1.08);
+}
+
+.mascot-skin-summer .mascot-body {
+  filter: saturate(1.06) brightness(1.03);
+}
+
+.mascot-skin-autumn .mascot-aura {
+  filter: hue-rotate(28deg) saturate(1.05);
+}
+
+.mascot-snowflake-a,
+.mascot-snowflake-b {
+  animation: mascot-snow-drift 4.5s ease-in-out infinite;
+}
+
+.mascot-snowflake-b {
+  animation-delay: -2.2s;
+}
+
+@keyframes mascot-snow-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 1;
+  }
+}
+
+.mascot-petal-a {
+  animation: mascot-petal-float 3.2s ease-in-out infinite;
+}
+
+@keyframes mascot-petal-float {
+  0%,
+  100% {
+    transform: rotate(20deg) translateY(0);
+  }
+  50% {
+    transform: rotate(24deg) translateY(4px);
+  }
+}
+
+.mascot-sun-glow {
+  animation: mascot-sun-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes mascot-sun-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.28;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.42;
+  }
+}
+
+.mascot-leaf-fall-a {
+  animation: mascot-leaf-fall 5s ease-in-out infinite;
+}
+
+.mascot-leaf-fall-b {
+  animation: mascot-leaf-fall 5.5s ease-in-out infinite;
+  animation-delay: -2.5s;
+}
+
+@keyframes mascot-leaf-fall {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(6px) rotate(8deg);
+  }
+}
+
+.mascot-rive-wrap {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

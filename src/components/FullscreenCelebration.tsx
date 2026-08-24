@@ -4,7 +4,8 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
-import { Mascot, type MascotPose } from "@/components/Mascot";
+import { MascotRenderer } from "@/components/MascotRenderer";
+import type { MascotPose } from "@/components/Mascot";
 import { getCelebrationPortalHost } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 
@@ -175,7 +176,7 @@ export function FullscreenCelebration({
       >
         <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
           <div className="fs-celeb-halo" aria-hidden />
-          <Mascot pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
+          <MascotRenderer pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
           {badge ? (
             <span
               className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}

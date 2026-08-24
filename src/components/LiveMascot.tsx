@@ -1,6 +1,7 @@
 "use client";
 
-import { Mascot, type MascotPose } from "@/components/Mascot";
+import { MascotRenderer } from "@/components/MascotRenderer";
+import type { MascotPose } from "@/components/Mascot";
 import { useMascotLiveness } from "@/lib/use-mascot-liveness";
 
 type LiveMascotProps = {
@@ -36,7 +37,7 @@ export function LiveMascot({
   });
 
   return (
-    <Mascot
+    <MascotRenderer
       pose={pose}
       gesture={gesture}
       size={size}
