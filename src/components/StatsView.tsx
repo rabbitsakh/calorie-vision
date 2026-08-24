@@ -580,8 +580,8 @@ export function StatsView({ endDate }: StatsViewProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Period toggle — sticky so it stays visible when scrolling */}
-      <div className="sticky top-0 z-20 -mx-4 bg-[var(--background)] px-4 pb-2 pt-1 md:static md:mx-0 md:bg-transparent md:p-0">
+      {/* Period toggle — sticky below iOS status bar (safe-area), not under the clock */}
+      <div className="sticky top-0 z-20 -mx-4 bg-[var(--background)] px-4 pb-2 pt-[max(0.25rem,env(safe-area-inset-top,0px))] md:static md:mx-0 md:bg-transparent md:p-0">
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:max-w-md">
           {([
             ["week", "7 дней"],

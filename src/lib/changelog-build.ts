@@ -58,6 +58,8 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Mascot lively wave 8.*$/i, "Маскот: preview liveliness + cv-release-lively"],
   [/^Mascot seasonal.*$/i, "Маскот: сезонные скины (зима/весна/лето/осень) + Rive fallback"],
   [/^Fix barcode portion kcal.*$/i, "Исправление: калории батончиков по штрихкоду больше не занижаются"],
+  [/^Fix stats sticky.*$/i, "Статистика: липкая полоска периода не залезает под часы"],
+  [/^Fix stats period strip.*$/i, "Статистика: липкая полоска периода не залезает под часы"],
   [/^Landing mascot parallax.*$/i, "Лендинг: маскот, parallax, тексты и блок «бесплатно»"],
   [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
   [/^Improve food recognition quality.*$/i, "Улучшено распознавание: тарелки, клетчатка, упаковки на фото"],
