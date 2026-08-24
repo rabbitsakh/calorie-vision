@@ -37,9 +37,11 @@ type ChallengesResponse = {
 type WeeklyChallengeProps = {
   selectedDate: string;
   refreshKey: number;
+  /** One-line strip for collapsed habits accordion. */
+  mini?: boolean;
 };
 
-export function WeeklyChallenge({ selectedDate, refreshKey }: WeeklyChallengeProps) {
+export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: WeeklyChallengeProps) {
   const [data, setData] = useState<ChallengesResponse | null>(null);
   const [hidden, setHidden] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
@@ -103,6 +105,22 @@ export function WeeklyChallenge({ selectedDate, refreshKey }: WeeklyChallengePro
   }
 
   if (!data) return null;
+
+  if (mini) {
+    const active = data.active;
+    const label = active
+      ? active.completed
+        ? `${active.title} ✓`
+        : `${active.progress}/${active.target}`
+      : "Выбрать цель";
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900">
+        <span className="truncate" title={active?.title ?? "Челлендж недели"}>
+          {active ? active.title : "Челлендж"} · {label}
+        </span>
+      </div>
+    );
+  }
 
   if (hidden) {
     return (

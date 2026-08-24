@@ -27,6 +27,8 @@ import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { OnboardingOverlay } from "@/components/OnboardingOverlay";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -81,8 +83,10 @@ export default function RationPage() {
       }
     >
       <AuthGate>
-        <div className="ration-page flex flex-col gap-4 md:gap-5">
+        <div className="ration-page flex flex-col gap-3 md:gap-4">
+          <OnboardingOverlay />
           <MascotSaveReaction />
+          <ProfileCompletionBanner />
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
           <FoodAddPanel selectedDate={date} onSaved={bump} onPendingChange={setConfirmOpen} />
@@ -95,6 +99,13 @@ export default function RationPage() {
             onChanged={bump}
             onTotalsChange={setTotalCalories}
             onAddFood={scrollToFoodAdd}
+          />
+
+          <QuickAddAgain
+            selectedDate={date}
+            refreshKey={refreshKey}
+            totalCalories={totalCalories}
+            onSaved={bump}
           />
 
           <WaterTracker selectedDate={date} onChanged={bump} />
@@ -112,17 +123,10 @@ export default function RationPage() {
             <MotivationTip today={today} selectedDate={date} quietHide />
           </MotivationQueue>
 
-          <QuickAddAgain
-            selectedDate={date}
-            refreshKey={refreshKey}
-            totalCalories={totalCalories}
-            onSaved={bump}
-          />
-
           <section className="card overflow-hidden">
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left md:px-5"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
               onClick={() => setShowHabits((value) => !value)}
               aria-expanded={showHabits}
             >
@@ -134,14 +138,19 @@ export default function RationPage() {
               </div>
               <ChevronIcon open={showHabits} />
             </button>
-            {showHabits ? (
-              <div className="flex flex-col gap-4 border-t border-slate-100 p-4 md:p-5">
+            {!showHabits ? (
+              <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
                 <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
                 <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
                 <DiaryNoteWidget selectedDate={date} />
                 <PushNotificationPrompt />
               </div>
-            ) : null}
+            )}
           </section>
 
           <CelebrationOrchestrator>

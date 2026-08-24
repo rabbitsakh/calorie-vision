@@ -46,11 +46,14 @@ export function StreakWidget({
   selectedDate,
   refreshKey,
   compact = false,
+  mini = false,
 }: {
   selectedDate: string;
   refreshKey: number;
   /** Collapsed summary with expand for calendar/freeze details. */
   compact?: boolean;
+  /** One-line strip for collapsed habits accordion. */
+  mini?: boolean;
 }) {
   const [data, setData] = useState<StreakData | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -100,6 +103,25 @@ export function StreakWidget({
 
   if (!data) return null;
 
+  const { streak, longestStreak, nextMilestone, daysUntilNext, last14, daysLoggedTotal } = data;
+  const isRecord = streak >= longestStreak && streak > 1;
+  const hasStreak = streak >= 1;
+
+  if (mini) {
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-900">
+        <StreakGlyph streak={hasStreak ? streak : 0} className="h-4 w-4 shrink-0" />
+        <span className="truncate">
+          {hasStreak
+            ? `${streak} ${pluralDays(streak)}`
+            : daysLoggedTotal > 0
+              ? "Серия"
+              : "Старт"}
+        </span>
+      </div>
+    );
+  }
+
   if (hidden) {
     return (
       <button
@@ -119,10 +141,6 @@ export function StreakWidget({
       </button>
     );
   }
-
-  const { streak, longestStreak, nextMilestone, daysUntilNext, last14, daysLoggedTotal } = data;
-  const isRecord = streak >= longestStreak && streak > 1;
-  const hasStreak = streak >= 1;
 
   // Find the previous milestone for progress bar start
   const MILESTONES = [3, 7, 14, 30, 60, 100, 200, 365];
