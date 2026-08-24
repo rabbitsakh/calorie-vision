@@ -4,7 +4,7 @@
 
 import type { MascotPose } from "@/components/MascotSvg";
 import type { MascotGesture } from "@/lib/mascot-liveness";
-import type { MascotRendererMode } from "@/lib/mascot-skin";
+import type { MascotRendererMode, MascotSkinId } from "@/lib/mascot-skin";
 
 export const MASCOT_ART_POSES = [
   "idle",
@@ -17,16 +17,25 @@ export const MASCOT_ART_POSES = [
 
 export type MascotArtPoseId = (typeof MASCOT_ART_POSES)[number] | "pet";
 
+/** Seasonal stills that ship under /mascot/art/{skin}/{pose}.webp */
+export const MASCOT_ART_SEASONAL: Record<
+  Exclude<MascotSkinId, "default">,
+  readonly MascotArtPoseId[]
+> = {
+  winter: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  spring: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  summer: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  autumn: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  newyear: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  halloween: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+};
+
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */
 const GESTURE_ART: Partial<Record<MascotGesture, MascotArtPoseId>> = {
   pet: "pet",
   react: "cheer",
   wave: "cheer",
 };
-
-export function mascotArtUrl(pose: MascotArtPoseId): string {
-  return `/mascot/art/${pose}.webp`;
-}
 
 /** Resolve which art still to show for pose + optional one-shot gesture. */
 export function resolveMascotArtPose(
@@ -38,6 +47,25 @@ export function resolveMascotArtPose(
     if (mapped) return mapped;
   }
   return pose;
+}
+
+function skinHasArt(skin: MascotSkinId, pose: MascotArtPoseId): boolean {
+  if (skin === "default") return false;
+  return (MASCOT_ART_SEASONAL[skin] as readonly MascotArtPoseId[]).includes(pose);
+}
+
+/**
+ * Default poses live at /mascot/art/{pose}.webp.
+ * Seasonal: /mascot/art/{skin}/{pose}.webp when listed in MASCOT_ART_SEASONAL.
+ */
+export function mascotArtUrl(
+  pose: MascotArtPoseId,
+  skin: MascotSkinId = "default",
+): string {
+  if (skinHasArt(skin, pose)) {
+    return `/mascot/art/${skin}/${pose}.webp`;
+  }
+  return `/mascot/art/${pose}.webp`;
 }
 
 /** Art wins in auto when assets ship with the app (always true for built-in V5 set). */

@@ -12,6 +12,21 @@ describe("mascot-art", () => {
     assert.equal(mascotArtUrl("pet"), "/mascot/art/pet.webp");
   });
 
+  test("mascotArtUrl uses seasonal folders for all poses", () => {
+    assert.equal(mascotArtUrl("idle", "winter"), "/mascot/art/winter/idle.webp");
+    assert.equal(mascotArtUrl("cheer", "winter"), "/mascot/art/winter/cheer.webp");
+    assert.equal(mascotArtUrl("pet", "autumn"), "/mascot/art/autumn/pet.webp");
+    assert.equal(mascotArtUrl("streak", "winter"), "/mascot/art/winter/streak.webp");
+    assert.equal(mascotArtUrl("goal", "halloween"), "/mascot/art/halloween/goal.webp");
+    assert.equal(mascotArtUrl("empty", "spring"), "/mascot/art/spring/empty.webp");
+    assert.equal(mascotArtUrl("tip", "summer"), "/mascot/art/summer/tip.webp");
+  });
+
+  test("mascotArtUrl falls back to default only for unknown skins", () => {
+    assert.equal(mascotArtUrl("streak", "default"), "/mascot/art/streak.webp");
+    assert.equal(mascotArtUrl("goal", "default"), "/mascot/art/goal.webp");
+  });
+
   test("resolveMascotArtPose maps pet/react gestures", () => {
     assert.equal(resolveMascotArtPose("idle", "none"), "idle");
     assert.equal(resolveMascotArtPose("idle", "pet"), "pet");

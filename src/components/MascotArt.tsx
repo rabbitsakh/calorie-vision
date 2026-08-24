@@ -7,6 +7,7 @@ import {
 } from "react";
 import { mascotMotionClass, type MascotSvgProps } from "@/components/MascotSvg";
 import { mascotArtUrl, resolveMascotArtPose } from "@/lib/mascot-art";
+import type { MascotSkinId } from "@/lib/mascot-skin";
 
 const SIZE_PX = {
   sm: 44,
@@ -16,6 +17,7 @@ const SIZE_PX = {
 } as const;
 
 export type MascotArtProps = Omit<MascotSvgProps, "skin"> & {
+  skin?: MascotSkinId;
   onFail?: () => void;
 };
 
@@ -25,6 +27,7 @@ export type MascotArtProps = Omit<MascotSvgProps, "skin"> & {
 export function MascotArt({
   pose = "idle",
   gesture = "none",
+  skin = "default",
   size = "md",
   className,
   title = "Талисман Calorie Vision",
@@ -40,7 +43,7 @@ export function MascotArt({
 }: MascotArtProps) {
   const px = SIZE_PX[size];
   const artPose = resolveMascotArtPose(pose, gesture);
-  const src = mascotArtUrl(artPose);
+  const src = mascotArtUrl(artPose, skin);
 
   const motion = animate ? mascotMotionClass(pose) : "";
   const gestureActive = gesture !== "none" && animate;
@@ -77,6 +80,7 @@ export function MascotArt({
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- static pose swaps from /public */}
       <img
+        key={src}
         src={src}
         alt=""
         width={px}
