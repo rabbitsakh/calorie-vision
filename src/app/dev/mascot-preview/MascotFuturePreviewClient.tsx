@@ -84,7 +84,7 @@ export default function MascotFuturePreviewPage() {
           </p>
           <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Живые анимации</h1>
           <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
-            Рисованный soft-3D (art): сезоны с idle/cheer/pet. auto = art на md+.
+            Рисованный soft-3D (art): полный набор поз по сезонам. auto = art на md+.
           </p>
         </header>
 

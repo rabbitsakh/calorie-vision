@@ -22,12 +22,12 @@ export const MASCOT_ART_SEASONAL: Record<
   Exclude<MascotSkinId, "default">,
   readonly MascotArtPoseId[]
 > = {
-  winter: ["idle", "cheer", "pet"],
-  spring: ["idle", "cheer", "pet"],
-  summer: ["idle", "cheer", "pet"],
-  autumn: ["idle", "cheer", "pet"],
-  newyear: ["idle", "cheer", "pet"],
-  halloween: ["idle", "cheer", "pet"],
+  winter: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  spring: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  summer: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  autumn: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  newyear: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  halloween: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
 };
 
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */
