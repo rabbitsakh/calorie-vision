@@ -186,7 +186,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       let usedStream = false;
       let enrichingSnapshot: RecognitionResponse | null = null;
       let enrichUiTimer: ReturnType<typeof setTimeout> | undefined;
-      const ENRICHING_UI_TIMEOUT_MS = 18_000;
+      const ENRICHING_UI_TIMEOUT_MS = 12_000;
 
       try {
         const streamResponse = await fetch(withBasePath("/api/recognize/stream"), {

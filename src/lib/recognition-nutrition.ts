@@ -659,6 +659,40 @@ export function resolveDisplayPortionGrams(
   return explicit;
 }
 
+/** Human-readable hint: per-100 vs pack portion (confirm card). */
+export function describeNutritionBasis(
+  item: Pick<
+    FoodRecognitionResult,
+    "dishName" | "brand" | "portionGrams" | "calories" | "photoKind" | "source" | "per100g"
+  >,
+): string | null {
+  const per100 = resolvePer100gForScaling(item);
+  const portion = resolveDisplayPortionGrams(item);
+  const drink = looksLikeDrinkName(item.dishName, item.brand);
+  const unit = drink ? "мл" : "г";
+
+  if (item.photoKind === "label" && per100) {
+    if (portion && portion !== PER100G_REFERENCE_GRAMS) {
+      return `На этикетке: ${Math.round(per100.calories)} ккал / 100 ${unit} → на порцию ${portion} ${unit}`;
+    }
+    return `На этикетке: ${Math.round(per100.calories)} ккал / 100 ${unit}`;
+  }
+
+  if (per100 && portion && portion > 0 && portion !== PER100G_REFERENCE_GRAMS) {
+    return `${Math.round(per100.calories)} ккал / 100 ${unit} → ${Math.round(item.calories)} ккал на ${portion} ${unit}`;
+  }
+
+  if (per100 && (!portion || portion === PER100G_REFERENCE_GRAMS)) {
+    return `КБЖУ на 100 ${unit}`;
+  }
+
+  if (portion && portion > 0 && !per100) {
+    return `Калории на порцию ${portion} ${unit}`;
+  }
+
+  return null;
+}
+
 /** Scale vision/label nutrition to a portion for confirm-card display and save. */
 export function scaleRecognitionToPortion(
   item: Pick<
