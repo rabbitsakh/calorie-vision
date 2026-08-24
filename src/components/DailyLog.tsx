@@ -796,8 +796,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <Mascot pose="empty" size="md" />
-            <p>За этот день пока нет записей.</p>
+            <Mascot pose="empty" size="md" title="Пустой дневник" />
+            <p className="font-medium text-slate-700">Дневник пуст — добавьте первый приём пищи</p>
+            <p className="max-w-xs text-sm">Сфотографируйте тарелку или введите название — прогресс появится сразу.</p>
             <button
               type="button"
               className="btn btn-primary text-sm"
