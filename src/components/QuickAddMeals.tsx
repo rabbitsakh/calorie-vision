@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
@@ -85,6 +86,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         }),
       });
       if (resp.ok) {
+        trackFirstMealSaveGoal();
         onSaved();
       }
     } finally {
@@ -108,6 +110,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       });
       const payload = (await resp.json()) as { error?: string };
       if (resp.ok) {
+        trackFirstMealSaveGoal();
         onSaved();
       } else {
         setCopyError(payload.error ?? "Не удалось скопировать");

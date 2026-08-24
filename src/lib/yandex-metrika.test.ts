@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildMetrikaInitScript,
+  METRIKA_GOALS,
   parseMetrikaId,
   resolveMetrikaId,
   shouldTrackMetrikaPath,
@@ -39,4 +40,10 @@ test("init snippet interpolates only a numeric id and sends the first hit", () =
   assert.match(script, /ym\(111847071,"hit",location\.href\)/);
   assert.match(script, /mc\.yandex\.ru\/metrika\/tag\.js/);
   assert.equal(buildMetrikaInitScript("<script>"), "");
+});
+
+test("metrika funnel goal names are stable", () => {
+  assert.equal(METRIKA_GOALS.login, "login");
+  assert.equal(METRIKA_GOALS.firstMealSave, "first_meal_save");
+  assert.equal(METRIKA_GOALS.d7Return, "d7_return");
 });

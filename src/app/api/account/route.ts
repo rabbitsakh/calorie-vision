@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { deleteUserAccount } from "@/lib/account-delete";
+import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { lockedEmailDecision } from "@/lib/account-email";
 import { requireSession } from "@/lib/auth-session";
 import { isSex, type Sex } from "@/lib/diet";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { referralCodeForUser } from "@/lib/referral";
 import { saveUploadedImage } from "@/lib/upload";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +71,7 @@ export async function GET() {
       birthYear: user.birthYear ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
+      referralCode: referralCodeForUser(user.id),
     });
   } catch (error) {
     console.error(error);
@@ -265,5 +269,45 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось загрузить фото" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { session, response } = await requireSession();
+    if (response) {
+      return response;
+    }
+
+    let confirm: string | undefined;
+    try {
+      const body = (await request.json()) as { confirm?: string };
+      confirm = body.confirm;
+    } catch {
+      confirm = undefined;
+    }
+
+    if (confirm !== ACCOUNT_DELETE_CONFIRM) {
+      return NextResponse.json(
+        {
+          error: `Для удаления аккаунта отправьте confirm: "${ACCOUNT_DELETE_CONFIRM}"`,
+        },
+        { status: 400 },
+      );
+    }
+
+    try {
+      await deleteUserAccount(session.user.id);
+    } catch (error) {
+      if (error instanceof Error && error.message === "USER_NOT_FOUND") {
+        return NextResponse.json({ error: "Пользователь не найден" }, { status: 404 });
+      }
+      throw error;
+    }
+
+    return NextResponse.json({ ok: true, deleted: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Не удалось удалить аккаунт" }, { status: 500 });
   }
 }

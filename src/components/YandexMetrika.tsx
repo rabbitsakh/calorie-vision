@@ -2,13 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { shouldTrackMetrikaPath } from "@/lib/yandex-metrika";
-
-declare global {
-  interface Window {
-    ym?: (counterId: number, method: string, ...args: unknown[]) => void;
-  }
-}
+import { setMetrikaClientId, shouldTrackMetrikaPath } from "@/lib/yandex-metrika";
 
 type YandexMetrikaProps = {
   counterId: string;
@@ -20,6 +14,10 @@ export function YandexMetrika({ counterId }: YandexMetrikaProps) {
   const searchParams = useSearchParams();
   const id = Number(counterId);
   const skipFirst = useRef(true);
+
+  useEffect(() => {
+    setMetrikaClientId(counterId);
+  }, [counterId]);
 
   useEffect(() => {
     if (skipFirst.current) {
