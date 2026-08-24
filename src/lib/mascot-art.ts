@@ -28,6 +28,9 @@ export const MASCOT_ART_SEASONAL: Record<
   autumn: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
   newyear: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
   halloween: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
+  // Event skins reuse default art stills until dedicated packs ship.
+  feb23: [],
+  march8: [],
 };
 
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */

@@ -82,6 +82,25 @@ export function MascotSeasonalAmbient({ skin }: PartProps) {
           </g>
         </g>
       );
+    case "feb23":
+      return (
+        <g className="mascot-seasonal mascot-seasonal-ambient" aria-hidden>
+          <path
+            d="M72 32l1.2 2.4 2.6 0.4-1.9 1.8 0.5 2.6L72 38.2l-2.4 1.2 0.5-2.6-1.9-1.8 2.6-0.4L72 32Z"
+            fill="#F59E0B"
+            opacity="0.85"
+          />
+        </g>
+      );
+    case "march8":
+      return (
+        <g className="mascot-seasonal mascot-seasonal-ambient" aria-hidden>
+          <g className="mascot-petal-a">
+            <ellipse cx="22" cy="34" rx="2" ry="1.1" fill="#F9A8D4" opacity="0.75" transform="rotate(-20 22 34)" />
+          </g>
+          <circle cx="74" cy="36" r="1.4" fill="#FDE68A" opacity="0.8" />
+        </g>
+      );
     default:
       return null;
   }
@@ -161,6 +180,28 @@ export function MascotSeasonalSprout({ skin }: PartProps) {
           </g>
         </g>
       );
+    case "feb23":
+      return (
+        <g className="mascot-seasonal mascot-seasonal-sprout" aria-hidden>
+          <path
+            d="M48 6l1.4 3.2 3.4 0.5-2.5 2.3 0.6 3.4L48 13.8l-2.9 1.6 0.6-3.4-2.5-2.3 3.4-0.5L48 6Z"
+            fill="#FBBF24"
+            stroke="#B45309"
+            strokeWidth="0.8"
+          />
+          <ellipse cx="48" cy="18" rx="5" ry="2.2" fill="#1D4ED8" opacity="0.85" />
+          <ellipse cx="48" cy="18" rx="5" ry="2.2" fill="none" stroke="#DC2626" strokeWidth="1.2" />
+        </g>
+      );
+    case "march8":
+      return (
+        <g className="mascot-seasonal mascot-seasonal-sprout" aria-hidden>
+          <circle cx="40" cy="12" r="3.2" fill="#FDE047" stroke="#CA8A04" strokeWidth="0.8" />
+          <circle cx="48" cy="8" r="3.6" fill="#FACC15" stroke="#CA8A04" strokeWidth="0.8" />
+          <circle cx="56" cy="12" r="3.2" fill="#FDE047" stroke="#CA8A04" strokeWidth="0.8" />
+          <circle cx="48" cy="14" r="2.2" fill="#F9A8D4" stroke="#DB2777" strokeWidth="0.7" />
+        </g>
+      );
     default:
       return null;
   }
@@ -205,6 +246,28 @@ export function MascotSeasonalNeck({ skin, clipBody }: PartProps) {
         <g clipPath={`url(#${clipBody})`}>
           <path d={wrap} fill="none" stroke="#F59E0B" strokeWidth="3" opacity="0.85" />
           <path d="M30 58 C48 64 66 58" stroke="#FDE68A" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+        </g>
+      </g>
+    );
+  }
+
+  if (skin === "feb23") {
+    return (
+      <g className="mascot-seasonal mascot-seasonal-neck" aria-hidden>
+        <g clipPath={`url(#${clipBody})`}>
+          <path d={wrap} fill="#1E3A8A" opacity="0.9" />
+          <path d="M30 58 C48 64 66 58" stroke="#FBBF24" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.9" />
+        </g>
+      </g>
+    );
+  }
+
+  if (skin === "march8") {
+    return (
+      <g className="mascot-seasonal mascot-seasonal-neck" aria-hidden>
+        <g clipPath={`url(#${clipBody})`}>
+          <path d={wrap} fill="#DB2777" opacity="0.82" />
+          <path d="M30 58 C48 64 66 58" stroke="#FBCFE8" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.9" />
         </g>
       </g>
     );

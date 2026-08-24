@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
+import { MASCOT_COPY } from "@/lib/mascot-copy";
 import {
   getPushCapability,
   getPushPromptDismissed,
@@ -70,17 +71,14 @@ export function PushNotificationPrompt() {
         <div className="flex items-start gap-3">
           <Mascot pose="tip" size="sm" className="shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-amber-950">Напоминания на iPhone</p>
+            <p className="font-semibold text-amber-950">{MASCOT_COPY.pushIosHint.title}</p>
             <p className="mt-1 text-sm text-amber-900">
-              {hintText ??
-                "Откройте приложение с иконки на Home Screen — из Safari push не приходит."}
+              {hintText ?? MASCOT_COPY.pushIosHint.fallbackBody}
             </p>
-            <p className="mt-1 text-sm text-amber-800">
-              Статус можно проверить в разделе «Профиль».
-            </p>
+            <p className="mt-1 text-sm text-amber-800">{MASCOT_COPY.pushIosHint.statusHint}</p>
             <div className="mt-3">
               <button type="button" className="btn-quiet text-sm text-amber-800" onClick={dismiss}>
-                Понятно
+                {MASCOT_COPY.pushIosHint.dismiss}
               </button>
             </div>
           </div>
@@ -94,10 +92,8 @@ export function PushNotificationPrompt() {
       <div className="flex items-start gap-3">
         <Mascot pose="idle" size="sm" className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-teal-900">Напоминания от талисмана</p>
-          <p className="mt-1 text-sm text-teal-700">
-            Завтрак, обед, вода, сводка калорий, серия и вечерний чек-ин — без давления.
-          </p>
+          <p className="font-semibold text-teal-900">{MASCOT_COPY.pushPrompt.title}</p>
+          <p className="mt-1 text-sm text-teal-700">{MASCOT_COPY.pushPrompt.body}</p>
           {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -106,10 +102,10 @@ export function PushNotificationPrompt() {
               disabled={loading}
               onClick={() => void subscribe()}
             >
-              {loading ? "Подключаем…" : "Включить"}
+              {loading ? MASCOT_COPY.pushPrompt.enabling : MASCOT_COPY.pushPrompt.enable}
             </button>
             <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
-              Не сейчас
+              {MASCOT_COPY.pushPrompt.later}
             </button>
           </div>
         </div>

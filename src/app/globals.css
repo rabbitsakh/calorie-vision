@@ -3068,6 +3068,14 @@ textarea {
   filter: hue-rotate(-8deg) saturate(0.9);
 }
 
+.mascot-skin-feb23 .mascot-aura {
+  filter: hue-rotate(200deg) saturate(0.95) brightness(0.98);
+}
+
+.mascot-skin-march8 .mascot-aura {
+  filter: hue-rotate(-28deg) saturate(1.1);
+}
+
 .mascot-snowflake-a,
 .mascot-snowflake-b {
   animation: mascot-snow-drift 4.5s ease-in-out infinite;

@@ -24,6 +24,7 @@ export type MascotRendererProps = Omit<MascotSvgProps, "skin"> & {
 /**
  * Picks illustrated art (V5), Rive, or SVG — used by LiveMascot and xl celebrations.
  * Priority in auto: art (md+) → Rive (if .riv present) → SVG.
+ * Art is the default path when mode is auto (see shouldUseMascotArt).
  */
 export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps) {
   const { skinOverride, rendererOverride } = useMascotSkinOverrides();

@@ -7,6 +7,7 @@ import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { formatDateTime, formatDateWords } from "@/lib/dates";
+import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
@@ -874,9 +875,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
         {!loading && !error && entries.length === 0 && !pendingDelete ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <Mascot pose="empty" size="md" title="Пустой дневник" entrance />
-            <p className="font-medium text-slate-700">Дневник пуст — добавьте первый приём пищи</p>
-            <p className="max-w-xs text-sm">Сфотографируйте тарелку или введите название — прогресс появится сразу.</p>
+            <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
+            <p className="font-medium text-slate-700">{MASCOT_COPY.emptyDiary.headline}</p>
+            <p className="max-w-xs text-sm">{MASCOT_COPY.emptyDiary.body}</p>
             <button
               type="button"
               className="btn btn-primary text-sm"

@@ -9,7 +9,9 @@ export type MascotSkinId =
   | "summer"
   | "autumn"
   | "newyear"
-  | "halloween";
+  | "halloween"
+  | "feb23"
+  | "march8";
 
 export type MascotRendererMode = "auto" | "svg" | "rive" | "art";
 
@@ -28,6 +30,8 @@ export const MASCOT_SKINS: Record<MascotSkinId, MascotSkinMeta> = {
   autumn: { id: "autumn", label: "Осень", rivFile: "autumn.riv" },
   newyear: { id: "newyear", label: "Новый год", rivFile: "newyear.riv" },
   halloween: { id: "halloween", label: "Хэллоуин", rivFile: "halloween.riv" },
+  feb23: { id: "feb23", label: "23 февраля", rivFile: "feb23.riv" },
+  march8: { id: "march8", label: "8 марта", rivFile: "march8.riv" },
 };
 
 export const MASCOT_SKIN_IDS = Object.keys(MASCOT_SKINS) as MascotSkinId[];
@@ -45,6 +49,16 @@ export function seasonalSkinForMonth(month: number): MascotSkinId {
 export function eventSkinForDate(date: Date): MascotSkinId | null {
   const month = date.getMonth();
   const day = date.getDate();
+
+  // Defender of the Fatherland Day: 20–24 Feb
+  if (month === 1 && day >= 20 && day <= 24) {
+    return "feb23";
+  }
+
+  // International Women's Day: 1–10 Mar
+  if (month === 2 && day >= 1 && day <= 10) {
+    return "march8";
+  }
 
   // Halloween: 25 Oct – 2 Nov
   if ((month === 9 && day >= 25) || (month === 10 && day <= 2)) {

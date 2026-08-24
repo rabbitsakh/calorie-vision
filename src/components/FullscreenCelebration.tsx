@@ -8,6 +8,7 @@ import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
 import { getCelebrationPortalHost } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
+import { isGamificationQuiet } from "@/lib/gamification-quiet";
 
 export type CelebrationVariant =
   | "cheer"
@@ -109,8 +110,9 @@ export function FullscreenCelebration({
   const resolvedPose = pose ?? theme.pose;
   const colors = useMemo(() => theme.colors, [theme.colors]);
   const autoClose = durationMs > 0;
+  const quiet = isGamificationQuiet();
   const isActive = !gate || gate.activeId === celebrationId;
-  const show = open && isActive;
+  const show = open && isActive && !quiet;
 
   useEffect(() => {
     setPortalHost(getCelebrationPortalHost());
@@ -122,12 +124,16 @@ export function FullscreenCelebration({
     playCelebrationChime(VARIANT_CHIME[variant]);
   }, [show, variant]);
 
+  useEffect(() => {
+    if (open && quiet) onClose();
+  }, [open, quiet, onClose]);
+
   const requestCelebration = gate?.requestCelebration;
   const releaseCelebration = gate?.releaseCelebration;
 
   useEffect(() => {
     if (!requestCelebration || !releaseCelebration) return;
-    if (open) {
+    if (open && !quiet) {
       const accepted = requestCelebration(celebrationId);
       if (!accepted) {
         onClose();
@@ -137,7 +143,7 @@ export function FullscreenCelebration({
       releaseCelebration(celebrationId);
     }
     return () => releaseCelebration(celebrationId);
-  }, [open, celebrationId, requestCelebration, releaseCelebration, onClose]);
+  }, [open, quiet, celebrationId, requestCelebration, releaseCelebration, onClose]);
 
   useEffect(() => {
     if (!show || !autoClose) return;

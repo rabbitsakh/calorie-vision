@@ -16,6 +16,7 @@ import { MascotSkinProvider } from "@/lib/mascot-skin-context";
 import {
   MASCOT_SKINS,
   MASCOT_SKIN_IDS,
+  mascotRivUrl,
   parseMascotSkinId,
   resolveMascotSkin,
   type MascotRendererMode,
@@ -24,7 +25,7 @@ import {
 
 const POSES: MascotPose[] = ["idle", "cheer", "streak", "goal", "tip", "empty"];
 const GESTURES: MascotGesture[] = ["look", "yawn", "stretch", "wave", "pet", "react"];
-const RENDERERS: MascotRendererMode[] = ["auto", "art", "svg", "rive"];
+const BASE_RENDERERS: MascotRendererMode[] = ["auto", "art", "svg", "rive"];
 
 const CELEB_SCENES: Array<{
   id: CelebrationVariant;
@@ -61,6 +62,7 @@ export default function MascotFuturePreviewPage() {
   const [gesture, setGesture] = useState<MascotGesture>("none");
   const [skin, setSkin] = useState<MascotSkinId>(() => resolveMascotSkin());
   const [renderer, setRenderer] = useState<MascotRendererMode>("auto");
+  const [rivePresent, setRivePresent] = useState(false);
 
   useEffect(() => {
     const sceneId = searchParams.get("scene") as CelebrationVariant | null;
@@ -73,6 +75,28 @@ export default function MascotFuturePreviewPage() {
     const fromUrl = parseMascotSkinId(searchParams.get("skin"));
     if (fromUrl) setSkin(fromUrl);
   }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(
+      MASCOT_SKIN_IDS.map((id) =>
+        fetch(mascotRivUrl(id), { method: "HEAD" })
+          .then((res) => res.ok)
+          .catch(() => false),
+      ),
+    ).then((flags) => {
+      if (!cancelled) setRivePresent(flags.some(Boolean));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!rivePresent && renderer === "rive") setRenderer("auto");
+  }, [rivePresent, renderer]);
+
+  const renderers = BASE_RENDERERS.filter((mode) => mode !== "rive" || rivePresent);
 
   return (
     <MascotSkinProvider skinOverride={skin} rendererOverride={renderer}>
@@ -107,7 +131,7 @@ export default function MascotFuturePreviewPage() {
             ))}
           </div>
           <div className="mt-2 flex flex-wrap justify-center gap-2">
-            {RENDERERS.map((mode) => (
+            {renderers.map((mode) => (
               <button
                 key={mode}
                 type="button"
