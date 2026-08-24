@@ -25,6 +25,7 @@ import { WeeklyChallenge } from "@/components/WeeklyChallenge";
 import { TodayProgress } from "@/components/TodayProgress";
 import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
+import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { useSelectedDate } from "@/lib/use-selected-date";
@@ -81,6 +82,7 @@ export default function RationPage() {
     >
       <AuthGate>
         <div className="ration-page flex flex-col gap-4 md:gap-5">
+          <MascotSaveReaction />
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
           <FoodAddPanel selectedDate={date} onSaved={bump} onPendingChange={setConfirmOpen} />

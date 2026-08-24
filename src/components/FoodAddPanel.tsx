@@ -6,6 +6,7 @@ import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
+import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { withBasePath } from "@/lib/paths";
 import type { RecognitionResponse } from "@/types";
 
@@ -122,6 +123,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
           if (meta?.rememberedCorrection) {
             setSavedToast("Запомнили исправление — в следующий раз подставим автоматически");
           }
+          emitMascotReaction("save");
           onSaved();
         }}
       />
