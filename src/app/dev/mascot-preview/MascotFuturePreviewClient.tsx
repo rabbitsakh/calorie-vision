@@ -5,10 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { FullscreenCelebration, type CelebrationVariant } from "@/components/FullscreenCelebration";
 import { LandingFreeHighlight } from "@/components/LandingFreeHighlight";
 import { LandingFooterCta } from "@/components/LandingFooterCta";
+import { LiveMascot } from "@/components/LiveMascot";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
+import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { MascotSaveReaction } from "@/components/MascotSaveReaction";
+import { playCelebrationChime } from "@/lib/celebration-chime";
+import type { MascotGesture } from "@/lib/mascot-liveness";
 
 const POSES: MascotPose[] = ["idle", "cheer", "streak", "goal", "tip", "empty"];
+const GESTURES: MascotGesture[] = ["look", "yawn", "stretch", "wave", "pet", "react"];
 
 const CELEB_SCENES: Array<{
   id: CelebrationVariant;
@@ -36,19 +42,13 @@ const CELEB_SCENES: Array<{
     subtitle: "Дневник ожил — так держать.",
     pose: "cheer",
   },
-  {
-    id: "badge",
-    title: "Новый значок!",
-    subtitle: "«Неделя без пропусков» — заслуженно.",
-    badge: "★",
-    pose: "cheer",
-  },
 ];
 
-/** Dev QA: celebration + 2 landing placements + in-app companion. */
+/** Dev QA: lively mascot — face, gestures, pet, chime, save reaction. */
 export default function MascotFuturePreviewPage() {
   const searchParams = useSearchParams();
   const [activeScene, setActiveScene] = useState<(typeof CELEB_SCENES)[number] | null>(null);
+  const [gesture, setGesture] = useState<MascotGesture>("none");
 
   useEffect(() => {
     const sceneId = searchParams.get("scene") as CelebrationVariant | null;
@@ -59,22 +59,69 @@ export default function MascotFuturePreviewPage() {
 
   return (
     <div className="min-h-screen bg-stone-100">
+      <MascotSaveReaction />
       <header className="border-b border-stone-200 bg-white px-4 py-6 text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">Маскот · план 10 PR</p>
-        <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Celebration + 2 места на лендинге</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">
+          Маскот · Duolingo liveliness
+        </p>
+        <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Живые анимации</h1>
+        <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
+          Face engine, squash/stretch, idle reel, tap-to-pet, celebration chime, реакция на сохранение.
+        </p>
       </header>
 
-      <section className="mx-auto max-w-4xl px-4 py-8">
-        <h2 className="text-lg font-bold">Celebration</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <section className="mx-auto max-w-lg px-4 py-8 text-center">
+        <p className="text-sm font-semibold text-stone-700">Тапни — погладить · idle reel сам</p>
+        <div className="mt-4 flex justify-center">
+          <LiveMascot pose="idle" size="xl" interactive idleReel entrance />
+        </div>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {GESTURES.map((g) => (
+            <button
+              key={g}
+              type="button"
+              className="rounded-full border border-teal-200 bg-white px-3 py-1 text-xs font-bold text-teal-800"
+              onClick={() => {
+                setGesture(g);
+                window.setTimeout(() => setGesture("none"), 1400);
+              }}
+            >
+              {g}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900"
+            onClick={() => playCelebrationChime("cheer")}
+          >
+            chime
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-teal-300 bg-teal-50 px-3 py-1 text-xs font-bold text-teal-900"
+            onClick={() => emitMascotReaction("save")}
+          >
+            save reaction
+          </button>
+        </div>
+        {gesture !== "none" ? (
+          <div className="mt-4 flex justify-center">
+            <Mascot pose="idle" gesture={gesture} size="lg" />
+          </div>
+        ) : null}
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-6">
+        <h2 className="text-lg font-bold">Celebration + sound</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {CELEB_SCENES.map((scene) => (
             <button
               key={scene.id}
               type="button"
               onClick={() => setActiveScene(scene)}
-              className="rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm hover:border-teal-300"
+              className="rounded-2xl border bg-white p-4 text-left shadow-sm"
             >
-              <Mascot pose={scene.pose} size="md" />
+              <Mascot pose={scene.pose} size="md" entrance />
               <p className="mt-2 font-bold">{scene.title}</p>
             </button>
           ))}
@@ -82,7 +129,7 @@ export default function MascotFuturePreviewPage() {
       </section>
 
       <section className="border-t bg-white">
-        <p className="px-4 pt-6 text-center text-sm text-stone-600">Лендинг — 2 места: «Бесплатно» (tip) + footer CTA (cheer)</p>
+        <p className="px-4 pt-6 text-center text-sm text-stone-600">Лендинг · 2 места · pet</p>
         <div className="landing">
           <LandingFreeHighlight />
           <LandingFooterCta />

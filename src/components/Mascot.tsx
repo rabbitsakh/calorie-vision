@@ -1,6 +1,8 @@
 import { useId, type SVGProps } from "react";
+import { mascotGestureClass, type MascotGesture } from "@/lib/mascot-liveness";
 
 export type MascotPose = "idle" | "cheer" | "streak" | "goal" | "empty" | "tip";
+export type { MascotGesture };
 
 const SIZE_PX = {
   sm: 44,
@@ -34,10 +36,14 @@ export function mascotMotionClass(pose: MascotPose): string {
 
 type MascotProps = {
   pose?: MascotPose;
+  /** One-shot Duolingo-style gesture overlay (look / yawn / pet / …). */
+  gesture?: MascotGesture;
   size?: keyof typeof SIZE_PX;
   className?: string;
   title?: string;
   animate?: boolean;
+  /** Pop-in entrance (celebration / first paint). */
+  entrance?: boolean;
 } & Omit<SVGProps<SVGSVGElement>, "children">;
 
 /** Soft pear / egg blob — matches the 3D vinyl reference silhouette. */
@@ -50,10 +56,12 @@ const BODY_PATH =
  */
 export function Mascot({
   pose = "idle",
+  gesture = "none",
   size = "md",
   className,
   title = "Талисман Calorie Vision",
   animate = true,
+  entrance = false,
   ...rest
 }: MascotProps) {
   const uid = useId().replace(/:/g, "");
@@ -74,21 +82,35 @@ export function Mascot({
 
   const px = SIZE_PX[size];
   const motion = animate ? mascotMotionClass(pose) : "";
-  const classes = ["mascot-root", motion, className].filter(Boolean).join(" ");
+  const gestureClass = animate ? mascotGestureClass(gesture) : "";
+  const classes = [
+    "mascot-root",
+    motion,
+    gestureClass,
+    entrance ? "mascot-entrance" : "",
+    "mascot-face-alive",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const proud = pose === "streak" || pose === "goal";
   const curious = pose === "empty";
-  const cheering = pose === "cheer";
-  const openSmile = cheering || proud;
+  const looking = gesture === "look";
+  const cheering = pose === "cheer" || gesture === "react" || gesture === "pet";
+  const openSmile = cheering || proud || gesture === "wave";
+  const yawning = gesture === "yawn";
   const armPoseClass =
-    pose === "cheer"
+    pose === "cheer" || gesture === "react" || gesture === "pet"
       ? "mascot-arm-pose-cheer"
-      : pose === "tip"
-        ? "mascot-arm-pose-tip"
-        : proud
-          ? "mascot-arm-pose-proud"
-          : pose === "empty"
-            ? "mascot-arm-pose-empty"
-            : "mascot-arm-pose-idle";
+      : gesture === "wave"
+        ? "mascot-arm-pose-wave"
+        : pose === "tip"
+          ? "mascot-arm-pose-tip"
+          : proud
+            ? "mascot-arm-pose-proud"
+            : pose === "empty"
+              ? "mascot-arm-pose-empty"
+              : "mascot-arm-pose-idle";
 
   return (
     <svg
@@ -265,7 +287,7 @@ export function Mascot({
       </g>
 
       {/* Face */}
-      <g className={`mascot-face${curious ? " mascot-face-curious" : ""}`}>
+      <g className={`mascot-face${curious ? " mascot-face-curious" : ""}${looking ? " mascot-face-look" : ""}`}>
         <g className="mascot-brows">
           <path
             d={
@@ -318,13 +340,17 @@ export function Mascot({
           <g className="mascot-eyes-open">
             <g className="mascot-eye-left">
               <circle cx="38.5" cy="52.5" r="6.8" fill={`url(#${iris})`} />
-              <circle cx="41" cy="49.8" r="2.35" fill="#FFFFFF" />
-              <circle cx="36" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
+              <g className="mascot-pupil-left">
+                <circle cx="41" cy="49.8" r="2.35" fill="#FFFFFF" />
+                <circle cx="36" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
+              </g>
             </g>
             <g className="mascot-eye-right">
               <circle cx="57.5" cy="52.5" r="6.8" fill={`url(#${iris})`} />
-              <circle cx="60" cy="49.8" r="2.35" fill="#FFFFFF" />
-              <circle cx="55" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
+              <g className="mascot-pupil-right">
+                <circle cx="60" cy="49.8" r="2.35" fill="#FFFFFF" />
+                <circle cx="55" cy="54.6" r="1.15" fill="#FFFFFF" opacity="0.7" />
+              </g>
             </g>
           </g>
         )}
@@ -336,6 +362,8 @@ export function Mascot({
 
         {curious ? (
           <ellipse cx="48" cy="66.5" rx="3.6" ry="4.2" fill={INK_DARK} opacity="0.82" />
+        ) : yawning ? (
+          <ellipse className="mascot-mouth mascot-mouth-yawn" cx="48" cy="66" rx="5.5" ry="7" fill={`url(#${mouthFill})`} stroke={INK} strokeWidth="1.4" />
         ) : openSmile ? (
           <g className="mascot-mouth">
             <path
@@ -367,7 +395,7 @@ export function Mascot({
       </g>
 
       {/* Leaf-paddle arms (reference style) */}
-      {cheering ? (
+      {cheering || gesture === "wave" ? (
         <>
           <g className={`mascot-arm-left ${armPoseClass}`}>
             <g transform="translate(28 46)">

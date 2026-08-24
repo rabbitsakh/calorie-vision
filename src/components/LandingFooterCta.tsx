@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mascot } from "@/components/Mascot";
+import { LiveMascot } from "@/components/LiveMascot";
 import { LandingScrollReveal } from "@/components/LandingScrollReveal";
 
 /** Второе место маскота на лендинге — финальный CTA перед футером. */
@@ -8,13 +8,15 @@ export function LandingFooterCta() {
     <LandingScrollReveal>
       <section className="landing-footer-cta">
         <div className="landing-footer-layout">
-          <div className="landing-footer-mascot-stage" aria-hidden>
-            <div className="landing-footer-mascot-glow" />
-            <Mascot
+          <div className="landing-footer-mascot-stage">
+            <div className="landing-footer-mascot-glow" aria-hidden />
+            <LiveMascot
               pose="cheer"
               size="lg"
               className="landing-footer-mascot landing-mascot-float"
               title="Талисман Calorie Vision"
+              idleReel={false}
+              interactive
             />
           </div>
           <div className="landing-footer-copy">

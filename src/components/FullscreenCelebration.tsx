@@ -6,6 +6,7 @@ import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import { getCelebrationPortalHost } from "@/lib/celebration-portal";
+import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 
 export type CelebrationVariant =
   | "cheer"
@@ -73,6 +74,15 @@ const VARIANT_THEME: Record<
   },
 };
 
+const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
+  cheer: "cheer",
+  streak: "streak",
+  goal: "goal",
+  badge: "badge",
+  challenge: "goal",
+  milestone: "streak",
+};
+
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
  * Portaled to a host on <html> so body overflow-x never clips it on iOS.
@@ -105,6 +115,11 @@ export function FullscreenCelebration({
     setPortalHost(getCelebrationPortalHost());
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    playCelebrationChime(VARIANT_CHIME[variant]);
+  }, [show, variant]);
 
   const requestCelebration = gate?.requestCelebration;
   const releaseCelebration = gate?.releaseCelebration;
@@ -160,7 +175,7 @@ export function FullscreenCelebration({
       >
         <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
           <div className="fs-celeb-halo" aria-hidden />
-          <Mascot pose={resolvedPose} size="xl" className="fs-celeb-mascot" />
+          <Mascot pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
           {badge ? (
             <span
               className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}

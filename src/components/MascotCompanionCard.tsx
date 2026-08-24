@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Mascot, type MascotPose } from "@/components/Mascot";
+import { LiveMascot } from "@/components/LiveMascot";
+import type { MascotPose } from "@/components/Mascot";
 
 type MascotCompanionTone = "teal" | "orange" | "amber";
 
@@ -44,7 +45,13 @@ export function MascotCompanionCard({
   return (
     <div className={`rounded-2xl border p-4 shadow-sm ${TONE_CLASS[tone]} ${className}`.trim()}>
       <div className="flex items-start gap-3">
-        <Mascot pose={pose} size={size} className="mt-0.5 shrink-0" animate={animate} />
+        <LiveMascot
+          pose={pose}
+          size={size}
+          className="mt-0.5 shrink-0"
+          idleReel={animate && pose === "idle"}
+          interactive={animate && size !== "sm"}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className={`text-xs font-medium uppercase tracking-wide ${TITLE_CLASS[tone]}`}>{title}</p>
