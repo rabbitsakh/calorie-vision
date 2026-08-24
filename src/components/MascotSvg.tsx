@@ -1,5 +1,14 @@
 import { useId, type CSSProperties, type KeyboardEventHandler, type MouseEventHandler, type SVGProps } from "react";
-import { MascotSeasonalLayer } from "@/components/MascotSeasonalLayer";
+import {
+  MascotSeasonalAmbient,
+  MascotSeasonalBack,
+  MascotSeasonalBodyWash,
+  MascotSeasonalForehead,
+  MascotSeasonalHeld,
+  MascotSeasonalLeafTint,
+  MascotSeasonalNeck,
+  MascotSeasonalSprout,
+} from "@/components/mascot-seasonal-parts";
 import { mascotGestureClass, type MascotGesture } from "@/lib/mascot-liveness";
 import { mascotSkinClass, type MascotSkinId } from "@/lib/mascot-skin";
 
@@ -217,6 +226,8 @@ export function MascotSvg({
       <g className={["mascot-gesture-layer", gestureClass].filter(Boolean).join(" ")}>
       <ellipse className="mascot-shadow" cx="48" cy="96" rx="22" ry="3.8" fill={INK_DARK} opacity="0.18" filter={`url(#${softBlur})`} />
       <ellipse className="mascot-aura" cx="48" cy="56" rx="38" ry="38" fill={`url(#${glow})`} />
+      <MascotSeasonalAmbient skin={skin} />
+      <MascotSeasonalBack skin={skin} />
 
       {/* Stubby feet — under body */}
       <g className="mascot-feet">
@@ -236,7 +247,9 @@ export function MascotSvg({
           <ellipse cx="58" cy="52" rx="8" ry="11" fill="#14B8A6" opacity="0.07" />
         </g>
         <path d={BODY_PATH} fill="none" stroke={INK_DARK} strokeWidth="1.15" opacity="0.18" />
+        <MascotSeasonalBodyWash skin={skin} clipBody={clipBody} />
       </g>
+      <MascotSeasonalNeck skin={skin} clipBody={clipBody} />
 
       {/* Sprout leaves */}
       <g className="mascot-sprout">
@@ -299,10 +312,12 @@ export function MascotSvg({
                   fill="none"
                 />
                 <ellipse cx="64" cy="9" rx="3" ry="1.7" fill="#FFFFFF" opacity="0.34" transform="rotate(32 64 9)" />
+                <MascotSeasonalLeafTint skin={skin} />
               </g>
             </g>
           </g>
         </g>
+        <MascotSeasonalSprout skin={skin} />
       </g>
 
       {/* Face */}
@@ -412,6 +427,7 @@ export function MascotSvg({
           />
         )}
       </g>
+      <MascotSeasonalForehead skin={skin} />
 
       {/* Leaf-paddle arms (reference style) */}
       {cheering || gesture === "wave" ? (
@@ -512,6 +528,7 @@ export function MascotSvg({
           </g>
         </>
       )}
+      <MascotSeasonalHeld skin={skin} />
 
       {pose === "streak" ? (
         <g className="mascot-flame">
@@ -559,8 +576,6 @@ export function MascotSvg({
           </text>
         </g>
       ) : null}
-
-      <MascotSeasonalLayer skin={skin} />
 
       {(cheering || proud) && (
         <g className="mascot-cheer-sparkles" aria-hidden>
