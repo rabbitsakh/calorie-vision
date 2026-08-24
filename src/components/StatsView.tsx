@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatDateShort } from "@/lib/dates";
+import { formatDateShort, getMonthGrid, parseDateInput } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
+import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
 type StatsDay = {
@@ -526,6 +527,89 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
   );
 }
 
+// ── MonthHeatmap ──────────────────────────────────────────────────────────────
+
+function MonthHeatmap({
+  days,
+  calorieTarget,
+  endDate,
+}: {
+  days: StatsDay[];
+  calorieTarget: number | null;
+  endDate: string;
+}) {
+  const end = parseDateInput(endDate);
+  const year = end.getFullYear();
+  const monthIndex = end.getMonth();
+  const grid = getMonthGrid(year, monthIndex);
+  const byDate = new Map(days.map((d) => [d.date, d.calories]));
+  const weekdays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+
+  return (
+    <section className="card p-4 md:p-6">
+      <h2 className="font-display text-lg font-bold">Календарь калорий</h2>
+      <p className="mt-1 text-xs text-slate-500">
+        Дни относительно цели{calorieTarget ? ` (${calorieTarget} ккал)` : ""}
+      </p>
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
+        {weekdays.map((d) => (
+          <div key={d}>{d}</div>
+        ))}
+      </div>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {grid.map((dateKey, index) => {
+          if (!dateKey) {
+            return <div key={`empty-${index}`} className="aspect-square rounded-md" />;
+          }
+          const kcal = byDate.get(dateKey) ?? 0;
+          const tone = heatmapCellTone(kcal, calorieTarget);
+          const dayNum = Number(dateKey.slice(8, 10));
+          return (
+            <div
+              key={dateKey}
+              className={`flex aspect-square items-center justify-center rounded-md text-xs font-semibold ${HEATMAP_TONE_CLASS[tone]}`}
+              title={
+                kcal > 0
+                  ? `${formatDateShort(dateKey)}: ${kcal} ккал`
+                  : `${formatDateShort(dateKey)}: нет записей`
+              }
+            >
+              {dayNum}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.empty.split(" ")[0]}`} />
+          нет данных
+        </span>
+        {calorieTarget ? (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.under.split(" ")[0]}`} />
+              ниже цели
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.good.split(" ")[0]}`} />
+              около цели
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.over.split(" ")[0]}`} />
+              выше цели
+            </span>
+          </>
+        ) : (
+          <span className="flex items-center gap-1.5">
+            <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.logged.split(" ")[0]}`} />
+            есть записи
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
 function StatCard({
@@ -663,6 +747,14 @@ export function StatsView({ endDate }: StatsViewProps) {
               <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
             </div>
           </section>
+
+          {period === "month" ? (
+            <MonthHeatmap
+              days={data.days}
+              calorieTarget={data.calorieTarget}
+              endDate={endDate}
+            />
+          ) : null}
 
           {/* Macros */}
           <section className="card p-4 md:p-6">

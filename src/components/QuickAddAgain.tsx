@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { DayTemplates } from "@/components/DayTemplates";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { withBasePath } from "@/lib/paths";
 
-type Tab = "again" | "favorites" | "ai";
+type Tab = "again" | "favorites" | "templates" | "ai";
 
 type QuickAddAgainProps = {
   selectedDate: string;
@@ -15,7 +17,7 @@ type QuickAddAgainProps = {
 };
 
 /**
- * One secondary block for “add again”: yesterday/frequent, favorites, optional AI.
+ * One secondary block for “add again”: yesterday/frequent, favorites, templates, optional AI.
  */
 export function QuickAddAgain({
   selectedDate,
@@ -24,25 +26,52 @@ export function QuickAddAgain({
   onSaved,
 }: QuickAddAgainProps) {
   const [tab, setTab] = useState<Tab>("again");
+  const [favoritesCount, setFavoritesCount] = useState(0);
+
+  const loadFavoritesCount = useCallback(async () => {
+    try {
+      const resp = await fetch(withBasePath("/api/custom-foods"));
+      if (!resp.ok) return;
+      const data = (await resp.json()) as { foods?: unknown[] };
+      setFavoritesCount(Array.isArray(data.foods) ? data.foods.length : 0);
+    } catch {
+      // non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFavoritesCount();
+  }, [loadFavoritesCount, refreshKey]);
+
+  function handleSaved() {
+    void loadFavoritesCount();
+    onSaved();
+  }
 
   return (
     <section className="card overflow-hidden">
       <div className="border-b border-slate-100 px-4 py-3 md:px-5">
         <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
-        <p className="mt-0.5 text-xs text-slate-500">Повтор вчерашнего, избранное или подсказка AI</p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Повтор вчерашнего, избранное, шаблоны дня или подсказка AI
+        </p>
       </div>
-      <div className="flex border-b border-slate-100">
+      <div className="flex border-b border-slate-100 overflow-x-auto">
         {(
           [
             { id: "again" as const, label: "Снова" },
-            { id: "favorites" as const, label: "Избранное" },
+            {
+              id: "favorites" as const,
+              label: favoritesCount > 0 ? `Избранное (${favoritesCount})` : "Избранное",
+            },
+            { id: "templates" as const, label: "Шаблоны" },
             { id: "ai" as const, label: "AI" },
           ] as const
         ).map((item) => (
           <button
             key={item.id}
             type="button"
-            className={`min-h-11 flex-1 px-3 text-sm font-semibold transition-colors ${
+            className={`min-h-11 shrink-0 flex-1 px-3 text-sm font-semibold transition-colors ${
               tab === item.id
                 ? "border-b-2 border-teal-700 text-teal-800"
                 : "text-slate-500 hover:text-slate-700"
@@ -59,12 +88,19 @@ export function QuickAddAgain({
           <QuickAddMeals
             selectedDate={selectedDate}
             refreshKey={refreshKey}
-            onSaved={onSaved}
+            onSaved={handleSaved}
             embedded
           />
         ) : null}
         {tab === "favorites" ? (
-          <FavoriteFoods selectedDate={selectedDate} onSaved={onSaved} embedded />
+          <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
+        ) : null}
+        {tab === "templates" ? (
+          <DayTemplates
+            selectedDate={selectedDate}
+            refreshKey={refreshKey}
+            onSaved={handleSaved}
+          />
         ) : null}
         {tab === "ai" ? (
           <MealSuggestions

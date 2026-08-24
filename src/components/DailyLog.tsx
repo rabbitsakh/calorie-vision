@@ -321,18 +321,54 @@ function InlineEdit({
   );
 }
 
+function MealTypeInlineChips({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string | null | undefined;
+  disabled?: boolean;
+  onChange: (mealType: string | null) => void;
+}) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Приём пищи">
+      {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([type, label]) => {
+        const active = value === type;
+        return (
+          <button
+            key={type}
+            type="button"
+            disabled={disabled}
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
+              active
+                ? "bg-teal-700 text-white"
+                : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"
+            }`}
+            onClick={() => onChange(active ? null : type)}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SingleMealCard({
   entry,
   timezone,
   onDelete,
   onEdit,
+  onMealTypeChange,
 }: {
   entry: MealEntry;
   timezone?: string | null;
   onDelete: (id: string) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
+  onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
+  const [typeBusy, setTypeBusy] = useState(false);
 
   if (editing) {
     return (
@@ -384,6 +420,14 @@ function SingleMealCard({
             ) : null}
           </div>
           <MealEntryDetails entry={entry} timezone={timezone} />
+          <MealTypeInlineChips
+            value={entry.mealType}
+            disabled={typeBusy}
+            onChange={(mealType) => {
+              setTypeBusy(true);
+              void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusy(false));
+            }}
+          />
         </div>
         <p className="shrink-0 text-sm font-bold text-slate-800">{entry.calories}</p>
         <div className="flex shrink-0 gap-1">
@@ -420,12 +464,14 @@ function MealListRow({
   onDelete,
   onDeleteGroup,
   onEdit,
+  onMealTypeChange,
 }: {
   item: MealListItem;
   timezone?: string | null;
   onDelete: (id: string) => void;
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
+  onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
 }) {
   if (item.kind === "group") {
     return (
@@ -438,7 +484,15 @@ function MealListRow({
     );
   }
 
-  return <SingleMealCard entry={item.entry} timezone={timezone} onDelete={onDelete} onEdit={onEdit} />;
+  return (
+    <SingleMealCard
+      entry={item.entry}
+      timezone={timezone}
+      onDelete={onDelete}
+      onEdit={onEdit}
+      onMealTypeChange={onMealTypeChange}
+    />
+  );
 }
 
 export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
@@ -619,6 +673,30 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       }),
     );
 
+    await loadEntries(true);
+    onChanged?.();
+  }
+
+  async function handleMealTypeChange(id: string, mealType: string | null) {
+    // Optimistic so budget bars update immediately.
+    setEntries((prev) =>
+      prev.map((entry) =>
+        entry.id === id
+          ? { ...entry, mealType: mealType as MealEntry["mealType"] }
+          : entry,
+      ),
+    );
+
+    const response = await fetch(withBasePath(`/api/meals/${id}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mealType }),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      await loadEntries(true);
+      return;
+    }
     await loadEntries(true);
     onChanged?.();
   }
@@ -830,6 +908,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 requestDelete([id], label);
               }}
               onEdit={handleEdit}
+              onMealTypeChange={handleMealTypeChange}
               onDeleteGroup={(ids) => {
                 const label = item.kind === "group"
                   ? `${item.entries.length} блюда с одного фото`

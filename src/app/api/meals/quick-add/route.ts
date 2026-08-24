@@ -157,9 +157,22 @@ export async function GET(request: NextRequest) {
       }));
 
     const yesterday = shiftDateKey(today, -1);
-    const yesterdayCount = await prisma.mealEntry.count({
+    const yesterdayEntries = await prisma.mealEntry.findMany({
       where: { userId: session.user.id, date: yesterday },
+      select: { mealType: true },
     });
+    const yesterdayCount = yesterdayEntries.length;
+    const yesterdayByMealType: Record<MealType, number> = {
+      BREAKFAST: 0,
+      LUNCH: 0,
+      DINNER: 0,
+      SNACK: 0,
+    };
+    for (const entry of yesterdayEntries) {
+      if (entry.mealType && entry.mealType in yesterdayByMealType) {
+        yesterdayByMealType[entry.mealType] += 1;
+      }
+    }
 
     return NextResponse.json({
       suggestions,
@@ -167,6 +180,7 @@ export async function GET(request: NextRequest) {
       mealTypeLabel: MEAL_TYPE_LABELS[currentMealType],
       yesterdayDate: yesterday,
       yesterdayCount,
+      yesterdayByMealType,
       today,
     });
   } catch (error) {
