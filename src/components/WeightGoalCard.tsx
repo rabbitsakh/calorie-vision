@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GOAL_OPTIONS,
   PACE_OPTIONS,
@@ -15,7 +15,9 @@ import {
   type WeightGoal,
 } from "@/lib/diet";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
+import { parseDateInput } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
+import { forecastGoalDate } from "@/lib/stats-insights";
 
 type ProfileResponse = {
   goal: WeightGoal | null;
@@ -23,6 +25,9 @@ type ProfileResponse = {
   targetWeightKg: number | null;
   goalDeadline: string | null;
   currentWeightKg: number | null;
+  currentWeightDate?: string | null;
+  firstWeightKg?: number | null;
+  firstWeightDate?: string | null;
   weightChangeKg: number | null;
   error?: string;
 };
@@ -46,6 +51,8 @@ export function WeightGoalCard({
   const [draftPace, setDraftPace] = useState<GoalPace | null>(null);
   const [editingGoal, setEditingGoal] = useState(false);
   const [currentWeightKg, setCurrentWeightKg] = useState<number | null>(null);
+  const [currentWeightDate, setCurrentWeightDate] = useState<string | null>(null);
+  const [firstWeightDate, setFirstWeightDate] = useState<string | null>(null);
   const [weightChangeKg, setWeightChangeKg] = useState<number | null>(null);
   const [targetWeightKg, setTargetWeightKg] = useState<number | null>(null);
   const [goalDeadline, setGoalDeadline] = useState<string | null>(null);
@@ -76,6 +83,8 @@ export function WeightGoalCard({
         setEditingGoal(true);
       }
       setCurrentWeightKg(data.currentWeightKg);
+      setCurrentWeightDate(data.currentWeightDate ?? null);
+      setFirstWeightDate(data.firstWeightDate ?? null);
       setWeightChangeKg(data.weightChangeKg);
       setTargetWeightKg(data.targetWeightKg);
       setGoalDeadline(data.goalDeadline);
@@ -92,6 +101,32 @@ export function WeightGoalCard({
     void loadProfile();
   }, [loadProfile, refreshKey]);
 
+  const forecast = useMemo(() => {
+    if (!goal || !currentWeightKg || !targetWeightKg) return null;
+    let observedDays: number | null = null;
+    if (firstWeightDate && currentWeightDate) {
+      const ms =
+        parseDateInput(currentWeightDate).getTime() - parseDateInput(firstWeightDate).getTime();
+      observedDays = Math.max(0, Math.round(ms / 86400000));
+    }
+    return forecastGoalDate({
+      currentKg: currentWeightKg,
+      targetKg: targetWeightKg,
+      goal,
+      pace: goalPace,
+      observedChangeKg: weightChangeKg,
+      observedDays,
+    });
+  }, [
+    goal,
+    goalPace,
+    currentWeightKg,
+    targetWeightKg,
+    weightChangeKg,
+    firstWeightDate,
+    currentWeightDate,
+  ]);
+
   async function saveGoal(nextGoal: WeightGoal, nextPace: GoalPace | null) {
     setSaving(true);
     setError(null);
@@ -106,7 +141,13 @@ export function WeightGoalCard({
           goalDeadline: draftDeadline || null,
         }),
       });
-      const data = (await response.json()) as { goal?: WeightGoal; goalPace?: GoalPace | null; targetWeightKg?: number | null; goalDeadline?: string | null; error?: string };
+      const data = (await response.json()) as {
+        goal?: WeightGoal;
+        goalPace?: GoalPace | null;
+        targetWeightKg?: number | null;
+        goalDeadline?: string | null;
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(data.error ?? "Не удалось сохранить цель");
       }
@@ -175,34 +216,67 @@ export function WeightGoalCard({
           <div>
             <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
             {goal && !editingGoal ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
-                <div>
-                  <p className="font-semibold text-teal-900">{formatGoalChoice(goal, goalPace)}</p>
-                  <p className="text-xs text-teal-800">{savedGoalHint(goal, goalPace)}</p>
-                  {targetWeightKg ? (
-                    <p className="mt-1 text-xs text-teal-700">
-                      Цель: {targetWeightKg} кг
-                      {goalDeadline ? ` · к ${new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(new Date(goalDeadline + "T12:00:00"))}` : ""}
-                      {currentWeightKg && goalDeadline ? (() => {
-                        const diff = Math.abs(currentWeightKg - targetWeightKg);
-                        const daysLeft = Math.max(0, Math.round((new Date(goalDeadline + "T12:00:00").getTime() - Date.now()) / 86400000));
-                        return diff > 0.05 && daysLeft > 0 ? ` · ${daysLeft} ${daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"} осталось` : null;
-                      })() : null}
-                    </p>
-                  ) : null}
+              <div className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-teal-900">{formatGoalChoice(goal, goalPace)}</p>
+                    <p className="text-xs text-teal-800">{savedGoalHint(goal, goalPace)}</p>
+                    {targetWeightKg ? (
+                      <p className="mt-1 text-xs text-teal-700">
+                        Цель: {targetWeightKg} кг
+                        {goalDeadline
+                          ? ` · к ${new Intl.DateTimeFormat("ru-RU", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            }).format(new Date(goalDeadline + "T12:00:00"))}`
+                          : ""}
+                        {currentWeightKg && goalDeadline
+                          ? (() => {
+                              const diff = Math.abs(currentWeightKg - targetWeightKg);
+                              const daysLeft = Math.max(
+                                0,
+                                Math.round(
+                                  (new Date(goalDeadline + "T12:00:00").getTime() - Date.now()) /
+                                    86400000,
+                                ),
+                              );
+                              return diff > 0.05 && daysLeft > 0
+                                ? ` · ${daysLeft} ${daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"} осталось`
+                                : null;
+                            })()
+                          : null}
+                      </p>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={saving}
+                    onClick={() => {
+                      setDraftGoal(goal);
+                      setDraftPace(goalPace);
+                      setEditingGoal(true);
+                    }}
+                  >
+                    Изменить цель
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  disabled={saving}
-                  onClick={() => {
-                    setDraftGoal(goal);
-                    setDraftPace(goalPace);
-                    setEditingGoal(true);
-                  }}
-                >
-                  Изменить цель
-                </button>
+                {forecast ? (
+                  <p className="rounded-xl bg-white/70 px-3 py-2 text-xs text-teal-900">
+                    {forecast.message}
+                    {goalDeadline && forecast.forecastDate > goalDeadline ? (
+                      <span className="mt-1 block text-amber-800">
+                        При текущем темпе дата цели может сдвинуться позже дедлайна.
+                      </span>
+                    ) : null}
+                    {goalDeadline && forecast.forecastDate < goalDeadline ? (
+                      <span className="mt-1 block text-teal-700">
+                        Темп опережает дедлайн — можно чуть смягчить дефицит.
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -247,7 +321,9 @@ export function WeightGoalCard({
                           >
                             <span className="block text-sm font-semibold">{option.label}</span>
                             <span className="mt-1 block text-xs text-slate-500">
-                              {draftGoal && goalNeedsPace(draftGoal) ? paceHint(draftGoal, option.value) : ""}
+                              {draftGoal && goalNeedsPace(draftGoal)
+                                ? paceHint(draftGoal, option.value)
+                                : ""}
                             </span>
                           </button>
                         );
