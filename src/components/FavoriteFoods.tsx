@@ -138,7 +138,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   return (
     <section className={embedded ? "" : "card p-4 md:p-6"}>
       <div className="flex items-center justify-between gap-2">
-        {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-slate-700">Сохранённые</span>}
+        {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-slate-700">Избранное / мои продукты</span>}
         <div className="flex gap-2">
         <button
           type="button"
@@ -209,9 +209,19 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
       {!loading && foods.length === 0 && !showForm ? (
-        <p className="mt-3 text-sm text-slate-500">
-          Нет сохранённых продуктов. Добавьте, что вы часто едите — их можно будет быстро занести в дневник.
-        </p>
+        <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
+          <p className="text-sm font-medium text-teal-900">Избранное пока пусто</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Сохраните частые блюда — потом добавляйте в дневник в один тап.
+          </p>
+          <button
+            type="button"
+            className="btn btn-on-tint mt-3 text-sm text-teal-800"
+            onClick={() => setShowForm(true)}
+          >
+            + Добавить продукт
+          </button>
+        </div>
       ) : null}
 
       {foods.length > 0 ? (
