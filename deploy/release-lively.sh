@@ -5,11 +5,12 @@ set -euo pipefail
 #
 #   sudo ln -sf /var/www/calorie-vision/deploy/release-lively.sh /usr/local/bin/cv-release-lively
 #   cv-release-lively
-#   cv-release-lively 253 254 255 …
+#   cv-release-lively 259          # batch (all 8 waves)
+#   cv-release-lively 254 253 257 256 255 258 261 260  # stacked
 
 REPO="rabbitsakh/calorie-vision"
 APP_DIR="/var/www/calorie-vision"
-DEFAULT_PRS=(253 254 255 256 257 258 259 260)
+DEFAULT_PRS=(259)
 
 if [[ $# -gt 0 ]]; then
   PRS=("$@")
