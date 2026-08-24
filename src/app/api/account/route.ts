@@ -7,6 +7,7 @@ import { isSex, type Sex } from "@/lib/diet";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { referralCodeForUser } from "@/lib/referral";
+import { clampHour } from "@/lib/quiet-hours";
 import { saveUploadedImage } from "@/lib/upload";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,8 @@ export async function GET() {
           phone: true,
           image: true,
           timezone: true,
+          quietHoursStart: true,
+          quietHoursEnd: true,
           sex: true,
           heightCm: true,
           birthYear: true,
@@ -68,6 +71,8 @@ export async function GET() {
       phone: user.phone,
       image: user.image,
       timezone: user.timezone ?? null,
+      quietHoursStart: user.quietHoursStart ?? null,
+      quietHoursEnd: user.quietHoursEnd ?? null,
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
@@ -97,6 +102,8 @@ export async function PUT(request: NextRequest) {
       phone?: string | null;
       image?: string | null;
       timezone?: string | null;
+      quietHoursStart?: number | null;
+      quietHoursEnd?: number | null;
       sex?: string | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -128,6 +135,8 @@ export async function PUT(request: NextRequest) {
       phoneVerified?: Date | null;
       image?: string | null;
       timezone?: string | null;
+      quietHoursStart?: number | null;
+      quietHoursEnd?: number | null;
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -225,6 +234,33 @@ export async function PUT(request: NextRequest) {
       data.timezone = tz;
     }
 
+
+    if (body.quietHoursStart !== undefined || body.quietHoursEnd !== undefined) {
+      let start: number | null | undefined = body.quietHoursStart === undefined
+        ? undefined
+        : body.quietHoursStart === null
+          ? null
+          : clampHour(body.quietHoursStart);
+      let end: number | null | undefined = body.quietHoursEnd === undefined
+        ? undefined
+        : body.quietHoursEnd === null
+          ? null
+          : clampHour(body.quietHoursEnd);
+      if (body.quietHoursStart !== undefined && body.quietHoursStart !== null && start === null) {
+        return NextResponse.json({ error: "Час начала тишины: 0–23" }, { status: 400 });
+      }
+      if (body.quietHoursEnd !== undefined && body.quietHoursEnd !== null && end === null) {
+        return NextResponse.json({ error: "Час конца тишины: 0–23" }, { status: 400 });
+      }
+      // Clearing one side disables quiet hours entirely.
+      if (start === null || end === null) {
+        start = null;
+        end = null;
+      }
+      if (start !== undefined) data.quietHoursStart = start;
+      if (end !== undefined) data.quietHoursEnd = end;
+    }
+
     const emailDecision = lockedEmailDecision(emailLocked, body.email, currentUser.email);
     if (emailDecision.action === "reject") {
       return NextResponse.json(
@@ -260,6 +296,8 @@ export async function PUT(request: NextRequest) {
         phone: true,
         image: true,
         timezone: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
         sex: true,
         heightCm: true,
         birthYear: true,
@@ -276,6 +314,8 @@ export async function PUT(request: NextRequest) {
       phone: user.phone,
       image: user.image,
       timezone: user.timezone ?? null,
+      quietHoursStart: user.quietHoursStart ?? null,
+      quietHoursEnd: user.quietHoursEnd ?? null,
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,

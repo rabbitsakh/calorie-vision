@@ -44,6 +44,10 @@ model User {
   /** Soft free-sugar cap override (g); null → diet default (~10% energy). */
   sugarTargetG  Float?
   timezone      String?        @db.VarChar(64)
+  /** Local hour (0–23) when quiet hours begin; null = disabled. */
+  quietHoursStart Int?
+  /** Local hour (0–23) when quiet hours end (exclusive); null = disabled. */
+  quietHoursEnd   Int?
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]

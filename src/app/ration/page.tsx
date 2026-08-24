@@ -34,6 +34,9 @@ import {
   PwaInstallWizard,
 } from "@/components/PwaInstallWizard";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
+import { parseMealQueryParam } from "@/lib/push-deeplink";
+import { withBasePath } from "@/lib/paths";
+import type { MealType } from "@/types";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -60,6 +63,7 @@ export default function RationPage() {
   const [showHabits, setShowHabits] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
+  const [deepLinkMeal, setDeepLinkMeal] = useState<MealType | null>(null);
 
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -72,6 +76,20 @@ export default function RationPage() {
     window.addEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
     return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
   }, [bump]);
+
+  // Push notification deep link: /ration?meal=BREAKFAST
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const meal = parseMealQueryParam(params.get("meal"));
+    if (!meal) return;
+    setDeepLinkMeal(meal);
+    window.requestAnimationFrame(() => {
+      document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    const clean = withBasePath("/ration");
+    window.history.replaceState({}, "", clean.endsWith("/") ? clean : `${clean}/`);
+  }, []);
 
   return (
     <AppShell
@@ -94,7 +112,7 @@ export default function RationPage() {
           <ProfileCompletionBanner />
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
 
-          <FoodAddPanel selectedDate={date} onSaved={bump} onPendingChange={setConfirmOpen} />
+          <FoodAddPanel selectedDate={date} initialMealType={deepLinkMeal ?? undefined} onSaved={bump} onPendingChange={setConfirmOpen} />
 
           <DailyLog
             selectedDate={date}

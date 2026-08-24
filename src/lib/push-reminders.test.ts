@@ -237,3 +237,15 @@ test("default buildReminderPayload stays on variant A", () => {
   assert.equal(def.title, a.title);
   assert.equal(def.body, a.body);
 });
+
+test("breakfast deep link includes meal=BREAKFAST", () => {
+  const payload = buildReminderPayload("breakfast", baseCtx);
+  assert.ok(payload);
+  assert.equal(payload.url, "/ration?meal=BREAKFAST");
+});
+
+test("lunch deep link includes meal=LUNCH", () => {
+  const payload = buildReminderPayload("lunch", { ...baseCtx, mealCount: 1, hasBreakfast: true });
+  assert.ok(payload);
+  assert.equal(payload.url, "/ration?meal=LUNCH");
+});
