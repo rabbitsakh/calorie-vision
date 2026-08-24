@@ -57,6 +57,7 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Mascot lively wave 7.*$/i, "Маскот: entrance и LiveMascot на лендинге"],
   [/^Mascot lively wave 8.*$/i, "Маскот: preview liveliness + cv-release-lively"],
   [/^Mascot seasonal.*$/i, "Маскот: сезонные скины (зима/весна/лето/осень) + Rive fallback"],
+  [/^Mascot soften seasonal.*$/i, "Маскот: убраны очки и зимняя одежда — только лёгкая атмосфера"],
   [/^Fix barcode portion kcal.*$/i, "Исправление: калории батончиков по штрихкоду больше не занижаются"],
   [/^Landing mascot parallax.*$/i, "Лендинг: маскот, parallax, тексты и блок «бесплатно»"],
   [/^Recognition polish batch.*$/i, "Распознавание: batch-сохранение, rate limit, телеметрия и UX"],
