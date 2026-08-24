@@ -23,7 +23,7 @@ export const MASCOT_SKINS: Record<MascotSkinId, MascotSkinMeta> = {
 
 export const MASCOT_SKIN_IDS = Object.keys(MASCOT_SKINS) as MascotSkinId[];
 
-/** Northern-hemisphere calendar skin (Russia). */
+/** Northern-hemisphere calendar skin (Russia). Soft ambience only — no outfits. */
 export function seasonalSkinForMonth(month: number): MascotSkinId {
   if (month === 11 || month <= 1) return "winter";
   if (month <= 4) return "spring";
