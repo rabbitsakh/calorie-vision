@@ -1,6 +1,9 @@
-import { MascotSvg, mascotMotionClass, type MascotPose, type MascotSvgProps } from "@/components/MascotSvg";
+"use client";
+
+import { MascotRenderer } from "@/components/MascotRenderer";
+import { mascotMotionClass, type MascotPose, type MascotSvgProps } from "@/components/MascotSvg";
 import { type MascotGesture } from "@/lib/mascot-liveness";
-import { resolveMascotSkin, type MascotSkinId } from "@/lib/mascot-skin";
+import { type MascotSkinId } from "@/lib/mascot-skin";
 
 export { mascotMotionClass, type MascotPose, type MascotGesture, type MascotSkinId };
 
@@ -10,10 +13,8 @@ export type MascotProps = Omit<MascotSvgProps, "skin"> & {
 };
 
 /**
- * Default mascot — SVG with seasonal accessories.
- * For Rive + context overrides use MascotRenderer (LiveMascot, celebrations).
+ * Default mascot entry — routes through MascotRenderer (art / rive / svg).
  */
 export function Mascot({ skin, ...props }: MascotProps) {
-  const resolvedSkin = skin ?? resolveMascotSkin();
-  return <MascotSvg {...props} skin={resolvedSkin} />;
+  return <MascotRenderer skin={skin} {...props} />;
 }

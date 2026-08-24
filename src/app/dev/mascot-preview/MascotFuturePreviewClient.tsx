@@ -24,7 +24,7 @@ import {
 
 const POSES: MascotPose[] = ["idle", "cheer", "streak", "goal", "tip", "empty"];
 const GESTURES: MascotGesture[] = ["look", "yawn", "stretch", "wave", "pet", "react"];
-const RENDERERS: MascotRendererMode[] = ["auto", "svg", "rive"];
+const RENDERERS: MascotRendererMode[] = ["auto", "art", "svg", "rive"];
 
 const CELEB_SCENES: Array<{
   id: CelebrationVariant;
@@ -80,11 +80,11 @@ export default function MascotFuturePreviewPage() {
         <MascotSaveReaction />
         <header className="border-b border-stone-200 bg-white px-4 py-6 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">
-            Маскот · Duo season looks
+            Маскот · Soft-3D art V5
           </p>
           <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Живые анимации</h1>
           <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
-            Сезоны и ивенты (НГ, Хэллоуин). Тап — pet без рывка. Rive не обязателен.
+            Рисованный soft-3D персонаж (art). auto = art на md+, SVG на sm. Сезоны пока в режиме svg.
           </p>
         </header>
 

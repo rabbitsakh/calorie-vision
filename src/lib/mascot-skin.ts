@@ -11,7 +11,7 @@ export type MascotSkinId =
   | "newyear"
   | "halloween";
 
-export type MascotRendererMode = "auto" | "svg" | "rive";
+export type MascotRendererMode = "auto" | "svg" | "rive" | "art";
 
 export type MascotSkinMeta = {
   id: MascotSkinId;
@@ -87,7 +87,7 @@ export function resolveMascotRendererMode(): MascotRendererMode {
   )
     ?.trim()
     .toLowerCase();
-  if (raw === "svg" || raw === "rive" || raw === "auto") return raw;
+  if (raw === "svg" || raw === "rive" || raw === "art" || raw === "auto") return raw;
   return "auto";
 }
 
@@ -100,7 +100,7 @@ export function shouldUseMascotRive(opts: {
 }): boolean {
   const mode = opts.mode ?? resolveMascotRendererMode();
   if (opts.reducedMotion || opts.size === "sm") return false;
-  if (mode === "svg") return false;
+  if (mode === "svg" || mode === "art") return false;
   if (mode === "rive") return opts.riveAvailable;
   return opts.riveAvailable;
 }
