@@ -461,7 +461,7 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
           const show = xLabels.has(index);
           const barH = total > 0 ? Math.max(4, Math.round((total / maxTotal) * 100)) : 0;
           return (
-            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 overflow-hidden">
+            <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center overflow-hidden">
               <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
                 {total > 0 ? (
                   <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · клетчатка ${day.fiber ?? 0} г · сахар ${day.sugar ?? 0} г`}>
@@ -473,13 +473,13 @@ function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "mont
                   <div className="h-0.5 w-full rounded bg-slate-100" />
                 )}
               </div>
-              {show ? (
-                <span className="block w-full truncate text-center text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
-                  {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
-                </span>
-              ) : (
-                <span className="block h-3" />
-              )}
+              <div className="flex h-4 w-full shrink-0 items-center justify-center">
+                {show ? (
+                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
+                    {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
+                  </span>
+                ) : null}
+              </div>
             </div>
           );
         })}
@@ -494,12 +494,12 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
   const maxVal = Math.max(...hourlyCalories, 1);
   const LABELS = ["00", "04", "08", "12", "16", "20"];
   return (
-    <div className="flex items-end gap-px overflow-hidden sm:gap-0.5">
+    <div className="flex gap-px overflow-hidden sm:gap-0.5">
       {hourlyCalories.map((val, hour) => {
         const h = Math.max(0, Math.round((val / maxVal) * 100));
         const show = hour % 4 === 0;
         return (
-          <div key={hour} className="flex min-w-0 flex-1 flex-col items-center gap-0.5 overflow-hidden">
+          <div key={hour} className="flex min-w-0 flex-1 flex-col items-center overflow-hidden">
             <div className="flex w-full flex-col justify-end" style={{ height: "64px" }}>
               {val > 0 ? (
                 <div
@@ -511,13 +511,14 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
                 <div className="h-px w-full bg-slate-100" />
               )}
             </div>
-            {show ? (
-              <span className="truncate text-[10px] font-medium text-slate-400 sm:text-xs">
-                {LABELS[Math.floor(hour / 4)]}
-              </span>
-            ) : (
-              <span className="block h-3" />
-            )}
+            {/* Fixed label slot so labeled columns don't lift bars (was items-end + uneven label height). */}
+            <div className="flex h-4 w-full shrink-0 items-center justify-center">
+              {show ? (
+                <span className="truncate text-[10px] font-medium leading-none text-slate-400 sm:text-xs">
+                  {LABELS[Math.floor(hour / 4)]}
+                </span>
+              ) : null}
+            </div>
           </div>
         );
       })}
