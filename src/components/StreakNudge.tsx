@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
+import { MascotCompanionCard } from "@/components/MascotCompanionCard";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
@@ -80,37 +81,26 @@ export function StreakNudge({
   }
 
   return (
-    <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 shadow-sm">
-      <div className="flex items-start gap-3">
-        <Mascot pose="tip" size="md" className="mt-0.5 shrink-0" />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-orange-900">
-            Не потеряйте серию — {data.streakBeforeToday} {pluralDays(data.streakBeforeToday)}!
-          </p>
-          <p className="mt-0.5 text-sm text-orange-700">
-            Сегодня ещё нет записей. Добавьте хотя бы один приём пищи, чтобы сохранить серию.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn btn-on-tint text-sm text-orange-800"
-              onClick={onAddFood}
-            >
-              Добавить еду
-            </button>
-            <button
-              type="button"
-              className="btn-quiet text-sm text-orange-700 hover:bg-orange-100"
-              onClick={() => {
-                hidePanelToday(PANEL_ID, selectedDate);
-                setHidden(true);
-              }}
-            >
-              Скрыть
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <MascotCompanionCard
+      pose="tip"
+      size="md"
+      tone="orange"
+      title={`Не потеряйте серию — ${data.streakBeforeToday} ${pluralDays(data.streakBeforeToday)}!`}
+      onHide={() => {
+        hidePanelToday(PANEL_ID, selectedDate);
+        setHidden(true);
+      }}
+      actions={
+        <>
+          <button type="button" className="btn btn-on-tint text-sm text-orange-800" onClick={onAddFood}>
+            Добавить еду
+          </button>
+        </>
+      }
+    >
+      <p className="text-orange-700">
+        Сегодня ещё нет записей. Добавьте хотя бы один приём пищи, чтобы сохранить серию.
+      </p>
+    </MascotCompanionCard>
   );
 }
