@@ -801,6 +801,64 @@ test("normalizeTopLevelEnergyCalories keeps 190 kcal portion total (not kJ)", ()
   );
 });
 
+test("OFF snack bar 225 kcal @ 50g is not treated as kJ → 27", () => {
+  // SNAQER / barcode 4610169560862: OFF returns ~225 kcal for 50 g pack.
+  // Old bug: 225 ÷ 4.184 ≈ 53.8 as fake per100g → ×50/100 = 27 kcal.
+  assert.equal(normalizeTopLevelEnergyCalories(225, 50), 225);
+
+  const withoutPer100 = normalizeRecognitionNutrition({
+    dishName: "SNAQER Pistachios & Caramel",
+    calories: 225,
+    protein: 8.5,
+    fat: 14,
+    carbs: 18,
+    portionGrams: 50,
+    confidence: 0.9,
+    source: "openfoodfacts-barcode",
+    photoKind: "barcode",
+  });
+  assert.equal(withoutPer100.calories, 225);
+  assert.equal(withoutPer100.portionGrams, 50);
+
+  const withPer100 = normalizeRecognitionNutrition({
+    dishName: "SNAQER Pistachios & Caramel",
+    calories: 225,
+    protein: 8.5,
+    fat: 14,
+    carbs: 18,
+    portionGrams: 50,
+    confidence: 0.9,
+    source: "openfoodfacts-barcode",
+    photoKind: "barcode",
+    per100g: {
+      calories: 449,
+      protein: 17,
+      fat: 28,
+      carbs: 36,
+    },
+  });
+  assert.equal(withPer100.calories, 225);
+  assert.equal(withPer100.per100g?.calories, 449);
+  assert.equal(
+    scaleRecognitionToDisplayPortion(withPer100, 50).calories,
+    225,
+  );
+  assert.equal(
+    scaleRecognitionToDisplayPortion(withPer100, 100).calories,
+    449,
+  );
+});
+
+test("normalizePer100gEnergy keeps dense snack kcal/100g (not kJ)", () => {
+  const per100 = normalizePer100gEnergy({
+    calories: 449,
+    protein: 17,
+    fat: 28,
+    carbs: 36,
+  });
+  assert.equal(per100?.calories, 449);
+});
+
 test("inferDrinkPackMlFromText parses volume in alcohol line", () => {
   assert.equal(inferDrinkPackMlFromText("54.0 мл в 1500 мл"), 1500);
 });

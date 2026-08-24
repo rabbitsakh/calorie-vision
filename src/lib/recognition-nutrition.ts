@@ -266,12 +266,25 @@ type Per100gValues = {
 };
 
 /** Labels often expose 159 kJ/100ml — models sometimes put kJ into calories. */
-function convertLabelEnergyKjToKcal(calories: number): number {
+function convertLabelEnergyKjToKcal(
+  calories: number,
+  macros?: Pick<Per100gValues, "protein" | "fat" | "carbs">,
+): number {
   // Typical drink labels: 150–400 kJ/100ml (≈36–96 kcal). Cottage cheese ~121 kcal stays.
-  if (calories >= 150 && calories <= 500) {
-    return Math.round((calories / 4.184) * 10) / 10;
+  if (calories < 150 || calories > 500) {
+    return calories;
   }
-  return calories;
+
+  // Dense foods (bars, cheese, nuts): 200–500 is already kcal/100g, not kJ.
+  if (
+    (macros?.fat !== undefined && macros.fat > 8) ||
+    (macros?.protein !== undefined && macros.protein > 10) ||
+    (macros?.carbs !== undefined && macros.carbs > 20)
+  ) {
+    return calories;
+  }
+
+  return Math.round((calories / 4.184) * 10) / 10;
 }
 
 export function normalizePer100gEnergy(
@@ -281,7 +294,10 @@ export function normalizePer100gEnergy(
     return undefined;
   }
 
-  return { ...per100g, calories: convertLabelEnergyKjToKcal(per100g.calories) };
+  return {
+    ...per100g,
+    calories: convertLabelEnergyKjToKcal(per100g.calories, per100g),
+  };
 }
 
 /** Vision sometimes puts kJ/100 ml into the top-level calories field (e.g. 150 instead of 38). */
@@ -291,6 +307,14 @@ export function normalizeTopLevelEnergyCalories(
 ): number {
   if (calories < 150 || calories > 500) {
     return calories;
+  }
+
+  // Dense snack pack totals (225 kcal @ 50 g ≈ 4.5 kcal/g) are not kJ.
+  if (portionGrams && portionGrams > 0 && portionGrams <= 100) {
+    const density = calories / portionGrams;
+    if (density >= 2.5) {
+      return calories;
+    }
   }
 
   const converted = convertLabelEnergyKjToKcal(calories);
@@ -314,6 +338,14 @@ export function normalizeTopLevelEnergyCalories(
   return calories;
 }
 
+function isTrustedPackDbSource(source: FoodRecognitionResult["source"] | undefined): boolean {
+  return (
+    source === "openfoodfacts-barcode" ||
+    source === "openfoodfacts-search" ||
+    source === "ru-nutrition-table"
+  );
+}
+
 /**
  * Label vision often reads «38 ккал / 100 мл» into calories but leaves per100g at zero.
  * Copy explicit per-100 values so scaling always uses the table row from the label.
@@ -331,6 +363,17 @@ export function coalesceLabelPer100FromVision(result: FoodRecognitionResult): Fo
   const existing = normalizePer100gEnergy(result.per100g);
   if (existing && existing.calories > 0) {
     return { ...result, per100g: existing };
+  }
+
+  // OFF / RU table already returned portion totals. Don't invent density from pack kcal
+  // (225 kcal @ 50 g must not become fake 53.8 kcal/100g via kJ heuristic).
+  if (
+    isTrustedPackDbSource(result.source) &&
+    result.portionGrams &&
+    result.portionGrams > 0 &&
+    result.portionGrams !== 100
+  ) {
+    return result;
   }
 
   const portion = result.portionGrams && result.portionGrams > 0 ? result.portionGrams : undefined;
