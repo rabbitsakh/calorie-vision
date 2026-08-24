@@ -1,4 +1,4 @@
-import { useId, type SVGProps } from "react";
+import { useId, type CSSProperties, type KeyboardEventHandler, type MouseEventHandler, type SVGProps } from "react";
 import { MascotSeasonalLayer } from "@/components/MascotSeasonalLayer";
 import { mascotGestureClass, type MascotGesture } from "@/lib/mascot-liveness";
 import { mascotSkinClass, type MascotSkinId } from "@/lib/mascot-skin";
@@ -90,8 +90,7 @@ export function MascotSvg({
   const classes = [
     "mascot-root",
     motion,
-    gestureClass,
-    entrance ? "mascot-entrance" : "",
+    gesture !== "none" && animate ? "mascot-gesture-active" : "",
     "mascot-face-alive",
     mascotSkinClass(skin),
     className,
@@ -117,17 +116,31 @@ export function MascotSvg({
               ? "mascot-arm-pose-empty"
               : "mascot-arm-pose-idle";
 
-  return (
+  const {
+    onClick,
+    onKeyDown,
+    role,
+    tabIndex,
+    style,
+    "aria-label": ariaLabel,
+    ...svgRest
+  } = rest;
+
+  const svg = (
     <svg
       width={px}
       height={px}
       viewBox="-4 -10 104 116"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-label={title}
+      role={entrance ? undefined : role ?? "img"}
+      aria-label={entrance ? undefined : ariaLabel ?? title}
+      tabIndex={entrance ? undefined : tabIndex}
+      onClick={entrance ? undefined : onClick}
+      onKeyDown={entrance ? undefined : onKeyDown}
+      style={entrance ? undefined : style}
       className={classes}
-      {...rest}
+      {...svgRest}
     >
       <title>{title}</title>
       <defs>
@@ -201,6 +214,7 @@ export function MascotSvg({
         </clipPath>
       </defs>
 
+      <g className={["mascot-gesture-layer", gestureClass].filter(Boolean).join(" ")}>
       <ellipse className="mascot-shadow" cx="48" cy="96" rx="22" ry="3.8" fill={INK_DARK} opacity="0.18" filter={`url(#${softBlur})`} />
       <ellipse className="mascot-aura" cx="48" cy="56" rx="38" ry="38" fill={`url(#${glow})`} />
 
@@ -567,6 +581,33 @@ export function MascotSvg({
           </g>
         </g>
       )}
+      </g>
     </svg>
+  );
+
+  if (!entrance) {
+    return svg;
+  }
+
+  return (
+    <div
+      className="mascot-entrance-wrap"
+      style={
+        {
+          display: "inline-block",
+          width: px,
+          height: px,
+          lineHeight: 0,
+          ...(style as CSSProperties | undefined),
+        } as CSSProperties
+      }
+      role={role ?? "img"}
+      aria-label={ariaLabel ?? title}
+      tabIndex={tabIndex}
+      onClick={onClick as MouseEventHandler<HTMLDivElement> | undefined}
+      onKeyDown={onKeyDown as KeyboardEventHandler<HTMLDivElement> | undefined}
+    >
+      {svg}
+    </div>
   );
 }

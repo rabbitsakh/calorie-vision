@@ -80,12 +80,11 @@ export default function MascotFuturePreviewPage() {
         <MascotSaveReaction />
         <header className="border-b border-stone-200 bg-white px-4 py-6 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">
-            Маскот · сезоны
+            Маскот · Duo season looks
           </p>
           <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Живые анимации</h1>
           <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
-            Лёгкая сезонная атмосфера (без одежды). Rive не нужен — SVG работает сам; .riv можно
-            добавить позже, если захотите анимацию из редактора.
+            Сезоны и ивенты (НГ, Хэллоуин). Тап — pet без рывка. Rive не обязателен.
           </p>
         </header>
 

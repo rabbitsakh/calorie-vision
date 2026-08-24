@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
+  eventSkinForDate,
   mascotRivUrl,
   parseMascotSkinId,
   resolveMascotSkin,
@@ -17,17 +18,32 @@ describe("mascot-skin", () => {
     assert.equal(seasonalSkinForMonth(9), "autumn");
   });
 
+  test("eventSkinForDate picks halloween and newyear windows", () => {
+    assert.equal(eventSkinForDate(new Date(2026, 9, 28)), "halloween");
+    assert.equal(eventSkinForDate(new Date(2026, 10, 1)), "halloween");
+    assert.equal(eventSkinForDate(new Date(2026, 11, 25)), "newyear");
+    assert.equal(eventSkinForDate(new Date(2027, 0, 5)), "newyear");
+    assert.equal(eventSkinForDate(new Date(2026, 6, 15)), null);
+  });
+
+  test("resolveMascotSkin prefers events over seasons", () => {
+    assert.equal(resolveMascotSkin(new Date(2026, 11, 31)), "newyear");
+    assert.equal(resolveMascotSkin(new Date(2026, 9, 30)), "halloween");
+  });
+
   test("resolveMascotSkin prefers explicit override", () => {
     assert.equal(resolveMascotSkin(new Date("2026-07-15"), "winter"), "winter");
   });
 
   test("parseMascotSkinId accepts known ids", () => {
     assert.equal(parseMascotSkinId("summer"), "summer");
+    assert.equal(parseMascotSkinId("halloween"), "halloween");
     assert.equal(parseMascotSkinId("bogus"), null);
   });
 
   test("mascotRivUrl points at public mascot assets", () => {
     assert.equal(mascotRivUrl("winter"), "/mascot/winter.riv");
+    assert.equal(mascotRivUrl("newyear"), "/mascot/newyear.riv");
   });
 
   test("shouldUseMascotRive respects size and reduced motion", () => {
