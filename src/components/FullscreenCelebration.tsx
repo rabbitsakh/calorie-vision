@@ -128,12 +128,16 @@ export function FullscreenCelebration({
   useEffect(() => {
     if (!requestCelebration || !releaseCelebration) return;
     if (open) {
-      requestCelebration(celebrationId);
+      const accepted = requestCelebration(celebrationId);
+      if (!accepted) {
+        onClose();
+        return;
+      }
     } else {
       releaseCelebration(celebrationId);
     }
     return () => releaseCelebration(celebrationId);
-  }, [open, celebrationId, requestCelebration, releaseCelebration]);
+  }, [open, celebrationId, requestCelebration, releaseCelebration, onClose]);
 
   useEffect(() => {
     if (!show || !autoClose) return;
