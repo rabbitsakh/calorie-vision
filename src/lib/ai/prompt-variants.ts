@@ -23,6 +23,8 @@ export type VisionPromptHints = {
   barcodeHint?: string;
   /** width / height */
   aspectRatio?: number;
+  /** Canteen / restaurant tray — prefer typical plated portions and multi-item plates. */
+  context?: "restaurant";
 };
 
 const CATEGORY_FIRST_PROMPT = `Ты диетолог и CV-эксперт. Проанализируй ФОТО еды.
@@ -94,6 +96,11 @@ function hintLines(hints?: VisionPromptHints): string {
     } else if (hints.aspectRatio > 1.35) {
       lines.push("- Фото горизонтальное — вероятно тарелка или несколько блюд.");
     }
+  }
+  if (hints.context === "restaurant") {
+    lines.push(
+      "- Контекст: столовая / ресторан — типичные порции общепита, часто несколько позиций на подносе; предпочитай meal + items, не package/label.",
+    );
   }
 
   if (lines.length === 0) {

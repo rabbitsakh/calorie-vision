@@ -23,11 +23,21 @@ export function uploadFilename(file: File): string {
   return "photo.jpg";
 }
 
+export type RecognitionContext = "restaurant";
+
 export type PreparedRecognizeUpload = {
   compressed: Awaited<ReturnType<typeof compressFoodImage>>;
   visionFilename: string;
   barcodeHint: string;
+  context?: RecognitionContext;
 };
+
+export function parseRecognitionContext(
+  value: FormDataEntryValue | string | null | undefined,
+): RecognitionContext | undefined {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return raw === "restaurant" ? "restaurant" : undefined;
+}
 
 export async function prepareRecognizeUpload(formData: FormData): Promise<
   | { ok: true; data: PreparedRecognizeUpload }
@@ -61,9 +71,10 @@ export async function prepareRecognizeUpload(formData: FormData): Promise<
       : uploadFilename(file);
   const barcodeField = formData.get("barcode");
   const barcodeHint = typeof barcodeField === "string" ? barcodeField.trim() : "";
+  const context = parseRecognitionContext(formData.get("context"));
 
   return {
     ok: true,
-    data: { compressed, visionFilename, barcodeHint },
+    data: { compressed, visionFilename, barcodeHint, context },
   };
 }

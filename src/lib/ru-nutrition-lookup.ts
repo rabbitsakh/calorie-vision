@@ -95,6 +95,16 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["хурма"], dishName: "Хурма", calories: 102, protein: 1, fat: 0, carbs: 26, fiber: 3, sugar: 18, portionGrams: 150 },
   { keys: ["банан"], dishName: "Банан", calories: 120, protein: 1, fat: 0, carbs: 28, fiber: 3, sugar: 16, portionGrams: 120 },
   { keys: ["яблоко"], dishName: "Яблоко", calories: 95, protein: 0, fat: 0, carbs: 22, fiber: 4, sugar: 18, portionGrams: 180 },
+  { keys: ["манка", "манная каша"], dishName: "Манная каша", calories: 200, protein: 6, fat: 5, carbs: 32, portionGrams: 250 },
+  { keys: ["перловка", "перловая каша"], dishName: "Перловая каша", calories: 180, protein: 5, fat: 2, carbs: 36, fiber: 4, portionGrams: 200 },
+  { keys: ["рассольник"], dishName: "Рассольник", calories: 260, protein: 10, fat: 12, carbs: 24, portionGrams: 300 },
+  { keys: ["куриный суп", "суп куриный", "бульон куриный"], dishName: "Куриный суп", calories: 180, protein: 14, fat: 6, carbs: 14, portionGrams: 300 },
+  { keys: ["сосиски", "сосиска"], dishName: "Сосиски", calories: 260, protein: 12, fat: 22, carbs: 2, portionGrams: 100 },
+  { keys: ["драники", "драник"], dishName: "Драники", calories: 320, protein: 6, fat: 14, carbs: 42, portionGrams: 180 },
+  { keys: ["капуста тушеная", "тушеная капуста", "капуста тушёная"], dishName: "Капуста тушёная", calories: 140, protein: 3, fat: 8, carbs: 12, fiber: 4, portionGrams: 200 },
+  { keys: ["картошка жареная", "жареный картофель", "картофель жареный"], dishName: "Картофель жареный", calories: 280, protein: 4, fat: 14, carbs: 34, portionGrams: 180 },
+  { keys: ["холодец", "студень"], dishName: "Холодец", calories: 220, protein: 22, fat: 14, carbs: 2, portionGrams: 150 },
+  { keys: ["хачапури"], dishName: "Хачапури", calories: 420, protein: 16, fat: 22, carbs: 38, portionGrams: 180 },
 ];
 
 function normalizeRuLookupKey(name: string): string {
