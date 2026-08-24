@@ -85,8 +85,8 @@ export function BadgesPanel() {
         open={unlock != null}
         variant="badge"
         pose="cheer"
-        title="Новое достижение!"
-        subtitle={unlock ? `${unlock.title} — ${unlock.description}` : undefined}
+        title={unlock?.title ?? "Новое достижение!"}
+        subtitle={unlock ? unlock.description : undefined}
         badge="★"
         durationMs={0}
         ctaLabel="Круто!"
