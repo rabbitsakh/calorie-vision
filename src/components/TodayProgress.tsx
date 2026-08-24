@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { buildGoalAwareCalorieTip } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 type ProgressData = {
   calories: number;
   calorieTarget: number | null;
   protein: number;
   proteinTarget: number | null;
+  waterMl: number;
+  waterTarget: number;
   goal: "LOSE" | "GAIN" | "MAINTAIN" | null;
 };
 
@@ -65,27 +68,32 @@ function Ring({
   );
 }
 
-function ThinBar({
+function BigMetric({
   label,
-  pct,
+  value,
+  unit,
   detail,
-  color,
+  pct,
 }: {
   label: string;
-  pct: number;
+  value: string;
+  unit: string;
   detail: string;
-  color: string;
+  pct: number;
 }) {
   const clamped = Math.min(100, Math.max(0, pct));
+  const over = pct > 105;
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between text-xs">
-        <span className="font-medium text-slate-600">{label}</span>
-        <span className="text-slate-500">{detail}</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+    <div className="min-w-0 flex-1 rounded-2xl bg-slate-50 px-3 py-3">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 font-display text-2xl font-bold leading-none text-slate-900 sm:text-3xl">
+        {value}
+        <span className="ml-1 text-sm font-semibold text-slate-500">{unit}</span>
+      </p>
+      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200">
         <div
-          className={`h-1.5 rounded-full transition-all duration-500 ${color}`}
+          className={`h-1.5 rounded-full transition-all duration-500 ${over ? "bg-rose-400" : "bg-teal-500"}`}
           style={{ width: `${clamped}%` }}
         />
       </div>
@@ -99,7 +107,10 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   useEffect(() => {
     void (async () => {
       try {
-        const mealsResp = await fetch(withBasePath(`/api/meals?date=${selectedDate}`));
+        const [mealsResp, waterResp] = await Promise.all([
+          fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
+          fetch(withBasePath(`/api/water?date=${selectedDate}`)),
+        ]);
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
           totalCalories: number;
@@ -107,12 +118,17 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
           target: { calories: number; protein: number } | null;
         };
+        const water = waterResp.ok
+          ? ((await waterResp.json()) as { totalMl: number; target: number })
+          : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
 
         setData({
           calories: meals.totalCalories,
           calorieTarget: meals.target?.calories ?? null,
           protein: meals.totalProtein,
           proteinTarget: meals.target?.protein ?? null,
+          waterMl: water.totalMl,
+          waterTarget: water.target || WATER_DAILY_TARGET_ML,
           goal: meals.goal ?? null,
         });
       } catch {
@@ -121,7 +137,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
     })();
   }, [selectedDate, refreshKey]);
 
-  if (!data || (data.calories === 0 && !data.calorieTarget)) {
+  if (!data || (data.calories === 0 && !data.calorieTarget && data.waterMl === 0)) {
     return null;
   }
 
@@ -133,6 +149,8 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
     data.proteinTarget && data.proteinTarget > 0
       ? (data.protein / data.proteinTarget) * 100
       : 0;
+  const waterPct =
+    data.waterTarget > 0 ? (data.waterMl / data.waterTarget) * 100 : 0;
 
   let tip = "Добавьте первый приём пищи — и прогресс появится.";
   if (data.calorieTarget && data.calories > 0) {
@@ -163,16 +181,26 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <p className="font-display text-sm font-semibold text-slate-800">Сводка дня</p>
-          {data.proteinTarget ? (
-            <ThinBar
+          <div className="flex gap-2">
+            <BigMetric
               label="Белок"
-              pct={proteinPct}
-              detail={`${Math.round(data.protein)} / ${data.proteinTarget} г`}
-              color={proteinPct > 105 ? "bg-rose-400" : "bg-teal-500"}
+              value={String(Math.round(data.protein))}
+              unit="г"
+              detail={
+                data.proteinTarget
+                  ? `из ${data.proteinTarget} г`
+                  : "цель в профиле"
+              }
+              pct={data.proteinTarget ? proteinPct : 0}
             />
-          ) : (
-            <p className="text-xs text-slate-500">Укажите цель в профиле — появится норма белка.</p>
-          )}
+            <BigMetric
+              label="Вода"
+              value={data.waterMl >= 1000 ? (data.waterMl / 1000).toFixed(1) : String(data.waterMl)}
+              unit={data.waterMl >= 1000 ? "л" : "мл"}
+              detail={`из ${data.waterTarget} мл`}
+              pct={waterPct}
+            />
+          </div>
           <p className="text-xs leading-snug text-slate-600">{tip}</p>
         </div>
       </div>

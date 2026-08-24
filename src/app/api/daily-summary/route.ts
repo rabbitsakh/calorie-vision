@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import {
+  applyFiberSugarOverrides,
   isSex,
   isWeightGoal,
   isGoalPace,
@@ -22,7 +23,16 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true, goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+      select: {
+        timezone: true,
+        goal: true,
+        goalPace: true,
+        sex: true,
+        heightCm: true,
+        birthYear: true,
+        fiberTargetG: true,
+        sugarTargetG: true,
+      },
     });
 
     const today = toDateKeyTz(new Date(), user?.timezone);
@@ -58,7 +68,10 @@ export async function GET(request: NextRequest) {
     const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
     const sex = isSex(user?.sex) ? user!.sex : null;
     const target = goal && weight
-      ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
+      ? applyFiberSugarOverrides(
+          recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear),
+          { fiberTargetG: user?.fiberTargetG, sugarTargetG: user?.sugarTargetG },
+        )
       : null;
 
     let tip: string;

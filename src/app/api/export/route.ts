@@ -113,8 +113,29 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
     });
 
     const periodStr = from && to ? `${from} - ${to}` : from ?? to ?? "all time";
-    doc.fontSize(18).font("Helvetica-Bold").text(safeText("Calorie Vision — Dnevnik pitaniya"), { align: "center" });
-    doc.fontSize(11).font("Helvetica").text(safeText(`Period: ${periodStr}`), { align: "center" });
+    // Brand header
+    doc
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .fillColor("#0f766e")
+      .text("Calorie Vision", { align: "center" });
+    doc
+      .fontSize(12)
+      .font("Helvetica")
+      .fillColor("#334155")
+      .text(safeText("Dnevnik pitaniya"), { align: "center" });
+    doc
+      .fontSize(10)
+      .fillColor("#64748b")
+      .text(safeText(`Period: ${periodStr}`), { align: "center" });
+    doc.moveDown(0.4);
+    doc
+      .moveTo(40, doc.y)
+      .lineTo(555, doc.y)
+      .strokeColor("#99f6e4")
+      .lineWidth(1.5)
+      .stroke();
+    doc.fillColor("#000000");
     doc.moveDown(1);
 
     for (const [date, dayEntries] of byDate.entries()) {

@@ -25,6 +25,8 @@ type AccountResponse = {
   sex: Sex | null;
   heightCm: number | null;
   birthYear: number | null;
+  fiberTargetG: number | null;
+  sugarTargetG: number | null;
   linkedProviders: string[];
   emailLocked: boolean;
   referralCode?: string;
@@ -67,6 +69,8 @@ export function ProfileForm() {
   const [sex, setSex] = useState<Sex | "">("");
   const [heightCm, setHeightCm] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [fiberTargetG, setFiberTargetG] = useState("");
+  const [sugarTargetG, setSugarTargetG] = useState("");
   const [emailLocked, setEmailLocked] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -100,6 +104,8 @@ export function ProfileForm() {
       setSex(isSex(data.sex) ? data.sex : "");
       setHeightCm(data.heightCm ? String(data.heightCm) : "");
       setBirthYear(data.birthYear ? String(data.birthYear) : "");
+      setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
+      setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setEmailLocked(data.emailLocked);
       setReferralCode(data.referralCode?.trim() || "");
     } catch (err) {
@@ -133,6 +139,14 @@ export function ProfileForm() {
           sex: sex || null,
           heightCm: heightCm && Number.isFinite(Number(heightCm)) ? Math.round(Number(heightCm)) : null,
           birthYear: birthYear && Number.isFinite(Number(birthYear)) ? Math.round(Number(birthYear)) : null,
+          fiberTargetG:
+            fiberTargetG.trim() && Number.isFinite(Number(fiberTargetG))
+              ? Number(fiberTargetG)
+              : null,
+          sugarTargetG:
+            sugarTargetG.trim() && Number.isFinite(Number(sugarTargetG))
+              ? Number(sugarTargetG)
+              : null,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -147,6 +161,8 @@ export function ProfileForm() {
       setImage(data.image);
       setTimezone(data.timezone ?? "");
       setSex(isSex(data.sex) ? data.sex : "");
+      setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
+      setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
@@ -370,6 +386,34 @@ export function ProfileForm() {
                 onChange={(event) => setBirthYear(event.target.value)}
               />
               <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
+            </div>
+            <div className="field">
+              <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>
+              <input
+                id="fiberTargetG"
+                type="number"
+                min="1"
+                max="100"
+                step="1"
+                placeholder="28"
+                value={fiberTargetG}
+                onChange={(event) => setFiberTargetG(event.target.value)}
+              />
+              <p className="text-xs text-slate-500">Пусто — авто ~28 г (ВОЗ/EFSA)</p>
+            </div>
+            <div className="field">
+              <label htmlFor="sugarTargetG">Лимит сахара, г/день</label>
+              <input
+                id="sugarTargetG"
+                type="number"
+                min="1"
+                max="150"
+                step="1"
+                placeholder="50"
+                value={sugarTargetG}
+                onChange={(event) => setSugarTargetG(event.target.value)}
+              />
+              <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
             </div>
             <div className="field sm:col-span-2">
               <label htmlFor="timezone">Часовой пояс</label>

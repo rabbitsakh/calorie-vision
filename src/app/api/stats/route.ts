@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { dateRangeEnding, requireDateKey } from "@/lib/dates";
+import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
@@ -170,6 +170,63 @@ export async function GET(request: NextRequest) {
       3,
     );
 
+    // Week-over-week: last 7 days ending at `end` vs the prior 7 days
+    const thisWeekDates = dateRangeEnding(end, 7);
+    const prevWeekEnd = shiftDateKey(thisWeekDates[0], -1);
+    const prevWeekDates = dateRangeEnding(prevWeekEnd, 7);
+    const prevWeekStart = prevWeekDates[0];
+
+    const prevWeekMeals = await prisma.mealEntry.findMany({
+      where: {
+        userId: session.user.id,
+        date: { gte: prevWeekStart, lte: prevWeekEnd },
+      },
+      select: { date: true, calories: true },
+    });
+
+    function weekAvgCalories(
+      dates: string[],
+      mealRows: Array<{ date: string; calories: number }>,
+    ): { avgCalories: number; totalCalories: number; daysLogged: number } {
+      const byDate = new Map<string, number>();
+      for (const row of mealRows) {
+        byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.calories);
+      }
+      const logged = dates.filter((d) => (byDate.get(d) ?? 0) > 0);
+      const total = logged.reduce((sum, d) => sum + (byDate.get(d) ?? 0), 0);
+      return {
+        avgCalories: logged.length > 0 ? Math.round(total / logged.length) : 0,
+        totalCalories: total,
+        daysLogged: logged.length,
+      };
+    }
+
+    const thisWeek = weekAvgCalories(thisWeekDates, meals);
+    const prevWeek = weekAvgCalories(prevWeekDates, prevWeekMeals);
+    const deltaAvg =
+      thisWeek.daysLogged > 0 && prevWeek.daysLogged > 0
+        ? thisWeek.avgCalories - prevWeek.avgCalories
+        : null;
+    const deltaPct =
+      deltaAvg != null && prevWeek.avgCalories > 0
+        ? Math.round((deltaAvg / prevWeek.avgCalories) * 100)
+        : null;
+
+    const weekOverWeek = {
+      thisWeek: {
+        start: thisWeekDates[0],
+        end: thisWeekDates[thisWeekDates.length - 1],
+        ...thisWeek,
+      },
+      prevWeek: {
+        start: prevWeekDates[0],
+        end: prevWeekDates[prevWeekDates.length - 1],
+        ...prevWeek,
+      },
+      deltaAvgCalories: deltaAvg,
+      deltaPct,
+    };
+
     return NextResponse.json({
       period,
       start,
@@ -179,6 +236,7 @@ export async function GET(request: NextRequest) {
       hourlyCalories,
       moodInsight,
       corridorAlert,
+      weekOverWeek,
       topFoods: mergeDecodedFoodStats(
         topFoods.map((f) => ({
           dishName: f.dishName,
