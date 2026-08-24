@@ -161,22 +161,42 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
         <div>
           <p className="font-medium text-slate-800">{data.active.title}</p>
           <p className="text-xs text-slate-500">{data.active.description}</p>
-          <div className="mt-2 flex items-center justify-between text-xs text-emerald-800">
-            <span>
-              {data.active.progress} / {data.active.target}
-            </span>
-            {data.active.completed ? (
-              <span className="font-semibold">Выполнено!</span>
-            ) : null}
-          </div>
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-emerald-100">
-            <div
-              className="h-2 rounded-full bg-emerald-500 transition-all duration-500"
-              style={{
-                width: `${Math.min(100, Math.round((data.active.progress / data.active.target) * 100))}%`,
-              }}
-            />
-          </div>
+          {(() => {
+            const pct = Math.min(
+              100,
+              Math.round((data.active.progress / Math.max(1, data.active.target)) * 100),
+            );
+            return (
+              <>
+                <div className="mt-3 flex items-end justify-between gap-2">
+                  <span className="text-sm font-semibold tabular-nums text-emerald-900">
+                    {data.active.progress}
+                    <span className="font-normal text-emerald-700"> / {data.active.target}</span>
+                  </span>
+                  <span className="text-sm font-bold tabular-nums text-emerald-800">
+                    {data.active.completed ? "Выполнено!" : `${pct}%`}
+                  </span>
+                </div>
+                <div
+                  className="mt-2 h-4 overflow-hidden rounded-full bg-emerald-200/90 ring-1 ring-inset ring-emerald-300/80"
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Прогресс челленджа: ${pct}%`}
+                >
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      data.active.completed
+                        ? "bg-emerald-600"
+                        : "bg-gradient-to-r from-emerald-500 to-teal-500"
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </>
+            );
+          })()}
         </div>
       ) : (
         <div className="flex flex-col gap-2">

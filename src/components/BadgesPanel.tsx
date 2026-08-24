@@ -6,6 +6,11 @@ import {
   isSoftCelebrationSeen,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
+import {
+  nextBadgeHint,
+  type BadgeStatsSnapshot,
+  type NextBadgeHint,
+} from "@/lib/badges";
 import { withBasePath } from "@/lib/paths";
 
 type BadgeItem = {
@@ -17,8 +22,41 @@ type BadgeItem = {
   newlyUnlocked: boolean;
 };
 
+function NextBadgeSection({ hint }: { hint: NextBadgeHint }) {
+  const pct = Math.min(100, Math.round(hint.ratio * 100));
+  return (
+    <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+        Следующий значок
+      </p>
+      <p className="mt-1 text-sm font-semibold text-teal-950">{hint.title}</p>
+      <p className="mt-0.5 text-xs text-teal-800">{hint.description}</p>
+      <div className="mt-2 flex items-center justify-between text-xs font-medium text-teal-900">
+        <span className="tabular-nums">
+          {hint.current} / {hint.target}
+        </span>
+        <span className="tabular-nums">{pct}%</span>
+      </div>
+      <div
+        className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-teal-200/90"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`До следующего значка: ${pct}%`}
+      >
+        <div
+          className="h-full rounded-full bg-teal-600 transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function BadgesPanel() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [nextHint, setNextHint] = useState<NextBadgeHint | null>(null);
   const [unlock, setUnlock] = useState<BadgeItem | null>(null);
 
   const closeUnlock = useCallback(() => setUnlock(null), []);
@@ -26,17 +64,39 @@ export function BadgesPanel() {
   useEffect(() => {
     void (async () => {
       try {
-        // GET is read-only; POST unlocks newly earned badges (#29)
         const unlockResp = await fetch(withBasePath("/api/badges"), { method: "POST" });
         if (!unlockResp.ok) {
           const listResp = await fetch(withBasePath("/api/badges"));
           if (!listResp.ok) return;
-          const listData = (await listResp.json()) as { badges: BadgeItem[] };
+          const listData = (await listResp.json()) as {
+            badges: BadgeItem[];
+            stats?: BadgeStatsSnapshot;
+          };
           setBadges(listData.badges);
+          if (listData.stats) {
+            setNextHint(
+              nextBadgeHint(
+                listData.badges.filter((b) => b.unlocked).map((b) => b.key),
+                listData.stats,
+              ),
+            );
+          }
           return;
         }
-        const data = (await unlockResp.json()) as { badges: BadgeItem[]; newlyUnlocked: BadgeItem[] };
+        const data = (await unlockResp.json()) as {
+          badges: BadgeItem[];
+          newlyUnlocked: BadgeItem[];
+          stats?: BadgeStatsSnapshot;
+        };
         setBadges(data.badges);
+        if (data.stats) {
+          setNextHint(
+            nextBadgeHint(
+              data.badges.filter((b) => b.unlocked).map((b) => b.key),
+              data.stats,
+            ),
+          );
+        }
         const next = data.newlyUnlocked?.[0];
         if (!next) return;
         const flagKey = next.key;
@@ -62,6 +122,9 @@ export function BadgesPanel() {
             {unlockedCount} / {badges.length}
           </span>
         </div>
+
+        {nextHint ? <NextBadgeSection hint={nextHint} /> : null}
+
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {badges.map((badge) => (
             <div

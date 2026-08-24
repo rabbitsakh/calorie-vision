@@ -29,6 +29,10 @@ import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import {
+  PwaInstallOnboardingPrompt,
+  PwaInstallWizard,
+} from "@/components/PwaInstallWizard";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -55,6 +59,7 @@ export default function RationPage() {
   const [totalCalories, setTotalCalories] = useState(0);
   const [showHabits, setShowHabits] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
 
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -121,6 +126,7 @@ export default function RationPage() {
             {date === today ? <DailySummaryCard today={today} /> : null}
             <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
             <MotivationTip today={today} selectedDate={date} quietHide />
+            <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
           </MotivationQueue>
 
           <section className="card overflow-hidden">
@@ -162,6 +168,12 @@ export default function RationPage() {
             <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
             <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           </CelebrationOrchestrator>
+
+          <PwaInstallWizard
+            open={pwaWizardOpen}
+            prefer="auto"
+            onClose={() => setPwaWizardOpen(false)}
+          />
         </div>
       </AuthGate>
       <button
