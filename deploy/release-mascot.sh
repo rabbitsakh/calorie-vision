@@ -16,7 +16,7 @@ REPO="rabbitsakh/calorie-vision"
 APP_DIR="/var/www/calorie-vision"
 
 # Update after PRs are opened (cursor/mascot-01 … cursor/mascot-10).
-DEFAULT_PRS=(243 244 245 246 247 248 249 250 251 252)
+DEFAULT_PRS=(246 244 243 245 247 249 251 250 248 252)
 
 if [[ $# -gt 0 ]]; then
   PRS=("$@")
