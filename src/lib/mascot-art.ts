@@ -17,15 +17,18 @@ export const MASCOT_ART_POSES = [
 
 export type MascotArtPoseId = (typeof MASCOT_ART_POSES)[number] | "pet";
 
-/** Skins that ship a dedicated idle still under /mascot/art/{skin}/idle.webp */
-export const MASCOT_ART_SEASONAL_IDLE = new Set<MascotSkinId>([
-  "winter",
-  "spring",
-  "summer",
-  "autumn",
-  "newyear",
-  "halloween",
-]);
+/** Seasonal stills that ship under /mascot/art/{skin}/{pose}.webp */
+export const MASCOT_ART_SEASONAL: Record<
+  Exclude<MascotSkinId, "default">,
+  readonly MascotArtPoseId[]
+> = {
+  winter: ["idle", "cheer", "pet"],
+  spring: ["idle", "cheer", "pet"],
+  summer: ["idle", "cheer", "pet"],
+  autumn: ["idle", "cheer", "pet"],
+  newyear: ["idle", "cheer", "pet"],
+  halloween: ["idle", "cheer", "pet"],
+};
 
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */
 const GESTURE_ART: Partial<Record<MascotGesture, MascotArtPoseId>> = {
@@ -46,16 +49,21 @@ export function resolveMascotArtPose(
   return pose;
 }
 
+function skinHasArt(skin: MascotSkinId, pose: MascotArtPoseId): boolean {
+  if (skin === "default") return false;
+  return (MASCOT_ART_SEASONAL[skin] as readonly MascotArtPoseId[]).includes(pose);
+}
+
 /**
  * Default poses live at /mascot/art/{pose}.webp.
- * Seasonal idle skins: /mascot/art/{skin}/idle.webp (fallback to default pose stills).
+ * Seasonal: /mascot/art/{skin}/{pose}.webp when listed in MASCOT_ART_SEASONAL.
  */
 export function mascotArtUrl(
   pose: MascotArtPoseId,
   skin: MascotSkinId = "default",
 ): string {
-  if (pose === "idle" && skin !== "default" && MASCOT_ART_SEASONAL_IDLE.has(skin)) {
-    return `/mascot/art/${skin}/idle.webp`;
+  if (skinHasArt(skin, pose)) {
+    return `/mascot/art/${skin}/${pose}.webp`;
   }
   return `/mascot/art/${pose}.webp`;
 }

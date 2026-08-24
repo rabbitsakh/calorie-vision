@@ -12,11 +12,17 @@ describe("mascot-art", () => {
     assert.equal(mascotArtUrl("pet"), "/mascot/art/pet.webp");
   });
 
-  test("mascotArtUrl uses seasonal idle folders", () => {
+  test("mascotArtUrl uses seasonal folders for idle/cheer/pet", () => {
     assert.equal(mascotArtUrl("idle", "winter"), "/mascot/art/winter/idle.webp");
-    assert.equal(mascotArtUrl("idle", "halloween"), "/mascot/art/halloween/idle.webp");
-    assert.equal(mascotArtUrl("cheer", "winter"), "/mascot/art/cheer.webp");
-    assert.equal(mascotArtUrl("pet", "autumn"), "/mascot/art/pet.webp");
+    assert.equal(mascotArtUrl("cheer", "winter"), "/mascot/art/winter/cheer.webp");
+    assert.equal(mascotArtUrl("pet", "autumn"), "/mascot/art/autumn/pet.webp");
+    assert.equal(mascotArtUrl("cheer", "halloween"), "/mascot/art/halloween/cheer.webp");
+  });
+
+  test("mascotArtUrl falls back to default for missing seasonal poses", () => {
+    assert.equal(mascotArtUrl("streak", "winter"), "/mascot/art/streak.webp");
+    assert.equal(mascotArtUrl("goal", "halloween"), "/mascot/art/goal.webp");
+    assert.equal(mascotArtUrl("tip", "spring"), "/mascot/art/tip.webp");
   });
 
   test("resolveMascotArtPose maps pet/react gestures", () => {
