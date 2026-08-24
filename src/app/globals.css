@@ -680,24 +680,53 @@ textarea {
 }
 
 @keyframes mascot-cheer-jump {
-  0%,
+  0% {
+    transform: translateY(0) scale(1, 1) rotate(0deg);
+  }
+  /* Anticipation squash */
+  12% {
+    transform: translateY(6px) scale(1.14, 0.82) rotate(-2deg);
+  }
+  /* Launch stretch */
+  28% {
+    transform: translateY(-22px) scale(0.88, 1.16) rotate(4deg);
+  }
+  42% {
+    transform: translateY(-10px) scale(1.04, 0.94) rotate(-2deg);
+  }
+  /* Second hop */
+  58% {
+    transform: translateY(-16px) scale(0.92, 1.1) rotate(3deg);
+  }
+  /* Land settle */
+  78% {
+    transform: translateY(3px) scale(1.08, 0.9) rotate(-1deg);
+  }
+  90% {
+    transform: translateY(-2px) scale(0.98, 1.03) rotate(1deg);
+  }
   100% {
     transform: translateY(0) scale(1, 1) rotate(0deg);
   }
-  18% {
-    transform: translateY(5px) scale(1.1, 0.88) rotate(-3deg);
+}
+
+@keyframes mascot-cheer-shadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.18;
   }
-  42% {
-    transform: translateY(-20px) scale(0.9, 1.12) rotate(3deg);
+  12% {
+    transform: scaleX(1.25);
+    opacity: 0.28;
   }
-  58% {
-    transform: translateY(-6px) scale(1.06, 0.94) rotate(-2deg);
+  28% {
+    transform: scaleX(0.55);
+    opacity: 0.08;
   }
-  74% {
-    transform: translateY(-14px) scale(0.95, 1.06) rotate(2deg);
-  }
-  88% {
-    transform: translateY(2px) scale(1.04, 0.96) rotate(-1deg);
+  78% {
+    transform: scaleX(1.2);
+    opacity: 0.26;
   }
 }
 
@@ -1061,7 +1090,11 @@ textarea {
 }
 
 .mascot-cheer {
-  animation: mascot-cheer-jump 0.95s cubic-bezier(0.34, 1.55, 0.64, 1) infinite;
+  animation: mascot-cheer-jump 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+}
+
+.mascot-cheer .mascot-shadow {
+  animation: mascot-cheer-shadow 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
 }
 
 .mascot-arm-left-spin,
@@ -1228,6 +1261,205 @@ textarea {
   animation-delay: 0.1s;
 }
 
+.mascot-face-alive .mascot-pupil-left,
+.mascot-face-alive .mascot-pupil-right {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-eye-dart 5.5s ease-in-out infinite;
+}
+
+.mascot-face-alive .mascot-pupil-right {
+  animation-delay: 0.15s;
+}
+
+@keyframes mascot-eye-dart {
+  0%,
+  18%,
+  100% {
+    transform: translate(0, 0);
+  }
+  28% {
+    transform: translate(1.6px, 0.4px);
+  }
+  38% {
+    transform: translate(1.6px, 0.4px);
+  }
+  48% {
+    transform: translate(-1.8px, 0.2px);
+  }
+  58% {
+    transform: translate(-1.8px, 0.2px);
+  }
+  68% {
+    transform: translate(0.4px, -0.6px);
+  }
+  78% {
+    transform: translate(0, 0);
+  }
+}
+
+.mascot-face-look .mascot-pupil-left,
+.mascot-face-look .mascot-pupil-right {
+  animation: mascot-eye-look 1.6s ease-in-out both;
+}
+
+@keyframes mascot-eye-look {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2.4px, -0.4px);
+  }
+  55% {
+    transform: translate(-2.6px, 0.6px);
+  }
+  80% {
+    transform: translate(1.2px, 0);
+  }
+}
+
+/* Follow-through: leaves lag body slightly */
+.mascot-leaf-left-spin {
+  animation: mascot-leaf-sway-left 1.7s ease-in-out infinite;
+  animation-delay: 0.05s;
+}
+
+.mascot-leaf-right-spin {
+  animation: mascot-leaf-sway-right 1.95s ease-in-out infinite;
+  animation-delay: 0.12s;
+}
+
+.mascot-arm-pose-wave .mascot-arm-left-spin {
+  animation: mascot-arm-spin-left-idle 2.2s ease-in-out infinite;
+}
+
+.mascot-arm-pose-wave .mascot-arm-right-spin {
+  animation: mascot-arm-wave-right 0.55s ease-in-out infinite;
+}
+
+@keyframes mascot-arm-wave-right {
+  0%,
+  100% {
+    transform: rotate(8deg);
+  }
+  50% {
+    transform: rotate(-28deg);
+  }
+}
+
+/* One-shot gestures */
+.mascot-gesture-pet {
+  animation: mascot-pet-hop 0.9s cubic-bezier(0.34, 1.45, 0.64, 1) both !important;
+}
+
+.mascot-gesture-react {
+  animation: mascot-cheer-jump 1.05s cubic-bezier(0.34, 1.45, 0.64, 1) both !important;
+}
+
+.mascot-gesture-wave {
+  animation: mascot-tip-nod 1.2s ease-in-out both !important;
+}
+
+.mascot-gesture-yawn {
+  animation: mascot-yawn-body 1.4s ease-in-out both !important;
+}
+
+.mascot-gesture-stretch {
+  animation: mascot-stretch-body 1.3s ease-in-out both !important;
+}
+
+.mascot-gesture-look {
+  animation: mascot-idle-bob 1.6s ease-in-out both !important;
+}
+
+@keyframes mascot-pet-hop {
+  0% {
+    transform: translateY(0) scale(1, 1);
+  }
+  30% {
+    transform: translateY(4px) scale(1.1, 0.88);
+  }
+  55% {
+    transform: translateY(-10px) scale(0.94, 1.08);
+  }
+  75% {
+    transform: translateY(2px) scale(1.04, 0.96);
+  }
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+@keyframes mascot-yawn-body {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  40% {
+    transform: scale(1.06, 0.94) translateY(2px);
+  }
+  55% {
+    transform: scale(1.08, 0.92) translateY(3px);
+  }
+}
+
+@keyframes mascot-stretch-body {
+  0%,
+  100% {
+    transform: scale(1, 1) translateY(0);
+  }
+  45% {
+    transform: scale(0.92, 1.12) translateY(-6px);
+  }
+}
+
+.mascot-mouth-yawn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mascot-yawn-mouth 1.4s ease-in-out both;
+}
+
+@keyframes mascot-yawn-mouth {
+  0%,
+  100% {
+    transform: scale(1, 0.4);
+  }
+  45% {
+    transform: scale(1.05, 1.15);
+  }
+}
+
+.mascot-entrance {
+  animation: mascot-entrance-pop 0.7s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+@keyframes mascot-entrance-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.55);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mascot-exit {
+  animation: mascot-exit-wave 0.45s ease-in both;
+}
+
+@keyframes mascot-exit-wave {
+  to {
+    opacity: 0;
+    transform: translateY(12px) scale(0.85);
+  }
+}
+
 .mascot-sparkle {
   transform-box: fill-box;
   transform-origin: center;
@@ -1261,13 +1493,21 @@ textarea {
   .mascot-motion,
   .mascot-root,
   .mascot-motion *,
-  .mascot-root * {
+  .mascot-root *,
+  .mascot-gesture,
+  .mascot-entrance,
+  .mascot-exit,
+  .mascot-save-toast {
     animation: none !important;
   }
 }
 
 .soft-celeb-ring-streak {
   background: rgb(254 243 199 / 0.9);
+}
+
+.mascot-save-toast {
+  animation: mascot-entrance-pop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
 .soft-celeb-ring-goal {
