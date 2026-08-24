@@ -16,6 +16,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Recognition eval suite
+        run: npm run test:recognition-eval
       - name: Cron dry-run invariant (#49)
         run: |
           node --input-type=module -e "

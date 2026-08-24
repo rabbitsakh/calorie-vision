@@ -7,7 +7,7 @@ import { withTimeoutFallback } from "@/lib/async-pool";
 import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-recognition";
 import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
-import { prepareRecognizeUpload } from "@/lib/recognize-upload";
+import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { saveImageBuffer } from "@/lib/upload";
 
@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  const { compressed, visionFilename, barcodeHint } = prepared.data;
+  const { compressed, visionFilename, barcodeHint, context } = prepared.data;
+  const recognitionContext =
+    context ?? parseRecognitionContext(request.nextUrl.searchParams.get("context"));
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -98,6 +100,7 @@ export async function POST(request: NextRequest) {
             dimensions && dimensions.height > 0
               ? dimensions.width / dimensions.height
               : undefined,
+          context: recognitionContext,
         };
 
         const vision = await recognizeWithGigaChat(compressed.buffer, visionFilename, {

@@ -22,6 +22,8 @@ type PhotoUploaderProps = {
   onRecognized: (result: RecognitionResponse) => void;
   disabled?: boolean;
   compact?: boolean;
+  /** When true, pass context=restaurant to recognize APIs. */
+  restaurantMode?: boolean;
 };
 
 export type PhotoUploaderHandle = {
@@ -78,7 +80,7 @@ function isLikelyImageFile(file: File): boolean {
 }
 
 export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>(function PhotoUploader(
-  { onRecognized, disabled, compact },
+  { onRecognized, disabled, compact, restaurantMode },
   ref,
 ) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +155,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       formData.append("photo", file, uploadName);
       if (localBarcode) {
         formData.append("barcode", localBarcode);
+      }
+      if (restaurantMode) {
+        formData.append("context", "restaurant");
       }
 
       if (localBarcode && !controller.signal.aborted) {

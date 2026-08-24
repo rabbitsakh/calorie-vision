@@ -50,3 +50,17 @@ test("lookupRuNutritionTable matches plain rice", () => {
   assert.match(hit!.dishName, /Рис/i);
   assert.doesNotMatch(hit!.dishName, /молоко/i);
 });
+
+test("lookupRuNutritionTable matches new staples", () => {
+  const semolina = lookupRuNutritionTable("манная каша");
+  assert.ok(semolina);
+  assert.match(semolina!.dishName, /Манная/i);
+
+  const chickenSoup = lookupRuNutritionTable("куриный суп");
+  assert.ok(chickenSoup);
+  assert.match(chickenSoup!.dishName, /Куриный суп/i);
+
+  const friedPotato = lookupRuNutritionTable("жареный картофель");
+  assert.ok(friedPotato);
+  assert.match(friedPotato!.dishName, /Картофель жареный/i);
+});

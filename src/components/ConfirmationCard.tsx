@@ -977,6 +977,17 @@ function DishFields({
   const [showAdvanced, setShowAdvanced] = useState(
     () => review.lowConfidence || review.missingCalories,
   );
+  const [wrongDishHint, setWrongDishHint] = useState(false);
+  const dishNameRef = useRef<HTMLInputElement>(null);
+
+  function handleWrongDish() {
+    setWrongDishHint(true);
+    const input = dishNameRef.current;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }
 
   const alternativesSection = dish.original.alternatives?.length ? (
     <div>
@@ -1053,13 +1064,29 @@ function DishFields({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="field sm:col-span-2">
-          <label htmlFor={fieldId("dishName")}>Блюдо</label>
+          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor={fieldId("dishName")}>Блюдо</label>
+            <button
+              type="button"
+              className="text-sm font-semibold text-slate-600 underline-offset-2 hover:underline disabled:opacity-50"
+              disabled={formDisabled}
+              onClick={handleWrongDish}
+            >
+              Не то
+            </button>
+          </div>
           <div className="input-with-action">
             <input
+              ref={dishNameRef}
               id={fieldId("dishName")}
               value={dish.dishName}
               placeholder="Например: борщ с мясом"
-              onChange={(event) => onChange({ dishName: event.target.value })}
+              onChange={(event) => {
+                onChange({ dishName: event.target.value });
+                if (wrongDishHint) {
+                  setWrongDishHint(true);
+                }
+              }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
@@ -1082,7 +1109,16 @@ function DishFields({
               )}
             </button>
           </div>
-          <p className="text-xs text-slate-500">Измените название и нажмите лупу или Enter для пересчёта</p>
+          {wrongDishHint ? (
+            <p className="mt-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+              Исправьте название и сохраните — приложение запомнит исправление и подставит его в
+              следующий раз.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500">
+              Измените название и нажмите лупу или Enter для пересчёта
+            </p>
+          )}
           {showReviewCta ? (
             <button
               type="button"

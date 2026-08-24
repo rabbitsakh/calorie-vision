@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
-import { prepareRecognizeUpload } from "@/lib/recognize-upload";
+import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
 
 const RECOGNIZE_RATE_LIMIT = 12;
@@ -43,12 +43,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: prepared.error }, { status: prepared.status });
     }
 
-    const { compressed, visionFilename, barcodeHint } = prepared.data;
+    const { compressed, visionFilename, barcodeHint, context } = prepared.data;
+    const recognitionContext =
+      context ?? parseRecognitionContext(request.nextUrl.searchParams.get("context"));
     const dimensions = await getImageDimensions(compressed.buffer);
     const visionHints = {
       barcodeHint: barcodeHint || undefined,
       aspectRatio:
         dimensions && dimensions.height > 0 ? dimensions.width / dimensions.height : undefined,
+      context: recognitionContext,
     };
 
     const [imagePath, recognition] = await Promise.all([

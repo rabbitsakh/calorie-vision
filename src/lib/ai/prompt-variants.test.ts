@@ -19,6 +19,12 @@ test("buildVisionPrompt adds aspect ratio hints", () => {
   assert.match(landscape, /горизонтальное/i);
 });
 
+test("buildVisionPrompt includes restaurant context hint", () => {
+  const prompt = buildVisionPrompt("slim", { context: "restaurant" });
+  assert.match(prompt, /столовая|ресторан/i);
+  assert.match(prompt, /подносе|items/i);
+});
+
 test("slim prompt omits fiber/sugar from JSON shape", () => {
   const prompt = buildVisionPrompt("slim");
   assert.doesNotMatch(prompt, /"fiber"/);
