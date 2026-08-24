@@ -66,7 +66,8 @@ export function WaterGoalCelebration({
       open={open}
       title="Норма воды!"
       subtitle="Дневная цель по воде закрыта — отличная привычка."
-      pose="cheer"
+      pose="goal"
+      variant="goal"
       onClose={close}
     />
   );
