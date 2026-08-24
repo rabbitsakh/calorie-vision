@@ -173,6 +173,7 @@ test("uses serving weight for a single snack bar in Open Food Facts", () => {
   assert.equal(nutrition?.portionGrams, 50);
   assert.equal(nutrition?.calories, 225);
   assert.equal(nutrition?.explicitPackGrams, true);
+  assert.equal(nutrition?.per100g?.calories, 449);
 });
 
 test("defaults a snack bar without net weight to 60 g", () => {

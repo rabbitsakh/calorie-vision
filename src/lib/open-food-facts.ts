@@ -10,6 +10,15 @@ export type PackNutrition = {
   fiber?: number;
   sugar?: number;
   portionGrams: number;
+  /** True per-100 g density from OFF (kcal already, never kJ). */
+  per100g?: {
+    calories: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    fiber?: number;
+    sugar?: number;
+  };
   /** Net pack weight from OFF (may differ from default portionGrams for large packs). */
   packGrams?: number;
   /** True when pack/serving weight came from product data, not a 100 g default. */
@@ -267,18 +276,16 @@ export function offProductToNutrition(
 
   const { grams: packGrams, explicit } = resolvePackGrams(product, preferredGrams);
   const grams = portionGramsForPack(packGrams);
-  const scaled = nutritionFromPer100g(
-    {
-      calories: kcal100,
-      protein: offNutrimentNumber(nutriments.proteins_100g),
-      fat: offNutrimentNumber(nutriments.fat_100g),
-      carbs: offNutrimentNumber(nutriments.carbohydrates_100g),
-      fiber: offNutrimentNumber(nutriments.fiber_100g),
-      sugar:
-        offNutrimentNumber(nutriments.sugars_100g) ?? offNutrimentNumber(nutriments.sugars),
-    },
-    grams,
-  );
+  const per100g = {
+    calories: kcal100,
+    protein: offNutrimentNumber(nutriments.proteins_100g),
+    fat: offNutrimentNumber(nutriments.fat_100g),
+    carbs: offNutrimentNumber(nutriments.carbohydrates_100g),
+    fiber: offNutrimentNumber(nutriments.fiber_100g),
+    sugar:
+      offNutrimentNumber(nutriments.sugars_100g) ?? offNutrimentNumber(nutriments.sugars),
+  };
+  const scaled = nutritionFromPer100g(per100g, grams);
   if (!scaled) {
     return null;
   }
@@ -289,6 +296,7 @@ export function offProductToNutrition(
 
   return {
     ...scaled,
+    per100g,
     dishName,
     barcode: product.code,
     brand: brand || undefined,
