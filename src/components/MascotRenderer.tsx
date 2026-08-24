@@ -40,7 +40,7 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
 
   useEffect(() => {
     setArtFailed(false);
-  }, [mode, size]);
+  }, [mode, size, resolvedSkin]);
 
   useEffect(() => {
     if (mode === "svg" || preferArt) {
@@ -73,7 +73,9 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
   );
 
   if (preferArt) {
-    return <MascotArt {...props} size={size} onFail={() => setArtFailed(true)} />;
+    return (
+      <MascotArt {...props} skin={resolvedSkin} size={size} onFail={() => setArtFailed(true)} />
+    );
   }
 
   if (useRive) {

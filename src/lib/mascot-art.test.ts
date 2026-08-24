@@ -12,6 +12,13 @@ describe("mascot-art", () => {
     assert.equal(mascotArtUrl("pet"), "/mascot/art/pet.webp");
   });
 
+  test("mascotArtUrl uses seasonal idle folders", () => {
+    assert.equal(mascotArtUrl("idle", "winter"), "/mascot/art/winter/idle.webp");
+    assert.equal(mascotArtUrl("idle", "halloween"), "/mascot/art/halloween/idle.webp");
+    assert.equal(mascotArtUrl("cheer", "winter"), "/mascot/art/cheer.webp");
+    assert.equal(mascotArtUrl("pet", "autumn"), "/mascot/art/pet.webp");
+  });
+
   test("resolveMascotArtPose maps pet/react gestures", () => {
     assert.equal(resolveMascotArtPose("idle", "none"), "idle");
     assert.equal(resolveMascotArtPose("idle", "pet"), "pet");

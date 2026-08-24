@@ -4,7 +4,7 @@
 
 import type { MascotPose } from "@/components/MascotSvg";
 import type { MascotGesture } from "@/lib/mascot-liveness";
-import type { MascotRendererMode } from "@/lib/mascot-skin";
+import type { MascotRendererMode, MascotSkinId } from "@/lib/mascot-skin";
 
 export const MASCOT_ART_POSES = [
   "idle",
@@ -17,16 +17,22 @@ export const MASCOT_ART_POSES = [
 
 export type MascotArtPoseId = (typeof MASCOT_ART_POSES)[number] | "pet";
 
+/** Skins that ship a dedicated idle still under /mascot/art/{skin}/idle.webp */
+export const MASCOT_ART_SEASONAL_IDLE = new Set<MascotSkinId>([
+  "winter",
+  "spring",
+  "summer",
+  "autumn",
+  "newyear",
+  "halloween",
+]);
+
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */
 const GESTURE_ART: Partial<Record<MascotGesture, MascotArtPoseId>> = {
   pet: "pet",
   react: "cheer",
   wave: "cheer",
 };
-
-export function mascotArtUrl(pose: MascotArtPoseId): string {
-  return `/mascot/art/${pose}.webp`;
-}
 
 /** Resolve which art still to show for pose + optional one-shot gesture. */
 export function resolveMascotArtPose(
@@ -38,6 +44,20 @@ export function resolveMascotArtPose(
     if (mapped) return mapped;
   }
   return pose;
+}
+
+/**
+ * Default poses live at /mascot/art/{pose}.webp.
+ * Seasonal idle skins: /mascot/art/{skin}/idle.webp (fallback to default pose stills).
+ */
+export function mascotArtUrl(
+  pose: MascotArtPoseId,
+  skin: MascotSkinId = "default",
+): string {
+  if (pose === "idle" && skin !== "default" && MASCOT_ART_SEASONAL_IDLE.has(skin)) {
+    return `/mascot/art/${skin}/idle.webp`;
+  }
+  return `/mascot/art/${pose}.webp`;
 }
 
 /** Art wins in auto when assets ship with the app (always true for built-in V5 set). */
