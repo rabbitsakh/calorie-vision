@@ -3185,6 +3185,46 @@ textarea {
   line-height: 0;
 }
 
+.mascot-art-root {
+  position: relative;
+  vertical-align: middle;
+  overflow: visible;
+}
+
+.mascot-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.mascot-art-gesture .mascot-art-img {
+  animation: mascot-art-nudge 0.55s ease-out;
+}
+
+@keyframes mascot-art-nudge {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  35% {
+    transform: scale(1.06) rotate(-2deg);
+  }
+  70% {
+    transform: scale(1.02) rotate(1.5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot-art-gesture .mascot-art-img {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
