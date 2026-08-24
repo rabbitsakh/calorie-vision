@@ -5,6 +5,7 @@ import {
   applyFoodLookupToPortion,
   coalesceLabelPer100FromVision,
   clearSuspiciousZeroFiberSugar,
+  describeNutritionBasis,
   inferPer100gValues,
   hasCompleteVisionNutrition,
   hasSufficientVisionNutrition,
@@ -637,6 +638,19 @@ test("resolveDisplayPortionGrams uses label volume text for per-100 drinks", () 
   });
   assert.equal(normalized.portionGrams, 1500);
   assert.equal(normalized.calories, 570);
+});
+
+test("describeNutritionBasis explains label per-100 vs portion", () => {
+  const hint = describeNutritionBasis({
+    dishName: "Йогурт",
+    calories: 95,
+    portionGrams: 250,
+    photoKind: "label",
+    source: "label",
+    per100g: { calories: 38, protein: 3, carbs: 5 },
+  });
+  assert.match(hint ?? "", /100/);
+  assert.match(hint ?? "", /250/);
 });
 
 test("resolvePer100gForScaling converts top-level kJ on label drinks", () => {

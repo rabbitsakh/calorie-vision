@@ -18,6 +18,7 @@ import {
   recognitionNeedsPortionRescale,
   resolveDisplayPortionGrams,
   resolvePer100gForScaling,
+  describeNutritionBasis,
   scaleRecognitionToPortion,
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
@@ -174,27 +175,27 @@ function mergeOneDishDraft(previous: DishDraft, draft: DishDraft): DishDraft {
 function mergeDishesFromRecognition(
   current: DishDraft[],
   recognition: FoodRecognitionResult,
-  options?: { preserveListShape?: boolean },
 ): DishDraft[] {
   const incoming = draftsFromRecognition(recognition);
   if (current.length === 0) {
     return incoming;
   }
 
-  const preserveListShape = options?.preserveListShape ?? false;
-
-  if (!preserveListShape && current.length !== incoming.length) {
-    return incoming;
-  }
-
   if (current.length !== incoming.length) {
-    return current.map((previous, index) => {
-      const draft = incoming[index];
-      if (!draft) {
-        return previous;
+    const maxLen = Math.max(current.length, incoming.length);
+    const merged: DishDraft[] = [];
+    for (let i = 0; i < maxLen; i++) {
+      const previous = current[i];
+      const draft = incoming[i];
+      if (previous && draft) {
+        merged.push(mergeOneDishDraft(previous, draft));
+      } else if (draft) {
+        merged.push(draft);
+      } else if (previous) {
+        merged.push(previous);
       }
-      return mergeOneDishDraft(previous, draft);
-    });
+    }
+    return merged;
   }
 
   return incoming.map((draft, index) => mergeOneDishDraft(current[index]!, draft));
@@ -335,11 +336,7 @@ export function ConfirmationCard({
   }, [initialImagePath, previewUrl]);
 
   useEffect(() => {
-    setDishes((current) =>
-      mergeDishesFromRecognition(current, recognition, {
-        preserveListShape: dishesListTouchedRef.current,
-      }),
-    );
+    setDishes((current) => mergeDishesFromRecognition(current, recognition));
   }, [recognition]);
 
   useEffect(() => {
@@ -775,14 +772,17 @@ export function ConfirmationCard({
         ) : null}
 
         <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
-          <p>
+          <p className="font-medium">
             {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
+            {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
+            {recognition.photoKind === "label" ? " · этикетка" : ""}
           </p>
           <p className="mt-1 text-xs text-teal-800">
             {multi
               ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
               : `Уверенность: ${formatConfidence(recognition.confidence)}`}
-            {recognition.barcode ? ` · штрихкод ${recognition.barcode}` : ""}
+            {recognition.barcode ? ` · ${recognition.barcode}` : ""}
+            {recognition.brand ? ` · ${recognition.brand}` : ""}
           </p>
         </div>
 
@@ -1136,6 +1136,9 @@ function DishFields({
             })}
           </div>
           <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
+          {describeNutritionBasis(dish.original) ? (
+            <p className="mt-1 text-xs font-medium text-teal-800">{describeNutritionBasis(dish.original)}</p>
+          ) : null}
         </div>
 
         <div className="sm:col-span-2">
