@@ -12,6 +12,7 @@ type SoftCelebrationProps = {
   title: string;
   subtitle?: string;
   pose?: MascotPose;
+  variant?: CelebrationVariant;
   /** Optional small badge (e.g. streak days); shown under the mascot. */
   badge?: string;
   durationMs?: number;
@@ -35,6 +36,7 @@ export function SoftCelebration({
   title,
   subtitle,
   pose = "cheer",
+  variant,
   badge,
   durationMs = 3400,
   muteDate,
@@ -47,7 +49,7 @@ export function SoftCelebration({
       subtitle={subtitle}
       pose={pose}
       badge={badge}
-      variant={variantFromPose(pose)}
+      variant={variant ?? variantFromPose(pose)}
       durationMs={durationMs}
       onMuteToday={muteDate ? () => muteSoftCelebrationsToday(muteDate) : undefined}
       onClose={onClose}
