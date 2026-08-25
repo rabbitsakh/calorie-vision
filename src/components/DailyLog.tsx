@@ -596,7 +596,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       return true;
     }
   });
-  const attemptedImageDates = useRef(new Set<string>());
+  const attemptedImageMealIds = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
 
@@ -662,7 +662,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }, [selectedDate, onTotalsChange]);
 
   useEffect(() => {
-    attemptedImageDates.current.delete(selectedDate);
+    attemptedImageMealIds.current.clear();
     setPendingDeletes([]);
     void loadEntries();
   }, [loadEntries, refreshKey, selectedDate]);
@@ -688,12 +688,16 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       return;
     }
 
-    const missing = entries.some((entry) => !entry.imagePath);
-    if (!missing || attemptedImageDates.current.has(selectedDate)) {
+    const missingIds = entries
+      .filter((entry) => !entry.imagePath && !attemptedImageMealIds.current.has(entry.id))
+      .map((entry) => entry.id);
+    if (missingIds.length === 0) {
       return;
     }
 
-    attemptedImageDates.current.add(selectedDate);
+    for (const id of missingIds) {
+      attemptedImageMealIds.current.add(id);
+    }
     const date = selectedDate;
 
     void (async () => {
@@ -748,6 +752,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         };
       }),
     );
+    // Allow photo backfill to retry after a rename.
+    attemptedImageMealIds.current.delete(id);
 
     await loadEntries(true);
     onChanged?.();

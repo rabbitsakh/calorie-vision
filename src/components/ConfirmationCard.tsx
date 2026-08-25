@@ -537,7 +537,7 @@ export function ConfirmationCard({
           source: next.source ?? dish.original.source,
         }),
       });
-      if (!previewUrl && data.imagePath && dishes.length === 1) {
+      if (!previewUrl && data.imagePath && (dishes.length === 1 || !imagePath.trim())) {
         setImagePath(data.imagePath);
       }
       const sourceLabel = next.source ? RECOGNITION_SOURCE_LABELS[next.source] : undefined;
