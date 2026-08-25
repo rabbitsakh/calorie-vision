@@ -7,6 +7,7 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { WaterTracker } from "@/components/WaterTracker";
+import { ExerciseTracker } from "@/components/ExerciseTracker";
 import { StreakWidget } from "@/components/StreakWidget";
 import { StreakNudge } from "@/components/StreakNudge";
 import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
@@ -27,6 +28,7 @@ import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { ShoppingListPanel } from "@/components/ShoppingListPanel";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import {
@@ -131,7 +133,10 @@ export default function RationPage() {
             onSaved={bump}
           />
 
+          <ShoppingListPanel selectedDate={date} />
+
           <WaterTracker selectedDate={date} onChanged={bump} />
+          <ExerciseTracker selectedDate={date} onChanged={bump} />
 
           <MotivationQueue>
             <StreakNudge

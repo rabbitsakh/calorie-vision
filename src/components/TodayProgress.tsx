@@ -12,6 +12,7 @@ type ProgressData = {
   proteinTarget: number | null;
   waterMl: number;
   waterTarget: number;
+  totalBurned: number;
   goal: "LOSE" | "GAIN" | "MAINTAIN" | null;
 };
 
@@ -107,9 +108,10 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   useEffect(() => {
     void (async () => {
       try {
-        const [mealsResp, waterResp] = await Promise.all([
+        const [mealsResp, waterResp, exerciseResp] = await Promise.all([
           fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
           fetch(withBasePath(`/api/water?date=${selectedDate}`)),
+          fetch(withBasePath(`/api/exercise?date=${selectedDate}`)),
         ]);
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
@@ -121,6 +123,9 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
         const water = waterResp.ok
           ? ((await waterResp.json()) as { totalMl: number; target: number })
           : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
+        const exercise = exerciseResp.ok
+          ? ((await exerciseResp.json()) as { totalBurned: number })
+          : { totalBurned: 0 };
 
         setData({
           calories: meals.totalCalories,
@@ -129,6 +134,7 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           proteinTarget: meals.target?.protein ?? null,
           waterMl: water.totalMl,
           waterTarget: water.target || WATER_DAILY_TARGET_ML,
+          totalBurned: exercise.totalBurned ?? 0,
           goal: meals.goal ?? null,
         });
       } catch {
@@ -137,7 +143,10 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
     })();
   }, [selectedDate, refreshKey]);
 
-  if (!data || (data.calories === 0 && !data.calorieTarget && data.waterMl === 0)) {
+  if (
+    !data ||
+    (data.calories === 0 && !data.calorieTarget && data.waterMl === 0 && data.totalBurned === 0)
+  ) {
     return null;
   }
 
@@ -177,7 +186,13 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
               ? `${data.calories} / ${data.calorieTarget}`
               : `${data.calories} ккал`
           }
-          sub={data.calorieTarget ? "ккал к цели" : "цель не задана"}
+          sub={
+            data.totalBurned > 0
+              ? `−${data.totalBurned} ккал тренировка`
+              : data.calorieTarget
+                ? "ккал к цели"
+                : "цель не задана"
+          }
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <p className="font-display text-sm font-semibold text-slate-800">Сводка дня</p>

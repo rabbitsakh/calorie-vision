@@ -53,6 +53,7 @@ model User {
   mealEntries   MealEntry[]
   weightEntries WeightEntry[]
   waterEntries  WaterEntry[]
+  exerciseEntries ExerciseEntry[]
   diaryNotes    DiaryNote[]
   customFoods   CustomFood[]
   streakFreezes StreakFreeze[]
@@ -191,6 +192,21 @@ model WaterEntry {
   date      String   @db.VarChar(10)
   ml        Int
   createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+model ExerciseEntry {
+  id             String   @id @default(cuid())
+  userId         String
+  date           String   @db.VarChar(10)
+  label          String   @db.VarChar(80)
+  caloriesBurned Int
+  minutes        Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

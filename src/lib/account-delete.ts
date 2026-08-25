@@ -83,8 +83,8 @@ export async function deleteUserAccount(userId: string): Promise<void> {
         where: { identifier: { in: identifiers } },
       });
     }
-    // Cascades: accounts, sessions, meals, weights, water, diary, custom foods,
-    // streak freezes, push subscriptions/logs, challenges, badges.
+    // Cascades: accounts, sessions, meals, weights, water, exercise, diary,
+    // custom foods, streak freezes, push subscriptions/logs, challenges, badges.
     await tx.user.delete({ where: { id: userId } });
   });
 
