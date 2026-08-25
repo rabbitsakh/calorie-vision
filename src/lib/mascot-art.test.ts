@@ -25,6 +25,8 @@ describe("mascot-art", () => {
   test("mascotArtUrl falls back to default only for unknown skins", () => {
     assert.equal(mascotArtUrl("streak", "default"), "/mascot/art/streak.webp");
     assert.equal(mascotArtUrl("goal", "default"), "/mascot/art/goal.webp");
+    assert.equal(mascotArtUrl("idle", "feb23"), "/mascot/art/idle.webp");
+    assert.equal(mascotArtUrl("cheer", "march8"), "/mascot/art/cheer.webp");
   });
 
   test("resolveMascotArtPose maps pet/react gestures", () => {

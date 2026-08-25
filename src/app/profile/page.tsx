@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { ProfileForm } from "@/components/ProfileForm";
 import { PushRemindersSettings } from "@/components/PushRemindersSettings";
+import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
 
 export default function ProfilePage() {
@@ -14,6 +15,7 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-4 md:gap-5">
           <ProfileForm />
           <PushRemindersSettings />
+          <GamificationQuietToggle />
           <BadgesPanel />
           <section className="card p-4 md:p-5">
             <h2 className="font-display text-base font-semibold text-slate-800">Цель по весу</h2>
