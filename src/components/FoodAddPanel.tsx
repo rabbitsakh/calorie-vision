@@ -28,6 +28,8 @@ type AddMode = "photo" | "text" | "barcode";
 type FoodAddPanelProps = {
   selectedDate: string;
   disabled?: boolean;
+  /** Prefill meal type from push deep link. */
+  initialMealType?: string;
   onSaved: () => void;
   onPendingChange?: (open: boolean) => void;
 };
@@ -59,7 +61,7 @@ function MicIcon({ listening }: { listening?: boolean }) {
   );
 }
 
-export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange }: FoodAddPanelProps) {
+export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved, onPendingChange }: FoodAddPanelProps) {
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
@@ -260,6 +262,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
       <ConfirmationCard
         result={pendingResult}
         selectedDate={selectedDate}
+        initialMealType={initialMealType}
         onCancel={() => {
           photoAbortRef.current?.abort();
           lookupAbortRef.current?.abort();

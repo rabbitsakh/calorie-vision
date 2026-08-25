@@ -14,6 +14,7 @@ import {
   type ReminderKind,
   type UserReminderContext,
 } from "@/lib/push-reminders";
+import { isInQuietHours } from "@/lib/quiet-hours";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
@@ -116,6 +117,8 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         timezone: true,
+        quietHoursStart: true,
+        quietHoursEnd: true,
         pushSubscriptions: {
           select: { endpoint: true, p256dh: true, auth: true },
         },
@@ -131,6 +134,10 @@ export async function GET(request: NextRequest) {
       const timezone = resolvePushTimezone(user.timezone);
       const hour = localHour(timezone, now);
       const weekday = localWeekday(timezone, now);
+      if (isInQuietHours(hour, user.quietHoursStart, user.quietHoursEnd)) {
+        skipped += 1;
+        continue;
+      }
       const kinds = remindersForLocalTime(hour, weekday);
       if (kinds.length === 0) {
         skipped += 1;

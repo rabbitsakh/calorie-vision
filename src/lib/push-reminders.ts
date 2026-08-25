@@ -1,5 +1,5 @@
 import type { PushPayload } from "@/lib/push";
-import { withBasePath } from "@/lib/paths";
+import { rationMealLink, reminderDeepLink } from "@/lib/push-deeplink";
 import { isGoalPace, isSex, isWeightGoal, recommendDiet } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
@@ -172,8 +172,11 @@ export function buildReminderPayload(
   ctx: UserReminderContext,
   options?: BuildReminderOptions,
 ): PushPayload | null {
-  const rationUrl = withBasePath("/ration");
-  const statsUrl = withBasePath("/stats");
+  const rationUrl = reminderDeepLink(kind === "calories" ? "streak" : kind);
+  const statsUrl = reminderDeepLink("weekly");
+  const breakfastUrl = rationMealLink("BREAKFAST");
+  const lunchUrl = rationMealLink("LUNCH");
+  const dinnerUrl = rationMealLink("DINNER");
   const variant = resolveCopyVariant(kind, options);
   const isB = variant === "B";
 
@@ -190,7 +193,7 @@ export function buildReminderPayload(
             : isB
               ? "Отметьте завтрак сейчас — потом вспомнить сложнее."
               : "Первая запись дня — завтрак. Это занимает меньше минуты.",
-        url: rationUrl,
+        url: breakfastUrl,
         tag: "cv-breakfast",
       };
 
@@ -202,7 +205,7 @@ export function buildReminderPayload(
           body: isB
             ? "День пока пустой — добавьте обед, чтобы открыть дневник."
             : "Сегодня ещё нет приёмов пищи — добавьте хотя бы обед.",
-          url: rationUrl,
+          url: lunchUrl,
           tag: "cv-lunch",
         };
       }
@@ -216,7 +219,7 @@ export function buildReminderPayload(
             : isB
               ? "Пара кликов — и обед в дневнике."
               : "Запишите обед, пока помните состав и порцию.",
-        url: rationUrl,
+        url: lunchUrl,
         tag: "cv-lunch",
       };
 
@@ -281,7 +284,7 @@ export function buildReminderPayload(
         body: isB
           ? `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал. Ужин ещё можно добавить.`
           : `${ctx.mealCount} ${pluralMeals(ctx.mealCount)}, ${ctx.totalCalories} ккал. Запишите ужин, если ещё не добавили.`,
-        url: rationUrl,
+        url: dinnerUrl,
         tag: "cv-calories",
       };
 

@@ -10,6 +10,7 @@ import {
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { withBasePath } from "@/lib/paths";
 import { REMINDER_SCHEDULE, reminderKindLabel } from "@/lib/push-reminder-schedule";
+import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
 
 type ServerPushStatus = {
   subscribed: boolean;
@@ -36,6 +37,9 @@ export function PushRemindersSettings() {
   const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [quietStart, setQuietStart] = useState<string>("");
+  const [quietEnd, setQuietEnd] = useState<string>("");
+  const [quietSaving, setQuietSaving] = useState(false);
 
   const refresh = useCallback(async () => {
     setCap(getPushCapability());
@@ -50,11 +54,68 @@ export function PushRemindersSettings() {
     } catch {
       setServer(null);
     }
+    try {
+      const accountResp = await fetch(withBasePath("/api/account"));
+      if (accountResp.ok) {
+        const account = (await accountResp.json()) as {
+          quietHoursStart?: number | null;
+          quietHoursEnd?: number | null;
+        };
+        setQuietStart(
+          account.quietHoursStart == null ? "" : String(account.quietHoursStart),
+        );
+        setQuietEnd(account.quietHoursEnd == null ? "" : String(account.quietHoursEnd));
+      }
+    } catch {
+      // keep defaults
+    }
   }, []);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  async function saveQuietHours() {
+    setQuietSaving(true);
+    setError(null);
+    setMessage(null);
+    const start = quietStart === "" ? null : clampHour(quietStart);
+    const end = quietEnd === "" ? null : clampHour(quietEnd);
+    if ((quietStart !== "" && start === null) || (quietEnd !== "" && end === null)) {
+      setError("Укажите часы тишины от 0 до 23");
+      setQuietSaving(false);
+      return;
+    }
+    if ((start == null) !== (end == null)) {
+      setError("Укажите и начало, и конец — или очистите оба поля");
+      setQuietSaving(false);
+      return;
+    }
+    try {
+      const resp = await fetch(withBasePath("/api/account"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quietHoursStart: start, quietHoursEnd: end }),
+      });
+      const data = (await resp.json()) as {
+        error?: string;
+        quietHoursStart?: number | null;
+        quietHoursEnd?: number | null;
+      };
+      if (!resp.ok) {
+        setError(data.error ?? "Не удалось сохранить тихие часы");
+      } else {
+        setQuietStart(data.quietHoursStart == null ? "" : String(data.quietHoursStart));
+        setQuietEnd(data.quietHoursEnd == null ? "" : String(data.quietHoursEnd));
+        setMessage(
+          `Тихие часы: ${formatQuietHoursLabel(data.quietHoursStart, data.quietHoursEnd)}`,
+        );
+      }
+    } catch {
+      setError("Не удалось сохранить тихие часы");
+    }
+    setQuietSaving(false);
+  }
 
   async function handleEnable() {
     setLoading(true);
@@ -182,6 +243,60 @@ export function PushRemindersSettings() {
           ) : null}
         </div>
       ) : null}
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-slate-900">Тихие часы</p>
+        <p className="mt-1 text-sm text-slate-600">
+          В этом интервале (по часовому поясу профиля) напоминания не отправляются. Можно
+          через полночь — например, с 22 до 7.
+        </p>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-sm text-slate-700">
+            С
+            <select
+              className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              value={quietStart}
+              onChange={(event) => setQuietStart(event.target.value)}
+            >
+              <option value="">выкл</option>
+              {Array.from({ length: 24 }, (_, hour) => (
+                <option key={hour} value={String(hour)}>
+                  {String(hour).padStart(2, "0")}:00
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm text-slate-700">
+            До
+            <select
+              className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              value={quietEnd}
+              onChange={(event) => setQuietEnd(event.target.value)}
+            >
+              <option value="">выкл</option>
+              {Array.from({ length: 24 }, (_, hour) => (
+                <option key={hour} value={String(hour)}>
+                  {String(hour).padStart(2, "0")}:00
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="btn btn-secondary text-sm"
+            disabled={quietSaving}
+            onClick={() => void saveQuietHours()}
+          >
+            {quietSaving ? "Сохраняем…" : "Сохранить"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Сейчас: {formatQuietHoursLabel(
+            quietStart === "" ? null : Number(quietStart),
+            quietEnd === "" ? null : Number(quietEnd),
+          )}
+        </p>
+      </div>
 
       <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Установка на телефон</p>

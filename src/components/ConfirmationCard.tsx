@@ -27,6 +27,7 @@ import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
+import { isLikelyIos } from "@/lib/push-client";
 
 type NutritionFields = {
   dishName: string;
@@ -57,6 +58,8 @@ type DishDraft = {
 type ConfirmationCardProps = {
   result: RecognitionResponse;
   selectedDate: string;
+  /** Prefill from push deep link (`?meal=BREAKFAST`). */
+  initialMealType?: string;
   onCancel: () => void;
   onSaved: (meta?: { rememberedCorrection?: boolean }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
@@ -240,16 +243,20 @@ function formatConfidence(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-/** Prefer saved upload URL — blob previews often fail on iOS PWA. */
-function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): string {
+/**
+ * Prefer saved upload URL — blob previews often fail on iOS PWA.
+ * When an upload path exists it always wins (including on iOS).
+ */
+export function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): string {
   const persisted = imagePath.trim();
   if (persisted) {
+    // Upload URL first — never let a blob preview override on iOS or elsewhere.
     return getImageUrl(persisted);
   }
-  if (previewUrl?.trim()) {
-    return previewUrl;
-  }
-  return "";
+  const preview = previewUrl?.trim() ?? "";
+  if (!preview) return "";
+  // Blob is only an interim fallback until the upload path arrives.
+  return preview;
 }
 
 const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
@@ -292,6 +299,7 @@ function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: numb
 export function ConfirmationCard({
   result,
   selectedDate,
+  initialMealType = "",
   onCancel,
   onSaved,
   onSaveQueued,
@@ -299,7 +307,9 @@ export function ConfirmationCard({
   const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
   const [imagePath, setImagePath] = useState(initialImagePath);
-  const [mealType, setMealType] = useState<string>("");
+  const [mealType, setMealType] = useState<string>(() =>
+    initialMealType && initialMealType in MEAL_TYPE_LABELS ? initialMealType : "",
+  );
   const [saving, setSaving] = useState(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
@@ -312,6 +322,7 @@ export function ConfirmationCard({
   const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const heroFallbackTriedRef = useRef(false);
+  const isIos = typeof navigator !== "undefined" && isLikelyIos();
 
   useEffect(() => {
     return () => {
@@ -367,13 +378,20 @@ export function ConfirmationCard({
   }
 
   function handleHeroError() {
-    if (!heroFallbackTriedRef.current && previewUrl?.startsWith("blob:") && imagePath.trim()) {
+    // Always prefer the persisted upload URL when available.
+    if (!heroFallbackTriedRef.current && imagePath.trim() && heroSrc !== getImageUrl(imagePath)) {
       heroFallbackTriedRef.current = true;
       setHeroSrc(getImageUrl(imagePath));
       setImageLoaded(false);
       return;
     }
-    if (!heroFallbackTriedRef.current && previewUrl?.startsWith("blob:") && heroSrc !== previewUrl) {
+    // On iOS never fall back to blob — it often fails permanently in PWA.
+    if (
+      !isIos &&
+      !heroFallbackTriedRef.current &&
+      previewUrl?.startsWith("blob:") &&
+      heroSrc !== previewUrl
+    ) {
       heroFallbackTriedRef.current = true;
       setHeroSrc(previewUrl);
       setImageLoaded(false);
