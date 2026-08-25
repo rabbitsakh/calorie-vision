@@ -11,6 +11,7 @@ type WeightEntryRow = {
   id: string;
   date: string;
   weightKg: number;
+  note?: string | null;
   measuredAt: string;
 };
 
@@ -57,6 +58,7 @@ function TrashIcon() {
 export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistoryProps) {
   const [data, setData] = useState<WeightsResponse | null>(null);
   const [weightInput, setWeightInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -114,6 +116,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
           date: dateKey,
           weightKg: Number(weightInput),
           measuredAt: now.toISOString(),
+          note: noteInput.trim() || null,
         }),
       });
       const payload = (await response.json()) as { error?: string };
@@ -121,6 +124,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
         throw new Error(payload.error ?? "Не удалось сохранить вес");
       }
       setWeightInput("");
+      setNoteInput("");
       await load();
       notifyDietTargetsChanged();
       onChanged?.();
@@ -188,26 +192,40 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
   return (
     <section className="card p-4 md:p-6">
       <div className="flex flex-col gap-5">
-        <form className="flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={saveWeight}>
-          <div className="field flex-1">
-            <label htmlFor="weight-now">Вес сейчас, кг</label>
+        <form className="flex flex-col gap-3" onSubmit={saveWeight}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="field flex-1">
+              <label htmlFor="weight-now">Вес сейчас, кг</label>
+              <input
+                id="weight-now"
+                type="number"
+                inputMode="decimal"
+                min="20"
+                max="300"
+                step="0.1"
+                placeholder="78.5"
+                value={weightInput}
+                disabled={saving}
+                onChange={(event) => setWeightInput(event.target.value)}
+                required
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={saving}>
+              {saving ? "Сохраняем..." : "Добавить измерение"}
+            </button>
+          </div>
+          <div className="field">
+            <label htmlFor="weight-note">Заметка (необязательно)</label>
             <input
-              id="weight-now"
-              type="number"
-              inputMode="decimal"
-              min="20"
-              max="300"
-              step="0.1"
-              placeholder="78.5"
-              value={weightInput}
+              id="weight-note"
+              type="text"
+              maxLength={200}
+              placeholder="После тренировки, утро натощак…"
+              value={noteInput}
               disabled={saving}
-              onChange={(event) => setWeightInput(event.target.value)}
-              required
+              onChange={(event) => setNoteInput(event.target.value)}
             />
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Сохраняем..." : "Добавить измерение"}
-          </button>
         </form>
 
         <div className="rounded-2xl bg-teal-50 px-4 py-4">
@@ -264,11 +282,16 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
                       key={entry.id}
                       className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5"
                     >
-                      <div className="flex items-baseline gap-3">
-                        <p className="font-semibold">{entry.weightKg} кг</p>
-                        <p className="text-xs text-slate-400">
-                          {formatTimeShort(entry.measuredAt, timezone)}
-                        </p>
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <div className="flex items-baseline gap-3">
+                          <p className="font-semibold">{entry.weightKg} кг</p>
+                          <p className="text-xs text-slate-400">
+                            {formatTimeShort(entry.measuredAt, timezone)}
+                          </p>
+                        </div>
+                        {entry.note ? (
+                          <p className="truncate text-xs text-slate-500">{entry.note}</p>
+                        ) : null}
                       </div>
                       <button
                         type="button"

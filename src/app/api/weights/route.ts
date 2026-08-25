@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
         id: entry.id,
         date: entry.date,
         weightKg: entry.weightKg,
+        note: entry.note ?? null,
         measuredAt: entry.measuredAt.toISOString(),
         createdAt: entry.createdAt.toISOString(),
       })),
@@ -69,7 +70,12 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    const body = (await request.json()) as { date?: string; weightKg?: number; measuredAt?: string };
+    const body = (await request.json()) as {
+      date?: string;
+      weightKg?: number;
+      measuredAt?: string;
+      note?: string | null;
+    };
     const date = requireDateKey(body.date);
     if (!date || !isValidWeight(Number(body.weightKg))) {
       return NextResponse.json({ error: "Укажите дату и вес от 20 до 300 кг" }, { status: 400 });
@@ -78,6 +84,10 @@ export async function POST(request: NextRequest) {
     const weightKg = Math.round(Number(body.weightKg) * 10) / 10;
     const measuredAtRaw = body.measuredAt ? new Date(body.measuredAt) : new Date();
     const measuredAt = isNaN(measuredAtRaw.getTime()) ? new Date() : measuredAtRaw;
+    const note =
+      typeof body.note === "string" && body.note.trim()
+        ? body.note.trim().slice(0, 200)
+        : null;
 
     const existing = await prisma.weightEntry.findFirst({
       where: { userId: session.user.id, date },
@@ -87,7 +97,7 @@ export async function POST(request: NextRequest) {
     const entry = existing
       ? await prisma.weightEntry.update({
           where: { id: existing.id },
-          data: { weightKg, measuredAt },
+          data: { weightKg, measuredAt, note },
         })
       : await prisma.weightEntry.create({
           data: {
@@ -95,6 +105,7 @@ export async function POST(request: NextRequest) {
             date,
             weightKg,
             measuredAt,
+            note,
           },
         });
 
@@ -102,6 +113,7 @@ export async function POST(request: NextRequest) {
       id: entry.id,
       date: entry.date,
       weightKg: entry.weightKg,
+      note: entry.note ?? null,
       measuredAt: entry.measuredAt.toISOString(),
     });
   } catch (error) {

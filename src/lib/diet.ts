@@ -209,6 +209,28 @@ export function recommendDiet(
   return { calories, protein, fat, carbs, fiber, sugar };
 }
 
+/** Apply optional user overrides for fiber goal / sugar soft cap. */
+export function applyFiberSugarOverrides(
+  target: DietTarget,
+  overrides?: { fiberTargetG?: number | null; sugarTargetG?: number | null } | null,
+): DietTarget {
+  if (!overrides) return target;
+  const fiber =
+    overrides.fiberTargetG != null &&
+    Number.isFinite(overrides.fiberTargetG) &&
+    overrides.fiberTargetG > 0
+      ? round1(overrides.fiberTargetG)
+      : target.fiber;
+  const sugar =
+    overrides.sugarTargetG != null &&
+    Number.isFinite(overrides.sugarTargetG) &&
+    overrides.sugarTargetG > 0
+      ? round1(overrides.sugarTargetG)
+      : target.sugar;
+  if (fiber === target.fiber && sugar === target.sugar) return target;
+  return { ...target, fiber, sugar };
+}
+
 export function compareNutrient(actual: number, target: number): NutrientComparison {
   const remaining = round1(target - actual);
   const kind = remaining > 0.05 ? "deficit" : remaining < -0.05 ? "surplus" : "even";

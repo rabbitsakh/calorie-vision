@@ -12,6 +12,7 @@ import {
   isCalorieGoalCorridor,
   isDangerousCalorieUndereat,
   recommendDiet,
+  applyFiberSugarOverrides,
 } from "./diet.ts";
 
 test("recommends a calorie deficit and higher protein for a healthy cut", () => {
@@ -20,6 +21,17 @@ test("recommends a calorie deficit and higher protein for a healthy cut", () => 
   assert.equal(diet.protein, 136);
   assert.equal(diet.fat, 60);
   assert.equal(diet.carbs, 102.8);
+});
+
+test("applies optional fiber and sugar target overrides", () => {
+  const base = recommendDiet(80, "MAINTAIN", null, "FEMALE");
+  const overridden = applyFiberSugarOverrides(base, { fiberTargetG: 35, sugarTargetG: 40 });
+  assert.equal(overridden.fiber, 35);
+  assert.equal(overridden.sugar, 40);
+  assert.equal(overridden.calories, base.calories);
+  const untouched = applyFiberSugarOverrides(base, { fiberTargetG: null, sugarTargetG: null });
+  assert.equal(untouched.fiber, base.fiber);
+  assert.equal(untouched.sugar, base.sugar);
 });
 
 test("uses a milder cut when losing weight the simple way", () => {

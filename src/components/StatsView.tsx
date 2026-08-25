@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { formatDateShort, getMonthGrid, parseDateInput } from "@/lib/dates";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
@@ -32,6 +32,12 @@ type StatsResponse = {
   hourlyCalories: number[];
   moodInsight?: string | null;
   corridorAlert?: CorridorStreakAlert | null;
+  weekOverWeek?: {
+    thisWeek: { start: string; end: string; avgCalories: number; totalCalories: number; daysLogged: number };
+    prevWeek: { start: string; end: string; avgCalories: number; totalCalories: number; daysLogged: number };
+    deltaAvgCalories: number | null;
+    deltaPct: number | null;
+  };
   topFoods: Array<{ dishName: string; count: number; avgCalories: number }>;
   summary: {
     avgCalories: number;
@@ -692,6 +698,9 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportPeriod, setExportPeriod] = useState<"week" | "month" | "quarter" | "custom">("week");
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState(endDate);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -710,11 +719,27 @@ export function StatsView({ endDate }: StatsViewProps) {
 
   useEffect(() => { void loadStats(); }, [loadStats]);
 
-  // Export helpers — use the period end date and compute start from period
-  const periodStart = data?.days[0]?.date ?? "";
-  const periodEnd = data?.days[data.days.length - 1]?.date ?? "";
-  const exportUrl = (format: "csv" | "pdf") =>
-    withBasePath(`/api/export?format=${format}&from=${periodStart}&to=${periodEnd}`);
+  useEffect(() => {
+    setExportTo(endDate);
+  }, [endDate]);
+
+  const exportRange = useMemo(() => {
+    if (exportPeriod === "custom") {
+      return { from: exportFrom, to: exportTo || endDate };
+    }
+    const days = exportPeriod === "quarter" ? 90 : exportPeriod === "month" ? 30 : 7;
+    const to = endDate;
+    const from = shiftDateKey(to, -(days - 1));
+    return { from, to };
+  }, [exportPeriod, exportFrom, exportTo, endDate]);
+
+  const exportUrl = (format: "csv" | "pdf") => {
+    const { from, to } = exportRange;
+    if (!from || !to) return withBasePath(`/api/export?format=${format}`);
+    return withBasePath(`/api/export?format=${format}&from=${from}&to=${to}`);
+  };
+
+  const wow = data?.weekOverWeek;
 
   const weekSummary =
     data && period === "week" ? buildWeekSummary(data.days, data.calorieTarget) : null;
@@ -777,6 +802,60 @@ export function StatsView({ endDate }: StatsViewProps) {
               </p>
               <p className="mt-1">{data.corridorAlert.message}</p>
             </div>
+          ) : null}
+
+          {wow && (wow.thisWeek.daysLogged > 0 || wow.prevWeek.daysLogged > 0) ? (
+            <section className="card p-4 md:p-6">
+              <h2 className="font-display text-lg font-bold">Эта неделя vs прошлая</h2>
+              <p className="mt-1 text-xs text-slate-500">Средние ккал в дни с записями</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-xl bg-teal-50 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-slate-900">
+                    {wow.thisWeek.daysLogged > 0 ? wow.thisWeek.avgCalories : "—"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {wow.thisWeek.daysLogged > 0
+                      ? `${wow.thisWeek.daysLogged} ${pluralDays(wow.thisWeek.daysLogged)} · ${formatDateShort(wow.thisWeek.start)}–${formatDateShort(wow.thisWeek.end)}`
+                      : "нет записей"}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Прошлая</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-slate-900">
+                    {wow.prevWeek.daysLogged > 0 ? wow.prevWeek.avgCalories : "—"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {wow.prevWeek.daysLogged > 0
+                      ? `${wow.prevWeek.daysLogged} ${pluralDays(wow.prevWeek.daysLogged)} · ${formatDateShort(wow.prevWeek.start)}–${formatDateShort(wow.prevWeek.end)}`
+                      : "нет записей"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-100 px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Разница</p>
+                  <p
+                    className={`mt-1 font-display text-2xl font-bold ${
+                      wow.deltaAvgCalories == null
+                        ? "text-slate-400"
+                        : wow.deltaAvgCalories > 0
+                          ? "text-amber-700"
+                          : wow.deltaAvgCalories < 0
+                            ? "text-teal-700"
+                            : "text-slate-800"
+                    }`}
+                  >
+                    {wow.deltaAvgCalories == null
+                      ? "—"
+                      : `${wow.deltaAvgCalories > 0 ? "+" : ""}${wow.deltaAvgCalories}`}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {wow.deltaPct == null
+                      ? "нужны обе недели"
+                      : `${wow.deltaPct > 0 ? "+" : ""}${wow.deltaPct}% к прошлой`}
+                  </p>
+                </div>
+              </div>
+            </section>
           ) : null}
 
           {data.moodInsight ? (
@@ -881,25 +960,76 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Export */}
           <section className="card p-4 md:p-6">
-            <h2 className="mb-3 text-base font-semibold">Экспорт данных</h2>
+            <h2 className="mb-1 font-display text-lg font-bold">Экспорт · Calorie Vision</h2>
+            <p className="mb-3 text-xs text-slate-500">PDF с брендингом и дневником за выбранный период</p>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {(
+                [
+                  ["week", "7 дней"],
+                  ["month", "30 дней"],
+                  ["quarter", "90 дней"],
+                  ["custom", "Свои даты"],
+                ] as const
+              ).map(([p, label]) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`chip min-h-9 ${exportPeriod === p ? "chip-active" : ""}`}
+                  onClick={() => {
+                    setExportPeriod(p);
+                    if (p !== "custom") {
+                      const days = p === "quarter" ? 90 : p === "month" ? 30 : 7;
+                      setExportFrom(shiftDateKey(endDate, -(days - 1)));
+                      setExportTo(endDate);
+                    }
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {exportPeriod === "custom" ? (
+              <div className="mb-3 grid gap-3 sm:grid-cols-2">
+                <div className="field">
+                  <label htmlFor="export-from">С</label>
+                  <input
+                    id="export-from"
+                    type="date"
+                    value={exportFrom}
+                    onChange={(e) => setExportFrom(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="export-to">По</label>
+                  <input
+                    id="export-to"
+                    type="date"
+                    value={exportTo}
+                    onChange={(e) => setExportTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : null}
             <div className="flex flex-wrap gap-3">
               <a
                 href={exportUrl("csv")}
                 download
                 className="btn btn-secondary text-sm"
               >
-                📥 Скачать CSV
+                Скачать CSV
               </a>
               <a
                 href={exportUrl("pdf")}
                 download
                 className="btn btn-secondary text-sm"
               >
-                📄 Скачать PDF
+                Скачать PDF
               </a>
             </div>
-            {periodStart && periodEnd ? (
-              <p className="mt-2 text-xs text-slate-400">Период: {periodStart} — {periodEnd}</p>
+            {exportRange.from && exportRange.to ? (
+              <p className="mt-2 text-xs text-slate-400">
+                Период: {exportRange.from} — {exportRange.to}
+              </p>
             ) : null}
           </section>
         </>

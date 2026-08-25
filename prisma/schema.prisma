@@ -39,6 +39,10 @@ model User {
   goalPace      GoalPace?
   targetWeightKg Float?
   goalDeadline   String?        @db.VarChar(10)
+  /** Soft daily fiber goal override (g); null → diet default (~28). */
+  fiberTargetG  Float?
+  /** Soft free-sugar cap override (g); null → diet default (~10% energy). */
+  sugarTargetG  Float?
   timezone      String?        @db.VarChar(64)
   accounts      Account[]
   sessions      Session[]
@@ -100,6 +104,7 @@ model WeightEntry {
   userId      String
   date        String   @db.VarChar(10)
   weightKg    Float
+  note        String?  @db.VarChar(200)
   measuredAt  DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

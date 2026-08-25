@@ -44,6 +44,8 @@ export async function GET() {
           sex: true,
           heightCm: true,
           birthYear: true,
+          fiberTargetG: true,
+          sugarTargetG: true,
         },
       }),
       prisma.account.findMany({
@@ -69,6 +71,8 @@ export async function GET() {
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
+      fiberTargetG: user.fiberTargetG ?? null,
+      sugarTargetG: user.sugarTargetG ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
       referralCode: referralCodeForUser(user.id),
@@ -96,6 +100,8 @@ export async function PUT(request: NextRequest) {
       sex?: string | null;
       heightCm?: number | null;
       birthYear?: number | null;
+      fiberTargetG?: number | null;
+      sugarTargetG?: number | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -125,6 +131,8 @@ export async function PUT(request: NextRequest) {
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
+      fiberTargetG?: number | null;
+      sugarTargetG?: number | null;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -146,6 +154,28 @@ export async function PUT(request: NextRequest) {
       data.birthYear = body.birthYear && body.birthYear > 1900 && body.birthYear < currentYear
         ? Math.round(body.birthYear)
         : null;
+    }
+
+    if (body.fiberTargetG !== undefined) {
+      const raw = body.fiberTargetG;
+      if (raw == null || raw === ("" as unknown)) {
+        data.fiberTargetG = null;
+      } else if (!Number.isFinite(Number(raw)) || Number(raw) <= 0 || Number(raw) > 100) {
+        return NextResponse.json({ error: "Клетчатка: укажите цель от 1 до 100 г" }, { status: 400 });
+      } else {
+        data.fiberTargetG = Math.round(Number(raw) * 10) / 10;
+      }
+    }
+
+    if (body.sugarTargetG !== undefined) {
+      const raw = body.sugarTargetG;
+      if (raw == null || raw === ("" as unknown)) {
+        data.sugarTargetG = null;
+      } else if (!Number.isFinite(Number(raw)) || Number(raw) <= 0 || Number(raw) > 150) {
+        return NextResponse.json({ error: "Сахар: укажите лимит от 1 до 150 г" }, { status: 400 });
+      } else {
+        data.sugarTargetG = Math.round(Number(raw) * 10) / 10;
+      }
     }
 
     if (body.sex !== undefined) {
@@ -224,7 +254,18 @@ export async function PUT(request: NextRequest) {
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data,
-      select: { name: true, email: true, phone: true, image: true, timezone: true, sex: true },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        image: true,
+        timezone: true,
+        sex: true,
+        heightCm: true,
+        birthYear: true,
+        fiberTargetG: true,
+        sugarTargetG: true,
+      },
     });
 
     const split = splitName(user.name);
@@ -236,6 +277,10 @@ export async function PUT(request: NextRequest) {
       image: user.image,
       timezone: user.timezone ?? null,
       sex: user.sex ?? null,
+      heightCm: user.heightCm ?? null,
+      birthYear: user.birthYear ?? null,
+      fiberTargetG: user.fiberTargetG ?? null,
+      sugarTargetG: user.sugarTargetG ?? null,
       linkedProviders,
       emailLocked,
     });
