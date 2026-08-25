@@ -11,6 +11,16 @@ import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
+import {
+  addMealTotals,
+  appendPendingDelete,
+  buildDiaryDisplayRows,
+  findMealListIndex,
+  mealListItemKey,
+  mergeEntriesAfterUndo,
+  subtractMealTotals,
+  type PendingDeleteSlot,
+} from "@/lib/diary-delete-slots";
 import { pluralDays } from "@/lib/russian-text";
 
 type EditPatch = {
@@ -37,7 +47,7 @@ function TrashIcon() {
   );
 }
 
-/** Inline undo toast — appears for 4 s, calls onUndo if pressed or onExpired if not */
+/** Inline undo — own 4s timer per slot; callback refs avoid resetting the countdown. */
 function UndoToast({
   message,
   onUndo,
@@ -47,18 +57,26 @@ function UndoToast({
   onUndo: () => void;
   onExpired: () => void;
 }) {
+  const onExpiredRef = useRef(onExpired);
+  const onUndoRef = useRef(onUndo);
+  onExpiredRef.current = onExpired;
+  onUndoRef.current = onUndo;
+
   useEffect(() => {
-    const timer = setTimeout(onExpired, 4000);
+    const timer = setTimeout(() => onExpiredRef.current(), 4000);
     return () => clearTimeout(timer);
-  }, [onExpired]);
+  }, []);
 
   return (
-    <div className="undo-toast flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
-      <span>{message}</span>
+    <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
+      <span className="min-w-0">
+        <span className="block text-xs font-medium uppercase tracking-wide text-slate-300">Удалено</span>
+        <span className="mt-0.5 block truncate font-medium">{message}</span>
+      </span>
       <button
         type="button"
-        className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30"
-        onClick={onUndo}
+        className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30"
+        onClick={() => onUndoRef.current()}
       >
         Отменить
       </button>
@@ -454,11 +472,6 @@ function SingleMealCard({
   );
 }
 
-type PendingDelete = {
-  ids: string[];
-  label: string;
-};
-
 function MealListRow({
   item,
   timezone,
@@ -510,7 +523,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDeletes, setPendingDeletes] = useState<PendingDeleteSlot[]>([]);
   const [streakDays, setStreakDays] = useState<number>(0);
   const [showNormDetails, setShowNormDetails] = useState(() => {
     if (typeof window === "undefined") return !compact;
@@ -589,6 +602,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   useEffect(() => {
     attemptedImageDates.current.delete(selectedDate);
+    setPendingDeletes([]);
     void loadEntries();
   }, [loadEntries, refreshKey, selectedDate]);
 
@@ -706,27 +720,61 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     await Promise.all(
       ids.map((id) => fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" })),
     );
-    await loadEntries();
+    await loadEntries(true);
     onChanged?.();
   }
 
   function requestDelete(ids: string[], label: string) {
-    // Optimistically hide the entry right away so the UI feels instant
-    setEntries((prev) => prev.filter((e) => !ids.includes(e.id)));
-    setPendingDelete({ ids, label });
+    const snapshot = entries.filter((entry) => ids.includes(entry.id));
+    if (snapshot.length === 0) return;
+
+    const items = groupMealEntries(entries);
+    const index = findMealListIndex(items, ids);
+    const removedKey = index >= 0 ? mealListItemKey(items[index]!) : null;
+    const nextItem = index >= 0 ? items[index + 1] : undefined;
+    const afterKey = nextItem ? mealListItemKey(nextItem) : null;
+    const slot: PendingDeleteSlot = {
+      key: `del-${ids.slice().sort().join("-")}-${Date.now()}`,
+      ids,
+      label,
+      snapshot,
+      afterKey,
+    };
+
+    setEntries((prev) => prev.filter((entry) => !ids.includes(entry.id)));
+    setTotals((prev) => {
+      const next = subtractMealTotals(prev, snapshot);
+      onTotalsChange?.(next.calories);
+      return next;
+    });
+    setPendingDeletes((prev) =>
+      removedKey ? appendPendingDelete(prev, slot, removedKey) : [...prev, slot],
+    );
   }
 
-  async function confirmDelete() {
-    if (!pendingDelete) return;
-    const { ids } = pendingDelete;
-    setPendingDelete(null);
-    await performDelete(ids);
+  async function confirmDelete(slotKey: string) {
+    let slot: PendingDeleteSlot | undefined;
+    setPendingDeletes((prev) => {
+      slot = prev.find((item) => item.key === slotKey);
+      return prev.filter((item) => item.key !== slotKey);
+    });
+    if (!slot) return;
+    await performDelete(slot.ids);
   }
 
-  function undoDelete() {
-    setPendingDelete(null);
-    // Restore by reloading
-    void loadEntries(true);
+  function undoDelete(slotKey: string) {
+    let slot: PendingDeleteSlot | undefined;
+    setPendingDeletes((prev) => {
+      slot = prev.find((item) => item.key === slotKey);
+      return prev.filter((item) => item.key !== slotKey);
+    });
+    if (!slot) return;
+    setEntries((prev) => mergeEntriesAfterUndo(prev, slot!.snapshot));
+    setTotals((prev) => {
+      const next = addMealTotals(prev, slot!.snapshot);
+      onTotalsChange?.(next.calories);
+      return next;
+    });
   }
 
   const [copying, setCopying] = useState(false);
@@ -756,6 +804,10 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   const displayDate = formatDateWords(selectedDate);
   const listItems = useMemo(() => groupMealEntries(entries), [entries]);
+  const displayRows = useMemo(
+    () => buildDiaryDisplayRows(listItems, pendingDeletes),
+    [listItems, pendingDeletes],
+  );
 
   return (
     <section className={`card ${compact ? "p-4 md:p-5" : "p-6"}`}>
@@ -865,15 +917,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        {pendingDelete ? (
-          <UndoToast
-            message={`Удалено: ${pendingDelete.label}`}
-            onUndo={undoDelete}
-            onExpired={() => void confirmDelete()}
-          />
-        ) : null}
-
-        {!loading && !error && entries.length === 0 && !pendingDelete ? (
+        {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
             <p className="font-medium text-slate-700">{MASCOT_COPY.emptyDiary.headline}</p>
@@ -897,27 +941,42 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         ) : null}
 
         <div className="flex flex-col gap-3">
-          {listItems.map((item) => (
-            <MealListRow
-              key={item.kind === "group" ? item.groupId : item.entry.id}
-              item={item}
-              timezone={timezone}
-              onDelete={(id) => {
-                const label = item.kind === "single"
-                  ? decodeHtmlEntities(item.entry.dishName)
-                  : decodeHtmlEntities(entries.find((e) => e.id === id)?.dishName ?? "блюдо");
-                requestDelete([id], label);
-              }}
-              onEdit={handleEdit}
-              onMealTypeChange={handleMealTypeChange}
-              onDeleteGroup={(ids) => {
-                const label = item.kind === "group"
-                  ? `${item.entries.length} блюда с одного фото`
-                  : "блюда";
-                requestDelete(ids, label);
-              }}
-            />
-          ))}
+          {displayRows.map((row) => {
+            if (row.kind === "undo") {
+              const slotKey = row.pending.key;
+              return (
+                <UndoToast
+                  key={slotKey}
+                  message={row.pending.label}
+                  onUndo={() => undoDelete(slotKey)}
+                  onExpired={() => void confirmDelete(slotKey)}
+                />
+              );
+            }
+
+            const item = row.item;
+            return (
+              <MealListRow
+                key={mealListItemKey(item)}
+                item={item}
+                timezone={timezone}
+                onDelete={(id) => {
+                  const label = item.kind === "single"
+                    ? decodeHtmlEntities(item.entry.dishName)
+                    : decodeHtmlEntities(entries.find((e) => e.id === id)?.dishName ?? "блюдо");
+                  requestDelete([id], label);
+                }}
+                onEdit={handleEdit}
+                onMealTypeChange={handleMealTypeChange}
+                onDeleteGroup={(ids) => {
+                  const label = item.kind === "group"
+                    ? `${item.entries.length} блюда с одного фото`
+                    : "блюда";
+                  requestDelete(ids, label);
+                }}
+              />
+            );
+          })}
         </div>
       </div>
     </section>
