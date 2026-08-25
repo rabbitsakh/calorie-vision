@@ -4,6 +4,7 @@ import { dateRangeEnding, requireDateKey } from "@/lib/dates";
 import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
+import { buildMoodFoodInsight, detectCalorieCorridorStreak } from "@/lib/stats-insights";
 import {
   computeWeightChangeKg,
   medianWeightByDate,
@@ -159,31 +160,15 @@ export async function GET(request: NextRequest) {
       hourlyCalories[hour] = (hourlyCalories[hour] ?? 0) + m.calories;
     }
 
-    // Mood ↔ on-target correlation
-    let moodInsight: string | null = null;
-    if (calorieTarget && diaryNotes.length >= 3) {
-      const highMoodDays = diaryNotes.filter((n) => (n.mood ?? 0) >= 4);
-      const lowMoodDays = diaryNotes.filter((n) => (n.mood ?? 0) <= 2);
-      const onTarget = (date: string) => {
-        const cal = mealByDate.get(date)?.calories ?? 0;
-        if (cal <= 0) return false;
-        return Math.abs(cal - calorieTarget) <= calorieTarget * 0.1;
-      };
-      const highOnTarget = highMoodDays.filter((n) => onTarget(n.date)).length;
-      const lowOnTarget = lowMoodDays.filter((n) => onTarget(n.date)).length;
-      const highPct = highMoodDays.length > 0 ? highOnTarget / highMoodDays.length : 0;
-      const lowPct = lowMoodDays.length > 0 ? lowOnTarget / lowMoodDays.length : 0;
-
-      if (highMoodDays.length >= 2 && highPct >= 0.5 && highPct > lowPct + 0.15) {
-        moodInsight = `В дни с настроением 4–5 вы чаще попадали в цель по калориям (${highOnTarget} из ${highMoodDays.length}).`;
-      } else if (lowMoodDays.length >= 2 && lowPct < highPct) {
-        moodInsight = `В дни с низким настроением цель достигалась реже — мягкий сигнал замечать связь еды и самочувствия.`;
-      } else if (diaryNotes.length >= 3) {
-        const avgMood =
-          diaryNotes.reduce((s, n) => s + (n.mood ?? 0), 0) / diaryNotes.length;
-        moodInsight = `За период отмечено ${diaryNotes.length} дней с настроением (среднее ${avgMood.toFixed(1)}/5).`;
-      }
-    }
+    const caloriesByDate = new Map(
+      [...mealByDate.entries()].map(([date, totals]) => [date, totals.calories]),
+    );
+    const moodInsight = buildMoodFoodInsight(diaryNotes, caloriesByDate, calorieTarget);
+    const corridorAlert = detectCalorieCorridorStreak(
+      days.map((d) => ({ date: d.date, calories: d.calories })),
+      calorieTarget,
+      3,
+    );
 
     return NextResponse.json({
       period,
@@ -193,6 +178,7 @@ export async function GET(request: NextRequest) {
       calorieTarget,
       hourlyCalories,
       moodInsight,
+      corridorAlert,
       topFoods: mergeDecodedFoodStats(
         topFoods.map((f) => ({
           dishName: f.dishName,

@@ -7,6 +7,11 @@ import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
 import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
+import {
+  buildWeekSummary,
+  type CorridorStreakAlert,
+  type WeekSummary,
+} from "@/lib/stats-insights";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
 type StatsDay = {
@@ -26,6 +31,7 @@ type StatsResponse = {
   calorieTarget: number | null;
   hourlyCalories: number[];
   moodInsight?: string | null;
+  corridorAlert?: CorridorStreakAlert | null;
   topFoods: Array<{ dishName: string; count: number; avgCalories: number }>;
   summary: {
     avgCalories: number;
@@ -220,19 +226,20 @@ function BarChart({
           </div>
         </div>
 
-        {/* X-axis date labels */}
+        {/* X-axis date labels — fixed h-4 slot so labeled columns share one baseline */}
         <div className="mt-1 flex gap-px overflow-hidden sm:gap-0.5" aria-hidden="true">
           {days.map((day, index) => {
             const show = xLabels.has(index);
             return (
-              <div key={`${day.date}-lbl`} className="min-w-0 flex-1 overflow-hidden text-center">
+              <div
+                key={`${day.date}-lbl`}
+                className="flex h-4 min-w-0 flex-1 shrink-0 items-center justify-center overflow-hidden"
+              >
                 {show ? (
-                  <span className="block truncate text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
+                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
                     {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
                   </span>
-                ) : (
-                  <span className="block h-3" />
-                )}
+                ) : null}
               </div>
             );
           })}
@@ -399,19 +406,20 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
             })}
           </div>
 
-          {/* X-axis */}
+          {/* X-axis — fixed h-4 slot (same baseline as TimingChart / MacroChart) */}
           <div className="mt-1 flex overflow-hidden" aria-hidden="true">
             {days.map((day, index) => {
               const show = xLabels.has(index);
               return (
-                <div key={day.date} className="min-w-0 flex-1 overflow-hidden text-center">
+                <div
+                  key={day.date}
+                  className="flex h-4 min-w-0 flex-1 shrink-0 items-center justify-center overflow-hidden"
+                >
                   {show ? (
-                    <span className="block truncate text-[10px] font-medium leading-tight text-slate-500 sm:text-xs">
+                    <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
                       {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
                     </span>
-                  ) : (
-                    <span className="block h-3" />
-                  )}
+                  ) : null}
                 </div>
               );
             })}
@@ -610,6 +618,51 @@ function MonthHeatmap({
   );
 }
 
+// ── WeekSummaryCard ───────────────────────────────────────────────────────────
+
+function WeekSummaryCard({ summary }: { summary: WeekSummary }) {
+  return (
+    <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+        Итоги недели
+      </p>
+      <p className="mt-1 font-semibold text-teal-950">{summary.headline}</p>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="rounded-xl bg-white/80 px-3 py-2">
+          <p className="text-xs text-slate-500">Дней с едой</p>
+          <p className="text-lg font-bold text-slate-900">{summary.daysLogged}/7</p>
+        </div>
+        <div className="rounded-xl bg-white/80 px-3 py-2">
+          <p className="text-xs text-slate-500">Среднее ккал</p>
+          <p className="text-lg font-bold text-slate-900">{summary.avgCalories}</p>
+          {summary.calorieTarget ? (
+            <p className="text-[10px] text-slate-500">цель {summary.calorieTarget}</p>
+          ) : null}
+        </div>
+        <div className="rounded-xl bg-white/80 px-3 py-2">
+          <p className="text-xs text-slate-500">В коридоре</p>
+          <p className="text-lg font-bold text-slate-900">
+            {summary.daysInCorridor != null ? summary.daysInCorridor : "—"}
+          </p>
+        </div>
+        <div className="rounded-xl bg-white/80 px-3 py-2">
+          <p className="text-xs text-slate-500">Вес за неделю</p>
+          <p className="text-lg font-bold text-slate-900">
+            {summary.weightChangeKg != null
+              ? `${summary.weightChangeKg > 0 ? "+" : ""}${summary.weightChangeKg} кг`
+              : "—"}
+          </p>
+        </div>
+      </div>
+      {summary.bestDay ? (
+        <p className="mt-2 text-xs text-teal-800">
+          Ближе всего к цели: {formatDateShort(summary.bestDay.date)} · {summary.bestDay.calories} ккал
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
 function StatCard({
@@ -663,6 +716,9 @@ export function StatsView({ endDate }: StatsViewProps) {
   const exportUrl = (format: "csv" | "pdf") =>
     withBasePath(`/api/export?format=${format}&from=${periodStart}&to=${periodEnd}`);
 
+  const weekSummary =
+    data && period === "week" ? buildWeekSummary(data.days, data.calorieTarget) : null;
+
   return (
     <div className="flex flex-col gap-6">
       {/* Period toggle — sticky below iOS status bar (safe-area), not under the clock */}
@@ -701,7 +757,27 @@ export function StatsView({ endDate }: StatsViewProps) {
 
       {data ? (
         <>
+          {weekSummary ? <WeekSummaryCard summary={weekSummary} /> : null}
+
           {period === "week" ? <WeeklyReportCard endDate={endDate} /> : null}
+
+          {data.corridorAlert ? (
+            <div
+              className={`rounded-2xl border px-4 py-3 text-sm ${
+                data.corridorAlert.direction === "above"
+                  ? "border-amber-200 bg-amber-50 text-amber-950"
+                  : "border-sky-200 bg-sky-50 text-sky-950"
+              }`}
+              role="status"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide opacity-80">
+                {data.corridorAlert.direction === "above"
+                  ? "Выше цели 3+ дня"
+                  : "Ниже цели 3+ дня"}
+              </p>
+              <p className="mt-1">{data.corridorAlert.message}</p>
+            </div>
+          ) : null}
 
           {data.moodInsight ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
