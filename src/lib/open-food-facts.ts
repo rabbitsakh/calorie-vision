@@ -470,3 +470,50 @@ export async function searchOpenFoodFacts(query: string): Promise<PackNutrition 
   offCacheSet(offSearchCache, trimmed.toLowerCase(), result);
   return result;
 }
+
+/** Image candidates from OFF search — looser than nutrition match (user picks visually). */
+export async function searchOpenFoodFactsImageCandidates(
+  query: string,
+  limit = 6,
+): Promise<Array<{ url: string; label: string }>> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  const url = `${SEARCH_URL}?${new URLSearchParams({
+    search_terms: trimmed,
+    search_simple: "1",
+    action: "process",
+    json: "1",
+    page_size: String(Math.max(8, limit)),
+    lc: "ru",
+    cc: "ru",
+  }).toString()}`;
+
+  const data = (await offGetJson(url)) as { products?: OffProduct[] } | null;
+  if (!data?.products?.length) {
+    return [];
+  }
+
+  const out: Array<{ url: string; label: string }> = [];
+  const seen = new Set<string>();
+
+  for (const product of data.products) {
+    const imageUrl = pickOffImageUrl(product);
+    if (!imageUrl || seen.has(imageUrl)) {
+      continue;
+    }
+    seen.add(imageUrl);
+    const name =
+      decodeOffText(product.product_name_ru || product.product_name || "").trim() ||
+      decodeOffText(product.brands || "").trim() ||
+      "Open Food Facts";
+    out.push({ url: imageUrl, label: name });
+    if (out.length >= limit) {
+      break;
+    }
+  }
+
+  return out;
+}

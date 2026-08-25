@@ -57,8 +57,13 @@ export function isAllowedImageUrl(url: string): boolean {
 }
 
 export function pickWikipediaThumbnail(data: WikiQueryResponse): string | undefined {
+  return listWikipediaThumbnails(data, 1)[0];
+}
+
+export function listWikipediaThumbnails(data: WikiQueryResponse, limit = 6): string[] {
   const pages = Object.values(data.query?.pages ?? {});
   const ranked = pages.sort((left, right) => (left.index ?? 99) - (right.index ?? 99));
+  const urls: string[] = [];
 
   for (const page of ranked) {
     const title = page.title ?? "";
@@ -66,16 +71,25 @@ export function pickWikipediaThumbnail(data: WikiQueryResponse): string | undefi
     if (!source || SKIP_TITLE.test(title) || SKIP_FILE.test(source)) {
       continue;
     }
-    if (isAllowedImageUrl(source)) {
-      return source;
+    if (isAllowedImageUrl(source) && !urls.includes(source)) {
+      urls.push(source);
+    }
+    if (urls.length >= limit) {
+      break;
     }
   }
 
-  return undefined;
+  return urls;
 }
 
 export function pickCommonsImage(data: CommonsQueryResponse): string | undefined {
+  return listCommonsImages(data, 1)[0];
+}
+
+export function listCommonsImages(data: CommonsQueryResponse, limit = 6): string[] {
   const pages = Object.values(data.query?.pages ?? {});
+  const urls: string[] = [];
+
   for (const page of pages) {
     const title = page.title ?? "";
     if (SKIP_TITLE.test(title) || SKIP_FILE.test(title)) {
@@ -92,12 +106,15 @@ export function pickCommonsImage(data: CommonsQueryResponse): string | undefined
     }
 
     const source = info?.thumburl || info?.url;
-    if (source && isAllowedImageUrl(source) && !SKIP_FILE.test(source)) {
-      return source;
+    if (source && isAllowedImageUrl(source) && !SKIP_FILE.test(source) && !urls.includes(source)) {
+      urls.push(source);
+    }
+    if (urls.length >= limit) {
+      break;
     }
   }
 
-  return undefined;
+  return urls;
 }
 
 async function getJson(url: string): Promise<unknown | null> {
@@ -197,37 +214,129 @@ export async function findFoodImage(options: {
   brand?: string;
   productImageUrl?: string;
 }): Promise<string | undefined> {
-  if (options.productImageUrl && isAllowedImageUrl(options.productImageUrl)) {
-    return options.productImageUrl;
+  const candidates = await searchFoodImageCandidates(options.query, {
+    brand: options.brand,
+    productImageUrl: options.productImageUrl,
+    limit: 1,
+  });
+  return candidates[0]?.url;
+}
+
+export type FoodImageCandidate = {
+  url: string;
+  source: "openfoodfacts" | "wikipedia" | "commons";
+  label?: string;
+};
+
+/** Collect several safe HTTPS candidates for a dish photo picker. */
+export async function searchFoodImageCandidates(
+  rawQuery: string,
+  options?: { brand?: string; productImageUrl?: string; limit?: number },
+): Promise<FoodImageCandidate[]> {
+  const limit = options?.limit ?? 8;
+  const query = rawQuery.trim();
+  const out: FoodImageCandidate[] = [];
+  const seen = new Set<string>();
+
+  const push = (url: string | undefined, source: FoodImageCandidate["source"], label?: string) => {
+    if (!url || !isAllowedImageUrl(url) || seen.has(url) || out.length >= limit) {
+      return;
+    }
+    seen.add(url);
+    out.push({ url, source, label });
+  };
+
+  if (options?.productImageUrl) {
+    push(options.productImageUrl, "openfoodfacts", "Open Food Facts");
   }
 
-  const query = options.query.trim();
   if (query.length < 2) {
-    return undefined;
+    return out;
   }
 
-  const stripped = withoutBrand(query, options.brand);
-  const firstPass = await Promise.all([
-    searchWikipediaImage(query, "ru"),
-    searchWikipediaImage(query, "en"),
+  const stripped = withoutBrand(query, options?.brand);
+  const wikiQueries = [query, stripped, `${stripped || query} блюдо`, `${stripped || query} food`].filter(
+    (value): value is string => Boolean(value && value.trim().length >= 2),
+  );
+
+  const [wikiRu, wikiEn, commons] = await Promise.all([
+    Promise.all(wikiQueries.slice(0, 2).map((q) => searchWikipediaImageList(q, "ru", 4))),
+    Promise.all(wikiQueries.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
+    searchCommonsImageList(stripped || query, 4),
   ]);
-  const immediate = firstPass.find(Boolean);
-  if (immediate) {
-    return immediate;
-  }
 
-  if (stripped) {
-    const withoutBrandHit = await searchWikipediaImage(stripped, "ru");
-    if (withoutBrandHit) {
-      return withoutBrandHit;
+  for (const urls of wikiRu) {
+    for (const url of urls) {
+      push(url, "wikipedia", "Wikipedia");
     }
   }
-
-  const dishQuery = `${stripped || query} блюдо`;
-  const dishHit = await searchWikipediaImage(dishQuery, "ru");
-  if (dishHit) {
-    return dishHit;
+  for (const urls of wikiEn) {
+    for (const url of urls) {
+      push(url, "wikipedia", "Wikipedia");
+    }
+  }
+  for (const url of commons) {
+    push(url, "commons", "Wikimedia Commons");
   }
 
-  return searchCommonsImage(stripped || query);
+  return out.slice(0, limit);
+}
+
+async function searchWikipediaImageList(
+  query: string,
+  lang: "ru" | "en",
+  limit: number,
+): Promise<string[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  const url = `https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({
+    action: "query",
+    format: "json",
+    origin: "*",
+    generator: "search",
+    gsrsearch: trimmed,
+    gsrlimit: String(Math.max(5, limit)),
+    gsrnamespace: "0",
+    prop: "pageimages",
+    piprop: "thumbnail",
+    pithumbsize: "640",
+    pilicense: "any",
+  }).toString()}`;
+
+  const data = (await getJson(url)) as WikiQueryResponse | null;
+  if (!data) {
+    return [];
+  }
+
+  return listWikipediaThumbnails(data, limit);
+}
+
+async function searchCommonsImageList(query: string, limit: number): Promise<string[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) {
+    return [];
+  }
+
+  const url = `https://commons.wikimedia.org/w/api.php?${new URLSearchParams({
+    action: "query",
+    format: "json",
+    origin: "*",
+    generator: "search",
+    gsrsearch: `${trimmed} food`,
+    gsrlimit: String(Math.max(8, limit)),
+    gsrnamespace: "6",
+    prop: "imageinfo",
+    iiprop: "url|mime|size",
+    iiurlwidth: "640",
+  }).toString()}`;
+
+  const data = (await getJson(url)) as CommonsQueryResponse | null;
+  if (!data) {
+    return [];
+  }
+
+  return listCommonsImages(data, limit);
 }
