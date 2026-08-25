@@ -1,6 +1,6 @@
 import { findFoodImage } from "./food-image";
-import { mealNeedsImage, normalizeDishName, shouldSkipDishName } from "./meal-image";
-import { searchOpenFoodFacts } from "./open-food-facts";
+import { dishImageLookupQueries, mealNeedsImage, normalizeDishName, shouldSkipDishName } from "./meal-image";
+import { searchOpenFoodFactsBest } from "./open-food-facts";
 import { prisma } from "./prisma";
 import { cacheRemoteImage, recompressStoredImages } from "./upload";
 
@@ -18,14 +18,32 @@ export type BackfillMealImagesResult = {
 };
 
 async function lookupImageForDish(dishName: string): Promise<string | undefined> {
-  const off = await searchOpenFoodFacts(dishName);
-  const remoteUrl = await findFoodImage({
-    query: dishName,
-    brand: off?.brand,
-    productImageUrl: off?.imageUrl,
-  });
+  const queries = dishImageLookupQueries(dishName, 5);
+  if (queries.length === 0) {
+    return undefined;
+  }
 
-  return cacheRemoteImage(remoteUrl);
+  const off = await searchOpenFoodFactsBest(queries);
+  if (off?.imageUrl) {
+    const cached = await cacheRemoteImage(off.imageUrl);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  for (const query of queries) {
+    const remoteUrl = await findFoodImage({
+      query,
+      brand: off?.brand,
+      productImageUrl: off?.imageUrl,
+    });
+    const cached = await cacheRemoteImage(remoteUrl);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  return undefined;
 }
 
 function delay(ms: number): Promise<void> {
@@ -59,7 +77,9 @@ export async function backfillMealImages(
 
   result.scanned = meals.length;
 
-  const missing = meals.filter((meal) => mealNeedsImage(meal.imagePath));
+  const missing = meals.filter((meal: { id: string; dishName: string; imagePath: string | null }) =>
+    mealNeedsImage(meal.imagePath),
+  );
   if (missing.length === 0) {
     return result;
   }
@@ -106,7 +126,10 @@ export async function backfillMealImages(
       continue;
     }
 
-    const sample = missing.find((meal) => normalizeDishName(meal.dishName) === key);
+    const sample = missing.find(
+      (meal: { id: string; dishName: string; imagePath: string | null }) =>
+        normalizeDishName(meal.dishName) === key,
+    );
     const dishName = sample?.dishName ?? key;
 
     try {
