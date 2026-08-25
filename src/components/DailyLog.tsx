@@ -134,16 +134,28 @@ function MealEntryDetails({
   );
 }
 
+function mealStripeClass(mealType: string | null | undefined): string {
+  if (mealType === "BREAKFAST") return "bg-amber-400";
+  if (mealType === "LUNCH") return "bg-teal-500";
+  if (mealType === "DINNER") return "bg-indigo-400";
+  if (mealType === "SNACK") return "bg-rose-400";
+  return "bg-slate-200";
+}
+
 function GroupedMealCard({
   group,
   timezone,
   onDelete,
   onDeleteGroup,
+  onEdit,
+  onMealTypeChange,
 }: {
   group: MealListGroup;
   timezone?: string | null;
   onDelete: (id: string) => void;
   onDeleteGroup: (ids: string[]) => void;
+  onEdit: (id: string, patch: EditPatch) => Promise<void>;
+  onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
 }) {
   const macros = formatMacros({
     protein: group.totalProtein,
@@ -152,15 +164,21 @@ function GroupedMealCard({
     fiber: group.totalFiber,
     sugar: group.totalSugar,
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [typeBusyId, setTypeBusyId] = useState<string | null>(null);
+
+  /** Prefer group photo; fall back to any entry photo so the header is never blank. */
+  const headerImage =
+    group.imagePath ?? group.entries.find((entry) => entry.imagePath)?.imagePath ?? null;
 
   return (
     <article className="overflow-hidden rounded-2xl border border-teal-100 bg-slate-50">
       <div className="flex flex-col gap-4 p-4 md:flex-row">
-        {group.imagePath ? (
+        {headerImage ? (
           <div className="h-28 w-full shrink-0 overflow-hidden rounded-xl bg-white md:h-32 md:w-32">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getImageUrl(group.imagePath)}
+              src={getImageUrl(headerImage)}
               alt={group.entries.map((entry) => decodeHtmlEntities(entry.dishName)).join(", ")}
               className="h-full w-full object-cover"
               loading="lazy"
@@ -195,30 +213,84 @@ function GroupedMealCard({
       </div>
 
       <div className="divide-y divide-slate-100 border-t border-slate-100 bg-white/70">
-        {group.entries.map((entry) => (
-          <div key={entry.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h4 className="font-medium">{decodeHtmlEntities(entry.dishName)}</h4>
-                {entry.wasCorrected ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    исправлено
-                  </span>
-                ) : null}
+        {group.entries.map((entry) => {
+          if (editingId === entry.id) {
+            return (
+              <div key={entry.id} className="p-3">
+                <InlineEdit
+                  entry={entry}
+                  onSave={async (patch) => {
+                    await onEdit(entry.id, patch);
+                    setEditingId(null);
+                  }}
+                  onCancel={() => setEditingId(null)}
+                />
               </div>
-              <MealEntryDetails entry={entry} timezone={timezone} />
-            </div>
+            );
+          }
 
-            <button
-              type="button"
-              className="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-              title="Удалить"
-              onClick={() => onDelete(entry.id)}
-            >
-              <TrashIcon />
-            </button>
-          </div>
-        ))}
+          const thumb = entry.imagePath ?? headerImage;
+
+          return (
+            <div key={entry.id} className="flex items-stretch gap-0">
+              <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
+              <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                {thumb ? (
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getImageUrl(thumb)}
+                      alt={decodeHtmlEntities(entry.dishName)}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                ) : null}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-medium">{decodeHtmlEntities(entry.dishName)}</h4>
+                    {entry.wasCorrected ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                        исправлено
+                      </span>
+                    ) : null}
+                  </div>
+                  <MealEntryDetails entry={entry} timezone={timezone} />
+                  <MealTypeInlineChips
+                    value={entry.mealType}
+                    disabled={typeBusyId === entry.id}
+                    onChange={(mealType) => {
+                      setTypeBusyId(entry.id);
+                      void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
+                    }}
+                  />
+                </div>
+
+                <p className="shrink-0 text-sm font-bold text-slate-800 sm:self-center">{entry.calories}</p>
+                <div className="flex shrink-0 gap-1 sm:self-center">
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    title="Редактировать"
+                    onClick={() => setEditingId(entry.id)}
+                  >
+                    <EditIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    title="Удалить"
+                    onClick={() => onDelete(entry.id)}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </article>
   );
@@ -401,20 +473,7 @@ function SingleMealCard({
 
   return (
     <article className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
-      <span
-        className={`meal-stripe ${
-          entry.mealType === "BREAKFAST"
-            ? "bg-amber-400"
-            : entry.mealType === "LUNCH"
-              ? "bg-teal-500"
-              : entry.mealType === "DINNER"
-                ? "bg-indigo-400"
-                : entry.mealType === "SNACK"
-                  ? "bg-rose-400"
-                  : "bg-slate-200"
-        }`}
-        aria-hidden
-      />
+      <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
       {entry.imagePath ? (
         <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white self-center ml-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -494,6 +553,8 @@ function MealListRow({
         timezone={timezone}
         onDelete={onDelete}
         onDeleteGroup={onDeleteGroup}
+        onEdit={onEdit}
+        onMealTypeChange={onMealTypeChange}
       />
     );
   }
