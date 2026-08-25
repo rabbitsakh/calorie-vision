@@ -27,6 +27,7 @@ import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { ShoppingListPanel } from "@/components/ShoppingListPanel";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import {
@@ -130,6 +131,8 @@ export default function RationPage() {
             totalCalories={totalCalories}
             onSaved={bump}
           />
+
+          <ShoppingListPanel selectedDate={date} />
 
           <WaterTracker selectedDate={date} onChanged={bump} />
 
