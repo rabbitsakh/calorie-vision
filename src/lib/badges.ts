@@ -6,6 +6,20 @@ export type BadgeDef = {
   description: string;
 };
 
+export type BadgeStatsSnapshot = {
+  streak: number;
+  mealCount: number;
+  waterStreak: number;
+  onTargetDays: number;
+};
+
+export type NextBadgeHint = BadgeDef & {
+  current: number;
+  target: number;
+  /** 0–1 progress toward unlock. */
+  ratio: number;
+};
+
 export const BADGE_DEFS: BadgeDef[] = [
   {
     key: "streak_7",
@@ -41,4 +55,53 @@ export const BADGE_DEFS: BadgeDef[] = [
 
 export function badgeDef(key: string): BadgeDef | undefined {
   return BADGE_DEFS.find((b) => b.key === key);
+}
+
+function progressForBadge(
+  key: string,
+  stats: BadgeStatsSnapshot,
+): { current: number; target: number } | null {
+  switch (key) {
+    case "first_log":
+      return { current: Math.min(stats.mealCount, 1), target: 1 };
+    case "streak_7":
+      return { current: Math.min(stats.streak, 7), target: 7 };
+    case "streak_30":
+      return { current: Math.min(stats.streak, 30), target: 30 };
+    case "meals_100":
+      return { current: Math.min(stats.mealCount, 100), target: 100 };
+    case "water_7":
+      return { current: Math.min(stats.waterStreak, 7), target: 7 };
+    case "week_on_target":
+      return { current: Math.min(stats.onTargetDays, 5), target: 5 };
+    default:
+      return null;
+  }
+}
+
+/** Closest locked badge — prefer highest progress ratio, then nearest remaining steps. */
+export function nextBadgeHint(
+  unlockedKeys: Iterable<string>,
+  stats: BadgeStatsSnapshot,
+): NextBadgeHint | null {
+  const earned = new Set(unlockedKeys);
+  let best: NextBadgeHint | null = null;
+
+  for (const def of BADGE_DEFS) {
+    if (earned.has(def.key)) continue;
+    const progress = progressForBadge(def.key, stats);
+    if (!progress) continue;
+    const ratio = progress.target > 0 ? progress.current / progress.target : 0;
+    const candidate: NextBadgeHint = { ...def, ...progress, ratio };
+    if (
+      !best ||
+      candidate.ratio > best.ratio ||
+      (candidate.ratio === best.ratio &&
+        candidate.target - candidate.current < best.target - best.current)
+    ) {
+      best = candidate;
+    }
+  }
+
+  return best;
 }

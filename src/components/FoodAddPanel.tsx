@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
+import {
+  clearPendingConfirmDraft,
+  countFailedSaves,
+  getPendingConfirmDraft,
+  listFailedSaves,
+  removeMealDraft,
+  upsertPendingConfirmDraft,
+} from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { withBasePath } from "@/lib/paths";
@@ -55,6 +63,9 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
+  const [draftBanner, setDraftBanner] = useState<RecognitionResponse | null>(null);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [flushing, setFlushing] = useState(false);
   const [textQuery, setTextQuery] = useState("");
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -66,6 +77,47 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
   const photoAbortRef = useRef<PhotoUploaderHandle>(null);
   const speechRef = useRef<SpeechRecognitionLike | null>(null);
 
+  const refreshQueueCount = useCallback(() => {
+    setQueuedCount(countFailedSaves());
+  }, []);
+
+  const openPending = useCallback((result: RecognitionResponse) => {
+    setPendingResult(result);
+    setDraftBanner(null);
+    upsertPendingConfirmDraft(selectedDate, result);
+  }, [selectedDate]);
+
+  const flushFailedSaves = useCallback(async () => {
+    const failed = listFailedSaves();
+    if (failed.length === 0) return;
+    setFlushing(true);
+    let savedAny = false;
+    try {
+      for (const item of failed) {
+        try {
+          const response = await fetch(withBasePath("/api/meals"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.body),
+          });
+          if (!response.ok) continue;
+          removeMealDraft(item.id);
+          savedAny = true;
+        } catch {
+          // stay queued
+        }
+      }
+    } finally {
+      setFlushing(false);
+      refreshQueueCount();
+      if (savedAny) {
+        setSavedToast("Офлайн-черновики отправлены");
+        emitMascotReaction("save");
+        onSaved();
+      }
+    }
+  }, [onSaved, refreshQueueCount]);
+
   useEffect(() => {
     setVoiceSupported(isSpeechRecognitionSupported());
     return () => {
@@ -75,9 +127,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
   }, []);
 
   useEffect(() => {
-    if (!savedToast) {
-      return;
-    }
+    if (!savedToast) return;
     const timer = window.setTimeout(() => setSavedToast(null), 4000);
     return () => window.clearTimeout(timer);
   }, [savedToast]);
@@ -91,6 +141,32 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
       onPendingChange?.(false);
     };
   }, [onPendingChange]);
+
+  useEffect(() => {
+    refreshQueueCount();
+    const draft = getPendingConfirmDraft(selectedDate);
+    if (draft && !pendingResult) {
+      setDraftBanner(draft.result);
+    } else {
+      setDraftBanner(null);
+    }
+    void flushFailedSaves();
+    // hydrate on date change only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  useEffect(() => {
+    function onOnline() {
+      void flushFailedSaves();
+    }
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushFailedSaves]);
+
+  useEffect(() => {
+    if (!pendingResult) return;
+    upsertPendingConfirmDraft(selectedDate, pendingResult);
+  }, [pendingResult, selectedDate]);
 
   function stopVoice() {
     speechRef.current?.stop();
@@ -167,7 +243,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
         return;
       }
 
-      setPendingResult(toRecognitionResponse(data.recognition, data.imagePath));
+      openPending(toRecognitionResponse(data.recognition, data.imagePath));
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setError(humanizeClientFetchError(err, "Ошибка поиска"));
@@ -187,9 +263,17 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
         onCancel={() => {
           photoAbortRef.current?.abort();
           lookupAbortRef.current?.abort();
+          clearPendingConfirmDraft(selectedDate);
           setPendingResult(null);
         }}
+        onSaveQueued={() => {
+          clearPendingConfirmDraft(selectedDate);
+          setPendingResult(null);
+          refreshQueueCount();
+          setSavedToast("Сохранение в очереди — отправим при появлении сети");
+        }}
         onSaved={(meta) => {
+          clearPendingConfirmDraft(selectedDate);
           setPendingResult(null);
           setTextQuery("");
           setBarcodeQuery("");
@@ -219,6 +303,52 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
             Сфотографируйте блюдо — или найдите по названию и штрихкоду.
           </p>
         </div>
+
+        {draftBanner ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+            <p className="font-medium">Есть незавершённый черновик</p>
+            <p className="mt-0.5 text-xs text-amber-800">
+              Сохранили на устройстве — можно продолжить проверку и сохранить.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-on-tint text-sm text-amber-900"
+                onClick={() => openPending(draftBanner)}
+              >
+                Продолжить
+              </button>
+              <button
+                type="button"
+                className="btn-quiet text-sm text-amber-800"
+                onClick={() => {
+                  clearPendingConfirmDraft(selectedDate);
+                  setDraftBanner(null);
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {queuedCount > 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+            <p>
+              В очереди офлайн: {queuedCount}{" "}
+              {queuedCount === 1 ? "запись" : "записей"}
+              {flushing ? " — отправляем…" : ""}
+            </p>
+            <button
+              type="button"
+              className="btn-quiet mt-1 text-sm text-teal-800"
+              disabled={flushing}
+              onClick={() => void flushFailedSaves()}
+            >
+              Отправить сейчас
+            </button>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
           {tabs.map((tab) => (
@@ -267,7 +397,7 @@ export function FoodAddPanel({ selectedDate, disabled, onSaved, onPendingChange 
             disabled={disabled}
             compact
             restaurantMode={restaurantMode}
-            onRecognized={(result) => setPendingResult(result)}
+            onRecognized={(result) => openPending(result)}
           />
         ) : null}
 

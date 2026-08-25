@@ -24,6 +24,8 @@ import {
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
+import { enqueueFailedSave } from "@/lib/meal-draft-queue";
+import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
 
 type NutritionFields = {
@@ -57,6 +59,8 @@ type ConfirmationCardProps = {
   selectedDate: string;
   onCancel: () => void;
   onSaved: (meta?: { rememberedCorrection?: boolean }) => void;
+  /** Fired when a save was queued offline after a network/API failure (#40). */
+  onSaveQueued?: () => void;
 };
 
 function SearchIcon() {
@@ -290,6 +294,7 @@ export function ConfirmationCard({
   selectedDate,
   onCancel,
   onSaved,
+  onSaveQueued,
 }: ConfirmationCardProps) {
   const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
@@ -643,12 +648,15 @@ export function ConfirmationCard({
     setSaving(true);
     setError(null);
 
+    let queuedBody: SaveMealInput | { entries: SaveMealInput[] } | null = null;
+
     try {
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
       const payloads = await Promise.all(
         dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
       );
       const rememberedCorrection = payloads.some((payload) => payload.wasCorrected);
+      queuedBody = dishes.length > 1 ? { entries: payloads } : payloads[0]!;
 
       if (dishes.length > 1) {
         const response = await fetch(withBasePath("/api/meals"), {
@@ -678,7 +686,17 @@ export function ConfirmationCard({
       trackFirstMealSaveGoal();
       onSaved({ rememberedCorrection });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось сохранить");
+      if (queuedBody) {
+        enqueueFailedSave(selectedDate, queuedBody);
+        onSaveQueued?.();
+        setError(
+          err instanceof Error
+            ? `${err.message}. Черновик сохранён на устройстве — отправим, когда сеть появится.`
+            : "Не удалось сохранить. Черновик сохранён на устройстве.",
+        );
+      } else {
+        setError(err instanceof Error ? err.message : "Не удалось сохранить");
+      }
     } finally {
       setSaving(false);
     }

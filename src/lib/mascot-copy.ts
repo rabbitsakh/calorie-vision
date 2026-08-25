@@ -14,6 +14,7 @@ export const MASCOT_COPY = {
     body: "Завтрак, обед, вода, сводка калорий, серия и вечерний чек-ин — без давления.",
     enable: "Включить",
     enabling: "Подключаем…",
+    install: "Установить приложение",
     later: "Не сейчас",
   },
   pushIosHint: {
@@ -21,6 +22,7 @@ export const MASCOT_COPY = {
     fallbackBody:
       "Откройте приложение с иконки на Home Screen — из Safari push не приходит.",
     statusHint: "Статус можно проверить в разделе «Профиль».",
+    install: "Как установить",
     dismiss: "Понятно",
   },
 } as const;

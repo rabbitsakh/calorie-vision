@@ -6,18 +6,13 @@ import { localHour, resolvePushTimezone } from "@/lib/push-reminders";
 
 const SEEN_PREFIX = "evening-checkin-";
 
-type Choice = {
-  id: "ok" | "over" | "skip";
-  label: string;
-  mood: number;
-  note: string;
-};
-
-const CHOICES: Choice[] = [
-  { id: "ok", label: "Норм", mood: 4, note: "Вечерний чек-in: норм" },
-  { id: "over", label: "Перебрал", mood: 3, note: "Вечерний чек-in: перебрал" },
-  { id: "skip", label: "Не записывал", mood: 2, note: "Вечерний чек-in: не записывал" },
-];
+const MOODS = [
+  { value: 1, emoji: "😞", label: "Плохо" },
+  { value: 2, emoji: "😕", label: "Не очень" },
+  { value: 3, emoji: "😐", label: "Нормально" },
+  { value: 4, emoji: "🙂", label: "Хорошо" },
+  { value: 5, emoji: "😄", label: "Отлично" },
+] as const;
 
 function isSeen(date: string): boolean {
   try {
@@ -35,14 +30,13 @@ function markSeen(date: string): void {
   }
 }
 
-
 type EveningCheckinProps = {
   today: string;
   selectedDate: string;
-  /** Profile IANA timezone; falls back to browser local hour when unset. */
   timezone?: string | null;
 };
 
+/** Short evening check-in: one mood tap by default (#38). */
 export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckinProps) {
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +51,6 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
       setVisible(false);
       return;
     }
-    // Show from 18:00 in the user's profile timezone (browser local as fallback).
     const hour = timezone
       ? localHour(resolvePushTimezone(timezone))
       : new Date().getHours();
@@ -86,7 +79,7 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
     })();
   }, [today, selectedDate, timezone]);
 
-  async function choose(choice: Choice) {
+  async function chooseMood(mood: number) {
     setSaving(true);
     try {
       const existingResp = await fetch(withBasePath(`/api/diary-note?date=${today}`));
@@ -99,12 +92,12 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
       const note =
         existingNote && !existingNote.startsWith("Вечерний чек-in:")
           ? existingNote
-          : choice.note;
+          : "Вечерний чек-in: настроение";
 
       await fetch(withBasePath("/api/diary-note"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: today, note, mood: choice.mood }),
+        body: JSON.stringify({ date: today, note, mood }),
       });
 
       markSeen(today);
@@ -130,23 +123,28 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
         <>
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="font-semibold text-slate-800">Как прошёл день?</p>
-              <p className="text-xs text-slate-500">30 секунд — без оценок и стыда</p>
+              <p className="font-semibold text-slate-800">Как настроение?</p>
+              <p className="text-xs text-slate-500">Один тап — и день закрыт</p>
             </div>
             <button type="button" className="btn-quiet text-xs text-slate-500" onClick={dismiss}>
               Позже
             </button>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {CHOICES.map((choice) => (
+          <div className="mt-3 flex justify-between gap-1">
+            {MOODS.map((mood) => (
               <button
-                key={choice.id}
+                key={mood.value}
                 type="button"
                 disabled={saving}
-                className="rounded-xl border border-slate-200 bg-white px-2 py-3 text-sm font-medium text-slate-800 transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
-                onClick={() => void choose(choice)}
+                title={mood.label}
+                aria-label={mood.label}
+                className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-1 py-2.5 text-xl transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+                onClick={() => void chooseMood(mood.value)}
               >
-                {choice.label}
+                <span aria-hidden>{mood.emoji}</span>
+                <span className="text-[10px] font-medium leading-tight text-slate-500">
+                  {mood.label}
+                </span>
               </button>
             ))}
           </div>
