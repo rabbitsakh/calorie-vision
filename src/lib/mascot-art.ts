@@ -4,7 +4,11 @@
 
 import type { MascotPose } from "@/components/MascotSvg";
 import type { MascotGesture } from "@/lib/mascot-liveness";
-import type { MascotRendererMode, MascotSkinId } from "@/lib/mascot-skin";
+import {
+  MASCOT_ART_FULL_POSES,
+  type MascotRendererMode,
+  type MascotSkinId,
+} from "@/lib/mascot-skin";
 
 export const MASCOT_ART_POSES = [
   "idle",
@@ -17,20 +21,25 @@ export const MASCOT_ART_POSES = [
 
 export type MascotArtPoseId = (typeof MASCOT_ART_POSES)[number] | "pet";
 
+const FULL = MASCOT_ART_FULL_POSES;
+
 /** Seasonal stills that ship under /mascot/art/{skin}/{pose}.webp */
 export const MASCOT_ART_SEASONAL: Record<
   Exclude<MascotSkinId, "default">,
   readonly MascotArtPoseId[]
 > = {
-  winter: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  spring: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  summer: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  autumn: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  newyear: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  halloween: ["idle", "cheer", "pet", "streak", "goal", "empty", "tip"],
-  // Event skins reuse default art stills until dedicated packs ship.
-  feb23: [],
-  march8: [],
+  winter: FULL,
+  spring: FULL,
+  summer: FULL,
+  autumn: FULL,
+  newyear: FULL,
+  halloween: FULL,
+  feb23: FULL,
+  march8: FULL,
+  valentine: FULL,
+  cosmonaut: FULL,
+  victory: FULL,
+  knowledge: FULL,
 };
 
 /** Gesture → art still (pet has a dedicated frame; others keep the current pose). */

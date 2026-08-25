@@ -108,7 +108,7 @@ export default function MascotFuturePreviewPage() {
           </p>
           <h1 className="mt-2 text-2xl font-extrabold text-stone-900">Живые анимации</h1>
           <p className="mx-auto mt-2 max-w-md text-sm text-stone-600">
-            Рисованный soft-3D (art): полный набор поз по сезонам. auto = art на md+.
+            Soft-3D art: сезоны и праздники (23 фев, 8 мар, 14 фев, космос, 9 мая, 1 сен). auto = art на md+.
           </p>
         </header>
 
@@ -229,7 +229,10 @@ export default function MascotFuturePreviewPage() {
         </section>
 
         <section className="mx-auto max-w-lg px-4 py-8">
-          <MascotCompanionCard pose="tip" title="Совет дня">
+          <p className="mb-3 text-center text-sm font-semibold text-stone-700">
+            Совет дня · companion (всегда soft-3D art)
+          </p>
+          <MascotCompanionCard pose="tip" size="md" title="Совет дня">
             Сфотографируйте тарелку целиком — так распознавание точнее.
           </MascotCompanionCard>
         </section>

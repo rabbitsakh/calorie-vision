@@ -11,7 +11,11 @@ export type MascotSkinId =
   | "newyear"
   | "halloween"
   | "feb23"
-  | "march8";
+  | "march8"
+  | "valentine"
+  | "cosmonaut"
+  | "victory"
+  | "knowledge";
 
 export type MascotRendererMode = "auto" | "svg" | "rive" | "art";
 
@@ -30,11 +34,26 @@ export const MASCOT_SKINS: Record<MascotSkinId, MascotSkinMeta> = {
   autumn: { id: "autumn", label: "Осень", rivFile: "autumn.riv" },
   newyear: { id: "newyear", label: "Новый год", rivFile: "newyear.riv" },
   halloween: { id: "halloween", label: "Хэллоуин", rivFile: "halloween.riv" },
+  valentine: { id: "valentine", label: "14 февраля", rivFile: "valentine.riv" },
   feb23: { id: "feb23", label: "23 февраля", rivFile: "feb23.riv" },
   march8: { id: "march8", label: "8 марта", rivFile: "march8.riv" },
+  cosmonaut: { id: "cosmonaut", label: "День космонавтики", rivFile: "cosmonaut.riv" },
+  victory: { id: "victory", label: "9 мая", rivFile: "victory.riv" },
+  knowledge: { id: "knowledge", label: "1 сентября", rivFile: "knowledge.riv" },
 };
 
 export const MASCOT_SKIN_IDS = Object.keys(MASCOT_SKINS) as MascotSkinId[];
+
+/** Full art pose set shipped for seasonal / event packs. */
+export const MASCOT_ART_FULL_POSES = [
+  "idle",
+  "cheer",
+  "pet",
+  "streak",
+  "goal",
+  "empty",
+  "tip",
+] as const;
 
 /** Northern-hemisphere seasons (month 0–11). */
 export function seasonalSkinForMonth(month: number): MascotSkinId {
@@ -50,6 +69,11 @@ export function eventSkinForDate(date: Date): MascotSkinId | null {
   const month = date.getMonth();
   const day = date.getDate();
 
+  // Valentine's Day: 13–15 Feb (before Defender week)
+  if (month === 1 && day >= 13 && day <= 15) {
+    return "valentine";
+  }
+
   // Defender of the Fatherland Day: 20–24 Feb
   if (month === 1 && day >= 20 && day <= 24) {
     return "feb23";
@@ -58,6 +82,21 @@ export function eventSkinForDate(date: Date): MascotSkinId | null {
   // International Women's Day: 1–10 Mar
   if (month === 2 && day >= 1 && day <= 10) {
     return "march8";
+  }
+
+  // Cosmonautics Day: 11–13 Apr
+  if (month === 3 && day >= 11 && day <= 13) {
+    return "cosmonaut";
+  }
+
+  // Victory Day: 7–10 May
+  if (month === 4 && day >= 7 && day <= 10) {
+    return "victory";
+  }
+
+  // Knowledge Day: 31 Aug – 2 Sep
+  if ((month === 7 && day >= 31) || (month === 8 && day <= 2)) {
+    return "knowledge";
   }
 
   // Halloween: 25 Oct – 2 Nov

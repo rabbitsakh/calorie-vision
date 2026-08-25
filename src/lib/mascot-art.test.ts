@@ -22,11 +22,19 @@ describe("mascot-art", () => {
     assert.equal(mascotArtUrl("tip", "summer"), "/mascot/art/summer/tip.webp");
   });
 
-  test("mascotArtUrl falls back to default only for unknown skins", () => {
+  test("mascotArtUrl uses holiday event packs", () => {
+    assert.equal(mascotArtUrl("idle", "feb23"), "/mascot/art/feb23/idle.webp");
+    assert.equal(mascotArtUrl("cheer", "march8"), "/mascot/art/march8/cheer.webp");
+    assert.equal(mascotArtUrl("pet", "valentine"), "/mascot/art/valentine/pet.webp");
+    assert.equal(mascotArtUrl("tip", "cosmonaut"), "/mascot/art/cosmonaut/tip.webp");
+    assert.equal(mascotArtUrl("streak", "victory"), "/mascot/art/victory/streak.webp");
+    assert.equal(mascotArtUrl("goal", "knowledge"), "/mascot/art/knowledge/goal.webp");
+    assert.equal(mascotArtUrl("empty", "feb23"), "/mascot/art/feb23/empty.webp");
+  });
+
+  test("mascotArtUrl falls back to default for default skin", () => {
     assert.equal(mascotArtUrl("streak", "default"), "/mascot/art/streak.webp");
     assert.equal(mascotArtUrl("goal", "default"), "/mascot/art/goal.webp");
-    assert.equal(mascotArtUrl("idle", "feb23"), "/mascot/art/idle.webp");
-    assert.equal(mascotArtUrl("cheer", "march8"), "/mascot/art/cheer.webp");
   });
 
   test("resolveMascotArtPose maps pet/react gestures", () => {

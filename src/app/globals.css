@@ -3076,6 +3076,22 @@ textarea {
   filter: hue-rotate(-28deg) saturate(1.1);
 }
 
+.mascot-skin-valentine .mascot-aura {
+  filter: hue-rotate(-35deg) saturate(1.12);
+}
+
+.mascot-skin-cosmonaut .mascot-aura {
+  filter: hue-rotate(210deg) saturate(0.95) brightness(1.02);
+}
+
+.mascot-skin-victory .mascot-aura {
+  filter: hue-rotate(18deg) saturate(1.08) brightness(1.02);
+}
+
+.mascot-skin-knowledge .mascot-aura {
+  filter: hue-rotate(195deg) saturate(0.98);
+}
+
 .mascot-snowflake-a,
 .mascot-snowflake-b {
   animation: mascot-snow-drift 4.5s ease-in-out infinite;

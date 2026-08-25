@@ -32,7 +32,7 @@ type MascotCompanionCardProps = {
 /** Small in-app companion panel with the mascot (tips, nudges, push hints). */
 export function MascotCompanionCard({
   pose = "tip",
-  size = "sm",
+  size = "md",
   tone = "teal",
   title,
   children,
@@ -48,6 +48,7 @@ export function MascotCompanionCard({
         <LiveMascot
           pose={pose}
           size={size}
+          renderer="art"
           className="mt-0.5 shrink-0"
           idleReel={animate && pose === "idle"}
           interactive={animate && size !== "sm"}
