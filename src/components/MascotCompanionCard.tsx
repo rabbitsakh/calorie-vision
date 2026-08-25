@@ -32,7 +32,7 @@ type MascotCompanionCardProps = {
 /** Small in-app companion panel with the mascot (tips, nudges, push hints). */
 export function MascotCompanionCard({
   pose = "tip",
-  size = "sm",
+  size = "md",
   tone = "teal",
   title,
   children,
