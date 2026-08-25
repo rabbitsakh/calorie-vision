@@ -8,6 +8,7 @@ import {
 import { mascotMotionClass, type MascotSvgProps } from "@/components/MascotSvg";
 import { mascotArtUrl, resolveMascotArtPose } from "@/lib/mascot-art";
 import type { MascotSkinId } from "@/lib/mascot-skin";
+import { withBasePath } from "@/lib/paths";
 
 const SIZE_PX = {
   sm: 44,
@@ -43,7 +44,7 @@ export function MascotArt({
 }: MascotArtProps) {
   const px = SIZE_PX[size];
   const artPose = resolveMascotArtPose(pose, gesture);
-  const src = mascotArtUrl(artPose, skin);
+  const src = withBasePath(mascotArtUrl(artPose, skin));
 
   const motion = animate ? mascotMotionClass(pose) : "";
   const gestureActive = gesture !== "none" && animate;

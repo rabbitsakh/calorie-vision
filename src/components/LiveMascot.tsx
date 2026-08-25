@@ -3,12 +3,16 @@
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
 import { useMascotLiveness } from "@/lib/use-mascot-liveness";
+import type { MascotRendererMode, MascotSkinId } from "@/lib/mascot-skin";
 
 type LiveMascotProps = {
   pose?: MascotPose;
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
   title?: string;
+  skin?: MascotSkinId;
+  /** Force art / svg / rive; omit to use provider / env / auto. */
+  renderer?: MascotRendererMode;
   /** Random idle gestures when pose is idle. Default true for idle. */
   idleReel?: boolean;
   /** Tap to pet. Default true for md+ sizes. */
@@ -24,6 +28,8 @@ export function LiveMascot({
   size = "md",
   className,
   title,
+  skin,
+  renderer,
   idleReel,
   interactive,
   entrance = false,
@@ -41,6 +47,8 @@ export function LiveMascot({
       pose={pose}
       gesture={gesture}
       size={size}
+      skin={skin}
+      renderer={renderer}
       className={className}
       title={title}
       entrance={entrance}

@@ -229,7 +229,10 @@ export default function MascotFuturePreviewPage() {
         </section>
 
         <section className="mx-auto max-w-lg px-4 py-8">
-          <MascotCompanionCard pose="tip" title="Совет дня">
+          <p className="mb-3 text-center text-sm font-semibold text-stone-700">
+            Совет дня · companion (всегда soft-3D art)
+          </p>
+          <MascotCompanionCard pose="tip" size="md" title="Совет дня">
             Сфотографируйте тарелку целиком — так распознавание точнее.
           </MascotCompanionCard>
         </section>

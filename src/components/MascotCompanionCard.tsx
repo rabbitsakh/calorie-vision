@@ -48,6 +48,7 @@ export function MascotCompanionCard({
         <LiveMascot
           pose={pose}
           size={size}
+          renderer="art"
           className="mt-0.5 shrink-0"
           idleReel={animate && pose === "idle"}
           interactive={animate && size !== "sm"}
