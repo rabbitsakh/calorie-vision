@@ -11,6 +11,7 @@ import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
+import { MealPhotoPicker } from "@/components/MealPhotoPicker";
 import {
   addMealTotals,
   appendPendingDelete,
@@ -149,6 +150,7 @@ function GroupedMealCard({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onImageChange,
 }: {
   group: MealListGroup;
   timezone?: string | null;
@@ -156,6 +158,7 @@ function GroupedMealCard({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   const macros = formatMacros({
     protein: group.totalProtein,
@@ -166,6 +169,7 @@ function GroupedMealCard({
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [typeBusyId, setTypeBusyId] = useState<string | null>(null);
+  const [photoId, setPhotoId] = useState<string | null>(null);
 
   /** Prefer group photo; fall back to any entry photo so the header is never blank. */
   const headerImage =
@@ -229,15 +233,34 @@ function GroupedMealCard({
             );
           }
 
+          if (photoId === entry.id) {
+            return (
+              <div key={entry.id} className="p-3">
+                <MealPhotoPicker
+                  mealId={entry.id}
+                  dishName={decodeHtmlEntities(entry.dishName)}
+                  imagePath={entry.imagePath}
+                  onApplied={(imagePath) => onImageChange(entry.id, imagePath)}
+                  onClose={() => setPhotoId(null)}
+                />
+              </div>
+            );
+          }
+
           const thumb = entry.imagePath ?? headerImage;
 
           return (
             <div key={entry.id} className="flex items-stretch gap-0">
               <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
               <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                {thumb ? (
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                <button
+                  type="button"
+                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white"
+                  title="Сменить фото"
+                  onClick={() => setPhotoId(entry.id)}
+                >
+                  {thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={getImageUrl(thumb)}
                       alt={decodeHtmlEntities(entry.dishName)}
@@ -245,8 +268,13 @@ function GroupedMealCard({
                       loading="lazy"
                       decoding="async"
                     />
-                  </div>
-                ) : null}
+                  ) : (
+                    <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-slate-400">
+                      <PhotoSearchIcon />
+                      <span className="text-[9px] font-medium">фото</span>
+                    </span>
+                  )}
+                </button>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -270,6 +298,14 @@ function GroupedMealCard({
 
                 <p className="shrink-0 text-sm font-bold text-slate-800 sm:self-center">{entry.calories}</p>
                 <div className="flex shrink-0 gap-1 sm:self-center">
+                  <button
+                    type="button"
+                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    title="Найти фото в интернете"
+                    onClick={() => setPhotoId(entry.id)}
+                  >
+                    <PhotoSearchIcon />
+                  </button>
                   <button
                     type="button"
                     className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -301,6 +337,16 @@ function EditIcon() {
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" strokeLinecap="round" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PhotoSearchIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="8.5" cy="10.5" r="1.5" />
+      <path d="M21 16l-5-5-8 8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -451,15 +497,18 @@ function SingleMealCard({
   onDelete,
   onEdit,
   onMealTypeChange,
+  onImageChange,
 }: {
   entry: MealEntry;
   timezone?: string | null;
   onDelete: (id: string) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [typeBusy, setTypeBusy] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   if (editing) {
     return (
@@ -471,12 +520,29 @@ function SingleMealCard({
     );
   }
 
+  if (photoOpen) {
+    return (
+      <MealPhotoPicker
+        mealId={entry.id}
+        dishName={decodeHtmlEntities(entry.dishName)}
+        imagePath={entry.imagePath}
+        onApplied={(imagePath) => onImageChange(entry.id, imagePath)}
+        onClose={() => setPhotoOpen(false)}
+      />
+    );
+  }
+
   return (
     <article className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
       <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
-      {entry.imagePath ? (
-        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-white self-center ml-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      <button
+        type="button"
+        className="relative h-20 w-20 shrink-0 self-center overflow-hidden rounded-xl bg-white"
+        title="Сменить фото"
+        onClick={() => setPhotoOpen(true)}
+      >
+        {entry.imagePath ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={getImageUrl(entry.imagePath)}
             alt={decodeHtmlEntities(entry.dishName)}
@@ -484,8 +550,13 @@ function SingleMealCard({
             loading="lazy"
             decoding="async"
           />
-        </div>
-      ) : null}
+        ) : (
+          <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-slate-400">
+            <PhotoSearchIcon />
+            <span className="text-[10px] font-medium">фото</span>
+          </span>
+        )}
+      </button>
 
       <div className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-3">
         <div className="min-w-0 flex-1">
@@ -509,6 +580,14 @@ function SingleMealCard({
         </div>
         <p className="shrink-0 text-sm font-bold text-slate-800">{entry.calories}</p>
         <div className="flex shrink-0 gap-1">
+          <button
+            type="button"
+            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            title="Найти фото в интернете"
+            onClick={() => setPhotoOpen(true)}
+          >
+            <PhotoSearchIcon />
+          </button>
           <button
             type="button"
             className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
@@ -538,6 +617,7 @@ function MealListRow({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onImageChange,
 }: {
   item: MealListItem;
   timezone?: string | null;
@@ -545,6 +625,7 @@ function MealListRow({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   if (item.kind === "group") {
     return (
@@ -555,6 +636,7 @@ function MealListRow({
         onDeleteGroup={onDeleteGroup}
         onEdit={onEdit}
         onMealTypeChange={onMealTypeChange}
+        onImageChange={onImageChange}
       />
     );
   }
@@ -566,6 +648,7 @@ function MealListRow({
       onDelete={onDelete}
       onEdit={onEdit}
       onMealTypeChange={onMealTypeChange}
+      onImageChange={onImageChange}
     />
   );
 }
@@ -780,6 +863,18 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       return;
     }
     await loadEntries(true);
+    onChanged?.();
+  }
+
+  function handleImageChange(id: string, imagePath: string | null) {
+    setEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, imagePath } : entry)),
+    );
+    if (imagePath) {
+      attemptedImageMealIds.current.add(id);
+    } else {
+      attemptedImageMealIds.current.delete(id);
+    }
     onChanged?.();
   }
 
@@ -1035,6 +1130,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 }}
                 onEdit={handleEdit}
                 onMealTypeChange={handleMealTypeChange}
+                onImageChange={handleImageChange}
                 onDeleteGroup={(ids) => {
                   const label = item.kind === "group"
                     ? `${item.entries.length} блюда с одного фото`
