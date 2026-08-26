@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
@@ -40,6 +41,7 @@ export function WaterTracker({
   selectedDate: string;
   onChanged?: () => void;
 }) {
+  const day = useOptionalRationDay();
   const [totalMl, setTotalMl] = useState(0);
   const [target, setTarget] = useState(WATER_DAILY_TARGET_ML);
   const [loading, setLoading] = useState(false);
@@ -64,8 +66,20 @@ export function WaterTracker({
   }, [selectedDate]);
 
   useEffect(() => {
-    if (!hidden) void load();
-  }, [load, hidden]);
+    if (hidden) return;
+
+    if (day?.data?.date === selectedDate && day.data.water) {
+      setTotalMl(day.data.water.totalMl);
+      setTarget(day.data.water.target || WATER_DAILY_TARGET_ML);
+      return;
+    }
+
+    if (day && day.date === selectedDate) {
+      return;
+    }
+
+    void load();
+  }, [load, hidden, day, selectedDate]);
 
   function handleHide() {
     hidePanelToday(PANEL_ID, selectedDate);

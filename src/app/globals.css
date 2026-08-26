@@ -512,6 +512,41 @@ textarea {
   color: #0f172a;
 }
 
+/* App splash (session / day bootstrap) */
+.app-splash-mascot {
+  animation: app-splash-float 2.8s ease-in-out infinite;
+}
+
+.app-splash-bar-fill {
+  animation: app-splash-bar 1.1s ease-in-out infinite;
+}
+
+@keyframes app-splash-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes app-splash-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-splash-mascot,
+  .app-splash-bar-fill {
+    animation: none;
+  }
+}
+
 .confirm-hero {
   overflow: hidden;
   position: relative;

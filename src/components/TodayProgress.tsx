@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { buildGoalAwareCalorieTip } from "@/lib/diet";
 import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
 import { withBasePath } from "@/lib/paths";
@@ -102,10 +103,48 @@ function BigMetric({
   );
 }
 
+function progressFromPayload(
+  selectedDate: string,
+  meals: {
+    totalCalories: number;
+    totalProtein: number;
+    goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
+    target: { calories: number; protein: number } | null;
+  },
+  water: { totalMl: number; target: number },
+): ProgressData {
+  const holiday = isHolidayBufferOn(selectedDate);
+  const baseCal = meals.target?.calories ?? null;
+  return {
+    calories: meals.totalCalories,
+    calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
+    protein: meals.totalProtein,
+    proteinTarget: meals.target?.protein ?? null,
+    waterMl: water.totalMl,
+    waterTarget: water.target || WATER_DAILY_TARGET_ML,
+    goal: meals.goal ?? null,
+  };
+}
+
 export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) {
+  const day = useOptionalRationDay();
   const [data, setData] = useState<ProgressData | null>(null);
 
   useEffect(() => {
+    if (day?.data?.date === selectedDate && day.data.meals) {
+      setData(
+        progressFromPayload(selectedDate, day.data.meals, day.data.water ?? {
+          totalMl: 0,
+          target: WATER_DAILY_TARGET_ML,
+        }),
+      );
+      return;
+    }
+
+    if (day && day.date === selectedDate) {
+      return;
+    }
+
     void (async () => {
       try {
         const [mealsResp, waterResp] = await Promise.all([
@@ -123,22 +162,12 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           ? ((await waterResp.json()) as { totalMl: number; target: number })
           : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
 
-        const holiday = isHolidayBufferOn(selectedDate);
-        const baseCal = meals.target?.calories ?? null;
-        setData({
-          calories: meals.totalCalories,
-          calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
-          protein: meals.totalProtein,
-          proteinTarget: meals.target?.protein ?? null,
-          waterMl: water.totalMl,
-          waterTarget: water.target || WATER_DAILY_TARGET_ML,
-          goal: meals.goal ?? null,
-        });
+        setData(progressFromPayload(selectedDate, meals, water));
       } catch {
         // non-critical
       }
     })();
-  }, [selectedDate, refreshKey]);
+  }, [selectedDate, refreshKey, day]);
 
   if (!data || (data.calories === 0 && !data.calorieTarget && data.waterMl === 0)) {
     return null;

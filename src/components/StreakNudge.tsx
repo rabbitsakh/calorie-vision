@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
@@ -31,6 +32,7 @@ export function StreakNudge({
   onAddFood,
   quietHide = false,
 }: StreakNudgeProps) {
+  const day = useOptionalRationDay();
   const [data, setData] = useState<StreakNudgeData | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -44,6 +46,19 @@ export function StreakNudge({
       return;
     }
 
+    if (day?.data?.streak && day.today === today) {
+      setData({
+        streakBeforeToday: day.data.streak.streakBeforeToday,
+        streakAtRisk: day.data.streak.streakAtRisk,
+        loggedToday: day.data.streak.loggedToday,
+      });
+      return;
+    }
+
+    if (day && day.today === today && day.loading) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(withBasePath(`/api/streak?today=${today}`));
@@ -54,7 +69,7 @@ export function StreakNudge({
         // non-critical
       }
     })();
-  }, [selectedDate, today, refreshKey]);
+  }, [selectedDate, today, refreshKey, day]);
 
   if (!data || selectedDate !== today || data.loggedToday || !data.streakAtRisk) {
     return null;

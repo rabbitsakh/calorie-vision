@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import {
   mondayOfWeek,
   shiftDateKey,
@@ -27,6 +28,7 @@ export function WeeklyPlan({
   onSelectDate,
   compact = false,
 }: WeeklyPlanProps) {
+  const day = useOptionalRationDay();
   const [days, setDays] = useState<DayRow[]>([]);
   const [target, setTarget] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,23 @@ export function WeeklyPlan({
     [weekStart],
   );
   const weekEnd = weekDates[6]!;
+
+  const applyWeek = useCallback(
+    (weekDays: DayRow[], calorieTarget: number | null | undefined) => {
+      const byDate = new Map(weekDays.map((d) => [d.date, d.calories]));
+      setDays(
+        weekDates.map((date) => ({
+          date,
+          calories: byDate.get(date) ?? 0,
+        })),
+      );
+      setTarget(
+        typeof calorieTarget === "number" && calorieTarget > 0 ? calorieTarget : null,
+      );
+      setLoading(false);
+    },
+    [weekDates],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,28 +69,32 @@ export function WeeklyPlan({
         days?: DayRow[];
         calorieTarget?: number | null;
       };
-      const byDate = new Map((data.days ?? []).map((d) => [d.date, d.calories]));
-      setDays(
-        weekDates.map((date) => ({
-          date,
-          calories: byDate.get(date) ?? 0,
-        })),
-      );
-      setTarget(
-        typeof data.calorieTarget === "number" && data.calorieTarget > 0
-          ? data.calorieTarget
-          : null,
-      );
+      applyWeek(data.days ?? [], data.calorieTarget);
     } catch {
       // non-critical
     } finally {
       setLoading(false);
     }
-  }, [weekEnd, weekDates, refreshKey]);
+  }, [weekEnd, applyWeek, refreshKey]);
 
   useEffect(() => {
+    const weekPayload = day?.data?.week;
+    if (weekPayload?.days?.length) {
+      const byDate = new Map(weekPayload.days.map((d) => [d.date, d.calories]));
+      const overlaps = weekDates.some((date) => byDate.has(date));
+      if (overlaps) {
+        applyWeek(weekPayload.days, weekPayload.calorieTarget);
+        return;
+      }
+    }
+
+    if (day && day.date === selectedDate && day.loading) {
+      setLoading(true);
+      return;
+    }
+
     void load();
-  }, [load]);
+  }, [applyWeek, day, load, selectedDate, weekDates, refreshKey]);
 
   const holidayOn = isHolidayBufferOn(selectedDate);
   const effectiveTarget =
@@ -96,34 +119,34 @@ export function WeeklyPlan({
         </p>
       ) : (
         <div className={`grid grid-cols-7 gap-1.5 ${compact ? "pt-1" : "px-3 pb-4 md:px-4"}`}>
-          {days.map((day) => {
+          {days.map((dayRow) => {
             const pct =
               effectiveTarget && effectiveTarget > 0
-                ? Math.min(130, Math.round((day.calories / effectiveTarget) * 100))
-                : day.calories > 0
+                ? Math.min(130, Math.round((dayRow.calories / effectiveTarget) * 100))
+                : dayRow.calories > 0
                   ? 100
                   : 0;
-            const selected = day.date === selectedDate;
-            const over = effectiveTarget != null && day.calories > effectiveTarget * 1.05;
+            const selected = dayRow.date === selectedDate;
+            const over = effectiveTarget != null && dayRow.calories > effectiveTarget * 1.05;
             const barH = Math.max(4, Math.round((Math.min(100, pct) / 100) * 40));
 
             return (
               <button
-                key={day.date}
+                key={dayRow.date}
                 type="button"
                 className={`flex flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 transition-colors ${
                   selected ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-slate-50"
                 }`}
-                onClick={() => onSelectDate?.(day.date)}
-                aria-label={`${weekdayShort(day.date)} ${day.date}: ${day.calories} ккал`}
+                onClick={() => onSelectDate?.(dayRow.date)}
+                aria-label={`${weekdayShort(dayRow.date)} ${dayRow.date}: ${dayRow.calories} ккал`}
               >
                 <span className="text-[0.65rem] font-semibold uppercase text-slate-500">
-                  {weekdayShort(day.date)}
+                  {weekdayShort(dayRow.date)}
                 </span>
                 <div className="flex h-10 w-full items-end justify-center">
                   <div
                     className={`w-3 rounded-t-sm ${
-                      over ? "bg-rose-400" : day.calories > 0 ? "bg-teal-500" : "bg-slate-200"
+                      over ? "bg-rose-400" : dayRow.calories > 0 ? "bg-teal-500" : "bg-slate-200"
                     }`}
                     style={{ height: `${barH}px` }}
                   />
@@ -133,7 +156,7 @@ export function WeeklyPlan({
                     over ? "text-rose-600" : "text-slate-700"
                   }`}
                 >
-                  {day.calories > 0 ? day.calories : "—"}
+                  {dayRow.calories > 0 ? dayRow.calories : "—"}
                 </span>
               </button>
             );
