@@ -52,26 +52,14 @@ function TrashIcon() {
   );
 }
 
-/** Inline undo — own 4s timer per slot; callback refs avoid resetting the countdown. */
+/** Inline undo row — expiry handled by DailyLog parent timer (survives re-renders). */
 function UndoToast({
   message,
   onUndo,
-  onExpired,
 }: {
   message: string;
   onUndo: () => void;
-  onExpired: () => void;
 }) {
-  const onExpiredRef = useRef(onExpired);
-  const onUndoRef = useRef(onUndo);
-  onExpiredRef.current = onExpired;
-  onUndoRef.current = onUndo;
-
-  useEffect(() => {
-    const timer = setTimeout(() => onExpiredRef.current(), 4000);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
       <span className="min-w-0">
@@ -81,13 +69,15 @@ function UndoToast({
       <button
         type="button"
         className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30"
-        onClick={() => onUndoRef.current()}
+        onClick={onUndo}
       >
         Отменить
       </button>
     </div>
   );
 }
+
+const UNDO_DELETE_MS = 4000;
 
 type DailyLogProps = {
   selectedDate: string;
@@ -676,6 +666,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   });
   const attemptedImageMealIds = useRef(new Set<string>());
   const tombstoneMealIdsRef = useRef(new Set<string>());
+  const confirmingDeleteKeysRef = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
   const dayRefresh = day?.refresh;
@@ -755,17 +746,26 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   const hiddenMealIds = useMemo(
     () => collectHiddenMealIds(pendingDeletes, tombstoneMealIdsRef.current),
-    [pendingDeletes, entries],
+    [pendingDeletes],
   );
 
   useEffect(() => {
     attemptedImageMealIds.current.clear();
     tombstoneMealIdsRef.current.clear();
+    confirmingDeleteKeysRef.current.clear();
     setPendingDeletes([]);
   }, [selectedDate]);
 
   useEffect(() => {
     if (dayData?.date === selectedDate && dayData.meals) {
+      // During undo window keep optimistic local entries — provider cache may be stale.
+      if (pendingDeletes.length > 0) {
+        setStreakDays(dayData.streak?.streak ?? 0);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
       pruneConfirmedTombstones(tombstoneMealIdsRef.current, dayData.meals.entries);
       const meals =
         hiddenMealIds.size > 0
@@ -796,6 +796,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     hasProvider,
     hiddenMealIds,
     loadEntries,
+    pendingDeletes.length,
     selectedDate,
   ]);
 
@@ -987,7 +988,11 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   async function performDelete(ids: string[]) {
     await deleteMealsOnServer(ids);
-    await reloadDayAfterMutation(true);
+    if (dayRefresh) {
+      void dayRefresh(true);
+    } else {
+      void loadEntries(true);
+    }
     onChanged?.();
   }
 
@@ -1010,6 +1015,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       label,
       snapshot,
       afterKey,
+      expiresAt: Date.now() + UNDO_DELETE_MS,
     };
 
     setEntries((prev) => prev.filter((entry) => !ids.includes(entry.id)));
@@ -1024,24 +1030,38 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }
 
   async function confirmDelete(slotKey: string) {
+    if (confirmingDeleteKeysRef.current.has(slotKey)) return;
+    confirmingDeleteKeysRef.current.add(slotKey);
+
     let slot: PendingDeleteSlot | undefined;
     setPendingDeletes((prev) => {
       slot = prev.find((item) => item.key === slotKey);
-      return prev;
+      return prev.filter((item) => item.key !== slotKey);
     });
-    if (!slot) return;
+    if (!slot) {
+      confirmingDeleteKeysRef.current.delete(slotKey);
+      return;
+    }
 
     try {
       await performDelete(slot.ids);
     } catch {
-      undoDelete(slotKey);
-      return;
+      for (const id of slot.ids) {
+        tombstoneMealIdsRef.current.delete(id);
+      }
+      setEntries((prev) => mergeEntriesAfterUndo(prev, slot!.snapshot));
+      setTotals((prev) => {
+        const next = addMealTotals(prev, slot!.snapshot);
+        onTotalsChange?.(next.calories);
+        return next;
+      });
     } finally {
-      setPendingDeletes((prev) => prev.filter((item) => item.key !== slotKey));
+      confirmingDeleteKeysRef.current.delete(slotKey);
     }
   }
 
   function undoDelete(slotKey: string) {
+    confirmingDeleteKeysRef.current.delete(slotKey);
     let slot: PendingDeleteSlot | undefined;
     setPendingDeletes((prev) => {
       slot = prev.find((item) => item.key === slotKey);
@@ -1090,6 +1110,28 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     () => buildDiaryDisplayRows(listItems, pendingDeletes),
     [listItems, pendingDeletes],
   );
+
+  const confirmDeleteRef = useRef(confirmDelete);
+  confirmDeleteRef.current = confirmDelete;
+  const pendingDeletesRef = useRef(pendingDeletes);
+  pendingDeletesRef.current = pendingDeletes;
+
+  useEffect(() => {
+    if (pendingDeletes.length === 0) return;
+
+    const tick = () => {
+      const now = Date.now();
+      for (const slot of pendingDeletesRef.current) {
+        if (slot.expiresAt <= now) {
+          void confirmDeleteRef.current(slot.key);
+        }
+      }
+    };
+
+    tick();
+    const intervalId = window.setInterval(tick, 300);
+    return () => window.clearInterval(intervalId);
+  }, [pendingDeletes.length]);
 
   return (
     <section className={`card ${compact ? "p-3 md:p-4" : "p-6"}`}>
@@ -1232,7 +1274,6 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                   key={slotKey}
                   message={row.pending.label}
                   onUndo={() => undoDelete(slotKey)}
-                  onExpired={() => void confirmDelete(slotKey)}
                 />
               );
             }
