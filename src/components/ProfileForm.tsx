@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import {
@@ -22,6 +23,7 @@ import {
   vkShareUrl,
 } from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
+import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 
 type AccountResponse = {
   firstName: string;
@@ -91,6 +93,9 @@ export function ProfileForm() {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTyped, setDeleteTyped] = useState("");
+  const [exportCsvChecked, setExportCsvChecked] = useState(false);
+  const [exportPdfChecked, setExportPdfChecked] = useState(false);
+  const [deleteRiskChecked, setDeleteRiskChecked] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -251,6 +256,10 @@ export function ProfileForm() {
   }
 
   async function handleDeleteAccount() {
+    if (!exportCsvChecked || !exportPdfChecked || !deleteRiskChecked) {
+      setError("Отметьте все пункты чеклиста: сначала экспортируйте данные");
+      return;
+    }
     if (deleteTyped.trim() !== ACCOUNT_DELETE_CONFIRM) {
       setError(`Введите ${ACCOUNT_DELETE_CONFIRM}, чтобы подтвердить удаление`);
       return;
@@ -277,6 +286,10 @@ export function ProfileForm() {
       setDeleting(false);
     }
   }
+
+  const deleteChecklistReady = exportCsvChecked && exportPdfChecked && deleteRiskChecked;
+  const canConfirmDelete =
+    deleteChecklistReady && deleteTyped.trim() === ACCOUNT_DELETE_CONFIRM && !deleting;
 
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
 
@@ -477,6 +490,9 @@ export function ProfileForm() {
               />
               <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
             </div>
+            <div className="sm:col-span-2">
+              <MedicalDisclaimerNote />
+            </div>
             <div className="field sm:col-span-2">
               <label htmlFor="timezone">Часовой пояс</label>
               <select
@@ -506,11 +522,18 @@ export function ProfileForm() {
               {saving ? "Сохраняем..." : "Сохранить профиль"}
             </button>
             <a
-              href="/api/export"
+              href={withBasePath("/api/export?format=csv")}
               download="calorie-vision-export.csv"
               className="btn btn-secondary"
             >
-              📥 Скачать CSV
+              Скачать CSV
+            </a>
+            <a
+              href={withBasePath("/api/export?format=pdf")}
+              download="calorie-vision-export.pdf"
+              className="btn btn-secondary"
+            >
+              Скачать PDF
             </a>
             <a href={withBasePath("/#install")} className="btn btn-secondary">
               Установить приложение
@@ -558,6 +581,7 @@ export function ProfileForm() {
           <h3 className="font-display text-base font-semibold text-red-700">Удаление аккаунта</h3>
           <p className="mt-1 text-sm text-slate-500">
             Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
+            Сначала скачайте полную копию данных (CSV и PDF).
           </p>
           {!deleteConfirmOpen ? (
             <button
@@ -566,6 +590,9 @@ export function ProfileForm() {
               onClick={() => {
                 setDeleteConfirmOpen(true);
                 setDeleteTyped("");
+                setExportCsvChecked(false);
+                setExportPdfChecked(false);
+                setDeleteRiskChecked(false);
                 setError(null);
               }}
             >
@@ -573,9 +600,71 @@ export function ProfileForm() {
             </button>
           ) : (
             <div className="mt-3 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-semibold text-red-900">Чеклист перед удалением</p>
+              <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm text-red-900">
+                <li>
+                  <div className="flex flex-col gap-2">
+                    <span>Скачайте дневник в CSV</span>
+                    <a
+                      href={withBasePath("/api/export?format=csv")}
+                      download="calorie-vision-export.csv"
+                      className="btn btn-secondary self-start text-sm"
+                    >
+                      Скачать CSV
+                    </a>
+                    <label className="flex items-start gap-2 text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={exportCsvChecked}
+                        onChange={(event) => setExportCsvChecked(event.target.checked)}
+                        disabled={deleting}
+                      />
+                      <span>Я скачал(а) CSV-экспорт</span>
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <div className="flex flex-col gap-2">
+                    <span>Скачайте дневник в PDF</span>
+                    <a
+                      href={withBasePath("/api/export?format=pdf")}
+                      download="calorie-vision-export.pdf"
+                      className="btn btn-secondary self-start text-sm"
+                    >
+                      Скачать PDF
+                    </a>
+                    <label className="flex items-start gap-2 text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={exportPdfChecked}
+                        onChange={(event) => setExportPdfChecked(event.target.checked)}
+                        disabled={deleting}
+                      />
+                      <span>Я скачал(а) PDF-экспорт</span>
+                    </label>
+                  </div>
+                </li>
+                <li>
+                  <label className="flex items-start gap-2 text-slate-700">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={deleteRiskChecked}
+                      onChange={(event) => setDeleteRiskChecked(event.target.checked)}
+                      disabled={deleting}
+                    />
+                    <span>
+                      Понимаю: после удаления данные нельзя восстановить через поддержку
+                    </span>
+                  </label>
+                </li>
+              </ol>
+
               <p className="text-sm text-red-800">
-                Введите <span className="font-mono font-semibold">{ACCOUNT_DELETE_CONFIRM}</span> для
-                подтверждения:
+                Затем введите <span className="font-mono font-semibold">{ACCOUNT_DELETE_CONFIRM}</span>{" "}
+                для подтверждения:
               </p>
               <input
                 value={deleteTyped}
@@ -583,13 +672,13 @@ export function ProfileForm() {
                 autoComplete="off"
                 placeholder={ACCOUNT_DELETE_CONFIRM}
                 className="input"
-                disabled={deleting}
+                disabled={deleting || !deleteChecklistReady}
               />
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   className="btn btn-danger"
-                  disabled={deleting || deleteTyped.trim() !== ACCOUNT_DELETE_CONFIRM}
+                  disabled={!canConfirmDelete}
                   onClick={() => void handleDeleteAccount()}
                 >
                   {deleting ? "Удаляем..." : "Удалить навсегда"}
@@ -601,6 +690,9 @@ export function ProfileForm() {
                   onClick={() => {
                     setDeleteConfirmOpen(false);
                     setDeleteTyped("");
+                    setExportCsvChecked(false);
+                    setExportPdfChecked(false);
+                    setDeleteRiskChecked(false);
                   }}
                 >
                   Отмена
@@ -609,6 +701,31 @@ export function ProfileForm() {
             </div>
           )}
         </div>
+      ) : null}
+
+      {!loading ? (
+        <footer className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-500">
+          <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Правовая информация">
+            <Link
+              href={withBasePath("/privacy")}
+              className="text-teal-800 underline-offset-2 hover:underline"
+            >
+              Конфиденциальность
+            </Link>
+            <Link
+              href={withBasePath("/terms")}
+              className="text-teal-800 underline-offset-2 hover:underline"
+            >
+              Условия
+            </Link>
+            <Link
+              href={withBasePath("/disclaimer")}
+              className="text-teal-800 underline-offset-2 hover:underline"
+            >
+              Дисклеймер
+            </Link>
+          </nav>
+        </footer>
       ) : null}
     </section>
   );

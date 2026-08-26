@@ -366,7 +366,8 @@ export function LandingPage() {
               <dt>Где хранятся мои данные?</dt>
               <dd>
                 Дневник привязан к аккаунту и хранится на сервере Calorie Vision. После входа записи
-                доступны с любого устройства.
+                доступны с любого устройства. Подробнее — в{" "}
+                <Link href="/privacy">Политике конфиденциальности</Link>.
               </dd>
             </div>
             <div className="landing-faq-item">
@@ -381,6 +382,19 @@ export function LandingPage() {
       </LandingScrollReveal>
 
       <LandingFooterCta />
+
+      <footer className="landing-legal-footer">
+        <p className="landing-legal-brand">Calorie Vision</p>
+        <nav className="landing-legal-links" aria-label="Правовая информация">
+          <Link href="/privacy">Конфиденциальность</Link>
+          <Link href="/terms">Условия</Link>
+          <Link href="/disclaimer">Дисклеймер</Link>
+        </nav>
+        <p className="landing-legal-copy">
+          Дневник питания по фото ·{" "}
+          <a href="mailto:support@calorievision.ru">support@calorievision.ru</a>
+        </p>
+      </footer>
     </LandingShell>
   );
 }

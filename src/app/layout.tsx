@@ -3,9 +3,10 @@ import { Manrope, Unbounded } from "next/font/google";
 import { Suspense } from "react";
 import { AppVersion } from "@/components/AppVersion";
 import { PageFallback } from "@/components/AppShell";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Providers } from "@/components/Providers";
-import { YandexMetrika } from "@/components/YandexMetrika";
-import { buildMetrikaInitScript, resolveMetrikaId } from "@/lib/yandex-metrika";
+import { YandexMetrikaGate } from "@/components/YandexMetrikaGate";
+import { resolveMetrikaId } from "@/lib/yandex-metrika";
 import "./globals.css";
 
 const body = Manrope({
@@ -54,33 +55,13 @@ export default function RootLayout({
     <html lang="ru" className={`${body.variable} ${display.variable}`}>
       <head>
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        {metrikaId ? (
-          <script
-            id="yandex-metrika"
-            dangerouslySetInnerHTML={{ __html: buildMetrikaInitScript(metrikaId) }}
-          />
-        ) : null}
       </head>
       <body className={body.className}>
         <Providers>
           <Suspense fallback={<PageFallback />}>{children}</Suspense>
         </Providers>
-        {metrikaId ? (
-          <>
-            <Suspense fallback={null}>
-              <YandexMetrika counterId={metrikaId} />
-            </Suspense>
-            <noscript>
-              <div>
-                <img
-                  src={`https://mc.yandex.ru/watch/${metrikaId}`}
-                  style={{ position: "absolute", left: "-9999px" }}
-                  alt=""
-                />
-              </div>
-            </noscript>
-          </>
-        ) : null}
+        {metrikaId ? <YandexMetrikaGate counterId={metrikaId} /> : null}
+        <CookieConsentBanner />
         <AppVersion />
       </body>
     </html>
