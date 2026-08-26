@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 import { buildMoodFoodInsight, detectCalorieCorridorStreak } from "@/lib/stats-insights";
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true, sex: true },
+        select: DIET_PROFILE_SELECT,
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -146,12 +146,8 @@ export async function GET(request: NextRequest) {
         ? Math.round(daysWithMeals.reduce((sum, day) => sum + day.calories, 0) / daysWithMeals.length)
         : 0;
 
-    const resolvedGoal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const resolvedPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-    const resolvedSex = isSex(user?.sex) ? user!.sex : null;
-    const calorieTarget = resolvedGoal && latestWeight
-      ? recommendDiet(latestWeight.weightKg, resolvedGoal, resolvedPace, resolvedSex).calories
-      : null;
+    const calorieTarget =
+      recommendDietForProfile(latestWeight?.weightKg, user)?.calories ?? null;
 
     // Hourly calorie distribution (0–23)
     const hourlyCalories = new Array<number>(24).fill(0);

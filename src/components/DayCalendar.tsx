@@ -69,29 +69,33 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
 
   return (
     <div className="min-w-64">
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
         <button
           type="button"
-          className="btn btn-secondary px-3 py-2 text-sm"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
           disabled={disabled}
+          aria-label="Предыдущий месяц"
           onClick={() => changeMonth(-1)}
         >
-          ←
+          <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+            <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-        <p className="text-sm font-semibold capitalize text-slate-700">
-          {formatMonthTitle(year, monthIndex)}
-        </p>
+        <p className="text-sm font-semibold text-slate-800">{formatMonthTitle(year, monthIndex)}</p>
         <button
           type="button"
-          className="btn btn-secondary px-3 py-2 text-sm"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
           disabled={disabled}
+          aria-label="Следующий месяц"
           onClick={() => changeMonth(1)}
         >
-          →
+          <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25">
+            <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400">
+      <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
         {WEEKDAYS.map((day) => (
           <div key={day} className="py-1">
             {day}
@@ -99,10 +103,10 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {grid.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="h-10" />;
+            return <div key={`empty-${index}`} className="h-9" />;
           }
 
           const isSelected = date === selectedDate;
@@ -115,18 +119,18 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
               type="button"
               disabled={disabled}
               onClick={() => onSelect(date)}
-              className={`relative flex h-10 flex-col items-center justify-center rounded-xl text-sm font-medium ${
+              className={`relative flex h-9 flex-col items-center justify-center rounded-full text-sm font-medium tabular-nums ${
                 isSelected
                   ? "bg-[var(--accent)] text-white"
                   : isToday
-                    ? "bg-teal-50 text-teal-800"
+                    ? "bg-teal-50 text-teal-800 ring-1 ring-inset ring-teal-300/80"
                     : "text-slate-700 hover:bg-slate-100"
               }`}
             >
               {Number(date.slice(-2))}
               {hasData ? (
                 <span
-                  className={`absolute bottom-1 h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : "bg-teal-600"}`}
+                  className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-teal-600"}`}
                 />
               ) : null}
             </button>

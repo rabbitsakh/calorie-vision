@@ -14,6 +14,7 @@ import {
   type ReminderKind,
   type UserReminderContext,
 } from "@/lib/push-reminders";
+import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
@@ -46,7 +47,7 @@ async function loadUserReminderContext(
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { goal: true, goalPace: true, sex: true },
+      select: DIET_PROFILE_SELECT,
     }),
     prisma.weightEntry.findFirst({
       where: { userId },
@@ -72,9 +73,7 @@ async function loadUserReminderContext(
 
   const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const calorieTarget = computeCalorieTarget({
-    goal: user?.goal,
-    goalPace: user?.goalPace,
-    sex: user?.sex,
+    ...user,
     latestWeightKg: latestWeight?.weightKg ?? null,
   });
 

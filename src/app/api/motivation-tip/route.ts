@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
 import { completeChat } from "@/lib/ai/gigachat";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -44,7 +44,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true, goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+      select: { timezone: true, ...DIET_PROFILE_SELECT },
     });
     const today = toDateKeyTz(new Date(), user?.timezone);
     const yesterday = shiftDateKey(today, -1);
@@ -85,12 +85,7 @@ export async function GET() {
 
     const yesterdayCalories = yesterdayMeals.reduce((s, m) => s + m.calories, 0);
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-    const sex = isSex(user?.sex) ? user!.sex : null;
-    const target =
-      goal && weight
-        ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
-        : null;
+    const target = recommendDietForProfile(weight?.weightKg, user);
     const topFood = topFoods[0] ? decodeHtmlEntities(topFoods[0].dishName) : null;
 
     const ctx = {

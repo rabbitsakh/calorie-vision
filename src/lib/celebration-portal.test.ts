@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  closeCelebrationPortal,
   getCelebrationPortalHost,
-  syncCelebrationPortalToVisualViewport,
+  openCelebrationPortal,
 } from "./celebration-portal.ts";
 
 test("getCelebrationPortalHost returns null without document", () => {
@@ -12,7 +13,7 @@ test("getCelebrationPortalHost returns null without document", () => {
   }
 });
 
-test("getCelebrationPortalHost creates a fixed host on documentElement", () => {
+test("getCelebrationPortalHost creates a dialog host on documentElement", () => {
   const html = {
     appendChild(this: unknown, node: { id: string }) {
       (globalThis as { __host?: unknown }).__host = node;
@@ -21,16 +22,27 @@ test("getCelebrationPortalHost creates a fixed host on documentElement", () => {
   };
   const created: {
     id: string;
-    style: { cssText: string; top?: string; left?: string; width?: string; height?: string };
+    open?: boolean;
+    style: { cssText: string; pointerEvents?: string };
     setAttribute: (k: string, v: string) => void;
+    showModal?: () => void;
+    close?: () => void;
   }[] = [];
   (globalThis as { document?: unknown }).document = {
     getElementById: (id: string) => created.find((n) => n.id === id) ?? null,
-    createElement: () => {
+    createElement: (tag: string) => {
       const node = {
         id: "",
-        style: { cssText: "" },
+        open: false,
+        style: { cssText: "", pointerEvents: "" },
         setAttribute() {},
+        showModal() {
+          this.open = true;
+        },
+        close() {
+          this.open = false;
+        },
+        tagName: tag.toUpperCase(),
       };
       created.push(node);
       return node;
@@ -41,32 +53,29 @@ test("getCelebrationPortalHost creates a fixed host on documentElement", () => {
   assert.ok(host);
   assert.equal(host!.id, "cv-fs-celeb-host");
   assert.match(host!.style.cssText, /position:fixed/);
-  assert.match(host!.style.cssText, /inset:0/);
-  assert.match(host!.style.cssText, /width:auto/);
+  assert.match(host!.style.cssText, /width:100%/);
   assert.doesNotMatch(host!.style.cssText, /100vw/);
   delete (globalThis as { document?: unknown }).document;
 });
 
-test("syncCelebrationPortalToVisualViewport uses visualViewport when present", () => {
+test("openCelebrationPortal calls showModal and closeCelebrationPortal closes", () => {
+  let modalOpen = false;
   const el = {
-    style: {
-      top: "",
-      left: "",
-      right: "",
-      bottom: "",
-      width: "",
-      height: "",
+    open: false,
+    style: { cssText: "", pointerEvents: "" },
+    showModal() {
+      modalOpen = true;
+      this.open = true;
+    },
+    close() {
+      modalOpen = false;
+      this.open = false;
     },
   };
-  (globalThis as { window?: unknown }).window = {
-    visualViewport: { offsetTop: 12, offsetLeft: 4, width: 390.4, height: 700.6 },
-  };
-  syncCelebrationPortalToVisualViewport(el as unknown as HTMLElement);
-  assert.equal(el.style.top, "12px");
-  assert.equal(el.style.left, "4px");
-  assert.equal(el.style.right, "auto");
-  assert.equal(el.style.bottom, "auto");
-  assert.equal(el.style.width, "390px");
-  assert.equal(el.style.height, "701px");
-  delete (globalThis as { window?: unknown }).window;
+  openCelebrationPortal(el as unknown as HTMLElement);
+  assert.equal(modalOpen, true);
+  assert.equal(el.style.pointerEvents, "auto");
+  closeCelebrationPortal(el as unknown as HTMLElement);
+  assert.equal(modalOpen, false);
+  assert.equal(el.style.pointerEvents, "none");
 });

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { dateRangeEnding, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true, goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+      select: { timezone: true, ...DIET_PROFILE_SELECT },
     });
 
     const endParam = request.nextUrl.searchParams.get("end");
@@ -78,11 +78,7 @@ export async function GET(request: NextRequest) {
     const avgCalories = daysWithMeals.length > 0 ? Math.round(totalCalories / daysWithMeals.length) : 0;
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-    const sex = isSex(user?.sex) ? user!.sex : null;
-    const target = goal && weight
-      ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
-      : null;
+    const target = recommendDietForProfile(weight?.weightKg, user);
 
     let bestDay: { date: string; calories: number } | null = null;
     let lightestDay: { date: string; calories: number } | null = null;

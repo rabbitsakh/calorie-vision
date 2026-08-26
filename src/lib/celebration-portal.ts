@@ -1,63 +1,89 @@
-/** Dedicated fullscreen host — avoids body/html overflow clipping on iOS. */
+/** Fullscreen celebration host via <dialog showModal()> (top layer — immune to iOS overflow clips). */
 
 const HOST_ID = "cv-fs-celeb-host";
 
 function applyHostBaseStyles(host: HTMLElement) {
-  // Use inset + auto size (not 100vw): 100vw + overflow-x clipping on iOS
-  // shifts the overlay left so only ~half the screen shows the stage.
+  // Never use 100vw: with overflow-x clipping it shifts the stage to the left half.
+  // Prefer % + inset so the top-layer dialog fills the viewport.
   host.style.cssText = [
     "position:fixed",
     "inset:0",
-    "width:auto",
-    "height:auto",
+    "width:100%",
+    "height:100%",
     "max-width:none",
     "max-height:none",
     "margin:0",
     "padding:0",
     "border:none",
+    "background:transparent",
+    "overflow:hidden",
     "z-index:2147483000",
     "pointer-events:none",
-    "overflow:visible",
+    "box-sizing:border-box",
   ].join(";");
 }
 
-/** Pin host to the visual viewport (iOS Safari / PWA address-bar & rubber-band). */
-export function syncCelebrationPortalToVisualViewport(host?: HTMLElement | null) {
+/**
+ * Open the celebration host in the browser top layer when possible.
+ * Falls back to a plain fixed fullscreen element.
+ */
+export function openCelebrationPortal(host?: HTMLElement | null) {
   const el =
     host ?? (typeof document !== "undefined" ? document.getElementById(HOST_ID) : null);
-  if (!el || typeof window === "undefined") return;
+  if (!el) return;
 
-  const vv = window.visualViewport;
-  if (!vv) {
-    el.style.top = "0px";
-    el.style.left = "0px";
-    el.style.right = "0px";
-    el.style.bottom = "0px";
-    el.style.width = "auto";
-    el.style.height = "auto";
+  applyHostBaseStyles(el);
+  el.style.pointerEvents = "auto";
+
+  const dialog = el as HTMLDialogElement;
+  if (typeof dialog.showModal === "function") {
+    if (!dialog.open) {
+      try {
+        dialog.showModal();
+      } catch {
+        // Already open or not allowed — keep fixed fallback styles.
+      }
+    }
+    applyHostBaseStyles(el);
+    el.style.pointerEvents = "auto";
     return;
   }
 
-  el.style.top = `${vv.offsetTop}px`;
-  el.style.left = `${vv.offsetLeft}px`;
-  el.style.right = "auto";
-  el.style.bottom = "auto";
-  el.style.width = `${Math.round(vv.width)}px`;
-  el.style.height = `${Math.round(vv.height)}px`;
+  // Legacy fallback: pin to layout viewport without visualViewport width math
+  // (that previously produced a left-half stage on some iOS PWAs).
+  el.style.top = "0px";
+  el.style.left = "0px";
+  el.style.right = "0px";
+  el.style.bottom = "0px";
+  el.style.width = "100%";
+  el.style.height = "100%";
 }
 
+export function closeCelebrationPortal(host?: HTMLElement | null) {
+  const el =
+    host ?? (typeof document !== "undefined" ? document.getElementById(HOST_ID) : null);
+  if (!el) return;
+
+  const dialog = el as HTMLDialogElement;
+  if (typeof dialog.close === "function" && dialog.open) {
+    try {
+      dialog.close();
+    } catch {
+      // ignore
+    }
+  }
+  el.style.pointerEvents = "none";
+}
+
+/** @deprecated Prefer openCelebrationPortal — kept for tests / callers. */
+export function syncCelebrationPortalToVisualViewport(host?: HTMLElement | null) {
+  openCelebrationPortal(host);
+}
+
+/** @deprecated Prefer open/closeCelebrationPortal. */
 export function bindCelebrationPortalViewport(host: HTMLElement): () => void {
-  syncCelebrationPortalToVisualViewport(host);
-  const vv = window.visualViewport;
-  const sync = () => syncCelebrationPortalToVisualViewport(host);
-  window.addEventListener("resize", sync);
-  vv?.addEventListener("resize", sync);
-  vv?.addEventListener("scroll", sync);
-  return () => {
-    window.removeEventListener("resize", sync);
-    vv?.removeEventListener("resize", sync);
-    vv?.removeEventListener("scroll", sync);
-  };
+  openCelebrationPortal(host);
+  return () => closeCelebrationPortal(host);
 }
 
 export function getCelebrationPortalHost(): HTMLElement | null {
@@ -66,16 +92,15 @@ export function getCelebrationPortalHost(): HTMLElement | null {
   const existing = document.getElementById(HOST_ID);
   if (existing) {
     applyHostBaseStyles(existing);
-    syncCelebrationPortalToVisualViewport(existing);
     return existing;
   }
 
-  const host = document.createElement("div");
+  const host = document.createElement("dialog");
   host.id = HOST_ID;
   host.setAttribute("data-cv-celeb-host", "1");
-  // Prefer <html> over <body>: body keeps overflow-x:hidden for page chrome.
+  host.setAttribute("aria-modal", "true");
   applyHostBaseStyles(host);
+  // Attach to <html>: body keeps overflow-x:hidden for page chrome.
   document.documentElement.appendChild(host);
-  syncCelebrationPortalToVisualViewport(host);
   return host;
 }
