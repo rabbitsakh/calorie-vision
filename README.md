@@ -332,6 +332,8 @@ git pull
 bash deploy/deploy.sh
 ```
 
+Если `next build` падает с `SIGKILL` (OOM на маленьком VPS): `deploy.sh` сам останавливает pm2 перед сборкой, ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable`. Принудительно: `NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM полезен swap (`fallocate -l 2G /swapfile …`).
+
 ### 5. Nginx
 
 ```bash
