@@ -337,8 +337,10 @@ export async function PUT(request: NextRequest) {
         sex: true,
         heightCm: true,
         birthYear: true,
+        activityLevel: true,
         fiberTargetG: true,
         sugarTargetG: true,
+        waterTargetMl: true,
       },
     });
 
