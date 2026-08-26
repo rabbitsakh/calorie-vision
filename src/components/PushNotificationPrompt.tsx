@@ -10,6 +10,7 @@ import {
   setPushPromptDismissed,
 } from "@/lib/push-client";
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
+import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
 
 export function PushNotificationPrompt() {
   const [visible, setVisible] = useState(false);
@@ -45,6 +46,7 @@ export function PushNotificationPrompt() {
     try {
       const result = await subscribeBrowserPush();
       if (result.ok) {
+        trackPushEnabledGoal();
         setPushPromptDismissed(false);
         setVisible(false);
       } else {

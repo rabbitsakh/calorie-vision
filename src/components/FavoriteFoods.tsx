@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
+import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
@@ -116,6 +116,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
     });
     void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
     trackFirstMealSaveGoal();
+    trackMealSavedGoal();
     onSaved();
   }
 

@@ -7,6 +7,7 @@ import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { consumeRecognizeSse } from "@/lib/recognize-sse";
 import { withBasePath } from "@/lib/paths";
 import { playScannerBeep } from "@/lib/scanner-beep";
+import { trackPhotoRecognizeGoal } from "@/lib/metrika-funnel";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 
 const MAX_FILE_SIZE_MB = 15;
@@ -174,6 +175,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         }>(lookupResponse);
         if (lookupResponse.ok && lookupData.recognition) {
           handedOffPreview = true;
+          trackPhotoRecognizeGoal();
           onRecognized({
             imagePath: lookupData.imagePath ?? "",
             previewUrl: objectUrl,
@@ -246,6 +248,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           }
 
           handedOffPreview = true;
+          trackPhotoRecognizeGoal();
           onRecognized({
             ...data,
             previewUrl: objectUrl,
@@ -300,6 +303,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       }
 
       handedOffPreview = true;
+      trackPhotoRecognizeGoal();
       onRecognized({
         ...data,
         previewUrl: objectUrl,

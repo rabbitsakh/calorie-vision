@@ -11,6 +11,7 @@ export type BadgeStatsSnapshot = {
   mealCount: number;
   waterStreak: number;
   onTargetDays: number;
+  weightLogCount: number;
 };
 
 export type NextBadgeHint = BadgeDef & {
@@ -51,6 +52,31 @@ export const BADGE_DEFS: BadgeDef[] = [
     title: "Неделя в цели",
     description: "5+ дней недели в пределах ±10% калорийной цели",
   },
+  {
+    key: "streak_3",
+    title: "Три дня подряд",
+    description: "3 дня серии записей",
+  },
+  {
+    key: "meals_10",
+    title: "Десятка",
+    description: "10 приёмов пищи в дневнике",
+  },
+  {
+    key: "meals_500",
+    title: "Полтысячи",
+    description: "500 приёмов пищи в дневнике",
+  },
+  {
+    key: "water_3",
+    title: "Три дня воды",
+    description: `Вода ≥${WATER_HABIT_DAY_ML} мл три дня подряд`,
+  },
+  {
+    key: "weight_5",
+    title: "Пять взвешиваний",
+    description: "5 записей веса",
+  },
 ];
 
 export function badgeDef(key: string): BadgeDef | undefined {
@@ -64,16 +90,26 @@ function progressForBadge(
   switch (key) {
     case "first_log":
       return { current: Math.min(stats.mealCount, 1), target: 1 };
+    case "streak_3":
+      return { current: Math.min(stats.streak, 3), target: 3 };
     case "streak_7":
       return { current: Math.min(stats.streak, 7), target: 7 };
     case "streak_30":
       return { current: Math.min(stats.streak, 30), target: 30 };
+    case "meals_10":
+      return { current: Math.min(stats.mealCount, 10), target: 10 };
     case "meals_100":
       return { current: Math.min(stats.mealCount, 100), target: 100 };
+    case "meals_500":
+      return { current: Math.min(stats.mealCount, 500), target: 500 };
+    case "water_3":
+      return { current: Math.min(stats.waterStreak, 3), target: 3 };
     case "water_7":
       return { current: Math.min(stats.waterStreak, 7), target: 7 };
     case "week_on_target":
       return { current: Math.min(stats.onTargetDays, 5), target: 5 };
+    case "weight_5":
+      return { current: Math.min(stats.weightLogCount, 5), target: 5 };
     default:
       return null;
   }

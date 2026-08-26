@@ -24,7 +24,7 @@ import {
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
-import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
+import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
@@ -688,6 +688,7 @@ export function ConfirmationCard({
           throw new Error(data.error ?? "Ошибка сохранения");
         }
         trackFirstMealSaveGoal();
+        trackMealSavedGoal();
         onSaved({ rememberedCorrection });
         return;
       }
@@ -703,6 +704,7 @@ export function ConfirmationCard({
       }
 
       trackFirstMealSaveGoal();
+      trackMealSavedGoal();
       onSaved({ rememberedCorrection });
     } catch (err) {
       if (queuedBody) {

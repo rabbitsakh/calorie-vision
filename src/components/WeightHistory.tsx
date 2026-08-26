@@ -6,6 +6,7 @@ import { formatSignedKg } from "@/lib/diet";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 import { groupWeightEntriesByDate } from "@/lib/weight-entries";
+import { trackWeightLoggedGoal } from "@/lib/metrika-funnel";
 
 type WeightEntryRow = {
   id: string;
@@ -125,6 +126,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
       }
       setWeightInput("");
       setNoteInput("");
+      trackWeightLoggedGoal();
       await load();
       notifyDietTargetsChanged();
       onChanged?.();

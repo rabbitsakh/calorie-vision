@@ -26,6 +26,18 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
     description: "Любые записи еды в 5 днях этой недели",
     target: 5,
   },
+  {
+    key: "dinner_5",
+    title: "Ужин пять дней",
+    description: "Запишите ужин в 5 днях этой недели",
+    target: 5,
+  },
+  {
+    key: "water_7",
+    title: "Неделя воды",
+    description: `≥${WATER_HABIT_DAY_ML} мл воды все 7 дней недели`,
+    target: 7,
+  },
 ];
 
 export function challengeDef(key: string): ChallengeDef | undefined {

@@ -54,6 +54,8 @@ model User {
   sugarTargetG  Float?
   /** Personal daily water goal (ml); null → 2000. */
   waterTargetMl Int?
+  /** Opt-in weekly email digest (Sunday/Monday cron). */
+  weeklyDigestEmail Boolean @default(false)
   timezone      String?        @db.VarChar(64)
   /** Local hour (0–23) when quiet hours begin; null = disabled. */
   quietHoursStart Int?

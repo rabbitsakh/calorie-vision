@@ -45,5 +45,10 @@ test("init snippet interpolates only a numeric id and sends the first hit", () =
 test("metrika funnel goal names are stable", () => {
   assert.equal(METRIKA_GOALS.login, "login");
   assert.equal(METRIKA_GOALS.firstMealSave, "first_meal_save");
+  assert.equal(METRIKA_GOALS.photoRecognize, "photo_recognize");
+  assert.equal(METRIKA_GOALS.mealSaved, "meal_saved");
+  assert.equal(METRIKA_GOALS.waterLogged, "water_logged");
+  assert.equal(METRIKA_GOALS.weightLogged, "weight_logged");
+  assert.equal(METRIKA_GOALS.pushEnabled, "push_enabled");
   assert.equal(METRIKA_GOALS.d7Return, "d7_return");
 });

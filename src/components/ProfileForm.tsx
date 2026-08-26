@@ -39,6 +39,7 @@ type AccountResponse = {
   fiberTargetG: number | null;
   sugarTargetG: number | null;
   waterTargetMl: number | null;
+  weeklyDigestEmail?: boolean;
   linkedProviders: string[];
   emailLocked: boolean;
   referralCode?: string;
@@ -85,6 +86,7 @@ export function ProfileForm() {
   const [fiberTargetG, setFiberTargetG] = useState("");
   const [sugarTargetG, setSugarTargetG] = useState("");
   const [waterTargetMl, setWaterTargetMl] = useState("");
+  const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(false);
   const [emailLocked, setEmailLocked] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -125,6 +127,7 @@ export function ProfileForm() {
       setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
+      setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
       setEmailLocked(data.emailLocked);
       setReferralCode(data.referralCode?.trim() || "");
     } catch (err) {
@@ -171,6 +174,7 @@ export function ProfileForm() {
             waterTargetMl.trim() && Number.isFinite(Number(waterTargetMl))
               ? Math.round(Number(waterTargetMl))
               : null,
+          weeklyDigestEmail,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -191,6 +195,7 @@ export function ProfileForm() {
       setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
+      setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
@@ -492,6 +497,26 @@ export function ProfileForm() {
             </div>
             <div className="sm:col-span-2">
               <MedicalDisclaimerNote />
+            </div>
+            <div className="field sm:col-span-2">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                  checked={weeklyDigestEmail}
+                  onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
+                  disabled={!email.trim()}
+                />
+                <span>
+                  <span className="block text-sm font-medium text-slate-800">
+                    Недельный итог на email
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Короткий дайджест раз в неделю. Нужен email
+                    {!email.trim() ? " — сначала укажите адрес выше" : ""}.
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="field sm:col-span-2">
               <label htmlFor="timezone">Часовой пояс</label>

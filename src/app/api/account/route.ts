@@ -54,6 +54,7 @@ export async function GET() {
           fiberTargetG: true,
           sugarTargetG: true,
           waterTargetMl: true,
+          weeklyDigestEmail: true,
         },
       }),
       prisma.account.findMany({
@@ -87,6 +88,7 @@ export async function GET() {
       fiberTargetG: user.fiberTargetG ?? null,
       sugarTargetG: user.sugarTargetG ?? null,
       waterTargetMl: user.waterTargetMl ?? null,
+      weeklyDigestEmail: user.weeklyDigestEmail ?? false,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
       referralCode: referralCodeForUser(user.id),
@@ -122,6 +124,7 @@ export async function PUT(request: NextRequest) {
       fiberTargetG?: number | null;
       sugarTargetG?: number | null;
       waterTargetMl?: number | null;
+      weeklyDigestEmail?: boolean;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -159,6 +162,7 @@ export async function PUT(request: NextRequest) {
       fiberTargetG?: number | null;
       sugarTargetG?: number | null;
       waterTargetMl?: number | null;
+      weeklyDigestEmail?: boolean;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -202,6 +206,10 @@ export async function PUT(request: NextRequest) {
       } else {
         data.sugarTargetG = Math.round(Number(raw) * 10) / 10;
       }
+    }
+
+    if (body.weeklyDigestEmail !== undefined) {
+      data.weeklyDigestEmail = Boolean(body.weeklyDigestEmail);
     }
 
     if (body.sex !== undefined) {
@@ -376,6 +384,7 @@ export async function PUT(request: NextRequest) {
         fiberTargetG: true,
         sugarTargetG: true,
         waterTargetMl: true,
+        weeklyDigestEmail: true,
       },
     });
 
@@ -398,6 +407,7 @@ export async function PUT(request: NextRequest) {
       fiberTargetG: user.fiberTargetG ?? null,
       sugarTargetG: user.sugarTargetG ?? null,
       waterTargetMl: user.waterTargetMl ?? null,
+      weeklyDigestEmail: user.weeklyDigestEmail ?? false,
       linkedProviders,
       emailLocked,
     });
