@@ -6,7 +6,10 @@ import { CelebrationBurst } from "@/components/CelebrationBurst";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
-import { getCelebrationPortalHost } from "@/lib/celebration-portal";
+import {
+  bindCelebrationPortalViewport,
+  getCelebrationPortalHost,
+} from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
 
@@ -118,6 +121,11 @@ export function FullscreenCelebration({
     setPortalHost(getCelebrationPortalHost());
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!show || !portalHost) return;
+    return bindCelebrationPortalViewport(portalHost);
+  }, [show, portalHost]);
 
   useEffect(() => {
     if (!show) return;

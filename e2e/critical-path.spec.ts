@@ -27,12 +27,12 @@ test.describe("guest critical path", () => {
     await page.goto("/profile");
     // AuthGate (no middleware redirect): guest sees sign-in prompt on the page.
     await expect(page.getByText(/Войдите, чтобы начать/i)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    await expect(page.locator("section.card").getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 
   test("ration requires auth when guest", async ({ page }) => {
     await page.goto("/ration");
     await expect(page.getByText(/Войдите, чтобы начать/i)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    await expect(page.locator("section.card").getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 });
