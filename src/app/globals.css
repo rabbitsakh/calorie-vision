@@ -637,10 +637,21 @@ textarea {
 
 .mobile-tab-bar {
   box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
-  /* Own compositor layer — reduces iOS rubber-band “lifting” the tab bar. */
-  transform: translateZ(0);
+  /* Stay at the physical bottom — no transform tied to scroll/visualViewport. */
+  position: relative;
+  width: 100%;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+
+#cv-mobile-tab-bar-host {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 40;
+  pointer-events: none;
 }
 
 .admin-table-wrap {

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -11,49 +12,50 @@ type MobileTabBarProps = {
   date?: string;
 };
 
-/**
- * Keep the tab bar glued to the bottom of the *visual* viewport.
- * On iOS Safari/PWA, layout viewport and visual viewport diverge while
- * scrolling (URL bar / rubber-band), which makes position:fixed bottom
- * chrome appear to “pull up” with the page.
- */
-function useVisualViewportBottomPin(ref: RefObject<HTMLElement | null>) {
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+const HOST_ID = "cv-mobile-tab-bar-host";
 
-    const sync = () => {
-      const vv = window.visualViewport;
-      if (!vv) {
-        el.style.transform = "translateZ(0)";
-        return;
-      }
-      const bottomGap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      el.style.transform = `translate3d(0, ${-bottomGap}px, 0)`;
-    };
+function getTabBarHost(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const existing = document.getElementById(HOST_ID);
+  if (existing) return existing;
 
-    sync();
-    const vv = window.visualViewport;
-    window.addEventListener("resize", sync);
-    vv?.addEventListener("resize", sync);
-    vv?.addEventListener("scroll", sync);
-    return () => {
-      window.removeEventListener("resize", sync);
-      vv?.removeEventListener("resize", sync);
-      vv?.removeEventListener("scroll", sync);
-    };
-  }, [ref]);
+  const host = document.createElement("div");
+  host.id = HOST_ID;
+  host.setAttribute("data-cv-tab-bar-host", "1");
+  // Attach to <html> so body overflow-x / transforms cannot turn fixed into
+  // a scrolling containing block (same approach as celebration portal).
+  host.style.cssText = [
+    "position:fixed",
+    "left:0",
+    "right:0",
+    "bottom:0",
+    "width:100%",
+    "margin:0",
+    "padding:0",
+    "border:none",
+    "z-index:40",
+    "pointer-events:none",
+  ].join(";");
+  document.documentElement.appendChild(host);
+  return host;
 }
 
+/**
+ * Bottom tab bar — always pinned to the screen bottom.
+ * Do NOT translate by visualViewport.offsetTop: on iOS that value tracks
+ * scroll and drags the bar up through the page (looks like it “scrolls”).
+ */
 export function MobileTabBar({ date }: MobileTabBarProps) {
   const pathname = usePathname();
-  const barRef = useRef<HTMLElement>(null);
-  useVisualViewportBottomPin(barRef);
+  const [host, setHost] = useState<HTMLElement | null>(null);
 
-  return (
+  useEffect(() => {
+    setHost(getTabBarHost());
+  }, []);
+
+  const bar = (
     <nav
-      ref={barRef}
-      className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
+      className="mobile-tab-bar pointer-events-auto border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
       aria-label="Основные разделы"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-1">
@@ -83,4 +85,15 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
       </div>
     </nav>
   );
+
+  // Before portal host exists, keep a fixed fallback so the bar never lands in page flow.
+  if (!host) {
+    return (
+      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden" aria-hidden={false}>
+        {bar}
+      </div>
+    );
+  }
+
+  return createPortal(bar, host);
 }
