@@ -97,12 +97,12 @@ describe("mascot-skin", () => {
       true,
     );
     assert.equal(
-      shouldUseMascotRive({ mode: "svg", size: "xl", reducedMotion: false, riveAvailable: true }),
+      shouldUseMascotRive({ mode: "art", size: "xl", reducedMotion: false, riveAvailable: true }),
       false,
     );
     assert.equal(
-      shouldUseMascotRive({ mode: "art", size: "xl", reducedMotion: false, riveAvailable: true }),
-      false,
+      shouldUseMascotRive({ mode: "auto", size: "xl", reducedMotion: false, riveAvailable: true }),
+      true,
     );
   });
 });

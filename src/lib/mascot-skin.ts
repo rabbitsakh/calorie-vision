@@ -17,7 +17,7 @@ export type MascotSkinId =
   | "victory"
   | "knowledge";
 
-export type MascotRendererMode = "auto" | "svg" | "rive" | "art";
+export type MascotRendererMode = "auto" | "rive" | "art";
 
 export type MascotSkinMeta = {
   id: MascotSkinId;
@@ -140,11 +140,11 @@ export function resolveMascotRendererMode(): MascotRendererMode {
   )
     ?.trim()
     .toLowerCase();
-  if (raw === "svg" || raw === "rive" || raw === "art" || raw === "auto") return raw;
+  if (raw === "rive" || raw === "art" || raw === "auto") return raw;
   return "auto";
 }
 
-/** Rive is for md+ interactive contexts; sm icons and reduced motion stay SVG. */
+/** Rive is for md+ interactive contexts; sm icons and reduced motion stay on art. */
 export function shouldUseMascotRive(opts: {
   mode?: MascotRendererMode;
   size: "sm" | "md" | "lg" | "xl";
@@ -153,7 +153,7 @@ export function shouldUseMascotRive(opts: {
 }): boolean {
   const mode = opts.mode ?? resolveMascotRendererMode();
   if (opts.reducedMotion || opts.size === "sm") return false;
-  if (mode === "svg" || mode === "art") return false;
+  if (mode === "art") return false;
   if (mode === "rive") return opts.riveAvailable;
   return opts.riveAvailable;
 }

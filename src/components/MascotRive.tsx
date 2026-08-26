@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type KeyboardEventHandler, type MouseEventHandler } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRive, EventType, Layout, Fit, Alignment } from "@rive-app/react-canvas";
-import { MascotSvg, type MascotSvgProps } from "@/components/MascotSvg";
+import { MascotArt } from "@/components/MascotArt";
 import type { MascotGesture } from "@/lib/mascot-liveness";
-import type { MascotPose } from "@/components/MascotSvg";
 import { mascotRivUrl, type MascotSkinId } from "@/lib/mascot-skin";
+import { MASCOT_SIZE_PX, type MascotBaseProps, type MascotPose } from "@/lib/mascot-types";
 
 const POSE_INDEX: Record<MascotPose, number> = {
   idle: 0,
@@ -25,13 +25,13 @@ const GESTURE_TRIGGER: Partial<Record<MascotGesture, string>> = {
   react: "gestureReact",
 };
 
-export type MascotRiveProps = Omit<MascotSvgProps, "skin"> & {
+export type MascotRiveProps = Omit<MascotBaseProps, "skin"> & {
   skin: MascotSkinId;
 };
 
 /**
  * Optional Rive renderer — loads /mascot/{skin}.riv when present.
- * Falls back to MascotSvg on missing asset or runtime error.
+ * Falls back to illustrated art on missing asset or runtime error.
  */
 export function MascotRive({ skin, size = "md", className, ...props }: MascotRiveProps) {
   const src = mascotRivUrl(skin);
@@ -52,12 +52,8 @@ export function MascotRive({ skin, size = "md", className, ...props }: MascotRiv
     };
   }, [src]);
 
-  if (assetOk === false) {
-    return <MascotSvg {...props} skin={skin} size={size} className={className} />;
-  }
-
   if (assetOk !== true) {
-    return <MascotSvg {...props} skin={skin} size={size} className={className} />;
+    return <MascotArt {...props} skin={skin} size={size} className={className} />;
   }
 
   return (
@@ -89,8 +85,7 @@ function MascotRiveCanvas({
   tabIndex,
   "aria-label": ariaLabel,
 }: MascotRiveProps & { src: string; onFail: () => void }) {
-  const sizePx = { sm: 44, md: 72, lg: 112, xl: 220 } as const;
-  const px = sizePx[size];
+  const px = MASCOT_SIZE_PX[size];
 
   const layout = useMemo(() => new Layout({ fit: Fit.Contain, alignment: Alignment.Center }), []);
 
@@ -129,7 +124,9 @@ function MascotRiveCanvas({
     rive.on(EventType.LoadError, onFail);
   }, [rive, onFail]);
 
-  const wrapperClass = ["mascot-rive-wrap", entrance ? "mascot-entrance" : "", className].filter(Boolean).join(" ");
+  const wrapperClass = ["mascot-rive-wrap", entrance ? "mascot-entrance" : "", className]
+    .filter(Boolean)
+    .join(" ");
   const label = ariaLabel ?? title;
 
   return (
@@ -139,8 +136,8 @@ function MascotRiveCanvas({
       role={role ?? "img"}
       aria-label={label}
       tabIndex={tabIndex}
-      onClick={onClick as MouseEventHandler<HTMLDivElement> | undefined}
-      onKeyDown={onKeyDown as KeyboardEventHandler<HTMLDivElement> | undefined}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
     >
       <RiveComponent style={{ width: "100%", height: "100%" }} />
     </div>

@@ -2,7 +2,7 @@
  * Soft-3D illustrated mascot art (pose stills under /public/mascot/art).
  */
 
-import type { MascotPose } from "@/components/MascotSvg";
+import type { MascotPose } from "@/lib/mascot-types";
 import type { MascotGesture } from "@/lib/mascot-liveness";
 import {
   MASCOT_ART_FULL_POSES,
@@ -80,15 +80,14 @@ export function mascotArtUrl(
   return `/mascot/art/${pose}.webp`;
 }
 
-/** Art wins in auto when assets ship with the app (always true for built-in V5 set). */
+/** Art wins in auto for all sizes (SVG path removed). */
 export function shouldUseMascotArt(opts: {
   mode?: MascotRendererMode;
   size: "sm" | "md" | "lg" | "xl";
   reducedMotion: boolean;
 }): boolean {
   const mode = opts.mode ?? "auto";
-  if (mode === "svg" || mode === "rive") return false;
+  if (mode === "rive") return false;
   if (mode === "art") return true;
-  // auto: prefer illustrated art for md+; sm stays SVG for crisp nav icons
-  return opts.size !== "sm";
+  return true;
 }
