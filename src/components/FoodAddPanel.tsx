@@ -470,6 +470,14 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
                 setBarcodeQuery(code);
                 void lookupFood({ barcode: code });
               }}
+              onManualFallback={() => {
+                setError(null);
+                setMode("text");
+              }}
+              onLabelFallback={() => {
+                setError(null);
+                setMode("photo");
+              }}
             />
             <div className="field">
               <label htmlFor="food-barcode">Или введите штрихкод EAN</label>

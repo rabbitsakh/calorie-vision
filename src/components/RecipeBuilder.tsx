@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { scaleRuNutritionToGrams } from "@/lib/ru-nutrition-lookup";
 
 type Ingredient = {
   id: string;
@@ -35,6 +36,10 @@ function num(value: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function round1(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
 export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps) {
   const [recipeName, setRecipeName] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>([emptyIngredient()]);
@@ -60,6 +65,20 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
     setIngredients((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
   }
 
+  function autofillFromLookup(id: string, name: string, gramsRaw: string) {
+    const grams = num(gramsRaw);
+    const scaled = scaleRuNutritionToGrams(name, grams > 0 ? grams : 100);
+    if (!scaled) return;
+    updateIngredient(id, {
+      name,
+      grams: grams > 0 ? gramsRaw : "100",
+      calories: String(scaled.calories),
+      protein: String(scaled.protein),
+      fat: String(scaled.fat),
+      carbs: String(scaled.carbs),
+    });
+  }
+
   async function saveAsCustomFood() {
     setError(null);
     setOkMsg(null);
@@ -81,9 +100,9 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
         body: JSON.stringify({
           name,
           calories: Math.round(totals.calories),
-          protein: totals.protein > 0 ? Math.round(totals.protein * 10) / 10 : null,
-          fat: totals.fat > 0 ? Math.round(totals.fat * 10) / 10 : null,
-          carbs: totals.carbs > 0 ? Math.round(totals.carbs * 10) / 10 : null,
+          protein: totals.protein > 0 ? round1(totals.protein) : null,
+          fat: totals.fat > 0 ? round1(totals.fat) : null,
+          carbs: totals.carbs > 0 ? round1(totals.carbs) : null,
           portionGrams: totals.grams > 0 ? Math.round(totals.grams) : null,
         }),
       });
@@ -107,7 +126,7 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
       <div>
         <h3 className="text-sm font-semibold text-slate-800">Конструктор рецепта</h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          Сложите ингредиенты — сохраним сумму как свой продукт.
+          Сложите ингредиенты — подставим КБЖУ из справочника, если найдём. Сохраним сумму как свой продукт.
         </p>
       </div>
 
@@ -141,12 +160,20 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
                 <input
                   value={row.name}
                   onChange={(e) => updateIngredient(row.id, { name: e.target.value })}
+                  onBlur={() => autofillFromLookup(row.id, row.name, row.grams)}
                   placeholder="Гречка варёная"
                 />
               </div>
               <div className="field">
                 <label className="text-xs">Граммы</label>
-                <input type="number" min="0" inputMode="decimal" value={row.grams} onChange={(e) => updateIngredient(row.id, { grams: e.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="decimal"
+                  value={row.grams}
+                  onChange={(e) => updateIngredient(row.id, { grams: e.target.value })}
+                  onBlur={() => autofillFromLookup(row.id, row.name, row.grams)}
+                />
               </div>
               <div className="field">
                 <label className="text-xs">Ккал</label>

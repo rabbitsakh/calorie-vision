@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dishLooksLikeAlcohol, lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
+import { dishLooksLikeAlcohol, lookupRuNutritionTable, scaleRuNutritionToGrams } from "./ru-nutrition-lookup.ts";
 
 test("lookupRuNutritionTable matches borscht", () => {
   const hit = lookupRuNutritionTable("Домашний борщ");
@@ -101,4 +101,12 @@ test("lookupRuNutritionTable and dishLooksLikeAlcohol for drinks", () => {
   assert.equal(dishLooksLikeAlcohol("пиво светлое"), true);
   assert.equal(dishLooksLikeAlcohol("водка"), true);
   assert.equal(dishLooksLikeAlcohol("борщ"), false);
+});
+
+test("scaleRuNutritionToGrams scales portion macros", () => {
+  const full = lookupRuNutritionTable("банан");
+  assert.ok(full);
+  const half = scaleRuNutritionToGrams("банан", full!.portionGrams / 2);
+  assert.ok(half);
+  assert.equal(half!.calories, Math.round(full!.calories / 2));
 });

@@ -5,6 +5,7 @@ import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
+import { RecipeBuilder } from "@/components/RecipeBuilder";
 
 const PANEL_ID = "favorites";
 
@@ -56,8 +57,6 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   const [portionGrams, setPortionGrams] = useState("");
   const [csvStatus, setCsvStatus] = useState<string | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);
-  const [recipeName, setRecipeName] = useState("");
-  const [recipeLines, setRecipeLines] = useState("Овсянка 50\nМолоко 100\nБанан 80");
 
   const load = useCallback(async () => {
     try {
@@ -143,58 +142,24 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ foods: parsed.rows }),
       });
-      const data = (await resp.json()) as { error?: string; count?: number; foods?: unknown[] };
+      const data = (await resp.json()) as {
+        error?: string;
+        imported?: number;
+        skipped?: number;
+        count?: number;
+        foods?: unknown[];
+      };
       if (!resp.ok) throw new Error(data.error ?? "Импорт не удался");
-      setCsvStatus(`Импортировано: ${data.count ?? data.foods?.length ?? parsed.rows.length}`);
+      const imported = data.imported ?? data.count ?? data.foods?.length ?? parsed.rows.length;
+      const skipped = data.skipped ?? 0;
+      setCsvStatus(
+        skipped > 0
+          ? `Импортировано: ${imported}, пропущено: ${skipped}`
+          : `Импортировано: ${imported}`,
+      );
       await load();
     } catch (err) {
       setCsvStatus(err instanceof Error ? err.message : "Ошибка импорта");
-    }
-  }
-
-  async function handleSaveRecipe() {
-    const name = recipeName.trim() || "Рецепт";
-    // MVP: sum rough kcal from lines "name grams" using 1.5 kcal/g placeholder is bad.
-    // Instead save as custom food with user-entered total via simple parse: require lines like "Омлет;300;20;15;10"
-    // Soft MVP: treat each line as "name grams calories" or just store composite name with calories field below.
-    setAdding(true);
-    try {
-      const lines = recipeLines
-        .split(/\n+/)
-        .map((l) => l.trim())
-        .filter(Boolean);
-      if (lines.length === 0) return;
-      // Expect optional "name grams" — user sets total kcal in calories field of form; here we approximate 2 kcal/g * grams if number present
-      let totalKcal = 0;
-      let totalG = 0;
-      const parts: string[] = [];
-      for (const line of lines) {
-        const m = line.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*$/);
-        if (m) {
-          const g = Number(m[2]!.replace(",", "."));
-          parts.push(`${m[1]!.trim()} ${g} г`);
-          totalG += g;
-          totalKcal += Math.round(g * 1.5); // soft estimate; user can edit after
-        } else {
-          parts.push(line);
-        }
-      }
-      const resp = await fetch(withBasePath("/api/custom-foods"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${name} (${parts.join(" + ")})`.slice(0, 120),
-          calories: Math.max(1, totalKcal || 200),
-          portionGrams: totalG > 0 ? Math.round(totalG) : null,
-        }),
-      });
-      if (resp.ok) {
-        setRecipeOpen(false);
-        setRecipeName("");
-        await load();
-      }
-    } finally {
-      setAdding(false);
     }
   }
 
@@ -305,37 +270,20 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       {csvStatus ? <p className="mt-2 text-xs text-slate-600">{csvStatus}</p> : null}
 
       {recipeOpen ? (
-        <div className="mt-3 grid gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-slate-600">
-            Конструктор рецепта (MVP): строки «ингредиент граммы». Сохраним как свой продукт с оценкой ккал (~1.5 ккал/г) — потом можно поправить.
-          </p>
-          <div className="field">
-            <label className="text-xs">Название блюда</label>
-            <input value={recipeName} onChange={(e) => setRecipeName(e.target.value)} placeholder="Каша с бананом" />
-          </div>
-          <div className="field">
-            <label className="text-xs">Ингредиенты</label>
-            <textarea
-              rows={4}
-              value={recipeLines}
-              onChange={(e) => setRecipeLines(e.target.value)}
-              className="input"
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn-on-tint text-sm text-teal-800"
-            disabled={adding}
-            onClick={() => void handleSaveRecipe()}
-          >
-            Сохранить рецепт в мои продукты
-          </button>
+        <div className="mt-3">
+          <RecipeBuilder
+            embedded
+            onSaved={() => {
+              setRecipeOpen(false);
+              void load();
+            }}
+          />
         </div>
       ) : null}
 
       {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
-      {!loading && foods.length === 0 && !showForm ? (
+      {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
         <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
           <p className="text-sm font-medium text-teal-900">Избранное пока пусто</p>
           <p className="mt-1 text-xs text-slate-500">

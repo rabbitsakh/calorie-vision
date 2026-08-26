@@ -1102,14 +1102,15 @@ function DishFields({
         </p>
       ) : null}
 
+      {dishLooksLikeAlcohol(dish.dishName) ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+          Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="field sm:col-span-2">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-            {dishLooksLikeAlcohol(dish.dishName) ? (
-              <p className="mb-1 text-xs text-amber-800">
-                Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
-              </p>
-            ) : null}
             <label htmlFor={fieldId("dishName")}>Блюдо</label>
             <button
               type="button"

@@ -230,6 +230,38 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     portionGrams: 50,
     isAlcohol: true,
   },
+  {
+    keys: ["сидр", "яблочный сидр"],
+    dishName: "Сидр",
+    calories: 130,
+    protein: 0,
+    fat: 0,
+    carbs: 14,
+    sugar: 12,
+    portionGrams: 330,
+    isAlcohol: true,
+  },
+  {
+    keys: ["виски", "виски 40%", "whisky", "whiskey"],
+    dishName: "Виски",
+    calories: 110,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
+  {
+    keys: ["ликёр", "ликер", "байлис", "baileys"],
+    dishName: "Ликёр",
+    calories: 160,
+    protein: 1,
+    fat: 4,
+    carbs: 12,
+    sugar: 10,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
 
   // RU brand packs (food only)
   {
@@ -475,6 +507,28 @@ export function lookupRuNutritionTable(dishName: string): PackNutrition | null {
   };
 }
 
+/** Scale a RU staple match to an arbitrary gram weight (recipe builder). */
+export function scaleRuNutritionToGrams(
+  dishName: string,
+  grams: number,
+): { calories: number; protein: number; fat: number; carbs: number } | null {
+  if (!dishName.trim() || !(grams > 0)) {
+    return null;
+  }
+  const hit = lookupRuNutritionTable(dishName);
+  if (!hit || !(hit.portionGrams > 0)) {
+    return null;
+  }
+  const factor = grams / hit.portionGrams;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  return {
+    calories: Math.round(hit.calories * factor),
+    protein: round1((hit.protein ?? 0) * factor),
+    fat: round1((hit.fat ?? 0) * factor),
+    carbs: round1((hit.carbs ?? 0) * factor),
+  };
+}
+
 /** True when the dish name matches an alcohol staple (пиво, вино, водка…). */
 export function dishLooksLikeAlcohol(dishName: string): boolean {
   const query = dishName.trim();
@@ -498,6 +552,10 @@ export function dishLooksLikeAlcohol(dishName: string): boolean {
     n.includes("коньяк") ||
     n.includes("шампанск") ||
     n.includes("игристое") ||
-    /\b(beer|wine|vodka|prosecco)\b/.test(n)
+    n.includes("сидр") ||
+    n.includes("виски") ||
+    n.includes("ликёр") ||
+    n.includes("ликер") ||
+    /\b(beer|wine|vodka|prosecco|whisky|whiskey|baileys)\b/.test(n)
   );
 }
