@@ -10,6 +10,9 @@ export type RuNutritionEntry = {
   fiber?: number;
   sugar?: number;
   portionGrams: number;
+  /** Soft hint for empty-calorie alcohol drinks. */
+  isAlcohol?: boolean;
+  brand?: string;
 };
 
 /** Typical RU home/cafe portions — offline fallback when OFF misses. */
@@ -105,6 +108,313 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["картошка жареная", "жареный картофель", "картофель жареный"], dishName: "Картофель жареный", calories: 280, protein: 4, fat: 14, carbs: 34, portionGrams: 180 },
   { keys: ["холодец", "студень"], dishName: "Холодец", calories: 220, protein: 22, fat: 14, carbs: 2, portionGrams: 150 },
   { keys: ["хачапури"], dishName: "Хачапури", calories: 420, protein: 16, fat: 22, carbs: 38, portionGrams: 180 },
+
+  // Expanded RU staples: каши
+  { keys: ["пшенка", "пшённая каша", "пшенная каша"], dishName: "Пшённая каша", calories: 190, protein: 5, fat: 3, carbs: 36, fiber: 2, portionGrams: 200 },
+  { keys: ["кукурузная каша", "мамалыга"], dishName: "Кукурузная каша", calories: 180, protein: 4, fat: 2, carbs: 36, portionGrams: 200 },
+  { keys: ["ячневая каша", "ячка"], dishName: "Ячневая каша", calories: 170, protein: 5, fat: 2, carbs: 34, fiber: 3, portionGrams: 200 },
+  { keys: ["гороховая каша", "горох варёный", "горох вареный"], dishName: "Гороховая каша", calories: 220, protein: 12, fat: 2, carbs: 36, fiber: 8, portionGrams: 200 },
+  { keys: ["рисовая каша", "рисовая каша на молоке"], dishName: "Рисовая каша на молоке", calories: 240, protein: 6, fat: 6, carbs: 40, sugar: 8, portionGrams: 250 },
+  { keys: ["геркулес", "овсянка на воде"], dishName: "Овсянка на воде", calories: 160, protein: 6, fat: 3, carbs: 28, fiber: 4, portionGrams: 200 },
+
+  // Супы
+  { keys: ["харчо", "суп харчо"], dishName: "Харчо", calories: 280, protein: 14, fat: 14, carbs: 22, portionGrams: 300 },
+  { keys: ["уха", "уха рыбная"], dishName: "Уха", calories: 160, protein: 16, fat: 6, carbs: 8, portionGrams: 300 },
+  { keys: ["гороховый суп", "суп гороховый"], dishName: "Гороховый суп", calories: 240, protein: 12, fat: 8, carbs: 28, fiber: 6, portionGrams: 300 },
+  { keys: ["грибной суп", "суп грибной"], dishName: "Грибной суп", calories: 140, protein: 4, fat: 8, carbs: 12, portionGrams: 300 },
+  { keys: ["окрошка", "окрошка на квасе"], dishName: "Окрошка", calories: 220, protein: 10, fat: 10, carbs: 18, portionGrams: 350 },
+  { keys: ["свекольник", "холодный борщ"], dishName: "Свекольник", calories: 120, protein: 4, fat: 4, carbs: 16, fiber: 3, portionGrams: 300 },
+  { keys: ["лапша куриная", "суп с лапшой", "суп лапша"], dishName: "Суп с лапшой", calories: 200, protein: 12, fat: 6, carbs: 22, portionGrams: 300 },
+  { keys: ["томатный суп", "суп томатный"], dishName: "Томатный суп", calories: 140, protein: 3, fat: 6, carbs: 18, portionGrams: 300 },
+  { keys: ["тыквенный суп", "суп-пюре тыквенный"], dishName: "Тыквенный суп-пюре", calories: 160, protein: 3, fat: 8, carbs: 18, portionGrams: 300 },
+
+  // Салаты
+  { keys: ["крабовый салат", "салат крабовый"], dishName: "Крабовый салат", calories: 280, protein: 8, fat: 18, carbs: 20, portionGrams: 180 },
+  { keys: ["мимоза", "салат мимоза"], dishName: "Салат мимоза", calories: 320, protein: 12, fat: 24, carbs: 12, portionGrams: 180 },
+  { keys: ["греческий салат", "салат греческий"], dishName: "Греческий салат", calories: 220, protein: 6, fat: 18, carbs: 8, fiber: 2, portionGrams: 200 },
+  { keys: ["капуста с маслом", "салат из капусты"], dishName: "Салат из капусты", calories: 120, protein: 2, fat: 8, carbs: 10, fiber: 3, portionGrams: 150 },
+  { keys: ["селедка под шубой", "сельдь под шубой", "шуба"], dishName: "Селёдка под шубой", calories: 360, protein: 10, fat: 26, carbs: 20, portionGrams: 200 },
+  { keys: ["салат цезарь с курицей"], dishName: "Салат Цезарь с курицей", calories: 380, protein: 24, fat: 24, carbs: 14, portionGrams: 220 },
+
+  // Выпечка
+  { keys: ["пирожок", "пирожок с мясом", "пирожки"], dishName: "Пирожок с мясом", calories: 280, protein: 10, fat: 14, carbs: 28, portionGrams: 90 },
+  { keys: ["ватрушка", "ватрушка с творогом"], dishName: "Ватрушка с творогом", calories: 260, protein: 8, fat: 10, carbs: 34, sugar: 12, portionGrams: 100 },
+  { keys: ["слойка", "слойка с сыром"], dishName: "Слойка", calories: 320, protein: 6, fat: 18, carbs: 32, portionGrams: 90 },
+  { keys: ["круассан"], dishName: "Круассан", calories: 280, protein: 5, fat: 14, carbs: 32, portionGrams: 65 },
+  { keys: ["булочка", "булочка сдобная"], dishName: "Булочка сдобная", calories: 240, protein: 6, fat: 6, carbs: 40, sugar: 10, portionGrams: 70 },
+  { keys: ["лаваш", "лаваш армянский"], dishName: "Лаваш", calories: 220, protein: 7, fat: 1, carbs: 46, portionGrams: 80 },
+  { keys: ["пирог с капустой", "пирог капустный"], dishName: "Пирог с капустой", calories: 300, protein: 8, fat: 12, carbs: 38, portionGrams: 120 },
+  { keys: ["пончик", "пончики"], dishName: "Пончик", calories: 280, protein: 4, fat: 14, carbs: 34, sugar: 12, portionGrams: 70 },
+  { keys: ["пряник", "пряники"], dishName: "Пряник", calories: 160, protein: 2, fat: 4, carbs: 30, sugar: 16, portionGrams: 45 },
+
+  // Молочка
+  { keys: ["ряженка", "ряженка 4%"], dishName: "Ряженка 4%", calories: 140, protein: 7, fat: 8, carbs: 10, sugar: 10, portionGrams: 250 },
+  { keys: ["простокваша"], dishName: "Простокваша", calories: 130, protein: 7, fat: 6, carbs: 10, sugar: 10, portionGrams: 250 },
+  { keys: ["снежок", "кисломолочный напиток снежок"], dishName: "Снежок", calories: 160, protein: 6, fat: 4, carbs: 24, sugar: 22, portionGrams: 250 },
+  { keys: ["творожный сырок", "сырок", "глазированный сырок"], dishName: "Глазированный сырок", calories: 220, protein: 8, fat: 12, carbs: 20, sugar: 18, portionGrams: 50 },
+  { keys: ["сливки", "сливки 10%", "сливки 20%"], dishName: "Сливки 10%", calories: 120, protein: 3, fat: 10, carbs: 4, portionGrams: 100 },
+  { keys: ["масло сливочное", "сливочное масло"], dishName: "Масло сливочное", calories: 150, protein: 0, fat: 16, carbs: 0, portionGrams: 20 },
+  { keys: ["молочный коктейль", "милкшейк"], dishName: "Молочный коктейль", calories: 280, protein: 8, fat: 8, carbs: 42, sugar: 36, portionGrams: 300 },
+
+  // Полуфабрикаты
+  { keys: ["наггетсы", "наггетсы куриные"], dishName: "Наггетсы куриные", calories: 280, protein: 14, fat: 16, carbs: 18, portionGrams: 100 },
+  { keys: ["блинчики замороженные", "блины замороженные"], dishName: "Блинчики замороженные", calories: 260, protein: 8, fat: 10, carbs: 34, portionGrams: 120 },
+  { keys: ["котлеты замороженные", "полуфабрикат котлеты"], dishName: "Котлеты замороженные", calories: 300, protein: 16, fat: 20, carbs: 12, portionGrams: 120 },
+  { keys: ["лапша быстрого приготовления", "быстрая лапша", "дошик"], dishName: "Лапша быстрого приготовления", calories: 420, protein: 8, fat: 18, carbs: 56, portionGrams: 90 },
+  { keys: ["пюре быстрого приготовления", "картофельное пюре быстрого"], dishName: "Пюре быстрого приготовления", calories: 180, protein: 3, fat: 6, carbs: 28, portionGrams: 50 },
+  { keys: ["сосиски в тесте", "сосиска в тесте"], dishName: "Сосиска в тесте", calories: 320, protein: 12, fat: 18, carbs: 28, portionGrams: 110 },
+  { keys: ["чебуреки замороженные"], dishName: "Чебуреки замороженные", calories: 360, protein: 12, fat: 20, carbs: 32, portionGrams: 120 },
+  { keys: ["пельмени замороженные", "пельмени магазин"], dishName: "Пельмени магазинные", calories: 480, protein: 20, fat: 22, carbs: 48, portionGrams: 250 },
+
+  // Alcohol staples
+  {
+    keys: ["пиво", "пиво светлое", "пиво лагер", "beer"],
+    dishName: "Пиво светлое",
+    calories: 140,
+    protein: 1,
+    fat: 0,
+    carbs: 12,
+    sugar: 0,
+    portionGrams: 330,
+    isAlcohol: true,
+  },
+  {
+    keys: ["пиво тёмное", "пиво темное", "стаут"],
+    dishName: "Пиво тёмное",
+    calories: 160,
+    protein: 1,
+    fat: 0,
+    carbs: 14,
+    portionGrams: 330,
+    isAlcohol: true,
+  },
+  {
+    keys: ["вино", "вино красное", "вино белое", "wine"],
+    dishName: "Вино",
+    calories: 125,
+    protein: 0,
+    fat: 0,
+    carbs: 4,
+    sugar: 2,
+    portionGrams: 150,
+    isAlcohol: true,
+  },
+  {
+    keys: ["вино игристое", "игристое", "шампанское", "просекко"],
+    dishName: "Вино игристое",
+    calories: 120,
+    protein: 0,
+    fat: 0,
+    carbs: 4,
+    sugar: 3,
+    portionGrams: 150,
+    isAlcohol: true,
+  },
+  {
+    keys: ["водка", "водка 40%", "vodka"],
+    dishName: "Водка",
+    calories: 110,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
+  {
+    keys: ["коньяк", "бренди"],
+    dishName: "Коньяк",
+    calories: 120,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
+  {
+    keys: ["сидр", "яблочный сидр"],
+    dishName: "Сидр",
+    calories: 130,
+    protein: 0,
+    fat: 0,
+    carbs: 14,
+    sugar: 12,
+    portionGrams: 330,
+    isAlcohol: true,
+  },
+  {
+    keys: ["виски", "виски 40%", "whisky", "whiskey"],
+    dishName: "Виски",
+    calories: 110,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
+  {
+    keys: ["ликёр", "ликер", "байлис", "baileys"],
+    dishName: "Ликёр",
+    calories: 160,
+    protein: 1,
+    fat: 4,
+    carbs: 12,
+    sugar: 10,
+    portionGrams: 50,
+    isAlcohol: true,
+  },
+
+  // RU brand packs (food only)
+  {
+    keys: ["простоквашино кефир", "кефир простоквашино"],
+    dishName: "Кефир Простоквашино 2,5%",
+    calories: 125,
+    protein: 7,
+    fat: 6,
+    carbs: 10,
+    sugar: 10,
+    portionGrams: 250,
+    brand: "Простоквашино",
+  },
+  {
+    keys: ["простоквашино молоко", "молоко простоквашино"],
+    dishName: "Молоко Простоквашино 2,5%",
+    calories: 130,
+    protein: 8,
+    fat: 6,
+    carbs: 12,
+    sugar: 12,
+    portionGrams: 250,
+    brand: "Простоквашино",
+  },
+  {
+    keys: ["простоквашино творог", "творог простоквашино"],
+    dishName: "Творог Простоквашино 5%",
+    calories: 170,
+    protein: 26,
+    fat: 8,
+    carbs: 4,
+    portionGrams: 160,
+    brand: "Простоквашино",
+  },
+  {
+    keys: ["активиа", "activia", "йогурт активиа"],
+    dishName: "Йогурт Активиа",
+    calories: 100,
+    protein: 5,
+    fat: 3,
+    carbs: 12,
+    sugar: 11,
+    portionGrams: 150,
+    brand: "Активиа",
+  },
+  {
+    keys: ["актимель", "actimel"],
+    dishName: "Actimel",
+    calories: 70,
+    protein: 3,
+    fat: 2,
+    carbs: 10,
+    sugar: 9,
+    portionGrams: 100,
+    brand: "Actimel",
+  },
+  {
+    keys: ["доширак", "доширак куриный", "доширак говяжий"],
+    dishName: "Доширак",
+    calories: 450,
+    protein: 9,
+    fat: 20,
+    carbs: 58,
+    portionGrams: 90,
+    brand: "Доширак",
+  },
+  {
+    keys: ["роллтон", "rollton", "лапша роллтон"],
+    dishName: "Роллтон",
+    calories: 420,
+    protein: 8,
+    fat: 18,
+    carbs: 56,
+    portionGrams: 85,
+    brand: "Роллтон",
+  },
+  {
+    keys: ["чудо йогурт", "йогурт чудо", "чудо коктейль"],
+    dishName: "Йогурт Чудо",
+    calories: 140,
+    protein: 5,
+    fat: 4,
+    carbs: 20,
+    sugar: 18,
+    portionGrams: 125,
+    brand: "Чудо",
+  },
+  {
+    keys: ["вкуснотеево", "молоко вкуснотеево", "кефир вкуснотеево"],
+    dishName: "Молоко Вкуснотеево 2,5%",
+    calories: 130,
+    protein: 8,
+    fat: 6,
+    carbs: 12,
+    sugar: 12,
+    portionGrams: 250,
+    brand: "Вкуснотеево",
+  },
+  {
+    keys: ["домик в деревне", "молоко домик в деревне"],
+    dishName: "Молоко Домик в деревне",
+    calories: 130,
+    protein: 8,
+    fat: 6,
+    carbs: 12,
+    sugar: 12,
+    portionGrams: 250,
+    brand: "Домик в деревне",
+  },
+  {
+    keys: ["данон", "danone", "йогурт данон"],
+    dishName: "Йогурт Danone",
+    calories: 110,
+    protein: 4,
+    fat: 3,
+    carbs: 15,
+    sugar: 14,
+    portionGrams: 125,
+    brand: "Danone",
+  },
+  {
+    keys: ["фругурт", "йогурт фругурт"],
+    dishName: "Йогурт Фругурт",
+    calories: 130,
+    protein: 4,
+    fat: 2,
+    carbs: 24,
+    sugar: 22,
+    portionGrams: 125,
+    brand: "Фругурт",
+  },
+  {
+    keys: ["растишка", "йогурт растишка"],
+    dishName: "Йогурт Растишка",
+    calories: 100,
+    protein: 4,
+    fat: 2,
+    carbs: 16,
+    sugar: 14,
+    portionGrams: 110,
+    brand: "Растишка",
+  },
+  {
+    keys: ["чудо творожок", "творожок чудо"],
+    dishName: "Творожок Чудо",
+    calories: 150,
+    protein: 8,
+    fat: 6,
+    carbs: 16,
+    sugar: 14,
+    portionGrams: 100,
+    brand: "Чудо",
+  },
 ];
 
 function normalizeRuLookupKey(name: string): string {
@@ -193,5 +503,59 @@ export function lookupRuNutritionTable(dishName: string): PackNutrition | null {
     sugar: entry.sugar,
     portionGrams: entry.portionGrams,
     explicitPackGrams: true,
+    brand: entry.brand,
   };
+}
+
+/** Scale a RU staple match to an arbitrary gram weight (recipe builder). */
+export function scaleRuNutritionToGrams(
+  dishName: string,
+  grams: number,
+): { calories: number; protein: number; fat: number; carbs: number } | null {
+  if (!dishName.trim() || !(grams > 0)) {
+    return null;
+  }
+  const hit = lookupRuNutritionTable(dishName);
+  if (!hit || !(hit.portionGrams > 0)) {
+    return null;
+  }
+  const factor = grams / hit.portionGrams;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  return {
+    calories: Math.round(hit.calories * factor),
+    protein: round1((hit.protein ?? 0) * factor),
+    fat: round1((hit.fat ?? 0) * factor),
+    carbs: round1((hit.carbs ?? 0) * factor),
+  };
+}
+
+/** True when the dish name matches an alcohol staple (пиво, вино, водка…). */
+export function dishLooksLikeAlcohol(dishName: string): boolean {
+  const query = dishName.trim();
+  if (query.length < 3) {
+    return false;
+  }
+
+  for (const entry of RU_NUTRITION_ENTRIES) {
+    if (!entry.isAlcohol) continue;
+    for (const key of entry.keys) {
+      if (matchScore(query, key) >= 70) {
+        return true;
+      }
+    }
+  }
+
+  const n = normalizeRuLookupKey(query);
+  return (
+    n.includes("пиво") ||
+    n.includes("водка") ||
+    n.includes("коньяк") ||
+    n.includes("шампанск") ||
+    n.includes("игристое") ||
+    n.includes("сидр") ||
+    n.includes("виски") ||
+    n.includes("ликёр") ||
+    n.includes("ликер") ||
+    /\b(beer|wine|vodka|prosecco|whisky|whiskey|baileys)\b/.test(n)
+  );
 }

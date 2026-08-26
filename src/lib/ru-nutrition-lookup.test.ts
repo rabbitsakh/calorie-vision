@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
+import { dishLooksLikeAlcohol, lookupRuNutritionTable, scaleRuNutritionToGrams } from "./ru-nutrition-lookup.ts";
 
 test("lookupRuNutritionTable matches borscht", () => {
   const hit = lookupRuNutritionTable("Домашний борщ");
@@ -63,4 +63,50 @@ test("lookupRuNutritionTable matches new staples", () => {
   const friedPotato = lookupRuNutritionTable("жареный картофель");
   assert.ok(friedPotato);
   assert.match(friedPotato!.dishName, /Картофель жареный/i);
+});
+
+test("lookupRuNutritionTable matches expanded staples", () => {
+  const okroshka = lookupRuNutritionTable("окрошка");
+  assert.ok(okroshka);
+  assert.match(okroshka!.dishName, /Окрошка/i);
+
+  const millet = lookupRuNutritionTable("пшенная каша");
+  assert.ok(millet);
+  assert.match(millet!.dishName, /Пшён/i);
+
+  const pie = lookupRuNutritionTable("пирожок с мясом");
+  assert.ok(pie);
+  assert.match(pie!.dishName, /Пирожок/i);
+});
+
+test("lookupRuNutritionTable matches brand packs", () => {
+  const doshirak = lookupRuNutritionTable("доширак");
+  assert.ok(doshirak);
+  assert.match(doshirak!.dishName, /Доширак/i);
+  assert.equal(doshirak!.brand, "Доширак");
+
+  const actimel = lookupRuNutritionTable("актимель");
+  assert.ok(actimel);
+  assert.match(actimel!.dishName, /Actimel/i);
+
+  const prostokvashino = lookupRuNutritionTable("кефир простоквашино");
+  assert.ok(prostokvashino);
+  assert.match(prostokvashino!.dishName, /Простоквашино/i);
+});
+
+test("lookupRuNutritionTable and dishLooksLikeAlcohol for drinks", () => {
+  const beer = lookupRuNutritionTable("пиво");
+  assert.ok(beer);
+  assert.match(beer!.dishName, /Пиво/i);
+  assert.equal(dishLooksLikeAlcohol("пиво светлое"), true);
+  assert.equal(dishLooksLikeAlcohol("водка"), true);
+  assert.equal(dishLooksLikeAlcohol("борщ"), false);
+});
+
+test("scaleRuNutritionToGrams scales portion macros", () => {
+  const full = lookupRuNutritionTable("банан");
+  assert.ok(full);
+  const half = scaleRuNutritionToGrams("банан", full!.portionGrams / 2);
+  assert.ok(half);
+  assert.equal(half!.calories, Math.round(full!.calories / 2));
 });

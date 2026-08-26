@@ -5,6 +5,7 @@ import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type Nutrition
 import type { RecognitionResponse } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -1098,6 +1099,12 @@ function DishFields({
       {review.lowConfidence ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
           Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте название или нажмите «Уточнить по названию».
+        </p>
+      ) : null}
+
+      {dishLooksLikeAlcohol(dish.dishName) ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+          Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
         </p>
       ) : null}
 

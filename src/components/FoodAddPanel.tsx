@@ -238,7 +238,13 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       }>(response);
 
       if (!response.ok || !data.recognition) {
-        throw new Error(data.error ?? "Не удалось найти продукт");
+        const miss = data.error ?? "Не удалось найти продукт";
+        if (payload.barcode) {
+          throw new Error(
+            `${miss}. Можно ввести название вручную или сфотографировать этикетку.`,
+          );
+        }
+        throw new Error(miss);
       }
 
       if (controller.signal.aborted) {
@@ -464,6 +470,14 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
                 setBarcodeQuery(code);
                 void lookupFood({ barcode: code });
               }}
+              onManualFallback={() => {
+                setError(null);
+                setMode("text");
+              }}
+              onLabelFallback={() => {
+                setError(null);
+                setMode("photo");
+              }}
             />
             <div className="field">
               <label htmlFor="food-barcode">Или введите штрихкод EAN</label>
@@ -484,7 +498,35 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           </form>
         ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-red-600">{error}</p>
+            {mode === "barcode" ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary text-sm"
+                  onClick={() => {
+                    setError(null);
+                    setMode("text");
+                  }}
+                >
+                  Ввести вручную
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary text-sm"
+                  onClick={() => {
+                    setError(null);
+                    setMode("photo");
+                  }}
+                >
+                  Сфотографировать этикетку
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {savedToast ? (
           <p className="rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">{savedToast}</p>

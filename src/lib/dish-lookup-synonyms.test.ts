@@ -16,3 +16,14 @@ test("lookupQueriesForName adds milk synonym", () => {
   const queries = lookupQueriesForName("молоко", null, 2);
   assert.ok(queries.some((q) => q.includes("2.5") || q.includes("2,5")));
 });
+
+test("lookupQueriesForName expands typos and brands", () => {
+  const typo = lookupQueriesForName("боршь", null, 2);
+  assert.ok(typo.some((q) => q.includes("борщ")));
+
+  const brand = lookupQueriesForName("дошик", null, 2);
+  assert.ok(brand.some((q) => q.toLowerCase().includes("доширак")));
+
+  const alcohol = lookupQueriesForName("пиво", null, 2);
+  assert.ok(alcohol.some((q) => q.includes("светлое")));
+});

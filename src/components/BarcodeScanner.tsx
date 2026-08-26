@@ -11,9 +11,13 @@ import { playScannerBeep } from "@/lib/scanner-beep";
 type BarcodeScannerProps = {
   disabled?: boolean;
   onDetected: (code: string) => void;
+  /** When scan/decode fails — jump to manual name entry. */
+  onManualFallback?: () => void;
+  /** When scan/decode fails — jump to label photo recognition. */
+  onLabelFallback?: () => void;
 };
 
-export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
+export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabelFallback }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -169,7 +173,25 @@ export function BarcodeScanner({ disabled, onDetected }: BarcodeScannerProps) {
           }}
         />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-red-600">{error}</p>
+          {onManualFallback || onLabelFallback ? (
+            <div className="flex flex-wrap gap-2">
+              {onManualFallback ? (
+                <button type="button" className="btn btn-secondary text-sm" onClick={onManualFallback}>
+                  Ввести вручную
+                </button>
+              ) : null}
+              {onLabelFallback ? (
+                <button type="button" className="btn btn-secondary text-sm" onClick={onLabelFallback}>
+                  Сфотографировать этикетку
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

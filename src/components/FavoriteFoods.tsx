@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { trackFirstMealSaveGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
+import { RecipeBuilder } from "@/components/RecipeBuilder";
 
 const PANEL_ID = "favorites";
 
@@ -53,6 +55,8 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   const [fiber, setFiber] = useState("");
   const [sugar, setSugar] = useState("");
   const [portionGrams, setPortionGrams] = useState("");
+  const [csvStatus, setCsvStatus] = useState<string | null>(null);
+  const [recipeOpen, setRecipeOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -124,6 +128,41 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
     await load();
   }
 
+  async function handleCsvImport(file: File) {
+    setCsvStatus(null);
+    try {
+      const textCsv = await file.text();
+      const parsed = parseCustomFoodsCsv(textCsv);
+      if (parsed.rows.length === 0) {
+        setCsvStatus(parsed.errors[0] ?? "В файле нет валидных строк");
+        return;
+      }
+      const resp = await fetch(withBasePath("/api/custom-foods"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ foods: parsed.rows }),
+      });
+      const data = (await resp.json()) as {
+        error?: string;
+        imported?: number;
+        skipped?: number;
+        count?: number;
+        foods?: unknown[];
+      };
+      if (!resp.ok) throw new Error(data.error ?? "Импорт не удался");
+      const imported = data.imported ?? data.count ?? data.foods?.length ?? parsed.rows.length;
+      const skipped = data.skipped ?? 0;
+      setCsvStatus(
+        skipped > 0
+          ? `Импортировано: ${imported}, пропущено: ${skipped}`
+          : `Импортировано: ${imported}`,
+      );
+      await load();
+    } catch (err) {
+      setCsvStatus(err instanceof Error ? err.message : "Ошибка импорта");
+    }
+  }
+
   if (hidden && !embedded) {
     return (
       <button
@@ -149,6 +188,26 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         >
           {showForm ? "Отмена" : "+ Добавить"}
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary text-sm"
+          onClick={() => setRecipeOpen(!recipeOpen)}
+        >
+          {recipeOpen ? "Скрыть рецепт" : "Рецепт"}
+        </button>
+        <label className="btn btn-secondary text-sm cursor-pointer">
+          CSV
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleCsvImport(file);
+              e.target.value = "";
+            }}
+          />
+        </label>
         {!embedded ? (
         <button
           type="button"
@@ -208,9 +267,23 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         </div>
       ) : null}
 
+      {csvStatus ? <p className="mt-2 text-xs text-slate-600">{csvStatus}</p> : null}
+
+      {recipeOpen ? (
+        <div className="mt-3">
+          <RecipeBuilder
+            embedded
+            onSaved={() => {
+              setRecipeOpen(false);
+              void load();
+            }}
+          />
+        </div>
+      ) : null}
+
       {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
 
-      {!loading && foods.length === 0 && !showForm ? (
+      {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
         <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
           <p className="text-sm font-medium text-teal-900">Избранное пока пусто</p>
           <p className="mt-1 text-xs text-slate-500">

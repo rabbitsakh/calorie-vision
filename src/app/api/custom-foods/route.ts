@@ -25,37 +25,78 @@ export async function GET() {
   }
 }
 
+type CustomFoodInput = {
+  name: string;
+  calories: number;
+  protein?: number | null;
+  fat?: number | null;
+  carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
+  portionGrams?: number | null;
+};
+
+function normalizeFoodInput(body: CustomFoodInput) {
+  if (!body.name?.trim() || !Number.isFinite(body.calories) || body.calories <= 0) {
+    return null;
+  }
+  return {
+    name: decodeHtmlEntities(body.name.trim()),
+    calories: Math.round(body.calories),
+    protein: body.protein ?? null,
+    fat: body.fat ?? null,
+    carbs: body.carbs ?? null,
+    fiber: body.fiber ?? null,
+    sugar: body.sugar ?? null,
+    portionGrams: body.portionGrams ?? null,
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) return response;
 
-    const body = (await request.json()) as {
-      name: string;
-      calories: number;
-      protein?: number | null;
-      fat?: number | null;
-      carbs?: number | null;
-      fiber?: number | null;
-      sugar?: number | null;
-      portionGrams?: number | null;
+    const body = (await request.json()) as CustomFoodInput & {
+      foods?: CustomFoodInput[];
     };
 
-    if (!body.name?.trim() || !Number.isFinite(body.calories) || body.calories <= 0) {
+    // Batch import: { foods: [...] }
+    if (Array.isArray(body.foods)) {
+      if (body.foods.length === 0) {
+        return NextResponse.json({ error: "Список продуктов пуст" }, { status: 400 });
+      }
+      if (body.foods.length > 200) {
+        return NextResponse.json({ error: "Максимум 200 продуктов за раз" }, { status: 400 });
+      }
+
+      const prepared = body.foods
+        .map((item) => normalizeFoodInput(item))
+        .filter((item): item is NonNullable<typeof item> => item != null);
+
+      if (prepared.length === 0) {
+        return NextResponse.json({ error: "Нет валидных строк для импорта" }, { status: 400 });
+      }
+
+      await prisma.customFood.createMany({
+        data: prepared.map((item) => ({
+          userId: session.user.id,
+          ...item,
+        })),
+      });
+
+      return NextResponse.json({ imported: prepared.length, skipped: body.foods.length - prepared.length });
+    }
+
+    const single = normalizeFoodInput(body);
+    if (!single) {
       return NextResponse.json({ error: "Укажите название и калории" }, { status: 400 });
     }
 
     const food = await prisma.customFood.create({
       data: {
         userId: session.user.id,
-        name: decodeHtmlEntities(body.name.trim()),
-        calories: Math.round(body.calories),
-        protein: body.protein ?? null,
-        fat: body.fat ?? null,
-        carbs: body.carbs ?? null,
-        fiber: body.fiber ?? null,
-        sugar: body.sugar ?? null,
-        portionGrams: body.portionGrams ?? null,
+        ...single,
       },
     });
 
