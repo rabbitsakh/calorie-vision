@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { formatBalanceLabel, sexNoun, type NutrientComparison, type Sex } from "@/lib/diet";
+import { withBasePath } from "@/lib/paths";
 
 type DietTargetsProps = {
   comparison: {
@@ -93,6 +95,15 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex,
           />
         ) : null}
       </div>
+      <p className="mt-3 text-xs text-slate-500">
+        Не медицинская рекомендация.{" "}
+        <Link
+          href={withBasePath("/disclaimer")}
+          className="text-teal-800 underline-offset-2 hover:underline"
+        >
+          Дисклеймер
+        </Link>
+      </p>
     </div>
   );
 }

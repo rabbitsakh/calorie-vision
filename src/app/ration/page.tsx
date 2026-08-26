@@ -43,6 +43,7 @@ import { withBasePath } from "@/lib/paths";
 import type { MealType } from "@/types";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
+import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -124,6 +125,7 @@ export default function RationPage() {
             refreshKey={refreshKey}
             onSelectDate={(next) => setDate(next)}
           />
+          <MedicalDisclaimerNote className="px-1" />
 
           <FoodAddPanel selectedDate={date} initialMealType={deepLinkMeal ?? undefined} onSaved={bump} onPendingChange={setConfirmOpen} />
 
