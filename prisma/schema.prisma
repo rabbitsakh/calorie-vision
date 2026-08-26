@@ -24,6 +24,13 @@ enum Sex {
   MALE
 }
 
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+}
+
 model User {
   id            String         @id @default(cuid())
   name          String?
@@ -35,6 +42,8 @@ model User {
   sex           Sex?
   heightCm      Int?
   birthYear     Int?
+  /** Daily activity for TDEE; null → LIGHT (1.25), same as legacy hardcoded factor. */
+  activityLevel ActivityLevel?
   goal          WeightGoal?
   goalPace      GoalPace?
   targetWeightKg Float?
@@ -43,6 +52,8 @@ model User {
   fiberTargetG  Float?
   /** Soft free-sugar cap override (g); null → diet default (~10% energy). */
   sugarTargetG  Float?
+  /** Personal daily water goal (ml); null → 2000. */
+  waterTargetMl Int?
   timezone      String?        @db.VarChar(64)
   /** Local hour (0–23) when quiet hours begin; null = disabled. */
   quietHoursStart Int?

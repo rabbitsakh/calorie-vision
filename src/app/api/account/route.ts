@@ -3,12 +3,13 @@ import { deleteUserAccount } from "@/lib/account-delete";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { lockedEmailDecision } from "@/lib/account-email";
 import { requireSession } from "@/lib/auth-session";
-import { isSex, type Sex } from "@/lib/diet";
+import { isActivityLevel, isSex, type ActivityLevel, type Sex } from "@/lib/diet";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { referralCodeForUser } from "@/lib/referral";
 import { clampHour } from "@/lib/quiet-hours";
 import { saveUploadedImage } from "@/lib/upload";
+import { isValidWaterTargetMl } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +48,10 @@ export async function GET() {
           sex: true,
           heightCm: true,
           birthYear: true,
+          activityLevel: true,
           fiberTargetG: true,
           sugarTargetG: true,
+          waterTargetMl: true,
         },
       }),
       prisma.account.findMany({
@@ -76,8 +79,10 @@ export async function GET() {
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
+      activityLevel: user.activityLevel ?? null,
       fiberTargetG: user.fiberTargetG ?? null,
       sugarTargetG: user.sugarTargetG ?? null,
+      waterTargetMl: user.waterTargetMl ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
       referralCode: referralCodeForUser(user.id),
@@ -107,8 +112,10 @@ export async function PUT(request: NextRequest) {
       sex?: string | null;
       heightCm?: number | null;
       birthYear?: number | null;
+      activityLevel?: string | null;
       fiberTargetG?: number | null;
       sugarTargetG?: number | null;
+      waterTargetMl?: number | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -140,8 +147,10 @@ export async function PUT(request: NextRequest) {
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
+      activityLevel?: ActivityLevel | null;
       fiberTargetG?: number | null;
       sugarTargetG?: number | null;
+      waterTargetMl?: number | null;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -194,6 +203,33 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: "Укажите пол: женский или мужской" }, { status: 400 });
       } else {
         data.sex = body.sex;
+      }
+    }
+
+    if (body.activityLevel !== undefined) {
+      if (body.activityLevel === null || body.activityLevel === "") {
+        data.activityLevel = null;
+      } else if (!isActivityLevel(body.activityLevel)) {
+        return NextResponse.json(
+          { error: "Укажите уровень активности: сидячий, лёгкий, умеренный или высокий" },
+          { status: 400 },
+        );
+      } else {
+        data.activityLevel = body.activityLevel;
+      }
+    }
+
+    if (body.waterTargetMl !== undefined) {
+      const raw = body.waterTargetMl;
+      if (raw == null || raw === ("" as unknown)) {
+        data.waterTargetMl = null;
+      } else if (!isValidWaterTargetMl(Number(raw))) {
+        return NextResponse.json(
+          { error: "Цель по воде: укажите от 500 до 6000 мл" },
+          { status: 400 },
+        );
+      } else {
+        data.waterTargetMl = Math.round(Number(raw));
       }
     }
 
@@ -319,8 +355,10 @@ export async function PUT(request: NextRequest) {
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
+      activityLevel: user.activityLevel ?? null,
       fiberTargetG: user.fiberTargetG ?? null,
       sugarTargetG: user.sugarTargetG ?? null,
+      waterTargetMl: user.waterTargetMl ?? null,
       linkedProviders,
       emailLocked,
     });

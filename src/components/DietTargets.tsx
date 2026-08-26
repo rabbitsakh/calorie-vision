@@ -13,6 +13,7 @@ type DietTargetsProps = {
   weightKg: number;
   dietLabel?: string | null;
   sex?: Sex | null;
+  calorieExplanation?: string | null;
 };
 
 function Meter({
@@ -52,7 +53,7 @@ function Meter({
   );
 }
 
-export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex }: DietTargetsProps) {
+export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex, calorieExplanation }: DietTargetsProps) {
   const sexText = sexNoun(sex);
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -64,6 +65,11 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex 
       </p>
       {!sex ? (
         <p className="mt-1 text-xs text-amber-700">Укажите пол в профиле — норма станет точнее</p>
+      ) : null}
+      {calorieExplanation ? (
+        <p className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs leading-relaxed text-slate-600">
+          {calorieExplanation}
+        </p>
       ) : null}
       <div className="mt-4 flex flex-col gap-3">
         <Meter label="Калории" unit="ккал" comparison={comparison.calories} tone={calorieTone} />

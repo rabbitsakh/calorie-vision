@@ -65,6 +65,8 @@ export type DayMealsResponse = {
   sex: Sex | null;
   weightKg: number | null;
   target: DietTarget | null;
+  /** BMR → TDEE → goal explanation when targets are available. */
+  calorieExplanation?: string | null;
   comparison: {
     calories: NutrientComparison;
     protein: NutrientComparison;

@@ -657,13 +657,17 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
   const [daySummary, setDaySummary] = useState<
-    Pick<DayMealsResponse, "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex">
+    Pick<
+      DayMealsResponse,
+      "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex" | "calorieExplanation"
+    >
   >({
     comparison: null,
     calorieTone: null,
     weightKg: null,
     dietLabel: null,
     sex: null,
+    calorieExplanation: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -732,6 +736,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         weightKg: data.weightKg ?? null,
         dietLabel: data.dietLabel ?? null,
         sex: data.sex ?? null,
+        calorieExplanation: data.calorieExplanation ?? null,
       });
     } catch (err) {
       if (!quiet) {
@@ -1025,6 +1030,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                   weightKg={daySummary.weightKg}
                   dietLabel={daySummary.dietLabel}
                   sex={daySummary.sex}
+                  calorieExplanation={daySummary.calorieExplanation}
                 />
                 {daySummary.comparison.calories.target > 0 ? (() => {
                   const target = daySummary.comparison!.calories.target;

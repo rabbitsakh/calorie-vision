@@ -13,6 +13,7 @@ import {
   isDangerousCalorieUndereat,
   recommendDiet,
   applyFiberSugarOverrides,
+  explainDiet,
 } from "./diet.ts";
 
 test("recommends a calorie deficit and higher protein for a healthy cut", () => {
@@ -178,6 +179,39 @@ test("dangerous LOSE undereat is below 75% of target", () => {
 test("daily goal celebration copy matches goal", () => {
   assert.match(dailyGoalCelebrationCopy("LOSE").subtitle, /дефиците/i);
   assert.match(dailyGoalCelebrationCopy("GAIN").subtitle, /набор/i);
-  assert.match(dailyGoalCelebrationCopy("MAINTAIN").subtitle, /нормой/i);
+  assert.match(dailyGoalCelebrationCopy("MAINTAIN").subtitle, /коридоре нормы/i);
   assert.match(dailyGoalCelebrationCopy("LOSE", 1840, 2000).subtitle, /1840 \/ 2000/);
+});
+
+test("activity level changes TDEE while LIGHT matches legacy calories", () => {
+  const light = recommendDiet(80, "MAINTAIN", null, "FEMALE", null, null, "LIGHT");
+  const sedentary = recommendDiet(80, "MAINTAIN", null, "FEMALE", null, null, "SEDENTARY");
+  const moderate = recommendDiet(80, "MAINTAIN", null, "FEMALE", null, null, "MODERATE");
+  assert.equal(light.calories, 1869);
+  assert.ok(sedentary.calories < light.calories);
+  assert.ok(moderate.calories > light.calories);
+});
+
+test("explainDiet returns BMR × activity breakdown", () => {
+  const { explanation, bmr, maintainCalories, activityFactor } = explainDiet(
+    80,
+    "MAINTAIN",
+    null,
+    "FEMALE",
+    null,
+    null,
+    "LIGHT",
+  );
+  assert.equal(activityFactor, 1.25);
+  assert.ok(bmr > 0);
+  assert.equal(maintainCalories, Math.round(bmr * 1.25));
+  assert.match(explanation, /BMR/);
+  assert.match(explanation, /поддержание/);
+});
+
+test("maintain corridor is wider than lose/gain (±10%)", () => {
+  assert.equal(isCalorieGoalCorridor(2000, 2000, "MAINTAIN"), true);
+  assert.equal(isCalorieGoalCorridor(1830, 2000, "MAINTAIN"), true); // 8.5% — outside ±8%
+  assert.equal(isCalorieGoalCorridor(1830, 2000, "LOSE"), false);
+  assert.equal(isCalorieGoalCorridor(1800, 2000, "MAINTAIN"), true); // exactly 10%
 });
