@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 
 type WaterResponse = {
   totalMl: number;
@@ -83,6 +84,7 @@ export function WaterTracker({
         const data = (await resp.json()) as WaterResponse;
         setTotalMl(data.totalMl);
         setTarget(data.target);
+        trackWaterLoggedGoal();
         onChanged?.();
       }
     } finally {

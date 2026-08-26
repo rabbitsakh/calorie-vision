@@ -51,6 +51,24 @@ async function computeProgress(
     return rows.length;
   }
 
+  if (challengeKey === "dinner_5") {
+    const rows = await prisma.mealEntry.findMany({
+      where: { userId, date: { in: dates }, mealType: "DINNER" },
+      select: { date: true },
+      distinct: ["date"],
+    });
+    return rows.length;
+  }
+
+  if (challengeKey === "water_7") {
+    const rows = await prisma.waterEntry.groupBy({
+      by: ["date"],
+      where: { userId, date: { in: dates } },
+      _sum: { ml: true },
+    });
+    return rows.filter((r) => (r._sum.ml ?? 0) >= WATER_HABIT_DAY_ML).length;
+  }
+
   return 0;
 }
 

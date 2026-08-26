@@ -15,6 +15,7 @@ type BadgeStats = {
   mealCount: number;
   waterStreak: number;
   onTargetDays: number;
+  weightLogCount: number;
 };
 
 async function loadBadgeStats(userId: string): Promise<{
@@ -29,7 +30,7 @@ async function loadBadgeStats(userId: string): Promise<{
   });
   const today = toDateKeyTz(new Date(), user?.timezone);
 
-  const [mealDates, mealCount, waterEntries, existing, weight, freezes] = await Promise.all([
+  const [mealDates, mealCount, waterEntries, existing, weight, freezes, weightLogCount] = await Promise.all([
     prisma.mealEntry.findMany({
       where: { userId },
       select: { date: true },
@@ -51,6 +52,7 @@ async function loadBadgeStats(userId: string): Promise<{
       where: { userId },
       select: { date: true },
     }),
+    prisma.weightEntry.count({ where: { userId } }),
   ]);
 
   // Include freeze days in badge streak (#30)
@@ -103,15 +105,20 @@ async function loadBadgeStats(userId: string): Promise<{
   const earnedKeys = new Set(existing.map((b) => b.badgeKey));
   const candidates: string[] = [];
   if (mealCount >= 1) candidates.push("first_log");
+  if (streak >= 3) candidates.push("streak_3");
   if (streak >= 7) candidates.push("streak_7");
   if (streak >= 30) candidates.push("streak_30");
+  if (mealCount >= 10) candidates.push("meals_10");
   if (mealCount >= 100) candidates.push("meals_100");
+  if (mealCount >= 500) candidates.push("meals_500");
+  if (waterStreak >= 3) candidates.push("water_3");
   if (waterStreak >= 7) candidates.push("water_7");
   if (onTargetDays >= 5) candidates.push("week_on_target");
+  if (weightLogCount >= 5) candidates.push("weight_5");
 
   return {
     today,
-    stats: { streak, mealCount, waterStreak, onTargetDays },
+    stats: { streak, mealCount, waterStreak, onTargetDays, weightLogCount },
     existing,
     candidates: candidates.filter((key) => !earnedKeys.has(key)),
   };

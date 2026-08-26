@@ -12,6 +12,11 @@ import {
   trackD7ReturnGoal,
   trackFirstMealSaveGoal,
   trackLoginGoal,
+  trackMealSavedGoal,
+  trackPhotoRecognizeGoal,
+  trackPushEnabledGoal,
+  trackWaterLoggedGoal,
+  trackWeightLoggedGoal,
 } from "./metrika-funnel.ts";
 
 test("account delete confirm token is DELETE", () => {
@@ -64,10 +69,27 @@ test("funnel goals fire once for first meal and d7", () => {
   trackLoginGoal();
   trackFirstMealSaveGoal();
   trackFirstMealSaveGoal();
+  trackMealSavedGoal(2_000);
+  trackMealSavedGoal(2_000);
+  trackPhotoRecognizeGoal(2_000);
+  trackPhotoRecognizeGoal(2_000);
+  trackWaterLoggedGoal(2_000);
+  trackWeightLoggedGoal(2_000);
+  trackPushEnabledGoal();
+  trackPushEnabledGoal();
   trackD7ReturnGoal(1_000);
   trackD7ReturnGoal(1_000 + 8 * 24 * 60 * 60 * 1000);
 
-  assert.deepEqual(calls, ["login", "first_meal_save", "d7_return"]);
+  assert.deepEqual(calls, [
+    "login",
+    "first_meal_save",
+    "meal_saved",
+    "photo_recognize",
+    "water_logged",
+    "weight_logged",
+    "push_enabled",
+    "d7_return",
+  ]);
 
   (globalThis as { window?: unknown }).window = previous;
   setMetrikaClientId(null);

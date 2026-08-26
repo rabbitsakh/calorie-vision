@@ -18,10 +18,15 @@ export function shouldTrackMetrikaPath(pathname: string): boolean {
   return !pathname.startsWith("/admin");
 }
 
-/** Funnel goals used in client components. */
+/** Funnel goals used in client components (Yandex Metrika reachGoal names). */
 export const METRIKA_GOALS = {
   login: "login",
   firstMealSave: "first_meal_save",
+  photoRecognize: "photo_recognize",
+  mealSaved: "meal_saved",
+  waterLogged: "water_logged",
+  weightLogged: "weight_logged",
+  pushEnabled: "push_enabled",
   d7Return: "d7_return",
 } as const;
 
