@@ -73,6 +73,7 @@ describe("diary-delete-slots", () => {
         label: "B",
         snapshot: [b],
         afterKey: "e:c",
+        expiresAt: Date.now() + 4000,
       },
     ];
 
@@ -90,6 +91,7 @@ describe("diary-delete-slots", () => {
       label: "A",
       snapshot: [meal("a", "A", "2026-08-24T12:00:00Z")],
       afterKey: "e:b",
+      expiresAt: Date.now() + 4000,
     };
     const second: PendingDeleteSlot = {
       key: "undo-b",
@@ -97,6 +99,7 @@ describe("diary-delete-slots", () => {
       label: "B",
       snapshot: [meal("b", "B", "2026-08-24T11:00:00Z")],
       afterKey: "e:c",
+      expiresAt: Date.now() + 4000,
     };
     const next = appendPendingDelete([first], second, "e:b");
     assert.equal(next[0]?.afterKey, "undo-b");
@@ -155,6 +158,7 @@ describe("diary-delete-slots", () => {
         label: "A",
         snapshot: [meal("a", "A", "2026-08-24T12:00:00Z")],
         afterKey: null,
+        expiresAt: Date.now() + 4000,
       },
     ];
     const hidden = collectHiddenMealIds(pending, new Set(["b"]));

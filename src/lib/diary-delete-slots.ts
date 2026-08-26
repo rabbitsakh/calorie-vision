@@ -8,6 +8,8 @@ export type PendingDeleteSlot = {
   snapshot: MealEntry[];
   /** Place undo before this meal/undo key; null = end of list. */
   afterKey: string | null;
+  /** Unix ms — parent timer confirms delete after this moment. */
+  expiresAt: number;
 };
 
 export type DiaryDisplayRow =
