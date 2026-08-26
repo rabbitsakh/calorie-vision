@@ -17,6 +17,7 @@ import {
   addMealTotals,
   appendPendingDelete,
   buildDiaryDisplayRows,
+  filterMealsResponse,
   findMealListIndex,
   mealListItemKey,
   mergeEntriesAfterUndo,
@@ -749,14 +750,23 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
   }, [selectedDate, applyMeals]);
 
+  const pendingDeleteIds = useMemo(
+    () => new Set(pendingDeletes.flatMap((slot) => slot.ids)),
+    [pendingDeletes],
+  );
+
   useEffect(() => {
     attemptedImageMealIds.current.clear();
     setPendingDeletes([]);
-  }, [selectedDate, refreshKey]);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (dayData?.date === selectedDate && dayData.meals) {
-      applyMeals(dayData.meals);
+      const meals =
+        pendingDeleteIds.size > 0
+          ? filterMealsResponse(dayData.meals, pendingDeleteIds)
+          : dayData.meals;
+      applyMeals(meals);
       setStreakDays(dayData.streak?.streak ?? 0);
       setLoading(false);
       setError(null);
@@ -780,7 +790,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     dayLoading,
     hasProvider,
     loadEntries,
-    refreshKey,
+    pendingDeleteIds,
     selectedDate,
   ]);
 
@@ -909,7 +919,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     // Allow photo backfill to retry after a rename.
     attemptedImageMealIds.current.delete(id);
 
-    await loadEntries(true);
+    await reloadDayAfterMutation(true);
     onChanged?.();
   }
 
@@ -930,10 +940,10 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       cache: "no-store",
     });
     if (!response.ok) {
-      await loadEntries(true);
+      await reloadDayAfterMutation(true);
       return;
     }
-    await loadEntries(true);
+    await reloadDayAfterMutation(true);
     onChanged?.();
   }
 
@@ -949,11 +959,19 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     onChanged?.();
   }
 
+  async function reloadDayAfterMutation(quiet = true) {
+    if (dayRefresh) {
+      await dayRefresh(quiet);
+      return;
+    }
+    await loadEntries(quiet);
+  }
+
   async function performDelete(ids: string[]) {
     await Promise.all(
       ids.map((id) => fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" })),
     );
-    await loadEntries(true);
+    await reloadDayAfterMutation(true);
     onChanged?.();
   }
 
@@ -1025,7 +1043,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       });
       const data = (await resp.json()) as { copied?: number; error?: string };
       if (resp.ok) {
-        await loadEntries();
+        await reloadDayAfterMutation(false);
         onChanged?.();
       } else {
         alert(data.error ?? "Не удалось скопировать");

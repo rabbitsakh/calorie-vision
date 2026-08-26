@@ -5,6 +5,7 @@ import type { MealListItem } from "./meal-groups.ts";
 import {
   appendPendingDelete,
   buildDiaryDisplayRows,
+  filterMealsResponse,
   mealListItemKey,
   mergeEntriesAfterUndo,
   type PendingDeleteSlot,
@@ -114,5 +115,33 @@ describe("diary-delete-slots", () => {
       merged.map((entry) => entry.id),
       ["a", "b"],
     );
+  });
+
+  test("filterMealsResponse hides pending deletes and adjusts totals", () => {
+    const a = meal("a", "A", "2026-08-24T12:00:00Z");
+    const b = meal("b", "B", "2026-08-24T11:00:00Z");
+    b.calories = 200;
+    const data = {
+      date: "2026-08-24",
+      entries: [a, b],
+      totalCalories: 300,
+      totalProtein: 0,
+      totalFat: 0,
+      totalCarbs: 0,
+      totalFiber: 0,
+      totalSugar: 0,
+      comparison: null,
+      calorieTone: null,
+      weightKg: null,
+      dietLabel: null,
+      sex: null,
+      calorieExplanation: null,
+    };
+    const filtered = filterMealsResponse(data, new Set(["b"]));
+    assert.deepEqual(
+      filtered.entries.map((entry) => entry.id),
+      ["a"],
+    );
+    assert.equal(filtered.totalCalories, 100);
   });
 });
