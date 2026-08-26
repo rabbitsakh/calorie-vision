@@ -111,7 +111,7 @@ export default function RationPage() {
       }
     >
       <AuthGate>
-        <div className="ration-page flex flex-col gap-3 md:gap-4">
+        <div className="ration-page flex flex-col gap-2.5 md:gap-3">
           <OnboardingOverlay />
           <MascotSaveReaction />
           <ProfileCompletionBanner />

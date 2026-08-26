@@ -18,6 +18,14 @@ export const MEAL_TYPE_LABELS: Record<MealType, string> = {
   SNACK: "Перекус",
 };
 
+/** Compact diary chips — keep one row on narrow phones. */
+export const MEAL_TYPE_SHORT_LABELS: Record<MealType, string> = {
+  BREAKFAST: "Завтр.",
+  LUNCH: "Обед",
+  DINNER: "Ужин",
+  SNACK: "Перек.",
+};
+
 export type MealEntry = {
   id: string;
   date: string;
