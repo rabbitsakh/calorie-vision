@@ -22,6 +22,7 @@ import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
+import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
 import type { MealType } from "@/types";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -154,6 +155,7 @@ function RationBody({
   const splashStartedAt = useRef<number | null>(null);
 
   useEffect(() => {
+    // Date change / first paint: arm splash until bootstrap finishes.
     if (day.loading && !day.data) {
       if (splashStartedAt.current == null) {
         splashStartedAt.current = Date.now();
@@ -161,16 +163,16 @@ function RationBody({
       setSplashDone(false);
       return;
     }
-    if (!day.loading && day.data) {
+    if (!day.loading && (day.data || day.error)) {
       const started = splashStartedAt.current ?? Date.now();
-      const remaining = Math.max(0, 550 - (Date.now() - started));
+      const remaining = Math.max(0, SPLASH_MIN_VISIBLE_MS - (Date.now() - started));
       const t = window.setTimeout(() => {
         setSplashDone(true);
         splashStartedAt.current = null;
       }, remaining);
       return () => window.clearTimeout(t);
     }
-  }, [day.loading, day.data]);
+  }, [day.loading, day.data, day.error]);
 
   const bump = day.bump;
   const refreshKey = day.refreshKey;
@@ -182,8 +184,8 @@ function RationBody({
     return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
   }, [bump]);
 
-  // Keep splash until first payload is ready AND a short minimum time has passed.
-  const showSplash = !splashDone && (day.loading || !day.data);
+  // Only splashDone dismisses — not the moment data arrives (that was the flash).
+  const showSplash = !splashDone;
 
   return (
     <>

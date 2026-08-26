@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { Mascot } from "@/components/Mascot";
-import { pickSplashTip } from "@/lib/splash-tips";
+import { pickSplashTip, SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
 
 type AppSplashProps = {
   /** Optional tip; rotates locally if omitted. */
@@ -32,7 +32,7 @@ export function AppSplash({
     }
     const id = window.setInterval(() => {
       setLocalTip(pickSplashTip(Date.now()));
-    }, 3200);
+    }, Math.max(2200, Math.floor(SPLASH_MIN_VISIBLE_MS * 0.9)));
     return () => window.clearInterval(id);
   }, [tip]);
 
