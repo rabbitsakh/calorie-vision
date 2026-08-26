@@ -1,23 +1,11 @@
 "use client";
 
-import {
-  type CSSProperties,
-  type KeyboardEventHandler,
-  type MouseEventHandler,
-} from "react";
-import { mascotMotionClass, type MascotSvgProps } from "@/components/MascotSvg";
+import { mascotMotionClass, MASCOT_SIZE_PX, type MascotBaseProps } from "@/lib/mascot-types";
 import { mascotArtUrl, resolveMascotArtPose } from "@/lib/mascot-art";
 import type { MascotSkinId } from "@/lib/mascot-skin";
 import { withBasePath } from "@/lib/paths";
 
-const SIZE_PX = {
-  sm: 44,
-  md: 72,
-  lg: 112,
-  xl: 220,
-} as const;
-
-export type MascotArtProps = Omit<MascotSvgProps, "skin"> & {
+export type MascotArtProps = Omit<MascotBaseProps, "skin"> & {
   skin?: MascotSkinId;
   onFail?: () => void;
 };
@@ -42,7 +30,7 @@ export function MascotArt({
   style,
   "aria-label": ariaLabel,
 }: MascotArtProps) {
-  const px = SIZE_PX[size];
+  const px = MASCOT_SIZE_PX[size];
   const artPose = resolveMascotArtPose(pose, gesture);
   const src = withBasePath(mascotArtUrl(artPose, skin));
 
@@ -64,20 +52,18 @@ export function MascotArt({
   return (
     <div
       className={classes}
-      style={
-        {
-          width: px,
-          height: px,
-          display: "inline-block",
-          lineHeight: 0,
-          ...(style as CSSProperties | undefined),
-        } as CSSProperties
-      }
+      style={{
+        width: px,
+        height: px,
+        display: "inline-block",
+        lineHeight: 0,
+        ...style,
+      }}
       role={role ?? "img"}
       aria-label={label}
       tabIndex={tabIndex}
-      onClick={onClick as MouseEventHandler<HTMLDivElement> | undefined}
-      onKeyDown={onKeyDown as KeyboardEventHandler<HTMLDivElement> | undefined}
+      onClick={onClick}
+      onKeyDown={onKeyDown}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- static pose swaps from /public */}
       <img

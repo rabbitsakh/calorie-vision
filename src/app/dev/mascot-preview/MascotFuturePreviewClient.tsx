@@ -25,7 +25,7 @@ import {
 
 const POSES: MascotPose[] = ["idle", "cheer", "streak", "goal", "tip", "empty"];
 const GESTURES: MascotGesture[] = ["look", "yawn", "stretch", "wave", "pet", "react"];
-const BASE_RENDERERS: MascotRendererMode[] = ["auto", "art", "svg", "rive"];
+const BASE_RENDERERS: MascotRendererMode[] = ["auto", "art", "rive"];
 
 const CELEB_SCENES: Array<{
   id: CelebrationVariant;

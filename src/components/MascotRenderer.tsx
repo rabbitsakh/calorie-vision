@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { MascotArt } from "@/components/MascotArt";
 import type { MascotRiveProps } from "@/components/MascotRive";
-import { MascotSvg, type MascotSvgProps } from "@/components/MascotSvg";
 import { shouldUseMascotArt } from "@/lib/mascot-art";
 import { prefersReducedMascotMotion } from "@/lib/mascot-liveness";
 import { useMascotSkinOverrides } from "@/lib/mascot-skin-context";
@@ -15,15 +14,16 @@ import {
   type MascotRendererMode,
   type MascotSkinId,
 } from "@/lib/mascot-skin";
+import type { MascotBaseProps } from "@/lib/mascot-types";
 
-export type MascotRendererProps = Omit<MascotSvgProps, "skin"> & {
+export type MascotRendererProps = Omit<MascotBaseProps, "skin"> & {
   skin?: MascotSkinId;
   renderer?: MascotRendererMode;
 };
 
 /**
- * Picks illustrated art (V5), Rive, or SVG — used by LiveMascot and xl celebrations.
- * Priority in auto: art (md+) → Rive (if .riv present) → SVG.
+ * Picks illustrated art (default) or optional Rive.
+ * SVG path removed — art is the product mascot.
  * Rive chunk is lazy-loaded so the main ration bundle stays smaller.
  */
 export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps) {
@@ -45,7 +45,7 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
   }, [mode, size, resolvedSkin]);
 
   useEffect(() => {
-    if (mode === "svg" || preferArt) {
+    if (preferArt || mode === "art") {
       setRiveAvailable(false);
       return;
     }
@@ -96,10 +96,10 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
 
   if (useRive) {
     if (!RiveComp) {
-      return <MascotSvg {...props} skin={resolvedSkin} size={size} />;
+      return <MascotArt {...props} skin={resolvedSkin} size={size} />;
     }
     return <RiveComp {...(props as unknown as MascotRiveProps)} skin={resolvedSkin} size={size} />;
   }
 
-  return <MascotSvg {...props} skin={resolvedSkin} size={size} />;
+  return <MascotArt {...props} skin={resolvedSkin} size={size} />;
 }
