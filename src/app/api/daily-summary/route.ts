@@ -4,10 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import {
   applyFiberSugarOverrides,
-  isSex,
+  DIET_PROFILE_SELECT,
   isWeightGoal,
-  isGoalPace,
-  recommendDiet,
+  recommendDietForProfile,
   round1,
   compareNutrient,
   buildGoalAwareCalorieTip,
@@ -25,11 +24,7 @@ export async function GET(request: NextRequest) {
       where: { id: session.user.id },
       select: {
         timezone: true,
-        goal: true,
-        goalPace: true,
-        sex: true,
-        heightCm: true,
-        birthYear: true,
+        ...DIET_PROFILE_SELECT,
         fiberTargetG: true,
         sugarTargetG: true,
       },
@@ -65,13 +60,12 @@ export async function GET(request: NextRequest) {
     const totalWaterMl = waterEntries.reduce((sum, e) => sum + e.ml, 0);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-    const sex = isSex(user?.sex) ? user!.sex : null;
-    const target = goal && weight
-      ? applyFiberSugarOverrides(
-          recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear),
-          { fiberTargetG: user?.fiberTargetG, sugarTargetG: user?.sugarTargetG },
-        )
+    const rawTarget = recommendDietForProfile(weight?.weightKg, user);
+    const target = rawTarget
+      ? applyFiberSugarOverrides(rawTarget, {
+          fiberTargetG: user?.fiberTargetG,
+          sugarTargetG: user?.sugarTargetG,
+        })
       : null;
 
     let tip: string;

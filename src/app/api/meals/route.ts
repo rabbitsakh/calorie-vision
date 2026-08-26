@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
-import { applyFiberSugarOverrides, calorieTone, compareNutrient, explainDiet, formatGoalChoice, isActivityLevel, isSex, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
+import { applyFiberSugarOverrides, calorieTone, compareNutrient, DIET_PROFILE_SELECT, explainDiet, formatGoalChoice, isActivityLevel, isSex, isWeightGoal, round1, type GoalPace } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import {
@@ -116,12 +116,7 @@ export async function GET(request: NextRequest) {
       prisma.user.findUnique({
         where: { id: session.user.id },
         select: {
-          goal: true,
-          goalPace: true,
-          sex: true,
-          heightCm: true,
-          birthYear: true,
-          activityLevel: true,
+          ...DIET_PROFILE_SELECT,
           fiberTargetG: true,
           sugarTargetG: true,
         },
@@ -138,7 +133,7 @@ export async function GET(request: NextRequest) {
     const totalCarbs = round1(entries.reduce((sum, item) => sum + (item.carbs ?? 0), 0));
     const totalFiber = round1(entries.reduce((sum, item) => sum + (item.fiber ?? 0), 0));
     const totalSugar = round1(entries.reduce((sum, item) => sum + (item.sugar ?? 0), 0));
-    const goal = (user?.goal ?? null) as WeightGoal | null;
+    const goal = isWeightGoal(user?.goal) ? user.goal : null;
     const goalPace = (user?.goalPace ?? null) as GoalPace | null;
     const sex = isSex(user?.sex) ? user!.sex : null;
     const activity = isActivityLevel(user?.activityLevel) ? user!.activityLevel : null;

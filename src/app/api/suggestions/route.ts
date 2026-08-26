@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet, round1 } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, isSex, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
 
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true, name: true },
+        select: { ...DIET_PROFILE_SELECT, name: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -154,18 +154,16 @@ export async function GET(request: NextRequest) {
     ]);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const pace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
     const sex = isSex(user?.sex) ? user!.sex : null;
+    const target = recommendDietForProfile(weight?.weightKg, user);
 
-    if (!goal || !weight) {
+    if (!goal || !weight || !target) {
       return NextResponse.json({
         suggestions: [],
         reason: "Укажите цель и вес в профиле — тогда смогу рассчитать вашу норму и дать точные рекомендации.",
         tip: "",
       } satisfies Partial<SuggestionsResponse>);
     }
-
-    const target = recommendDiet(weight.weightKg, goal, pace, sex, user?.heightCm, user?.birthYear);
     const eaten = {
       calories: entries.reduce((s, e) => s + e.calories, 0),
       protein: round1(entries.reduce((s, e) => s + (e.protein ?? 0), 0)),

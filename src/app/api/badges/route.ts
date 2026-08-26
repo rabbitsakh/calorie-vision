@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, recommendDietForProfile } from "@/lib/diet";
 import { BADGE_DEFS, type BadgeDef } from "@/lib/badges";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
@@ -26,7 +26,7 @@ async function loadBadgeStats(userId: string): Promise<{
 }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true, goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+    select: { timezone: true, ...DIET_PROFILE_SELECT },
   });
   const today = toDateKeyTz(new Date(), user?.timezone);
 
@@ -86,13 +86,7 @@ async function loadBadgeStats(userId: string): Promise<{
   for (const m of weekMeals) {
     calByDate.set(m.date, (calByDate.get(m.date) ?? 0) + m.calories);
   }
-  const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-  const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-  const sex = isSex(user?.sex) ? user!.sex : null;
-  const target =
-    goal && weight
-      ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
-      : null;
+  const target = recommendDietForProfile(weight?.weightKg, user);
   let onTargetDays = 0;
   if (target) {
     for (const d of weekDates) {

@@ -1,6 +1,6 @@
 import type { PushPayload } from "@/lib/push";
 import { rationMealLink, reminderDeepLink } from "@/lib/push-deeplink";
-import { isGoalPace, isSex, isWeightGoal, recommendDiet } from "@/lib/diet";
+import { recommendDietForProfile, type DietProfileFields } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
   REMINDER_SCHEDULE,
@@ -96,16 +96,10 @@ function waterProgressLine(waterMl: number): string {
   return `${waterMl} мл из ${WATER_DAILY_TARGET_ML} (${pct}%)`;
 }
 
-export function computeCalorieTarget(input: {
-  goal: string | null | undefined;
-  goalPace: string | null | undefined;
-  sex: string | null | undefined;
-  latestWeightKg: number | null | undefined;
-}): number | null {
-  if (!isWeightGoal(input.goal) || input.latestWeightKg == null) return null;
-  const pace = isGoalPace(input.goalPace) ? input.goalPace : null;
-  const sex = isSex(input.sex) ? input.sex : null;
-  return recommendDiet(input.latestWeightKg, input.goal, pace, sex).calories;
+export function computeCalorieTarget(
+  input: DietProfileFields & { latestWeightKg: number | null | undefined },
+): number | null {
+  return recommendDietForProfile(input.latestWeightKg, input)?.calories ?? null;
 }
 
 export function computeStreakStats(mealDates: string[], frozenDates: string[], today: string) {

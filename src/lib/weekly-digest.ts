@@ -1,7 +1,7 @@
 import { createTransport } from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { dateRangeEnding, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { isSex, isWeightGoal, isGoalPace, recommendDiet } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, recommendDietForProfile } from "@/lib/diet";
 import { resolveEmailServer } from "@/lib/email-auth";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
@@ -30,7 +30,7 @@ export async function loadWeeklyDigestSummary(
 ): Promise<WeeklyDigestSummary> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { timezone: true, goal: true, goalPace: true, sex: true, heightCm: true, birthYear: true },
+    select: { timezone: true, ...DIET_PROFILE_SELECT },
   });
 
   const end = endDate ?? toDateKeyTz(new Date(), user?.timezone);
@@ -72,13 +72,7 @@ export async function loadWeeklyDigestSummary(
       ? Math.round(waterDays.reduce((s, d) => s + (waterByDate.get(d) ?? 0), 0) / waterDays.length)
       : 0;
 
-  const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-  const goalPace = isGoalPace(user?.goalPace) ? user!.goalPace : null;
-  const sex = isSex(user?.sex) ? user!.sex : null;
-  const target =
-    goal && weight
-      ? recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear)
-      : null;
+  const target = recommendDietForProfile(weight?.weightKg, user);
 
   const insights: string[] = [];
   if (daysWithMeals.length >= 5) {

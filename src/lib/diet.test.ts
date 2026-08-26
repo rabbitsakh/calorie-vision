@@ -12,6 +12,7 @@ import {
   isCalorieGoalCorridor,
   isDangerousCalorieUndereat,
   recommendDiet,
+  recommendDietForProfile,
   applyFiberSugarOverrides,
   explainDiet,
 } from "./diet.ts";
@@ -207,6 +208,35 @@ test("explainDiet returns BMR × activity breakdown", () => {
   assert.equal(maintainCalories, Math.round(bmr * 1.25));
   assert.match(explanation, /BMR/);
   assert.match(explanation, /поддержание/);
+});
+
+test("recommendDietForProfile matches explainDiet and uses height/age/activity", () => {
+  const profile = {
+    goal: "LOSE",
+    goalPace: "FAST",
+    sex: "MALE",
+    heightCm: 180,
+    birthYear: 1990,
+    activityLevel: "LIGHT",
+  };
+  const fromHelper = recommendDietForProfile(137.3, profile);
+  const fromExplain = explainDiet(
+    137.3,
+    "LOSE",
+    "FAST",
+    "MALE",
+    180,
+    1990,
+    "LIGHT",
+  ).target;
+  assert.ok(fromHelper);
+  assert.equal(fromHelper!.calories, fromExplain.calories);
+
+  const withoutBody = recommendDiet(137.3, "LOSE", "FAST", "MALE");
+  assert.notEqual(fromHelper!.calories, withoutBody.calories);
+
+  assert.equal(recommendDietForProfile(null, profile), null);
+  assert.equal(recommendDietForProfile(137.3, { ...profile, goal: null }), null);
 });
 
 test("maintain corridor is wider than lose/gain (±10%)", () => {

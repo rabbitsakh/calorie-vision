@@ -246,6 +246,49 @@ export function recommendDiet(
   return { calories, protein, fat, carbs, fiber, sugar };
 }
 
+/** Prisma `select` fields needed for the same calorie target as Рацион. */
+export const DIET_PROFILE_SELECT = {
+  goal: true,
+  goalPace: true,
+  sex: true,
+  heightCm: true,
+  birthYear: true,
+  activityLevel: true,
+} as const;
+
+export type DietProfileFields = {
+  goal?: string | null;
+  goalPace?: string | null;
+  sex?: string | null;
+  heightCm?: number | null;
+  birthYear?: number | null;
+  activityLevel?: string | null;
+};
+
+/**
+ * Daily target from the full user profile — same inputs as Рацион (`explainDiet`).
+ * Returns null when goal or weight is missing.
+ */
+export function recommendDietForProfile(
+  weightKg: number | null | undefined,
+  profile: DietProfileFields | null | undefined,
+): DietTarget | null {
+  if (weightKg == null || !Number.isFinite(weightKg) || weightKg <= 0) return null;
+  if (!profile || !isWeightGoal(profile.goal)) return null;
+  const pace = isGoalPace(profile.goalPace) ? profile.goalPace : null;
+  const sex = isSex(profile.sex) ? profile.sex : null;
+  const activity = isActivityLevel(profile.activityLevel) ? profile.activityLevel : null;
+  return recommendDiet(
+    weightKg,
+    profile.goal,
+    pace,
+    sex,
+    profile.heightCm,
+    profile.birthYear,
+    activity,
+  );
+}
+
 export type DietBreakdown = {
   bmr: number;
   activityLevel: ActivityLevel;
