@@ -7,8 +7,9 @@ import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
 import {
-  bindCelebrationPortalViewport,
+  closeCelebrationPortal,
   getCelebrationPortalHost,
+  openCelebrationPortal,
 } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
@@ -90,7 +91,7 @@ const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
 
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
- * Portaled to a host on <html> so body overflow-x never clips it on iOS.
+ * Portaled into a <dialog showModal()> host so iOS overflow never clips it.
  */
 export function FullscreenCelebration({
   open,
@@ -123,9 +124,21 @@ export function FullscreenCelebration({
   }, []);
 
   useEffect(() => {
-    if (!show || !portalHost) return;
-    return bindCelebrationPortalViewport(portalHost);
-  }, [show, portalHost]);
+    if (!portalHost) return;
+    if (show) {
+      openCelebrationPortal(portalHost);
+      const onCancel = (event: Event) => {
+        event.preventDefault();
+        onClose();
+      };
+      portalHost.addEventListener("cancel", onCancel);
+      return () => {
+        portalHost.removeEventListener("cancel", onCancel);
+        closeCelebrationPortal(portalHost);
+      };
+    }
+    closeCelebrationPortal(portalHost);
+  }, [show, portalHost, onClose]);
 
   useEffect(() => {
     if (!show) return;
