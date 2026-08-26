@@ -44,7 +44,6 @@ echo "==> Install dependencies"
 npm install
 
 echo "==> Prisma: apply schema changes"
-npm run db:generate
 # Run the hand-written SQL migration first so prisma db push does not trip over
 # duplicate foreign key names that MySQL doesn't let Prisma rename automatically.
 if ls deploy/migrate-*.sql >/dev/null 2>&1; then
@@ -64,6 +63,8 @@ else
     exit 1
   fi
 fi
+echo "==> Prisma: generate client (once, after schema sync)"
+npm run db:generate
 
 echo "==> Free RAM before build (stop running app)"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
