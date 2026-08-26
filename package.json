@@ -14,7 +14,7 @@
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
     "db:generate": "prisma generate",
     "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
-    "db:push": "prisma db push",
+    "db:push": "prisma db push --skip-generate",
     "db:studio": "prisma studio"
   },
   "engines": {
