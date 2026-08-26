@@ -27,6 +27,10 @@ import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { ShoppingListPanel } from "@/components/ShoppingListPanel";
+import { WeeklyPlan } from "@/components/WeeklyPlan";
+import { FastingWindowBanner } from "@/components/FastingWindowBanner";
+import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import {
@@ -110,7 +114,16 @@ export default function RationPage() {
           <OnboardingOverlay />
           <MascotSaveReaction />
           <ProfileCompletionBanner />
+          <FastingWindowBanner isToday={date === today} />
           <TodayProgress selectedDate={date} refreshKey={refreshKey} />
+          {date === today ? (
+            <HolidayBufferToggle selectedDate={date} onChange={() => bump()} />
+          ) : null}
+          <WeeklyPlan
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onSelectDate={(next) => setDate(next)}
+          />
 
           <FoodAddPanel selectedDate={date} initialMealType={deepLinkMeal ?? undefined} onSaved={bump} onPendingChange={setConfirmOpen} />
 
@@ -130,6 +143,8 @@ export default function RationPage() {
             totalCalories={totalCalories}
             onSaved={bump}
           />
+
+          <ShoppingListPanel selectedDate={date} />
 
           <WaterTracker selectedDate={date} onChanged={bump} />
 

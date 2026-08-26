@@ -84,7 +84,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
       });
     }
     // Cascades: accounts, sessions, meals, weights, water, diary, custom foods,
-    // streak freezes, push subscriptions/logs, challenges, badges.
+    // day templates, streak freezes, push subscriptions/logs, challenges, badges.
     await tx.user.delete({ where: { id: userId } });
   });
 

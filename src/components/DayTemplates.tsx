@@ -5,6 +5,7 @@ import {
   createDayTemplate,
   deleteDayTemplate,
   loadDayTemplates,
+  saveDayTemplates,
   type DayTemplate,
   type DayTemplateMeal,
 } from "@/lib/day-templates";
@@ -17,6 +18,8 @@ type DayTemplatesProps = {
   onSaved: () => void;
 };
 
+type ApiTemplate = DayTemplate & { synced?: boolean };
+
 export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplatesProps) {
   const [templates, setTemplates] = useState<DayTemplate[]>([]);
   const [name, setName] = useState("");
@@ -24,14 +27,70 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
   const [applying, setApplying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dayMeals, setDayMeals] = useState<DayTemplateMeal[]>([]);
+  const [synced, setSynced] = useState(false);
+  const [offlineNote, setOfflineNote] = useState(false);
 
-  const refreshTemplates = useCallback(() => {
+  const refreshLocal = useCallback(() => {
     setTemplates(loadDayTemplates());
   }, []);
 
+  const syncFromServer = useCallback(async () => {
+    try {
+      const resp = await fetch(withBasePath("/api/day-templates"), { cache: "no-store" });
+      if (!resp.ok) {
+        refreshLocal();
+        setSynced(false);
+        setOfflineNote(true);
+        return;
+      }
+      const data = (await resp.json()) as { templates?: ApiTemplate[] };
+      const remote = data.templates ?? [];
+      if (remote.length > 0) {
+        saveDayTemplates(remote);
+        setTemplates(remote);
+        setSynced(true);
+        setOfflineNote(false);
+        return;
+      }
+      const local = loadDayTemplates();
+      if (local.length === 0) {
+        setTemplates([]);
+        setSynced(true);
+        setOfflineNote(false);
+        return;
+      }
+      const migrated: DayTemplate[] = [];
+      for (const tpl of local) {
+        try {
+          const createResp = await fetch(withBasePath("/api/day-templates"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: tpl.name, meals: tpl.meals }),
+          });
+          if (createResp.ok) {
+            const created = (await createResp.json()) as { template: DayTemplate };
+            migrated.push(created.template);
+          } else {
+            migrated.push(tpl);
+          }
+        } catch {
+          migrated.push(tpl);
+        }
+      }
+      saveDayTemplates(migrated);
+      setTemplates(migrated);
+      setSynced(true);
+      setOfflineNote(false);
+    } catch {
+      refreshLocal();
+      setSynced(false);
+      setOfflineNote(true);
+    }
+  }, [refreshLocal]);
+
   useEffect(() => {
-    refreshTemplates();
-  }, [refreshTemplates, refreshKey]);
+    void syncFromServer();
+  }, [syncFromServer, refreshKey]);
 
   useEffect(() => {
     void (async () => {
@@ -60,17 +119,41 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
     })();
   }, [selectedDate, refreshKey]);
 
-  function handleSave() {
+  async function handleSave() {
     if (dayMeals.length === 0) {
       setError("В дневнике за этот день нет блюд");
       return;
     }
     setSaving(true);
     setError(null);
+    const label = name.trim() || `День ${selectedDate}`;
     try {
-      createDayTemplate(name || `День ${selectedDate}`, dayMeals);
+      const resp = await fetch(withBasePath("/api/day-templates"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: label, meals: dayMeals }),
+      });
+      if (resp.ok) {
+        const data = (await resp.json()) as { template: DayTemplate };
+        const next = [data.template, ...loadDayTemplates().filter((t) => t.id !== data.template.id)];
+        saveDayTemplates(next);
+        setTemplates(next);
+        setName("");
+        setSynced(true);
+        setOfflineNote(false);
+        return;
+      }
+      createDayTemplate(label, dayMeals);
       setName("");
-      refreshTemplates();
+      refreshLocal();
+      setSynced(false);
+      setOfflineNote(true);
+    } catch {
+      createDayTemplate(label, dayMeals);
+      setName("");
+      refreshLocal();
+      setSynced(false);
+      setOfflineNote(true);
     } finally {
       setSaving(false);
     }
@@ -108,15 +191,29 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
     }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    try {
+      await fetch(withBasePath("/api/day-templates"), {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    } catch {
+      // local delete still runs
+    }
     deleteDayTemplate(id);
-    refreshTemplates();
+    refreshLocal();
   }
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-slate-500">
-        Сохраните текущий день как шаблон и применяйте его позже. Хранится только на этом устройстве.
+        Сохраните текущий день как шаблон и применяйте его позже.
+        {synced
+          ? " Синхронизируется с аккаунтом."
+          : offlineNote
+            ? " Сейчас только на этом устройстве (офлайн)."
+            : " Хранится на устройстве и на сервере."}
       </p>
 
       <div className="flex flex-wrap items-end gap-2">
@@ -132,7 +229,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
           type="button"
           className="btn btn-on-tint text-sm text-teal-800"
           disabled={saving || dayMeals.length === 0}
-          onClick={handleSave}
+          onClick={() => void handleSave()}
         >
           {saving ? "Сохраняем…" : `Сохранить день (${dayMeals.length})`}
         </button>
@@ -167,7 +264,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
                 type="button"
                 className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
                 disabled={applying !== null}
-                onClick={() => handleDelete(tpl.id)}
+                onClick={() => void handleDelete(tpl.id)}
               >
                 Удалить
               </button>

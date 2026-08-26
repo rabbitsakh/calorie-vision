@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { ProfileForm } from "@/components/ProfileForm";
 import { PushRemindersSettings } from "@/components/PushRemindersSettings";
+import { FastingWindowSettings } from "@/components/FastingWindowSettings";
 import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
 
@@ -14,6 +15,7 @@ export default function ProfilePage() {
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-5">
           <ProfileForm />
+          <FastingWindowSettings />
           <PushRemindersSettings />
           <GamificationQuietToggle />
           <BadgesPanel />
