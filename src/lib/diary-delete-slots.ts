@@ -1,4 +1,4 @@
-import type { MealEntry } from "@/types";
+import type { DayMealsResponse, MealEntry } from "@/types";
 import type { MealListItem } from "@/lib/meal-groups";
 
 export type PendingDeleteSlot = {
@@ -89,6 +89,45 @@ export function mergeEntriesAfterUndo(
   return [...current, ...restored].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
+}
+
+/** Hide optimistically deleted meals when provider data still includes them. */
+export function filterMealsResponse(
+  data: DayMealsResponse,
+  excludeIds: ReadonlySet<string>,
+): DayMealsResponse {
+  if (excludeIds.size === 0) {
+    return data;
+  }
+
+  const excluded = data.entries.filter((entry) => excludeIds.has(entry.id));
+  if (excluded.length === 0) {
+    return data;
+  }
+
+  const entries = data.entries.filter((entry) => !excludeIds.has(entry.id));
+  const totals = subtractMealTotals(
+    {
+      calories: data.totalCalories,
+      protein: data.totalProtein ?? 0,
+      fat: data.totalFat ?? 0,
+      carbs: data.totalCarbs ?? 0,
+      fiber: data.totalFiber ?? 0,
+      sugar: data.totalSugar ?? 0,
+    },
+    excluded,
+  );
+
+  return {
+    ...data,
+    entries,
+    totalCalories: totals.calories,
+    totalProtein: totals.protein,
+    totalFat: totals.fat,
+    totalCarbs: totals.carbs,
+    totalFiber: totals.fiber,
+    totalSugar: totals.sugar,
+  };
 }
 
 export function subtractMealTotals(
