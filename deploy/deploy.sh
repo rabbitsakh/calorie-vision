@@ -14,6 +14,19 @@ restore_generated_version_files() {
   git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
 }
 
+# Pick a Node heap that fits available RAM (override with NODE_OPTIONS).
+pick_node_heap_mb() {
+  local avail_mb=2048
+  if [[ -r /proc/meminfo ]]; then
+    avail_mb=$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
+  fi
+  # Leave headroom for OS + MySQL + webpack worker; clamp 1024..3072.
+  local heap=$((avail_mb - 768))
+  if (( heap < 1024 )); then heap=1024; fi
+  if (( heap > 3072 )); then heap=3072; fi
+  echo "$heap"
+}
+
 echo "==> Pull latest code"
 restore_generated_version_files
 git pull
@@ -52,13 +65,24 @@ else
   fi
 fi
 
-echo "==> Compress and backfill meal images"
-npm run images:backfill || echo "image backfill skipped"
+echo "==> Free RAM before build (stop running app)"
+if pm2 describe calorie-vision >/dev/null 2>&1; then
+  pm2 stop calorie-vision || true
+fi
 
 echo "==> Build"
-# Next.js production build can OOM on small VPS (SIGKILL). Cap heap and allow override.
-export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=3072}"
+# Next.js production build can OOM on small VPS (SIGKILL). Cap heap to available RAM
+# and keep a single compile worker (see next.config experimental.cpus).
+if [[ -z "${NODE_OPTIONS:-}" ]]; then
+  HEAP_MB="$(pick_node_heap_mb)"
+  export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
+fi
+export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
 echo "   NODE_OPTIONS=$NODE_OPTIONS"
+echo "   NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
+if [[ -r /proc/meminfo ]]; then
+  awk '/MemAvailable:/ {printf "   MemAvailable: %d MB\n", int($2/1024)}' /proc/meminfo
+fi
 npm run build
 
 echo "==> Restart app"
@@ -69,6 +93,9 @@ else
 fi
 
 pm2 save
+
+echo "==> Compress and backfill meal images (after build — less peak RAM)"
+npm run images:backfill || echo "image backfill skipped"
 
 restore_generated_version_files
 
