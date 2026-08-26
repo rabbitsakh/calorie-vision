@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import {
   dailyGoalCelebrationCopy,
@@ -37,6 +38,7 @@ export function DailyGoalCelebration({
   selectedDate,
   refreshKey,
 }: DailyGoalCelebrationProps) {
+  const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const [copy, setCopy] = useState(() => dailyGoalCelebrationCopy(null));
   const prevInCorridor = useRef<boolean | null>(null);
@@ -46,46 +48,58 @@ export function DailyGoalCelebration({
   useEffect(() => {
     if (selectedDate !== today) return;
 
+    function apply(data: MealsDayPayload) {
+      const actual = data.totalCalories ?? 0;
+      const target = data.target?.calories ?? 0;
+      const goal = isWeightGoal(data.goal) ? data.goal : null;
+
+      if (!target || !goal) {
+        prevInCorridor.current = false;
+        return;
+      }
+
+      if (isDangerousCalorieUndereat(actual, target, goal)) {
+        prevInCorridor.current = false;
+        return;
+      }
+
+      const inCorridor = isCalorieGoalCorridor(actual, target);
+
+      if (
+        prevInCorridor.current === false &&
+        inCorridor &&
+        !isSoftCelebrationsMutedToday(today) &&
+        !isSoftCelebrationSeen("daily-goal", today)
+      ) {
+        markSoftCelebrationSeen("daily-goal", today);
+        setCopy(dailyGoalCelebrationCopy(goal, actual, target));
+        setOpen(true);
+      }
+
+      prevInCorridor.current = inCorridor;
+    }
+
+    if (day?.data?.meals && day.data.date === today) {
+      apply(day.data.meals);
+      return;
+    }
+
+    if (day && day.date === today && day.loading) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(
           withBasePath(`/api/meals?date=${encodeURIComponent(today)}`),
         );
         if (!resp.ok) return;
-        const data = (await resp.json()) as MealsDayPayload;
-        const actual = data.totalCalories ?? 0;
-        const target = data.target?.calories ?? 0;
-        const goal = isWeightGoal(data.goal) ? data.goal : null;
-
-        if (!target || !goal) {
-          prevInCorridor.current = false;
-          return;
-        }
-
-        if (isDangerousCalorieUndereat(actual, target, goal)) {
-          prevInCorridor.current = false;
-          return;
-        }
-
-        const inCorridor = isCalorieGoalCorridor(actual, target);
-
-        if (
-          prevInCorridor.current === false &&
-          inCorridor &&
-          !isSoftCelebrationsMutedToday(today) &&
-          !isSoftCelebrationSeen("daily-goal", today)
-        ) {
-          markSoftCelebrationSeen("daily-goal", today);
-          setCopy(dailyGoalCelebrationCopy(goal, actual, target));
-          setOpen(true);
-        }
-
-        prevInCorridor.current = inCorridor;
+        apply((await resp.json()) as MealsDayPayload);
       } catch {
         // non-critical
       }
     })();
-  }, [today, selectedDate, refreshKey]);
+  }, [today, selectedDate, refreshKey, day]);
 
   return (
     <SoftCelebration

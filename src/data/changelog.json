@@ -1,5 +1,38 @@
 [
   {
+    "version": "1.5.8",
+    "date": "2026-08-26",
+    "summary": "fix(deploy): cut Next build peak RAM to stop SIGKILL OOM",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): cut Next build peak RAM to stop SIGKILL OOM"
+      }
+    ]
+  },
+  {
+    "version": "1.5.7",
+    "date": "2026-08-26",
+    "summary": "ui: denser ration diary meal cards",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "ui: denser ration diary meal cards"
+      }
+    ]
+  },
+  {
+    "version": "1.5.6",
+    "date": "2026-08-26",
+    "summary": "fix: celebration fullscreen + sticky mobile tab bar on iOS",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: celebration fullscreen + sticky mobile tab bar on iOS"
+      }
+    ]
+  },
+  {
     "version": "1.5.5",
     "date": "2026-08-26",
     "summary": "Deploy: увеличить heap Node, чтобы build не убивался OOM",

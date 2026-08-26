@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -27,6 +28,7 @@ export function WaterGoalCelebration({
   selectedDate,
   refreshKey,
 }: WaterGoalCelebrationProps) {
+  const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const prevDone = useRef<boolean | null>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -34,31 +36,43 @@ export function WaterGoalCelebration({
   useEffect(() => {
     if (selectedDate !== today) return;
 
+    function apply(data: WaterPayload) {
+      const total = data.totalMl ?? 0;
+      const target = data.target ?? WATER_DAILY_TARGET_ML;
+      const done = total >= target && target > 0;
+
+      if (
+        prevDone.current === false &&
+        done &&
+        !isSoftCelebrationsMutedToday(today) &&
+        !isSoftCelebrationSeen("water-goal", today)
+      ) {
+        markSoftCelebrationSeen("water-goal", today);
+        setOpen(true);
+      }
+
+      prevDone.current = done;
+    }
+
+    if (day?.data?.water && day.today === today && day.data.date === today) {
+      apply(day.data.water);
+      return;
+    }
+
+    if (day && day.today === today && day.loading) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(withBasePath(`/api/water?date=${encodeURIComponent(today)}`));
         if (!resp.ok) return;
-        const data = (await resp.json()) as WaterPayload;
-        const total = data.totalMl ?? 0;
-        const target = data.target ?? WATER_DAILY_TARGET_ML;
-        const done = total >= target && target > 0;
-
-        if (
-          prevDone.current === false &&
-          done &&
-          !isSoftCelebrationsMutedToday(today) &&
-          !isSoftCelebrationSeen("water-goal", today)
-        ) {
-          markSoftCelebrationSeen("water-goal", today);
-          setOpen(true);
-        }
-
-        prevDone.current = done;
+        apply((await resp.json()) as WaterPayload);
       } catch {
         // non-critical
       }
     })();
-  }, [today, selectedDate, refreshKey]);
+  }, [today, selectedDate, refreshKey, day]);
 
   return (
     <SoftCelebration

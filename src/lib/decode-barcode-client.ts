@@ -1,6 +1,5 @@
 "use client";
 
-import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { pickDecodedBarcode } from "@/lib/barcode";
 
 type BarcodeDetectorLike = {
@@ -16,7 +15,9 @@ function getBarcodeDetector(): BarcodeDetectorCtor | null {
   return (window as unknown as { BarcodeDetector?: BarcodeDetectorCtor }).BarcodeDetector ?? null;
 }
 
-function zxingHints() {
+/** Lazy-load zxing — keeps the main ration bundle small. */
+async function zxingHints() {
+  const { BarcodeFormat, DecodeHintType } = await import("@zxing/library");
   const hints = new Map();
   hints.set(DecodeHintType.POSSIBLE_FORMATS, [
     BarcodeFormat.EAN_13,
@@ -48,8 +49,11 @@ export async function decodeBarcodeFromCanvas(canvas: HTMLCanvasElement): Promis
   if (native) return native;
 
   try {
-    const { BrowserMultiFormatReader } = await import("@zxing/browser");
-    const reader = new BrowserMultiFormatReader(zxingHints());
+    const [{ BrowserMultiFormatReader }, hints] = await Promise.all([
+      import("@zxing/browser"),
+      zxingHints(),
+    ]);
+    const reader = new BrowserMultiFormatReader(hints);
     const result = await reader.decodeFromCanvas(canvas);
     return pickDecodedBarcode([result.getText()]);
   } catch {

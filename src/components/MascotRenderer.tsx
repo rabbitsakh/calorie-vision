@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { MascotArt } from "@/components/MascotArt";
-import { MascotRive, type MascotRiveProps } from "@/components/MascotRive";
+import type { MascotRiveProps } from "@/components/MascotRive";
 import { MascotSvg, type MascotSvgProps } from "@/components/MascotSvg";
 import { shouldUseMascotArt } from "@/lib/mascot-art";
 import { prefersReducedMascotMotion } from "@/lib/mascot-liveness";
@@ -24,7 +24,7 @@ export type MascotRendererProps = Omit<MascotSvgProps, "skin"> & {
 /**
  * Picks illustrated art (V5), Rive, or SVG — used by LiveMascot and xl celebrations.
  * Priority in auto: art (md+) → Rive (if .riv present) → SVG.
- * Art is the default path when mode is auto (see shouldUseMascotArt).
+ * Rive chunk is lazy-loaded so the main ration bundle stays smaller.
  */
 export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps) {
   const { skinOverride, rendererOverride } = useMascotSkinOverrides();
@@ -36,6 +36,7 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
 
   const [riveAvailable, setRiveAvailable] = useState(false);
   const [artFailed, setArtFailed] = useState(false);
+  const [RiveComp, setRiveComp] = useState<ComponentType<MascotRiveProps> | null>(null);
 
   const preferArt = shouldUseMascotArt({ mode, size, reducedMotion }) && !artFailed;
 
@@ -73,6 +74,20 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
     [preferArt, mode, size, reducedMotion, riveAvailable],
   );
 
+  useEffect(() => {
+    if (!useRive) {
+      setRiveComp(null);
+      return;
+    }
+    let cancelled = false;
+    void import("@/components/MascotRive").then((mod) => {
+      if (!cancelled) setRiveComp(() => mod.MascotRive);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [useRive]);
+
   if (preferArt) {
     return (
       <MascotArt {...props} skin={resolvedSkin} size={size} onFail={() => setArtFailed(true)} />
@@ -80,7 +95,10 @@ export function MascotRenderer({ skin, renderer, ...props }: MascotRendererProps
   }
 
   if (useRive) {
-    return <MascotRive {...(props as unknown as MascotRiveProps)} skin={resolvedSkin} size={size} />;
+    if (!RiveComp) {
+      return <MascotSvg {...props} skin={resolvedSkin} size={size} />;
+    }
+    return <RiveComp {...(props as unknown as MascotRiveProps)} skin={resolvedSkin} size={size} />;
   }
 
   return <MascotSvg {...props} skin={resolvedSkin} size={size} />;

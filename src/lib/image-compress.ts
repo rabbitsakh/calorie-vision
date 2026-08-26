@@ -5,7 +5,33 @@ export const FOOD_IMAGE_WEBP_QUALITY = 68;
 export const FOOD_IMAGE_MAX_BYTES = 56_000;
 export const FOOD_IMAGE_KEEP_ORIGINAL_BYTES = 12_000;
 
+export const IMAGE_THUMB_WIDTHS = [64, 128, 256] as const;
+export type ImageThumbWidth = (typeof IMAGE_THUMB_WIDTHS)[number];
+
 const SHARP_OPTIONS = { failOn: "none" as const, limitInputPixels: 40_000_000 };
+
+/** Resize for diary / list thumbs (`?w=` on uploads). Caps to 64 | 128 | 256. */
+export async function resizeImageThumb(
+  buffer: Buffer,
+  width: number,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  const w = IMAGE_THUMB_WIDTHS.includes(width as ImageThumbWidth)
+    ? (width as ImageThumbWidth)
+    : null;
+  if (!w || !buffer.length) return null;
+
+  try {
+    const out = await sharp(buffer, SHARP_OPTIONS)
+      .rotate()
+      .resize(w, w, { fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 72, effort: 4, smartSubsample: true })
+      .toBuffer();
+    if (!out.length) return null;
+    return { buffer: out, mimeType: "image/webp" };
+  } catch {
+    return null;
+  }
+}
 
 async function encodeWebp(buffer: Buffer, quality: number): Promise<Buffer> {
   return sharp(buffer, SHARP_OPTIONS)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/admin";
 import { requireSession } from "@/lib/auth-session";
+import { resizeImageThumb } from "@/lib/image-compress";
 import { prisma } from "@/lib/prisma";
 import { readUploadedImageById, userCanAccessUpload } from "@/lib/upload";
 import { verifyUploadAccess } from "@/lib/upload-sign";
@@ -46,11 +47,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { buffer, mimeType } = await readUploadedImageById(id);
+    const wRaw = request.nextUrl.searchParams.get("w");
+    const w = wRaw != null ? Number(wRaw) : NaN;
+    const thumb = Number.isFinite(w) ? await resizeImageThumb(buffer, w) : null;
+    const outBuffer = thumb?.buffer ?? buffer;
+    const outMime = thumb?.mimeType ?? mimeType;
 
-    return new NextResponse(new Uint8Array(buffer), {
+    return new NextResponse(new Uint8Array(outBuffer), {
       headers: {
-        "Content-Type": mimeType,
-        "Cache-Control": "private, max-age=3600",
+        "Content-Type": outMime,
+        "Cache-Control": thumb
+          ? "private, max-age=86400"
+          : "private, max-age=3600",
       },
     });
   } catch (error) {

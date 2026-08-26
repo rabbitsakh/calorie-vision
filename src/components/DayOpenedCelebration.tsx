@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findUnseenMilestone } from "@/components/MilestoneCelebration";
 import type { MascotPose } from "@/components/Mascot";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
@@ -42,6 +43,7 @@ export function DayOpenedCelebration({
   selectedDate,
   refreshKey,
 }: DayOpenedCelebrationProps) {
+  const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const [copy, setCopy] = useState<SoftCopy>({
     title: "День открыт",
@@ -59,46 +61,55 @@ export function DayOpenedCelebration({
     let cancelled = false;
     const timers: number[] = [];
 
+    function applyStreak(data: StreakPayload) {
+      if (cancelled || openedRef.current) return;
+      const logged = Boolean(data.loggedToday);
+      const streak = data.streak ?? 0;
+
+      if (prevLogged.current === false && logged) {
+        const milestonePending = findUnseenMilestone(streak) != null;
+
+        if (milestonePending) {
+          markSoftCelebrationSeen("day-opened", today);
+          markSoftCelebrationSeen("streak-saved", today);
+        } else if (streak > 0 && !isSoftCelebrationsMutedToday(today) &&
+        !isSoftCelebrationSeen("streak-saved", today)) {
+          markSoftCelebrationSeen("day-opened", today);
+          markSoftCelebrationSeen("streak-saved", today);
+          openedRef.current = true;
+          setCopy({
+            title: "Серия сохранена",
+            subtitle: `${streak} ${pluralDays(streak)} подряд — отличный ход.`,
+            badge: String(streak > 99 ? "99+" : streak),
+            pose: "streak",
+          });
+          setOpen(true);
+        } else if (!isSoftCelebrationsMutedToday(today) &&
+        !isSoftCelebrationSeen("day-opened", today)) {
+          markSoftCelebrationSeen("day-opened", today);
+          openedRef.current = true;
+          setCopy({
+            title: "День открыт",
+            subtitle: "Первая запись сегодня",
+            pose: "cheer",
+          });
+          setOpen(true);
+        }
+      }
+
+      prevLogged.current = logged;
+    }
+
     async function pollStreak() {
+      if (day?.data?.streak && day.today === today) {
+        applyStreak(day.data.streak);
+        return;
+      }
+
       try {
         const resp = await fetch(withBasePath(`/api/streak?today=${encodeURIComponent(today)}`));
         if (!resp.ok || cancelled || openedRef.current) return;
-        const data = (await resp.json()) as StreakPayload;
-        const logged = Boolean(data.loggedToday);
-        const streak = data.streak ?? 0;
-
-        if (prevLogged.current === false && logged) {
-          const milestonePending = findUnseenMilestone(streak) != null;
-
-          if (milestonePending) {
-            markSoftCelebrationSeen("day-opened", today);
-            markSoftCelebrationSeen("streak-saved", today);
-          } else if (streak > 0 && !isSoftCelebrationsMutedToday(today) &&
-          !isSoftCelebrationSeen("streak-saved", today)) {
-            markSoftCelebrationSeen("day-opened", today);
-            markSoftCelebrationSeen("streak-saved", today);
-            openedRef.current = true;
-            setCopy({
-              title: "Серия сохранена",
-              subtitle: `${streak} ${pluralDays(streak)} подряд — отличный ход.`,
-              badge: String(streak > 99 ? "99+" : streak),
-              pose: "streak",
-            });
-            setOpen(true);
-          } else if (!isSoftCelebrationsMutedToday(today) &&
-          !isSoftCelebrationSeen("day-opened", today)) {
-            markSoftCelebrationSeen("day-opened", today);
-            openedRef.current = true;
-            setCopy({
-              title: "День открыт",
-              subtitle: "Первая запись сегодня",
-              pose: "cheer",
-            });
-            setOpen(true);
-          }
-        }
-
-        prevLogged.current = logged;
+        applyStreak((await resp.json()) as StreakPayload);
       } catch {
         // non-critical
       }
@@ -114,7 +125,7 @@ export function DayOpenedCelebration({
         window.clearTimeout(timer);
       }
     };
-  }, [today, selectedDate, refreshKey]);
+  }, [today, selectedDate, refreshKey, day]);
 
   return (
     <SoftCelebration

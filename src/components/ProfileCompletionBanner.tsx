@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 
 type AccountSnippet = {
@@ -10,11 +11,25 @@ type AccountSnippet = {
   birthYear: number | null;
 };
 
+function isIncomplete(data: AccountSnippet): boolean {
+  return !data.sex || !data.heightCm || !data.birthYear;
+}
+
 /** Soft nudge when sex / height / birth year are missing for better calorie targets. */
 export function ProfileCompletionBanner() {
+  const day = useOptionalRationDay();
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
+    if (day?.data?.account) {
+      setMissing(isIncomplete(day.data.account));
+      return;
+    }
+
+    if (day && day.loading) {
+      return;
+    }
+
     let cancelled = false;
     void (async () => {
       try {
@@ -22,8 +37,7 @@ export function ProfileCompletionBanner() {
         if (!resp.ok) return;
         const data = (await resp.json()) as AccountSnippet;
         if (cancelled) return;
-        const incomplete = !data.sex || !data.heightCm || !data.birthYear;
-        setMissing(incomplete);
+        setMissing(isIncomplete(data));
       } catch {
         // non-critical
       }
@@ -31,7 +45,7 @@ export function ProfileCompletionBanner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [day]);
 
   if (!missing) return null;
 

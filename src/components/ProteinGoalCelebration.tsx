@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
@@ -30,6 +31,7 @@ export function ProteinGoalCelebration({
   selectedDate,
   refreshKey,
 }: ProteinGoalCelebrationProps) {
+  const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const [subtitle, setSubtitle] = useState("");
   const prevHit = useRef<boolean | null>(null);
@@ -38,41 +40,53 @@ export function ProteinGoalCelebration({
   useEffect(() => {
     if (selectedDate !== today) return;
 
+    function apply(data: MealsDayPayload) {
+      const actual = data.totalProtein ?? 0;
+      const target = data.target?.protein ?? 0;
+      const goal = isWeightGoal(data.goal) ? data.goal : null;
+
+      if (!target || !goal || actual <= 0) {
+        prevHit.current = false;
+        return;
+      }
+
+      const hit = actual >= target * PROTEIN_HIT_RATIO;
+
+      if (
+        prevHit.current === false &&
+        hit &&
+        !isSoftCelebrationsMutedToday(today) &&
+        !isSoftCelebrationSeen("protein-goal", today)
+      ) {
+        markSoftCelebrationSeen("protein-goal", today);
+        setSubtitle(`${actual} / ${target} г белка — цель по макросам близко.`);
+        setOpen(true);
+      }
+
+      prevHit.current = hit;
+    }
+
+    if (day?.data?.meals && day.data.date === today) {
+      apply(day.data.meals);
+      return;
+    }
+
+    if (day && day.date === today && day.loading) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(
           withBasePath(`/api/meals?date=${encodeURIComponent(today)}`),
         );
         if (!resp.ok) return;
-        const data = (await resp.json()) as MealsDayPayload;
-        const actual = data.totalProtein ?? 0;
-        const target = data.target?.protein ?? 0;
-        const goal = isWeightGoal(data.goal) ? data.goal : null;
-
-        if (!target || !goal || actual <= 0) {
-          prevHit.current = false;
-          return;
-        }
-
-        const hit = actual >= target * PROTEIN_HIT_RATIO;
-
-        if (
-          prevHit.current === false &&
-          hit &&
-          !isSoftCelebrationsMutedToday(today) &&
-          !isSoftCelebrationSeen("protein-goal", today)
-        ) {
-          markSoftCelebrationSeen("protein-goal", today);
-          setSubtitle(`${actual} / ${target} г белка — цель по макросам близко.`);
-          setOpen(true);
-        }
-
-        prevHit.current = hit;
+        apply((await resp.json()) as MealsDayPayload);
       } catch {
         // non-critical
       }
     })();
-  }, [today, selectedDate, refreshKey]);
+  }, [today, selectedDate, refreshKey, day]);
 
   return (
     <SoftCelebration

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 import { localHour, resolvePushTimezone } from "@/lib/push-reminders";
 
@@ -38,6 +39,7 @@ type EveningCheckinProps = {
 
 /** Short evening check-in: one mood tap by default (#38). */
 export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckinProps) {
+  const day = useOptionalRationDay();
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -59,6 +61,20 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
       return;
     }
 
+    if (day?.data && (day.data.date === today || day.today === today)) {
+      if (day.data.diaryMood != null) {
+        markSeen(today);
+        setVisible(false);
+      } else {
+        setVisible(true);
+      }
+      return;
+    }
+
+    if (day && day.today === today && day.loading) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(withBasePath(`/api/diary-note?date=${today}`));
@@ -77,7 +93,7 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
         setVisible(true);
       }
     })();
-  }, [today, selectedDate, timezone]);
+  }, [today, selectedDate, timezone, day]);
 
   async function chooseMood(mood: number) {
     setSaving(true);

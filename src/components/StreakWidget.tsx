@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
@@ -55,6 +56,7 @@ export function StreakWidget({
   /** One-line strip for collapsed habits accordion. */
   mini?: boolean;
 }) {
+  const day = useOptionalRationDay();
   const [data, setData] = useState<StreakData | null>(null);
   const [hidden, setHidden] = useState(false);
   const [freezing, setFreezing] = useState(false);
@@ -75,8 +77,16 @@ export function StreakWidget({
   }, [selectedDate]);
 
   useEffect(() => {
+    if (day?.data?.streak && (day.data.date === selectedDate || day.today === selectedDate)) {
+      setData(day.data.streak);
+      return;
+    }
+    if (day && (day.date === selectedDate || day.today === selectedDate) && day.loading) {
+      return;
+    }
     void loadStreak();
-  }, [selectedDate, refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadStreak closes over selectedDate
+  }, [selectedDate, refreshKey, day?.data, day?.loading, day?.date, day?.today]);
 
   async function useFreeze() {
     if (!data?.canFreezeYesterday || freezing) return;
@@ -94,7 +104,11 @@ export function StreakWidget({
         body: JSON.stringify({ date: yesterday, today: selectedDate }),
       });
       if (resp.ok) {
-        await loadStreak();
+        if (day?.refresh) {
+          await day.refresh(true);
+        } else {
+          await loadStreak();
+        }
       }
     } finally {
       setFreezing(false);

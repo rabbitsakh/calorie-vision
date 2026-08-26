@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import {
   formatEatingWindowLabel,
   isOutsideEatingWindow,
@@ -28,6 +29,7 @@ function localHourInTz(timezone: string | null | undefined): number {
 }
 
 export function FastingWindowBanner({ isToday }: FastingBannerProps) {
+  const day = useOptionalRationDay();
   const timezone = useTimezone();
   const [start, setStart] = useState<number | null>(null);
   const [end, setEnd] = useState<number | null>(null);
@@ -52,8 +54,19 @@ export function FastingWindowBanner({ isToday }: FastingBannerProps) {
   }, []);
 
   useEffect(() => {
+    if (day?.data?.account) {
+      setStart(day.data.account.fastingStartHour ?? null);
+      setEnd(day.data.account.fastingEndHour ?? null);
+      setLoaded(true);
+      return;
+    }
+
+    if (day && day.loading) {
+      return;
+    }
+
     void load();
-  }, [load]);
+  }, [day, load]);
 
   useEffect(() => {
     setHour(localHourInTz(timezone));
