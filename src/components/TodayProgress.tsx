@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { buildGoalAwareCalorieTip } from "@/lib/diet";
+import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
 import { withBasePath } from "@/lib/paths";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
@@ -122,9 +123,11 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
           ? ((await waterResp.json()) as { totalMl: number; target: number })
           : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
 
+        const holiday = isHolidayBufferOn(selectedDate);
+        const baseCal = meals.target?.calories ?? null;
         setData({
           calories: meals.totalCalories,
-          calorieTarget: meals.target?.calories ?? null,
+          calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
           protein: meals.totalProtein,
           proteinTarget: meals.target?.protein ?? null,
           waterMl: water.totalMl,
@@ -152,6 +155,8 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
   const waterPct =
     data.waterTarget > 0 ? (data.waterMl / data.waterTarget) * 100 : 0;
 
+  const holiday = isHolidayBufferOn(selectedDate);
+
   let tip = "Добавьте первый приём пищи — и прогресс появится.";
   if (data.calorieTarget && data.calories > 0) {
     tip = buildGoalAwareCalorieTip({
@@ -160,8 +165,11 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
       goal: data.goal,
       tense: "today",
     });
+    if (holiday) tip = `${tip} Учтён праздничный запас.`;
   } else if (data.calorieTarget) {
-    tip = "Добавьте первый приём пищи — и прогресс появится.";
+    tip = holiday
+      ? "Праздничный запас включён. Добавьте первый приём пищи."
+      : "Добавьте первый приём пищи — и прогресс появится.";
   } else if (data.calories > 0) {
     tip = "Укажите цель в профиле — появится % пути к норме.";
   }
@@ -177,7 +185,13 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
               ? `${data.calories} / ${data.calorieTarget}`
               : `${data.calories} ккал`
           }
-          sub={data.calorieTarget ? "ккал к цели" : "цель не задана"}
+          sub={
+            data.calorieTarget
+              ? holiday
+                ? "ккал · праздн. запас"
+                : "ккал к цели"
+              : "цель не задана"
+          }
         />
         <div className="flex min-w-0 flex-1 flex-col gap-2.5">
           <p className="font-display text-sm font-semibold text-slate-800">Сводка дня</p>

@@ -118,10 +118,10 @@ export function MealSuggestions({
       >
         <div className="text-left">
           <p className="font-semibold">
-            {totalCalories === 0 ? "Что съесть сегодня?" : "Что ещё съесть?"}
+            {totalCalories === 0 ? "Что съесть, чтобы попасть в норму?" : "Что ещё съесть до цели?"}
           </p>
           <p className="text-xs text-teal-600">
-            AI подберёт блюда под остаток калорий и макросов
+            Остаток калорий и белка → 3 конкретных блюда
           </p>
         </div>
       </button>
@@ -201,8 +201,14 @@ export function MealSuggestions({
       {/* Remaining macros */}
       {data?.remaining && !data.reason && !loading ? (
         <div className="border-t border-slate-100 px-4 pt-3 text-xs text-slate-500 md:px-6">
-          <span className="font-medium text-slate-600">Остаток: </span>
-          {data.remaining.calories} ккал · Б {data.remaining.protein} г · Ж {data.remaining.fat} г · У {data.remaining.carbs} г
+          <span className="font-medium text-slate-600">Осталось до цели: </span>
+          <span className="font-semibold text-teal-800">
+            {data.remaining.calories} ккал
+          </span>
+          {" · белок "}
+          <span className="font-semibold text-teal-800">{data.remaining.protein} г</span>
+          {" · Ж "}
+          {data.remaining.fat} г · У {data.remaining.carbs} г
         </div>
       ) : null}
 

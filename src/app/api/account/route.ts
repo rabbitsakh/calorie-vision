@@ -44,6 +44,8 @@ export async function GET() {
           timezone: true,
           quietHoursStart: true,
           quietHoursEnd: true,
+          fastingStartHour: true,
+          fastingEndHour: true,
           sex: true,
           heightCm: true,
           birthYear: true,
@@ -73,6 +75,8 @@ export async function GET() {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      fastingStartHour: user.fastingStartHour ?? null,
+      fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
@@ -104,6 +108,8 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      fastingStartHour?: number | null;
+      fastingEndHour?: number | null;
       sex?: string | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -137,6 +143,8 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      fastingStartHour?: number | null;
+      fastingEndHour?: number | null;
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -261,6 +269,31 @@ export async function PUT(request: NextRequest) {
       if (end !== undefined) data.quietHoursEnd = end;
     }
 
+    if (body.fastingStartHour !== undefined || body.fastingEndHour !== undefined) {
+      let start: number | null | undefined = body.fastingStartHour === undefined
+        ? undefined
+        : body.fastingStartHour === null
+          ? null
+          : clampHour(body.fastingStartHour);
+      let end: number | null | undefined = body.fastingEndHour === undefined
+        ? undefined
+        : body.fastingEndHour === null
+          ? null
+          : clampHour(body.fastingEndHour);
+      if (body.fastingStartHour !== undefined && body.fastingStartHour !== null && start === null) {
+        return NextResponse.json({ error: "Час начала окна питания: 0–23" }, { status: 400 });
+      }
+      if (body.fastingEndHour !== undefined && body.fastingEndHour !== null && end === null) {
+        return NextResponse.json({ error: "Час конца окна питания: 0–23" }, { status: 400 });
+      }
+      if (start === null || end === null) {
+        start = null;
+        end = null;
+      }
+      if (start !== undefined) data.fastingStartHour = start;
+      if (end !== undefined) data.fastingEndHour = end;
+    }
+
     const emailDecision = lockedEmailDecision(emailLocked, body.email, currentUser.email);
     if (emailDecision.action === "reject") {
       return NextResponse.json(
@@ -298,6 +331,8 @@ export async function PUT(request: NextRequest) {
         timezone: true,
         quietHoursStart: true,
         quietHoursEnd: true,
+        fastingStartHour: true,
+        fastingEndHour: true,
         sex: true,
         heightCm: true,
         birthYear: true,
@@ -316,6 +351,8 @@ export async function PUT(request: NextRequest) {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      fastingStartHour: user.fastingStartHour ?? null,
+      fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,

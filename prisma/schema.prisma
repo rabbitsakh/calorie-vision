@@ -48,6 +48,10 @@ model User {
   quietHoursStart Int?
   /** Local hour (0–23) when quiet hours end (exclusive); null = disabled. */
   quietHoursEnd   Int?
+  /** Local hour (0–23) when eating window begins; null = fasting UI off. */
+  fastingStartHour Int?
+  /** Local hour (0–23) when eating window ends (exclusive); null = off. */
+  fastingEndHour   Int?
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]
@@ -55,6 +59,7 @@ model User {
   waterEntries  WaterEntry[]
   diaryNotes    DiaryNote[]
   customFoods   CustomFood[]
+  dayTemplates  DayTemplate[]
   streakFreezes StreakFreeze[]
   pushSubscriptions PushSubscription[]
   pushReminderLogs  PushReminderLog[]
@@ -62,6 +67,21 @@ model User {
   userBadges    UserBadge[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+}
+
+
+/** Server-synced day meal templates (payload = meals JSON). */
+model DayTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @db.VarChar(120)
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Account {

@@ -62,6 +62,74 @@ function buildTip(
   return `${pctCalories}% нормы выполнено. Хороший темп!`;
 }
 
+
+/** Concrete fallback dishes when AI is unavailable — always 3 ideas. */
+function buildFallbackSuggestions(
+  remaining: { calories: number; protein: number; fat: number; carbs: number },
+): Suggestion[] {
+  const kcal = Math.max(80, remaining.calories);
+  const ideas: Suggestion[] = [];
+
+  if (remaining.protein >= 15 || remaining.calories >= 200) {
+    const portion = Math.min(200, Math.max(100, Math.round((remaining.protein || 25) * 5)));
+    const cal = Math.min(kcal, Math.round(portion * 1.1));
+    ideas.push({
+      name: "Куриная грудка с овощами",
+      calories: cal,
+      protein: round1(portion * 0.23),
+      fat: round1(portion * 0.03),
+      carbs: round1(portion * 0.04),
+      portionGrams: portion,
+      why: `Закроет около ${Math.min(remaining.protein, Math.round(portion * 0.23))} г белка из остатка`,
+      category: "protein",
+    });
+  }
+
+  if (remaining.carbs >= 20 || ideas.length < 2) {
+    const portion = Math.min(180, Math.max(80, Math.round(remaining.carbs * 2.5) || 120));
+    const cal = Math.min(Math.max(0, kcal - (ideas[0]?.calories ?? 0)), Math.round(portion * 1.2));
+    ideas.push({
+      name: "Гречка с маслом",
+      calories: Math.max(120, cal),
+      protein: round1(portion * 0.04),
+      fat: round1(portion * 0.03 + 5),
+      carbs: round1(portion * 0.2),
+      portionGrams: portion,
+      why: "Углеводы и сытость без перегруза",
+      category: "carbs",
+    });
+  }
+
+  while (ideas.length < 3) {
+    const lightCal = Math.min(180, Math.max(80, Math.round(kcal / (4 - ideas.length))));
+    if (ideas.length === 1) {
+      ideas.push({
+        name: "Творог 5% со свежими ягодами",
+        calories: lightCal,
+        protein: 18,
+        fat: 5,
+        carbs: 12,
+        portionGrams: 150,
+        why: "Белок и лёгкий перекус под остаток калорий",
+        category: "protein",
+      });
+    } else {
+      ideas.push({
+        name: "Омлет из 2 яиц с зеленью",
+        calories: Math.min(220, lightCal + 40),
+        protein: 14,
+        fat: 12,
+        carbs: 2,
+        portionGrams: 120,
+        why: "Быстро закрывает белок и часть калорий",
+        category: "balanced",
+      });
+    }
+  }
+
+  return ideas.slice(0, 3);
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -127,15 +195,22 @@ export async function GET(request: NextRequest) {
       } satisfies Partial<SuggestionsResponse>);
     }
 
+    const deficits: string[] = [];
+    if (eaten.protein < target.protein * 0.70) deficits.push(`белков (${remaining.protein} г)`);
+    if (eaten.carbs < target.carbs * 0.60) deficits.push(`углеводов (${remaining.carbs} г)`);
+    if (eaten.fat < target.fat * 0.60) deficits.push(`жиров (${remaining.fat} г)`);
+
+    const tip = buildTip(pctCalories, deficits, eaten, target);
+
     if (!process.env.GIGACHAT_CREDENTIALS) {
+      const fallback = buildFallbackSuggestions(remaining);
       return NextResponse.json({
-        suggestions: [],
+        suggestions: fallback,
         eaten,
         target,
         remaining,
         pctCalories,
-        reason: "AI-ключ не настроен.",
-        tip: "",
+        tip,
       } satisfies Partial<SuggestionsResponse>);
     }
 
@@ -152,13 +227,6 @@ export async function GET(request: NextRequest) {
           return parts.join(" ");
         }).join("\n  ")
       : "ещё ничего не ели";
-
-    const deficits: string[] = [];
-    if (eaten.protein < target.protein * 0.70) deficits.push(`белков (${remaining.protein} г)`);
-    if (eaten.carbs < target.carbs * 0.60) deficits.push(`углеводов (${remaining.carbs} г)`);
-    if (eaten.fat < target.fat * 0.60) deficits.push(`жиров (${remaining.fat} г)`);
-
-    const tip = buildTip(pctCalories, deficits, eaten, target);
 
     const systemPrompt = `Ты опытный диетолог. Ты отвечаешь ТОЛЬКО валидным JSON-массивом из 3 элементов, без пояснений, без markdown.`;
 
@@ -222,8 +290,18 @@ category: protein | carbs | fat | balanced | light`;
       // suggestions stays []
     }
 
+    if (suggestions.length < 3) {
+      const fallback = buildFallbackSuggestions(remaining);
+      const names = new Set(suggestions.map((s) => s.name.toLowerCase()));
+      for (const idea of fallback) {
+        if (suggestions.length >= 3) break;
+        if (names.has(idea.name.toLowerCase())) continue;
+        suggestions.push(idea);
+      }
+    }
+
     return NextResponse.json({
-      suggestions,
+      suggestions: suggestions.slice(0, 3),
       eaten,
       target,
       remaining,
