@@ -65,7 +65,7 @@ export function AppShell({
             <AuthPanel />
           </div>
 
-          {headerExtra ? <div className={compact ? "mt-3" : "mt-4"}>{headerExtra}</div> : null}
+          {headerExtra ? <div className={compact ? "mt-2" : "mt-4"}>{headerExtra}</div> : null}
 
           <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
             {APP_NAV.map((item) => {
