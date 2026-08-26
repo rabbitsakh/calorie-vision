@@ -85,10 +85,12 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
   const readyOnce = useRef(false);
+  const fetchGenRef = useRef(0);
   const dateRef = useRef(date);
   dateRef.current = date;
 
   const refresh = useCallback(async (quiet = false) => {
+    const gen = ++fetchGenRef.current;
     const requestDate = dateRef.current;
     if (!quiet) {
       setLoading(true);
@@ -101,6 +103,7 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
       );
       const json = (await resp.json()) as RationDayPayload & { error?: string };
       if (!resp.ok) throw new Error(json.error ?? "Не удалось загрузить день");
+      if (gen !== fetchGenRef.current) return;
       if (dateRef.current !== requestDate) return;
       setData(json);
       if (!readyOnce.current) {

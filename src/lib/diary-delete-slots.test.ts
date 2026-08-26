@@ -5,9 +5,11 @@ import type { MealListItem } from "./meal-groups.ts";
 import {
   appendPendingDelete,
   buildDiaryDisplayRows,
+  collectHiddenMealIds,
   filterMealsResponse,
   mealListItemKey,
   mergeEntriesAfterUndo,
+  pruneConfirmedTombstones,
   type PendingDeleteSlot,
 } from "./diary-delete-slots.ts";
 
@@ -107,16 +109,6 @@ describe("diary-delete-slots", () => {
     );
   });
 
-  test("mergeEntriesAfterUndo restores without duplicates and newest-first", () => {
-    const a = meal("a", "A", "2026-08-24T12:00:00Z");
-    const b = meal("b", "B", "2026-08-24T11:00:00Z");
-    const merged = mergeEntriesAfterUndo([a], [b, a]);
-    assert.deepEqual(
-      merged.map((entry) => entry.id),
-      ["a", "b"],
-    );
-  });
-
   test("filterMealsResponse hides pending deletes and adjusts totals", () => {
     const a = meal("a", "A", "2026-08-24T12:00:00Z");
     const b = meal("b", "B", "2026-08-24T11:00:00Z");
@@ -143,5 +135,35 @@ describe("diary-delete-slots", () => {
       ["a"],
     );
     assert.equal(filtered.totalCalories, 100);
+  });
+
+  test("mergeEntriesAfterUndo restores without duplicates and newest-first", () => {
+    const a = meal("a", "A", "2026-08-24T12:00:00Z");
+    const b = meal("b", "B", "2026-08-24T11:00:00Z");
+    const merged = mergeEntriesAfterUndo([a], [b, a]);
+    assert.deepEqual(
+      merged.map((entry) => entry.id),
+      ["a", "b"],
+    );
+  });
+
+  test("collectHiddenMealIds merges pending slots and tombstones", () => {
+    const pending: PendingDeleteSlot[] = [
+      {
+        key: "undo-a",
+        ids: ["a"],
+        label: "A",
+        snapshot: [meal("a", "A", "2026-08-24T12:00:00Z")],
+        afterKey: null,
+      },
+    ];
+    const hidden = collectHiddenMealIds(pending, new Set(["b"]));
+    assert.deepEqual([...hidden].sort(), ["a", "b"]);
+  });
+
+  test("pruneConfirmedTombstones drops ids absent from server payload", () => {
+    const tombstones = new Set(["a", "b"]);
+    pruneConfirmedTombstones(tombstones, [meal("a", "A", "2026-08-24T12:00:00Z")]);
+    assert.deepEqual([...tombstones], ["a"]);
   });
 });

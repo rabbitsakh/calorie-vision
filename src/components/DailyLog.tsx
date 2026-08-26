@@ -17,10 +17,12 @@ import {
   addMealTotals,
   appendPendingDelete,
   buildDiaryDisplayRows,
+  collectHiddenMealIds,
   filterMealsResponse,
   findMealListIndex,
   mealListItemKey,
   mergeEntriesAfterUndo,
+  pruneConfirmedTombstones,
   subtractMealTotals,
   type PendingDeleteSlot,
 } from "@/lib/diary-delete-slots";
@@ -673,6 +675,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
   });
   const attemptedImageMealIds = useRef(new Set<string>());
+  const tombstoneMealIdsRef = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
   const dayRefresh = day?.refresh;
@@ -750,21 +753,23 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
   }, [selectedDate, applyMeals]);
 
-  const pendingDeleteIds = useMemo(
-    () => new Set(pendingDeletes.flatMap((slot) => slot.ids)),
-    [pendingDeletes],
+  const hiddenMealIds = useMemo(
+    () => collectHiddenMealIds(pendingDeletes, tombstoneMealIdsRef.current),
+    [pendingDeletes, entries],
   );
 
   useEffect(() => {
     attemptedImageMealIds.current.clear();
+    tombstoneMealIdsRef.current.clear();
     setPendingDeletes([]);
   }, [selectedDate]);
 
   useEffect(() => {
     if (dayData?.date === selectedDate && dayData.meals) {
+      pruneConfirmedTombstones(tombstoneMealIdsRef.current, dayData.meals.entries);
       const meals =
-        pendingDeleteIds.size > 0
-          ? filterMealsResponse(dayData.meals, pendingDeleteIds)
+        hiddenMealIds.size > 0
+          ? filterMealsResponse(dayData.meals, hiddenMealIds)
           : dayData.meals;
       applyMeals(meals);
       setStreakDays(dayData.streak?.streak ?? 0);
@@ -789,8 +794,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     dayDate,
     dayLoading,
     hasProvider,
+    hiddenMealIds,
     loadEntries,
-    pendingDeleteIds,
     selectedDate,
   ]);
 
@@ -967,10 +972,21 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     await loadEntries(quiet);
   }
 
-  async function performDelete(ids: string[]) {
-    await Promise.all(
-      ids.map((id) => fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" })),
+  async function deleteMealsOnServer(ids: string[]) {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        const response = await fetch(withBasePath(`/api/meals/${id}`), { method: "DELETE" });
+        return { id, ok: response.ok, status: response.status };
+      }),
     );
+    const failed = results.filter((result) => !result.ok && result.status !== 404);
+    if (failed.length > 0) {
+      throw new Error("Не удалось удалить запись");
+    }
+  }
+
+  async function performDelete(ids: string[]) {
+    await deleteMealsOnServer(ids);
     await reloadDayAfterMutation(true);
     onChanged?.();
   }
@@ -978,6 +994,10 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   function requestDelete(ids: string[], label: string) {
     const snapshot = entries.filter((entry) => ids.includes(entry.id));
     if (snapshot.length === 0) return;
+
+    for (const id of ids) {
+      tombstoneMealIdsRef.current.add(id);
+    }
 
     const items = groupMealEntries(entries);
     const index = findMealListIndex(items, ids);
@@ -1007,10 +1027,18 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     let slot: PendingDeleteSlot | undefined;
     setPendingDeletes((prev) => {
       slot = prev.find((item) => item.key === slotKey);
-      return prev.filter((item) => item.key !== slotKey);
+      return prev;
     });
     if (!slot) return;
-    await performDelete(slot.ids);
+
+    try {
+      await performDelete(slot.ids);
+    } catch {
+      undoDelete(slotKey);
+      return;
+    } finally {
+      setPendingDeletes((prev) => prev.filter((item) => item.key !== slotKey));
+    }
   }
 
   function undoDelete(slotKey: string) {
@@ -1020,6 +1048,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       return prev.filter((item) => item.key !== slotKey);
     });
     if (!slot) return;
+    for (const id of slot.ids) {
+      tombstoneMealIdsRef.current.delete(id);
+    }
     setEntries((prev) => mergeEntriesAfterUndo(prev, slot!.snapshot));
     setTotals((prev) => {
       const next = addMealTotals(prev, slot!.snapshot);

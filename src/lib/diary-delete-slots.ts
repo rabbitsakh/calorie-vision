@@ -91,6 +91,29 @@ export function mergeEntriesAfterUndo(
   );
 }
 
+export function collectHiddenMealIds(
+  pendingDeletes: PendingDeleteSlot[],
+  tombstones: ReadonlySet<string>,
+): Set<string> {
+  const ids = new Set(tombstones);
+  for (const slot of pendingDeletes) {
+    for (const id of slot.ids) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
+
+/** Drop tombstones once the server no longer returns those meal ids. */
+export function pruneConfirmedTombstones(tombstones: Set<string>, entries: MealEntry[]): void {
+  const present = new Set(entries.map((entry) => entry.id));
+  for (const id of tombstones) {
+    if (!present.has(id)) {
+      tombstones.delete(id);
+    }
+  }
+}
+
 /** Hide optimistically deleted meals when provider data still includes them. */
 export function filterMealsResponse(
   data: DayMealsResponse,
