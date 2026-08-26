@@ -5,8 +5,8 @@ import { DietTargets } from "@/components/DietTargets";
 import { Mascot } from "@/components/Mascot";
 import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
-import { MEAL_TYPE_LABELS } from "@/types";
-import { formatDateTime, formatDateWords } from "@/lib/dates";
+import { MEAL_TYPE_LABELS, MEAL_TYPE_SHORT_LABELS } from "@/types";
+import { formatDateTime, formatDateWords, formatTimeShort } from "@/lib/dates";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -38,7 +38,7 @@ type EditPatch = {
 
 function TrashIcon() {
   return (
-    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 6h18" strokeLinecap="round" />
       <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
       <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
@@ -95,43 +95,51 @@ type DailyLogProps = {
   onAddFood?: () => void;
 };
 
-function formatMacros(entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">): string {
+function formatMacros(
+  entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">,
+  mode: "primary" | "secondary" = "primary",
+): string {
+  if (mode === "secondary") {
+    const parts: string[] = [];
+    if (entry.fiber) parts.push(`клетч. ${entry.fiber}`);
+    if (entry.sugar) parts.push(`сахар ${entry.sugar}`);
+    return parts.join(" · ");
+  }
   const parts: string[] = [];
-  if (entry.protein) {
-    parts.push(`Б ${entry.protein}`);
-  }
-  if (entry.fat) {
-    parts.push(`Ж ${entry.fat}`);
-  }
-  if (entry.carbs) {
-    parts.push(`У ${entry.carbs}`);
-  }
-  if (entry.fiber) {
-    parts.push(`клетчатка ${entry.fiber}`);
-  }
-  if (entry.sugar) {
-    parts.push(`сахар ${entry.sugar}`);
-  }
+  if (entry.protein) parts.push(`Б ${entry.protein}`);
+  if (entry.fat) parts.push(`Ж ${entry.fat}`);
+  if (entry.carbs) parts.push(`У ${entry.carbs}`);
   return parts.join(" · ");
 }
 
 function MealEntryDetails({
   entry,
   timezone,
+  compact = true,
 }: {
   entry: MealEntry;
   timezone?: string | null;
+  compact?: boolean;
 }) {
-  const macros = formatMacros(entry);
+  const primary = formatMacros(entry, "primary");
+  const secondary = formatMacros(entry, "secondary");
+  const when = compact
+    ? formatTimeShort(entry.createdAt, timezone)
+    : formatDateTime(entry.createdAt, timezone);
 
   return (
-    <p className="mt-1 text-sm text-slate-500">
-      {entry.calories} ккал
-      {entry.portionGrams ? ` · ${entry.portionGrams} г` : ""}
-      {macros ? ` · ${macros}` : ""}
-      {" · "}
-      {formatDateTime(entry.createdAt, timezone)}
-    </p>
+    <>
+      <p className="meal-card-meta">
+        {entry.calories} ккал
+        {entry.portionGrams ? ` · ${entry.portionGrams} г` : ""}
+        {primary ? ` · ${primary}` : ""}
+      </p>
+      {secondary || when ? (
+        <p className="meal-card-meta-secondary">
+          {[secondary, when].filter(Boolean).join(" · ")}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -176,10 +184,10 @@ function GroupedMealCard({
     group.imagePath ?? group.entries.find((entry) => entry.imagePath)?.imagePath ?? null;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-teal-100 bg-slate-50">
-      <div className="flex flex-col gap-4 p-4 md:flex-row">
+    <article className="meal-card overflow-hidden rounded-2xl border border-teal-100 bg-slate-50">
+      <div className="flex items-start gap-2.5 p-2.5 md:gap-3 md:p-3">
         {headerImage ? (
-          <div className="h-28 w-full shrink-0 overflow-hidden rounded-xl bg-white md:h-32 md:w-32">
+          <div className="meal-card-thumb shrink-0 overflow-hidden rounded-xl bg-white md:h-20 md:w-20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={getImageUrl(headerImage)}
@@ -192,23 +200,23 @@ function GroupedMealCard({
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold">С одного фото</h3>
-            <span className="rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="meal-card-title">С одного фото</h3>
+            <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">
               {group.entries.length} {group.entries.length === 1 ? "блюдо" : group.entries.length < 5 ? "блюда" : "блюд"}
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="meal-card-meta">
             {group.totalCalories} ккал
             {macros ? ` · ${macros}` : ""}
             {" · "}
-            {formatDateTime(group.createdAt, timezone)}
+            {formatTimeShort(group.createdAt, timezone)}
           </p>
         </div>
 
         <button
           type="button"
-          className="shrink-0 self-start rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
+          className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
           title="Удалить все блюда с фото"
           onClick={() => onDeleteGroup(group.entries.map((e) => e.id))}
         >
@@ -220,7 +228,7 @@ function GroupedMealCard({
         {group.entries.map((entry) => {
           if (editingId === entry.id) {
             return (
-              <div key={entry.id} className="p-3">
+              <div key={entry.id} className="p-2.5">
                 <InlineEdit
                   entry={entry}
                   onSave={async (patch) => {
@@ -235,7 +243,7 @@ function GroupedMealCard({
 
           if (photoId === entry.id) {
             return (
-              <div key={entry.id} className="p-3">
+              <div key={entry.id} className="p-2.5">
                 <MealPhotoPicker
                   mealId={entry.id}
                   dishName={decodeHtmlEntities(entry.dishName)}
@@ -252,10 +260,10 @@ function GroupedMealCard({
           return (
             <div key={entry.id} className="flex items-stretch gap-0">
               <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
-              <div className="flex min-w-0 flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center">
+              <div className="meal-card-body flex-1">
                 <button
                   type="button"
-                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white"
+                  className="meal-card-thumb relative bg-white"
                   title="Сменить фото"
                   onClick={() => setPhotoId(entry.id)}
                 >
@@ -271,21 +279,42 @@ function GroupedMealCard({
                   ) : (
                     <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-slate-400">
                       <PhotoSearchIcon />
-                      <span className="text-[9px] font-medium">фото</span>
+                      <span className="text-[8px] font-medium">фото</span>
                     </span>
                   )}
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="font-medium">{decodeHtmlEntities(entry.dishName)}</h4>
-                    {entry.wasCorrected ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                        исправлено
-                      </span>
-                    ) : null}
+                  <div className="flex items-start gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h4 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h4>
+                        {entry.wasCorrected ? (
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                            изм.
+                          </span>
+                        ) : null}
+                      </div>
+                      <MealEntryDetails entry={entry} timezone={timezone} />
+                    </div>
+                    <div className="meal-card-actions shrink-0">
+                      <button
+                        type="button"
+                        title="Редактировать"
+                        onClick={() => setEditingId(entry.id)}
+                      >
+                        <EditIcon />
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        title="Удалить"
+                        onClick={() => onDelete(entry.id)}
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   </div>
-                  <MealEntryDetails entry={entry} timezone={timezone} />
                   <MealTypeInlineChips
                     value={entry.mealType}
                     disabled={typeBusyId === entry.id}
@@ -294,34 +323,6 @@ function GroupedMealCard({
                       void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
                     }}
                   />
-                </div>
-
-                <p className="shrink-0 text-sm font-bold text-slate-800 sm:self-center">{entry.calories}</p>
-                <div className="flex shrink-0 gap-1 sm:self-center">
-                  <button
-                    type="button"
-                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    title="Найти фото в интернете"
-                    onClick={() => setPhotoId(entry.id)}
-                  >
-                    <PhotoSearchIcon />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    title="Редактировать"
-                    onClick={() => setEditingId(entry.id)}
-                  >
-                    <EditIcon />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                    title="Удалить"
-                    onClick={() => onDelete(entry.id)}
-                  >
-                    <TrashIcon />
-                  </button>
                 </div>
               </div>
             </div>
@@ -468,19 +469,19 @@ function MealTypeInlineChips({
   onChange: (mealType: string | null) => void;
 }) {
   return (
-    <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Приём пищи">
-      {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([type, label]) => {
+    <div className="meal-type-chips" role="group" aria-label="Приём пищи">
+      {(Object.entries(MEAL_TYPE_SHORT_LABELS) as Array<[string, string]>).map(([type, label]) => {
         const active = value === type;
+        const full = MEAL_TYPE_LABELS[type as keyof typeof MEAL_TYPE_LABELS] ?? label;
         return (
           <button
             key={type}
             type="button"
             disabled={disabled}
-            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors disabled:opacity-50 ${
-              active
-                ? "bg-teal-700 text-white"
-                : "bg-white text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"
-            }`}
+            title={full}
+            aria-label={full}
+            aria-pressed={active}
+            className={`meal-type-chip ${active ? "meal-type-chip-active" : "meal-type-chip-idle"}`}
             onClick={() => onChange(active ? null : type)}
           >
             {label}
@@ -533,42 +534,54 @@ function SingleMealCard({
   }
 
   return (
-    <article className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+    <article className="meal-card flex items-stretch gap-0 bg-slate-50">
       <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
-      <button
-        type="button"
-        className="relative h-20 w-20 shrink-0 self-center overflow-hidden rounded-xl bg-white"
-        title="Сменить фото"
-        onClick={() => setPhotoOpen(true)}
-      >
-        {entry.imagePath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={getImageUrl(entry.imagePath)}
-            alt={decodeHtmlEntities(entry.dishName)}
-            className="h-full w-full object-cover"
-            loading="lazy"
-            decoding="async"
-          />
-        ) : (
-          <span className="flex h-full w-full flex-col items-center justify-center gap-1 text-slate-400">
-            <PhotoSearchIcon />
-            <span className="text-[10px] font-medium">фото</span>
-          </span>
-        )}
-      </button>
+      <div className="meal-card-body flex-1">
+        <button
+          type="button"
+          className="meal-card-thumb relative bg-white"
+          title="Сменить фото"
+          onClick={() => setPhotoOpen(true)}
+        >
+          {entry.imagePath ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getImageUrl(entry.imagePath)}
+              alt={decodeHtmlEntities(entry.dishName)}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-slate-400">
+              <PhotoSearchIcon />
+              <span className="text-[8px] font-medium">фото</span>
+            </span>
+          )}
+        </button>
 
-      <div className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold">{decodeHtmlEntities(entry.dishName)}</h3>
-            {entry.wasCorrected ? (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                исправлено
-              </span>
-            ) : null}
+          <div className="flex items-start gap-1.5">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h3 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h3>
+                {entry.wasCorrected ? (
+                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                    изм.
+                  </span>
+                ) : null}
+              </div>
+              <MealEntryDetails entry={entry} timezone={timezone} />
+            </div>
+            <div className="meal-card-actions shrink-0">
+              <button type="button" title="Редактировать" onClick={() => setEditing(true)}>
+                <EditIcon />
+              </button>
+              <button type="button" className="danger" title="Удалить" onClick={() => onDelete(entry.id)}>
+                <TrashIcon />
+              </button>
+            </div>
           </div>
-          <MealEntryDetails entry={entry} timezone={timezone} />
           <MealTypeInlineChips
             value={entry.mealType}
             disabled={typeBusy}
@@ -577,33 +590,6 @@ function SingleMealCard({
               void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusy(false));
             }}
           />
-        </div>
-        <p className="shrink-0 text-sm font-bold text-slate-800">{entry.calories}</p>
-        <div className="flex shrink-0 gap-1">
-          <button
-            type="button"
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="Найти фото в интернете"
-            onClick={() => setPhotoOpen(true)}
-          >
-            <PhotoSearchIcon />
-          </button>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            title="Редактировать"
-            onClick={() => setEditing(true)}
-          >
-            <EditIcon />
-          </button>
-          <button
-            type="button"
-            className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600"
-            title="Удалить"
-            onClick={() => onDelete(entry.id)}
-          >
-            <TrashIcon />
-          </button>
         </div>
       </div>
     </article>
@@ -977,35 +963,35 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   );
 
   return (
-    <section className={`card ${compact ? "p-4 md:p-5" : "p-6"}`}>
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className={`card ${compact ? "p-3 md:p-4" : "p-6"}`}>
+      <div className={`flex flex-col ${compact ? "gap-3" : "gap-5"}`}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
           {!compact ? (
             <div>
               <h2 className="text-xl font-bold">Дневник питания</h2>
               <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
             </div>
           ) : (
-            <h2 className="text-lg font-bold">Дневник питания</h2>
+            <h2 className="text-base font-bold">Дневник питания</h2>
           )}
           {streakDays >= 2 ? (
-            <div className="flex items-center gap-1.5 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
-              <FlameIcon className="h-5 w-5 text-amber-600" />
-              <span>{streakDays} {pluralDays(streakDays)} подряд</span>
+            <div className="flex items-center gap-1 rounded-xl bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
+              <FlameIcon className="h-4 w-4 text-amber-600" />
+              <span>{streakDays} {pluralDays(streakDays)}</span>
             </div>
           ) : null}
 
-          <div className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-white">
-            <div className="text-xs uppercase tracking-wide text-teal-50">Итого за день</div>
-            <div className="text-2xl font-bold">{totals.calories} ккал</div>
-            <div className="text-xs text-teal-50">
-              Белки {totals.protein} · Жиры {totals.fat} · Углеводы {totals.carbs}
+          <div className={`rounded-xl bg-[var(--accent)] text-white ${compact ? "px-3 py-2" : "rounded-2xl px-4 py-3"}`}>
+            <div className="text-[10px] uppercase tracking-wide text-teal-50">Итого за день</div>
+            <div className={`font-bold ${compact ? "text-xl leading-tight" : "text-2xl"}`}>{totals.calories} ккал</div>
+            <div className="text-[11px] text-teal-50">
+              Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
             </div>
             {(totals.fiber > 0 || totals.sugar > 0) ? (
-              <div className="mt-1 text-xs text-teal-100">
-                {totals.fiber > 0 ? `Клетчатка ${totals.fiber} г` : null}
+              <div className="mt-0.5 text-[11px] text-teal-100">
+                {totals.fiber > 0 ? `Клетч. ${totals.fiber}` : null}
                 {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
-                {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
+                {totals.sugar > 0 ? `Сахар ${totals.sugar}` : null}
               </div>
             ) : null}
           </div>
@@ -1049,22 +1035,22 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                   const hasTypes = entries.some((e) => e.mealType);
                   if (!hasTypes) return null;
                   return (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="mb-3 text-sm font-semibold text-slate-700">Бюджет по приёмам пищи</p>
-                      <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-2 text-xs font-semibold text-slate-700">Бюджет по приёмам</p>
+                      <div className="grid gap-1.5 sm:grid-cols-2">
                         {budgets.map((b) => {
                           const alloc = Math.round(target * b.pct);
                           const used = eaten[b.label] ?? 0;
                           const pct = Math.min(100, Math.round((used / alloc) * 100));
                           const over = used > alloc;
                           return (
-                            <div key={b.label} className="flex flex-col gap-1">
-                              <div className="flex justify-between text-xs">
+                            <div key={b.label} className="flex flex-col gap-0.5">
+                              <div className="flex justify-between text-[11px]">
                                 <span className="font-medium text-slate-700">{b.label}</span>
-                                <span className={over ? "text-rose-600" : "text-slate-500"}>{used} / {alloc} ккал</span>
+                                <span className={over ? "text-rose-600" : "text-slate-500"}>{used}/{alloc}</span>
                               </div>
-                              <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                                <div className={`h-2 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
+                              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                                <div className={`h-1.5 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                           );
@@ -1108,7 +1094,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-3">
+        <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
           {displayRows.map((row) => {
             if (row.kind === "undo") {
               const slotKey = row.pending.key;
