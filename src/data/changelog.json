@@ -1,12 +1,628 @@
 [
   {
-    "version": "1.2.9",
-    "date": "2026-08-23",
-    "summary": "fix: milk lookup + recognition audit (молоко ≠ латте)",
+    "version": "1.5.5",
+    "date": "2026-08-26",
+    "summary": "Deploy: увеличить heap Node, чтобы build не убивался OOM",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Deploy: увеличить heap Node, чтобы build не убивался OOM"
+      }
+    ]
+  },
+  {
+    "version": "1.5.4",
+    "date": "2026-08-26",
+    "summary": "Рост: воронка Метрики, Telegram-бот, email digest, бейджи",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Рост: воронка Метрики, Telegram-бот, email digest, бейджи"
+      }
+    ]
+  },
+  {
+    "version": "1.5.3",
+    "date": "2026-08-26",
+    "summary": "Доверие: privacy/terms, согласие Метрики, disclaimer, audit env",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Доверие: privacy/terms, согласие Метрики, disclaimer, audit env"
+      }
+    ]
+  },
+  {
+    "version": "1.5.2",
+    "date": "2026-08-26",
+    "summary": "Платформа: error/loading/not-found, e2e, SW v2",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Платформа: error/loading/not-found, e2e, SW v2"
+      }
+    ]
+  },
+  {
+    "version": "1.5.1",
+    "date": "2026-08-26",
+    "summary": "Планирование: неделя, покупки, шаблоны, fasting, буфер",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Планирование: неделя, покупки, шаблоны, fasting, буфер"
+      }
+    ]
+  },
+  {
+    "version": "1.5.0",
+    "date": "2026-08-26",
+    "summary": "Fix: account PUT select для activityLevel / waterTargetMl",
     "items": [
       {
         "kind": "fix",
-        "text": "fix: milk lookup + recognition audit (молоко ≠ латте)"
+        "text": "Fix: account PUT select для activityLevel / waterTargetMl"
+      }
+    ]
+  },
+  {
+    "version": "1.4.19",
+    "date": "2026-08-26",
+    "summary": "Еда: RU-база, бренды, CSV, рецепт, промах штрихкода",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Еда: RU-база, бренды, CSV, рецепт, промах штрихкода"
+      }
+    ]
+  },
+  {
+    "version": "1.4.18",
+    "date": "2026-08-26",
+    "summary": "Цели: активность, вода, TDEE, превью нормы, коридор maintain",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Цели: активность, вода, TDEE, превью нормы, коридор maintain"
+      }
+    ]
+  },
+  {
+    "version": "1.4.17",
+    "date": "2026-08-26",
+    "summary": "Рацион: смена фото блюда поиском в интернете",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Рацион: смена фото блюда поиском в интернете"
+      }
+    ]
+  },
+  {
+    "version": "1.4.16",
+    "date": "2026-08-25",
+    "summary": "Рацион: подтягивать фото для записей без картинки",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Рацион: подтягивать фото для записей без картинки"
+      }
+    ]
+  },
+  {
+    "version": "1.4.15",
+    "date": "2026-08-25",
+    "summary": "Рацион: тип приёма и фото у блюд «С одного фото»",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Рацион: тип приёма и фото у блюд «С одного фото»"
+      }
+    ]
+  },
+  {
+    "version": "1.4.14",
+    "date": "2026-08-25",
+    "summary": "Маскот: убрать чёрный фон у праздничных луков",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: убрать чёрный фон у праздничных луков"
+      }
+    ]
+  },
+  {
+    "version": "1.4.13",
+    "date": "2026-08-25",
+    "summary": "Маскот: праздничные луки (23 фев, 8 мар + новые)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: праздничные луки (23 фев, 8 мар + новые)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.12",
+    "date": "2026-08-25",
+    "summary": "Удаление блюд: undo на месте и несколько сразу",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Удаление блюд: undo на месте и несколько сразу"
+      }
+    ]
+  },
+  {
+    "version": "1.4.11",
+    "date": "2026-08-25",
+    "summary": "Batch 9/10: PWA, push, iOS фото (п.41–44)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 9/10: PWA, push, iOS фото (п.41–44)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.10",
+    "date": "2026-08-25",
+    "summary": "Batch 8/10: мотивация и PWA (п.36–40)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 8/10: мотивация и PWA (п.36–40)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.9",
+    "date": "2026-08-25",
+    "summary": "Batch 7/10: маскот и настройки (п.31–35)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 7/10: маскот и настройки (п.31–35)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.8",
+    "date": "2026-08-25",
+    "summary": "Batch 6/10: экспорт, цели, вес (п.26–30)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 6/10: экспорт, цели, вес (п.26–30)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.7",
+    "date": "2026-08-25",
+    "summary": "Batch 5/10: статистика и инсайты (п.21–25)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 5/10: статистика и инсайты (п.21–25)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.6",
+    "date": "2026-08-25",
+    "summary": "Batch 10/10: аккаунт, аналитика, реферал (п.45–47)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 10/10: аккаунт, аналитика, реферал (п.45–47)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.5",
+    "date": "2026-08-25",
+    "summary": "Batch 4/10: copy yesterday, heatmap, шаблоны (п.16–20)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 4/10: copy yesterday, heatmap, шаблоны (п.16–20)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.4",
+    "date": "2026-08-25",
+    "summary": "Batch 3/10: онбординг, профиль, привычки, лимит celebration (п.11–15)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 3/10: онбординг, профиль, привычки, лимит celebration (п.11–15)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.3",
+    "date": "2026-08-25",
+    "summary": "Batch 2/10: голос, столовая, RU staples, eval CI (п.6–10)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 2/10: голос, столовая, RU staples, eval CI (п.6–10)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.2",
+    "date": "2026-08-25",
+    "summary": "Batch 1/10: confirm UX и multi-dish SSE (п.1–5)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Batch 1/10: confirm UX и multi-dish SSE (п.1–5)"
+      }
+    ]
+  },
+  {
+    "version": "1.4.1",
+    "date": "2026-08-25",
+    "summary": "Фикс: столбцы часов на одной базовой линии",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Фикс: столбцы часов на одной базовой линии"
+      }
+    ]
+  },
+  {
+    "version": "1.4.0",
+    "date": "2026-08-25",
+    "summary": "Маскот V5: полный art-набор (все позы × сезоны)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот V5: полный art-набор (все позы × сезоны)"
+      }
+    ]
+  },
+  {
+    "version": "1.3.19",
+    "date": "2026-08-24",
+    "summary": "Маскот: soft-3D art V5 (полные позы)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: soft-3D art V5 (полные позы)"
+      }
+    ]
+  },
+  {
+    "version": "1.3.18",
+    "date": "2026-08-24",
+    "summary": "Маскот: сезонные луки встроены в тело, а не висят отдельно",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: сезонные луки встроены в тело, а не висят отдельно"
+      }
+    ]
+  },
+  {
+    "version": "1.3.17",
+    "date": "2026-08-24",
+    "summary": "Маскот: сезонныe луки в духе Duo + НГ/Хэллоуин, плавный pet",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: сезонныe луки в духе Duo + НГ/Хэллоуин, плавный pet"
+      }
+    ]
+  },
+  {
+    "version": "1.3.16",
+    "date": "2026-08-24",
+    "summary": "Маскот: убраны очки и зимняя одежда — только лёгкая атмосфера",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: убраны очки и зимняя одежда — только лёгкая атмосфера"
+      }
+    ]
+  },
+  {
+    "version": "1.3.15",
+    "date": "2026-08-24",
+    "summary": "Статистика: липкая полоска периода не залезает под часы",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Статистика: липкая полоска периода не залезает под часы"
+      }
+    ]
+  },
+  {
+    "version": "1.3.14",
+    "date": "2026-08-24",
+    "summary": "Исправление: калории батончиков по штрихкоду больше не занижаются",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Исправление: калории батончиков по штрихкоду больше не занижаются"
+      }
+    ]
+  },
+  {
+    "version": "1.3.13",
+    "date": "2026-08-24",
+    "summary": "Маскот: сезонные скины (зима/весна/лето/осень) + Rive fallback",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: сезонные скины (зима/весна/лето/осень) + Rive fallback"
+      }
+    ]
+  },
+  {
+    "version": "1.3.12",
+    "date": "2026-08-24",
+    "summary": "Mascot lively batch: Duolingo animations (8 waves)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Mascot lively batch: Duolingo animations (8 waves)"
+      }
+    ]
+  },
+  {
+    "version": "1.3.11",
+    "date": "2026-08-24",
+    "summary": "Маскот: тесты поз и motion-классов",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: тесты поз и motion-классов"
+      }
+    ]
+  },
+  {
+    "version": "1.3.10",
+    "date": "2026-08-24",
+    "summary": "Маскот: changelog для batch-релиза",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: changelog для batch-релиза"
+      }
+    ]
+  },
+  {
+    "version": "1.3.9",
+    "date": "2026-08-24",
+    "summary": "Маскот: dev preview celebration и лендинга",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: dev preview celebration и лендинга"
+      }
+    ]
+  },
+  {
+    "version": "1.3.8",
+    "date": "2026-08-24",
+    "summary": "Маскот: streak-nudge через MascotCompanionCard",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: streak-nudge через MascotCompanionCard"
+      }
+    ]
+  },
+  {
+    "version": "1.3.7",
+    "date": "2026-08-24",
+    "summary": "Celebration: явные variant goal для целей дня",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Celebration: явные variant goal для целей дня"
+      }
+    ]
+  },
+  {
+    "version": "1.3.6",
+    "date": "2026-08-24",
+    "summary": "Маскот: push-промпт с талисманом",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: push-промпт с талисманом"
+      }
+    ]
+  },
+  {
+    "version": "1.3.5",
+    "date": "2026-08-24",
+    "summary": "Маскот: пустой дневник — дружелюбный текст и pose empty",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: пустой дневник — дружелюбный текст и pose empty"
+      }
+    ]
+  },
+  {
+    "version": "1.3.4",
+    "date": "2026-08-24",
+    "summary": "Лендинг: маскот в двух местах — «Бесплатно» и финальный CTA",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Лендинг: маскот в двух местах — «Бесплатно» и финальный CTA"
+      }
+    ]
+  },
+  {
+    "version": "1.3.3",
+    "date": "2026-08-24",
+    "summary": "Маскот: общая карточка компаньона в рационе",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: общая карточка компаньона в рационе"
+      }
+    ]
+  },
+  {
+    "version": "1.3.2",
+    "date": "2026-08-24",
+    "summary": "Маскот: тесты поз и motion-классов",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Маскот: тесты поз и motion-классов"
+      }
+    ]
+  },
+  {
+    "version": "1.3.1",
+    "date": "2026-08-24",
+    "summary": "Fix obscure barcode lookup (Go-UPC + web-name fallback)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix obscure barcode lookup (Go-UPC + web-name fallback)"
+      }
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "date": "2026-08-24",
+    "summary": "fix: landing free CTA overlaps list on mobile",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: landing free CTA overlaps list on mobile"
+      }
+    ]
+  },
+  {
+    "version": "1.2.19",
+    "date": "2026-08-24",
+    "summary": "fix: barcode miss → web lookup + GigaChat (not memory-only)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: barcode miss → web lookup + GigaChat (not memory-only)"
+      }
+    ]
+  },
+  {
+    "version": "1.2.18",
+    "date": "2026-08-23",
+    "summary": "feat: landing redesign — density, effects, intentional mascot",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: landing redesign — density, effects, intentional mascot"
+      }
+    ]
+  },
+  {
+    "version": "1.2.17",
+    "date": "2026-08-23",
+    "summary": "Release: barcode GigaChat fallback + scanner beep",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Release: barcode GigaChat fallback + scanner beep"
+      }
+    ]
+  },
+  {
+    "version": "1.2.16",
+    "date": "2026-08-23",
+    "summary": "fix: WeightTargetCelebration today undefined",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: WeightTargetCelebration today undefined"
+      }
+    ]
+  },
+  {
+    "version": "1.2.15",
+    "date": "2026-08-23",
+    "summary": "Release: audit leftovers (6 PR) + mascot + landing + weight labels",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Release: audit leftovers (6 PR) + mascot + landing + weight labels"
+      }
+    ]
+  },
+  {
+    "version": "1.2.14",
+    "date": "2026-08-23",
+    "summary": "fix: push timezone + stats charts + celebration fullscreen",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: push timezone + stats charts + celebration fullscreen"
+      }
+    ]
+  },
+  {
+    "version": "1.2.13",
+    "date": "2026-08-23",
+    "summary": "Аудит: безопасность, распознавание, рацион, серия, празднования, деплой",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Аудит: безопасность, распознавание, рацион, серия, празднования, деплой"
+      }
+    ]
+  },
+  {
+    "version": "1.2.12",
+    "date": "2026-08-23",
+    "summary": "fix: mascot v1 blob-sprout — убрать боковые «усы»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: mascot v1 blob-sprout — убрать боковые «усы»"
+      }
+    ]
+  },
+  {
+    "version": "1.2.11",
+    "date": "2026-08-23",
+    "summary": "fix: changelog parse Co-authored-by trailers",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: changelog parse Co-authored-by trailers"
+      }
+    ]
+  },
+  {
+    "version": "1.2.10",
+    "date": "2026-08-23",
+    "summary": "Рацион: вода на главном экране; лендинг — новые секции и мобильное меню",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Рацион: вода на главном экране; лендинг — новые секции и мобильное меню"
+      }
+    ]
+  },
+  {
+    "version": "1.2.9",
+    "date": "2026-08-23",
+    "summary": "Исправление: «молоко» больше не подставляет «кофе латте»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Исправление: «молоко» больше не подставляет «кофе латте»"
       }
     ]
   },
@@ -46,11 +662,11 @@
   {
     "version": "1.2.5",
     "date": "2026-08-23",
-    "summary": "Маскот: мягкий blob-leaf на лендинге и в приложении",
+    "summary": "Маскот: круглый blob с ростком сверху (без боковых «усов»)",
     "items": [
       {
         "kind": "improvement",
-        "text": "Маскот: мягкий blob-leaf на лендинге и в приложении"
+        "text": "Маскот: круглый blob с ростком сверху (без боковых «усов»)"
       }
     ]
   },
