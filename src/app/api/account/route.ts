@@ -14,7 +14,7 @@ import {
   type PushReminderPrefs,
 } from "@/lib/push-reminder-schedule";
 import { saveUploadedImage } from "@/lib/upload";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
-      pushReminderPrefs?: Prisma.InputJsonValue | null;
+      pushReminderPrefs?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -273,7 +273,7 @@ export async function PUT(request: NextRequest) {
 
     if (body.pushReminderPrefs !== undefined) {
       if (body.pushReminderPrefs === null) {
-        data.pushReminderPrefs = null;
+        data.pushReminderPrefs = Prisma.JsonNull;
       } else {
         const normalized = normalizePushReminderPrefs(body.pushReminderPrefs);
         data.pushReminderPrefs = normalized as Prisma.InputJsonValue;

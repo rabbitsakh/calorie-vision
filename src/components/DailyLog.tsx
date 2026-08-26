@@ -1038,8 +1038,8 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       cache: "no-store",
     });
     if (!response.ok) {
-      const data = (await response.json()) as { error?: string };
-      throw new Error(data.error ?? "Не удалось дублировать");
+      await loadEntries(true);
+      return;
     }
     await loadEntries(true);
     onChanged?.();
