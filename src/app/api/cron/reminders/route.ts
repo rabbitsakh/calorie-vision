@@ -9,6 +9,7 @@ import {
   computeStreakStats,
   localHour,
   localWeekday,
+  parsePushReminderPrefs,
   remindersForLocalTime,
   resolvePushTimezone,
   type ReminderKind,
@@ -119,6 +120,7 @@ export async function GET(request: NextRequest) {
         timezone: true,
         quietHoursStart: true,
         quietHoursEnd: true,
+        pushReminderPrefs: true,
         pushSubscriptions: {
           select: { endpoint: true, p256dh: true, auth: true },
         },
@@ -138,7 +140,8 @@ export async function GET(request: NextRequest) {
         skipped += 1;
         continue;
       }
-      const kinds = remindersForLocalTime(hour, weekday);
+      const prefs = parsePushReminderPrefs(user.pushReminderPrefs);
+      const kinds = remindersForLocalTime(hour, weekday, prefs);
       if (kinds.length === 0) {
         skipped += 1;
         continue;

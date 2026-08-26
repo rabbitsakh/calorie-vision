@@ -48,6 +48,8 @@ model User {
   quietHoursStart Int?
   /** Local hour (0–23) when quiet hours end (exclusive); null = disabled. */
   quietHoursEnd   Int?
+  /** Per-kind push reminder toggles/hours; null → schedule defaults. */
+  pushReminderPrefs Json?
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]
@@ -148,6 +150,8 @@ model MealEntry {
   recognitionSource  String?   @db.VarChar(64)
   photoKind          String?   @db.VarChar(32)
   barcode            String?   @db.VarChar(32)
+  /** User-editable meal time; null → display createdAt. */
+  eatenAt            DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 

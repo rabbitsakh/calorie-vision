@@ -34,6 +34,7 @@ import {
   PwaInstallWizard,
 } from "@/components/PwaInstallWizard";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
+import { shiftDateKey } from "@/lib/dates";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import type { MealType } from "@/types";
@@ -64,10 +65,19 @@ export default function RationPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
   const [deepLinkMeal, setDeepLinkMeal] = useState<MealType | null>(null);
+  const [progressStrong, setProgressStrong] = useState(false);
 
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+
+  const goYesterdayAndAdd = useCallback(() => {
+    const yesterday = shiftDateKey(today, -1);
+    setDate(yesterday);
+    window.setTimeout(() => {
+      document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
+  }, [setDate, today]);
 
   const bump = useCallback(() => setRefreshKey((value) => value + 1), []);
 
@@ -110,9 +120,19 @@ export default function RationPage() {
           <OnboardingOverlay />
           <MascotSaveReaction />
           <ProfileCompletionBanner />
-          <TodayProgress selectedDate={date} refreshKey={refreshKey} />
+          <TodayProgress
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onStrongSignalChange={setProgressStrong}
+          />
 
-          <FoodAddPanel selectedDate={date} initialMealType={deepLinkMeal ?? undefined} onSaved={bump} onPendingChange={setConfirmOpen} />
+          <FoodAddPanel
+            selectedDate={date}
+            initialMealType={deepLinkMeal ?? undefined}
+            onSaved={bump}
+            onPendingChange={setConfirmOpen}
+            onAddYesterday={date === today ? goYesterdayAndAdd : undefined}
+          />
 
           <DailyLog
             selectedDate={date}
@@ -122,6 +142,8 @@ export default function RationPage() {
             onChanged={bump}
             onTotalsChange={setTotalCalories}
             onAddFood={scrollToFoodAdd}
+            isToday={date === today}
+            onAddYesterday={date === today ? goYesterdayAndAdd : undefined}
           />
 
           <QuickAddAgain
@@ -133,19 +155,21 @@ export default function RationPage() {
 
           <WaterTracker selectedDate={date} onChanged={bump} />
 
-          <MotivationQueue>
-            <StreakNudge
-              selectedDate={date}
-              today={today}
-              refreshKey={refreshKey}
-              onAddFood={scrollToFoodAdd}
-              quietHide
-            />
-            {date === today ? <DailySummaryCard today={today} /> : null}
-            <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
-            <MotivationTip today={today} selectedDate={date} quietHide />
-            <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
-          </MotivationQueue>
+          {!progressStrong ? (
+            <MotivationQueue>
+              <StreakNudge
+                selectedDate={date}
+                today={today}
+                refreshKey={refreshKey}
+                onAddFood={scrollToFoodAdd}
+                quietHide
+              />
+              {date === today ? <DailySummaryCard today={today} /> : null}
+              <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+              <MotivationTip today={today} selectedDate={date} quietHide />
+              <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+            </MotivationQueue>
+          ) : null}
 
           <section className="card overflow-hidden">
             <button

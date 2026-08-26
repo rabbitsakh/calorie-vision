@@ -18,6 +18,8 @@ type ProgressData = {
 type TodayProgressProps = {
   selectedDate: string;
   refreshKey: number;
+  /** True when calorie progress already conveys a strong day signal. */
+  onStrongSignalChange?: (strong: boolean) => void;
 };
 
 function Ring({
@@ -101,7 +103,7 @@ function BigMetric({
   );
 }
 
-export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) {
+export function TodayProgress({ selectedDate, refreshKey, onStrongSignalChange }: TodayProgressProps) {
   const [data, setData] = useState<ProgressData | null>(null);
 
   useEffect(() => {
@@ -136,6 +138,16 @@ export function TodayProgress({ selectedDate, refreshKey }: TodayProgressProps) 
       }
     })();
   }, [selectedDate, refreshKey]);
+
+  useEffect(() => {
+    if (!onStrongSignalChange) return;
+    if (!data || !data.calorieTarget || data.calorieTarget <= 0) {
+      onStrongSignalChange(false);
+      return;
+    }
+    const pct = (data.calories / data.calorieTarget) * 100;
+    onStrongSignalChange(data.calories > 0 && pct >= 40);
+  }, [data, onStrongSignalChange]);
 
   if (!data || (data.calories === 0 && !data.calorieTarget && data.waterMl === 0)) {
     return null;

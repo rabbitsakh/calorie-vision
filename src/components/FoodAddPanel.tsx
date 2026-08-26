@@ -32,6 +32,7 @@ type FoodAddPanelProps = {
   initialMealType?: string;
   onSaved: () => void;
   onPendingChange?: (open: boolean) => void;
+  onAddYesterday?: () => void;
 };
 
 function toRecognitionResponse(
@@ -61,7 +62,7 @@ function MicIcon({ listening }: { listening?: boolean }) {
   );
 }
 
-export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved, onPendingChange }: FoodAddPanelProps) {
+export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved, onPendingChange, onAddYesterday }: FoodAddPanelProps) {
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
@@ -305,6 +306,15 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           <p className="mt-1 text-sm text-slate-500">
             Сфотографируйте блюдо — или найдите по названию и штрихкоду.
           </p>
+          {onAddYesterday ? (
+            <button
+              type="button"
+              className="mt-2 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+              onClick={() => onAddYesterday()}
+            >
+              Добавить за вчера
+            </button>
+          ) : null}
         </div>
 
         {draftBanner ? (

@@ -163,6 +163,72 @@ export function formatTimeShort(value: string | Date, timezone?: string | null):
   }).format(date);
 }
 
+/** HH:MM for `<input type="time">` in the given timezone. */
+export function toTimeInputValue(value: string | Date, timezone?: string | null): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone: timezone ?? undefined,
+  }).formatToParts(date);
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "12";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "00";
+  return `${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+}
+
+/**
+ * Instant for calendar `dateKey` + wall-clock `HH:MM` in `timezone`
+ * (browser local when timezone is omitted).
+ */
+export function dateKeyAndTimeToIso(
+  dateKey: string,
+  timeHHMM: string,
+  timezone?: string | null,
+): string | null {
+  if (!isDateKey(dateKey)) return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(timeHHMM.trim());
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (!Number.isFinite(hour) || !Number.isFinite(minute) || hour > 23 || minute > 59) {
+    return null;
+  }
+  const [year, month, day] = dateKey.split("-").map(Number) as [number, number, number];
+
+  if (!timezone) {
+    return new Date(year, month - 1, day, hour, minute, 0, 0).toISOString();
+  }
+
+  let utcMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+  for (let i = 0; i < 4; i += 1) {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(utcMs));
+    const map = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+    const asUtc = Date.UTC(
+      Number(map.year),
+      Number(map.month) - 1,
+      Number(map.day),
+      Number(map.hour),
+      Number(map.minute),
+      Number(map.second),
+    );
+    const wanted = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+    const delta = wanted - asUtc;
+    if (delta === 0) break;
+    utcMs += delta;
+  }
+  return new Date(utcMs).toISOString();
+}
+
 /** Returns YYYY-MM-DD in the given timezone (defaults to local). */
 export function toDateKeyTz(date: Date, timezone?: string | null): string {
   const parts = new Intl.DateTimeFormat("en-CA", {

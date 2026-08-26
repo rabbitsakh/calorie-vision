@@ -9,13 +9,40 @@ import {
 } from "@/lib/push-client";
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { withBasePath } from "@/lib/paths";
-import { REMINDER_SCHEDULE, reminderKindLabel } from "@/lib/push-reminder-schedule";
+import { REMINDER_SCHEDULE, reminderKindLabel, type PushReminderPrefs, type ReminderKind } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
 
 type ServerPushStatus = {
   subscribed: boolean;
   count: number;
 };
+
+type ReminderPrefRow = {
+  enabled: boolean;
+  hour: number;
+};
+
+function defaultPrefRows(): Record<ReminderKind, ReminderPrefRow> {
+  const rows = {} as Record<ReminderKind, ReminderPrefRow>;
+  for (const slot of REMINDER_SCHEDULE) {
+    rows[slot.kind] = { enabled: true, hour: slot.hour };
+  }
+  return rows;
+}
+
+function prefsFromServer(raw: PushReminderPrefs | null | undefined): Record<ReminderKind, ReminderPrefRow> {
+  const rows = defaultPrefRows();
+  if (!raw) return rows;
+  for (const slot of REMINDER_SCHEDULE) {
+    const pref = raw[slot.kind];
+    if (!pref) continue;
+    rows[slot.kind] = {
+      enabled: pref.enabled !== false,
+      hour: pref.hour != null ? pref.hour : slot.hour,
+    };
+  }
+  return rows;
+}
 
 function poseForStatus(
   cap: PushCapability,
@@ -40,6 +67,8 @@ export function PushRemindersSettings() {
   const [quietStart, setQuietStart] = useState<string>("");
   const [quietEnd, setQuietEnd] = useState<string>("");
   const [quietSaving, setQuietSaving] = useState(false);
+  const [reminderPrefs, setReminderPrefs] = useState<Record<ReminderKind, ReminderPrefRow>>(defaultPrefRows);
+  const [prefsSaving, setPrefsSaving] = useState(false);
 
   const refresh = useCallback(async () => {
     setCap(getPushCapability());
@@ -60,11 +89,13 @@ export function PushRemindersSettings() {
         const account = (await accountResp.json()) as {
           quietHoursStart?: number | null;
           quietHoursEnd?: number | null;
+          pushReminderPrefs?: PushReminderPrefs | null;
         };
         setQuietStart(
           account.quietHoursStart == null ? "" : String(account.quietHoursStart),
         );
         setQuietEnd(account.quietHoursEnd == null ? "" : String(account.quietHoursEnd));
+        setReminderPrefs(prefsFromServer(account.pushReminderPrefs));
       }
     } catch {
       // keep defaults
@@ -115,6 +146,45 @@ export function PushRemindersSettings() {
       setError("Не удалось сохранить тихие часы");
     }
     setQuietSaving(false);
+  }
+
+  async function saveReminderPrefs() {
+    setPrefsSaving(true);
+    setError(null);
+    setMessage(null);
+    const payload: PushReminderPrefs = {};
+    for (const slot of REMINDER_SCHEDULE) {
+      const row = reminderPrefs[slot.kind];
+      const defaults = { enabled: true, hour: slot.hour };
+      const enabled = row?.enabled ?? true;
+      const hour = row?.hour ?? slot.hour;
+      if (enabled !== defaults.enabled || hour !== defaults.hour) {
+        payload[slot.kind] = { enabled, hour };
+      } else {
+        // Still persist explicit enabled:true + default hour so cron can read toggles consistently
+        payload[slot.kind] = { enabled, hour };
+      }
+    }
+    try {
+      const resp = await fetch(withBasePath("/api/account"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pushReminderPrefs: payload }),
+      });
+      const data = (await resp.json()) as {
+        error?: string;
+        pushReminderPrefs?: PushReminderPrefs | null;
+      };
+      if (!resp.ok) {
+        setError(data.error ?? "Не удалось сохранить напоминания");
+      } else {
+        setReminderPrefs(prefsFromServer(data.pushReminderPrefs));
+        setMessage("Настройки напоминаний сохранены");
+      }
+    } catch {
+      setError("Не удалось сохранить напоминания");
+    }
+    setPrefsSaving(false);
   }
 
   async function handleEnable() {
@@ -171,10 +241,9 @@ export function PushRemindersSettings() {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Завтрак, обед, вода (днём и вечером), сводка калорий, серия и вечерний чек-ин — по
-            часовому поясу из профиля (при включении подставим пояс этого устройства). По
-            понедельникам — итог прошлой недели. На iPhone — только из приложения с Home Screen
-            (iOS 16.4+).
+            Завтрак, обед, ужин, вода, сводка калорий, серия и вечерний чек-ин — по часовому поясу
+            из профиля. Можно включить/выключить каждый тип и выбрать час. По понедельникам —
+            итог прошлой недели. На iPhone — только из приложения с Home Screen (iOS 16.4+).
           </p>
         </div>
       </div>
@@ -210,11 +279,67 @@ export function PushRemindersSettings() {
             </span>
           </div>
         </dl>
-        <ul className="mt-3 space-y-1 text-xs text-slate-600">
-          {REMINDER_SCHEDULE.map((slot) => (
-            <li key={slot.kind}>• {reminderKindLabel(slot.kind)}</li>
-          ))}
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-slate-900">Какие напоминания слать</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Выключите ненужные или сдвиньте час — по умолчанию как в расписании.
+        </p>
+        <ul className="mt-3 space-y-2">
+          {REMINDER_SCHEDULE.map((slot) => {
+            const row = reminderPrefs[slot.kind] ?? { enabled: true, hour: slot.hour };
+            return (
+              <li
+                key={slot.kind}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+              >
+                <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                    checked={row.enabled}
+                    onChange={(event) => {
+                      const enabled = event.target.checked;
+                      setReminderPrefs((prev) => ({
+                        ...prev,
+                        [slot.kind]: { ...prev[slot.kind], enabled, hour: prev[slot.kind]?.hour ?? slot.hour },
+                      }));
+                    }}
+                  />
+                  <span className="min-w-0">{reminderKindLabel(slot.kind, row.hour)}</span>
+                </label>
+                <select
+                  className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                  value={String(row.hour)}
+                  disabled={!row.enabled}
+                  aria-label={`Час: ${slot.kind}`}
+                  onChange={(event) => {
+                    const hour = Number(event.target.value);
+                    setReminderPrefs((prev) => ({
+                      ...prev,
+                      [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? true, hour },
+                    }));
+                  }}
+                >
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <option key={hour} value={String(hour)}>
+                      {String(hour).padStart(2, "0")}:00
+                    </option>
+                  ))}
+                </select>
+              </li>
+            );
+          })}
         </ul>
+        <button
+          type="button"
+          className="btn btn-secondary mt-3 text-sm"
+          disabled={prefsSaving}
+          onClick={() => void saveReminderPrefs()}
+        >
+          {prefsSaving ? "Сохраняем…" : "Сохранить напоминания"}
+        </button>
       </div>
 
       {showEnable ? (

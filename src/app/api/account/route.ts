@@ -8,7 +8,13 @@ import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { referralCodeForUser } from "@/lib/referral";
 import { clampHour } from "@/lib/quiet-hours";
+import {
+  normalizePushReminderPrefs,
+  parsePushReminderPrefs,
+  type PushReminderPrefs,
+} from "@/lib/push-reminder-schedule";
 import { saveUploadedImage } from "@/lib/upload";
+import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +50,7 @@ export async function GET() {
           timezone: true,
           quietHoursStart: true,
           quietHoursEnd: true,
+          pushReminderPrefs: true,
           sex: true,
           heightCm: true,
           birthYear: true,
@@ -73,6 +80,7 @@ export async function GET() {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,
@@ -104,6 +112,7 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      pushReminderPrefs?: PushReminderPrefs | null;
       sex?: string | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -137,6 +146,7 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      pushReminderPrefs?: Prisma.InputJsonValue | null;
       sex?: Sex | null;
       heightCm?: number | null;
       birthYear?: number | null;
@@ -261,6 +271,15 @@ export async function PUT(request: NextRequest) {
       if (end !== undefined) data.quietHoursEnd = end;
     }
 
+    if (body.pushReminderPrefs !== undefined) {
+      if (body.pushReminderPrefs === null) {
+        data.pushReminderPrefs = null;
+      } else {
+        const normalized = normalizePushReminderPrefs(body.pushReminderPrefs);
+        data.pushReminderPrefs = normalized as Prisma.InputJsonValue;
+      }
+    }
+
     const emailDecision = lockedEmailDecision(emailLocked, body.email, currentUser.email);
     if (emailDecision.action === "reject") {
       return NextResponse.json(
@@ -298,6 +317,7 @@ export async function PUT(request: NextRequest) {
         timezone: true,
         quietHoursStart: true,
         quietHoursEnd: true,
+        pushReminderPrefs: true,
         sex: true,
         heightCm: true,
         birthYear: true,
@@ -316,6 +336,7 @@ export async function PUT(request: NextRequest) {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
       sex: user.sex ?? null,
       heightCm: user.heightCm ?? null,
       birthYear: user.birthYear ?? null,

@@ -11,6 +11,8 @@ export function mealTypeForReminder(kind: ReminderKind): MealType | null {
       return "BREAKFAST";
     case "lunch":
       return "LUNCH";
+    case "dinner":
+      return "DINNER";
     default:
       return null;
   }
