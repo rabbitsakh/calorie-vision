@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, type RefObject } from "react";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -10,11 +11,48 @@ type MobileTabBarProps = {
   date?: string;
 };
 
+/**
+ * Keep the tab bar glued to the bottom of the *visual* viewport.
+ * On iOS Safari/PWA, layout viewport and visual viewport diverge while
+ * scrolling (URL bar / rubber-band), which makes position:fixed bottom
+ * chrome appear to “pull up” with the page.
+ */
+function useVisualViewportBottomPin(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const sync = () => {
+      const vv = window.visualViewport;
+      if (!vv) {
+        el.style.transform = "translateZ(0)";
+        return;
+      }
+      const bottomGap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      el.style.transform = `translate3d(0, ${-bottomGap}px, 0)`;
+    };
+
+    sync();
+    const vv = window.visualViewport;
+    window.addEventListener("resize", sync);
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+    };
+  }, [ref]);
+}
+
 export function MobileTabBar({ date }: MobileTabBarProps) {
   const pathname = usePathname();
+  const barRef = useRef<HTMLElement>(null);
+  useVisualViewportBottomPin(barRef);
 
   return (
     <nav
+      ref={barRef}
       className="mobile-tab-bar fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
       aria-label="Основные разделы"
     >
