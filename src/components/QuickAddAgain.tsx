@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { DayTemplates } from "@/components/DayTemplates";
 import { FavoriteFoods } from "@/components/FavoriteFoods";
+import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { MealSuggestions } from "@/components/MealSuggestions";
 import { withBasePath } from "@/lib/paths";
 
-type Tab = "again" | "favorites" | "templates" | "ai";
+type Tab = "again" | "favorites" | "recipe" | "templates" | "ai";
 
 type QuickAddAgainProps = {
   selectedDate: string;
@@ -64,6 +65,7 @@ export function QuickAddAgain({
               id: "favorites" as const,
               label: favoritesCount > 0 ? `Избранное (${favoritesCount})` : "Избранное",
             },
+            { id: "recipe" as const, label: "Рецепт" },
             { id: "templates" as const, label: "Шаблоны" },
             { id: "ai" as const, label: "AI" },
           ] as const
@@ -94,6 +96,9 @@ export function QuickAddAgain({
         ) : null}
         {tab === "favorites" ? (
           <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
+        ) : null}
+        {tab === "recipe" ? (
+          <RecipeBuilder onSaved={handleSaved} embedded />
         ) : null}
         {tab === "templates" ? (
           <DayTemplates
