@@ -56,6 +56,9 @@ echo "==> Compress and backfill meal images"
 npm run images:backfill || echo "image backfill skipped"
 
 echo "==> Build"
+# Next.js production build can OOM on small VPS (SIGKILL). Cap heap and allow override.
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=3072}"
+echo "   NODE_OPTIONS=$NODE_OPTIONS"
 npm run build
 
 echo "==> Restart app"
