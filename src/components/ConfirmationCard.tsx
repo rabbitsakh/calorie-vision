@@ -5,6 +5,7 @@ import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type Nutrition
 import type { RecognitionResponse } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -1104,6 +1105,11 @@ function DishFields({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="field sm:col-span-2">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+            {dishLooksLikeAlcohol(dish.dishName) ? (
+              <p className="mb-1 text-xs text-amber-800">
+                Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
+              </p>
+            ) : null}
             <label htmlFor={fieldId("dishName")}>Блюдо</label>
             <button
               type="button"
