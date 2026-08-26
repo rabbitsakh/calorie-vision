@@ -17,10 +17,10 @@ function withBase(path) {
   return `${base}${path}`;
 }
 
-/** Shell cache version — bump when precache URLs or offline strategy change. */
-const CACHE_NAME = "cv-shell-v2";
+/** Shell + static asset cache — bump when strategy changes. */
+const CACHE_NAME = "cv-shell-v3";
+const STATIC_CACHE = "cv-static-v3";
 
-/** App shell + static icons. Trailing-slash variants match next.config trailingSlash. */
 function precacheUrls() {
   return [
     withBase("/"),
@@ -46,6 +46,10 @@ function isShellPath(pathname) {
   );
 }
 
+function isNextStatic(pathname) {
+  return pathname.includes("/_next/static/");
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -54,7 +58,7 @@ self.addEventListener("install", (event) => {
         Promise.all(
           precacheUrls().map((url) =>
             cache.add(url).catch(() => {
-              // Missing asset or offline during install — skip, do not fail SW install.
+              // Missing asset or offline during install — skip.
             }),
           ),
         ),
@@ -68,7 +72,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME && key !== STATIC_CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       )
       .then(() => self.clients.claim()),
   );
@@ -80,6 +88,23 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Hashed Next static assets — cache-first.
+  if (isNextStatic(url.pathname)) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        const response = await fetch(request);
+        if (response.ok) {
+          void cache.put(request, response.clone());
+        }
+        return response;
+      }),
+    );
+    return;
+  }
+
   if (!isShellPath(url.pathname)) return;
 
   event.respondWith(

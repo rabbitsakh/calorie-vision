@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DietTargets } from "@/components/DietTargets";
 import { Mascot } from "@/components/Mascot";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS, MEAL_TYPE_SHORT_LABELS } from "@/types";
@@ -190,7 +191,7 @@ function GroupedMealCard({
           <div className="meal-card-thumb shrink-0 overflow-hidden rounded-xl bg-white md:h-20 md:w-20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getImageUrl(headerImage)}
+              src={getImageUrl(headerImage, { w: 128 })}
               alt={group.entries.map((entry) => decodeHtmlEntities(entry.dishName)).join(", ")}
               className="h-full w-full object-cover"
               loading="lazy"
@@ -270,7 +271,7 @@ function GroupedMealCard({
                   {thumb ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={getImageUrl(thumb)}
+                      src={getImageUrl(thumb, { w: 128 })}
                       alt={decodeHtmlEntities(entry.dishName)}
                       className="h-full w-full object-cover"
                       loading="lazy"
@@ -546,7 +547,7 @@ function SingleMealCard({
           {entry.imagePath ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={getImageUrl(entry.imagePath)}
+              src={getImageUrl(entry.imagePath, { w: 128 })}
               alt={decodeHtmlEntities(entry.dishName)}
               className="h-full w-full object-cover"
               loading="lazy"
@@ -640,6 +641,7 @@ function MealListRow({
 }
 
 export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
+  const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
   const [daySummary, setDaySummary] = useState<
@@ -672,6 +674,11 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const attemptedImageMealIds = useRef(new Set<string>());
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
+  const dayRefresh = day?.refresh;
+  const dayData = day?.data ?? null;
+  const dayLoading = day?.loading ?? false;
+  const dayDate = day?.date;
+  const hasProvider = day != null;
 
   function toggleNormDetails() {
     setShowNormDetails((value) => {
@@ -684,6 +691,30 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       return next;
     });
   }
+
+  const applyMeals = useCallback(
+    (data: DayMealsResponse) => {
+      setEntries(data.entries);
+      setTotals({
+        calories: data.totalCalories,
+        protein: data.totalProtein ?? 0,
+        fat: data.totalFat ?? 0,
+        carbs: data.totalCarbs ?? 0,
+        fiber: data.totalFiber ?? 0,
+        sugar: data.totalSugar ?? 0,
+      });
+      onTotalsChange?.(data.totalCalories);
+      setDaySummary({
+        comparison: data.comparison ?? null,
+        calorieTone: data.calorieTone ?? null,
+        weightKg: data.weightKg ?? null,
+        dietLabel: data.dietLabel ?? null,
+        sex: data.sex ?? null,
+        calorieExplanation: data.calorieExplanation ?? null,
+      });
+    },
+    [onTotalsChange],
+  );
 
   const loadEntries = useCallback(async (quiet = false) => {
     const date = selectedDate;
@@ -706,24 +737,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         return;
       }
 
-      setEntries(data.entries);
-      setTotals({
-        calories: data.totalCalories,
-        protein: data.totalProtein ?? 0,
-        fat: data.totalFat ?? 0,
-        carbs: data.totalCarbs ?? 0,
-        fiber: data.totalFiber ?? 0,
-        sugar: data.totalSugar ?? 0,
-      });
-      onTotalsChange?.(data.totalCalories);
-      setDaySummary({
-        comparison: data.comparison ?? null,
-        calorieTone: data.calorieTone ?? null,
-        weightKg: data.weightKg ?? null,
-        dietLabel: data.dietLabel ?? null,
-        sex: data.sex ?? null,
-        calorieExplanation: data.calorieExplanation ?? null,
-      });
+      applyMeals(data);
     } catch (err) {
       if (!quiet) {
         setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -733,15 +747,52 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         setLoading(false);
       }
     }
-  }, [selectedDate, onTotalsChange]);
+  }, [selectedDate, applyMeals]);
 
   useEffect(() => {
     attemptedImageMealIds.current.clear();
     setPendingDeletes([]);
-    void loadEntries();
-  }, [loadEntries, refreshKey, selectedDate]);
+  }, [selectedDate, refreshKey]);
 
   useEffect(() => {
+    if (dayData?.date === selectedDate && dayData.meals) {
+      applyMeals(dayData.meals);
+      setStreakDays(dayData.streak?.streak ?? 0);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (hasProvider && dayDate === selectedDate) {
+      if (dayLoading || !dayData) {
+        setLoading(true);
+        return;
+      }
+    }
+
+    if (!hasProvider) {
+      void loadEntries();
+    }
+  }, [
+    applyMeals,
+    dayData,
+    dayDate,
+    dayLoading,
+    hasProvider,
+    loadEntries,
+    refreshKey,
+    selectedDate,
+  ]);
+
+  useEffect(() => {
+    if (dayData?.date === selectedDate && dayData.streak) {
+      setStreakDays(dayData.streak.streak);
+      return;
+    }
+    if (hasProvider && dayDate === selectedDate) {
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(withBasePath(`/api/streak?today=${selectedDate}`), {
@@ -755,7 +806,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         // streak is non-critical
       }
     })();
-  }, [selectedDate, refreshKey]);
+  }, [dayData, dayDate, hasProvider, selectedDate, refreshKey]);
 
   useEffect(() => {
     if (loading || error) {
@@ -774,22 +825,51 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
     const date = selectedDate;
 
-    void (async () => {
-      try {
-        const response = await fetch(withBasePath("/api/meals/images"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date }),
-        });
-        const data = (await response.json()) as { updated?: number };
-        if (response.ok && (data.updated ?? 0) > 0 && selectedDateRef.current === date) {
-          await loadEntries(true);
+    const runBackfill = () => {
+      void (async () => {
+        try {
+          const response = await fetch(withBasePath("/api/meals/images"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date }),
+          });
+          const data = (await response.json()) as { updated?: number };
+          if (response.ok && (data.updated ?? 0) > 0 && selectedDateRef.current === date) {
+            if (dayRefresh) {
+              void dayRefresh(true);
+            } else {
+              void loadEntries(true);
+            }
+          }
+        } catch {
+          // Diary still works if image lookup fails.
         }
-      } catch {
-        // Diary still works if image lookup fails.
-      }
-    })();
-  }, [loading, error, entries, selectedDate, loadEntries]);
+      })();
+    };
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const ric = typeof window !== "undefined"
+      ? (window as Window & {
+          requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+          cancelIdleCallback?: (id: number) => void;
+        }).requestIdleCallback
+      : undefined;
+    const cic = typeof window !== "undefined"
+      ? (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback
+      : undefined;
+
+    if (typeof ric === "function") {
+      idleId = ric(runBackfill, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(runBackfill, 200);
+    }
+
+    return () => {
+      if (idleId != null && typeof cic === "function") cic(idleId);
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
+  }, [loading, error, entries, selectedDate, loadEntries, dayRefresh]);
 
   async function handleEdit(id: string, patch: EditPatch) {
     const response = await fetch(withBasePath(`/api/meals/${id}`), {

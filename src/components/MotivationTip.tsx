@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 
@@ -15,6 +16,7 @@ type MotivationTipProps = {
 };
 
 export function MotivationTip({ today, selectedDate, quietHide = false }: MotivationTipProps) {
+  const day = useOptionalRationDay();
   const [tip, setTip] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -28,6 +30,16 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
       return;
     }
 
+    if (day?.data?.tip && day.today === today) {
+      setTip(day.data.tip);
+      try {
+        localStorage.setItem(`${CACHE_PREFIX}${today}`, day.data.tip);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
     try {
       const cached = localStorage.getItem(`${CACHE_PREFIX}${today}`);
       if (cached) {
@@ -36,6 +48,10 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
       }
     } catch {
       // continue to fetch
+    }
+
+    if (day && day.today === today && day.loading) {
+      return;
     }
 
     void (async () => {
@@ -54,7 +70,7 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
         // non-critical
       }
     })();
-  }, [today, selectedDate]);
+  }, [today, selectedDate, day]);
 
   if (!tip || selectedDate !== today) return null;
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MilestoneCelebration } from "@/components/MilestoneCelebration";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 
 type StreakMilestoneCelebrationProps = {
@@ -19,10 +20,20 @@ export function StreakMilestoneCelebration({
   selectedDate,
   refreshKey,
 }: StreakMilestoneCelebrationProps) {
+  const day = useOptionalRationDay();
   const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     if (selectedDate !== today) return;
+
+    if (day?.data?.streak && day.today === today) {
+      setStreak(day.data.streak.streak);
+      return;
+    }
+
+    if (day && day.today === today && day.loading) {
+      return;
+    }
 
     void (async () => {
       try {
@@ -34,7 +45,7 @@ export function StreakMilestoneCelebration({
         // non-critical
       }
     })();
-  }, [today, selectedDate, refreshKey]);
+  }, [today, selectedDate, refreshKey, day]);
 
   return streak > 0 ? <MilestoneCelebration streak={streak} /> : null;
 }

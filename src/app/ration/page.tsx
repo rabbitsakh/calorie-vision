@@ -1,49 +1,114 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { AppSplash } from "@/components/AppSplash";
 import { AuthGate } from "@/components/AuthGate";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
+import { RationDayProvider, useRationDay } from "@/components/RationDayProvider";
 import { WaterTracker } from "@/components/WaterTracker";
-import { StreakWidget } from "@/components/StreakWidget";
-import { StreakNudge } from "@/components/StreakNudge";
-import { DiaryNoteWidget } from "@/components/DiaryNoteWidget";
-import { DailySummaryCard } from "@/components/DailySummaryCard";
-import { DayOpenedCelebration } from "@/components/DayOpenedCelebration";
-import { DailyGoalCelebration } from "@/components/DailyGoalCelebration";
-import { WaterGoalCelebration } from "@/components/WaterGoalCelebration";
-import { WeekPerfectCelebration } from "@/components/WeekPerfectCelebration";
-import { CheckinDoneCelebration } from "@/components/CheckinDoneCelebration";
-import { ProteinGoalCelebration } from "@/components/ProteinGoalCelebration";
-import { StreakMilestoneCelebration } from "@/components/StreakMilestoneCelebration";
-import { PushNotificationPrompt } from "@/components/PushNotificationPrompt";
-import { EveningCheckin } from "@/components/EveningCheckin";
-import { MotivationTip } from "@/components/MotivationTip";
-import { WeeklyChallenge } from "@/components/WeeklyChallenge";
-import { TodayProgress } from "@/components/TodayProgress";
 import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
-import { MascotSaveReaction } from "@/components/MascotSaveReaction";
-import { QuickAddAgain } from "@/components/QuickAddAgain";
-import { ShoppingListPanel } from "@/components/ShoppingListPanel";
-import { WeeklyPlan } from "@/components/WeeklyPlan";
-import { FastingWindowBanner } from "@/components/FastingWindowBanner";
-import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
-import {
-  PwaInstallOnboardingPrompt,
-  PwaInstallWizard,
-} from "@/components/PwaInstallWizard";
+import { FastingWindowBanner } from "@/components/FastingWindowBanner";
+import { TodayProgress } from "@/components/TodayProgress";
+import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
+import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
+import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import type { MealType } from "@/types";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
-import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
+
+const WeeklyPlan = dynamic(
+  () => import("@/components/WeeklyPlan").then((m) => m.WeeklyPlan),
+  { ssr: false, loading: () => null },
+);
+const ShoppingListPanel = dynamic(
+  () => import("@/components/ShoppingListPanel").then((m) => m.ShoppingListPanel),
+  { ssr: false, loading: () => null },
+);
+const StreakWidget = dynamic(
+  () => import("@/components/StreakWidget").then((m) => m.StreakWidget),
+  { ssr: false, loading: () => null },
+);
+const WeeklyChallenge = dynamic(
+  () => import("@/components/WeeklyChallenge").then((m) => m.WeeklyChallenge),
+  { ssr: false, loading: () => null },
+);
+const DiaryNoteWidget = dynamic(
+  () => import("@/components/DiaryNoteWidget").then((m) => m.DiaryNoteWidget),
+  { ssr: false, loading: () => null },
+);
+const PushNotificationPrompt = dynamic(
+  () => import("@/components/PushNotificationPrompt").then((m) => m.PushNotificationPrompt),
+  { ssr: false, loading: () => null },
+);
+const StreakNudge = dynamic(
+  () => import("@/components/StreakNudge").then((m) => m.StreakNudge),
+  { ssr: false, loading: () => null },
+);
+const DailySummaryCard = dynamic(
+  () => import("@/components/DailySummaryCard").then((m) => m.DailySummaryCard),
+  { ssr: false, loading: () => null },
+);
+const EveningCheckin = dynamic(
+  () => import("@/components/EveningCheckin").then((m) => m.EveningCheckin),
+  { ssr: false, loading: () => null },
+);
+const MotivationTip = dynamic(
+  () => import("@/components/MotivationTip").then((m) => m.MotivationTip),
+  { ssr: false, loading: () => null },
+);
+const MascotSaveReaction = dynamic(
+  () => import("@/components/MascotSaveReaction").then((m) => m.MascotSaveReaction),
+  { ssr: false, loading: () => null },
+);
+const PwaInstallOnboardingPrompt = dynamic(
+  () =>
+    import("@/components/PwaInstallWizard").then((m) => m.PwaInstallOnboardingPrompt),
+  { ssr: false, loading: () => null },
+);
+const PwaInstallWizard = dynamic(
+  () => import("@/components/PwaInstallWizard").then((m) => m.PwaInstallWizard),
+  { ssr: false, loading: () => null },
+);
+
+const DayOpenedCelebration = dynamic(
+  () => import("@/components/DayOpenedCelebration").then((m) => m.DayOpenedCelebration),
+  { ssr: false },
+);
+const DailyGoalCelebration = dynamic(
+  () => import("@/components/DailyGoalCelebration").then((m) => m.DailyGoalCelebration),
+  { ssr: false },
+);
+const WaterGoalCelebration = dynamic(
+  () => import("@/components/WaterGoalCelebration").then((m) => m.WaterGoalCelebration),
+  { ssr: false },
+);
+const WeekPerfectCelebration = dynamic(
+  () => import("@/components/WeekPerfectCelebration").then((m) => m.WeekPerfectCelebration),
+  { ssr: false },
+);
+const CheckinDoneCelebration = dynamic(
+  () => import("@/components/CheckinDoneCelebration").then((m) => m.CheckinDoneCelebration),
+  { ssr: false },
+);
+const ProteinGoalCelebration = dynamic(
+  () => import("@/components/ProteinGoalCelebration").then((m) => m.ProteinGoalCelebration),
+  { ssr: false },
+);
+const StreakMilestoneCelebration = dynamic(
+  () =>
+    import("@/components/StreakMilestoneCelebration").then((m) => m.StreakMilestoneCelebration),
+  { ssr: false },
+);
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -60,21 +125,44 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export default function RationPage() {
-  const timezone = useTimezone();
-  const { date, setDate, today } = useSelectedDate(timezone);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [totalCalories, setTotalCalories] = useState(0);
+function RationBody({
+  date,
+  today,
+  timezone,
+  deepLinkMeal,
+  confirmOpen,
+  setConfirmOpen,
+  setPwaWizardOpen,
+  pwaWizardOpen,
+  scrollToFoodAdd,
+  onSelectDate,
+}: {
+  date: string;
+  today: string;
+  timezone: string | null | undefined;
+  deepLinkMeal: MealType | null;
+  confirmOpen: boolean;
+  setConfirmOpen: (v: boolean) => void;
+  pwaWizardOpen: boolean;
+  setPwaWizardOpen: (v: boolean) => void;
+  scrollToFoodAdd: () => void;
+  onSelectDate: (next: string) => void;
+}) {
+  const day = useRationDay();
   const [showHabits, setShowHabits] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
-  const [deepLinkMeal, setDeepLinkMeal] = useState<MealType | null>(null);
+  const [splashDone, setSplashDone] = useState(false);
 
-  const scrollToFoodAdd = useCallback(() => {
-    document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
+  useEffect(() => {
+    if (!day.loading && day.data) {
+      const t = window.setTimeout(() => setSplashDone(true), 280);
+      return () => window.clearTimeout(t);
+    }
+    setSplashDone(false);
+  }, [day.loading, day.data]);
 
-  const bump = useCallback(() => setRefreshKey((value) => value + 1), []);
+  const bump = day.bump;
+  const refreshKey = day.refreshKey;
+  const totalCalories = day.data?.meals.totalCalories ?? 0;
 
   useEffect(() => {
     const onDietTargetsChanged = () => bump();
@@ -82,7 +170,179 @@ export default function RationPage() {
     return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
   }, [bump]);
 
-  // Push notification deep link: /ration?meal=BREAKFAST
+  const showSplash = day.loading && !day.data && !splashDone;
+
+  return (
+    <>
+      {showSplash ? <AppSplash tip={day.data?.tip ?? undefined} status="Открываем рацион…" /> : null}
+
+      <div className={`ration-page flex flex-col gap-2.5 md:gap-3 ${showSplash ? "invisible h-0 overflow-hidden" : ""}`}>
+        <OnboardingOverlay />
+        <MascotSaveReaction />
+        <ProfileCompletionBanner />
+        <FastingWindowBanner isToday={date === today} />
+        <TodayProgress selectedDate={date} refreshKey={refreshKey} />
+        {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
+        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} />
+        <MedicalDisclaimerNote className="px-1" />
+
+        <FoodAddPanel
+          selectedDate={date}
+          initialMealType={deepLinkMeal ?? undefined}
+          onSaved={bump}
+          onPendingChange={setConfirmOpen}
+        />
+
+        <DailyLog
+          selectedDate={date}
+          refreshKey={refreshKey}
+          compact
+          timezone={timezone}
+          onChanged={bump}
+          onTotalsChange={() => {}}
+          onAddFood={scrollToFoodAdd}
+        />
+
+        <QuickAddAgain
+          selectedDate={date}
+          refreshKey={refreshKey}
+          totalCalories={totalCalories}
+          onSaved={bump}
+        />
+
+        <ShoppingListPanel selectedDate={date} />
+        <WaterTracker selectedDate={date} onChanged={bump} />
+
+        <MotivationQueue>
+          <StreakNudge
+            selectedDate={date}
+            today={today}
+            refreshKey={refreshKey}
+            onAddFood={scrollToFoodAdd}
+            quietHide
+          />
+          {date === today ? <DailySummaryCard today={today} /> : null}
+          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+          <MotivationTip today={today} selectedDate={date} quietHide />
+          <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+        </MotivationQueue>
+
+        <section className="card overflow-hidden">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
+            onClick={() => setShowHabits((value) => !value)}
+            aria-expanded={showHabits}
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-800">Привычки и заметки</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Серия, недельный челлендж, заметка о дне, напоминания
+              </p>
+            </div>
+            <ChevronIcon open={showHabits} />
+          </button>
+          {!showHabits ? (
+            <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+              <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
+              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
+              <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+              <DiaryNoteWidget selectedDate={date} />
+              <PushNotificationPrompt />
+            </div>
+          )}
+        </section>
+
+        <CelebrationOrchestrator>
+          <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+        </CelebrationOrchestrator>
+
+        <PwaInstallWizard
+          open={pwaWizardOpen}
+          prefer="auto"
+          onClose={() => setPwaWizardOpen(false)}
+        />
+      </div>
+
+      <button
+        type="button"
+        className={`fab-add md:hidden ${confirmOpen || showSplash ? "pointer-events-none opacity-0" : ""}`}
+        aria-label="Добавить еду"
+        aria-hidden={confirmOpen || showSplash}
+        tabIndex={confirmOpen || showSplash ? -1 : 0}
+        onClick={scrollToFoodAdd}
+      >
+        +
+      </button>
+    </>
+  );
+}
+
+function RationShell({
+  date,
+  today,
+  timezone,
+  deepLinkMeal,
+  setDate,
+}: {
+  date: string;
+  today: string;
+  timezone: string | null | undefined;
+  deepLinkMeal: MealType | null;
+  setDate: (next: string) => void;
+}) {
+  const day = useRationDay();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
+  const scrollToFoodAdd = useCallback(() => {
+    document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  return (
+    <AppShell
+      title="Рацион"
+      compact
+      date={date}
+      headerExtra={
+        <DateNavBar
+          date={date}
+          today={today}
+          refreshKey={day.refreshKey}
+          onDateChange={setDate}
+        />
+      }
+    >
+      <RationBody
+        date={date}
+        today={today}
+        timezone={timezone}
+        deepLinkMeal={deepLinkMeal}
+        confirmOpen={confirmOpen}
+        setConfirmOpen={setConfirmOpen}
+        pwaWizardOpen={pwaWizardOpen}
+        setPwaWizardOpen={setPwaWizardOpen}
+        scrollToFoodAdd={scrollToFoodAdd}
+        onSelectDate={setDate}
+      />
+    </AppShell>
+  );
+}
+
+export default function RationPage() {
+  const timezone = useTimezone();
+  const { date, setDate, today } = useSelectedDate(timezone);
+  const [deepLinkMeal, setDeepLinkMeal] = useState<MealType | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -97,130 +357,16 @@ export default function RationPage() {
   }, []);
 
   return (
-    <AppShell
-      title="Рацион"
-      compact
-      date={date}
-      headerExtra={
-        <DateNavBar
+    <AuthGate>
+      <RationDayProvider date={date} today={today}>
+        <RationShell
           date={date}
           today={today}
-          refreshKey={refreshKey}
-          onDateChange={(next) => setDate(next)}
+          timezone={timezone}
+          deepLinkMeal={deepLinkMeal}
+          setDate={setDate}
         />
-      }
-    >
-      <AuthGate>
-        <div className="ration-page flex flex-col gap-2.5 md:gap-3">
-          <OnboardingOverlay />
-          <MascotSaveReaction />
-          <ProfileCompletionBanner />
-          <FastingWindowBanner isToday={date === today} />
-          <TodayProgress selectedDate={date} refreshKey={refreshKey} />
-          {date === today ? (
-            <HolidayBufferToggle selectedDate={date} onChange={() => bump()} />
-          ) : null}
-          <WeeklyPlan
-            selectedDate={date}
-            refreshKey={refreshKey}
-            onSelectDate={(next) => setDate(next)}
-          />
-          <MedicalDisclaimerNote className="px-1" />
-
-          <FoodAddPanel selectedDate={date} initialMealType={deepLinkMeal ?? undefined} onSaved={bump} onPendingChange={setConfirmOpen} />
-
-          <DailyLog
-            selectedDate={date}
-            refreshKey={refreshKey}
-            compact
-            timezone={timezone}
-            onChanged={bump}
-            onTotalsChange={setTotalCalories}
-            onAddFood={scrollToFoodAdd}
-          />
-
-          <QuickAddAgain
-            selectedDate={date}
-            refreshKey={refreshKey}
-            totalCalories={totalCalories}
-            onSaved={bump}
-          />
-
-          <ShoppingListPanel selectedDate={date} />
-
-          <WaterTracker selectedDate={date} onChanged={bump} />
-
-          <MotivationQueue>
-            <StreakNudge
-              selectedDate={date}
-              today={today}
-              refreshKey={refreshKey}
-              onAddFood={scrollToFoodAdd}
-              quietHide
-            />
-            {date === today ? <DailySummaryCard today={today} /> : null}
-            <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
-            <MotivationTip today={today} selectedDate={date} quietHide />
-            <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
-          </MotivationQueue>
-
-          <section className="card overflow-hidden">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
-              onClick={() => setShowHabits((value) => !value)}
-              aria-expanded={showHabits}
-            >
-              <div className="min-w-0">
-                <p className="font-semibold text-slate-800">Привычки и заметки</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Серия, недельный челлендж, заметка о дне, напоминания
-                </p>
-              </div>
-              <ChevronIcon open={showHabits} />
-            </button>
-            {!showHabits ? (
-              <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
-                <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
-                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-                <DiaryNoteWidget selectedDate={date} />
-                <PushNotificationPrompt />
-              </div>
-            )}
-          </section>
-
-          <CelebrationOrchestrator>
-            <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <WaterGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-            <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
-          </CelebrationOrchestrator>
-
-          <PwaInstallWizard
-            open={pwaWizardOpen}
-            prefer="auto"
-            onClose={() => setPwaWizardOpen(false)}
-          />
-        </div>
-      </AuthGate>
-      <button
-        type="button"
-        className={`fab-add md:hidden ${confirmOpen ? "pointer-events-none opacity-0" : ""}`}
-        aria-label="Добавить еду"
-        aria-hidden={confirmOpen}
-        tabIndex={confirmOpen ? -1 : 0}
-        onClick={scrollToFoodAdd}
-      >
-        +
-      </button>
-    </AppShell>
+      </RationDayProvider>
+    </AuthGate>
   );
 }

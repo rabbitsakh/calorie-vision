@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import type { ReactNode } from "react";
+import { AppSplash } from "@/components/AppSplash";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
 
   if (status === "loading") {
-    return <p className="text-sm text-slate-500">Загрузка…</p>;
+    return <AppSplash status="Входим…" />;
   }
 
   if (status !== "authenticated") {
