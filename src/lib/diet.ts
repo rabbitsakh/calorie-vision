@@ -1,6 +1,7 @@
 export type WeightGoal = "LOSE" | "GAIN" | "MAINTAIN";
 export type GoalPace = "SIMPLE" | "HEALTHY" | "FAST";
 export type Sex = "FEMALE" | "MALE";
+export type ActivityLevel = "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE";
 
 type DietCoeff = {
   calorieRatio: number;
@@ -11,8 +12,22 @@ type DietCoeff = {
 export const GOAL_OPTIONS: Array<{ value: WeightGoal; label: string; hint: string }> = [
   { value: "LOSE", label: "Похудеть", hint: "Дефицит калорий" },
   { value: "GAIN", label: "Набрать вес", hint: "Профицит калорий" },
-  { value: "MAINTAIN", label: "Удержать вес", hint: "Баланс калорий" },
+  { value: "MAINTAIN", label: "Удержать вес", hint: "Коридор ±10% без давления" },
 ];
+
+export const ACTIVITY_OPTIONS: Array<{
+  value: ActivityLevel;
+  label: string;
+  hint: string;
+  factor: number;
+}> = [
+  { value: "SEDENTARY", label: "Сидячий", hint: "Офис, мало ходьбы", factor: 1.2 },
+  { value: "LIGHT", label: "Лёгкая активность", hint: "Ходьба в течение дня", factor: 1.25 },
+  { value: "MODERATE", label: "Умеренная", hint: "Тренировки 3–4 раза в неделю", factor: 1.55 },
+  { value: "ACTIVE", label: "Высокая", hint: "Ежедневный спорт или физтруд", factor: 1.725 },
+];
+
+export const DEFAULT_ACTIVITY_LEVEL: ActivityLevel = "LIGHT";
 
 export const PACE_OPTIONS: Array<{ value: GoalPace; label: string }> = [
   { value: "SIMPLE", label: "Как можно проще" },
@@ -41,8 +56,6 @@ const PACE_HINTS: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, strin
 /** Mifflin–St Jeor assumes typical adult height/age when those are unknown. */
 const DEFAULT_AGE = 35;
 const HEIGHT_CM: Record<Sex, number> = { FEMALE: 165, MALE: 175 };
-/** Sedentary–light (office + walking), not gym-athlete. */
-const ACTIVITY_FACTOR = 1.25;
 const MIN_CALORIES: Record<Sex, number> = { FEMALE: 1200, MALE: 1500 };
 
 const MAINTAIN_COEFF: DietCoeff = { calorieRatio: 1, protein: 1.4, fat: 0.8 };
@@ -148,6 +161,20 @@ export function isSex(value: unknown): value is Sex {
   return value === "FEMALE" || value === "MALE";
 }
 
+export function isActivityLevel(value: unknown): value is ActivityLevel {
+  return value === "SEDENTARY" || value === "LIGHT" || value === "MODERATE" || value === "ACTIVE";
+}
+
+export function activityLabel(level: ActivityLevel | null | undefined): string | null {
+  if (!level) return null;
+  return ACTIVITY_OPTIONS.find((option) => option.value === level)?.label ?? null;
+}
+
+export function activityFactor(level: ActivityLevel | null | undefined): number {
+  const resolved = isActivityLevel(level) ? level : DEFAULT_ACTIVITY_LEVEL;
+  return ACTIVITY_OPTIONS.find((option) => option.value === resolved)?.factor ?? 1.25;
+}
+
 function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoeff {
   if (goal === "MAINTAIN") {
     return MAINTAIN_COEFF;
@@ -156,14 +183,20 @@ function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoe
 }
 
 function mifflinBmr(weightKg: number, sex: Sex, heightCm?: number | null, age?: number | null): number {
-  const h = (heightCm && heightCm > 0) ? heightCm : HEIGHT_CM[sex];
-  const a = (age && age > 0) ? age : DEFAULT_AGE;
+  const h = heightCm && heightCm > 0 ? heightCm : HEIGHT_CM[sex];
+  const a = age && age > 0 ? age : DEFAULT_AGE;
   const base = 10 * weightKg + 6.25 * h - 5 * a;
   return sex === "MALE" ? base + 5 : base - 161;
 }
 
-function maintainCalories(weightKg: number, sex: Sex, heightCm?: number | null, age?: number | null): number {
-  return Math.round(mifflinBmr(weightKg, sex, heightCm, age) * ACTIVITY_FACTOR);
+function maintainCalories(
+  weightKg: number,
+  sex: Sex,
+  heightCm?: number | null,
+  age?: number | null,
+  activity?: ActivityLevel | null,
+): number {
+  return Math.round(mifflinBmr(weightKg, sex, heightCm, age) * activityFactor(activity));
 }
 
 /**
@@ -173,15 +206,16 @@ function maintainCalories(weightKg: number, sex: Sex, heightCm?: number | null, 
 const MACRO_BMI_CAP = 30;
 
 function weightForMacros(weightKg: number, sex: Sex, heightCm?: number | null): number {
-  const h = (heightCm && heightCm > 0) ? heightCm : HEIGHT_CM[sex];
+  const h = heightCm && heightCm > 0 ? heightCm : HEIGHT_CM[sex];
   const heightM = h / 100;
   const capKg = MACRO_BMI_CAP * heightM * heightM;
   return Math.min(weightKg, round1(capKg));
 }
 
 /**
- * Daily target from Mifflin–St Jeor (lightly active).
+ * Daily target from Mifflin–St Jeor × activity level.
  * Sex defaults to female when unknown so calories are not overestimated.
+ * Activity defaults to LIGHT (1.25) — same as the previous hardcoded factor.
  */
 export function recommendDiet(
   weightKg: number,
@@ -190,13 +224,16 @@ export function recommendDiet(
   sex: Sex | null | undefined = "FEMALE",
   heightCm?: number | null,
   birthYear?: number | null,
+  activity?: ActivityLevel | null,
 ): DietTarget {
   const resolvedSex = isSex(sex) ? sex : "FEMALE";
   const age = birthYear ? new Date().getFullYear() - birthYear : null;
   const coeff = dietCoeff(goal, pace);
   const calories = Math.max(
     MIN_CALORIES[resolvedSex],
-    Math.round(maintainCalories(weightKg, resolvedSex, heightCm, age) * coeff.calorieRatio),
+    Math.round(
+      maintainCalories(weightKg, resolvedSex, heightCm, age, activity) * coeff.calorieRatio,
+    ),
   );
   const macroWeight = weightForMacros(weightKg, resolvedSex, heightCm);
   const protein = round1(macroWeight * coeff.protein);
@@ -207,6 +244,56 @@ export function recommendDiet(
   const sugar = Math.max(25, Math.round((calories * 0.1) / 4));
 
   return { calories, protein, fat, carbs, fiber, sugar };
+}
+
+export type DietBreakdown = {
+  bmr: number;
+  activityLevel: ActivityLevel;
+  activityFactor: number;
+  maintainCalories: number;
+  target: DietTarget;
+  explanation: string;
+};
+
+/** Human-readable BMR → TDEE → goal target breakdown (Russian). */
+export function explainDiet(
+  weightKg: number,
+  goal: WeightGoal,
+  pace: GoalPace | null | undefined = null,
+  sex: Sex | null | undefined = "FEMALE",
+  heightCm?: number | null,
+  birthYear?: number | null,
+  activity?: ActivityLevel | null,
+): DietBreakdown {
+  const resolvedSex = isSex(sex) ? sex : "FEMALE";
+  const resolvedActivity = isActivityLevel(activity) ? activity : DEFAULT_ACTIVITY_LEVEL;
+  const age = birthYear ? new Date().getFullYear() - birthYear : null;
+  const bmr = Math.round(mifflinBmr(weightKg, resolvedSex, heightCm, age));
+  const factor = activityFactor(resolvedActivity);
+  const maintain = Math.round(bmr * factor);
+  const target = recommendDiet(
+    weightKg,
+    goal,
+    pace,
+    resolvedSex,
+    heightCm,
+    birthYear,
+    resolvedActivity,
+  );
+  const activityName = activityLabel(resolvedActivity) ?? "лёгкая активность";
+  const goalPart =
+    goal === "MAINTAIN"
+      ? `Цель «удержать вес»: держитесь коридора около ${target.calories} ккал (±10%).`
+      : `С учётом цели норма на день: ${target.calories} ккал.`;
+  const explanation = `Базовый обмен (BMR) ≈ ${bmr} ккал. × ${factor} (${activityName}) ≈ ${maintain} ккал на поддержание. ${goalPart}`;
+  return {
+    bmr,
+    activityLevel: resolvedActivity,
+    activityFactor: factor,
+    maintainCalories: maintain,
+    target,
+    explanation,
+  };
 }
 
 /** Apply optional user overrides for fiber goal / sugar soft cap. */
@@ -294,8 +381,9 @@ export function formatCalorieVsTargetLabel(
 ): string {
   if (actual <= 0) return "";
   const diff = Math.round(actual - target);
-  if (Math.abs(diff) <= Math.max(1, Math.round(target * 0.05))) {
-    return " (в цели)";
+  const band = goal === "MAINTAIN" ? 0.1 : 0.05;
+  if (Math.abs(diff) <= Math.max(1, Math.round(target * band))) {
+    return goal === "MAINTAIN" ? " (в коридоре)" : " (в цели)";
   }
   if (goal === "LOSE") {
     return diff < 0
@@ -308,8 +396,8 @@ export function formatCalorieVsTargetLabel(
       : ` (+${diff} ккал сверх цели)`;
   }
   return diff < 0
-    ? ` (${Math.abs(diff)} ккал до нормы)`
-    : ` (+${diff} ккал сверх нормы)`;
+    ? ` (${Math.abs(diff)} ккал до коридора)`
+    : ` (+${diff} ккал сверх коридора)`;
 }
 
 /**
@@ -318,12 +406,22 @@ export function formatCalorieVsTargetLabel(
  * Only warn on extreme undereating (<75% of target).
  */
 export const CALORIE_GOAL_CORRIDOR_RATIO = 0.08;
+/** Wider band for MAINTAIN — hold weight without pressure to hit an exact number. */
+export const MAINTAIN_CORRIDOR_RATIO = 0.1;
 export const CALORIE_LOSE_DANGEROUS_RATIO = 0.75;
 
-/** True when intake is within ±8% of the daily calorie target (tip “near” band). */
-export function isCalorieGoalCorridor(actual: number, target: number): boolean {
+export function calorieCorridorRatio(goal?: WeightGoal | null): number {
+  return goal === "MAINTAIN" ? MAINTAIN_CORRIDOR_RATIO : CALORIE_GOAL_CORRIDOR_RATIO;
+}
+
+/** True when intake is within the goal-aware corridor of the daily calorie target. */
+export function isCalorieGoalCorridor(
+  actual: number,
+  target: number,
+  goal?: WeightGoal | null,
+): boolean {
   if (!(actual > 0) || !(target > 0)) return false;
-  return Math.abs(actual - target) <= target * CALORIE_GOAL_CORRIDOR_RATIO;
+  return Math.abs(actual - target) <= target * calorieCorridorRatio(goal);
 }
 
 /** LOSE: extreme undereating that must not be celebrated. */
@@ -363,8 +461,8 @@ export function dailyGoalCelebrationCopy(
     };
   }
   return {
-    title: "Цель по калориям",
-    subtitle: `${stats}вы рядом с нормой на сегодня.`,
+    title: "Вес в балансе",
+    subtitle: `${stats}вы в комфортном коридоре нормы — можно не гнаться за точным числом.`,
   };
 }
 
@@ -387,7 +485,7 @@ export function buildGoalAwareCalorieTip(params: {
 
   const diff = actual - target;
   const abs = Math.round(Math.abs(diff));
-  const near = isCalorieGoalCorridor(actual, target);
+  const near = isCalorieGoalCorridor(actual, target, goal);
   const veryLow = actual < target * CALORIE_LOSE_DANGEROUS_RATIO;
 
   if (near) {
@@ -397,7 +495,7 @@ export function buildGoalAwareCalorieTip(params: {
     if (goal === "GAIN") {
       return `${when} вы рядом с целью на набор — так и держите.`;
     }
-    return `${when} вы рядом с нормой калорий — отличная работа!`;
+    return `${when} вы в коридоре нормы (±10%) — для удержания веса этого достаточно.`;
   }
 
   if (goal === "LOSE") {
@@ -417,9 +515,9 @@ export function buildGoalAwareCalorieTip(params: {
     return `${when} выше цели набора (+${abs} ккал) — можно чуть спокойнее, если набор идёт слишком быстро.`;
   }
 
-  // MAINTAIN / unknown
+  // MAINTAIN / unknown — soft corridor, no pressure
   if (diff < 0) {
-    return `${when} не хватило ${abs} ккал до нормы — при желании добавьте перекус.`;
+    return `${when} чуть ниже коридора (−${abs} ккал) — при желании добавьте перекус, без жёстких правил.`;
   }
-  return `${when} на ${abs} ккал выше нормы — ${whenLower === "сегодня" ? "можно чуть легче" : "сегодня можно чуть легче"}.`;
+  return `${when} чуть выше коридора (+${abs} ккал) — ${whenLower === "сегодня" ? "можно спокойнее" : "сегодня можно спокойнее"}, без чувства вины.`;
 }

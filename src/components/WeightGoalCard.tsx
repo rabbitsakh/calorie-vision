@@ -4,14 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GOAL_OPTIONS,
   PACE_OPTIONS,
+  explainDiet,
   formatGoalChoice,
   formatSignedKg,
   goalNeedsPace,
+  isActivityLevel,
   isGoalPace,
+  isSex,
   isWeightGoal,
   paceHint,
   savedGoalHint,
+  type ActivityLevel,
   type GoalPace,
+  type Sex,
   type WeightGoal,
 } from "@/lib/diet";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
@@ -30,6 +35,13 @@ type ProfileResponse = {
   firstWeightDate?: string | null;
   weightChangeKg: number | null;
   error?: string;
+};
+
+type AccountBodyPreview = {
+  sex: Sex | null;
+  heightCm: number | null;
+  birthYear: number | null;
+  activityLevel: ActivityLevel | null;
 };
 
 type WeightGoalCardProps = {
@@ -58,6 +70,7 @@ export function WeightGoalCard({
   const [goalDeadline, setGoalDeadline] = useState<string | null>(null);
   const [draftTarget, setDraftTarget] = useState("");
   const [draftDeadline, setDraftDeadline] = useState("");
+  const [bodyPreview, setBodyPreview] = useState<AccountBodyPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,9 +80,12 @@ export function WeightGoalCard({
     setError(null);
 
     try {
-      const response = await fetch(withBasePath(`/api/profile?date=${selectedDate}`));
-      const data = (await response.json()) as ProfileResponse;
-      if (!response.ok) {
+      const [profileRes, accountRes] = await Promise.all([
+        fetch(withBasePath(`/api/profile?date=${selectedDate}`)),
+        fetch(withBasePath("/api/account")),
+      ]);
+      const data = (await profileRes.json()) as ProfileResponse;
+      if (!profileRes.ok) {
         throw new Error(data.error ?? "Не удалось загрузить профиль");
       }
 
@@ -90,6 +106,16 @@ export function WeightGoalCard({
       setGoalDeadline(data.goalDeadline);
       setDraftTarget(data.targetWeightKg ? String(data.targetWeightKg) : "");
       setDraftDeadline(data.goalDeadline ?? "");
+
+      if (accountRes.ok) {
+        const account = (await accountRes.json()) as AccountBodyPreview;
+        setBodyPreview({
+          sex: isSex(account.sex) ? account.sex : null,
+          heightCm: account.heightCm ?? null,
+          birthYear: account.birthYear ?? null,
+          activityLevel: isActivityLevel(account.activityLevel) ? account.activityLevel : null,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка профиля");
     } finally {
@@ -126,6 +152,20 @@ export function WeightGoalCard({
     firstWeightDate,
     currentWeightDate,
   ]);
+
+  const draftCaloriePreview = useMemo(() => {
+    if (!draftGoal || !currentWeightKg) return null;
+    if (goalNeedsPace(draftGoal) && !draftPace) return null;
+    return explainDiet(
+      currentWeightKg,
+      draftGoal,
+      draftPace,
+      bodyPreview?.sex,
+      bodyPreview?.heightCm,
+      bodyPreview?.birthYear,
+      bodyPreview?.activityLevel,
+    );
+  }, [draftGoal, draftPace, currentWeightKg, bodyPreview]);
 
   async function saveGoal(nextGoal: WeightGoal, nextPace: GoalPace | null) {
     setSaving(true);
@@ -330,6 +370,16 @@ export function WeightGoalCard({
                       })}
                     </div>
                   </div>
+                ) : null}
+                {draftCaloriePreview ? (
+                  <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+                    Превью нормы: <strong>{draftCaloriePreview.target.calories} ккал</strong>
+                    {" · "}поддержание {draftCaloriePreview.maintainCalories} ккал (BMR{" "}
+                    {draftCaloriePreview.bmr} × {draftCaloriePreview.activityFactor}).
+                    {draftGoal === "MAINTAIN"
+                      ? " Коридор удержания ±10% — без давления на точное число."
+                      : ""}
+                  </p>
                 ) : null}
                 {draftGoal && goalNeedsPace(draftGoal) ? (
                   <div className="grid gap-3 sm:grid-cols-2">

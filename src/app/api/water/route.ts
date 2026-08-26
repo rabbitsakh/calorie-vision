@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
-import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { resolveWaterTargetMl } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
+
+async function waterTargetForUser(userId: string): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { waterTargetMl: true },
+  });
+  return resolveWaterTargetMl(user?.waterTargetMl);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,13 +24,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Укажите date=YYYY-MM-DD" }, { status: 400 });
     }
 
-    const entries = await prisma.waterEntry.findMany({
-      where: { userId: session.user.id, date },
-      orderBy: { createdAt: "asc" },
-    });
+    const [entries, target] = await Promise.all([
+      prisma.waterEntry.findMany({
+        where: { userId: session.user.id, date },
+        orderBy: { createdAt: "asc" },
+      }),
+      waterTargetForUser(session.user.id),
+    ]);
 
     const totalMl = entries.reduce((sum, e) => sum + e.ml, 0);
-    return NextResponse.json({ totalMl, target: WATER_DAILY_TARGET_ML, entries });
+    return NextResponse.json({ totalMl, target, entries });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Ошибка загрузки" }, { status: 500 });
@@ -47,12 +58,15 @@ export async function POST(request: NextRequest) {
       data: { userId: session.user.id, date, ml },
     });
 
-    const all = await prisma.waterEntry.findMany({
-      where: { userId: session.user.id, date },
-    });
+    const [all, target] = await Promise.all([
+      prisma.waterEntry.findMany({
+        where: { userId: session.user.id, date },
+      }),
+      waterTargetForUser(session.user.id),
+    ]);
     const totalMl = all.reduce((sum, e) => sum + e.ml, 0);
 
-    return NextResponse.json({ entry, totalMl, target: WATER_DAILY_TARGET_ML });
+    return NextResponse.json({ entry, totalMl, target });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Ошибка сохранения" }, { status: 500 });

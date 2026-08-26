@@ -3,7 +3,15 @@
 import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
-import { SEX_OPTIONS, isSex, type Sex } from "@/lib/diet";
+import {
+  ACTIVITY_OPTIONS,
+  SEX_OPTIONS,
+  isActivityLevel,
+  isSex,
+  type ActivityLevel,
+  type Sex,
+} from "@/lib/diet";
+import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
@@ -25,8 +33,10 @@ type AccountResponse = {
   sex: Sex | null;
   heightCm: number | null;
   birthYear: number | null;
+  activityLevel: ActivityLevel | null;
   fiberTargetG: number | null;
   sugarTargetG: number | null;
+  waterTargetMl: number | null;
   linkedProviders: string[];
   emailLocked: boolean;
   referralCode?: string;
@@ -69,8 +79,10 @@ export function ProfileForm() {
   const [sex, setSex] = useState<Sex | "">("");
   const [heightCm, setHeightCm] = useState("");
   const [birthYear, setBirthYear] = useState("");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | "">("");
   const [fiberTargetG, setFiberTargetG] = useState("");
   const [sugarTargetG, setSugarTargetG] = useState("");
+  const [waterTargetMl, setWaterTargetMl] = useState("");
   const [emailLocked, setEmailLocked] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -104,8 +116,10 @@ export function ProfileForm() {
       setSex(isSex(data.sex) ? data.sex : "");
       setHeightCm(data.heightCm ? String(data.heightCm) : "");
       setBirthYear(data.birthYear ? String(data.birthYear) : "");
+      setActivityLevel(isActivityLevel(data.activityLevel) ? data.activityLevel : "");
       setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
+      setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
       setEmailLocked(data.emailLocked);
       setReferralCode(data.referralCode?.trim() || "");
     } catch (err) {
@@ -139,6 +153,7 @@ export function ProfileForm() {
           sex: sex || null,
           heightCm: heightCm && Number.isFinite(Number(heightCm)) ? Math.round(Number(heightCm)) : null,
           birthYear: birthYear && Number.isFinite(Number(birthYear)) ? Math.round(Number(birthYear)) : null,
+          activityLevel: activityLevel || null,
           fiberTargetG:
             fiberTargetG.trim() && Number.isFinite(Number(fiberTargetG))
               ? Number(fiberTargetG)
@@ -146,6 +161,10 @@ export function ProfileForm() {
           sugarTargetG:
             sugarTargetG.trim() && Number.isFinite(Number(sugarTargetG))
               ? Number(sugarTargetG)
+              : null,
+          waterTargetMl:
+            waterTargetMl.trim() && Number.isFinite(Number(waterTargetMl))
+              ? Math.round(Number(waterTargetMl))
               : null,
         }),
       });
@@ -161,8 +180,12 @@ export function ProfileForm() {
       setImage(data.image);
       setTimezone(data.timezone ?? "");
       setSex(isSex(data.sex) ? data.sex : "");
+      setHeightCm(data.heightCm ? String(data.heightCm) : "");
+      setBirthYear(data.birthYear ? String(data.birthYear) : "");
+      setActivityLevel(isActivityLevel(data.activityLevel) ? data.activityLevel : "");
       setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
+      setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
@@ -386,6 +409,45 @@ export function ProfileForm() {
                 onChange={(event) => setBirthYear(event.target.value)}
               />
               <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
+            </div>
+            <div className="field sm:col-span-2">
+              <label htmlFor="activityLevel">Уровень активности</label>
+              <select
+                id="activityLevel"
+                value={activityLevel}
+                onChange={(event) =>
+                  setActivityLevel(
+                    isActivityLevel(event.target.value) ? event.target.value : "",
+                  )
+                }
+                className="input"
+              >
+                <option value="">Лёгкая (по умолчанию)</option>
+                {ACTIVITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} — {option.hint}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Множитель к базовому обмену (BMR → TDEE). По умолчанию 1.25 — как раньше.
+              </p>
+            </div>
+            <div className="field">
+              <label htmlFor="waterTargetMl">Цель по воде, мл/день</label>
+              <input
+                id="waterTargetMl"
+                type="number"
+                min="500"
+                max="6000"
+                step="50"
+                placeholder={String(WATER_DAILY_TARGET_ML)}
+                value={waterTargetMl}
+                onChange={(event) => setWaterTargetMl(event.target.value)}
+              />
+              <p className="text-xs text-slate-500">
+                Пусто — {WATER_DAILY_TARGET_ML} мл. Влияет на трекер и напоминания.
+              </p>
             </div>
             <div className="field">
               <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>

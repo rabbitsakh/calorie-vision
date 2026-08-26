@@ -152,7 +152,10 @@ export function WaterTracker({
       <div className="px-4 py-3 md:px-5">
         {showTip ? (
           <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-950">
-            <p className="font-medium">Норма воды — {WATER_DAILY_TARGET_ML} мл в день.</p>
+            <p className="font-medium">
+              Норма воды — {target} мл в день
+              {target !== WATER_DAILY_TARGET_ML ? " (ваша цель из профиля)" : ""}.
+            </p>
             <p className="mt-1 text-xs text-sky-900/80">
               Жмите быстрые кнопки после каждого стакана — так проще держать привычку.
             </p>

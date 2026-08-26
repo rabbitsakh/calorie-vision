@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
-import { applyFiberSugarOverrides, calorieTone, compareNutrient, formatGoalChoice, isSex, recommendDiet, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
+import { applyFiberSugarOverrides, calorieTone, compareNutrient, explainDiet, formatGoalChoice, isActivityLevel, isSex, round1, type GoalPace, type WeightGoal } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import {
@@ -121,6 +121,7 @@ export async function GET(request: NextRequest) {
           sex: true,
           heightCm: true,
           birthYear: true,
+          activityLevel: true,
           fiberTargetG: true,
           sugarTargetG: true,
         },
@@ -140,13 +141,25 @@ export async function GET(request: NextRequest) {
     const goal = (user?.goal ?? null) as WeightGoal | null;
     const goalPace = (user?.goalPace ?? null) as GoalPace | null;
     const sex = isSex(user?.sex) ? user!.sex : null;
-    const target =
+    const activity = isActivityLevel(user?.activityLevel) ? user!.activityLevel : null;
+    const breakdown =
       goal && weight
-        ? applyFiberSugarOverrides(
-            recommendDiet(weight.weightKg, goal, goalPace, sex, user?.heightCm, user?.birthYear),
-            { fiberTargetG: user?.fiberTargetG, sugarTargetG: user?.sugarTargetG },
+        ? explainDiet(
+            weight.weightKg,
+            goal,
+            goalPace,
+            sex,
+            user?.heightCm,
+            user?.birthYear,
+            activity,
           )
         : null;
+    const target = breakdown
+      ? applyFiberSugarOverrides(breakdown.target, {
+          fiberTargetG: user?.fiberTargetG,
+          sugarTargetG: user?.sugarTargetG,
+        })
+      : null;
     const comparison = target
       ? {
           calories: compareNutrient(totalCalories, target.calories),
@@ -177,6 +190,7 @@ export async function GET(request: NextRequest) {
         sex,
         weightKg: weight?.weightKg ?? null,
         target,
+        calorieExplanation: breakdown?.explanation ?? null,
         comparison,
         calorieTone: goal && comparison ? calorieTone(comparison.calories, goal) : null,
       },
