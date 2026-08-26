@@ -1,13 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Smoke E2E (#48): guest landing → login page.
+ * Guest critical-path E2E: landing, login, not-found, auth-gated profile/ration.
  * Run: npx playwright test
- * Requires `npm run build && npm start` or `PLAYWRIGHT_BASE_URL`.
+ * Requires a running app (`npm run build && npm start`) or `PLAYWRIGHT_BASE_URL`.
  */
 export default defineConfig({
   testDir: "./e2e",
   timeout: 60_000,
+  expect: { timeout: 15_000 },
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

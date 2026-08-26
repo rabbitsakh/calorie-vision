@@ -17,7 +17,8 @@ function withBase(path) {
   return `${base}${path}`;
 }
 
-const CACHE_NAME = "cv-shell-v1";
+/** Shell cache version — bump when precache URLs or offline strategy change. */
+const CACHE_NAME = "cv-shell-v2";
 
 /** App shell + static icons. Trailing-slash variants match next.config trailingSlash. */
 function precacheUrls() {

@@ -376,10 +376,19 @@ nginx -t && systemctl reload nginx
 - Prisma зафиксирована в `package.json` (6.19.3).
 - Спецсимволы в пароле MySQL кодируйте в URL (`@` → `%40`).
 
+### SQL-миграции (`deploy/migrate-*.sql`)
+
+Помимо `prisma db push`, деплой применяет файлы `deploy/migrate-*.sql` через `npm run db:migrate-sql` (см. `deploy/deploy.sh`). Порядок — **лексикографический** по имени файла (`sort`), поэтому префиксы/имена важны. Скрипты идемпотентны (проверки `INFORMATION_SCHEMA` / `IF NOT EXISTS`). Список без применения:
+
+```bash
+ls deploy/migrate-*.sql | sort
+```
+
 ## Полезные команды
 
 ```powershell
 npm run dev          # dev-сервер
 npm run build        # production-сборка
 npm run db:studio    # просмотр БД в Prisma Studio
+npm run db:migrate-sql  # применить deploy/migrate-*.sql по имени
 ```
