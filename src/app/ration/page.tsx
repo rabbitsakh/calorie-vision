@@ -9,7 +9,7 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { RationDayProvider, useRationDay } from "@/components/RationDayProvider";
-import { WaterTracker, postWaterMl } from "@/components/WaterTracker";
+import { WaterTracker } from "@/components/WaterTracker";
 import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
@@ -214,19 +214,6 @@ function RationBody({
           selectedDate={date}
           today={today}
           onAddFood={openFoodCamera}
-          onAddWater={() => {
-            void (async () => {
-              const result = await postWaterMl(date, 250);
-              if (result) {
-                bump();
-                return;
-              }
-              document.getElementById("water-tracker")?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              });
-            })();
-          }}
         />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
