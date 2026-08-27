@@ -9,7 +9,7 @@ import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { RationDayProvider, useRationDay } from "@/components/RationDayProvider";
-import { WaterTracker } from "@/components/WaterTracker";
+import { WaterTracker, postWaterMl } from "@/components/WaterTracker";
 import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
@@ -211,9 +211,21 @@ function RationBody({
           today={today}
           onAddFood={scrollToFoodAdd}
           onAddWater={() => {
-            document.getElementById("water-tracker")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            void (async () => {
+              const result = await postWaterMl(date, 250);
+              if (result) {
+                bump();
+                return;
+              }
+              document.getElementById("water-tracker")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            })();
           }}
         />
+
+        <WaterTracker selectedDate={date} onChanged={bump} compact />
 
         <FoodAddPanel
           selectedDate={date}
@@ -255,7 +267,6 @@ function RationBody({
           onSaved={bump}
         />
 
-        <WaterTracker selectedDate={date} onChanged={bump} />
         <ShoppingListPanel selectedDate={date} />
 
         {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
