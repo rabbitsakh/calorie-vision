@@ -6,6 +6,7 @@ import { FavoriteFoods } from "@/components/FavoriteFoods";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { QuickAddMeals } from "@/components/QuickAddMeals";
 import { MealSuggestions } from "@/components/MealSuggestions";
+import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { withBasePath } from "@/lib/paths";
 
 type Tab = "again" | "favorites" | "recipe" | "templates" | "ai";
@@ -46,6 +47,7 @@ export function QuickAddAgain({
 
   function handleSaved() {
     void loadFavoritesCount();
+    emitMascotReaction("save");
     onSaved();
   }
 

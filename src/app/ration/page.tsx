@@ -16,6 +16,7 @@ import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
+import { NextStepBar } from "@/components/NextStepBar";
 import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
@@ -207,6 +208,14 @@ function RationBody({
         <ProfileCompletionBanner />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+        <NextStepBar
+          selectedDate={date}
+          today={today}
+          onAddFood={scrollToFoodAdd}
+          onAddWater={() => {
+            document.getElementById("water-tracker")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
         {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
         <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} />
         <MedicalDisclaimerNote className="px-1" />
@@ -246,8 +255,8 @@ function RationBody({
             onAddFood={scrollToFoodAdd}
             quietHide
           />
-          {date === today ? <DailySummaryCard today={today} /> : null}
           <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+          {date === today ? <DailySummaryCard today={today} /> : null}
           <MotivationTip today={today} selectedDate={date} quietHide />
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
         </MotivationQueue>

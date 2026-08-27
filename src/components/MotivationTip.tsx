@@ -19,13 +19,21 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
   const day = useOptionalRationDay();
   const [tip, setTip] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [hour, setHour] = useState(() => (typeof window === "undefined" ? 12 : new Date().getHours()));
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
+    setHour(new Date().getHours());
   }, [selectedDate]);
 
+  const loggedToday =
+    Boolean(day?.data?.streak?.loggedToday) ||
+    (day?.data?.meals.entries.length ?? 0) > 0;
+  /** DayHero already motivates empty mornings — tip waits until after lunch + a meal. */
+  const tipAllowed = selectedDate === today && loggedToday && hour >= 13;
+
   useEffect(() => {
-    if (selectedDate !== today) {
+    if (!tipAllowed) {
       setTip(null);
       return;
     }
@@ -70,9 +78,9 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
         // non-critical
       }
     })();
-  }, [today, selectedDate, day]);
+  }, [today, tipAllowed, day]);
 
-  if (!tip || selectedDate !== today) return null;
+  if (!tip || !tipAllowed) return null;
 
   if (hidden) {
     if (quietHide) return null;

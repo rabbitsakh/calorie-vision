@@ -5,7 +5,7 @@
 import { pluralDays } from "@/lib/russian-text";
 
 /** How long the branded splash stays visible at minimum (ration bootstrap). */
-export const SPLASH_MIN_VISIBLE_MS = 2000;
+export const SPLASH_MIN_VISIBLE_MS = 3000;
 
 export const SPLASH_TIPS = [
   "Сфотографируйте тарелку целиком — так распознавание точнее.",
