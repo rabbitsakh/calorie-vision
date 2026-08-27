@@ -55,7 +55,7 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
     if (waterTarget > 0 && waterMl < waterTarget * 0.35 && (part === "day" || part === "morning")) {
       return {
         label: "Не забудьте воду — цель ещё впереди",
-        actionLabel: "К воде",
+        actionLabel: "+250 мл",
         onClick: onAddWater ?? onAddFood,
       };
     }
@@ -63,7 +63,7 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
     if (part === "evening" && waterMl < waterTarget * 0.7) {
       return {
         label: "До вечера можно добрать воду",
-        actionLabel: "К воде",
+        actionLabel: "+250 мл",
         onClick: onAddWater ?? onAddFood,
       };
     }

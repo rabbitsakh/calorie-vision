@@ -37,9 +37,12 @@ function markWaterTipSeen(): void {
 export function WaterTracker({
   selectedDate,
   onChanged,
+  compact = false,
 }: {
   selectedDate: string;
   onChanged?: () => void;
+  /** Dense strip for the top of the ration page (quick +ml chips). */
+  compact?: boolean;
 }) {
   const day = useOptionalRationDay();
   const [totalMl, setTotalMl] = useState(0);
@@ -110,16 +113,22 @@ export function WaterTracker({
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
-        onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
+        id="water-tracker"
+        className="flex w-full scroll-mt-4 items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        onClick={() => {
+          showPanelToday(PANEL_ID, selectedDate);
+          setHidden(false);
+        }}
       >
-        <span>💧 Вода — {totalMl} / {target} мл</span>
+        <span>
+          Вода — {totalMl} / {target} мл
+        </span>
         <span className="text-xs">Показать</span>
       </button>
     );
   }
 
-  const pct = Math.min(100, Math.round((totalMl / target) * 100));
+  const pct = Math.min(100, Math.round((totalMl / Math.max(1, target)) * 100));
   const done = pct >= 100;
   const glasses = Math.floor(totalMl / 250);
   const remaining = Math.max(0, target - totalMl);
@@ -127,13 +136,71 @@ export function WaterTracker({
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
 
+  const chips = (
+    <div className="chip-row-fill">
+      {QUICK_AMOUNTS.map((ml) => (
+        <button
+          key={ml}
+          type="button"
+          className="chip min-h-10 justify-center font-semibold text-sky-800"
+          style={{ background: "var(--accent-water-soft)" }}
+          disabled={loading}
+          onClick={() => void add(ml)}
+        >
+          +{ml} мл
+        </button>
+      ))}
+    </div>
+  );
+
+  if (compact) {
+    return (
+      <section
+        id="water-tracker"
+        className="card scroll-mt-4 overflow-hidden px-3 py-2.5 md:px-4"
+        aria-label="Вода"
+      >
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-sky-950">
+              Вода{" "}
+              <span className="font-medium text-sky-900/80">
+                {totalMl} / {target} мл
+              </span>
+            </p>
+            <p className="text-[11px] text-slate-500">
+              {done
+                ? "Норма выполнена"
+                : remaining > 0
+                  ? `Осталось ${remaining} мл`
+                  : "Быстрые кнопки"}
+              {glasses > 0 ? ` · ≈ ${glasses} ст.` : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-lg px-2 py-1 text-xs font-bold ${
+                done ? "bg-teal-100 text-teal-800" : "bg-sky-100 text-sky-900"
+              }`}
+            >
+              {done ? "✓" : `${pct}%`}
+            </span>
+            <button type="button" className="btn-quiet text-sky-800" onClick={handleHide}>
+              Скрыть
+            </button>
+          </div>
+        </div>
+        {chips}
+      </section>
+    );
+  }
+
   return (
     <section id="water-tracker" className="card overflow-hidden scroll-mt-4">
       <div className="border-b border-sky-100 bg-[var(--accent-water-soft)] px-4 py-3 md:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-lg" aria-hidden>💧</span>
               <h2 className="text-base font-semibold text-sky-950">Вода</h2>
             </div>
             <p className="mt-0.5 text-sm text-sky-900/80">
@@ -146,9 +213,13 @@ export function WaterTracker({
               <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden>
                 <circle cx="36" cy="36" r={r} fill="none" stroke="#bae6fd" strokeWidth="5" />
                 <circle
-                  cx="36" cy="36" r={r} fill="none"
+                  cx="36"
+                  cy="36"
+                  r={r}
+                  fill="none"
                   stroke={done ? "var(--accent)" : "var(--accent-water)"}
-                  strokeWidth="5" strokeLinecap="round"
+                  strokeWidth="5"
+                  strokeLinecap="round"
                   strokeDasharray={`${dash} ${circ}`}
                   strokeDashoffset={circ / 4}
                   className="transition-all duration-500"
@@ -192,21 +263,28 @@ export function WaterTracker({
             ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}`
             : "Быстрые кнопки — добавьте стакан воды"}
         </p>
-        <div className="chip-row-fill">
-          {QUICK_AMOUNTS.map((ml) => (
-            <button
-              key={ml}
-              type="button"
-              className="chip min-h-10 justify-center font-semibold text-sky-800"
-              style={{ background: "var(--accent-water-soft)" }}
-              disabled={loading}
-              onClick={() => void add(ml)}
-            >
-              +{ml} мл
-            </button>
-          ))}
-        </div>
+        {chips}
       </div>
     </section>
   );
+}
+
+/** Quick +ml from NextStepBar / FAB helpers — returns new totals or null. */
+export async function postWaterMl(
+  date: string,
+  ml: number,
+): Promise<WaterResponse | null> {
+  try {
+    const resp = await fetch(withBasePath("/api/water"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date, ml }),
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as WaterResponse;
+    trackWaterLoggedGoal();
+    return data;
+  } catch {
+    return null;
+  }
 }
