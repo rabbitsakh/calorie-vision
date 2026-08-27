@@ -12,6 +12,7 @@ import {
   formatDateTime,
   formatDateWords,
   formatTimeShort,
+  shiftDateKey,
   toTimeInputValue,
 } from "@/lib/dates";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
@@ -1211,13 +1212,41 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }
 
   const [copying, setCopying] = useState(false);
+  const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
+
+  useEffect(() => {
+    const empty = !loading && !error && entries.length === 0 && pendingDeletes.length === 0;
+    if (!empty) {
+      setYesterdayHasMeals(false);
+      return;
+    }
+    const fromDate = shiftDateKey(selectedDate, -1);
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const response = await fetch(withBasePath(`/api/meals?date=${fromDate}`), {
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          setYesterdayHasMeals(false);
+          return;
+        }
+        const data = (await response.json()) as DayMealsResponse;
+        setYesterdayHasMeals((data.entries?.length ?? 0) > 0);
+      } catch {
+        if (!controller.signal.aborted) {
+          setYesterdayHasMeals(false);
+        }
+      }
+    })();
+    return () => controller.abort();
+  }, [loading, error, entries.length, pendingDeletes.length, selectedDate]);
 
   async function handleCopyYesterday() {
     setCopying(true);
     try {
-      const d = new Date(selectedDate + "T12:00:00Z");
-      d.setUTCDate(d.getUTCDate() - 1);
-      const fromDate = d.toISOString().slice(0, 10);
+      const fromDate = shiftDateKey(selectedDate, -1);
       const resp = await fetch(withBasePath("/api/meals/copy"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1283,20 +1312,22 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             </div>
           ) : null}
 
-          <div className={`rounded-xl bg-[var(--accent)] text-white ${compact ? "px-3 py-2" : "rounded-2xl px-4 py-3"}`}>
-            <div className="text-[10px] uppercase tracking-wide text-teal-50">Итого за день</div>
-            <div className={`font-bold ${compact ? "text-xl leading-tight" : "text-2xl"}`}>{totals.calories} ккал</div>
-            <div className="text-[11px] text-teal-50">
-              Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
-            </div>
-            {(totals.fiber > 0 || totals.sugar > 0) ? (
-              <div className="mt-0.5 text-[11px] text-teal-100">
-                {totals.fiber > 0 ? `Клетч. ${totals.fiber}` : null}
-                {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
-                {totals.sugar > 0 ? `Сахар ${totals.sugar}` : null}
+          {!compact ? (
+            <div className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-white">
+              <div className="text-[10px] uppercase tracking-wide text-teal-50">Итого за день</div>
+              <div className="text-2xl font-bold">{totals.calories} ккал</div>
+              <div className="text-[11px] text-teal-50">
+                Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
               </div>
-            ) : null}
-          </div>
+              {(totals.fiber > 0 || totals.sugar > 0) ? (
+                <div className="mt-0.5 text-[11px] text-teal-100">
+                  {totals.fiber > 0 ? `Клетч. ${totals.fiber}` : null}
+                  {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
+                  {totals.sugar > 0 ? `Сахар ${totals.sugar}` : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {daySummary.comparison && daySummary.calorieTone && daySummary.weightKg != null ? (
@@ -1403,14 +1434,16 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             >
               Сфотографировать
             </button>
-            <button
-              type="button"
-              className="btn btn-secondary text-sm"
-              disabled={copying}
-              onClick={() => void handleCopyYesterday()}
-            >
-              {copying ? "Копируем..." : "Повторить вчерашний день"}
-            </button>
+            {yesterdayHasMeals ? (
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                disabled={copying}
+                onClick={() => void handleCopyYesterday()}
+              >
+                {copying ? "Копируем..." : "Повторить вчерашний день"}
+              </button>
+            ) : null}
           </div>
         ) : null}
 

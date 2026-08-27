@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
+import { inferMealTypeFromHour } from "@/lib/meal-type";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -320,7 +321,9 @@ export function ConfirmationCard({
   const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
   const [imagePath, setImagePath] = useState(initialImagePath);
   const [mealType, setMealType] = useState<string>(() =>
-    initialMealType && initialMealType in MEAL_TYPE_LABELS ? initialMealType : "",
+    initialMealType && initialMealType in MEAL_TYPE_LABELS
+      ? initialMealType
+      : inferMealTypeFromHour(new Date().getHours()),
   );
   const [saving, setSaving] = useState(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
@@ -927,7 +930,7 @@ export function ConfirmationCard({
 
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Приём пищи{!mealType ? " · желательно указать" : ""}
+            Приём пищи
           </p>
           <div className="chip-row-fill">
             {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (

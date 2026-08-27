@@ -217,9 +217,6 @@ function RationBody({
             document.getElementById("water-tracker")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />
-        {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
-        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} compact />
-        <MedicalDisclaimerNote className="px-1" />
 
         <FoodAddPanel
           selectedDate={date}
@@ -261,8 +258,12 @@ function RationBody({
           onSaved={bump}
         />
 
-        <ShoppingListPanel selectedDate={date} />
         <WaterTracker selectedDate={date} onChanged={bump} />
+        <ShoppingListPanel selectedDate={date} />
+
+        {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
+        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} compact />
+        <MedicalDisclaimerNote className="px-1" />
 
         <MotivationQueue>
           <StreakNudge

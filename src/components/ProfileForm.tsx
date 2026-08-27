@@ -311,265 +311,304 @@ export function ProfileForm() {
   ];
 
   return (
-    <section className="card p-4 md:p-6">
-      {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
+    <>
+      {loading ? (
+        <section className="card p-4 md:p-6">
+          <p className="text-sm text-slate-500">Загрузка...</p>
+        </section>
+      ) : null}
 
       {!loading ? (
-        <form className="flex flex-col gap-5" onSubmit={handleSave}>
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-            <label className="relative cursor-pointer">
-              {image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={getImageUrl(image)}
-                  alt=""
-                  className="h-24 w-24 rounded-full border border-slate-200 object-cover"
-                />
-              ) : (
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800">
-                  {displayName.charAt(0).toUpperCase()}
-                </div>
-              )}
-              <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/45 py-1 text-center text-xs text-white">
-                {uploading ? "..." : "Фото"}
-              </span>
-              <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleAvatarChange} />
-            </label>
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Я</p>
-              <h2 className="text-xl font-bold">{displayName}</h2>
-              <p className="text-sm text-slate-500">Имя, email и фото видны в шапке приложения</p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="field">
-              <label htmlFor="firstName">Имя</label>
-              <input id="firstName" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
-            </div>
-            <div className="field">
-              <label htmlFor="lastName">Фамилия</label>
-              <input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} />
-            </div>
-            <div className="field sm:col-span-2">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                disabled={emailLocked}
-                readOnly={emailLocked}
-                className={emailLocked ? "cursor-not-allowed opacity-60" : undefined}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              {emailLocked ? (
-                <p className="text-xs text-slate-500">🔒 Email привязан к Google или VK — изменить нельзя</p>
-              ) : null}
-            </div>
-            <div className="field sm:col-span-2">
-              <label htmlFor="phone">Телефон</label>
-              <input
-                id="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="+7 (900) 123-45-67"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">
-                Можно указать вручную — для профиля и напоминаний.
-              </p>
-            </div>
-            <div className="field sm:col-span-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Цель и расчёт</p>
-              <label htmlFor="sex">Пол</label>
-              <select
-                id="sex"
-                value={sex}
-                onChange={(event) => setSex(isSex(event.target.value) ? event.target.value : "")}
-                className="input"
-              >
-                <option value="">Не указан</option>
-                {SEX_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">
-                Нужен для расчёта нормы калорий: у женщин базовый обмен ниже, чем у мужчин
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="heightCm">Рост, см</label>
-              <input
-                id="heightCm"
-                type="number"
-                min="100"
-                max="250"
-                placeholder="170"
-                value={heightCm}
-                onChange={(event) => setHeightCm(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">Для точного расчёта базового обмена</p>
-            </div>
-            <div className="field">
-              <label htmlFor="birthYear">Год рождения</label>
-              <input
-                id="birthYear"
-                type="number"
-                min="1920"
-                max={new Date().getFullYear() - 10}
-                placeholder="1990"
-                value={birthYear}
-                onChange={(event) => setBirthYear(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
-            </div>
-            <div className="field sm:col-span-2">
-              <label htmlFor="activityLevel">Уровень активности</label>
-              <select
-                id="activityLevel"
-                value={activityLevel}
-                onChange={(event) =>
-                  setActivityLevel(
-                    isActivityLevel(event.target.value) ? event.target.value : "",
-                  )
-                }
-                className="input"
-              >
-                <option value="">Лёгкая (по умолчанию)</option>
-                {ACTIVITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label} — {option.hint}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">
-                Множитель к базовому обмену (BMR → TDEE). По умолчанию 1.25 — как раньше.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="waterTargetMl">Цель по воде, мл/день</label>
-              <input
-                id="waterTargetMl"
-                type="number"
-                min="500"
-                max="6000"
-                step="50"
-                placeholder={String(WATER_DAILY_TARGET_ML)}
-                value={waterTargetMl}
-                onChange={(event) => setWaterTargetMl(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">
-                Пусто — {WATER_DAILY_TARGET_ML} мл. Влияет на трекер и напоминания.
-              </p>
-            </div>
-            <div className="field">
-              <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>
-              <input
-                id="fiberTargetG"
-                type="number"
-                min="1"
-                max="100"
-                step="1"
-                placeholder="28"
-                value={fiberTargetG}
-                onChange={(event) => setFiberTargetG(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">Пусто — авто ~28 г (ВОЗ/EFSA)</p>
-            </div>
-            <div className="field">
-              <label htmlFor="sugarTargetG">Лимит сахара, г/день</label>
-              <input
-                id="sugarTargetG"
-                type="number"
-                min="1"
-                max="150"
-                step="1"
-                placeholder="50"
-                value={sugarTargetG}
-                onChange={(event) => setSugarTargetG(event.target.value)}
-              />
-              <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
-            </div>
-            <div className="sm:col-span-2">
-              <MedicalDisclaimerNote />
-            </div>
-            <div className="field sm:col-span-2">
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
-                  checked={weeklyDigestEmail}
-                  onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
-                  disabled={!email.trim()}
-                />
-                <span>
-                  <span className="block text-sm font-medium text-slate-800">
-                    Недельный итог на email
-                  </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
-                    Короткий дайджест раз в неделю. Нужен email
-                    {!email.trim() ? " — сначала укажите адрес выше" : ""}.
-                  </span>
+        <form className="flex flex-col gap-4 md:gap-5" onSubmit={handleSave}>
+          <section className="card p-4 md:p-6">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+              <label className="relative cursor-pointer">
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={getImageUrl(image)}
+                    alt=""
+                    className="h-24 w-24 rounded-full border border-slate-200 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/45 py-1 text-center text-xs text-white">
+                  {uploading ? "..." : "Фото"}
                 </span>
+                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleAvatarChange} />
               </label>
+
+              <div>
+                <h2 className="font-display text-lg font-semibold text-slate-900">Аккаунт</h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Имя, email и фото видны в шапке приложения
+                </p>
+                <p className="mt-1 text-base font-semibold text-slate-800">{displayName}</p>
+              </div>
             </div>
-            <div className="field sm:col-span-2">
-              <label htmlFor="timezone">Часовой пояс</label>
-              <select
-                id="timezone"
-                value={timezone}
-                onChange={(event) => setTimezone(event.target.value)}
-                className="input"
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="field">
+                <label htmlFor="firstName">Имя</label>
+                <input id="firstName" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+              </div>
+              <div className="field">
+                <label htmlFor="lastName">Фамилия</label>
+                <input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} />
+              </div>
+              <div className="field sm:col-span-2">
+                <label htmlFor="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  disabled={emailLocked}
+                  readOnly={emailLocked}
+                  className={emailLocked ? "cursor-not-allowed opacity-60" : undefined}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+                {emailLocked ? (
+                  <p className="text-xs text-slate-500">🔒 Email привязан к Google или VK — изменить нельзя</p>
+                ) : null}
+              </div>
+              <div className="field sm:col-span-2">
+                <label htmlFor="phone">Телефон</label>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="+7 (900) 123-45-67"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Можно указать вручную — для профиля и напоминаний.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="font-display text-lg font-semibold text-slate-900">Расчёт нормы</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Пол, рост и активность — для калорийной нормы
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="field sm:col-span-2">
+                <label htmlFor="sex">Пол</label>
+                <select
+                  id="sex"
+                  value={sex}
+                  onChange={(event) => setSex(isSex(event.target.value) ? event.target.value : "")}
+                  className="input"
+                >
+                  <option value="">Не указан</option>
+                  {SEX_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500">
+                  Нужен для расчёта нормы калорий: у женщин базовый обмен ниже, чем у мужчин
+                </p>
+              </div>
+              <div className="field">
+                <label htmlFor="heightCm">Рост, см</label>
+                <input
+                  id="heightCm"
+                  type="number"
+                  min="100"
+                  max="250"
+                  placeholder="170"
+                  value={heightCm}
+                  onChange={(event) => setHeightCm(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">Для точного расчёта базового обмена</p>
+              </div>
+              <div className="field">
+                <label htmlFor="birthYear">Год рождения</label>
+                <input
+                  id="birthYear"
+                  type="number"
+                  min="1920"
+                  max={new Date().getFullYear() - 10}
+                  placeholder="1990"
+                  value={birthYear}
+                  onChange={(event) => setBirthYear(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
+              </div>
+              <div className="field sm:col-span-2">
+                <label htmlFor="activityLevel">Уровень активности</label>
+                <select
+                  id="activityLevel"
+                  value={activityLevel}
+                  onChange={(event) =>
+                    setActivityLevel(
+                      isActivityLevel(event.target.value) ? event.target.value : "",
+                    )
+                  }
+                  className="input"
+                >
+                  <option value="">Лёгкая (по умолчанию)</option>
+                  {ACTIVITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} — {option.hint}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500">
+                  Множитель к базовому обмену (BMR → TDEE). По умолчанию 1.25 — как раньше.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <MedicalDisclaimerNote />
+              </div>
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="font-display text-lg font-semibold text-slate-900">Цели нутриентов</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Вода, клетчатка и мягкий лимит сахара
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="field">
+                <label htmlFor="waterTargetMl">Цель по воде, мл/день</label>
+                <input
+                  id="waterTargetMl"
+                  type="number"
+                  min="500"
+                  max="6000"
+                  step="50"
+                  placeholder={String(WATER_DAILY_TARGET_ML)}
+                  value={waterTargetMl}
+                  onChange={(event) => setWaterTargetMl(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">
+                  Пусто — {WATER_DAILY_TARGET_ML} мл. Влияет на трекер и напоминания.
+                </p>
+              </div>
+              <div className="field">
+                <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>
+                <input
+                  id="fiberTargetG"
+                  type="number"
+                  min="1"
+                  max="100"
+                  step="1"
+                  placeholder="28"
+                  value={fiberTargetG}
+                  onChange={(event) => setFiberTargetG(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">Пусто — авто ~28 г (ВОЗ/EFSA)</p>
+              </div>
+              <div className="field">
+                <label htmlFor="sugarTargetG">Лимит сахара, г/день</label>
+                <input
+                  id="sugarTargetG"
+                  type="number"
+                  min="1"
+                  max="150"
+                  step="1"
+                  placeholder="50"
+                  value={sugarTargetG}
+                  onChange={(event) => setSugarTargetG(event.target.value)}
+                />
+                <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="font-display text-lg font-semibold text-slate-900">Часовой пояс и письма</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Напоминания и недельный дайджест
+            </p>
+            <div className="mt-4 grid gap-4">
+              <div className="field">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                    checked={weeklyDigestEmail}
+                    onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
+                    disabled={!email.trim()}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-800">
+                      Недельный итог на email
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">
+                      Короткий дайджест раз в неделю. Нужен email
+                      {!email.trim() ? " — сначала укажите адрес выше" : ""}.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              <div className="field">
+                <label htmlFor="timezone">Часовой пояс</label>
+                <select
+                  id="timezone"
+                  value={timezone}
+                  onChange={(event) => setTimezone(event.target.value)}
+                  className="input"
+                >
+                  {timezoneOptions.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500">
+                  Нужен для push-напоминаний: завтрак в 8:00, чек-ин в 21:00 — по этому поясу, не по
+                  Москве. Если пусто — подставим пояс устройства при открытии приложения.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="card p-4 md:p-6">
+            <h2 className="font-display text-lg font-semibold text-slate-900">Данные</h2>
+            <p className="mt-0.5 text-sm text-slate-500">
+              Сохранение профиля, экспорт и установка
+            </p>
+            {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
+            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
+                {saving ? "Сохраняем..." : "Сохранить профиль"}
+              </button>
+              <a
+                href={withBasePath("/api/export?format=csv")}
+                download="calorie-vision-export.csv"
+                className="btn btn-secondary"
               >
-                {timezoneOptions.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500">
-                Нужен для push-напоминаний: завтрак в 8:00, чек-ин в 21:00 — по этому поясу, не по
-                Москве. Если пусто — подставим пояс устройства при открытии приложения.
-              </p>
+                Скачать CSV
+              </a>
+              <a
+                href={withBasePath("/api/export?format=pdf")}
+                download="calorie-vision-export.pdf"
+                className="btn btn-secondary"
+              >
+                Скачать PDF
+              </a>
+              <a href={withBasePath("/#install")} className="btn btn-secondary">
+                Установить приложение
+              </a>
             </div>
-          </div>
-
-          {message ? <p className="text-sm text-teal-700">{message}</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-          <div className="flex flex-wrap gap-3">
-            <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
-              {saving ? "Сохраняем..." : "Сохранить профиль"}
-            </button>
-            <a
-              href={withBasePath("/api/export?format=csv")}
-              download="calorie-vision-export.csv"
-              className="btn btn-secondary"
-            >
-              Скачать CSV
-            </a>
-            <a
-              href={withBasePath("/api/export?format=pdf")}
-              download="calorie-vision-export.pdf"
-              className="btn btn-secondary"
-            >
-              Скачать PDF
-            </a>
-            <a href={withBasePath("/#install")} className="btn btn-secondary">
-              Установить приложение
-            </a>
-          </div>
+          </section>
         </form>
       ) : null}
 
       {!loading && referralCode ? (
-        <div className="mt-6 border-t border-slate-200 pt-5">
-          <h3 className="font-display text-base font-semibold text-slate-800">Пригласить друзей</h3>
+        <section className="card p-4 md:p-6">
+          <h2 className="font-display text-lg font-semibold text-slate-900">Пригласить друзей</h2>
           <p className="mt-1 text-sm text-slate-500">
             Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения.
           </p>
@@ -598,12 +637,12 @@ export function ProfileForm() {
             </a>
           </div>
           {copyStatus ? <p className="mt-2 text-sm text-teal-700">{copyStatus}</p> : null}
-        </div>
+        </section>
       ) : null}
 
       {!loading ? (
-        <div className="mt-6 border-t border-slate-200 pt-5">
-          <h3 className="font-display text-base font-semibold text-red-700">Удаление аккаунта</h3>
+        <section className="card border-red-100 p-4 md:p-6">
+          <h2 className="font-display text-lg font-semibold text-red-700">Удаление аккаунта</h2>
           <p className="mt-1 text-sm text-slate-500">
             Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
             Сначала скачайте полную копию данных (CSV и PDF).
@@ -725,11 +764,11 @@ export function ProfileForm() {
               </div>
             </div>
           )}
-        </div>
+        </section>
       ) : null}
 
       {!loading ? (
-        <footer className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-500">
+        <footer className="px-1 pt-1 text-sm text-slate-500">
           <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Правовая информация">
             <Link
               href={withBasePath("/privacy")}
@@ -752,6 +791,6 @@ export function ProfileForm() {
           </nav>
         </footer>
       ) : null}
-    </section>
+    </>
   );
 }
