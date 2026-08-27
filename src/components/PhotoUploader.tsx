@@ -435,7 +435,22 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         </div>
       )}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            disabled={disabled || loading}
+            onClick={() => {
+              setError(null);
+              cameraInputRef.current?.click();
+            }}
+          >
+            Ещё раз
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 

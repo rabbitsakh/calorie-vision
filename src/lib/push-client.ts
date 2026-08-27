@@ -98,9 +98,9 @@ export function getPushCapability(): PushCapability {
       isIos,
       isStandalone,
       permission: "Notification" in window ? Notification.permission : "unknown",
-      title: "Нужен ярлык на Home Screen",
+      title: "Нужен ярлык на экран «Домой»",
       detail:
-        "На iPhone уведомления работают только если приложение открыто с иконки на экране «Домой», а не из Safari. Добавьте сайт на Home Screen и откройте его оттуда.",
+        "На iPhone уведомления работают только если приложение открыто с иконки на экране «Домой», а не из Safari. Добавьте сайт на экран «Домой» и откройте его оттуда.",
     };
   }
 
@@ -114,7 +114,7 @@ export function getPushCapability(): PushCapability {
         permission: "unknown",
         title: "Нужен iOS 16.4 или новее",
         detail:
-          "Web Push для приложений с Home Screen появился в iOS 16.4. Обновите систему или пользуйтесь напоминаниями на Android / компьютере.",
+          "Web Push для приложений с экрана «Домой» появился в iOS 16.4. Обновите систему или пользуйтесь напоминаниями на Android / компьютере.",
       };
     }
     return {

@@ -1371,7 +1371,25 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         ) : null}
 
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-red-600">{error}</p>
+            <button
+              type="button"
+              className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+              disabled={loading}
+              onClick={() => {
+                if (dayRefresh) {
+                  void dayRefresh();
+                } else {
+                  void loadEntries();
+                }
+              }}
+            >
+              Обновить
+            </button>
+          </div>
+        ) : null}
 
         {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">

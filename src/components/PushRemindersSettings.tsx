@@ -63,6 +63,19 @@ function poseForStatus(
   return "idle";
 }
 
+function permissionLabelRu(permission: PushCapability["permission"]): string {
+  switch (permission) {
+    case "granted":
+      return "разрешено";
+    case "denied":
+      return "запрещено";
+    case "default":
+      return "ещё не спрашивали";
+    default:
+      return "неизвестно";
+  }
+}
+
 export function PushRemindersSettings() {
   const [cap, setCap] = useState<PushCapability | null>(null);
   const [server, setServer] = useState<ServerPushStatus | null>(null);
@@ -244,7 +257,7 @@ export function PushRemindersSettings() {
           <p className="mt-1 text-sm text-slate-500">
             Завтрак, обед, ужин, вода, сводка калорий, серия и вечерний чек-ин — по часовому поясу
             из профиля. Можно включить/выключить каждый тип и выбрать час. По понедельникам —
-            итог прошлой недели. На iPhone — только из приложения с Home Screen (iOS 16.4+).
+            итог прошлой недели. На iPhone — только из приложения с экрана «Домой» (iOS 16.4+).
           </p>
         </div>
       </div>
@@ -262,12 +275,14 @@ export function PushRemindersSettings() {
           <div>
             Режим:{" "}
             <span className="font-medium text-slate-700">
-              {cap.isStandalone ? "с Home Screen" : "браузер / вкладка"}
+              {cap.isStandalone ? "с экрана «Домой»" : "браузер / вкладка"}
             </span>
           </div>
           <div>
             Разрешение:{" "}
-            <span className="font-medium text-slate-700">{cap.permission}</span>
+            <span className="font-medium text-slate-700">
+              {permissionLabelRu(cap.permission)}
+            </span>
           </div>
           <div>
             На сервере:{" "}

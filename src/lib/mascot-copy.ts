@@ -20,7 +20,7 @@ export const MASCOT_COPY = {
   pushIosHint: {
     title: "Напоминания на iPhone",
     fallbackBody:
-      "Откройте приложение с иконки на Home Screen — из Safari push не приходит.",
+      "Откройте приложение с иконки на экране «Домой» — из Safari push не приходит.",
     statusHint: "Статус можно проверить в разделе «Профиль».",
     install: "Как установить",
     dismiss: "Понятно",

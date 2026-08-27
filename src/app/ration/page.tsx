@@ -238,6 +238,22 @@ function RationBody({
           onAddFood={scrollToFoodAdd}
         />
 
+        {day.error ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+            <p className="min-w-0 flex-1 font-medium">
+              Не удалось загрузить день. {day.error}
+            </p>
+            <button
+              type="button"
+              className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+              disabled={day.loading}
+              onClick={() => void day.refresh()}
+            >
+              Обновить
+            </button>
+          </div>
+        ) : null}
+
         <QuickAddAgain
           selectedDate={date}
           refreshKey={refreshKey}
@@ -262,6 +278,8 @@ function RationBody({
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
         </MotivationQueue>
 
+        <PushNotificationPrompt />
+
         <section className="card overflow-hidden">
           <button
             type="button"
@@ -272,7 +290,7 @@ function RationBody({
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">Привычки и заметки</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Серия, недельный челлендж, заметка о дне, напоминания
+                Серия, недельный челлендж, заметка о дне
               </p>
             </div>
             <ChevronIcon open={showHabits} />
@@ -287,7 +305,6 @@ function RationBody({
               <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
               <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
               <DiaryNoteWidget selectedDate={date} />
-              <PushNotificationPrompt />
             </div>
           )}
         </section>
