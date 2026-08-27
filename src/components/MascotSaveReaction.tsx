@@ -3,20 +3,38 @@
 import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { mascotArtUrl } from "@/lib/mascot-art";
 import { playCelebrationChime } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
 import { subscribeMascotReaction } from "@/lib/mascot-reactions";
+import { withBasePath } from "@/lib/paths";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
-const TOAST_MS = 1800;
+const TOAST_MS = 2400;
+
+function preloadCheerArt() {
+  if (typeof window === "undefined") return;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = withBasePath(mascotArtUrl("cheer"));
+  void img.decode?.().catch(() => {
+    // decode optional — src preload is enough for cache warm
+  });
+}
 
 /**
  * Floating mini-cheer when the user saves a meal (soft Duo-style reaction).
+ * Mascot is intentional — toast shows cheer art + a short line like «Отлично!».
  */
 export function MascotSaveReaction() {
   const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState("Записано!");
+  const [toastKey, setToastKey] = useState(0);
+
+  useEffect(() => {
+    preloadCheerArt();
+  }, []);
 
   useEffect(() => {
     return subscribeMascotReaction((kind) => {
@@ -28,6 +46,7 @@ export function MascotSaveReaction() {
           seed: Date.now(),
         }),
       );
+      setToastKey((value) => value + 1);
       setOpen(true);
       if (!isGamificationQuiet()) {
         playCelebrationChime("soft");
@@ -39,12 +58,13 @@ export function MascotSaveReaction() {
     if (!open) return;
     const timer = window.setTimeout(() => setOpen(false), TOAST_MS);
     return () => window.clearTimeout(timer);
-  }, [open]);
+  }, [open, toastKey]);
 
   if (!open) return null;
 
   return (
     <div
+      key={toastKey}
       className="pointer-events-none fixed bottom-28 left-1/2 z-[80] -translate-x-1/2"
       role="status"
       aria-live="polite"
