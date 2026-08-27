@@ -127,27 +127,33 @@ export function WeeklyPlan({
           </p>
         </div>
         {showHolidayToggle ? (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={holidayOn}
-            title={`Праздничный запас +${holidayPct}%`}
-            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-              holidayOn ? "bg-teal-600" : "bg-slate-300"
-            }`}
-            onClick={() => {
-              const next = !holidayOn;
-              setHolidayBuffer(selectedDate, next);
-              setHolidayOn(next);
-              onHolidayChange?.();
-            }}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                holidayOn ? "translate-x-5" : ""
+          <label className="flex shrink-0 cursor-pointer items-center gap-2 pl-2">
+            <span className="text-right leading-tight">
+              <span className="block text-xs font-semibold text-slate-700">Праздничный запас</span>
+              <span className="block text-[10px] text-slate-500">+{holidayPct}% к норме</span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={holidayOn}
+              aria-label={`Праздничный запас +${holidayPct}% к норме`}
+              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                holidayOn ? "bg-teal-600" : "bg-slate-300"
               }`}
-            />
-          </button>
+              onClick={() => {
+                const next = !holidayOn;
+                setHolidayBuffer(selectedDate, next);
+                setHolidayOn(next);
+                onHolidayChange?.();
+              }}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  holidayOn ? "translate-x-5" : ""
+                }`}
+              />
+            </button>
+          </label>
         ) : null}
       </div>
 
