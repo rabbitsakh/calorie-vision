@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { mondayOfWeek, toDateKey } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 
-const DISMISS_KEY = "cv-profile-banner-dismissed";
+const WEEK_KEY = "cv-profile-banner-week";
 const SHOW_COUNT_KEY = "cv-profile-banner-shows";
-const MAX_SHOWS = 2;
+/** Soft lifetime cap — roughly a few months of weekly nudges. */
+const MAX_SHOWS = 8;
 
 type AccountSnippet = {
   sex: string | null;
@@ -19,9 +21,13 @@ function isIncomplete(data: AccountSnippet): boolean {
   return !data.sex || !data.heightCm || !data.birthYear;
 }
 
-function isDismissed(): boolean {
+function currentWeekId(): string {
+  return mondayOfWeek(toDateKey(new Date()));
+}
+
+function shownThisWeek(): boolean {
   try {
-    return localStorage.getItem(DISMISS_KEY) === "1";
+    return localStorage.getItem(WEEK_KEY) === currentWeekId();
   } catch {
     return true;
   }
@@ -35,27 +41,23 @@ function showCount(): number {
   }
 }
 
-function bumpShowCount(): void {
+function markShownThisWeek(): void {
   try {
+    const week = currentWeekId();
+    if (localStorage.getItem(WEEK_KEY) === week) return;
+    localStorage.setItem(WEEK_KEY, week);
     const next = showCount() + 1;
     localStorage.setItem(SHOW_COUNT_KEY, String(next));
-    if (next >= MAX_SHOWS) {
-      localStorage.setItem(DISMISS_KEY, "1");
-    }
   } catch {
     // ignore
   }
 }
 
-function markDismissed(): void {
-  try {
-    localStorage.setItem(DISMISS_KEY, "1");
-  } catch {
-    // ignore
-  }
+function hideForThisWeek(): void {
+  markShownThisWeek();
 }
 
-/** Soft nudge when sex / height / birth year are missing — at most twice, then gone. */
+/** Soft weekly nudge when sex / height / birth year are missing. */
 export function ProfileCompletionBanner() {
   const day = useOptionalRationDay();
   const [missing, setMissing] = useState(false);
@@ -63,7 +65,7 @@ export function ProfileCompletionBanner() {
   const countedRef = useRef(false);
 
   useEffect(() => {
-    if (isDismissed() || showCount() >= MAX_SHOWS) {
+    if (shownThisWeek() || showCount() >= MAX_SHOWS) {
       setVisible(false);
       return;
     }
@@ -71,7 +73,7 @@ export function ProfileCompletionBanner() {
     function reveal() {
       if (!countedRef.current) {
         countedRef.current = true;
-        bumpShowCount();
+        markShownThisWeek();
       }
       setVisible(true);
     }
@@ -96,7 +98,7 @@ export function ProfileCompletionBanner() {
         if (cancelled) return;
         const incomplete = isIncomplete(data);
         setMissing(incomplete);
-        if (incomplete && !isDismissed() && showCount() < MAX_SHOWS) {
+        if (incomplete && !shownThisWeek() && showCount() < MAX_SHOWS) {
           reveal();
         }
       } catch {
@@ -129,7 +131,7 @@ export function ProfileCompletionBanner() {
           type="button"
           className="shrink-0 text-xs font-semibold text-sky-700/80 hover:text-sky-950"
           onClick={() => {
-            markDismissed();
+            hideForThisWeek();
             setVisible(false);
           }}
         >

@@ -12,5 +12,7 @@ describe("mascot-copy", () => {
     assert.ok(MASCOT_COPY.pushIosHint.title.includes("iPhone"));
     assert.ok(MASCOT_COPY.pushIosHint.fallbackBody.includes("Домой"));
     assert.ok(!MASCOT_COPY.pushIosHint.fallbackBody.includes("Home Screen"));
+    assert.ok(!MASCOT_COPY.pushIosHint.fallbackBody.includes("push"));
+    assert.ok(MASCOT_COPY.emptyWeight.headline.includes("измерение"));
   });
 });

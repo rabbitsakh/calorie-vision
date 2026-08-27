@@ -7,6 +7,8 @@ import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 import { groupWeightEntriesByDate } from "@/lib/weight-entries";
 import { trackWeightLoggedGoal } from "@/lib/metrika-funnel";
+import { Mascot } from "@/components/Mascot";
+import { MASCOT_COPY } from "@/lib/mascot-copy";
 
 type WeightEntryRow = {
   id: string;
@@ -208,12 +210,13 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
                 placeholder="78.5"
                 value={weightInput}
                 disabled={saving}
+                autoFocus={!loading && (data?.entries.length ?? 0) === 0}
                 onChange={(event) => setWeightInput(event.target.value)}
                 required
               />
             </div>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? "Сохраняем..." : "Добавить измерение"}
+              {saving ? "Сохраняем…" : "Добавить измерение"}
             </button>
           </div>
           <div className="field">
@@ -266,10 +269,21 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
 
         <div>
           <h2 className="text-lg font-bold">Последние измерения</h2>
-          {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
+          {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка…</p> : null}
 
           {!loading && grouped.length === 0 && !pendingDelete ? (
-            <p className="mt-3 text-sm text-slate-500">Пока нет записей. Добавьте первое измерение выше.</p>
+            <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-slate-500">
+              <Mascot pose="empty" size="sm" title={MASCOT_COPY.emptyWeight.title} entrance />
+              <p className="font-medium text-slate-700">{MASCOT_COPY.emptyWeight.headline}</p>
+              <p className="max-w-xs text-sm">{MASCOT_COPY.emptyWeight.body}</p>
+              <button
+                type="button"
+                className="btn btn-secondary mt-1 text-sm"
+                onClick={() => document.getElementById("weight-now")?.focus()}
+              >
+                Ввести вес
+              </button>
+            </div>
           ) : null}
 
           <div className="mt-4 flex flex-col gap-3">

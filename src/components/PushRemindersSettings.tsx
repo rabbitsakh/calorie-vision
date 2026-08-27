@@ -442,7 +442,7 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Установка на телефон</p>
         <p className="mt-1 text-sm text-slate-600">
-          Добавьте приложение на экран «Домой» — на iPhone так работают push-напоминания.
+          Добавьте приложение на экран «Домой» — на iPhone так работают напоминания.
         </p>
         <a
           href={withBasePath("/#install")}
@@ -454,7 +454,7 @@ export function PushRemindersSettings() {
 
       {process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ? (
         <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
-          <p className="text-sm font-semibold text-slate-900">Также можно бот в Telegram</p>
+          <p className="text-sm font-semibold text-slate-900">Также можно через бота в Telegram</p>
           <p className="mt-1 text-sm text-slate-600">
             Откройте бота — пришлёт ссылку в рацион. Напоминания в чате появятся позже.
           </p>
