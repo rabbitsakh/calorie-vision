@@ -47,8 +47,35 @@ test("remindersForLocalTime returns weekly only on Monday 9", () => {
   assert.deepEqual(remindersForLocalTime(9, 2), []);
 });
 
-test("schedule has 8 reminder slots", () => {
-  assert.equal(REMINDER_SCHEDULE.length, 8);
+test("remindersForLocalTime returns dinner and water_evening at 18", () => {
+  assert.deepEqual(remindersForLocalTime(18, 1).sort(), ["dinner", "water_evening"]);
+});
+
+test("schedule has 9 reminder slots", () => {
+  assert.equal(REMINDER_SCHEDULE.length, 9);
+});
+
+test("dinner reminder skipped when already logged", () => {
+  assert.equal(
+    buildReminderPayload("dinner", { ...baseCtx, mealCount: 2, hasDinner: true }),
+    null,
+  );
+});
+
+test("dinner reminder deep link includes meal=DINNER", () => {
+  const payload = buildReminderPayload("dinner", { ...baseCtx, mealCount: 1, hasBreakfast: true });
+  assert.ok(payload);
+  assert.equal(payload.url, "/ration?meal=DINNER");
+  assert.match(payload.title, /ужин/i);
+});
+
+test("remindersForLocalTime respects disabled prefs", () => {
+  assert.deepEqual(remindersForLocalTime(8, 1, { breakfast: { enabled: false } }), []);
+});
+
+test("remindersForLocalTime respects custom hour prefs", () => {
+  assert.deepEqual(remindersForLocalTime(10, 1, { breakfast: { hour: 10 } }), ["breakfast"]);
+  assert.deepEqual(remindersForLocalTime(8, 1, { breakfast: { hour: 10 } }), []);
 });
 
 test("Sakhalin local hour is +8 from Moscow schedule slots", () => {
@@ -188,6 +215,7 @@ test("pickPushCopyVariant covers both buckets across users", () => {
   const kinds: ReminderKind[] = [
     "breakfast",
     "lunch",
+    "dinner",
     "water_midday",
     "water_evening",
     "calories",

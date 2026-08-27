@@ -4,10 +4,21 @@ import { recommendDietForProfile, type DietProfileFields } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
   REMINDER_SCHEDULE,
+  effectiveReminderSchedule,
+  type PushReminderPrefs,
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 
-export { REMINDER_SCHEDULE, reminderKindLabel, type ReminderKind } from "@/lib/push-reminder-schedule";
+export {
+  REMINDER_SCHEDULE,
+  effectiveReminderSchedule,
+  normalizePushReminderPrefs,
+  parsePushReminderPrefs,
+  reminderKindLabel,
+  type PushReminderPrefs,
+  type ReminderKind,
+  type ReminderKindPref,
+} from "@/lib/push-reminder-schedule";
 
 export { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
@@ -75,12 +86,18 @@ export function localWeekday(timezone: string, now = new Date()): number {
   return map[short] ?? 1;
 }
 
-export function remindersForLocalTime(hour: number, weekday: number): ReminderKind[] {
-  return REMINDER_SCHEDULE.filter((slot) => {
-    if (slot.hour !== hour) return false;
-    if (slot.weekday != null && slot.weekday !== weekday) return false;
-    return true;
-  }).map((slot) => slot.kind);
+export function remindersForLocalTime(
+  hour: number,
+  weekday: number,
+  prefs?: PushReminderPrefs | null,
+): ReminderKind[] {
+  return effectiveReminderSchedule(prefs)
+    .filter((slot) => {
+      if (slot.hour !== hour) return false;
+      if (slot.weekday != null && slot.weekday !== weekday) return false;
+      return true;
+    })
+    .map((slot) => slot.kind);
 }
 
 function pluralMeals(count: number): string {
@@ -215,6 +232,32 @@ export function buildReminderPayload(
               : "Запишите обед, пока помните состав и порцию.",
         url: lunchUrl,
         tag: "cv-lunch",
+      };
+
+    case "dinner":
+      if (ctx.hasDinner) return null;
+      if (ctx.mealCount === 0) {
+        return {
+          title: isB ? "Ужин ещё впереди" : "Ужин без записей",
+          body: isB
+            ? "День пустой — отметьте ужин, чтобы открыть дневник."
+            : "Сегодня ещё нет приёмов пищи — добавьте хотя бы ужин.",
+          url: dinnerUrl,
+          tag: "cv-dinner",
+        };
+      }
+      return {
+        title: isB ? "Не забудьте ужин" : "Время ужина",
+        body:
+          ctx.totalCalories > 0
+            ? isB
+              ? `Уже ${ctx.totalCalories} ккал — запишите ужин, пока помните.`
+              : `Уже ${ctx.totalCalories} ккал за день — не забудьте ужин.`
+            : isB
+              ? "Пара кликов — и ужин в дневнике."
+              : "Запишите ужин, пока помните состав и порцию.",
+        url: dinnerUrl,
+        tag: "cv-dinner",
       };
 
     case "water_midday":

@@ -8,8 +8,14 @@ import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { referralCodeForUser } from "@/lib/referral";
 import { clampHour } from "@/lib/quiet-hours";
+import {
+  normalizePushReminderPrefs,
+  parsePushReminderPrefs,
+  type PushReminderPrefs,
+} from "@/lib/push-reminder-schedule";
 import { saveUploadedImage } from "@/lib/upload";
 import { isValidWaterTargetMl } from "@/lib/water-target";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +51,7 @@ export async function GET() {
           timezone: true,
           quietHoursStart: true,
           quietHoursEnd: true,
+          pushReminderPrefs: true,
           fastingStartHour: true,
           fastingEndHour: true,
           sex: true,
@@ -79,6 +86,7 @@ export async function GET() {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
       fastingStartHour: user.fastingStartHour ?? null,
       fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,
@@ -115,6 +123,7 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      pushReminderPrefs?: PushReminderPrefs | null;
       fastingStartHour?: number | null;
       fastingEndHour?: number | null;
       sex?: string | null;
@@ -153,6 +162,7 @@ export async function PUT(request: NextRequest) {
       timezone?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
+      pushReminderPrefs?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
       fastingStartHour?: number | null;
       fastingEndHour?: number | null;
       sex?: Sex | null;
@@ -313,6 +323,15 @@ export async function PUT(request: NextRequest) {
       if (end !== undefined) data.quietHoursEnd = end;
     }
 
+    if (body.pushReminderPrefs !== undefined) {
+      if (body.pushReminderPrefs === null) {
+        data.pushReminderPrefs = Prisma.JsonNull;
+      } else {
+        const normalized = normalizePushReminderPrefs(body.pushReminderPrefs);
+        data.pushReminderPrefs = normalized as Prisma.InputJsonValue;
+      }
+    }
+
     if (body.fastingStartHour !== undefined || body.fastingEndHour !== undefined) {
       let start: number | null | undefined = body.fastingStartHour === undefined
         ? undefined
@@ -375,6 +394,7 @@ export async function PUT(request: NextRequest) {
         timezone: true,
         quietHoursStart: true,
         quietHoursEnd: true,
+        pushReminderPrefs: true,
         fastingStartHour: true,
         fastingEndHour: true,
         sex: true,
@@ -398,6 +418,7 @@ export async function PUT(request: NextRequest) {
       timezone: user.timezone ?? null,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
+      pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
       fastingStartHour: user.fastingStartHour ?? null,
       fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,
