@@ -11,13 +11,13 @@ type NextStepBarProps = {
   selectedDate: string;
   today: string;
   onAddFood: () => void;
-  onAddWater?: () => void;
 };
 
 /**
- * One soft CTA under the day hero — never a stack of motivation cards.
+ * One soft CTA under the day hero — food / weight only.
+ * Water lives in the compact chip strip just below; do not duplicate +мл here.
  */
-export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: NextStepBarProps) {
+export function NextStepBar({ selectedDate, today, onAddFood }: NextStepBarProps) {
   const day = useOptionalRationDay();
   const router = useRouter();
   const [hour, setHour] = useState(() => new Date().getHours());
@@ -29,11 +29,8 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
   const step = useMemo(() => {
     if (selectedDate !== today) return null;
     const meals = day?.data?.meals;
-    const water = day?.data?.water;
     const logged = (meals?.entries.length ?? 0) > 0 || Boolean(day?.data?.streak?.loggedToday);
     const part = dayPartFromHour(hour);
-    const waterMl = water?.totalMl ?? 0;
-    const waterTarget = water?.target ?? 2000;
 
     if (!logged) {
       return {
@@ -52,24 +49,8 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
       };
     }
 
-    if (waterTarget > 0 && waterMl < waterTarget * 0.35 && (part === "day" || part === "morning")) {
-      return {
-        label: "Не забудьте воду — цель ещё впереди",
-        actionLabel: "+250 мл",
-        onClick: onAddWater ?? onAddFood,
-      };
-    }
-
-    if (part === "evening" && waterMl < waterTarget * 0.7) {
-      return {
-        label: "До вечера можно добрать воду",
-        actionLabel: "+250 мл",
-        onClick: onAddWater ?? onAddFood,
-      };
-    }
-
     return null;
-  }, [selectedDate, today, day, hour, onAddFood, onAddWater, router]);
+  }, [selectedDate, today, day, hour, router]);
 
   if (!step) return null;
 

@@ -268,23 +268,3 @@ export function WaterTracker({
     </section>
   );
 }
-
-/** Quick +ml from NextStepBar / FAB helpers — returns new totals or null. */
-export async function postWaterMl(
-  date: string,
-  ml: number,
-): Promise<WaterResponse | null> {
-  try {
-    const resp = await fetch(withBasePath("/api/water"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, ml }),
-    });
-    if (!resp.ok) return null;
-    const data = (await resp.json()) as WaterResponse;
-    trackWaterLoggedGoal();
-    return data;
-  } catch {
-    return null;
-  }
-}
