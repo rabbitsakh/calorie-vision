@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { requestOpenFoodCamera } from "@/lib/open-food-camera";
+import { withBasePath } from "@/lib/paths";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
 type NextStepBarProps = {
@@ -17,6 +19,7 @@ type NextStepBarProps = {
  */
 export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: NextStepBarProps) {
   const day = useOptionalRationDay();
+  const router = useRouter();
   const [hour, setHour] = useState(() => new Date().getHours());
 
   useEffect(() => {
@@ -40,6 +43,15 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
       };
     }
 
+    // After the first meal, nudge weight once so calorie targets appear.
+    if (meals && meals.target == null) {
+      return {
+        label: "Укажите вес — появится норма калорий",
+        actionLabel: "К весу",
+        onClick: () => router.push(withBasePath("/weight")),
+      };
+    }
+
     if (waterTarget > 0 && waterMl < waterTarget * 0.35 && (part === "day" || part === "morning")) {
       return {
         label: "Не забудьте воду — цель ещё впереди",
@@ -57,7 +69,7 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
     }
 
     return null;
-  }, [selectedDate, today, day, hour, onAddFood, onAddWater]);
+  }, [selectedDate, today, day, hour, onAddFood, onAddWater, router]);
 
   if (!step) return null;
 

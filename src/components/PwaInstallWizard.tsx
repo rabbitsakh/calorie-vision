@@ -186,7 +186,7 @@ export function PwaInstallOnboardingPrompt({ onOpenWizard }: SoftPromptProps) {
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <p className="font-semibold text-slate-800">Добавить на экран «Домой»</p>
       <p className="mt-1 text-sm text-slate-600">
-        Установите Calorie Vision как приложение — быстрее вход и push-напоминания.
+        Установите Calorie Vision как приложение — быстрее вход и напоминания.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button

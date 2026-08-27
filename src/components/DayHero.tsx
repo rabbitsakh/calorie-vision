@@ -112,6 +112,33 @@ function MiniBar({
   );
 }
 
+function DayHeroSkeleton() {
+  return (
+    <section className="day-hero" aria-busy="true" aria-label="Сводка дня">
+      <div className="day-hero-glow" aria-hidden />
+      <div className="relative flex items-center gap-3">
+        <div className="skeleton-ring !h-14 !w-14 shrink-0" aria-hidden />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="skeleton-line !h-2 w-16" />
+          <div className="skeleton-line !h-3.5 w-44 max-w-full" />
+          <div className="skeleton-line !h-2.5 w-28" />
+        </div>
+        <div className="skeleton-ring !h-[4.35rem] !w-[4.35rem] shrink-0" aria-hidden />
+      </div>
+      <div className="relative mt-2.5 flex gap-4 border-t border-teal-900/5 pt-2">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="skeleton-line !h-2 w-12" />
+          <div className="skeleton-line !h-1 w-full" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="skeleton-line !h-2 w-12" />
+          <div className="skeleton-line !h-1 w-full" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /**
  * First-viewport day composition: mascot + one phrase + calorie ring.
  * Replaces the denser «Сводка дня» card on the ration screen.
@@ -119,6 +146,10 @@ function MiniBar({
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
   const [data, setData] = useState<ProgressData | null>(null);
+
+  useEffect(() => {
+    setData(null);
+  }, [selectedDate]);
 
   useEffect(() => {
     if (day?.data?.date === selectedDate && day.data.meals) {
@@ -157,6 +188,12 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     })();
   }, [selectedDate, refreshKey, day]);
 
+  const waitingForData =
+    !data &&
+    (Boolean(day?.loading && day.date === selectedDate) ||
+      Boolean(day && day.date === selectedDate && !day.data && !day.error) ||
+      !day);
+
   const caloriePct =
     data?.calorieTarget && data.calorieTarget > 0
       ? (data.calories / data.calorieTarget) * 100
@@ -187,8 +224,8 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     [data?.calories, data?.calorieTarget, caloriePct, streak, loggedToday, isToday, holiday],
   );
 
-  if (!data && day?.loading) {
-    return null;
+  if (waitingForData) {
+    return <DayHeroSkeleton />;
   }
 
   const calLabel =
