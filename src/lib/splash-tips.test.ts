@@ -24,8 +24,8 @@ describe("splash-tips", () => {
     assert.equal(pickSplashTip(3), SPLASH_TIPS[3 % SPLASH_TIPS.length]);
   });
 
-  test("splash stays visible for at least two seconds by default", () => {
-    assert.ok(SPLASH_MIN_VISIBLE_MS >= 1800);
+  test("splash stays visible for at least ~3 seconds by default", () => {
+    assert.ok(SPLASH_MIN_VISIBLE_MS >= 2800);
   });
 
   test("dayPartFromHour maps morning day evening night", () => {

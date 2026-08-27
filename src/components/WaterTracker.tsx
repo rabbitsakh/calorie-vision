@@ -128,7 +128,7 @@ export function WaterTracker({
   const dash = (pct / 100) * circ;
 
   return (
-    <section className="card overflow-hidden">
+    <section id="water-tracker" className="card overflow-hidden scroll-mt-4">
       <div className="border-b border-sky-100 bg-[var(--accent-water-soft)] px-4 py-3 md:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">

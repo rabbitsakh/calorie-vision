@@ -1,0 +1,75 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { dayPartFromHour } from "@/lib/splash-tips";
+
+type NextStepBarProps = {
+  selectedDate: string;
+  today: string;
+  onAddFood: () => void;
+  onAddWater?: () => void;
+};
+
+/**
+ * One soft CTA under the day hero — never a stack of motivation cards.
+ */
+export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: NextStepBarProps) {
+  const day = useOptionalRationDay();
+  const [hour, setHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    setHour(new Date().getHours());
+  }, [selectedDate]);
+
+  const step = useMemo(() => {
+    if (selectedDate !== today) return null;
+    const meals = day?.data?.meals;
+    const water = day?.data?.water;
+    const logged = (meals?.entries.length ?? 0) > 0 || Boolean(day?.data?.streak?.loggedToday);
+    const part = dayPartFromHour(hour);
+    const waterMl = water?.totalMl ?? 0;
+    const waterTarget = water?.target ?? 2000;
+
+    if (!logged) {
+      return {
+        label: part === "morning" ? "Начните день — добавьте завтрак" : "Добавьте первый приём пищи",
+        actionLabel: "Добавить",
+        onClick: onAddFood,
+      };
+    }
+
+    if (waterTarget > 0 && waterMl < waterTarget * 0.35 && (part === "day" || part === "morning")) {
+      return {
+        label: "Не забудьте воду — цель ещё впереди",
+        actionLabel: "К воде",
+        onClick: onAddWater ?? onAddFood,
+      };
+    }
+
+    if (part === "evening" && waterMl < waterTarget * 0.7) {
+      return {
+        label: "До вечера можно добрать воду",
+        actionLabel: "К воде",
+        onClick: onAddWater ?? onAddFood,
+      };
+    }
+
+    return null;
+  }, [selectedDate, today, day, hour, onAddFood, onAddWater]);
+
+  if (!step) return null;
+
+  return (
+    <div className="next-step-bar flex items-center justify-between gap-3 px-1 py-0.5">
+      <p className="min-w-0 text-sm font-medium text-slate-700">{step.label}</p>
+      <button
+        type="button"
+        className="shrink-0 rounded-xl bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-800"
+        onClick={step.onClick}
+      >
+        {step.actionLabel}
+      </button>
+    </div>
+  );
+}
