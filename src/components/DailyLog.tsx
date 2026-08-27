@@ -94,7 +94,10 @@ type DailyLogProps = {
   onTotalsChange?: (calories: number) => void;
   compact?: boolean;
   timezone?: string | null;
+  /** Primary empty-state CTA — usually open camera. */
   onAddFood?: () => void;
+  /** Secondary empty-state CTA — text entry. */
+  onAddFoodText?: () => void;
 };
 
 function formatMacros(
@@ -751,7 +754,7 @@ function MealListRow({
   );
 }
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood, onAddFoodText }: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
@@ -1434,6 +1437,15 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             >
               Сфотографировать
             </button>
+            {onAddFoodText ? (
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => onAddFoodText()}
+              >
+                Ввести текстом
+              </button>
+            ) : null}
             {yesterdayHasMeals ? (
               <button
                 type="button"

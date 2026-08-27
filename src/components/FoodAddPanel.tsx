@@ -15,7 +15,7 @@ import {
 } from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
-import { OPEN_FOOD_CAMERA_EVENT } from "@/lib/open-food-camera";
+import { OPEN_FOOD_CAMERA_EVENT, OPEN_FOOD_TEXT_EVENT } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import {
   createRuSpeechRecognition,
@@ -85,8 +85,20 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       setMode("photo");
       window.setTimeout(() => photoAbortRef.current?.openCamera(), 80);
     };
+    const onOpenText = () => {
+      lookupAbortRef.current?.abort();
+      photoAbortRef.current?.abort();
+      setMode("text");
+      setError(null);
+      setBarcodeQuery("");
+      setLoading(false);
+    };
     window.addEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
-    return () => window.removeEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
+    window.addEventListener(OPEN_FOOD_TEXT_EVENT, onOpenText);
+    return () => {
+      window.removeEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
+      window.removeEventListener(OPEN_FOOD_TEXT_EVENT, onOpenText);
+    };
   }, []);
 
   const refreshQueueCount = useCallback(() => {

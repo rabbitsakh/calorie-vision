@@ -125,12 +125,8 @@ function DayHeroSkeleton() {
         </div>
         <div className="skeleton-ring !h-[4.35rem] !w-[4.35rem] shrink-0" aria-hidden />
       </div>
-      <div className="relative mt-2.5 flex gap-4 border-t border-teal-900/5 pt-2">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="skeleton-line !h-2 w-12" />
-          <div className="skeleton-line !h-1 w-full" />
-        </div>
-        <div className="min-w-0 flex-1 space-y-2">
+      <div className="relative mt-2.5 border-t border-teal-900/5 pt-2">
+        <div className="min-w-0 space-y-2">
           <div className="skeleton-line !h-2 w-12" />
           <div className="skeleton-line !h-1 w-full" />
         </div>
@@ -202,8 +198,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     data?.proteinTarget && data.proteinTarget > 0
       ? (data.protein / data.proteinTarget) * 100
       : 0;
-  const waterPct =
-    data && data.waterTarget > 0 ? (data.waterMl / data.waterTarget) * 100 : 0;
 
   const streak = day?.data?.streak?.streak ?? 0;
   const loggedToday = day?.data?.streak?.loggedToday ?? (data?.calories ?? 0) > 0;
@@ -258,22 +252,12 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       </div>
 
       {data ? (
-        <div className="relative mt-2.5 flex gap-4 border-t border-teal-900/5 pt-2">
+        <div className="relative mt-2.5 border-t border-teal-900/5 pt-2">
           <MiniBar
             label="Белок"
             value={`${Math.round(data.protein)} г`}
             detail={data.proteinTarget ? `/ ${data.proteinTarget}` : ""}
             pct={data.proteinTarget ? proteinPct : 0}
-          />
-          <MiniBar
-            label="Вода"
-            value={
-              data.waterMl >= 1000
-                ? `${(data.waterMl / 1000).toFixed(1)} л`
-                : `${data.waterMl} мл`
-            }
-            detail={`/ ${data.waterTarget}`}
-            pct={waterPct}
           />
         </div>
       ) : null}

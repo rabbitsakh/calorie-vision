@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
 import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
+import { hourInTimezone } from "@/lib/meal-type";
 import { prisma } from "@/lib/prisma";
 import { buildMoodFoodInsight, detectCalorieCorridorStreak } from "@/lib/stats-insights";
 import {
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: DIET_PROFILE_SELECT,
+        select: { ...DIET_PROFILE_SELECT, timezone: true },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -149,11 +150,12 @@ export async function GET(request: NextRequest) {
     const calorieTarget =
       recommendDietForProfile(latestWeight?.weightKg, user)?.calories ?? null;
 
-    // Hourly calorie distribution (0–23), prefer eatenAt over createdAt
+    // Hourly calorie distribution (0–23), prefer eatenAt; bin in user timezone
     const hourlyCalories = new Array<number>(24).fill(0);
+    const timingTz = user?.timezone ?? null;
     for (const m of allMealsForTiming) {
       const when = m.eatenAt ?? m.createdAt;
-      const hour = new Date(when).getHours();
+      const hour = hourInTimezone(new Date(when), timingTz);
       hourlyCalories[hour] = (hourlyCalories[hour] ?? 0) + m.calories;
     }
 

@@ -17,12 +17,14 @@ import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
-import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
-import { requestOpenFoodCamera } from "@/lib/open-food-camera";
+import {
+  requestOpenFoodCamera,
+  requestOpenFoodText,
+} from "@/lib/open-food-camera";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
@@ -134,7 +136,8 @@ function RationBody({
   setConfirmOpen,
   setPwaWizardOpen,
   pwaWizardOpen,
-  scrollToFoodAdd,
+  openFoodCamera,
+  openFoodText,
   onSelectDate,
 }: {
   date: string;
@@ -145,7 +148,8 @@ function RationBody({
   setConfirmOpen: (v: boolean) => void;
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
-  scrollToFoodAdd: () => void;
+  openFoodCamera: () => void;
+  openFoodText: () => void;
   onSelectDate: (next: string) => void;
 }) {
   const day = useRationDay();
@@ -209,7 +213,7 @@ function RationBody({
         <NextStepBar
           selectedDate={date}
           today={today}
-          onAddFood={scrollToFoodAdd}
+          onAddFood={openFoodCamera}
           onAddWater={() => {
             void (async () => {
               const result = await postWaterMl(date, 250);
@@ -241,7 +245,8 @@ function RationBody({
           timezone={timezone}
           onChanged={bump}
           onTotalsChange={() => {}}
-          onAddFood={scrollToFoodAdd}
+          onAddFood={openFoodCamera}
+          onAddFoodText={openFoodText}
         />
 
         {day.error ? (
@@ -267,10 +272,14 @@ function RationBody({
           onSaved={bump}
         />
 
-        <ShoppingListPanel selectedDate={date} />
-
-        {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
-        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} compact />
+        <WeeklyPlan
+          selectedDate={date}
+          refreshKey={refreshKey}
+          onSelectDate={onSelectDate}
+          compact
+          showHolidayToggle={date === today}
+          onHolidayChange={() => bump()}
+        />
         <MedicalDisclaimerNote className="px-1" />
 
         <MotivationQueue>
@@ -278,7 +287,7 @@ function RationBody({
             selectedDate={date}
             today={today}
             refreshKey={refreshKey}
-            onAddFood={scrollToFoodAdd}
+            onAddFood={openFoodCamera}
             quietHide
           />
           <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
@@ -299,7 +308,7 @@ function RationBody({
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">Привычки и заметки</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Серия, недельный челлендж, заметка о дне
+                Серия, челлендж, список покупок, заметка
               </p>
             </div>
             <ChevronIcon open={showHabits} />
@@ -313,6 +322,7 @@ function RationBody({
             <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
               <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
               <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+              <ShoppingListPanel selectedDate={date} />
               <DiaryNoteWidget selectedDate={date} />
             </div>
           )}
@@ -370,10 +380,8 @@ function RationShell({
   const day = useRationDay();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
-  const scrollToFoodAdd = useCallback(() => {
-    document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
   const openFoodCamera = useCallback(() => requestOpenFoodCamera(true), []);
+  const openFoodText = useCallback(() => requestOpenFoodText(true), []);
 
   return (
     <AppShell
@@ -398,7 +406,8 @@ function RationShell({
         setConfirmOpen={setConfirmOpen}
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
-        scrollToFoodAdd={openFoodCamera}
+        openFoodCamera={openFoodCamera}
+        openFoodText={openFoodText}
         onSelectDate={setDate}
       />
     </AppShell>
