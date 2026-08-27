@@ -20,6 +20,7 @@ import { NextStepBar } from "@/components/NextStepBar";
 import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
@@ -67,10 +68,6 @@ const EveningCheckin = dynamic(
 );
 const MotivationTip = dynamic(
   () => import("@/components/MotivationTip").then((m) => m.MotivationTip),
-  { ssr: false, loading: () => null },
-);
-const MascotSaveReaction = dynamic(
-  () => import("@/components/MascotSaveReaction").then((m) => m.MascotSaveReaction),
   { ssr: false, loading: () => null },
 );
 const PwaInstallOnboardingPrompt = dynamic(
