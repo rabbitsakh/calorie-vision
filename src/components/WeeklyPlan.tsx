@@ -7,7 +7,12 @@ import {
   shiftDateKey,
   weekdayShort,
 } from "@/lib/dates";
-import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
+import {
+  HOLIDAY_BUFFER_FACTOR,
+  applyHolidayBuffer,
+  isHolidayBufferOn,
+  setHolidayBuffer,
+} from "@/lib/holiday-buffer";
 import { withBasePath } from "@/lib/paths";
 
 type DayRow = {
@@ -20,6 +25,9 @@ type WeeklyPlanProps = {
   refreshKey?: number;
   onSelectDate?: (date: string) => void;
   compact?: boolean;
+  /** Show compact holiday buffer switch in the header (today only). */
+  showHolidayToggle?: boolean;
+  onHolidayChange?: () => void;
 };
 
 export function WeeklyPlan({
@@ -27,11 +35,14 @@ export function WeeklyPlan({
   refreshKey = 0,
   onSelectDate,
   compact = false,
+  showHolidayToggle = false,
+  onHolidayChange,
 }: WeeklyPlanProps) {
   const day = useOptionalRationDay();
   const [days, setDays] = useState<DayRow[]>([]);
   const [target, setTarget] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [holidayOn, setHolidayOn] = useState(false);
 
   const weekStart = mondayOfWeek(selectedDate);
   const weekDates = useMemo(
@@ -96,9 +107,13 @@ export function WeeklyPlan({
     void load();
   }, [applyWeek, day, load, selectedDate, weekDates, refreshKey]);
 
-  const holidayOn = isHolidayBufferOn(selectedDate);
+  useEffect(() => {
+    setHolidayOn(isHolidayBufferOn(selectedDate));
+  }, [selectedDate, refreshKey]);
+
   const effectiveTarget =
     target != null ? applyHolidayBuffer(target, holidayOn) : null;
+  const holidayPct = Math.round((HOLIDAY_BUFFER_FACTOR - 1) * 100);
 
   return (
     <section className={compact ? "overflow-hidden" : "card overflow-hidden"}>
@@ -111,6 +126,29 @@ export function WeeklyPlan({
             {holidayOn ? " · праздничный запас" : ""}
           </p>
         </div>
+        {showHolidayToggle ? (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={holidayOn}
+            title={`Праздничный запас +${holidayPct}%`}
+            className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+              holidayOn ? "bg-teal-600" : "bg-slate-300"
+            }`}
+            onClick={() => {
+              const next = !holidayOn;
+              setHolidayBuffer(selectedDate, next);
+              setHolidayOn(next);
+              onHolidayChange?.();
+            }}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                holidayOn ? "translate-x-5" : ""
+              }`}
+            />
+          </button>
+        ) : null}
       </div>
 
       {loading && days.length === 0 ? (
