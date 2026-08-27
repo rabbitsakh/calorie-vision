@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
 type NextStepBarProps = {
@@ -34,8 +35,8 @@ export function NextStepBar({ selectedDate, today, onAddFood, onAddWater }: Next
     if (!logged) {
       return {
         label: part === "morning" ? "Начните день — добавьте завтрак" : "Добавьте первый приём пищи",
-        actionLabel: "Добавить",
-        onClick: onAddFood,
+        actionLabel: "Фото",
+        onClick: () => requestOpenFoodCamera(true),
       };
     }
 

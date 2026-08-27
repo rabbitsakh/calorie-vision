@@ -29,6 +29,8 @@ type PhotoUploaderProps = {
 
 export type PhotoUploaderHandle = {
   abort: () => void;
+  /** Programmatically open the device camera picker. */
+  openCamera: () => void;
 };
 
 function ThinkingAnimation({ preview, stage }: { preview: string | null; stage: string }) {
@@ -99,6 +101,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       abortRef.current = null;
       setLoading(false);
       setPreview(null);
+    },
+    openCamera: () => {
+      cameraInputRef.current?.click();
     },
   }));
 

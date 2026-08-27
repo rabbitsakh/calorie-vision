@@ -15,6 +15,7 @@ import {
 } from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { OPEN_FOOD_CAMERA_EVENT } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import {
   createRuSpeechRecognition,
@@ -78,6 +79,15 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
   const lookupAbortRef = useRef<AbortController | null>(null);
   const photoAbortRef = useRef<PhotoUploaderHandle>(null);
   const speechRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    const onOpenCamera = () => {
+      setMode("photo");
+      window.setTimeout(() => photoAbortRef.current?.openCamera(), 80);
+    };
+    window.addEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
+    return () => window.removeEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
+  }, []);
 
   const refreshQueueCount = useCallback(() => {
     setQueuedCount(countFailedSaves());

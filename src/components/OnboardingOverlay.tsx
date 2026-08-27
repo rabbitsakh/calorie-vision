@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
+import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
 import { withBasePath } from "@/lib/paths";
 
 const STORAGE_KEY = "cv-onboarding-v1";
@@ -16,7 +17,7 @@ type Step = {
 const STEPS: Step[] = [
   {
     title: "Ваша цель рядом",
-    body: "На рационе сверху — прогресс за день. Держите калории и белок в зоне комфорта — без жёстких запретов.",
+    body: "На рационе сверху — прогресс за день. Держите калории и белок в комфортной зоне.",
     pose: "tip",
     cta: "Дальше",
   },
@@ -62,6 +63,7 @@ export function OnboardingOverlay() {
 
   const finish = useCallback(() => {
     markDone();
+    setPwaOnboardingSeen();
     setOpen(false);
   }, []);
 
