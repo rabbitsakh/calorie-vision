@@ -267,7 +267,10 @@ function looksLikeDrink(dish: DishDraft): boolean {
   return looksLikeDrinkName(dish.dishName, dish.original.dishName);
 }
 
-function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: number }> {
+function portionChipOptions(
+  dish: DishDraft,
+  historyPortions: number[] = [],
+): Array<{ label: string; grams: number }> {
   const drink = looksLikeDrink(dish);
   const base: Array<{ label: string; grams: number }> = (
     drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS
@@ -291,6 +294,14 @@ function portionChipOptions(dish: DishDraft): Array<{ label: string; grams: numb
           ? `Вся упаковка (${packGrams} мл)`
           : `Вся упаковка (${packGrams} г)`,
       grams: packGrams,
+    });
+  }
+
+  for (const grams of historyPortions) {
+    if (!grams || grams <= 0 || base.some((chip) => chip.grams === grams)) continue;
+    base.push({
+      label: drink ? `${grams} мл` : `${grams} г`,
+      grams,
     });
   }
 
@@ -1020,7 +1031,36 @@ function DishFields({
     () => review.lowConfidence || review.missingCalories,
   );
   const [wrongDishHint, setWrongDishHint] = useState(false);
+  const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const dishNameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const name = dish.dishName.trim();
+    if (name.length < 2) {
+      setHistoryPortions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const resp = await fetch(
+            withBasePath(`/api/meals/portion-history?dishName=${encodeURIComponent(name)}`),
+            { signal: controller.signal, cache: "no-store" },
+          );
+          if (!resp.ok) return;
+          const data = (await resp.json()) as { portions?: number[] };
+          setHistoryPortions(Array.isArray(data.portions) ? data.portions : []);
+        } catch {
+          // ignore
+        }
+      })();
+    }, 300);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [dish.dishName]);
 
   function handleWrongDish() {
     setWrongDishHint(true);
@@ -1204,7 +1244,7 @@ function DishFields({
             onChange={(event) => onPortionChange(event.target.value)}
           />
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {portionChipOptions(dish).map((chip, chipIndex) => {
+            {portionChipOptions(dish, historyPortions).map((chip, chipIndex) => {
               const active = Number(dish.portionGrams) === chip.grams;
               return (
                 <Chip

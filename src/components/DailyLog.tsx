@@ -7,7 +7,13 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
 import { MEAL_TYPE_LABELS, MEAL_TYPE_SHORT_LABELS } from "@/types";
-import { formatDateTime, formatDateWords, formatTimeShort } from "@/lib/dates";
+import {
+  dateKeyAndTimeToIso,
+  formatDateTime,
+  formatDateWords,
+  formatTimeShort,
+  toTimeInputValue,
+} from "@/lib/dates";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -38,6 +44,7 @@ type EditPatch = {
   sugar?: number | null;
   portionGrams?: number | null;
   mealType?: string | null;
+  eatenAt?: string | null;
 };
 
 function TrashIcon() {
@@ -117,9 +124,10 @@ function MealEntryDetails({
 }) {
   const primary = formatMacros(entry, "primary");
   const secondary = formatMacros(entry, "secondary");
+  const eatenWhen = entry.eatenAt ?? entry.createdAt;
   const when = compact
-    ? formatTimeShort(entry.createdAt, timezone)
-    : formatDateTime(entry.createdAt, timezone);
+    ? formatTimeShort(eatenWhen, timezone)
+    : formatDateTime(eatenWhen, timezone);
 
   return (
     <>
@@ -152,6 +160,7 @@ function GroupedMealCard({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onDuplicate,
   onImageChange,
 }: {
   group: MealListGroup;
@@ -160,6 +169,7 @@ function GroupedMealCard({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   const macros = formatMacros({
@@ -172,6 +182,7 @@ function GroupedMealCard({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [typeBusyId, setTypeBusyId] = useState<string | null>(null);
   const [photoId, setPhotoId] = useState<string | null>(null);
+  const [dupBusyId, setDupBusyId] = useState<string | null>(null);
 
   /** Prefer group photo; fall back to any entry photo so the header is never blank. */
   const headerImage =
@@ -225,6 +236,7 @@ function GroupedMealCard({
               <div key={entry.id} className="p-2.5">
                 <InlineEdit
                   entry={entry}
+                  timezone={timezone}
                   onSave={async (patch) => {
                     await onEdit(entry.id, patch);
                     setEditingId(null);
@@ -301,6 +313,17 @@ function GroupedMealCard({
                       </button>
                       <button
                         type="button"
+                        title="Дублировать"
+                        disabled={dupBusyId === entry.id}
+                        onClick={() => {
+                          setDupBusyId(entry.id);
+                          void onDuplicate(entry.id).finally(() => setDupBusyId(null));
+                        }}
+                      >
+                        <DuplicateIcon />
+                      </button>
+                      <button
+                        type="button"
                         className="danger"
                         title="Удалить"
                         onClick={() => onDelete(entry.id)}
@@ -336,6 +359,15 @@ function EditIcon() {
   );
 }
 
+function DuplicateIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M4 16V6a2 2 0 0 1 2-2h10" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function PhotoSearchIcon() {
   return (
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -348,10 +380,12 @@ function PhotoSearchIcon() {
 
 function InlineEdit({
   entry,
+  timezone,
   onSave,
   onCancel,
 }: {
   entry: MealEntry;
+  timezone?: string | null;
   onSave: (patch: EditPatch) => Promise<void>;
   onCancel: () => void;
 }) {
@@ -364,14 +398,50 @@ function InlineEdit({
   const [sugar, setSugar] = useState(entry.sugar != null ? String(entry.sugar) : "");
   const [portionGrams, setPortionGrams] = useState(entry.portionGrams != null ? String(entry.portionGrams) : "");
   const [mealType, setMealType] = useState(entry.mealType ?? "");
+  const [eatenTime, setEatenTime] = useState(() =>
+    toTimeInputValue(entry.eatenAt ?? entry.createdAt, timezone),
+  );
+  const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const name = dishName.trim();
+    if (name.length < 2) {
+      setHistoryPortions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const resp = await fetch(
+            withBasePath(`/api/meals/portion-history?dishName=${encodeURIComponent(name)}`),
+            { signal: controller.signal, cache: "no-store" },
+          );
+          if (!resp.ok) return;
+          const data = (await resp.json()) as { portions?: number[] };
+          setHistoryPortions(Array.isArray(data.portions) ? data.portions : []);
+        } catch {
+          // ignore
+        }
+      })();
+    }, 250);
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [dishName]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setError(null);
     try {
+      const eatenAt = dateKeyAndTimeToIso(entry.date, eatenTime, timezone);
+      if (!eatenAt) {
+        throw new Error("Укажите корректное время");
+      }
       await onSave({
         dishName,
         calories: Number(calories),
@@ -382,6 +452,7 @@ function InlineEdit({
         sugar: sugar ? Number(sugar) : null,
         portionGrams: portionGrams ? Number(portionGrams) : null,
         mealType: mealType || null,
+        eatenAt,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -403,6 +474,33 @@ function InlineEdit({
         <div className="field">
           <label className="text-xs">Порция, г</label>
           <input type="number" min="1" value={portionGrams} onChange={(e) => setPortionGrams(e.target.value)} />
+          {historyPortions.length > 0 ? (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {historyPortions.map((grams) => (
+                <button
+                  key={grams}
+                  type="button"
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                    Number(portionGrams) === grams
+                      ? "bg-teal-700 text-white"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  }`}
+                  onClick={() => setPortionGrams(String(grams))}
+                >
+                  {grams} г
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="field">
+          <label className="text-xs">Время</label>
+          <input
+            type="time"
+            value={eatenTime}
+            onChange={(e) => setEatenTime(e.target.value)}
+            required
+          />
         </div>
         <div className="field">
           <label className="text-xs">Белки, г</label>
@@ -492,6 +590,7 @@ function SingleMealCard({
   onDelete,
   onEdit,
   onMealTypeChange,
+  onDuplicate,
   onImageChange,
 }: {
   entry: MealEntry;
@@ -499,16 +598,19 @@ function SingleMealCard({
   onDelete: (id: string) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [typeBusy, setTypeBusy] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [dupBusy, setDupBusy] = useState(false);
 
   if (editing) {
     return (
       <InlineEdit
         entry={entry}
+        timezone={timezone}
         onSave={async (patch) => { await onEdit(entry.id, patch); setEditing(false); }}
         onCancel={() => setEditing(false)}
       />
@@ -571,6 +673,17 @@ function SingleMealCard({
               <button type="button" title="Редактировать" onClick={() => setEditing(true)}>
                 <EditIcon />
               </button>
+              <button
+                type="button"
+                title="Дублировать"
+                disabled={dupBusy}
+                onClick={() => {
+                  setDupBusy(true);
+                  void onDuplicate(entry.id).finally(() => setDupBusy(false));
+                }}
+              >
+                <DuplicateIcon />
+              </button>
               <button type="button" className="danger" title="Удалить" onClick={() => onDelete(entry.id)}>
                 <TrashIcon />
               </button>
@@ -597,6 +710,7 @@ function MealListRow({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onDuplicate,
   onImageChange,
 }: {
   item: MealListItem;
@@ -605,6 +719,7 @@ function MealListRow({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   if (item.kind === "group") {
@@ -616,6 +731,7 @@ function MealListRow({
         onDeleteGroup={onDeleteGroup}
         onEdit={onEdit}
         onMealTypeChange={onMealTypeChange}
+        onDuplicate={onDuplicate}
         onImageChange={onImageChange}
       />
     );
@@ -628,6 +744,7 @@ function MealListRow({
       onDelete={onDelete}
       onEdit={onEdit}
       onMealTypeChange={onMealTypeChange}
+      onDuplicate={onDuplicate}
       onImageChange={onImageChange}
     />
   );
@@ -919,6 +1036,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               : patch.mealType === null || patch.mealType === ""
                 ? null
                 : (patch.mealType as MealEntry["mealType"]),
+          eatenAt: patch.eatenAt !== undefined ? patch.eatenAt : entry.eatenAt,
         };
       }),
     );
@@ -943,6 +1061,19 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mealType }),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      await reloadDayAfterMutation(true);
+      return;
+    }
+    await reloadDayAfterMutation(true);
+    onChanged?.();
+  }
+
+  async function handleDuplicate(id: string) {
+    const response = await fetch(withBasePath(`/api/meals/${id}/duplicate`), {
+      method: "POST",
       cache: "no-store",
     });
     if (!response.ok) {
@@ -1292,6 +1423,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 }}
                 onEdit={handleEdit}
                 onMealTypeChange={handleMealTypeChange}
+                onDuplicate={(id) => handleDuplicate(id)}
                 onImageChange={handleImageChange}
                 onDeleteGroup={(ids) => {
                   const label = item.kind === "group"
