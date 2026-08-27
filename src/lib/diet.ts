@@ -1,3 +1,5 @@
+import { aggressiveDeficitTip } from "@/lib/motivation-voice";
+
 export type WeightGoal = "LOSE" | "GAIN" | "MAINTAIN";
 export type GoalPace = "SIMPLE" | "HEALTHY" | "FAST";
 export type Sex = "FEMALE" | "MALE";
@@ -546,7 +548,7 @@ export function buildGoalAwareCalorieTip(params: {
       return `${when} на ${abs} ккал выше цели похудения — можно чуть легче.`;
     }
     if (veryLow) {
-      return `${when} сильно ниже цели (−${abs} ккал). Для похудения это уже жёстко — лучше не урезать ещё сильнее.`;
+      return aggressiveDeficitTip(when, abs);
     }
     return `${when} ниже цели на ${abs} ккал — для похудения это нормально. Следите за самочувствием и белком.`;
   }

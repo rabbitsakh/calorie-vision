@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { streakAtRiskBody, streakAtRiskTitle } from "@/lib/motivation-voice";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
-import { pluralDays } from "@/lib/russian-text";
 
 const PANEL_ID = "streak-nudge";
 
@@ -88,7 +88,7 @@ export function StreakNudge({
       >
         <span className="flex items-center gap-1.5">
           <Mascot pose="tip" size="sm" animate={false} />
-          Серия {data.streakBeforeToday} {pluralDays(data.streakBeforeToday)} под угрозой
+          {streakAtRiskTitle(data.streakBeforeToday, true)}
         </span>
         <span className="text-xs">Показать</span>
       </button>
@@ -100,7 +100,7 @@ export function StreakNudge({
       pose="tip"
       size="md"
       tone="orange"
-      title={`Не потеряйте серию — ${data.streakBeforeToday} ${pluralDays(data.streakBeforeToday)}!`}
+      title={streakAtRiskTitle(data.streakBeforeToday)}
       onHide={() => {
         hidePanelToday(PANEL_ID, selectedDate);
         setHidden(true);
@@ -113,9 +113,7 @@ export function StreakNudge({
         </>
       }
     >
-      <p className="text-orange-700">
-        Сегодня ещё нет записей. Добавьте хотя бы один приём пищи, чтобы сохранить серию.
-      </p>
+      <p className="text-orange-700">{streakAtRiskBody()}</p>
     </MascotCompanionCard>
   );
 }

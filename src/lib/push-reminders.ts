@@ -8,6 +8,11 @@ import {
   type PushReminderPrefs,
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
+import {
+  breakfastStreakBody,
+  emptyMealSlotTitle,
+  streakAtRiskPushTitle,
+} from "@/lib/motivation-voice";
 
 export {
   REMINDER_SCHEDULE,
@@ -198,9 +203,7 @@ export function buildReminderPayload(
         title: isB ? "Завтрак ждёт" : "Доброе утро!",
         body:
           ctx.streakBeforeToday >= 3
-            ? isB
-              ? `Не потеряйте серию ${ctx.streakBeforeToday} дн. — отметьте завтрак.`
-              : `Серия ${ctx.streakBeforeToday} дн. — запишите завтрак, чтобы сохранить её.`
+            ? breakfastStreakBody(ctx.streakBeforeToday, isB)
             : isB
               ? "Отметьте завтрак сейчас — потом вспомнить сложнее."
               : "Первая запись дня — завтрак. Это занимает меньше минуты.",
@@ -212,7 +215,7 @@ export function buildReminderPayload(
       if (ctx.hasLunch) return null;
       if (ctx.mealCount === 0) {
         return {
-          title: isB ? "Пора обедать" : "Обед без записей",
+          title: emptyMealSlotTitle("lunch", isB),
           body: isB
             ? "День пока пустой — добавьте обед, чтобы открыть дневник."
             : "Сегодня ещё нет приёмов пищи — добавьте хотя бы обед.",
@@ -238,7 +241,7 @@ export function buildReminderPayload(
       if (ctx.hasDinner) return null;
       if (ctx.mealCount === 0) {
         return {
-          title: isB ? "Ужин ещё впереди" : "Ужин без записей",
+          title: emptyMealSlotTitle("dinner", isB),
           body: isB
             ? "День пустой — отметьте ужин, чтобы открыть дневник."
             : "Сегодня ещё нет приёмов пищи — добавьте хотя бы ужин.",
@@ -341,9 +344,7 @@ export function buildReminderPayload(
       }
       if (ctx.streakBeforeToday >= 1) {
         return {
-          title: isB
-            ? `Серия ${ctx.streakBeforeToday} дн. может оборваться`
-            : `Серия ${ctx.streakBeforeToday} дн. под угрозой`,
+          title: streakAtRiskPushTitle(ctx.streakBeforeToday, isB),
           body: isB
             ? "До полуночи ещё есть время — одна запись сохранит серию."
             : "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до полуночи.",

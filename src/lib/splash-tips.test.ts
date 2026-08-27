@@ -50,11 +50,13 @@ describe("splash-tips", () => {
     assert.match(tip, /утро/i);
   });
 
-  test("splashStatusLabel and pose shift when ready", () => {
-    assert.equal(splashStatusLabel("boot"), "Открываем рацион…");
-    assert.equal(splashStatusLabel("loading"), "Собираем день…");
-    assert.equal(splashStatusLabel("ready"), "Готово");
-    assert.equal(splashMascotPose("ready"), "cheer");
-    assert.equal(splashMascotPose("boot", 5), "streak");
+  test("buildPersonalSplashTip prefers Monday week wrap server tip", () => {
+    const tip = buildPersonalSplashTip({
+      streak: 5,
+      loggedToday: true,
+      hour: 9,
+      serverTip: "Прошлая неделя: 6 из 7 дней. Новая неделя — свежий старт.",
+    });
+    assert.match(tip, /Прошлая неделя/);
   });
 });

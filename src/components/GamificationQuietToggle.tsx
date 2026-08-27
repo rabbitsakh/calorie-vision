@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { isGamificationQuiet, setGamificationQuiet } from "@/lib/gamification-quiet";
 
-/** Profile toggle: suppress fullscreen celebrations (quiet gamification). */
+/**
+ * Profile toggle: soft mode — fewer fullscreen celebrations and quieter save cheer.
+ * Backed by existing `gamificationQuiet` localStorage flag.
+ */
 export function GamificationQuietToggle() {
   const [quiet, setQuiet] = useState(false);
   const [ready, setReady] = useState(false);
@@ -20,9 +23,9 @@ export function GamificationQuietToggle() {
 
   return (
     <section className="card p-4 md:p-5">
-      <h2 className="font-display text-base font-semibold text-slate-800">Геймификация</h2>
+      <h2 className="font-display text-base font-semibold text-slate-800">Мягкий режим</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Полноэкранные празднования серий, целей и значков можно отключить.
+        Меньше празднований и звуков — прогресс в дневнике остаётся.
       </p>
       <label className="mt-4 flex cursor-pointer items-start gap-3">
         <input
@@ -33,9 +36,9 @@ export function GamificationQuietToggle() {
           onChange={(event) => handleChange(event.target.checked)}
         />
         <span>
-          <span className="block text-sm font-medium text-slate-800">Тихий режим</span>
+          <span className="block text-sm font-medium text-slate-800">Включить мягкий режим</span>
           <span className="mt-0.5 block text-xs text-slate-500">
-            Без полноэкранных анимаций — прогресс в дневнике остаётся.
+            Без полноэкранных анимаций и без звука при сохранении блюда.
           </span>
         </span>
       </label>

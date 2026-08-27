@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { buildDayMealsPayload } from "@/lib/day-meals";
+import { mondayWeekWrapTip } from "@/lib/motivation-voice";
+import { computeLastWeekStats } from "@/lib/push-reminders";
 import { prisma } from "@/lib/prisma";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
@@ -73,10 +75,31 @@ export async function GET(request: NextRequest) {
       weekDays.push({ date: d, calories: caloriesByDate.get(d) ?? 0 });
     }
 
-    const tip =
-      streak.streak >= 1
+    const tip = await (async () => {
+      const tz = account?.timezone ?? null;
+      const isMonday = todayParam === weekStartMonday(todayParam, tz);
+      if (isMonday && todayParam === date) {
+        const weekStart = weekStartMonday(todayParam, tz);
+        const lastWeekStart = shiftDateKeyUtc(weekStart, -7);
+        const lastWeekEnd = shiftDateKeyUtc(weekStart, -1);
+        const lastWeekRows = await prisma.mealEntry.groupBy({
+          by: ["date"],
+          where: {
+            userId,
+            date: { gte: lastWeekStart, lte: lastWeekEnd },
+          },
+        });
+        const stats = computeLastWeekStats(
+          lastWeekRows.map((row) => row.date),
+          todayParam,
+          tz,
+        );
+        return mondayWeekWrapTip(stats.daysLoggedLastWeek, stats.daysInLastWeek);
+      }
+      return streak.streak >= 1
         ? "Регулярность важнее идеальных цифр. Запишите следующий приём — и день уже засчитан."
         : "Сегодня достаточно одного приёма пищи, чтобы войти в ритм.";
+    })();
 
     return NextResponse.json(
       {
