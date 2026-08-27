@@ -55,13 +55,19 @@ export function pickSplashTip(seed = Date.now()): string {
 }
 
 /**
- * Prefer a personal line (streak / day part), then server tip, then generic rotation.
+ * Prefer Monday week wrap / server tip, then streak / day part, then generic rotation.
  */
 export function buildPersonalSplashTip(ctx: SplashTipContext = {}, seed = Date.now()): string {
   const hour = ctx.hour ?? new Date().getHours();
   const part = dayPartFromHour(hour);
   const streak = ctx.streak ?? 0;
   const logged = Boolean(ctx.loggedToday);
+  const serverTip = ctx.serverTip?.trim() ?? "";
+
+  // Monday wrap from ration-day wins over streak so the week start feels intentional.
+  if (serverTip.startsWith("Прошлая неделя") || serverTip.startsWith("Новая неделя")) {
+    return serverTip;
+  }
 
   if (streak >= 2) {
     if (logged) {
@@ -73,6 +79,10 @@ export function buildPersonalSplashTip(ctx: SplashTipContext = {}, seed = Date.n
     return `${greetingForDayPart(part)}. Серия ${streak} ${pluralDays(streak)} — день ещё впереди.`;
   }
 
+  if (serverTip) {
+    return serverTip;
+  }
+
   if (part === "morning") {
     return "Доброе утро. Один приём — и день уже начат.";
   }
@@ -81,10 +91,6 @@ export function buildPersonalSplashTip(ctx: SplashTipContext = {}, seed = Date.n
   }
   if (part === "night") {
     return "Поздний час — достаточно одной записи, чтобы день засчитался.";
-  }
-
-  if (ctx.serverTip?.trim()) {
-    return ctx.serverTip.trim();
   }
 
   return pickSplashTip(seed);

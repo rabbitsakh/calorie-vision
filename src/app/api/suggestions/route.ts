@@ -1,3 +1,4 @@
+import { undereatSuggestionTip } from "@/lib/motivation-voice";
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
@@ -56,8 +57,8 @@ function buildTip(
       return `Не хватает жиров: ${round1(target.fat - eaten.fat)} г — орехи, авокадо или ложка масла.`;
     }
   }
-  if (pctCalories < 30) return "Вы съели очень мало — не пропускайте полноценный обед или ужин.";
-  if (pctCalories < 60) return "Уже больше половины дня, а норма выполнена меньше, чем наполовину. Пора поесть.";
+  if (pctCalories < 30) return undereatSuggestionTip(pctCalories);
+  if (pctCalories < 60) return undereatSuggestionTip(pctCalories);
   if (pctCalories >= 95) return "Норма почти выполнена. Если голодны — выбирайте что-то лёгкое: овощи, кефир.";
   return `${pctCalories}% нормы выполнено. Хороший темп!`;
 }

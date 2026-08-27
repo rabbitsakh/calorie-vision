@@ -152,7 +152,7 @@ test("LOSE very low intake warns about cutting too hard", () => {
     target: 2000,
     goal: "LOSE",
   });
-  assert.match(tip, /жёстко|не урезать/i);
+  assert.match(tip, /мягкий дефицит|не урезать|ниже цели/i);
 });
 
 test("GAIN under target still suggests eating more", () => {

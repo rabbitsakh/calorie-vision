@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { freezeBannerCopy } from "@/lib/motivation-voice";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
@@ -234,7 +235,7 @@ export function StreakWidget({
       {data.canFreezeYesterday ? (
         <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
           <p className="text-sm text-sky-900">
-            Вчера не было записей — серия под угрозой. Используйте заморозку (1 раз в неделю)?
+            {freezeBannerCopy()}
           </p>
           <button
             type="button"

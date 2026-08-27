@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
           insights.push(`В среднем +${abs} ккал/день выше цели похудения.`);
         } else if (avgCalories < target.calories * 0.75) {
           insights.push(
-            `В среднем на ${abs} ккал/день ниже цели — для похудения это уже жёстко, не урезайте сильнее.`,
+            `В среднем на ${abs} ккал/день ниже цели — лучше держать мягкий дефицит, без сильных урезаний.`,
           );
         } else {
           insights.push(

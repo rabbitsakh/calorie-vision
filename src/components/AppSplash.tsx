@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { Mascot } from "@/components/Mascot";
+import { resolveMascotSkin } from "@/lib/mascot-skin";
 import {
   buildPersonalSplashTip,
   pickSplashTip,
@@ -75,6 +76,7 @@ export function AppSplash({
 
   const statusLabel = splashStatusLabel(phase, status);
   const pose = splashMascotPose(phase, streak);
+  const skin = resolveMascotSkin();
 
   const inner = (
     <div className="app-splash-inner flex w-full max-w-sm flex-col items-center px-6 text-center">
@@ -85,8 +87,8 @@ export function AppSplash({
         </span>
       </div>
 
-      <div className="app-splash-mascot mt-8" key={pose}>
-        <Mascot pose={pose} size="lg" title="Талисман" entrance animate />
+      <div className="app-splash-mascot mt-8" key={`${pose}-${skin}`}>
+        <Mascot pose={pose} skin={skin} size="lg" title="Талисман" entrance animate />
       </div>
 
       <p className="app-splash-tip mt-6 min-h-[3rem] text-base font-medium leading-snug text-white/95">

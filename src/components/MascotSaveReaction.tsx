@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { playCelebrationChime } from "@/lib/celebration-chime";
+import { isGamificationQuiet } from "@/lib/gamification-quiet";
 import { subscribeMascotReaction } from "@/lib/mascot-reactions";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
@@ -28,7 +29,9 @@ export function MascotSaveReaction() {
         }),
       );
       setOpen(true);
-      playCelebrationChime("soft");
+      if (!isGamificationQuiet()) {
+        playCelebrationChime("soft");
+      }
     });
   }, [day?.data?.meals.entries.length]);
 
