@@ -47,6 +47,7 @@ export type MealEntry = {
   recognitionSource?: string | null;
   photoKind?: string | null;
   barcode?: string | null;
+  eatenAt?: string | null;
   createdAt: string;
 };
 

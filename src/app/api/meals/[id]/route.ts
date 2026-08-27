@@ -3,6 +3,18 @@ import { requireSession } from "@/lib/auth-session";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
 
+function parseEatenAt(value: unknown): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // Accept HH:MM for same calendar day relative to an existing date — callers send ISO.
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed;
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -24,6 +36,7 @@ export async function PATCH(
       sugar?: number | null;
       portionGrams?: number | null;
       mealType?: string | null;
+      eatenAt?: string | null;
     };
 
     if (body.dishName !== undefined && !body.dishName.trim()) {
@@ -41,6 +54,12 @@ export async function PATCH(
           ? (body.mealType as (typeof mealTypes)[number])
           : undefined;
 
+    const eatenAt = body.eatenAt !== undefined ? parseEatenAt(body.eatenAt) : undefined;
+    if (body.eatenAt !== undefined && eatenAt === undefined) {
+      return NextResponse.json({ error: "Некорректное время приёма пищи" }, { status: 400 });
+    }
+
+    // If only HH:MM was intended via ISO without date, keep as-is (client sends full ISO).
     const updated = await prisma.mealEntry.updateMany({
       where: { id, userId: session.user.id },
       data: {
@@ -53,6 +72,7 @@ export async function PATCH(
         ...(body.sugar !== undefined ? { sugar: body.sugar } : {}),
         ...(body.portionGrams !== undefined ? { portionGrams: body.portionGrams } : {}),
         ...(mealType !== undefined ? { mealType } : {}),
+        ...(eatenAt !== undefined ? { eatenAt } : {}),
       },
     });
 
