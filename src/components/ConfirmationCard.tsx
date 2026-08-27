@@ -782,62 +782,37 @@ export function ConfirmationCard({
           </div>
         )}
 
-        {enriching ? (
-          <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-950">
-            <p className="font-semibold">Подтягиваем данные из базы…</p>
-            <p className="mt-1 text-teal-900/90">
-              Название и калории уже на экране — можно проверить порцию и сохранить, не дожидаясь уточнения.
-            </p>
+        {enriching || recognition.enrichmentTimedOut || needsReview ? (
+          <div
+            className={`rounded-xl border px-3 py-2.5 text-sm ${
+              enriching
+                ? "border-teal-200 bg-teal-50 text-teal-950"
+                : "border-amber-200 bg-amber-50 text-amber-950"
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold leading-snug">
+                {enriching
+                  ? "Уточняем по базе — можно сохранить сейчас"
+                  : recognition.enrichmentTimedOut
+                    ? "Уточнение не завершилось — проверьте калории"
+                    : anyMissingCalories
+                      ? "Не хватает калорий — уточните название"
+                      : "Низкая уверенность — проверьте блюдо"}
+              </p>
+              {needsReview && multi ? (
+                <button
+                  type="button"
+                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={formDisabled || enriching}
+                  onClick={() => void handleLookupAll()}
+                >
+                  {bulkLookupRunning ? "Уточняем…" : "Уточнить все"}
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : null}
-
-        {!enriching && recognition.enrichmentTimedOut ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <p className="font-semibold">
-              Уточнение из базы не завершилось — проверьте калории
-            </p>
-          </div>
-        ) : null}
-
-        {needsReview ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-            <p className="font-semibold">
-              {anyMissingCalories
-                ? "Не хватает калорий по одной или нескольким позициям"
-                : "Низкая уверенность распознавания"}
-            </p>
-            <p className="mt-1 text-amber-900/90">
-              {anyMissingCalories
-                ? "Уточните название и нажмите «Уточнить по названию» — подтянем КБЖУ из базы."
-                : "Проверьте название и калории. Если блюдо другое — уточните по названию."}
-            </p>
-            {multi ? (
-              <button
-                type="button"
-                className="mt-3 text-sm font-semibold text-amber-900 underline-offset-2 hover:underline"
-                disabled={formDisabled || enriching}
-                onClick={() => void handleLookupAll()}
-              >
-                {bulkLookupRunning ? "Уточняем все..." : "Уточнить все позиции"}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        <div className="rounded-2xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
-          <p className="font-medium">
-            {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
-            {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
-            {recognition.photoKind === "label" ? " · этикетка" : ""}
-          </p>
-          <p className="mt-1 text-xs text-teal-800">
-            {multi
-              ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-              : `Уверенность: ${formatConfidence(recognition.confidence)}`}
-            {recognition.barcode ? ` · ${recognition.barcode}` : ""}
-            {recognition.brand ? ` · ${recognition.brand}` : ""}
-          </p>
-        </div>
 
         {multi ? (
           <div className="flex flex-col gap-2">
@@ -949,25 +924,26 @@ export function ConfirmationCard({
             ))}
           </div>
         ) : null}
-        {!mealType ? (
-          <p className="text-xs text-slate-500">
-            Укажите приём пищи — так удобнее смотреть бюджет дня
-          </p>
-        ) : null}
 
-        <div className="chip-row-fill">
-          {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
-            <Chip
-              key={value}
-              active={mealType === value}
-              disabled={saving}
-              onClick={() => setMealType(mealType === value ? "" : value)}
-            >
-              {label}
-            </Chip>
-          ))}
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Приём пищи{!mealType ? " · желательно указать" : ""}
+          </p>
+          <div className="chip-row-fill">
+            {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
+              <Chip
+                key={value}
+                active={mealType === value}
+                disabled={saving}
+                onClick={() => setMealType(mealType === value ? "" : value)}
+              >
+                {label}
+              </Chip>
+            ))}
+          </div>
         </div>
-        <div className="h-2 shrink-0" aria-hidden />
+
+        <div className="h-1 shrink-0" aria-hidden />
         <div className="confirm-card-actions">
           <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
             {saving ? (
@@ -989,6 +965,26 @@ export function ConfirmationCard({
             Отменить
           </button>
         </div>
+
+        <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">
+          <summary className="cursor-pointer select-none font-semibold text-slate-800">
+            Подробности распознавания
+          </summary>
+          <div className="mt-2 space-y-1 text-xs text-slate-600">
+            <p>
+              {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
+              {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
+              {recognition.photoKind === "label" ? " · этикетка" : ""}
+            </p>
+            <p>
+              {multi
+                ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+                : `Уверенность: ${formatConfidence(recognition.confidence)}`}
+              {recognition.barcode ? ` · ${recognition.barcode}` : ""}
+              {recognition.brand ? ` · ${recognition.brand}` : ""}
+            </p>
+          </div>
+        </details>
       </div>
     </section>
   );
@@ -1138,18 +1134,6 @@ function DishFields({
         </div>
       ) : null}
 
-      {review.lowConfidence ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
-          Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте название или нажмите «Уточнить по названию».
-        </p>
-      ) : null}
-
-      {dishLooksLikeAlcohol(dish.dishName) ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
-          Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
-        </p>
-      ) : null}
-
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="field sm:col-span-2">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
@@ -1277,6 +1261,19 @@ function DishFields({
 
         {showAdvanced ? (
           <>
+            {review.lowConfidence ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+                Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте
+                название или нажмите «Уточнить по названию».
+              </p>
+            ) : null}
+
+            {dishLooksLikeAlcohol(dish.dishName) ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+                Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
+              </p>
+            ) : null}
+
             {alternativesSection}
 
             <div className="field">

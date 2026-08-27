@@ -10,5 +10,7 @@ describe("mascot-copy", () => {
     assert.ok(MASCOT_COPY.pushPrompt.title.includes("талисмана"));
     assert.ok(MASCOT_COPY.pushPrompt.body.length > 10);
     assert.ok(MASCOT_COPY.pushIosHint.title.includes("iPhone"));
+    assert.ok(MASCOT_COPY.pushIosHint.fallbackBody.includes("Домой"));
+    assert.ok(!MASCOT_COPY.pushIosHint.fallbackBody.includes("Home Screen"));
   });
 });
