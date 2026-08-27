@@ -21,6 +21,7 @@ import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
+import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
@@ -217,7 +218,7 @@ function RationBody({
           }}
         />
         {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
-        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} />
+        <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} compact />
         <MedicalDisclaimerNote className="px-1" />
 
         <FoodAddPanel
@@ -311,12 +312,17 @@ function RationBody({
       <button
         type="button"
         className={`fab-add md:hidden ${confirmOpen || showSplash ? "pointer-events-none opacity-0" : ""}`}
-        aria-label="Добавить еду"
+        aria-label="Сфотографировать еду"
         aria-hidden={confirmOpen || showSplash}
         tabIndex={confirmOpen || showSplash ? -1 : 0}
-        onClick={scrollToFoodAdd}
+        onClick={() => requestOpenFoodCamera(true)}
       >
-        +
+        <span className="fab-add-icon" aria-hidden>
+          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" strokeLinejoin="round" />
+            <circle cx="12" cy="13" r="3.25" />
+          </svg>
+        </span>
       </button>
     </>
   );
@@ -341,6 +347,7 @@ function RationShell({
   const scrollToFoodAdd = useCallback(() => {
     document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+  const openFoodCamera = useCallback(() => requestOpenFoodCamera(true), []);
 
   return (
     <AppShell
@@ -365,7 +372,7 @@ function RationShell({
         setConfirmOpen={setConfirmOpen}
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
-        scrollToFoodAdd={scrollToFoodAdd}
+        scrollToFoodAdd={openFoodCamera}
         onSelectDate={setDate}
       />
     </AppShell>

@@ -46,13 +46,13 @@ function progressFromPayload(
 
 function HeroRing({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 36;
+  const r = 30;
   const c = 2 * Math.PI * r;
   const offset = c - (clamped / 100) * c;
   const over = pct > 105;
 
   return (
-    <div className="day-hero-ring relative h-[5.25rem] w-[5.25rem] shrink-0">
+    <div className="day-hero-ring relative h-[4.35rem] w-[4.35rem] shrink-0">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
         <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(15,118,110,0.15)" strokeWidth="8" />
         <circle
@@ -69,10 +69,10 @@ function HeroRing({ pct }: { pct: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-display text-lg font-bold leading-none ${over ? "text-rose-600" : "text-teal-800"}`}>
+        <span className={`font-display text-base font-bold leading-none ${over ? "text-rose-600" : "text-teal-800"}`}>
           {Math.round(clamped)}%
         </span>
-        <span className="mt-0.5 text-[0.55rem] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="mt-0.5 text-[0.5rem] font-semibold uppercase tracking-wide text-slate-500">
           ккал
         </span>
       </div>
@@ -203,16 +203,16 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       <div className="day-hero-glow" aria-hidden />
       <div className="relative flex items-center gap-3">
         <div className="day-hero-mascot shrink-0">
-          <Mascot pose={copy.pose} size="md" title={copy.headline} entrance animate />
+          <Mascot pose={copy.pose} size="sm" title={copy.headline} entrance animate />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-teal-800/70">
+          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-teal-800/70">
             {copy.eyebrow}
           </p>
-          <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug text-slate-900 sm:text-lg">
+          <p className="mt-0.5 font-display text-[0.98rem] font-semibold leading-snug text-slate-900 sm:text-base">
             {copy.headline}
           </p>
-          <p className="mt-1.5 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             {calLabel}
             {holiday ? " · праздн. запас" : ""}
           </p>
@@ -221,7 +221,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       </div>
 
       {data ? (
-        <div className="relative mt-4 flex gap-4 border-t border-teal-900/5 pt-3">
+        <div className="relative mt-2.5 flex gap-4 border-t border-teal-900/5 pt-2">
           <MiniBar
             label="Белок"
             value={`${Math.round(data.protein)} г`}
