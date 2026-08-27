@@ -15,7 +15,7 @@ import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
-import { TodayProgress } from "@/components/TodayProgress";
+import { DayHero } from "@/components/DayHero";
 import { HolidayBufferToggle } from "@/components/HolidayBufferToggle";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
@@ -186,11 +186,19 @@ function RationBody({
 
   // Only splashDone dismisses — not the moment data arrives (that was the flash).
   const showSplash = !splashDone;
+  const splashReady = Boolean(!day.loading && (day.data || day.error));
 
   return (
     <>
       {showSplash ? (
-        <AppSplash tip={day.data?.tip ?? undefined} status="Открываем рацион…" />
+        <AppSplash
+          tipContext={{
+            streak: day.data?.streak?.streak ?? null,
+            loggedToday: day.data?.streak?.loggedToday ?? null,
+            serverTip: day.data?.tip ?? null,
+          }}
+          ready={splashReady}
+        />
       ) : null}
 
       <div className={`ration-page flex flex-col gap-2.5 md:gap-3 ${showSplash ? "invisible h-0 overflow-hidden" : ""}`}>
@@ -198,7 +206,7 @@ function RationBody({
         <MascotSaveReaction />
         <ProfileCompletionBanner />
         <FastingWindowBanner isToday={date === today} />
-        <TodayProgress selectedDate={date} refreshKey={refreshKey} />
+        <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         {date === today ? <HolidayBufferToggle selectedDate={date} onChange={() => bump()} /> : null}
         <WeeklyPlan selectedDate={date} refreshKey={refreshKey} onSelectDate={onSelectDate} />
         <MedicalDisclaimerNote className="px-1" />

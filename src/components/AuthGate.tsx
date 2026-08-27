@@ -9,7 +9,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
 
   if (status === "loading") {
-    return <AppSplash status="Входим…" />;
+    return <AppSplash status="Входим…" tipContext={{}} />;
   }
 
   if (status !== "authenticated") {
