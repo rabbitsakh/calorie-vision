@@ -11,7 +11,7 @@ import { BadgesPanel } from "@/components/BadgesPanel";
 
 export default function ProfilePage() {
   return (
-    <AppShell title="Профиль" compact description="Аккаунт, напоминания и награды.">
+    <AppShell title="Профиль" compact description="Аккаунт, норма, напоминания и награды.">
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-5">
           <ProfileForm />

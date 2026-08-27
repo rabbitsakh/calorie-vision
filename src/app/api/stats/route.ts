@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: { gte: start, lte: end } },
-        select: { createdAt: true, calories: true },
+        select: { createdAt: true, eatenAt: true, calories: true },
       }),
       prisma.diaryNote.findMany({
         where: {
@@ -149,10 +149,11 @@ export async function GET(request: NextRequest) {
     const calorieTarget =
       recommendDietForProfile(latestWeight?.weightKg, user)?.calories ?? null;
 
-    // Hourly calorie distribution (0–23)
+    // Hourly calorie distribution (0–23), prefer eatenAt over createdAt
     const hourlyCalories = new Array<number>(24).fill(0);
     for (const m of allMealsForTiming) {
-      const hour = new Date(m.createdAt).getHours();
+      const when = m.eatenAt ?? m.createdAt;
+      const hour = new Date(when).getHours();
       hourlyCalories[hour] = (hourlyCalories[hour] ?? 0) + m.calories;
     }
 

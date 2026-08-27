@@ -3,10 +3,10 @@ import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
+import type { MealType } from "@/types";
 
 export const dynamic = "force-dynamic";
-
-type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 
 type QuickAddItem = {
   dishName: string;
@@ -21,13 +21,6 @@ type QuickAddItem = {
   count: number;
   why: string;
 };
-
-function inferMealType(hour: number): MealType {
-  if (hour >= 5 && hour < 11) return "BREAKFAST";
-  if (hour >= 11 && hour < 15) return "LUNCH";
-  if (hour >= 17 && hour < 22) return "DINNER";
-  return "SNACK";
-}
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
   BREAKFAST: "завтрак",
@@ -49,15 +42,7 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const today = toDateKeyTz(now, user?.timezone);
     const start = shiftDateKey(today, -90);
-    const currentMealType = inferMealType(
-      Number(
-        new Intl.DateTimeFormat("en-US", {
-          hour: "numeric",
-          hour12: false,
-          timeZone: user?.timezone ?? undefined,
-        }).format(now),
-      ),
-    );
+    const currentMealType = inferMealTypeFromHour(hourInTimezone(now, user?.timezone));
 
     const entries = await prisma.mealEntry.findMany({
       where: {
@@ -75,6 +60,7 @@ export async function GET(request: NextRequest) {
         portionGrams: true,
         mealType: true,
         createdAt: true,
+        eatenAt: true,
       },
       orderBy: { createdAt: "desc" },
       take: 500,
@@ -99,8 +85,8 @@ export async function GET(request: NextRequest) {
     for (const entry of entries) {
       const name = decodeHtmlEntities(entry.dishName.trim());
       const key = name.toLowerCase();
-      const hour = new Date(entry.createdAt).getHours();
-      const entrySlot = entry.mealType ?? inferMealType(hour);
+      const hour = new Date(entry.eatenAt ?? entry.createdAt).getHours();
+      const entrySlot = entry.mealType ?? inferMealTypeFromHour(hour);
       const existing = byDish.get(key);
 
       if (!existing) {
