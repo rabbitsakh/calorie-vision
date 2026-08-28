@@ -18,6 +18,12 @@ import {
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import {
+  formatMacro,
+  nutritionBaseline,
+  scaleNutritionByPortion,
+  type NutritionValues,
+} from "@/lib/nutrition";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
 import { MealPhotoPicker } from "@/components/MealPhotoPicker";
 import {
@@ -408,6 +414,19 @@ function InlineEdit({
   onSave: (patch: EditPatch) => Promise<void>;
   onCancel: () => void;
 }) {
+  const canScalePortion =
+    entry.portionGrams != null && Number.isFinite(entry.portionGrams) && entry.portionGrams > 0;
+  const portionBaselineRef = useRef<NutritionValues | null>(
+    nutritionBaseline({
+      calories: entry.calories,
+      protein: entry.protein,
+      fat: entry.fat,
+      carbs: entry.carbs,
+      fiber: entry.fiber,
+      sugar: entry.sugar,
+      portionGrams: entry.portionGrams,
+    }),
+  );
   const [dishName, setDishName] = useState(decodeHtmlEntities(entry.dishName));
   const [calories, setCalories] = useState(String(entry.calories));
   const [protein, setProtein] = useState(entry.protein != null ? String(entry.protein) : "");
@@ -423,6 +442,23 @@ function InlineEdit({
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handlePortionChange(value: string) {
+    setPortionGrams(value);
+    const grams = Number(value);
+    const baseline = portionBaselineRef.current;
+    if (!baseline || !Number.isFinite(grams) || grams <= 0) {
+      return;
+    }
+    const scaled = scaleNutritionByPortion(baseline, grams);
+    if (!scaled) return;
+    setCalories(String(scaled.calories));
+    setProtein(scaled.protein != null ? formatMacro(scaled.protein) : "");
+    setFat(scaled.fat != null ? formatMacro(scaled.fat) : "");
+    setCarbs(scaled.carbs != null ? formatMacro(scaled.carbs) : "");
+    setFiber(scaled.fiber != null ? formatMacro(scaled.fiber) : "");
+    setSugar(scaled.sugar != null ? formatMacro(scaled.sugar) : "");
+  }
 
   useEffect(() => {
     const name = dishName.trim();
@@ -492,7 +528,7 @@ function InlineEdit({
         </div>
         <div className="field">
           <label className="text-xs">Порция, г</label>
-          <input type="number" min="1" value={portionGrams} onChange={(e) => setPortionGrams(e.target.value)} />
+          <input type="number" min="1" value={portionGrams} onChange={(e) => handlePortionChange(e.target.value)} />
           {historyPortions.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {historyPortions.map((grams) => (
@@ -504,12 +540,15 @@ function InlineEdit({
                       ? "bg-teal-700 text-white"
                       : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
                   }`}
-                  onClick={() => setPortionGrams(String(grams))}
+                  onClick={() => handlePortionChange(String(grams))}
                 >
                   {grams} г
                 </button>
               ))}
             </div>
+          ) : null}
+          {canScalePortion ? (
+            <p className="mt-1 text-[11px] text-slate-500">Ккал и БЖУ пересчитаются от исходной порции</p>
           ) : null}
         </div>
         <div className="field">
