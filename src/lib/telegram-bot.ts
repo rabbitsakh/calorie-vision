@@ -12,6 +12,13 @@
  */
 
 import dns from "node:dns";
+import { getTelegramBotUsername } from "@/lib/telegram-bot-config";
+
+export {
+  DEFAULT_TELEGRAM_BOT_USERNAME,
+  getTelegramBotUsername,
+  telegramBotDeepLink,
+} from "@/lib/telegram-bot-config";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -63,21 +70,9 @@ async function telegramFetch(url: string, init?: RequestInit): Promise<Response>
   return fetch(url, { ...init, signal });
 }
 
-/** Production bot @CalorieVisionAppBot — fallback when env username is unset at build. */
-export const DEFAULT_TELEGRAM_BOT_USERNAME = "CalorieVisionAppBot";
-
 export function getTelegramBotToken(): string | null {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   return token || null;
-}
-
-export function getTelegramBotUsername(): string {
-  const name = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
-  return name || DEFAULT_TELEGRAM_BOT_USERNAME;
-}
-
-export function telegramBotDeepLink(): string {
-  return `https://t.me/${getTelegramBotUsername()}`;
 }
 
 /** Extract /command from message text (handles /start@CalorieVisionAppBot). */

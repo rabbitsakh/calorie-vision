@@ -67,7 +67,9 @@ echo "==> Prisma: generate client (once, after schema sync)"
 npm run db:generate
 
 echo "==> Free RAM before build (stop running app)"
+APP_WAS_RUNNING=0
 if pm2 describe calorie-vision >/dev/null 2>&1; then
+  APP_WAS_RUNNING=1
   pm2 stop calorie-vision || true
 fi
 
@@ -84,7 +86,15 @@ echo "   NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
 if [[ -r /proc/meminfo ]]; then
   awk '/MemAvailable:/ {printf "   MemAvailable: %d MB\n", int($2/1024)}' /proc/meminfo
 fi
-npm run build
+if ! npm run build; then
+  echo "   build FAILED"
+  if (( APP_WAS_RUNNING )); then
+    echo "   Restarting previous app so the site does not stay on 502"
+    pm2 restart calorie-vision || pm2 start deploy/ecosystem.config.cjs
+    pm2 save || true
+  fi
+  exit 1
+fi
 
 echo "==> Restart app"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
