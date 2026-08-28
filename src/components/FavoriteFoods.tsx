@@ -5,6 +5,8 @@ import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
+import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
+import { useTimezone } from "@/lib/use-timezone";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
 
 const PANEL_ID = "favorites";
@@ -38,6 +40,7 @@ function TrashIcon() {
 }
 
 export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: FavoriteFoodsProps) {
+  const timezone = useTimezone();
   const [foods, setFoods] = useState<CustomFood[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -99,7 +102,8 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   }
 
   async function useFood(food: CustomFood) {
-    await fetch(withBasePath("/api/meals"), {
+    const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+    const resp = await fetch(withBasePath("/api/meals"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -112,8 +116,11 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         fiber: food.fiber,
         sugar: food.sugar,
         portionGrams: food.portionGrams,
+        mealType,
+        eatenAt,
       }),
     });
+    if (!resp.ok) return;
     void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
     trackFirstMealSaveGoal();
     trackMealSavedGoal();
