@@ -105,6 +105,31 @@ fi
 
 pm2 save
 
+echo "==> Health check"
+HEALTH_PORT="${PORT:-3000}"
+HEALTH_BASE="${NEXT_PUBLIC_BASE_PATH:-}"
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+  HEALTH_PORT="${PORT:-3000}"
+  HEALTH_BASE="${NEXT_PUBLIC_BASE_PATH:-}"
+fi
+HEALTH_OK=0
+for i in $(seq 1 15); do
+  if curl -sf "http://127.0.0.1:${HEALTH_PORT}${HEALTH_BASE}/api/health/" >/dev/null \
+     || curl -sf "http://127.0.0.1:${HEALTH_PORT}${HEALTH_BASE}/api/health" >/dev/null; then
+    HEALTH_OK=1
+    echo "   /api/health ok"
+    break
+  fi
+  sleep 2
+done
+if (( ! HEALTH_OK )); then
+  echo "   WARNING: health check failed — site may be down (pm2 logs calorie-vision)"
+fi
+
 echo "==> Compress and backfill meal images (after build — less peak RAM)"
 npm run images:backfill || echo "image backfill skipped"
 

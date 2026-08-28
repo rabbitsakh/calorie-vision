@@ -1,6 +1,6 @@
 {
   "name": "calorie-vision",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "check:env": "tsx scripts/check-env.ts",
+    "check:client-imports": "tsx scripts/check-client-imports.ts",
     "test": "tsx --test src/lib/*.test.ts src/lib/ai/*.test.ts",
     "test:recognition-eval": "tsx --test src/lib/ai/recognition-eval.test.ts src/lib/ai/recognition-pipeline-eval.test.ts",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
