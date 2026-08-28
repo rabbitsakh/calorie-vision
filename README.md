@@ -140,9 +140,21 @@ npm run start
    ```
 4. Зарегистрируйте webhook (чтобы бот отвечал на `/start`):
    ```bash
+   cd /var/www/calorie-vision
    npm run telegram:set-webhook
    ```
-   При деплое это делается автоматически, если в `.env` на сервере задан `TELEGRAM_BOT_TOKEN`.
+   Если видите `fetch failed` — на VPS часто ломается IPv6. Скрипт автоматически пробует `curl --ipv4`.
+   Явный fallback:
+   ```bash
+   npm run telegram:set-webhook:curl
+   # или
+   bash scripts/telegram-set-webhook.sh
+   ```
+   Диагностика:
+   ```bash
+   curl -4 -I https://api.telegram.org
+   ```
+   При деплое webhook регистрируется автоматически, если в `.env` на сервере задан `TELEGRAM_BOT_TOKEN`.
 5. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
 
 ### Email (magic link)
