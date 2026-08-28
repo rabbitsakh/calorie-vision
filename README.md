@@ -129,7 +129,7 @@ npm run start
 
 На странице входа показываются только **настроенные** способы. Email без SMTP скрыт.
 
-### Telegram
+### Telegram (вход)
 
 1. Создайте бота у [@BotFather](https://t.me/BotFather) (продакшен: **@CalorieVisionAppBot**).
 2. Команда `/setdomain` → укажите `calorievision.ru` (для локалки — временный HTTPS-туннель, например ngrok).
@@ -138,24 +138,7 @@ npm run start
    NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=CalorieVisionAppBot
    TELEGRAM_BOT_TOKEN=123456:AA...
    ```
-4. Зарегистрируйте webhook (чтобы бот отвечал на `/start`):
-   ```bash
-   cd /var/www/calorie-vision
-   npm run telegram:set-webhook
-   ```
-   Если видите `fetch failed` — на VPS часто ломается IPv6. Скрипт автоматически пробует `curl --ipv4`.
-   Явный fallback:
-   ```bash
-   npm run telegram:set-webhook:curl
-   # или
-   bash scripts/telegram-set-webhook.sh
-   ```
-   Диагностика:
-   ```bash
-   curl -4 -I https://api.telegram.org
-   ```
-   При деплое webhook регистрируется автоматически, если в `.env` на сервере задан `TELEGRAM_BOT_TOKEN`.
-5. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
+4. Перезапустите приложение. На `/login` появится кнопка «Войти через Telegram».
 
 ### Email (magic link)
 

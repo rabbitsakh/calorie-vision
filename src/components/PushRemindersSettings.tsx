@@ -17,7 +17,6 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
-import { getTelegramBotUsername, telegramBotDeepLink } from "@/lib/telegram-bot-config";
 
 type ServerPushStatus = {
   subscribed: boolean;
@@ -450,21 +449,6 @@ export function PushRemindersSettings() {
           className="mt-2 inline-flex text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
         >
           Открыть инструкцию по установке
-        </a>
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">Также можно через бота в Telegram</p>
-        <p className="mt-1 text-sm text-slate-600">
-          Напишите боту /start — пришлёт ссылку в рацион. Напоминания в чате появятся позже.
-        </p>
-        <a
-          href={telegramBotDeepLink()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex text-sm font-semibold text-sky-800 underline-offset-2 hover:underline"
-        >
-          @{getTelegramBotUsername()}
         </a>
       </div>
 

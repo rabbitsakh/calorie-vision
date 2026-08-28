@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getTelegramBotToken } from "@/lib/telegram-bot";
+import { getTelegramBotToken } from "@/lib/telegram-login-config";
 import {
   telegramDisplayName,
   type TelegramAuthPayload,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isEmailLoginConfigured } from "@/lib/email-auth";
-import { getTelegramBotUsername } from "@/lib/telegram-bot";
+import { getTelegramBotUsername } from "@/lib/telegram-login-config";
 import { isTelegramLoginConfigured } from "@/lib/telegram-auth";
 
 export const dynamic = "force-dynamic";

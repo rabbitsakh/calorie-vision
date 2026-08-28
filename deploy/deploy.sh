@@ -105,13 +105,6 @@ fi
 
 pm2 save
 
-echo "==> Telegram webhook (если TELEGRAM_BOT_TOKEN в .env)"
-if npm run telegram:set-webhook 2>&1; then
-  echo "   telegram webhook ok"
-else
-  echo "   telegram webhook skipped or failed (проверьте TELEGRAM_BOT_TOKEN и NEXTAUTH_URL)"
-fi
-
 echo "==> Compress and backfill meal images (after build — less peak RAM)"
 npm run images:backfill || echo "image backfill skipped"
 
