@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { mascotArtUrl } from "@/lib/mascot-art";
 import { playCelebrationChime } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
 import { subscribeMascotReaction } from "@/lib/mascot-reactions";
+import {
+  clearSaveCheerPending,
+  isSaveCheerClaimedByFullscreen,
+  SAVE_TOAST_DELAY_MS,
+} from "@/lib/save-cheer-coordination";
 import { withBasePath } from "@/lib/paths";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
@@ -31,6 +36,7 @@ export function MascotSaveReaction() {
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState("Записано!");
   const [toastKey, setToastKey] = useState(0);
+  const showTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     preloadCheerArt();
@@ -39,6 +45,9 @@ export function MascotSaveReaction() {
   useEffect(() => {
     return subscribeMascotReaction((kind) => {
       if (kind !== "save") return;
+      if (showTimerRef.current != null) {
+        window.clearTimeout(showTimerRef.current);
+      }
       const mealsBefore = day?.data?.meals.entries.length ?? 0;
       setLine(
         pickSaveReactionLine({
@@ -47,12 +56,30 @@ export function MascotSaveReaction() {
         }),
       );
       setToastKey((value) => value + 1);
-      setOpen(true);
-      if (!isGamificationQuiet()) {
-        playCelebrationChime("soft");
-      }
+      setOpen(false);
+
+      showTimerRef.current = window.setTimeout(() => {
+        showTimerRef.current = null;
+        if (isSaveCheerClaimedByFullscreen()) {
+          clearSaveCheerPending();
+          return;
+        }
+        setOpen(true);
+        clearSaveCheerPending();
+        if (!isGamificationQuiet()) {
+          playCelebrationChime("soft");
+        }
+      }, SAVE_TOAST_DELAY_MS);
     });
   }, [day?.data?.meals.entries.length]);
+
+  useEffect(() => {
+    return () => {
+      if (showTimerRef.current != null) {
+        window.clearTimeout(showTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;

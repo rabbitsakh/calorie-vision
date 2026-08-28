@@ -564,6 +564,10 @@ function MealTypeInlineChips({
   disabled?: boolean;
   onChange: (mealType: string | null) => void;
 }) {
+  if (value) {
+    return null;
+  }
+
   return (
     <div className="meal-type-chips" role="group" aria-label="Приём пищи">
       {(Object.entries(MEAL_TYPE_SHORT_LABELS) as Array<[string, string]>).map(([type, label]) => {
@@ -577,8 +581,8 @@ function MealTypeInlineChips({
             title={full}
             aria-label={full}
             aria-pressed={active}
-            className={`meal-type-chip ${active ? "meal-type-chip-active" : "meal-type-chip-idle"}`}
-            onClick={() => onChange(active ? null : type)}
+            className={`meal-type-chip meal-type-chip-idle`}
+            onClick={() => onChange(type)}
           >
             {label}
           </button>

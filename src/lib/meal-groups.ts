@@ -16,8 +16,13 @@ export type MealListGroup = {
   totalCarbs: number;
   totalFiber: number;
   totalSugar: number;
+  /** Display/sort time — prefers eatenAt over createdAt. */
   createdAt: string;
 };
+
+function mealWhen(entry: MealEntry): string {
+  return entry.eatenAt ?? entry.createdAt;
+}
 
 export type MealListItem = MealListSingle | MealListGroup;
 
@@ -55,7 +60,7 @@ export function groupMealEntries(entries: MealEntry[]): MealListItem[] {
 
       seenGroupIds.add(groupId);
       const groupEntries = [...(byGroupId.get(groupId) ?? [])].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        (a, b) => new Date(mealWhen(b)).getTime() - new Date(mealWhen(a)).getTime(),
       );
       const imagePath = groupEntries.find((item) => item.imagePath)?.imagePath ?? null;
 
@@ -70,7 +75,7 @@ export function groupMealEntries(entries: MealEntry[]): MealListItem[] {
         totalCarbs: sumOptional(groupEntries.map((item) => item.carbs)),
         totalFiber: sumOptional(groupEntries.map((item) => item.fiber)),
         totalSugar: sumOptional(groupEntries.map((item) => item.sugar)),
-        createdAt: groupEntries[0]?.createdAt ?? entry.createdAt,
+        createdAt: groupEntries[0] ? mealWhen(groupEntries[0]) : mealWhen(entry),
       });
       continue;
     }

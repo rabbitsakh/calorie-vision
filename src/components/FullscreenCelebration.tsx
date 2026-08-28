@@ -13,6 +13,7 @@ import {
 } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import { claimSaveCheerForFullscreen } from "@/lib/save-cheer-coordination";
 
 export type CelebrationVariant =
   | "cheer"
@@ -142,6 +143,7 @@ export function FullscreenCelebration({
 
   useEffect(() => {
     if (!show) return;
+    claimSaveCheerForFullscreen();
     playCelebrationChime(VARIANT_CHIME[variant]);
   }, [show, variant]);
 
