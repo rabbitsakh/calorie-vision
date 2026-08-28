@@ -17,6 +17,7 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
+import { getTelegramBotUsername, telegramBotDeepLink } from "@/lib/telegram-bot";
 
 type ServerPushStatus = {
   subscribed: boolean;
@@ -452,22 +453,20 @@ export function PushRemindersSettings() {
         </a>
       </div>
 
-      {process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ? (
-        <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
-          <p className="text-sm font-semibold text-slate-900">Также можно через бота в Telegram</p>
-          <p className="mt-1 text-sm text-slate-600">
-            Откройте бота — пришлёт ссылку в рацион. Напоминания в чате появятся позже.
-          </p>
-          <a
-            href={`https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME.replace(/^@/, "")}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex text-sm font-semibold text-sky-800 underline-offset-2 hover:underline"
-          >
-            @{process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME.replace(/^@/, "")}
-          </a>
-        </div>
-      ) : null}
+      <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3">
+        <p className="text-sm font-semibold text-slate-900">Также можно через бота в Telegram</p>
+        <p className="mt-1 text-sm text-slate-600">
+          Напишите боту /start — пришлёт ссылку в рацион. Напоминания в чате появятся позже.
+        </p>
+        <a
+          href={telegramBotDeepLink()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex text-sm font-semibold text-sky-800 underline-offset-2 hover:underline"
+        >
+          @{getTelegramBotUsername()}
+        </a>
+      </div>
 
       {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}

@@ -14,19 +14,28 @@
 
 const TELEGRAM_API = "https://api.telegram.org";
 
+/** Production bot @CalorieVisionAppBot — fallback when env username is unset at build. */
+export const DEFAULT_TELEGRAM_BOT_USERNAME = "CalorieVisionAppBot";
+
 export function getTelegramBotToken(): string | null {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   return token || null;
 }
 
-export function getTelegramBotUsername(): string | null {
+export function getTelegramBotUsername(): string {
   const name = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "").trim();
-  return name || null;
+  return name || DEFAULT_TELEGRAM_BOT_USERNAME;
 }
 
-export function telegramBotDeepLink(): string | null {
-  const username = getTelegramBotUsername();
-  return username ? `https://t.me/${username}` : null;
+export function telegramBotDeepLink(): string {
+  return `https://t.me/${getTelegramBotUsername()}`;
+}
+
+/** Extract /command from message text (handles /start@CalorieVisionAppBot). */
+export function parseTelegramCommand(text: string): string {
+  const first = text.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+  const base = first.split("@")[0] ?? "";
+  return base.startsWith("/") ? base : "";
 }
 
 /** Verify webhook caller via query `secret` or Telegram secret_token header. */
@@ -91,7 +100,76 @@ export async function sendTelegramMessage(
   }
 }
 
+export type TelegramWebhookInfo = {
+  url?: string;
+  has_custom_certificate?: boolean;
+  pending_update_count?: number;
+  last_error_message?: string;
+};
+
+export async function getTelegramWebhookInfo(): Promise<
+  { ok: true; info: TelegramWebhookInfo } | { ok: false; error: string }
+> {
+  const token = getTelegramBotToken();
+  if (!token) {
+    return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
+  }
+  try {
+    const resp = await fetch(`${TELEGRAM_API}/bot${token}/getWebhookInfo`);
+    const data = (await resp.json()) as {
+      ok?: boolean;
+      description?: string;
+      result?: TelegramWebhookInfo;
+    };
+    if (!resp.ok || !data.ok || !data.result) {
+      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
+    }
+    return { ok: true, info: data.result };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Ошибка Telegram API",
+    };
+  }
+}
+
+export async function setTelegramWebhook(
+  webhookUrl: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const token = getTelegramBotToken();
+  if (!token) {
+    return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
+  }
+  try {
+    const resp = await fetch(`${TELEGRAM_API}/bot${token}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: webhookUrl,
+        secret_token: token,
+        allowed_updates: ["message"],
+      }),
+    });
+    const data = (await resp.json()) as { ok?: boolean; description?: string };
+    if (!resp.ok || !data.ok) {
+      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Ошибка Telegram API",
+    };
+  }
+}
+
+export function buildTelegramWebhookUrl(siteOrigin: string, token: string): string {
+  const base = siteOrigin.replace(/\/$/, "");
+  return `${base}/api/telegram/webhook?secret=${encodeURIComponent(token)}`;
+}
+
 export function telegramStartReplyText(): string {
+  const bot = getTelegramBotUsername();
   return [
     "Привет! Я бот Calorie Vision 🌿",
     "",
@@ -99,8 +177,10 @@ export function telegramStartReplyText(): string {
     "https://calorievision.ru/ration",
     "",
     "Команды:",
-    "/start — ссылка в приложение",
-    "/remind — как включить напоминания",
+    `/start — ссылка в приложение`,
+    `/remind — как включить напоминания`,
+    "",
+    `Бот: @${bot}`,
   ].join("\n");
 }
 

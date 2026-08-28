@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  parseTelegramCommand,
   sendTelegramMessage,
   telegramRemindHelpText,
   telegramStartReplyText,
@@ -44,17 +45,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const command = text.split(/\s+/)[0]?.toLowerCase().split("@")[0] ?? "";
+  const command = parseTelegramCommand(text);
 
+  let reply: string | null = null;
   if (command === "/start" || command === "/help") {
-    await sendTelegramMessage(chatId, telegramStartReplyText());
+    reply = telegramStartReplyText();
   } else if (command === "/remind") {
-    await sendTelegramMessage(chatId, telegramRemindHelpText());
+    reply = telegramRemindHelpText();
   } else if (text) {
-    await sendTelegramMessage(
-      chatId,
-      "Напишите /start — открою рацион, или /remind — про напоминания.",
-    );
+    reply = "Напишите /start — открою рацион, или /remind — про напоминания.";
+  }
+
+  if (reply) {
+    const sent = await sendTelegramMessage(chatId, reply);
+    if (!sent.ok) {
+      console.error("[telegram/webhook] sendMessage failed:", sent.error, { chatId, command });
+      return NextResponse.json({ ok: false, error: sent.error }, { status: 502 });
+    }
   }
 
   return NextResponse.json({ ok: true });
