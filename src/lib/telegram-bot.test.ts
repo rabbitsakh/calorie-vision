@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   DEFAULT_TELEGRAM_BOT_USERNAME,
   buildTelegramWebhookUrl,
+  formatTelegramFetchError,
   getTelegramBotUsername,
   parseTelegramCommand,
   telegramBotDeepLink,
@@ -53,6 +54,14 @@ test("buildTelegramWebhookUrl encodes secret", () => {
     url,
     "https://calorievision.ru/api/telegram/webhook?secret=tok%2Fen%2B",
   );
+});
+
+test("formatTelegramFetchError adds hint for fetch failed", () => {
+  const text = formatTelegramFetchError(
+    new TypeError("fetch failed", { cause: new Error("connect ECONNREFUSED") }),
+  );
+  assert.match(text, /fetch failed/);
+  assert.match(text, /curl -4/);
 });
 
 test("verifyTelegramWebhookSecret accepts query secret matching token", () => {

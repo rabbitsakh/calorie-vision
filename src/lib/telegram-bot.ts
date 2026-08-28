@@ -4,15 +4,64 @@
  * Setup (BotFather):
  * 1. Create bot → set TELEGRAM_BOT_TOKEN and NEXT_PUBLIC_TELEGRAM_BOT_USERNAME.
  * 2. Set webhook:
- *    curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
- *      -d "url=https://calorievision.ru/api/telegram/webhook?secret=$TELEGRAM_BOT_TOKEN" \
- *      -d "secret_token=$TELEGRAM_BOT_TOKEN"
+ *    npm run telegram:set-webhook
+ *    (на VPS при проблемах с IPv6 скрипт пробует curl --ipv4)
  *
  * TODO(batch-18+): schedule meal/water reminders via Telegram chat_id stored per user
  * (cron similar to /api/cron/reminders). For now only /start deep-link + /remind help.
  */
 
+import dns from "node:dns";
+
 const TELEGRAM_API = "https://api.telegram.org";
+
+let ipv4Preferred = false;
+
+/** Prefer IPv4 — on many VPS broken IPv6 causes Node fetch to fail with "fetch failed". */
+export function preferTelegramIpv4(): void {
+  if (ipv4Preferred) return;
+  try {
+    dns.setDefaultResultOrder("ipv4first");
+    ipv4Preferred = true;
+  } catch {
+    // Node < 17
+  }
+}
+
+export function formatTelegramFetchError(error: unknown): string {
+  if (!(error instanceof Error)) return "Ошибка Telegram API";
+  const parts = [error.message];
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code) parts.push(`code=${code}`);
+
+  let cause: unknown = error.cause;
+  for (let depth = 0; depth < 4 && cause; depth += 1) {
+    if (cause instanceof Error) {
+      parts.push(cause.message);
+      const causeCode = (cause as NodeJS.ErrnoException).code;
+      if (causeCode) parts.push(`code=${causeCode}`);
+      cause = cause.cause;
+    } else {
+      parts.push(String(cause));
+      break;
+    }
+  }
+
+  if (error.message === "fetch failed") {
+    parts.push(
+      "проверьте: curl -4 -I https://api.telegram.org (на VPS часто ломается IPv6 или блокируется исходящий трафик)",
+    );
+  }
+
+  return parts.join(" — ");
+}
+
+async function telegramFetch(url: string, init?: RequestInit): Promise<Response> {
+  preferTelegramIpv4();
+  const timeoutMs = Number(process.env.TELEGRAM_FETCH_TIMEOUT_MS ?? 30_000);
+  const signal = AbortSignal.timeout(Number.isFinite(timeoutMs) ? timeoutMs : 30_000);
+  return fetch(url, { ...init, signal });
+}
 
 /** Production bot @CalorieVisionAppBot — fallback when env username is unset at build. */
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "CalorieVisionAppBot";
@@ -75,7 +124,7 @@ export async function sendTelegramMessage(
   }
 
   try {
-    const resp = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -95,8 +144,7 @@ export async function sendTelegramMessage(
     }
     return { ok: true, messageId: data.result?.message_id };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Ошибка Telegram API";
-    return { ok: false, error: message };
+    return { ok: false, error: formatTelegramFetchError(error) };
   }
 }
 
@@ -115,7 +163,7 @@ export async function getTelegramWebhookInfo(): Promise<
     return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
   }
   try {
-    const resp = await fetch(`${TELEGRAM_API}/bot${token}/getWebhookInfo`);
+    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/getWebhookInfo`);
     const data = (await resp.json()) as {
       ok?: boolean;
       description?: string;
@@ -126,10 +174,7 @@ export async function getTelegramWebhookInfo(): Promise<
     }
     return { ok: true, info: data.result };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Ошибка Telegram API",
-    };
+    return { ok: false, error: formatTelegramFetchError(error) };
   }
 }
 
@@ -141,7 +186,7 @@ export async function setTelegramWebhook(
     return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
   }
   try {
-    const resp = await fetch(`${TELEGRAM_API}/bot${token}/setWebhook`, {
+    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/setWebhook`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -156,10 +201,7 @@ export async function setTelegramWebhook(
     }
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Ошибка Telegram API",
-    };
+    return { ok: false, error: formatTelegramFetchError(error) };
   }
 }
 

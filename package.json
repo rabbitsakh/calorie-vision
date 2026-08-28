@@ -10,6 +10,7 @@
     "lint": "next lint",
     "check:env": "tsx scripts/check-env.ts",
     "telegram:set-webhook": "tsx scripts/telegram-set-webhook.ts",
+    "telegram:set-webhook:curl": "bash scripts/telegram-set-webhook.sh",
     "test": "tsx --test src/lib/*.test.ts src/lib/ai/*.test.ts",
     "test:recognition-eval": "tsx --test src/lib/ai/recognition-eval.test.ts src/lib/ai/recognition-pipeline-eval.test.ts",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
