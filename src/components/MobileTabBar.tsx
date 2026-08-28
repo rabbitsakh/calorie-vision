@@ -61,7 +61,10 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-1">
         {APP_NAV.map((item) => {
           const active = pathname === item.href;
-          const href = date && item.href === "/ration" ? withDateQuery(item.href, date) : item.href;
+          const href =
+            date && (item.href === "/ration" || item.href === "/stats")
+              ? withDateQuery(item.href, date)
+              : item.href;
 
           return (
             <Link

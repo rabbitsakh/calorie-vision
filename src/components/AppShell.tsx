@@ -30,7 +30,7 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
-  const hideTitleOnMobile = compact && pathname === "/ration";
+  const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
 
   return (
     <>
