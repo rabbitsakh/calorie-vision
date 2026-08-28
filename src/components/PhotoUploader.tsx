@@ -2,13 +2,12 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
-import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
-import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
-import { consumeRecognizeSse } from "@/lib/recognize-sse";
-import { withBasePath } from "@/lib/paths";
-import { playScannerBeep } from "@/lib/scanner-beep";
-import { trackPhotoRecognizeGoal } from "@/lib/metrika-funnel";
-import type { FoodRecognitionResult } from "@/lib/food-types";
+import { enqueuePendingRecognition } from "@/lib/meal-draft-queue";
+import {
+  describeRecognizeError,
+  isNetworkFetchError,
+  recognizePhotoFile,
+} from "@/lib/recognize-photo-client";
 
 const MAX_FILE_SIZE_MB = 15;
 
@@ -20,7 +19,9 @@ const RECOGNITION_STAGES = [
 ] as const;
 
 type PhotoUploaderProps = {
+  selectedDate: string;
   onRecognized: (result: RecognitionResponse) => void;
+  onOfflineQueued?: () => void;
   disabled?: boolean;
   compact?: boolean;
   /** When true, pass context=restaurant to recognize APIs. */
@@ -78,12 +79,11 @@ function isLikelyImageFile(file: File): boolean {
   if (file.type.startsWith("image/")) {
     return true;
   }
-  // Some OS/HEIC pickers leave type empty — still accept by extension.
   return /\.(heic|heif|jpe?g|png|webp|gif|avif)$/i.test(file.name);
 }
 
 export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>(function PhotoUploader(
-  { onRecognized, disabled, compact, restaurantMode },
+  { selectedDate, onRecognized, onOfflineQueued, disabled, compact, restaurantMode },
   ref,
 ) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -94,6 +94,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [offlineQueued, setOfflineQueued] = useState(false);
 
   useImperativeHandle(ref, () => ({
     abort: () => {
@@ -129,9 +130,25 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     };
   }, []);
 
+  async function queueOfflinePhoto(file: File, barcode?: string) {
+    try {
+      await enqueuePendingRecognition(selectedDate, file, { restaurantMode, barcode });
+      setOfflineQueued(true);
+      setError(null);
+      onOfflineQueued?.();
+    } catch {
+      setError("Не удалось сохранить фото на устройстве. Проверьте место в памяти.");
+    }
+  }
+
   async function processFile(file: File) {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       setError(`Файл слишком большой (>${MAX_FILE_SIZE_MB} МБ). Выберите другое фото.`);
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      await queueOfflinePhoto(file);
       return;
     }
 
@@ -140,182 +157,44 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     setLoading(true);
     setStage(RECOGNITION_STAGES[0]);
     setError(null);
+    setOfflineQueued(false);
 
     const controller = new AbortController();
     abortRef.current = controller;
     let handedOffPreview = false;
 
     try {
-      // Same ZXing + BarcodeDetector path as the barcode tab.
-      const localBarcode = await decodeBarcodeFromImageFile(file);
-      if (localBarcode) {
-        playScannerBeep();
-      }
-      const uploadName =
-        file.name?.trim() ||
-        (file.type.includes("heic") || file.type.includes("heif") || /\.hei[cf]$/i.test(file.name)
-          ? "photo.heic"
-          : "photo.jpg");
-
-      const formData = new FormData();
-      formData.append("photo", file, uploadName);
-      if (localBarcode) {
-        formData.append("barcode", localBarcode);
-      }
-      if (restaurantMode) {
-        formData.append("context", "restaurant");
-      }
-
-      if (localBarcode && !controller.signal.aborted) {
-        const lookupResponse = await fetch(withBasePath("/api/food/lookup"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ barcode: localBarcode }),
-          signal: controller.signal,
-        });
-        const lookupData = await readApiJson<{
-          recognition?: FoodRecognitionResult;
-          imagePath?: string;
-          error?: string;
-        }>(lookupResponse);
-        if (lookupResponse.ok && lookupData.recognition) {
-          handedOffPreview = true;
-          trackPhotoRecognizeGoal();
-          onRecognized({
-            imagePath: lookupData.imagePath ?? "",
-            previewUrl: objectUrl,
-            recognition: lookupData.recognition,
-          });
-          return;
-        }
-      }
-
-      if (controller.signal.aborted) {
-        return;
-      }
-
-      let streamImagePath = "";
-      let usedStream = false;
-      let enrichingSnapshot: RecognitionResponse | null = null;
-      let enrichUiTimer: ReturnType<typeof setTimeout> | undefined;
-      const ENRICHING_UI_TIMEOUT_MS = 12_000;
-
-      try {
-        const streamResponse = await fetch(withBasePath("/api/recognize/stream"), {
-          method: "POST",
-          body: formData,
-          signal: controller.signal,
-        });
-
-        if (streamResponse.ok && streamResponse.headers.get("content-type")?.includes("text/event-stream")) {
-          usedStream = true;
-          const data = await consumeRecognizeSse(streamResponse, {
-            onImage: (imagePath) => {
-              streamImagePath = imagePath;
-            },
-            onVision: (recognition) => {
-              if (controller.signal.aborted) {
-                return;
-              }
-              handedOffPreview = true;
-              enrichingSnapshot = {
-                imagePath: streamImagePath,
-                previewUrl: objectUrl,
-                recognition,
-                enriching: true,
-              };
-              onRecognized(enrichingSnapshot);
-              if (enrichUiTimer) {
-                clearTimeout(enrichUiTimer);
-              }
-              enrichUiTimer = setTimeout(() => {
-                if (enrichingSnapshot?.enriching) {
-                  enrichingSnapshot = {
-                    ...enrichingSnapshot,
-                    enriching: false,
-                    recognition: {
-                      ...enrichingSnapshot.recognition,
-                      enrichmentTimedOut: true,
-                    },
-                  };
-                  onRecognized(enrichingSnapshot);
-                }
-              }, ENRICHING_UI_TIMEOUT_MS);
-            },
-          });
-
-          if (enrichUiTimer) {
-            clearTimeout(enrichUiTimer);
-          }
-
+      const data = await recognizePhotoFile(file, {
+        restaurantMode,
+        signal: controller.signal,
+        onVision: (snapshot) => {
           if (controller.signal.aborted) {
             return;
           }
-
           handedOffPreview = true;
-          trackPhotoRecognizeGoal();
           onRecognized({
-            ...data,
+            ...snapshot,
             previewUrl: objectUrl,
-            enriching: false,
           });
-          return;
-        }
-      } catch (streamErr) {
-        if (enrichUiTimer) {
-          clearTimeout(enrichUiTimer);
-        }
-        const snapshot = enrichingSnapshot as RecognitionResponse | null;
-        if (snapshot) {
-          onRecognized({
-            ...snapshot,
-            enriching: false,
-            recognition: {
-              ...snapshot.recognition,
-              enrichmentTimedOut: snapshot.recognition.enrichmentTimedOut ?? true,
-            },
-          });
-          enrichingSnapshot = {
-            ...snapshot,
-            enriching: false,
-            recognition: {
-              ...snapshot.recognition,
-              enrichmentTimedOut: snapshot.recognition.enrichmentTimedOut ?? true,
-            },
-          };
-        }
-        if ((streamErr as Error).name === "AbortError") {
-          return;
-        }
-        if (usedStream) {
-          throw streamErr;
-        }
-        // Fall back to single-shot /api/recognize below.
-      }
-
-      const response = await fetch(withBasePath("/api/recognize"), {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
+        },
       });
-      const data = await readApiJson<RecognitionResponse & { error?: string }>(response);
-      if (!response.ok) {
-        throw new Error(data.error ?? "Ошибка распознавания");
-      }
 
       if (controller.signal.aborted) {
         return;
       }
 
       handedOffPreview = true;
-      trackPhotoRecognizeGoal();
       onRecognized({
         ...data,
         previewUrl: objectUrl,
       });
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
-      setError(humanizeClientFetchError(err, "Не удалось загрузить фото"));
+      if (isNetworkFetchError(err)) {
+        await queueOfflinePhoto(file);
+        return;
+      }
+      setError(describeRecognizeError(err, "Не удалось загрузить фото"));
     } finally {
       if (!handedOffPreview) {
         URL.revokeObjectURL(objectUrl);
@@ -434,6 +313,12 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           />
         </div>
       )}
+
+      {offlineQueued ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          Нет сети — фото сохранено в офлайн-очередь. Распознаем и покажем карточку, когда интернет вернётся.
+        </p>
+      ) : null}
 
       {error ? (
         <div className="flex flex-wrap items-center gap-2">

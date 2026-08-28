@@ -209,7 +209,7 @@ function RationBody({
         <OnboardingOverlay />
         <MascotSaveReaction />
         <ProfileCompletionBanner />
-        <OfflineMealQueueBanner onFlushed={bump} />
+        <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         <NextStepBar

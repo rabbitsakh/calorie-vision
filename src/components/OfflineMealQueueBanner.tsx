@@ -3,46 +3,75 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   countFailedSaves,
+  countOfflineQueue,
+  countPendingRecognitions,
   listFailedSaves,
+  listPendingRecognitions,
+  pendingRecognitionToFile,
   removeMealDraft,
   subscribeMealDraftQueue,
+  upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
   onFlushed?: () => void;
+  /** Fired when a queued photo was recognized — parent can open confirm card. */
+  onRecognitionReady?: (selectedDate: string) => void;
 };
 
-/** Visible anywhere on ration when failed meal saves are queued offline. */
-export function OfflineMealQueueBanner({ onFlushed }: OfflineMealQueueBannerProps) {
-  const [queuedCount, setQueuedCount] = useState(0);
+/** Visible on ration when offline meal saves or photo recognition are queued. */
+export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: OfflineMealQueueBannerProps) {
+  const [failedCount, setFailedCount] = useState(0);
+  const [recognitionCount, setRecognitionCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
 
-  const refreshCount = useCallback(() => {
-    setQueuedCount(countFailedSaves());
+  const refreshCounts = useCallback(() => {
+    setFailedCount(countFailedSaves());
+    setRecognitionCount(countPendingRecognitions());
   }, []);
 
   useEffect(() => {
-    refreshCount();
-    return subscribeMealDraftQueue(refreshCount);
-  }, [refreshCount]);
+    refreshCounts();
+    return subscribeMealDraftQueue(refreshCounts);
+  }, [refreshCounts]);
 
-  useEffect(() => {
-    function onOnline() {
-      void flush();
-    }
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function flush() {
+  const flush = useCallback(async () => {
+    const pending = listPendingRecognitions();
     const failed = listFailedSaves();
-    if (failed.length === 0) return;
+    if (pending.length === 0 && failed.length === 0) return;
+
     setFlushing(true);
     let savedAny = false;
+    let recognizedAny = false;
+
     try {
+      for (const item of pending) {
+        try {
+          const file = await pendingRecognitionToFile(item);
+          if (!file) {
+            removeMealDraft(item.id);
+            continue;
+          }
+
+          const result = await recognizePhotoFile(file, {
+            restaurantMode: item.restaurantMode,
+            barcode: item.barcode,
+          });
+          upsertPendingConfirmDraft(item.selectedDate, result);
+          removeMealDraft(item.id);
+          recognizedAny = true;
+          onRecognitionReady?.(item.selectedDate);
+        } catch (err) {
+          if (isNetworkFetchError(err)) {
+            break;
+          }
+          removeMealDraft(item.id);
+        }
+      }
+
       for (const item of failed) {
         try {
           const response = await fetch(withBasePath("/api/meals"), {
@@ -59,15 +88,38 @@ export function OfflineMealQueueBanner({ onFlushed }: OfflineMealQueueBannerProp
       }
     } finally {
       setFlushing(false);
-      refreshCount();
-      if (savedAny) {
-        emitMascotReaction("save");
+      refreshCounts();
+      if (savedAny || recognizedAny) {
+        if (savedAny) {
+          emitMascotReaction("save");
+        }
         onFlushed?.();
       }
     }
-  }
+  }, [onFlushed, onRecognitionReady, refreshCounts]);
 
-  if (queuedCount <= 0) return null;
+  useEffect(() => {
+    function onOnline() {
+      void flush();
+    }
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flush]);
+
+  const totalCount = countOfflineQueue();
+  if (totalCount <= 0) return null;
+
+  const statusParts: string[] = [];
+  if (recognitionCount > 0) {
+    statusParts.push(
+      `${recognitionCount} ${recognitionCount === 1 ? "фото ждёт распознавания" : "фото ждут распознавания"}`,
+    );
+  }
+  if (failedCount > 0) {
+    statusParts.push(
+      `${failedCount} ${failedCount === 1 ? "запись ждёт отправки" : "записей ждут отправки"}`,
+    );
+  }
 
   return (
     <div
@@ -75,8 +127,7 @@ export function OfflineMealQueueBanner({ onFlushed }: OfflineMealQueueBannerProp
       role="status"
     >
       <p className="min-w-0 flex-1 font-medium">
-        Офлайн-очередь: {queuedCount}{" "}
-        {queuedCount === 1 ? "запись ждёт отправки" : "записей ждут отправки"}
+        Офлайн-очередь: {statusParts.join(" · ")}
         {flushing ? " — отправляем…" : ""}
       </p>
       <button

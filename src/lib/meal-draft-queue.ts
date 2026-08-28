@@ -1,5 +1,6 @@
 import type { RecognitionResponse } from "@/types";
 import type { SaveMealInput } from "@/lib/save-meal";
+import { deleteOfflinePhoto, loadOfflinePhoto, saveOfflinePhoto } from "@/lib/offline-photo-store";
 
 export const MEAL_DRAFT_QUEUE_KEY = "cv-meal-draft-queue-v1";
 
@@ -11,6 +12,17 @@ export type PendingConfirmDraft = {
   result: RecognitionResponse;
 };
 
+export type PendingRecognitionDraft = {
+  id: string;
+  kind: "pending-recognition";
+  createdAt: string;
+  selectedDate: string;
+  fileName: string;
+  mimeType: string;
+  restaurantMode?: boolean;
+  barcode?: string;
+};
+
 export type FailedSaveDraft = {
   id: string;
   kind: "failed-save";
@@ -19,7 +31,7 @@ export type FailedSaveDraft = {
   body: SaveMealInput | { entries: SaveMealInput[] };
 };
 
-export type MealDraftItem = PendingConfirmDraft | FailedSaveDraft;
+export type MealDraftItem = PendingConfirmDraft | PendingRecognitionDraft | FailedSaveDraft;
 
 type Listener = () => void;
 
@@ -55,6 +67,7 @@ function readQueue(): MealDraftItem[] {
         typeof item === "object" &&
         typeof (item as MealDraftItem).id === "string" &&
         ((item as MealDraftItem).kind === "pending-confirm" ||
+          (item as MealDraftItem).kind === "pending-recognition" ||
           (item as MealDraftItem).kind === "failed-save"),
     );
   } catch {
@@ -136,7 +149,56 @@ export function enqueueFailedSave(
 }
 
 export function removeMealDraft(id: string): void {
-  writeQueue(readQueue().filter((item) => item.id !== id));
+  const item = readQueue().find((draft) => draft.id === id);
+  writeQueue(readQueue().filter((draft) => draft.id !== id));
+  if (item?.kind === "pending-recognition") {
+    void deleteOfflinePhoto(item.id);
+  }
+}
+
+export async function enqueuePendingRecognition(
+  selectedDate: string,
+  file: File,
+  options?: { restaurantMode?: boolean; barcode?: string },
+): Promise<string> {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `recognition-${Date.now()}`;
+  await saveOfflinePhoto(id, file);
+  const items = readQueue();
+  items.push({
+    id,
+    kind: "pending-recognition",
+    createdAt: new Date().toISOString(),
+    selectedDate,
+    fileName: file.name || "photo.jpg",
+    mimeType: file.type || "image/jpeg",
+    restaurantMode: options?.restaurantMode,
+    barcode: options?.barcode,
+  });
+  writeQueue(items);
+  return id;
+}
+
+export function listPendingRecognitions(): PendingRecognitionDraft[] {
+  return readQueue().filter((item): item is PendingRecognitionDraft => item.kind === "pending-recognition");
+}
+
+export function countPendingRecognitions(): number {
+  return listPendingRecognitions().length;
+}
+
+export function countOfflineQueue(): number {
+  return countFailedSaves() + countPendingRecognitions();
+}
+
+export async function pendingRecognitionToFile(item: PendingRecognitionDraft): Promise<File | null> {
+  const blob = await loadOfflinePhoto(item.id);
+  if (!blob) {
+    return null;
+  }
+  return new File([blob], item.fileName, { type: item.mimeType || blob.type || "image/jpeg" });
 }
 
 export function countFailedSaves(): number {

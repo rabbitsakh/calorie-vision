@@ -3,10 +3,13 @@ import { test } from "node:test";
 import {
   clearPendingConfirmDraft,
   countFailedSaves,
+  countOfflineQueue,
+  countPendingRecognitions,
   enqueueFailedSave,
   getPendingConfirmDraft,
   listFailedSaves,
   listMealDrafts,
+  listPendingRecognitions,
   MEAL_DRAFT_QUEUE_KEY,
   removeMealDraft,
   subscribeMealDraftQueue,
@@ -61,6 +64,26 @@ test("enqueueFailedSave and removeMealDraft", () => {
   removeMealDraft(id);
   assert.equal(countFailedSaves(), 0);
   assert.equal(localStorage.getItem(MEAL_DRAFT_QUEUE_KEY), null);
+});
+
+test("pending-recognition metadata round-trip without IndexedDB", () => {
+  mockStorage();
+  const items = listMealDrafts();
+  items.push({
+    id: "photo-1",
+    kind: "pending-recognition",
+    createdAt: "2026-08-24T10:00:00.000Z",
+    selectedDate: "2026-08-24",
+    fileName: "lunch.jpg",
+    mimeType: "image/jpeg",
+    restaurantMode: true,
+  });
+  localStorage.setItem(MEAL_DRAFT_QUEUE_KEY, JSON.stringify(items));
+  assert.equal(countPendingRecognitions(), 1);
+  assert.equal(listPendingRecognitions()[0]?.fileName, "lunch.jpg");
+  assert.equal(countOfflineQueue(), 1);
+  removeMealDraft("photo-1");
+  assert.equal(countPendingRecognitions(), 0);
 });
 
 test("subscribeMealDraftQueue fires on queue writes", () => {

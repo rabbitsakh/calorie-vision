@@ -8,9 +8,12 @@ import type { FoodRecognitionResult } from "@/lib/food-types";
 import {
   clearPendingConfirmDraft,
   countFailedSaves,
+  countOfflineQueue,
+  countPendingRecognitions,
   getPendingConfirmDraft,
   listFailedSaves,
   removeMealDraft,
+  subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
@@ -104,8 +107,16 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
   }, []);
 
   const refreshQueueCount = useCallback(() => {
-    setQueuedCount(countFailedSaves());
+    setQueuedCount(countOfflineQueue());
   }, []);
+
+  const refreshDraftBanner = useCallback(() => {
+    if (pendingResult) {
+      return;
+    }
+    const draft = getPendingConfirmDraft(selectedDate);
+    setDraftBanner(draft?.result ?? null);
+  }, [pendingResult, selectedDate]);
 
   const openPending = useCallback((result: RecognitionResponse) => {
     setPendingResult(result);
@@ -170,16 +181,18 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
 
   useEffect(() => {
     refreshQueueCount();
-    const draft = getPendingConfirmDraft(selectedDate);
-    if (draft && !pendingResult) {
-      setDraftBanner(draft.result);
-    } else {
-      setDraftBanner(null);
-    }
+    refreshDraftBanner();
     void flushFailedSaves();
     // hydrate on date change only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
+
+  useEffect(() => {
+    return subscribeMealDraftQueue(() => {
+      refreshQueueCount();
+      refreshDraftBanner();
+    });
+  }, [refreshDraftBanner, refreshQueueCount]);
 
   useEffect(() => {
     function onOnline() {
@@ -370,7 +383,14 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
             <p>
               В очереди офлайн: {queuedCount}{" "}
-              {queuedCount === 1 ? "запись" : "записей"}
+              {queuedCount === 1 ? "элемент" : "элемента"}
+              {countPendingRecognitions() > 0 && countFailedSaves() > 0
+                ? ` (${countPendingRecognitions()} фото, ${countFailedSaves()} сохранений)`
+                : countPendingRecognitions() > 0
+                  ? " (фото)"
+                  : countFailedSaves() > 0
+                    ? " (сохранения)"
+                    : ""}
               {flushing ? " — отправляем…" : ""}
             </p>
             <button
@@ -428,9 +448,14 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
         {mode === "photo" ? (
           <PhotoUploader
             ref={photoAbortRef}
+            selectedDate={selectedDate}
             disabled={disabled}
             compact
             restaurantMode={restaurantMode}
+            onOfflineQueued={() => {
+              refreshQueueCount();
+              setSavedToast("Фото в офлайн-очереди — распознаем при появлении сети");
+            }}
             onRecognized={(result) => openPending(result)}
           />
         ) : null}

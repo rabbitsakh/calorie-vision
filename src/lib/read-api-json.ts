@@ -26,6 +26,25 @@ export function messageForApiHttpStatus(status: number, bodyText = ""): string {
   return "Не удалось обработать ответ сервера. Попробуйте ещё раз.";
 }
 
+export function isNetworkFetchError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.trim();
+  if (
+    /^load failed$/i.test(message) ||
+    /failed to fetch/i.test(message) ||
+    /networkerror/i.test(message) ||
+    /network request failed/i.test(message) ||
+    /internet connection appears to be offline/i.test(message)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export function humanizeClientFetchError(error: unknown, fallback: string): string {
   if (!(error instanceof Error) || !error.message.trim()) {
     return fallback;
@@ -42,15 +61,11 @@ export function humanizeClientFetchError(error: unknown, fallback: string): stri
   }
 
   // Safari/WebKit: "Load failed"; Chromium: "Failed to fetch"; Firefox: "NetworkError…"
-  if (
-    /^load failed$/i.test(message) ||
-    /failed to fetch/i.test(message) ||
-    /networkerror/i.test(message) ||
-    /network request failed/i.test(message) ||
-    /internet connection appears to be offline/i.test(message) ||
-    /the operation was aborted/i.test(message) ||
-    error.name === "AbortError"
-  ) {
+  if (error.name === "AbortError") {
+    return fallback;
+  }
+
+  if (isNetworkFetchError(error)) {
     return "Не удалось связаться с сервером. Проверьте интернет и попробуйте ещё раз.";
   }
 
