@@ -15,6 +15,7 @@ import {
 } from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { useTimezone } from "@/lib/use-timezone";
 import { OPEN_FOOD_CAMERA_EVENT, OPEN_FOOD_TEXT_EVENT } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -63,6 +64,7 @@ function MicIcon({ listening }: { listening?: boolean }) {
 }
 
 export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved, onPendingChange }: FoodAddPanelProps) {
+  const timezone = useTimezone();
   const [mode, setMode] = useState<AddMode>("photo");
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
@@ -290,6 +292,7 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       <ConfirmationCard
         result={pendingResult}
         selectedDate={selectedDate}
+        timezone={timezone}
         initialMealType={initialMealType}
         onCancel={() => {
           photoAbortRef.current?.abort();

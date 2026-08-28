@@ -157,6 +157,14 @@ function mealStripeClass(mealType: string | null | undefined): string {
   return "bg-slate-200";
 }
 
+function mealTypeBadgeClass(mealType: string | null | undefined): string {
+  if (mealType === "BREAKFAST") return "meal-type-badge-breakfast";
+  if (mealType === "LUNCH") return "meal-type-badge-lunch";
+  if (mealType === "DINNER") return "meal-type-badge-dinner";
+  if (mealType === "SNACK") return "meal-type-badge-snack";
+  return "meal-type-badge-default";
+}
+
 function GroupedMealCard({
   group,
   timezone,
@@ -564,8 +572,30 @@ function MealTypeInlineChips({
   disabled?: boolean;
   onChange: (mealType: string | null) => void;
 }) {
-  if (value) {
-    return null;
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [value]);
+
+  if (value && !expanded) {
+    const short =
+      MEAL_TYPE_SHORT_LABELS[value as keyof typeof MEAL_TYPE_SHORT_LABELS] ??
+      MEAL_TYPE_LABELS[value as keyof typeof MEAL_TYPE_LABELS] ??
+      value;
+    const full = MEAL_TYPE_LABELS[value as keyof typeof MEAL_TYPE_LABELS] ?? short;
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        className={`meal-type-badge ${mealTypeBadgeClass(value)}`}
+        title={`${full} — нажмите, чтобы сменить`}
+        aria-label={`${full}, сменить приём пищи`}
+        onClick={() => setExpanded(true)}
+      >
+        {short}
+      </button>
+    );
   }
 
   return (
@@ -581,8 +611,11 @@ function MealTypeInlineChips({
             title={full}
             aria-label={full}
             aria-pressed={active}
-            className={`meal-type-chip meal-type-chip-idle`}
-            onClick={() => onChange(type)}
+            className={`meal-type-chip ${active ? "meal-type-chip-active" : "meal-type-chip-idle"}`}
+            onClick={() => {
+              onChange(type);
+              setExpanded(false);
+            }}
           >
             {label}
           </button>
@@ -1219,6 +1252,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }
 
   const [copying, setCopying] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
 
   useEffect(() => {
@@ -1252,6 +1286,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   async function handleCopyYesterday() {
     setCopying(true);
+    setCopyError(null);
     try {
       const fromDate = shiftDateKey(selectedDate, -1);
       const resp = await fetch(withBasePath("/api/meals/copy"), {
@@ -1264,8 +1299,10 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         await reloadDayAfterMutation(false);
         onChanged?.();
       } else {
-        alert(data.error ?? "Не удалось скопировать");
+        setCopyError(data.error ?? "Не удалось скопировать");
       }
+    } catch {
+      setCopyError("Не удалось скопировать — проверьте сеть и попробуйте снова");
     } finally {
       setCopying(false);
     }
@@ -1451,14 +1488,21 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               </button>
             ) : null}
             {yesterdayHasMeals ? (
-              <button
-                type="button"
-                className="btn btn-secondary text-sm"
-                disabled={copying}
-                onClick={() => void handleCopyYesterday()}
-              >
-                {copying ? "Копируем..." : "Повторить вчерашний день"}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn btn-secondary text-sm"
+                  disabled={copying}
+                  onClick={() => void handleCopyYesterday()}
+                >
+                  {copying ? "Копируем..." : "Повторить вчерашний день"}
+                </button>
+                {copyError ? (
+                  <p className="max-w-xs text-sm text-red-600" role="alert">
+                    {copyError}
+                  </p>
+                ) : null}
+              </>
             ) : null}
           </div>
         ) : null}

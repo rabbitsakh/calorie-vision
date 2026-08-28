@@ -483,6 +483,47 @@ textarea {
   color: #fff;
 }
 
+.meal-type-badge {
+  align-self: flex-start;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 650;
+  line-height: 1;
+  margin-top: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  transition: opacity 0.12s ease;
+}
+
+.meal-type-badge:disabled {
+  opacity: 0.5;
+}
+
+.meal-type-badge-breakfast {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.meal-type-badge-lunch {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+.meal-type-badge-dinner {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.meal-type-badge-snack {
+  background: #ffe4e6;
+  color: #9f1239;
+}
+
+.meal-type-badge-default {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .meal-card-actions {
   display: flex;
   flex-direction: column;
