@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.1",
+    "date": "2026-08-28",
+    "summary": "remove: Telegram chat bot (keep login)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "remove: Telegram chat bot (keep login)"
+      }
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-08-28",
     "summary": "fix: 502 — node:dns in client bundle broke production build",
