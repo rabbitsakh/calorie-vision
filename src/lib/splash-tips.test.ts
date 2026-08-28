@@ -5,8 +5,6 @@ import {
   dayPartFromHour,
   greetingForDayPart,
   pickSplashTip,
-  splashMascotPose,
-  splashStatusLabel,
   SPLASH_MIN_VISIBLE_MS,
   SPLASH_TIPS,
 } from "./splash-tips.ts";

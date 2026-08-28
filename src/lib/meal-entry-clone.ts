@@ -3,8 +3,8 @@ import type { MealEntry, Prisma } from "@prisma/client";
 /** Fields copied when duplicating or copying a meal (new id/timestamps, no group). */
 export function mealEntryCloneData(
   source: MealEntry,
-  overrides?: Partial<Prisma.MealEntryCreateInput>,
-): Prisma.MealEntryCreateInput {
+  overrides?: Partial<Prisma.MealEntryCreateManyInput>,
+): Prisma.MealEntryCreateManyInput {
   return {
     userId: source.userId,
     date: source.date,

@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.3",
+    "date": "2026-08-28",
+    "summary": "feat(ux): diary trust #3 — inline time edit and save feedback",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): diary trust #3 — inline time edit and save feedback"
+      }
+    ]
+  },
+  {
     "version": "1.7.2",
     "date": "2026-08-28",
     "summary": "feat(platform): Wave A — CI Node 24, health probe, client import guard",
