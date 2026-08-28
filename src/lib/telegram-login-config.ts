@@ -1,4 +1,4 @@
-/** Client-safe Telegram bot display config (no Node.js built-ins). */
+/** Telegram Login Widget config (BotFather bot — not chat bot / webhook). */
 
 export const DEFAULT_TELEGRAM_BOT_USERNAME = "CalorieVisionAppBot";
 
@@ -7,6 +7,7 @@ export function getTelegramBotUsername(): string {
   return name || DEFAULT_TELEGRAM_BOT_USERNAME;
 }
 
-export function telegramBotDeepLink(): string {
-  return `https://t.me/${getTelegramBotUsername()}`;
+export function getTelegramBotToken(): string | null {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  return token || null;
 }

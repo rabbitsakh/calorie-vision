@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-08-28",
+    "summary": "fix: 502 — node:dns in client bundle broke production build",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: 502 — node:dns in client bundle broke production build"
+      }
+    ]
+  },
+  {
     "version": "1.6.19",
     "date": "2026-08-28",
     "summary": "fix(telegram): curl --ipv4 fallback for webhook setup on VPS",
