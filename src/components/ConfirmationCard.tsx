@@ -5,6 +5,7 @@ import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type Nutrition
 import type { RecognitionResponse } from "@/types";
 import { MEAL_TYPE_LABELS } from "@/types";
 import { inferMealTypeFromHour } from "@/lib/meal-type";
+import { dateKeyAndTimeToIso, toTimeInputValue } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -60,6 +61,7 @@ type DishDraft = {
 type ConfirmationCardProps = {
   result: RecognitionResponse;
   selectedDate: string;
+  timezone?: string | null;
   /** Prefill from push deep link (`?meal=BREAKFAST`). */
   initialMealType?: string;
   onCancel: () => void;
@@ -312,6 +314,7 @@ function portionChipOptions(
 export function ConfirmationCard({
   result,
   selectedDate,
+  timezone,
   initialMealType = "",
   onCancel,
   onSaved,
@@ -325,6 +328,7 @@ export function ConfirmationCard({
       ? initialMealType
       : inferMealTypeFromHour(new Date().getHours()),
   );
+  const [eatenTime, setEatenTime] = useState(() => toTimeInputValue(new Date(), timezone));
   const [saving, setSaving] = useState(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
@@ -625,6 +629,11 @@ export function ConfirmationCard({
       parsedFiber !== origFiber ||
       parsedSugar !== origSugar;
 
+    const eatenAt = dateKeyAndTimeToIso(selectedDate, eatenTime, timezone);
+    if (!eatenAt) {
+      throw new Error("Укажите корректное время приёма");
+    }
+
     return {
       date: selectedDate,
       dishName: dish.dishName.trim(),
@@ -639,6 +648,7 @@ export function ConfirmationCard({
       imagePath: imagePath || undefined,
       mealGroupId,
       mealType: mealType || undefined,
+      eatenAt,
       wasCorrected,
       originalDish: decodeHtmlEntities(dish.original.dishName),
       originalCalories: dish.original.calories,
@@ -944,6 +954,21 @@ export function ConfirmationCard({
               </Chip>
             ))}
           </div>
+        </div>
+
+        <div className="field max-w-[12rem]">
+          <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Время приёма
+          </label>
+          <input
+            type="time"
+            className="mt-1.5"
+            value={eatenTime}
+            disabled={saving}
+            onChange={(e) => setEatenTime(e.target.value)}
+            required
+          />
+          <p className="mt-1 text-xs text-slate-500">Для статистики по часам и бюджета приёмов</p>
         </div>
 
         <div className="h-1 shrink-0" aria-hidden />

@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { parseEatenAt } from "@/lib/eaten-at";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { rememberFoodCorrection } from "@/lib/food-corrections-store";
 import { requireDateKey } from "@/lib/dates";
@@ -28,6 +29,8 @@ export type SaveMealInput = {
   recognitionSource?: string;
   photoKind?: string;
   barcode?: string;
+  /** ISO instant — when the meal was eaten (defaults to save time if omitted). */
+  eatenAt?: string;
 };
 
 function mealTypeValue(value: string | undefined): "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" | null {
@@ -41,6 +44,9 @@ export function validateSaveMealInput(body: SaveMealInput): { date: string; erro
   if (!date || !body.dishName?.trim() || !Number.isFinite(body.calories)) {
     return { date: "", error: "Укажите дату, блюдо и калорийность" };
   }
+  if (body.eatenAt !== undefined && parseEatenAt(body.eatenAt) === undefined) {
+    return { date: "", error: "Некорректное время приёма пищи" };
+  }
   return { date };
 }
 
@@ -49,6 +55,8 @@ export function buildMealCreateData(
   body: SaveMealInput,
   date: string,
 ): Prisma.MealEntryCreateInput {
+  const eatenAt = body.eatenAt !== undefined ? parseEatenAt(body.eatenAt) : undefined;
+
   return {
     user: { connect: { id: userId } },
     date,
@@ -70,6 +78,7 @@ export function buildMealCreateData(
     recognitionSource: body.recognitionSource?.trim().slice(0, 64) || null,
     photoKind: body.photoKind?.trim().slice(0, 32) || null,
     barcode: body.barcode?.trim().slice(0, 32) || null,
+    ...(eatenAt !== undefined && eatenAt !== null ? { eatenAt } : {}),
   };
 }
 

@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { parseEatenAt } from "@/lib/eaten-at";
 import { prisma } from "@/lib/prisma";
-
-function parseEatenAt(value: unknown): Date | null | undefined {
-  if (value === undefined) return undefined;
-  if (value === null || value === "") return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  // Accept HH:MM for same calendar day relative to an existing date — callers send ISO.
-  const parsed = new Date(trimmed);
-  if (Number.isNaN(parsed.getTime())) return undefined;
-  return parsed;
-}
 
 export async function PATCH(
   request: NextRequest,
