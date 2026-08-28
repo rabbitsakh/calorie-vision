@@ -34,6 +34,13 @@ import {
   type PendingDeleteSlot,
 } from "@/lib/diary-delete-slots";
 import { pluralDays } from "@/lib/russian-text";
+import {
+  diaryHasMealTypes,
+  mealTypeForListItem,
+  organizeDiaryByMealType,
+  sectionLabel,
+  type MealTypeSection,
+} from "@/lib/diary-meal-sections";
 
 type EditPatch = {
   dishName: string;
@@ -621,6 +628,17 @@ function MealTypeInlineChips({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function MealSectionHeader({ section }: { section: MealTypeSection }) {
+  return (
+    <div className="flex items-center gap-2 pt-0.5">
+      <span className={`h-3 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`} aria-hidden />
+      <h3 className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
+        {sectionLabel(section)}
+      </h3>
     </div>
   );
 }
@@ -1310,9 +1328,14 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   const displayDate = formatDateWords(selectedDate);
   const listItems = useMemo(() => groupMealEntries(entries), [entries]);
+  const organizedItems = useMemo(
+    () => organizeDiaryByMealType(listItems),
+    [listItems],
+  );
+  const showMealSections = useMemo(() => diaryHasMealTypes(listItems), [listItems]);
   const displayRows = useMemo(
-    () => buildDiaryDisplayRows(listItems, pendingDeletes),
-    [listItems, pendingDeletes],
+    () => buildDiaryDisplayRows(organizedItems, pendingDeletes),
+    [organizedItems, pendingDeletes],
   );
 
   const confirmDeleteRef = useRef(confirmDelete);
@@ -1508,43 +1531,54 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         ) : null}
 
         <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
-          {displayRows.map((row) => {
-            if (row.kind === "undo") {
-              const slotKey = row.pending.key;
-              return (
-                <UndoToast
-                  key={slotKey}
-                  message={row.pending.label}
-                  onUndo={() => undoDelete(slotKey)}
-                />
-              );
-            }
+          {(() => {
+            let lastSection: MealTypeSection | null = null;
+            return displayRows.map((row) => {
+              if (row.kind === "undo") {
+                const slotKey = row.pending.key;
+                return (
+                  <UndoToast
+                    key={slotKey}
+                    message={row.pending.label}
+                    onUndo={() => undoDelete(slotKey)}
+                  />
+                );
+              }
 
-            const item = row.item;
-            return (
-              <MealListRow
-                key={mealListItemKey(item)}
-                item={item}
-                timezone={timezone}
-                onDelete={(id) => {
-                  const label = item.kind === "single"
-                    ? decodeHtmlEntities(item.entry.dishName)
-                    : decodeHtmlEntities(entries.find((e) => e.id === id)?.dishName ?? "блюдо");
-                  requestDelete([id], label);
-                }}
-                onEdit={handleEdit}
-                onMealTypeChange={handleMealTypeChange}
-                onDuplicate={(id) => handleDuplicate(id)}
-                onImageChange={handleImageChange}
-                onDeleteGroup={(ids) => {
-                  const label = item.kind === "group"
-                    ? `${item.entries.length} блюда с одного фото`
-                    : "блюда";
-                  requestDelete(ids, label);
-                }}
-              />
-            );
-          })}
+              const item = row.item;
+              const section = showMealSections ? mealTypeForListItem(item) : null;
+              const showHeader = section != null && section !== lastSection;
+              if (showHeader) {
+                lastSection = section;
+              }
+
+              return (
+                <div key={mealListItemKey(item)} className="flex flex-col gap-2">
+                  {showHeader ? <MealSectionHeader section={section} /> : null}
+                  <MealListRow
+                    item={item}
+                    timezone={timezone}
+                    onDelete={(id) => {
+                      const label = item.kind === "single"
+                        ? decodeHtmlEntities(item.entry.dishName)
+                        : decodeHtmlEntities(entries.find((e) => e.id === id)?.dishName ?? "блюдо");
+                      requestDelete([id], label);
+                    }}
+                    onEdit={handleEdit}
+                    onMealTypeChange={handleMealTypeChange}
+                    onDuplicate={(id) => handleDuplicate(id)}
+                    onImageChange={handleImageChange}
+                    onDeleteGroup={(ids) => {
+                      const label = item.kind === "group"
+                        ? `${item.entries.length} блюда с одного фото`
+                        : "блюда";
+                      requestDelete(ids, label);
+                    }}
+                  />
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
     </section>

@@ -114,6 +114,7 @@ export function QuickAddAgain({
             selectedDate={selectedDate}
             totalCalories={totalCalories}
             embedded
+            onSaved={handleSaved}
           />
         ) : null}
       </div>

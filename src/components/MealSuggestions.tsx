@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { useTimezone } from "@/lib/use-timezone";
 
 const PANEL_ID = "suggestions";
 
@@ -69,13 +72,18 @@ export function MealSuggestions({
   selectedDate,
   totalCalories,
   embedded = false,
+  onSaved,
 }: {
   selectedDate: string;
   totalCalories: number;
   embedded?: boolean;
+  onSaved?: () => void;
 }) {
+  const timezone = useTimezone();
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [addingIndex, setAddingIndex] = useState<number | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [hidden, setHidden] = useState(false);
 
@@ -87,12 +95,47 @@ export function MealSuggestions({
 
   async function load() {
     setLoading(true);
+    setAddError(null);
     try {
       const resp = await fetch(withBasePath(`/api/suggestions?date=${selectedDate}`));
       const json = (await resp.json()) as ApiResponse;
       setData(json);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function addSuggestion(suggestion: Suggestion, index: number) {
+    setAddingIndex(index);
+    setAddError(null);
+    try {
+      const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+      const resp = await fetch(withBasePath("/api/meals"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          dishName: suggestion.name,
+          calories: suggestion.calories,
+          protein: suggestion.protein || undefined,
+          fat: suggestion.fat || undefined,
+          carbs: suggestion.carbs || undefined,
+          portionGrams: suggestion.portionGrams || undefined,
+          mealType,
+          eatenAt,
+        }),
+      });
+      const payload = (await resp.json()) as { error?: string };
+      if (!resp.ok) {
+        throw new Error(payload.error ?? "Не удалось добавить");
+      }
+      trackFirstMealSaveGoal();
+      trackMealSavedGoal();
+      onSaved?.();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Не удалось добавить");
+    } finally {
+      setAddingIndex(null);
     }
   }
 
@@ -213,10 +256,17 @@ export function MealSuggestions({
       ) : null}
 
       {/* Suggestions */}
+      {addError ? (
+        <p className="px-4 pt-2 text-sm text-red-600 md:px-6" role="alert">
+          {addError}
+        </p>
+      ) : null}
+
       {data?.suggestions && data.suggestions.length > 0 && !loading ? (
         <ul className="divide-y divide-slate-100 px-4 py-2 md:px-6">
           {data.suggestions.map((s, i) => {
             const cat = CATEGORY_LABELS[s.category] ?? CATEGORY_LABELS.balanced;
+            const busy = addingIndex === i;
             return (
               <li key={i} className="py-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -229,9 +279,19 @@ export function MealSuggestions({
                     </div>
                     {s.why ? <p className="mt-1 text-xs text-slate-500">{s.why}</p> : null}
                   </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-bold text-teal-700">{s.calories} ккал</p>
-                    {s.portionGrams ? <p className="text-xs text-slate-400">{s.portionGrams} г</p> : null}
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-teal-700">{s.calories} ккал</p>
+                      {s.portionGrams ? <p className="text-xs text-slate-400">{s.portionGrams} г</p> : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                      disabled={busy || addingIndex != null}
+                      onClick={() => void addSuggestion(s, i)}
+                    >
+                      {busy ? "Добавляем…" : "+ В дневник"}
+                    </button>
                   </div>
                 </div>
                 {(s.protein || s.fat || s.carbs) ? (
