@@ -29,7 +29,7 @@ const MEAL_TYPE_LABELS: Record<MealType, string> = {
   SNACK: "перекус",
 };
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) return response;

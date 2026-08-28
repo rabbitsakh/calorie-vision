@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
+import { mealEntryCloneData } from "@/lib/meal-entry-clone";
 import { prisma } from "@/lib/prisma";
 
 const MEAL_TYPES = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as const;
@@ -56,11 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     await prisma.mealEntry.createMany({
-      data: source.map(({ id: _id, createdAt: _c, updatedAt: _u, ...rest }) => ({
-        ...rest,
-        date: toDate,
-        mealGroupId: null, // new group per copy
-      })),
+      data: source.map((row) => mealEntryCloneData(row, { date: toDate })),
     });
 
     return NextResponse.json({ copied: source.length, mealType: mealType ?? null });
