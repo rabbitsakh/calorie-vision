@@ -4,13 +4,13 @@ import {
   DEFAULT_TELEGRAM_BOT_USERNAME,
   buildTelegramWebhookUrl,
   formatTelegramFetchError,
-  getTelegramBotUsername,
   parseTelegramCommand,
   telegramBotDeepLink,
   telegramRemindHelpText,
   telegramStartReplyText,
   verifyTelegramWebhookSecret,
 } from "./telegram-bot.ts";
+import { getTelegramBotUsername } from "./telegram-bot-config.ts";
 
 test("telegramStartReplyText mentions ration, commands and bot username", () => {
   const text = telegramStartReplyText();

@@ -1,5 +1,346 @@
 [
   {
+    "version": "1.6.19",
+    "date": "2026-08-28",
+    "summary": "fix(telegram): curl --ipv4 fallback for webhook setup on VPS",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(telegram): curl --ipv4 fallback for webhook setup on VPS"
+      }
+    ]
+  },
+  {
+    "version": "1.6.18",
+    "date": "2026-08-28",
+    "summary": "fix(telegram): @CalorieVisionAppBot + webhook on deploy",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(telegram): @CalorieVisionAppBot + webhook on deploy"
+      }
+    ]
+  },
+  {
+    "version": "1.6.17",
+    "date": "2026-08-28",
+    "summary": "feat(ux): diary inline-edit portion recalc",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): diary inline-edit portion recalc"
+      }
+    ]
+  },
+  {
+    "version": "1.6.16",
+    "date": "2026-08-28",
+    "summary": "feat(ux): plan link, recipe to diary, offline queue banner",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): plan link, recipe to diary, offline queue banner"
+      }
+    ]
+  },
+  {
+    "version": "1.6.15",
+    "date": "2026-08-28",
+    "summary": "fix: diary-meal-sections MealTypeSection build type error",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: diary-meal-sections MealTypeSection build type error"
+      }
+    ]
+  },
+  {
+    "version": "1.6.14",
+    "date": "2026-08-28",
+    "summary": "feat(ux): quick-log — meal sections, one-tap AI/favorites add",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): quick-log — meal sections, one-tap AI/favorites add"
+      }
+    ]
+  },
+  {
+    "version": "1.6.13",
+    "date": "2026-08-28",
+    "summary": "feat(ux): stats-trust — timezone today and date picker",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): stats-trust — timezone today and date picker"
+      }
+    ]
+  },
+  {
+    "version": "1.6.12",
+    "date": "2026-08-28",
+    "summary": "feat(ux): diary-trust-2 — meal type badge, confirm eatenAt, copy error",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): diary-trust-2 — meal type badge, confirm eatenAt, copy error"
+      }
+    ]
+  },
+  {
+    "version": "1.6.11",
+    "date": "2026-08-28",
+    "summary": "feat(ux): diary-trust — compact chips, single cheer, group eatenAt",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): diary-trust — compact chips, single cheer, group eatenAt"
+      }
+    ]
+  },
+  {
+    "version": "1.6.10",
+    "date": "2026-08-28",
+    "summary": "fix(ux): убрать дубль «+250 мл» над карточкой воды",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ux): убрать дубль «+250 мл» над карточкой воды"
+      }
+    ]
+  },
+  {
+    "version": "1.6.9",
+    "date": "2026-08-28",
+    "summary": "fix(ux): подпись «Праздничный запас» у переключателя",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ux): подпись «Праздничный запас» у переключателя"
+      }
+    ]
+  },
+  {
+    "version": "1.6.8",
+    "date": "2026-08-28",
+    "summary": "feat(ux): P3 — declutter рациона, текст CTA, stats timezone",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): P3 — declutter рациона, текст CTA, stats timezone"
+      }
+    ]
+  },
+  {
+    "version": "1.6.7",
+    "date": "2026-08-27",
+    "summary": "feat(ux): вода наверху рациона — компактные +мл без скролла",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): вода наверху рациона — компактные +мл без скролла"
+      }
+    ]
+  },
+  {
+    "version": "1.6.6",
+    "date": "2026-08-27",
+    "summary": "fix(mascot): save toast — маскот должен успевать прогрузиться",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(mascot): save toast — маскот должен успевать прогрузиться"
+      }
+    ]
+  },
+  {
+    "version": "1.6.5",
+    "date": "2026-08-27",
+    "summary": "feat(ux): P2 — weight first-run, DayHero skeleton, weekly profile nudge",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): P2 — weight first-run, DayHero skeleton, weekly profile nudge"
+      }
+    ]
+  },
+  {
+    "version": "1.6.4",
+    "date": "2026-08-27",
+    "summary": "feat(ux): P1 — ration hierarchy, meal defaults, profile sections, stats eatenAt",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): P1 — ration hierarchy, meal defaults, profile sections, stats eatenAt"
+      }
+    ]
+  },
+  {
+    "version": "1.6.3",
+    "date": "2026-08-27",
+    "summary": "feat(ux): P0 — confirm declutter, retry, iOS push RU",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): P0 — confirm declutter, retry, iOS push RU"
+      }
+    ]
+  },
+  {
+    "version": "1.6.2",
+    "date": "2026-08-27",
+    "summary": "feat(motivation): волна 4 — FAB в камеру, компактный hero, тише tips",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(motivation): волна 4 — FAB в камеру, компактный hero, тише tips"
+      }
+    ]
+  },
+  {
+    "version": "1.6.1",
+    "date": "2026-08-27",
+    "summary": "feat(motivation): волна 3 — мягкий тон, Monday wrap, soft mode",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(motivation): волна 3 — мягкий тон, Monday wrap, soft mode"
+      }
+    ]
+  },
+  {
+    "version": "1.6.0",
+    "date": "2026-08-27",
+    "summary": "feat(motivation): волна 2 — splash 3с, declutter, save cheer",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(motivation): волна 2 — splash 3с, declutter, save cheer"
+      }
+    ]
+  },
+  {
+    "version": "1.5.19",
+    "date": "2026-08-27",
+    "summary": "feat(motivation): волна 1 — персональный splash и DayHero",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(motivation): волна 1 — персональный splash и DayHero"
+      }
+    ]
+  },
+  {
+    "version": "1.5.18",
+    "date": "2026-08-27",
+    "summary": "feat(diary): время приёма, дубликат, порции, настройки push",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(diary): время приёма, дубликат, порции, настройки push"
+      }
+    ]
+  },
+  {
+    "version": "1.5.17",
+    "date": "2026-08-27",
+    "summary": "fix(diary): зависающие undo-toast и удаление блюд",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(diary): зависающие undo-toast и удаление блюд"
+      }
+    ]
+  },
+  {
+    "version": "1.5.16",
+    "date": "2026-08-27",
+    "summary": "fix(diary): удалённые блюда не возвращаются (v2)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(diary): удалённые блюда не возвращаются (v2)"
+      }
+    ]
+  },
+  {
+    "version": "1.5.15",
+    "date": "2026-08-27",
+    "summary": "fix(deploy): не зависать на prisma generate после db push",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): не зависать на prisma generate после db push"
+      }
+    ]
+  },
+  {
+    "version": "1.5.14",
+    "date": "2026-08-27",
+    "summary": "fix(diary): удалённые блюда не возвращаются после refresh",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(diary): удалённые блюда не возвращаются после refresh"
+      }
+    ]
+  },
+  {
+    "version": "1.5.13",
+    "date": "2026-08-27",
+    "summary": "fix: нижнее меню не уезжает со скроллом",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: нижнее меню не уезжает со скроллом"
+      }
+    ]
+  },
+  {
+    "version": "1.5.12",
+    "date": "2026-08-27",
+    "summary": "fix(splash): держать заставку ~2 секунды",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(splash): держать заставку ~2 секунды"
+      }
+    ]
+  },
+  {
+    "version": "1.5.11",
+    "date": "2026-08-26",
+    "summary": "chore: remove unused SVG mascot renderer",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore: remove unused SVG mascot renderer"
+      }
+    ]
+  },
+  {
+    "version": "1.5.10",
+    "date": "2026-08-26",
+    "summary": "feat: заставка при загрузке приложения и рациона",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: заставка при загрузке приложения и рациона"
+      }
+    ]
+  },
+  {
+    "version": "1.5.9",
+    "date": "2026-08-26",
+    "summary": "fix: batch — цель ккал, стат., календарь, celebration fullscreen",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: batch — цель ккал, стат., календарь, celebration fullscreen"
+      }
+    ]
+  },
+  {
     "version": "1.5.8",
     "date": "2026-08-26",
     "summary": "fix(deploy): cut Next build peak RAM to stop SIGKILL OOM",

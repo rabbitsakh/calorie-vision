@@ -17,7 +17,7 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
-import { getTelegramBotUsername, telegramBotDeepLink } from "@/lib/telegram-bot";
+import { getTelegramBotUsername, telegramBotDeepLink } from "@/lib/telegram-bot-config";
 
 type ServerPushStatus = {
   subscribed: boolean;
