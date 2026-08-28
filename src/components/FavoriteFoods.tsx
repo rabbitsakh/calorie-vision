@@ -280,10 +280,15 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       {recipeOpen ? (
         <div className="mt-3">
           <RecipeBuilder
+            selectedDate={selectedDate}
             embedded
             onSaved={() => {
               setRecipeOpen(false);
               void load();
+            }}
+            onLoggedToDiary={() => {
+              setRecipeOpen(false);
+              onSaved();
             }}
           />
         </div>

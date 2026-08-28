@@ -17,6 +17,7 @@ import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
+import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
@@ -208,6 +209,7 @@ function RationBody({
         <OnboardingOverlay />
         <MascotSaveReaction />
         <ProfileCompletionBanner />
+        <OfflineMealQueueBanner onFlushed={bump} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         <NextStepBar

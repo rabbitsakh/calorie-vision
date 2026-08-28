@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
 import { scaleRuNutritionToGrams } from "@/lib/ru-nutrition-lookup";
+import { useTimezone } from "@/lib/use-timezone";
 
 type Ingredient = {
   id: string;
@@ -15,7 +18,9 @@ type Ingredient = {
 };
 
 type RecipeBuilderProps = {
+  selectedDate: string;
   onSaved: () => void;
+  onLoggedToDiary?: () => void;
   embedded?: boolean;
 };
 
@@ -40,10 +45,17 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps) {
+export function RecipeBuilder({
+  selectedDate,
+  onSaved,
+  onLoggedToDiary,
+  embedded = false,
+}: RecipeBuilderProps) {
+  const timezone = useTimezone();
   const [recipeName, setRecipeName] = useState("");
   const [ingredients, setIngredients] = useState<Ingredient[]>([emptyIngredient()]);
   const [saving, setSaving] = useState(false);
+  const [logging, setLogging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
 
@@ -79,21 +91,25 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
     });
   }
 
+  function validateRecipe(): string | null {
+    const name = recipeName.trim();
+    if (!name) return "Укажите название блюда";
+    if (totals.calories <= 0) return "Добавьте ингредиенты с калориями";
+    return null;
+  }
+
   async function saveAsCustomFood() {
     setError(null);
     setOkMsg(null);
-    const name = recipeName.trim();
-    if (!name) {
-      setError("Укажите название блюда");
-      return;
-    }
-    if (totals.calories <= 0) {
-      setError("Добавьте ингредиенты с калориями");
+    const validationError = validateRecipe();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setSaving(true);
     try {
+      const name = recipeName.trim();
       const resp = await fetch(withBasePath("/api/custom-foods"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,6 +134,51 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function addToDiary() {
+    setError(null);
+    setOkMsg(null);
+    const validationError = validateRecipe();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setLogging(true);
+    try {
+      const name = recipeName.trim();
+      const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+      const resp = await fetch(withBasePath("/api/meals"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          dishName: name,
+          calories: Math.round(totals.calories),
+          protein: totals.protein > 0 ? round1(totals.protein) : null,
+          fat: totals.fat > 0 ? round1(totals.fat) : null,
+          carbs: totals.carbs > 0 ? round1(totals.carbs) : null,
+          portionGrams: totals.grams > 0 ? Math.round(totals.grams) : null,
+          mealType,
+          eatenAt,
+        }),
+      });
+      if (!resp.ok) {
+        const data = (await resp.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "Не удалось добавить в дневник");
+      }
+      setOkMsg("Добавлено в дневник");
+      setRecipeName("");
+      setIngredients([emptyIngredient()]);
+      trackFirstMealSaveGoal();
+      trackMealSavedGoal();
+      (onLoggedToDiary ?? onSaved)();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка добавления");
+    } finally {
+      setLogging(false);
     }
   }
 
@@ -208,9 +269,24 @@ export function RecipeBuilder({ onSaved, embedded = false }: RecipeBuilderProps)
           : ""}
       </div>
 
-      <button type="button" className="btn btn-primary mt-3 text-sm" disabled={saving} onClick={() => void saveAsCustomFood()}>
-        {saving ? "Сохраняем…" : "Сохранить как мой продукт"}
-      </button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn btn-primary text-sm"
+          disabled={saving || logging}
+          onClick={() => void addToDiary()}
+        >
+          {logging ? "Добавляем…" : "Добавить в дневник"}
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary text-sm"
+          disabled={saving || logging}
+          onClick={() => void saveAsCustomFood()}
+        >
+          {saving ? "Сохраняем…" : "В избранное"}
+        </button>
+      </div>
 
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       {okMsg ? <p className="mt-2 text-sm text-teal-800">{okMsg}</p> : null}

@@ -9,6 +9,7 @@ import {
   listMealDrafts,
   MEAL_DRAFT_QUEUE_KEY,
   removeMealDraft,
+  subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
 } from "./meal-draft-queue.ts";
 
@@ -60,4 +61,19 @@ test("enqueueFailedSave and removeMealDraft", () => {
   removeMealDraft(id);
   assert.equal(countFailedSaves(), 0);
   assert.equal(localStorage.getItem(MEAL_DRAFT_QUEUE_KEY), null);
+});
+
+test("subscribeMealDraftQueue fires on queue writes", () => {
+  mockStorage();
+  let calls = 0;
+  const unsub = subscribeMealDraftQueue(() => {
+    calls += 1;
+  });
+  enqueueFailedSave("2026-08-24", {
+    date: "2026-08-24",
+    dishName: "Каша",
+    calories: 300,
+  });
+  assert.equal(calls, 1);
+  unsub();
 });

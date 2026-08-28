@@ -21,6 +21,9 @@ export default function PlanPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-600">
+            Полный обзор недели: норма и факт по калориям. Нажмите на день — откроется рацион.
+          </p>
           <WeeklyPlan
             selectedDate={date}
             onSelectDate={(next) => {
@@ -28,8 +31,7 @@ export default function PlanPage() {
             }}
           />
           <p className="text-sm text-slate-500">
-            Нажмите на день, чтобы открыть рацион. Список покупок и шаблоны дня — на странице
-            рациона.
+            Список покупок и шаблоны дня — в разделе «Привычки» на странице рациона.
           </p>
         </div>
       </AuthGate>
