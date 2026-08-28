@@ -47,6 +47,7 @@ test("groups entries with the same mealGroupId", () => {
       mealGroupId: "g1",
       imagePath: "/uploads/plate.jpg",
       createdAt: "2026-08-19T12:00:00.000Z",
+      eatenAt: "2026-08-19T14:30:00.000Z",
     }),
   ]);
 
@@ -56,7 +57,8 @@ test("groups entries with the same mealGroupId", () => {
     assert.equal(items[0].entries.length, 2);
     assert.equal(items[0].totalCalories, 430);
     assert.equal(items[0].imagePath, "/uploads/plate.jpg");
-    assert.equal(items[0].entries[0]?.dishName, "Котлета");
+    assert.equal(items[0].entries[0]?.dishName, "Гречка");
+    assert.equal(items[0].createdAt, "2026-08-19T14:30:00.000Z");
   }
 });
 
