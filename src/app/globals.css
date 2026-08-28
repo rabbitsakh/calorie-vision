@@ -524,6 +524,38 @@ textarea {
   color: #475569;
 }
 
+.meal-card-meta-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.meal-time-badge {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.65rem;
+  font-weight: 650;
+  line-height: 1;
+  padding: 0.28rem 0.55rem;
+  transition: opacity 0.12s ease;
+}
+
+.meal-time-badge:disabled {
+  opacity: 0.5;
+}
+
+.meal-time-input {
+  border: 1px solid #99f6e4;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  max-width: 6.5rem;
+  padding: 0.2rem 0.35rem;
+}
+
 .meal-card-actions {
   display: flex;
   flex-direction: column;

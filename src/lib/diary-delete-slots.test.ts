@@ -150,6 +150,18 @@ describe("diary-delete-slots", () => {
     );
   });
 
+  test("mergeEntriesAfterUndo sorts by eatenAt when set", () => {
+    const early = meal("early", "Early", "2026-08-24T08:00:00Z");
+    early.eatenAt = "2026-08-24T07:00:00.000Z";
+    const late = meal("late", "Late", "2026-08-24T06:00:00Z");
+    late.eatenAt = "2026-08-24T12:00:00.000Z";
+    const merged = mergeEntriesAfterUndo([], [early, late]);
+    assert.deepEqual(
+      merged.map((entry) => entry.id),
+      ["late", "early"],
+    );
+  });
+
   test("collectHiddenMealIds merges pending slots and tombstones", () => {
     const pending: PendingDeleteSlot[] = [
       {

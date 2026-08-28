@@ -74,7 +74,7 @@ export async function applyStoredFoodCorrection(
 ): Promise<FoodRecognitionResult> {
   const rows = await getCorrectionRows(userId ?? GLOBAL_CORRECTION_USER_ID);
   const correction = pickFoodCorrection(result.dishName, rows);
-  let next = correction ? applyFoodCorrection(result, correction) : result;
+  const next = correction ? applyFoodCorrection(result, correction) : result;
 
   if (!next.items?.length) {
     return next;

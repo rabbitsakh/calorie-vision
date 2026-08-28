@@ -101,7 +101,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
     }
   }
 
-  async function useFood(food: CustomFood) {
+  async function logFavoriteFood(food: CustomFood) {
     const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
     const resp = await fetch(withBasePath("/api/meals"), {
       method: "POST",
@@ -327,7 +327,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
               <button
                 type="button"
                 className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
-                onClick={() => void useFood(food)}
+                onClick={() => void logFavoriteFood(food)}
               >
                 + В дневник
               </button>

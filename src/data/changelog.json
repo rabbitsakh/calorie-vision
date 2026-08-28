@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.2",
+    "date": "2026-08-28",
+    "summary": "feat(platform): Wave A — CI Node 24, health probe, client import guard",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(platform): Wave A — CI Node 24, health probe, client import guard"
+      }
+    ]
+  },
+  {
     "version": "1.7.1",
     "date": "2026-08-28",
     "summary": "remove: Telegram chat bot (keep login)",

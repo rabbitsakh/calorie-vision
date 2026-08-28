@@ -16,6 +16,7 @@ import {
   toTimeInputValue,
 } from "@/lib/dates";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
+import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import {
@@ -134,17 +135,21 @@ function MealEntryDetails({
   entry,
   timezone,
   compact = true,
+  hideTime = false,
 }: {
   entry: MealEntry;
   timezone?: string | null;
   compact?: boolean;
+  hideTime?: boolean;
 }) {
   const primary = formatMacros(entry, "primary");
   const secondary = formatMacros(entry, "secondary");
   const eatenWhen = entry.eatenAt ?? entry.createdAt;
-  const when = compact
-    ? formatTimeShort(eatenWhen, timezone)
-    : formatDateTime(eatenWhen, timezone);
+  const when = hideTime
+    ? ""
+    : compact
+      ? formatTimeShort(eatenWhen, timezone)
+      : formatDateTime(eatenWhen, timezone);
 
   return (
     <>
@@ -185,6 +190,7 @@ function GroupedMealCard({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onEatenAtChange,
   onDuplicate,
   onImageChange,
 }: {
@@ -194,6 +200,7 @@ function GroupedMealCard({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
@@ -206,6 +213,7 @@ function GroupedMealCard({
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [typeBusyId, setTypeBusyId] = useState<string | null>(null);
+  const [timeBusyId, setTimeBusyId] = useState<string | null>(null);
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [dupBusyId, setDupBusyId] = useState<string | null>(null);
 
@@ -326,7 +334,7 @@ function GroupedMealCard({
                           </span>
                         ) : null}
                       </div>
-                      <MealEntryDetails entry={entry} timezone={timezone} />
+                      <MealEntryDetails entry={entry} timezone={timezone} hideTime />
                     </div>
                     <div className="meal-card-actions shrink-0">
                       <button
@@ -357,14 +365,25 @@ function GroupedMealCard({
                       </button>
                     </div>
                   </div>
-                  <MealTypeInlineChips
-                    value={entry.mealType}
-                    disabled={typeBusyId === entry.id}
-                    onChange={(mealType) => {
-                      setTypeBusyId(entry.id);
-                      void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
-                    }}
-                  />
+                  <div className="meal-card-meta-row">
+                    <MealTimeInlineEdit
+                      entry={entry}
+                      timezone={timezone}
+                      disabled={timeBusyId === entry.id || typeBusyId === entry.id}
+                      onChange={(eatenAt) => {
+                        setTimeBusyId(entry.id);
+                        void onEatenAtChange(entry.id, eatenAt).finally(() => setTimeBusyId(null));
+                      }}
+                    />
+                    <MealTypeInlineChips
+                      value={entry.mealType}
+                      disabled={typeBusyId === entry.id || timeBusyId === entry.id}
+                      onChange={(mealType) => {
+                        setTypeBusyId(entry.id);
+                        void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -671,6 +690,64 @@ function MealTypeInlineChips({
   );
 }
 
+function MealTimeInlineEdit({
+  entry,
+  timezone,
+  disabled,
+  onChange,
+}: {
+  entry: MealEntry;
+  timezone?: string | null;
+  disabled?: boolean;
+  onChange: (eatenAt: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const when = entry.eatenAt ?? entry.createdAt;
+  const display = formatTimeShort(when, timezone);
+  const timeValue = toTimeInputValue(when, timezone);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [when]);
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        disabled={disabled}
+        className="meal-time-badge"
+        title="Время приёма — нажмите, чтобы изменить"
+        aria-label={`Время ${display}, изменить`}
+        onClick={() => setExpanded(true)}
+      >
+        {display}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      type="time"
+      className="meal-time-input"
+      value={timeValue}
+      disabled={disabled}
+      autoFocus
+      aria-label="Время приёма пищи"
+      onChange={(event) => {
+        const eatenAt = dateKeyAndTimeToIso(entry.date, event.target.value, timezone);
+        if (eatenAt) {
+          onChange(eatenAt);
+          setExpanded(false);
+        }
+      }}
+      onBlur={() => setExpanded(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setExpanded(false);
+      }}
+    />
+  );
+}
+
 function MealSectionHeader({ section }: { section: MealTypeSection }) {
   return (
     <div className="flex items-center gap-2 pt-0.5">
@@ -688,6 +765,7 @@ function SingleMealCard({
   onDelete,
   onEdit,
   onMealTypeChange,
+  onEatenAtChange,
   onDuplicate,
   onImageChange,
 }: {
@@ -696,11 +774,13 @@ function SingleMealCard({
   onDelete: (id: string) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [typeBusy, setTypeBusy] = useState(false);
+  const [timeBusy, setTimeBusy] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [dupBusy, setDupBusy] = useState(false);
 
@@ -765,7 +845,7 @@ function SingleMealCard({
                   </span>
                 ) : null}
               </div>
-              <MealEntryDetails entry={entry} timezone={timezone} />
+              <MealEntryDetails entry={entry} timezone={timezone} hideTime />
             </div>
             <div className="meal-card-actions shrink-0">
               <button type="button" title="Редактировать" onClick={() => setEditing(true)}>
@@ -787,14 +867,25 @@ function SingleMealCard({
               </button>
             </div>
           </div>
-          <MealTypeInlineChips
-            value={entry.mealType}
-            disabled={typeBusy}
-            onChange={(mealType) => {
-              setTypeBusy(true);
-              void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusy(false));
-            }}
-          />
+          <div className="meal-card-meta-row">
+            <MealTimeInlineEdit
+              entry={entry}
+              timezone={timezone}
+              disabled={timeBusy || typeBusy}
+              onChange={(eatenAt) => {
+                setTimeBusy(true);
+                void onEatenAtChange(entry.id, eatenAt).finally(() => setTimeBusy(false));
+              }}
+            />
+            <MealTypeInlineChips
+              value={entry.mealType}
+              disabled={typeBusy || timeBusy}
+              onChange={(mealType) => {
+                setTypeBusy(true);
+                void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusy(false));
+              }}
+            />
+          </div>
         </div>
       </div>
     </article>
@@ -808,6 +899,7 @@ function MealListRow({
   onDeleteGroup,
   onEdit,
   onMealTypeChange,
+  onEatenAtChange,
   onDuplicate,
   onImageChange,
 }: {
@@ -817,6 +909,7 @@ function MealListRow({
   onDeleteGroup: (ids: string[]) => void;
   onEdit: (id: string, patch: EditPatch) => Promise<void>;
   onMealTypeChange: (id: string, mealType: string | null) => Promise<void>;
+  onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
 }) {
@@ -829,6 +922,7 @@ function MealListRow({
         onDeleteGroup={onDeleteGroup}
         onEdit={onEdit}
         onMealTypeChange={onMealTypeChange}
+        onEatenAtChange={onEatenAtChange}
         onDuplicate={onDuplicate}
         onImageChange={onImageChange}
       />
@@ -842,6 +936,7 @@ function MealListRow({
       onDelete={onDelete}
       onEdit={onEdit}
       onMealTypeChange={onMealTypeChange}
+      onEatenAtChange={onEatenAtChange}
       onDuplicate={onDuplicate}
       onImageChange={onImageChange}
     />
@@ -1143,9 +1238,33 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
     await reloadDayAfterMutation(true);
     onChanged?.();
+    emitMascotReaction("save");
+  }
+
+  async function handleEatenAtChange(id: string, eatenAt: string) {
+    setActionError(null);
+    setEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, eatenAt } : entry)),
+    );
+
+    const response = await fetch(withBasePath(`/api/meals/${id}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ eatenAt }),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      await reloadDayAfterMutation(true);
+      setActionError("Не удалось изменить время — попробуйте ещё раз");
+      return;
+    }
+    await reloadDayAfterMutation(true);
+    onChanged?.();
+    emitMascotReaction("save");
   }
 
   async function handleMealTypeChange(id: string, mealType: string | null) {
+    setActionError(null);
     // Optimistic so budget bars update immediately.
     setEntries((prev) =>
       prev.map((entry) =>
@@ -1163,6 +1282,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     });
     if (!response.ok) {
       await reloadDayAfterMutation(true);
+      setActionError("Не удалось сменить приём пищи — попробуйте ещё раз");
       return;
     }
     await reloadDayAfterMutation(true);
@@ -1284,6 +1404,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         onTotalsChange?.(next.calories);
         return next;
       });
+      setActionError("Не удалось удалить — запись восстановлена");
     } finally {
       confirmingDeleteKeysRef.current.delete(slotKey);
     }
@@ -1310,7 +1431,14 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
 
   const [copying, setCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
+
+  useEffect(() => {
+    if (!actionError) return;
+    const timer = window.setTimeout(() => setActionError(null), 6000);
+    return () => window.clearTimeout(timer);
+  }, [actionError]);
 
   useEffect(() => {
     const empty = !loading && !error && entries.length === 0 && pendingDeletes.length === 0;
@@ -1528,6 +1656,12 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           </div>
         ) : null}
 
+        {actionError ? (
+          <p className="text-sm text-red-600" role="alert">
+            {actionError}
+          </p>
+        ) : null}
+
         {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
@@ -1605,6 +1739,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                     }}
                     onEdit={handleEdit}
                     onMealTypeChange={handleMealTypeChange}
+                    onEatenAtChange={handleEatenAtChange}
                     onDuplicate={(id) => handleDuplicate(id)}
                     onImageChange={handleImageChange}
                     onDeleteGroup={(ids) => {
