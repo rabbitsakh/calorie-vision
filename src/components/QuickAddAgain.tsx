@@ -100,7 +100,7 @@ export function QuickAddAgain({
           <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
         ) : null}
         {tab === "recipe" ? (
-          <RecipeBuilder onSaved={handleSaved} embedded />
+          <RecipeBuilder selectedDate={selectedDate} onSaved={handleSaved} onLoggedToDiary={handleSaved} embedded />
         ) : null}
         {tab === "templates" ? (
           <DayTemplates

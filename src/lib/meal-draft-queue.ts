@@ -21,6 +21,27 @@ export type FailedSaveDraft = {
 
 export type MealDraftItem = PendingConfirmDraft | FailedSaveDraft;
 
+type Listener = () => void;
+
+const queueListeners = new Set<Listener>();
+
+export function subscribeMealDraftQueue(listener: Listener): () => void {
+  queueListeners.add(listener);
+  return () => {
+    queueListeners.delete(listener);
+  };
+}
+
+function notifyMealDraftQueue(): void {
+  for (const listener of queueListeners) {
+    try {
+      listener();
+    } catch {
+      // ignore
+    }
+  }
+}
+
 function readQueue(): MealDraftItem[] {
   if (typeof window === "undefined") return [];
   try {
@@ -49,6 +70,7 @@ function writeQueue(items: MealDraftItem[]): void {
     } else {
       localStorage.setItem(MEAL_DRAFT_QUEUE_KEY, JSON.stringify(items.slice(-20)));
     }
+    notifyMealDraftQueue();
   } catch {
     // quota / private mode
   }

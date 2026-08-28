@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import {
   mondayOfWeek,
@@ -14,6 +15,7 @@ import {
   setHolidayBuffer,
 } from "@/lib/holiday-buffer";
 import { withBasePath } from "@/lib/paths";
+import { withDateQuery } from "@/lib/use-selected-date";
 
 type DayRow = {
   date: string;
@@ -118,8 +120,16 @@ export function WeeklyPlan({
   return (
     <section className={compact ? "overflow-hidden" : "card overflow-hidden"}>
       <div className={`flex items-start justify-between gap-2 ${compact ? "pb-2" : "px-4 py-3 md:px-5"}`}>
-        <div className="min-w-0">
-          <p className="font-semibold text-slate-800">План недели</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <p className="font-semibold text-slate-800">План недели</p>
+            <Link
+              href={withDateQuery("/plan", selectedDate)}
+              className="text-xs font-semibold text-teal-800 underline-offset-2 hover:underline"
+            >
+              Подробнее →
+            </Link>
+          </div>
           <p className="mt-0.5 text-xs text-slate-500">
             Цель vs факт по дням
             {effectiveTarget ? ` · норма ${effectiveTarget} ккал` : ""}
