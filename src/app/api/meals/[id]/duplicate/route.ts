@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
+import { mealEntryCloneData } from "@/lib/meal-entry-clone";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(
@@ -21,19 +22,8 @@ export async function POST(
       return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
     }
 
-    const {
-      id: _id,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      mealGroupId: _group,
-      ...rest
-    } = source;
-
     const entry = await prisma.mealEntry.create({
-      data: {
-        ...rest,
-        mealGroupId: null,
-      },
+      data: mealEntryCloneData(source),
     });
 
     return NextResponse.json({ entry });
