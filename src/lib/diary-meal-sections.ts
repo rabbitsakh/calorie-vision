@@ -1,9 +1,11 @@
 import type { MealListItem } from "@/lib/meal-groups";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
+export type MealTypeSection = MealType | "UNTAGGED";
+
 export const MEAL_TYPE_SECTION_ORDER: MealType[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"];
 
-export type MealTypeSection = MealType | "UNTAGGED";
+export const MEAL_TYPE_SECTIONS: MealTypeSection[] = [...MEAL_TYPE_SECTION_ORDER, "UNTAGGED"];
 
 export function mealTypeForListItem(item: MealListItem): MealTypeSection {
   if (item.kind === "single") {
@@ -26,7 +28,7 @@ export function organizeDiaryByMealType(items: MealListItem[]): MealListItem[] {
   }
 
   const buckets = new Map<MealTypeSection, MealListItem[]>();
-  for (const type of [...MEAL_TYPE_SECTION_ORDER, "UNTAGGED" as const]) {
+  for (const type of MEAL_TYPE_SECTIONS) {
     buckets.set(type, []);
   }
 
@@ -34,7 +36,7 @@ export function organizeDiaryByMealType(items: MealListItem[]): MealListItem[] {
     buckets.get(mealTypeForListItem(item))!.push(item);
   }
 
-  return [...MEAL_TYPE_SECTION_ORDER, "UNTAGGED"].flatMap((type) => buckets.get(type)!);
+  return MEAL_TYPE_SECTIONS.flatMap((type) => buckets.get(type)!);
 }
 
 export function sectionLabel(section: MealTypeSection): string {
