@@ -88,9 +88,9 @@ export function mergeEntriesAfterUndo(
 ): MealEntry[] {
   const existing = new Set(current.map((entry) => entry.id));
   const restored = snapshot.filter((entry) => !existing.has(entry.id));
-  return [...current, ...restored].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const whenMs = (entry: MealEntry) =>
+    new Date(entry.eatenAt ?? entry.createdAt).getTime();
+  return [...current, ...restored].sort((a, b) => whenMs(b) - whenMs(a));
 }
 
 export function collectHiddenMealIds(

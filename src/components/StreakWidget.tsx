@@ -89,7 +89,7 @@ export function StreakWidget({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- loadStreak closes over selectedDate
   }, [selectedDate, refreshKey, day?.data, day?.loading, day?.date, day?.today]);
 
-  async function useFreeze() {
+  async function applyStreakFreeze() {
     if (!data?.canFreezeYesterday || freezing) return;
     const yesterday = (() => {
       const d = new Date(selectedDate + "T12:00:00Z");
@@ -241,7 +241,7 @@ export function StreakWidget({
             type="button"
             className="mt-2 text-sm font-semibold text-sky-800 hover:text-sky-950 disabled:opacity-60"
             disabled={freezing}
-            onClick={() => void useFreeze()}
+            onClick={() => void applyStreakFreeze()}
           >
             {freezing ? "Сохраняем…" : "❄️ Заморозить вчера"}
           </button>
