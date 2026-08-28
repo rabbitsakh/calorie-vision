@@ -12,6 +12,11 @@
  */
 
 import dns from "node:dns";
+import {
+  curlTelegramApi,
+  getTelegramProxyUrl,
+  telegramApiUsesCurl,
+} from "@/lib/telegram-api-curl";
 
 const TELEGRAM_API = "https://api.telegram.org";
 
@@ -51,6 +56,11 @@ export function formatTelegramFetchError(error: unknown): string {
     parts.push(
       "проверьте: curl -4 -I https://api.telegram.org (на VPS часто ломается IPv6 или блокируется исходящий трафик)",
     );
+    if (!getTelegramProxyUrl()) {
+      parts.push(
+        "из РФ: api.telegram.org часто недоступен — задайте TELEGRAM_HTTPS_PROXY (SOCKS5/HTTP прокси за рубежом)",
+      );
+    }
   }
 
   return parts.join(" — ");
@@ -61,6 +71,52 @@ async function telegramFetch(url: string, init?: RequestInit): Promise<Response>
   const timeoutMs = Number(process.env.TELEGRAM_FETCH_TIMEOUT_MS ?? 30_000);
   const signal = AbortSignal.timeout(Number.isFinite(timeoutMs) ? timeoutMs : 30_000);
   return fetch(url, { ...init, signal });
+}
+
+async function callTelegramApi(
+  method: string,
+  token: string,
+  body?: Record<string, unknown>,
+): Promise<{ ok: true; result: unknown } | { ok: false; error: string }> {
+  if (telegramApiUsesCurl()) {
+    return curlTelegramApi(method, token, body);
+  }
+
+  try {
+    const resp = await telegramFetch(
+      `${TELEGRAM_API}/bot${token}/${method}`,
+      body
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }
+        : undefined,
+    );
+    const data = (await resp.json()) as {
+      ok?: boolean;
+      description?: string;
+      result?: unknown;
+    };
+    if (!resp.ok || !data.ok) {
+      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
+    }
+    return { ok: true, result: data.result };
+  } catch (error) {
+    const message = formatTelegramFetchError(error);
+    if (/fetch failed|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|UND_ERR/i.test(message)) {
+      const viaCurl = await curlTelegramApi(method, token, body);
+      if (viaCurl.ok) return viaCurl;
+      if (!getTelegramProxyUrl()) {
+        return {
+          ok: false,
+          error: `${message} — curl без прокси тоже не поможет; нужен TELEGRAM_HTTPS_PROXY`,
+        };
+      }
+      return viaCurl;
+    }
+    return { ok: false, error: message };
+  }
 }
 
 /** Production bot @CalorieVisionAppBot — fallback when env username is unset at build. */
@@ -124,25 +180,17 @@ export async function sendTelegramMessage(
   }
 
   try {
-    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        ...(options?.parseMode ? { parse_mode: options.parseMode } : {}),
-        disable_web_page_preview: options?.disableWebPagePreview ?? true,
-      }),
+    const api = await callTelegramApi("sendMessage", token, {
+      chat_id: chatId,
+      text,
+      ...(options?.parseMode ? { parse_mode: options.parseMode } : {}),
+      disable_web_page_preview: options?.disableWebPagePreview ?? true,
     });
-    const data = (await resp.json()) as {
-      ok?: boolean;
-      description?: string;
-      result?: { message_id?: number };
-    };
-    if (!resp.ok || !data.ok) {
-      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
+    if (!api.ok) {
+      return { ok: false, error: api.error };
     }
-    return { ok: true, messageId: data.result?.message_id };
+    const result = api.result as { message_id?: number } | undefined;
+    return { ok: true, messageId: result?.message_id };
   } catch (error) {
     return { ok: false, error: formatTelegramFetchError(error) };
   }
@@ -162,20 +210,11 @@ export async function getTelegramWebhookInfo(): Promise<
   if (!token) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
   }
-  try {
-    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/getWebhookInfo`);
-    const data = (await resp.json()) as {
-      ok?: boolean;
-      description?: string;
-      result?: TelegramWebhookInfo;
-    };
-    if (!resp.ok || !data.ok || !data.result) {
-      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
-    }
-    return { ok: true, info: data.result };
-  } catch (error) {
-    return { ok: false, error: formatTelegramFetchError(error) };
+  const api = await callTelegramApi("getWebhookInfo", token);
+  if (!api.ok) {
+    return { ok: false, error: api.error };
   }
+  return { ok: true, info: (api.result ?? {}) as TelegramWebhookInfo };
 }
 
 export async function setTelegramWebhook(
@@ -185,24 +224,15 @@ export async function setTelegramWebhook(
   if (!token) {
     return { ok: false, error: "TELEGRAM_BOT_TOKEN не настроен" };
   }
-  try {
-    const resp = await telegramFetch(`${TELEGRAM_API}/bot${token}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: webhookUrl,
-        secret_token: token,
-        allowed_updates: ["message"],
-      }),
-    });
-    const data = (await resp.json()) as { ok?: boolean; description?: string };
-    if (!resp.ok || !data.ok) {
-      return { ok: false, error: data.description ?? `Telegram API ${resp.status}` };
-    }
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: formatTelegramFetchError(error) };
+  const api = await callTelegramApi("setWebhook", token, {
+    url: webhookUrl,
+    secret_token: token,
+    allowed_updates: ["message"],
+  });
+  if (!api.ok) {
+    return { ok: false, error: api.error };
   }
+  return { ok: true };
 }
 
 export function buildTelegramWebhookUrl(siteOrigin: string, token: string): string {

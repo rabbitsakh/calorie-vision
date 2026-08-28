@@ -3,17 +3,19 @@
  *
  * Usage:
  *   npm run telegram:set-webhook
- *   npx tsx scripts/telegram-set-webhook.ts
- *   npx tsx scripts/telegram-set-webhook.ts --check   # only print getWebhookInfo
- *   bash scripts/telegram-set-webhook.sh              # curl --ipv4 fallback
+ *   npx tsx scripts/telegram-set-webhook.ts --check
  *
- * Requires TELEGRAM_BOT_TOKEN and NEXTAUTH_URL in env (or .env in project root).
+ * From RU VPS where api.telegram.org is blocked, set in .env:
+ *   TELEGRAM_HTTPS_PROXY=socks5h://127.0.0.1:1080
  */
 
-import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  curlTelegramApi,
+  getTelegramProxyUrl,
+} from "../src/lib/telegram-api-curl.ts";
 import {
   buildTelegramWebhookUrl,
   getTelegramWebhookInfo,
@@ -45,57 +47,21 @@ function loadDotEnv(): void {
   }
 }
 
-type CurlTelegramResult =
-  | { ok: true; result: TelegramWebhookInfo | true }
-  | { ok: false; error: string };
+async function readWebhookInfo(): Promise<TelegramWebhookInfo | null> {
+  const viaLib = await getTelegramWebhookInfo();
+  if (viaLib.ok) return viaLib.info;
 
-function curlTelegramApi(
-  method: string,
-  token: string,
-  body?: Record<string, unknown>,
-): CurlTelegramResult {
-  const url = `https://api.telegram.org/bot${token}/${method}`;
-  const args = ["--ipv4", "-sS", "--max-time", "30", "-H", "Accept: application/json"];
-  if (body) {
-    args.push(
-      "-X",
-      "POST",
-      "-H",
-      "Content-Type: application/json",
-      "-d",
-      JSON.stringify(body),
-      url,
-    );
-  } else {
-    args.push(url);
-  }
+  console.warn("getWebhookInfo:", viaLib.error);
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
+  if (!token) return null;
 
-  const result = spawnSync("curl", args, { encoding: "utf8" });
-  if (result.error) {
-    return { ok: false, error: result.error.message };
+  const viaCurl = await curlTelegramApi("getWebhookInfo", token);
+  if (!viaCurl.ok) {
+    console.error("getWebhookInfo (curl):", viaCurl.error);
+    printNetworkHelp();
+    process.exit(1);
   }
-  if (result.status !== 0) {
-    const detail = result.stderr?.trim() || result.stdout?.trim();
-    return { ok: false, error: detail || `curl exit ${result.status}` };
-  }
-
-  try {
-    const data = JSON.parse(result.stdout.trim()) as {
-      ok?: boolean;
-      description?: string;
-      result?: TelegramWebhookInfo;
-    };
-    if (!data.ok) {
-      return { ok: false, error: data.description ?? "Telegram API error" };
-    }
-    return { ok: true, result: data.result ?? true };
-  } catch {
-    return { ok: false, error: `Invalid JSON from curl: ${result.stdout.slice(0, 160)}` };
-  }
-}
-
-function isNetworkFetchError(error: string): boolean {
-  return /fetch failed|ECONNREFUSED|ENOTFOUND|ETIMEDOUT|ENETUNREACH|UND_ERR/i.test(error);
+  return (viaCurl.result ?? {}) as TelegramWebhookInfo;
 }
 
 async function main(): Promise<void> {
@@ -104,30 +70,23 @@ async function main(): Promise<void> {
   const checkOnly = process.argv.includes("--check");
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const siteOrigin = process.env.NEXTAUTH_URL?.trim();
+  const proxy = getTelegramProxyUrl();
 
   if (!token) {
     console.error("TELEGRAM_BOT_TOKEN не задан — webhook не регистрируем.");
     process.exit(1);
   }
 
-  let info: TelegramWebhookInfo | null = null;
-
-  const infoBefore = await getTelegramWebhookInfo();
-  if (infoBefore.ok) {
-    info = infoBefore.info;
-  } else if (isNetworkFetchError(infoBefore.error)) {
-    console.warn("Node fetch не достучался до Telegram, пробуем curl --ipv4…");
-    const curlInfo = curlTelegramApi("getWebhookInfo", token);
-    if (!curlInfo.ok) {
-      console.error("getWebhookInfo (curl):", curlInfo.error);
-      printNetworkHelp();
-      process.exit(1);
-    }
-    info = typeof curlInfo.result === "object" ? curlInfo.result : {};
+  if (proxy) {
+    console.log("Прокси для Telegram API:", proxy.replace(/:[^:@/]+@/, ":***@"));
   } else {
-    console.error("getWebhookInfo:", infoBefore.error);
-    process.exit(1);
+    console.warn(
+      "TELEGRAM_HTTPS_PROXY не задан — с RU VPS api.telegram.org часто недоступен.",
+    );
   }
+
+  const info = await readWebhookInfo();
+  if (!info) process.exit(1);
 
   console.log("Текущий webhook:", info.url || "(не задан)");
   if (info.last_error_message) {
@@ -135,9 +94,7 @@ async function main(): Promise<void> {
   }
   console.log("Pending updates:", info.pending_update_count ?? 0);
 
-  if (checkOnly) {
-    return;
-  }
+  if (checkOnly) return;
 
   if (!siteOrigin) {
     console.error("NEXTAUTH_URL не задан — нужен канонический URL сайта (https://calorievision.ru).");
@@ -148,47 +105,31 @@ async function main(): Promise<void> {
   console.log("Регистрируем webhook:", webhookUrl.replace(token, "***"));
 
   const setResult = await setTelegramWebhook(webhookUrl);
-  if (!setResult.ok && isNetworkFetchError(setResult.error)) {
-    console.warn("Node fetch не сработал, пробуем curl --ipv4…");
-    const curlSet = curlTelegramApi("setWebhook", token, {
-      url: webhookUrl,
-      secret_token: token,
-      allowed_updates: ["message"],
-    });
-    if (!curlSet.ok) {
-      console.error("setWebhook (curl):", curlSet.error);
-      printNetworkHelp();
-      process.exit(1);
-    }
-  } else if (!setResult.ok) {
+  if (!setResult.ok) {
     console.error("setWebhook:", setResult.error);
+    printNetworkHelp();
     process.exit(1);
   }
 
-  const infoAfter = await getTelegramWebhookInfo();
-  if (infoAfter.ok) {
-    console.log("Webhook установлен:", infoAfter.info.url || "(пусто)");
-  } else {
-    const curlAfter = curlTelegramApi("getWebhookInfo", token);
-    if (curlAfter.ok && typeof curlAfter.result === "object") {
-      console.log("Webhook установлен:", curlAfter.result.url || "(пусто)");
-    }
+  const infoAfter = await readWebhookInfo();
+  if (infoAfter) {
+    console.log("Webhook установлен:", infoAfter.url || "(пусто)");
   }
-
   console.log("Готово. Проверьте: напишите боту /start в Telegram.");
 }
 
 function printNetworkHelp(): void {
   console.error("");
   console.error("Сервер не достучался до api.telegram.org.");
-  console.error("Диагностика на VPS:");
-  console.error("  curl -4 -I https://api.telegram.org");
-  console.error("  curl -4 \"https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/getWebhookInfo\"");
+  console.error("Из РФ это нормально — нужен прокси за рубежом в .env:");
+  console.error("  TELEGRAM_HTTPS_PROXY=socks5h://127.0.0.1:1080");
+  console.error("  # или http://user:pass@proxy.example:8080");
   console.error("");
-  console.error("Если curl --ipv4 работает — повторите: npm run telegram:set-webhook");
-  console.error("Если curl тоже падает — исходящий трафик к Telegram заблокирован на VPS.");
-  console.error("Webhook можно зарегистрировать с локального ПК, но для ответов бота серверу");
-  console.error("всё равно нужен исходящий доступ к api.telegram.org (или HTTPS_PROXY).");
+  console.error("Проверка через прокси:");
+  console.error("  curl -4 --proxy \"$TELEGRAM_HTTPS_PROXY\" -I https://api.telegram.org");
+  console.error("");
+  console.error("Webhook можно один раз зарегистрировать с ПК (VPN), но ответы бота");
+  console.error("(/start → сообщение) всё равно идут с сервера — прокси на VPS обязателен.");
 }
 
 main().catch((error) => {

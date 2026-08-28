@@ -21,6 +21,11 @@ if [[ -z "$TOKEN" ]]; then
 fi
 
 CURL=(curl --ipv4 -sS --max-time 30)
+PROXY="${TELEGRAM_HTTPS_PROXY:-${HTTPS_PROXY:-${HTTP_PROXY:-}}}"
+if [[ -n "$PROXY" ]]; then
+  CURL+=(--proxy "$PROXY")
+  echo "Прокси для Telegram API: ${PROXY/@*/@***}"
+fi
 
 echo "==> getWebhookInfo"
 "${CURL[@]}" "https://api.telegram.org/bot${TOKEN}/getWebhookInfo"

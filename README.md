@@ -143,18 +143,26 @@ npm run start
    cd /var/www/calorie-vision
    npm run telegram:set-webhook
    ```
-   Если видите `fetch failed` — на VPS часто ломается IPv6. Скрипт автоматически пробует `curl --ipv4`.
-   Явный fallback:
-   ```bash
-   npm run telegram:set-webhook:curl
+   **VPS в РФ:** исходящие запросы к `api.telegram.org` часто блокируются (timeout). Webhook **от** Telegram на `calorievision.ru` приходит, но **ответы бота** (`sendMessage`) тоже идут на `api.telegram.org` — без прокси бот молчит.
+
+   Добавьте в `.env` прокси **за рубежом** (SOCKS5 или HTTP):
+   ```env
+   TELEGRAM_HTTPS_PROXY=socks5h://127.0.0.1:1080
    # или
-   bash scripts/telegram-set-webhook.sh
+   TELEGRAM_HTTPS_PROXY=http://user:pass@proxy.example:8080
    ```
-   Диагностика:
+   Проверка и регистрация:
    ```bash
-   curl -4 -I https://api.telegram.org
+   curl -4 --proxy "$TELEGRAM_HTTPS_PROXY" -I https://api.telegram.org
+   npm run telegram:set-webhook
+   pm2 restart calorie-vision
    ```
-   При деплое webhook регистрируется автоматически, если в `.env` на сервере задан `TELEGRAM_BOT_TOKEN`.
+
+   **Как получить прокси:** мини-VPS в EU + WireGuard + SOCKS (`dante-server` / `3proxy`); или платный HTTP/SOCKS с выходом не из РФ. Webhook можно один раз зарегистрировать с ПК через VPN, но для `/start` на сервере прокси всё равно нужен.
+
+   Виджет «Войти через Telegram» на `/login` прокси **не требует**.
+
+   При деплое webhook регистрируется автоматически, если задан `TELEGRAM_BOT_TOKEN` (и прокси, если VPS в РФ).
 5. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
 
 ### Email (magic link)
