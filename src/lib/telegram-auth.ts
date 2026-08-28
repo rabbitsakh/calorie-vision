@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getTelegramBotToken } from "@/lib/telegram-bot";
 import {
   telegramDisplayName,
   type TelegramAuthPayload,
@@ -14,7 +15,7 @@ export {
 const TELEGRAM_PROVIDER = "telegram";
 
 export function isTelegramLoginConfigured(): boolean {
-  return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME);
+  return Boolean(getTelegramBotToken());
 }
 
 export async function findOrCreateTelegramUser(data: TelegramAuthPayload) {

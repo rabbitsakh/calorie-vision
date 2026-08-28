@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  DEFAULT_TELEGRAM_BOT_USERNAME,
+  buildTelegramWebhookUrl,
+  getTelegramBotUsername,
+  parseTelegramCommand,
   telegramBotDeepLink,
   telegramRemindHelpText,
   telegramStartReplyText,
   verifyTelegramWebhookSecret,
 } from "./telegram-bot.ts";
 
-test("telegramStartReplyText mentions ration and commands", () => {
+test("telegramStartReplyText mentions ration, commands and bot username", () => {
   const text = telegramStartReplyText();
   assert.match(text, /calorievision\.ru\/ration/);
   assert.match(text, /\/start/);
   assert.match(text, /\/remind/);
+  assert.match(text, new RegExp(`@${DEFAULT_TELEGRAM_BOT_USERNAME}`));
 });
 
 test("telegramRemindHelpText points to push settings", () => {
@@ -25,6 +30,29 @@ test("telegramBotDeepLink uses public username when set", () => {
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME = "@CalorieVisionBot";
   assert.equal(telegramBotDeepLink(), "https://t.me/CalorieVisionBot");
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME = prev;
+});
+
+test("telegramBotDeepLink falls back to CalorieVisionAppBot", () => {
+  const prev = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  delete process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  assert.equal(telegramBotDeepLink(), "https://t.me/CalorieVisionAppBot");
+  assert.equal(getTelegramBotUsername(), "CalorieVisionAppBot");
+  process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME = prev;
+});
+
+test("parseTelegramCommand handles /start@BotName", () => {
+  assert.equal(parseTelegramCommand("/start"), "/start");
+  assert.equal(parseTelegramCommand("/start@CalorieVisionAppBot"), "/start");
+  assert.equal(parseTelegramCommand("/remind help"), "/remind");
+  assert.equal(parseTelegramCommand("hello"), "");
+});
+
+test("buildTelegramWebhookUrl encodes secret", () => {
+  const url = buildTelegramWebhookUrl("https://calorievision.ru", "tok/en+");
+  assert.equal(
+    url,
+    "https://calorievision.ru/api/telegram/webhook?secret=tok%2Fen%2B",
+  );
 });
 
 test("verifyTelegramWebhookSecret accepts query secret matching token", () => {

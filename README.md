@@ -131,14 +131,19 @@ npm run start
 
 ### Telegram
 
-1. Создайте бота у [@BotFather](https://t.me/BotFather).
+1. Создайте бота у [@BotFather](https://t.me/BotFather) (продакшен: **@CalorieVisionAppBot**).
 2. Команда `/setdomain` → укажите `calorievision.ru` (для локалки — временный HTTPS-туннель, например ngrok).
 3. В `.env`:
    ```env
-   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=YourBotUsername
+   NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=CalorieVisionAppBot
    TELEGRAM_BOT_TOKEN=123456:AA...
    ```
-4. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
+4. Зарегистрируйте webhook (чтобы бот отвечал на `/start`):
+   ```bash
+   npm run telegram:set-webhook
+   ```
+   При деплое это делается автоматически, если в `.env` на сервере задан `TELEGRAM_BOT_TOKEN`.
+5. Перезапустите приложение. На `/login` появится виджет «Log in with Telegram».
 
 ### Email (magic link)
 

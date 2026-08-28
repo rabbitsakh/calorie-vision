@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isEmailLoginConfigured } from "@/lib/email-auth";
+import { getTelegramBotUsername } from "@/lib/telegram-bot";
 import { isTelegramLoginConfigured } from "@/lib/telegram-auth";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function GET() {
   return NextResponse.json({
     email: isEmailLoginConfigured(),
     telegram: isTelegramLoginConfigured(),
-    telegramBotUsername: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "") || null,
+    telegramBotUsername: isTelegramLoginConfigured() ? getTelegramBotUsername() : null,
     telegramBotId: botId || null,
     google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     vk: Boolean(process.env.VK_CLIENT_ID),
