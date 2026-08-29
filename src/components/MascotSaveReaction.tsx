@@ -31,9 +31,10 @@ function getSaveToastHost(): HTMLElement | null {
   // (same pattern as MobileTabBar / celebration portal).
   host.style.cssText = [
     "position:fixed",
-    "inset:0",
+    "left:0",
+    "right:0",
+    "bottom:0",
     "width:100%",
-    "height:100%",
     "margin:0",
     "padding:0",
     "border:none",
@@ -122,7 +123,7 @@ export function MascotSaveReaction() {
   return createPortal(
     <div
       key={toastKey}
-      className="pointer-events-none absolute bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-[80] -translate-x-1/2"
+      className="pointer-events-none fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-[80] -translate-x-1/2"
       role="status"
       aria-live="polite"
     >
