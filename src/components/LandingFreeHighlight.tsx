@@ -29,10 +29,10 @@ export function LandingFreeHighlight() {
             периода, который внезапно заканчивается.
           </p>
           <ul className="landing-free-list">
-            <li>Неограниченные записи в дневнике</li>
-            <li>Распознавание: тарелка, этикетка, штрихкод, текст</li>
-            <li>Вода, серия, статистика, вес и недельные отчёты</li>
-            <li>Push-напоминания и мягкая мотивация</li>
+            <li>Неограниченные записи и распознавание по фото</li>
+            <li>Этикетки, штрихкоды, текст, клетчатка и сахар</li>
+            <li>Офлайн-очередь, быстрый лог и план недели</li>
+            <li>Вода, серия, статистика, вес и push с экрана «Домой»</li>
             <li>Вход через Google, VK, Telegram или email</li>
           </ul>
           <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen landing-free-cta">

@@ -1,8 +1,8 @@
 const STATS = [
-  { value: "фото · текст · EAN", label: "три входа в дневник" },
-  { value: "~10 с", label: "от снимка до записи" },
-  { value: "0 ₽", label: "на этапе запуска" },
-  { value: "PWA", label: "иконка на «Домой»" },
+  { value: "фото · EAN · текст", label: "три быстрых входа" },
+  { value: "проверка", label: "порция и уверенность" },
+  { value: "офлайн", label: "фото ждёт сеть" },
+  { value: "0 ₽", label: "весь дневник сейчас" },
 ] as const;
 
 /** Dense typographic proof line — not a card strip. */

@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 const LINKS = [
   { href: "#how", label: "Как работает" },
   { href: "#recognition", label: "Распознавание" },
+  { href: "#trust", label: "Доверие" },
   { href: "#inside", label: "Внутри" },
   { href: "#free", label: "Бесплатно" },
   { href: "#install", label: "Установка" },

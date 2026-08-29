@@ -23,8 +23,8 @@ export function LandingFooterCta() {
             <p className="landing-brand landing-brand-sm">Calorie Vision</p>
             <h2 className="landing-section-title">Попробуйте на сегодняшнем обеде</h2>
             <p className="landing-section-text">
-              Регистрация занимает минуту. Сфотографируйте тарелку — и первый приём пищи уже в дневнике,
-              без поиска в справочниках.
+              Регистрация занимает минуту. Сфотографируйте тарелку — проверьте порцию и
+              уверенность — и первый приём уже в дневнике. Талисман порадуется вместе с вами.
             </p>
             <p className="landing-footer-free">Сейчас полностью бесплатно — без подписки.</p>
             <div className="landing-cta landing-cta-row">
