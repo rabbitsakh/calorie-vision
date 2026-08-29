@@ -12,6 +12,8 @@
     "check:client-imports": "tsx scripts/check-client-imports.ts",
     "test": "tsx --test src/lib/*.test.ts src/lib/ai/*.test.ts",
     "test:recognition-eval": "tsx --test src/lib/ai/recognition-eval.test.ts src/lib/ai/recognition-pipeline-eval.test.ts",
+    "rustore:init": "bash scripts/rustore-init.sh",
+    "rustore:build": "bash scripts/rustore-build.sh",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
     "db:generate": "prisma generate",
     "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
