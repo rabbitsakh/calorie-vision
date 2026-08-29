@@ -746,8 +746,8 @@ export function StatsView({ endDate }: StatsViewProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Sticky under the notch via `top`, not padding — avoids a blank band while at rest */}
-      <div className="sticky top-[env(safe-area-inset-top,0px)] z-20 -mx-2.5 bg-[var(--background)] px-2.5 py-0 md:static md:mx-0 md:bg-transparent md:p-0">
+      {/* Sticky under the notch — scrollport is `.cv-app-main`, so top:0 sticks to its top edge */}
+      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)] px-2.5 py-0 md:static md:mx-0 md:bg-transparent md:p-0">
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:max-w-md">
           {([
             ["week", "7 дней"],

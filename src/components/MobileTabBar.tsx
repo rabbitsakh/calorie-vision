@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -12,50 +10,16 @@ type MobileTabBarProps = {
   date?: string;
 };
 
-const HOST_ID = "cv-mobile-tab-bar-host";
-
-function getTabBarHost(): HTMLElement | null {
-  if (typeof document === "undefined") return null;
-  const existing = document.getElementById(HOST_ID);
-  if (existing) return existing;
-
-  const host = document.createElement("div");
-  host.id = HOST_ID;
-  host.setAttribute("data-cv-tab-bar-host", "1");
-  // Attach to <html> so body overflow-x / transforms cannot turn fixed into
-  // a scrolling containing block (same approach as celebration portal).
-  host.style.cssText = [
-    "position:fixed",
-    "left:0",
-    "right:0",
-    "bottom:0",
-    "width:100%",
-    "margin:0",
-    "padding:0",
-    "border:none",
-    "z-index:40",
-    "pointer-events:none",
-  ].join(";");
-  document.documentElement.appendChild(host);
-  return host;
-}
-
 /**
- * Bottom tab bar — always pinned to the screen bottom.
- * Do NOT translate by visualViewport.offsetTop: on iOS that value tracks
- * scroll and drags the bar up through the page (looks like it “scrolls”).
+ * Bottom tab bar — in-flow flex child of `.cv-app-frame` (not position:fixed).
+ * Fixed + visualViewport pin caused the bar to jump mid-page on iOS Stats.
  */
 export function MobileTabBar({ date }: MobileTabBarProps) {
   const pathname = usePathname();
-  const [host, setHost] = useState<HTMLElement | null>(null);
 
-  useEffect(() => {
-    setHost(getTabBarHost());
-  }, []);
-
-  const bar = (
+  return (
     <nav
-      className="mobile-tab-bar pointer-events-auto border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
+      className="mobile-tab-bar shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
       aria-label="Основные разделы"
     >
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-1">
@@ -88,15 +52,4 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
       </div>
     </nav>
   );
-
-  // Before portal host exists, keep a fixed fallback so the bar never lands in page flow.
-  if (!host) {
-    return (
-      <div className="fixed inset-x-0 bottom-0 z-40 md:hidden" aria-hidden={false}>
-        {bar}
-      </div>
-    );
-  }
-
-  return createPortal(bar, host);
 }

@@ -242,7 +242,68 @@ textarea {
 
 .app-shell {
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  /* Tab bar is in-flow on mobile (.cv-app-frame); keep spacer for desktop only below. */
+  padding-bottom: 1rem;
+}
+
+/* App chrome: tab bar is a flex sibling, not position:fixed — stops iOS mid-page jump. */
+.cv-app-frame {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.cv-app-main {
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .cv-app-frame {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .cv-app-main {
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .mobile-tab-bar {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 40;
+  }
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    padding-bottom: 2rem;
+  }
+
+  .cv-app-frame {
+    min-height: 100vh;
+  }
+
+  .cv-app-main {
+    min-height: 100vh;
+  }
+}
+
+.mobile-tab-bar {
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
+  position: relative;
+  width: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .chip {
@@ -297,8 +358,9 @@ textarea {
 }
 
 .confirm-card-scroll-spacer {
+  /* Scrollport ends above in-flow tab bar — small gap only. */
   flex-shrink: 0;
-  height: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  height: 0.75rem;
   pointer-events: none;
 }
 
@@ -350,7 +412,8 @@ textarea {
 
 .sticky-actions {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--card) 28%);
-  bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px));
+  /* `.cv-app-main` scrollport already ends above the tab bar. */
+  bottom: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
@@ -368,7 +431,7 @@ textarea {
   flex-wrap: wrap;
   gap: 0.65rem;
   margin: 0.25rem -1rem 0;
-  padding: 1rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  padding: 1rem 1rem 0.75rem;
 }
 
 .confirm-card-actions .btn {
@@ -387,7 +450,7 @@ textarea {
 }
 
 .undo-toast {
-  bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px));
+  bottom: 0.5rem;
   position: sticky;
   z-index: 28;
 }
@@ -848,31 +911,6 @@ textarea {
   .confirm-hero img {
     height: 14rem;
   }
-}
-
-@media (min-width: 768px) {
-  .app-shell {
-    padding-bottom: 2rem;
-  }
-}
-
-.mobile-tab-bar {
-  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
-  /* Stay at the physical bottom — no transform tied to scroll/visualViewport. */
-  position: relative;
-  width: 100%;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-#cv-mobile-tab-bar-host {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  z-index: 40;
-  pointer-events: none;
 }
 
 .admin-table-wrap {
