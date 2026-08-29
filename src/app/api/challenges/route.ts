@@ -7,7 +7,6 @@ import {
   challengeOptionsForWeek,
   normalizeChallengeKey,
   recommendChallengeKey,
-  shiftChallengeDate,
   weekStartMonday,
 } from "@/lib/challenges";
 import {
@@ -16,7 +15,6 @@ import {
   isWeightGoal,
   recommendDietForProfile,
 } from "@/lib/diet";
-import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { computeChallengeProgress } from "@/lib/challenge-progress";
 
@@ -35,7 +33,6 @@ async function computeProgress(
 }
 
 async function weekHabitSnapshot(userId: string, weekStart: string, today: string) {
-  const dates = Array.from({ length: 7 }, (_, i) => shiftChallengeDate(weekStart, i));
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { ...DIET_PROFILE_SELECT },
