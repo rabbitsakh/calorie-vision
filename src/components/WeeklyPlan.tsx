@@ -88,7 +88,7 @@ export function WeeklyPlan({
     } finally {
       setLoading(false);
     }
-  }, [weekEnd, applyWeek, refreshKey]);
+  }, [weekEnd, applyWeek]);
 
   useEffect(() => {
     const weekPayload = day?.data?.week;

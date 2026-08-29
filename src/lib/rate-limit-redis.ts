@@ -41,7 +41,7 @@ export async function checkRateLimitRedis(
   key: string,
   limit: number,
   windowMs: number,
-  nowMs = Date.now(),
+  _nowMs = Date.now(),
 ): Promise<{ allowed: boolean; retryAfterSec: number } | null> {
   const redis = await getRedisClient();
   if (!redis) {

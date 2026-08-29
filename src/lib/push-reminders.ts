@@ -3,7 +3,6 @@ import { rationMealLink, reminderDeepLink } from "@/lib/push-deeplink";
 import { recommendDietForProfile, type DietProfileFields } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
-  REMINDER_SCHEDULE,
   effectiveReminderSchedule,
   type PushReminderPrefs,
   type ReminderKind,

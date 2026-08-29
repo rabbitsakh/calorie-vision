@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
@@ -36,7 +35,7 @@ export function NextStepBar({ selectedDate, today, onAddFood }: NextStepBarProps
       return {
         label: part === "morning" ? "Начните день — добавьте завтрак" : "Добавьте первый приём пищи",
         actionLabel: "Фото",
-        onClick: () => requestOpenFoodCamera(true),
+        onClick: onAddFood,
       };
     }
 
@@ -50,7 +49,7 @@ export function NextStepBar({ selectedDate, today, onAddFood }: NextStepBarProps
     }
 
     return null;
-  }, [selectedDate, today, day, hour, router]);
+  }, [selectedDate, today, day, hour, router, onAddFood]);
 
   if (!step) return null;
 

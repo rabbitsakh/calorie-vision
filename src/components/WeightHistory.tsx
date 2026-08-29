@@ -85,12 +85,11 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [limit]);
 
   useEffect(() => {
     void load(limit);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey, limit]);
+  }, [refreshKey, limit, load]);
 
   async function saveWeight(event: React.FormEvent) {
     event.preventDefault();

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { dateRangeEnding, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
