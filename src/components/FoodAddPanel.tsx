@@ -17,6 +17,13 @@ import {
   upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
+import {
+  barcodeFailureHint,
+  buildBarcodeLookupFailure,
+  classifyBarcodeLookupFailure,
+  type BarcodeLookupFailure,
+  validateBarcodeClient,
+} from "@/lib/barcode-lookup-client";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { useTimezone } from "@/lib/use-timezone";
 import { OPEN_FOOD_CAMERA_EVENT, OPEN_FOOD_TEXT_EVENT } from "@/lib/open-food-camera";
@@ -78,6 +85,7 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
   const [barcodeQuery, setBarcodeQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [barcodeFailure, setBarcodeFailure] = useState<BarcodeLookupFailure | null>(null);
   const [restaurantMode, setRestaurantMode] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [listening, setListening] = useState(false);
@@ -260,12 +268,34 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
 
     setLoading(true);
     setError(null);
+    setBarcodeFailure(null);
+
+    let barcodeForLookup: string | undefined;
+    if (payload.barcode) {
+      const validated = validateBarcodeClient(payload.barcode);
+      if (!validated.ok) {
+        setBarcodeFailure({
+          kind: "invalid_format",
+          barcode: payload.barcode.trim(),
+          message: validated.message,
+          hint: barcodeFailureHint("invalid_format"),
+        });
+        setLoading(false);
+        lookupAbortRef.current = null;
+        return;
+      }
+      barcodeForLookup = validated.barcode;
+      setBarcodeQuery(validated.barcode);
+    }
 
     try {
       const response = await fetch(withBasePath("/api/food/lookup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          dishName: payload.dishName,
+          barcode: barcodeForLookup,
+        }),
         signal: controller.signal,
       });
       const data = await readApiJson<{
@@ -275,13 +305,12 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       }>(response);
 
       if (!response.ok || !data.recognition) {
-        const miss = data.error ?? "Не удалось найти продукт";
-        if (payload.barcode) {
-          throw new Error(
-            `${miss}. Можно ввести название вручную или сфотографировать этикетку.`,
-          );
+        if (barcodeForLookup) {
+          const kind = classifyBarcodeLookupFailure(response.status, data.error);
+          setBarcodeFailure(buildBarcodeLookupFailure(kind, barcodeForLookup));
+          return;
         }
-        throw new Error(miss);
+        throw new Error(data.error ?? "Не удалось найти продукт");
       }
 
       if (controller.signal.aborted) {
@@ -291,6 +320,11 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       openPending(toRecognitionResponse(data.recognition, data.imagePath));
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
+      if (barcodeForLookup) {
+        const kind = classifyBarcodeLookupFailure(0, undefined, err);
+        setBarcodeFailure(buildBarcodeLookupFailure(kind, barcodeForLookup));
+        return;
+      }
       setError(humanizeClientFetchError(err, "Ошибка поиска"));
     } finally {
       if (lookupAbortRef.current === controller) {
@@ -298,6 +332,12 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
         setLoading(false);
       }
     }
+  }
+
+  function retryBarcodeLookup() {
+    const code = barcodeFailure?.barcode ?? barcodeQuery.trim();
+    if (!code) return;
+    void lookupFood({ barcode: code });
   }
 
   if (pendingResult) {
@@ -419,6 +459,7 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
                 stopVoice();
                 setMode(tab.id);
                 setError(null);
+                setBarcodeFailure(null);
                 setTextQuery("");
                 setBarcodeQuery("");
                 setLoading(false);
@@ -522,10 +563,12 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
               }}
               onManualFallback={() => {
                 setError(null);
+                setBarcodeFailure(null);
                 setMode("text");
               }}
               onLabelFallback={() => {
                 setError(null);
+                setBarcodeFailure(null);
                 setMode("photo");
               }}
             />
@@ -546,6 +589,52 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
               {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти по штрихкоду"}
             </button>
           </form>
+        ) : null}
+
+        {barcodeFailure ? (
+          <div
+            className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3"
+            role="alert"
+          >
+            <p className="text-sm font-semibold text-red-800">{barcodeFailure.message}</p>
+            {barcodeFailure.hint ? (
+              <p className="text-xs text-red-700">{barcodeFailure.hint}</p>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              {barcodeFailure.kind === "network" ||
+              barcodeFailure.kind === "rate_limit" ||
+              barcodeFailure.kind === "server" ? (
+                <button
+                  type="button"
+                  className="btn btn-secondary text-sm"
+                  disabled={loading}
+                  onClick={retryBarcodeLookup}
+                >
+                  Повторить
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => {
+                  setBarcodeFailure(null);
+                  setMode("text");
+                }}
+              >
+                Ввести вручную
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => {
+                  setBarcodeFailure(null);
+                  setMode("photo");
+                }}
+              >
+                Сфотографировать этикетку
+              </button>
+            </div>
+          </div>
         ) : null}
 
         {error ? (

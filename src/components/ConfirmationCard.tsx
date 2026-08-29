@@ -15,6 +15,13 @@ import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
+  confidenceActionHint,
+  confidenceShortLabel,
+  confidenceToneClasses,
+  formatConfidencePercent,
+  getConfidenceTone,
+} from "@/lib/recognition-confidence-ui";
+import {
   applyAlternativeToPortion,
   applyFoodLookupToPortion,
   nutritionBaselineFromRecognition,
@@ -243,8 +250,34 @@ function dishNeedsReview(
   };
 }
 
-function formatConfidence(value: number): string {
-  return `${Math.round(value * 100)}%`;
+function ConfidenceBadge({
+  confidence,
+  threshold,
+  photoKind,
+  source,
+  inverted,
+}: {
+  confidence: number;
+  threshold: number;
+  photoKind?: string;
+  source?: string;
+  inverted?: boolean;
+}) {
+  const tone = getConfidenceTone(confidence, threshold);
+  const classes = inverted
+    ? "border-white/30 bg-black/35 text-white"
+    : confidenceToneClasses(tone);
+
+  return (
+    <span
+      className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold leading-snug ${classes}`}
+    >
+      <span>{formatConfidencePercent(confidence)}</span>
+      <span className={inverted ? "text-white/85" : "opacity-80"}>
+        · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, { photoKind, source })}
+      </span>
+    </span>
+  );
 }
 
 /**
@@ -782,6 +815,17 @@ export function ConfirmationCard({
                   ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
                   : dishes[0]?.dishName || "Проверьте порцию и калории"}
               </p>
+              {!multi && dishes[0] ? (
+                <div className="mt-2">
+                  <ConfidenceBadge
+                    confidence={dishes[0].original.confidence}
+                    threshold={lowConfidenceThreshold}
+                    photoKind={dishes[0].original.photoKind}
+                    source={dishes[0].original.source}
+                    inverted
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         ) : (
@@ -792,6 +836,16 @@ export function ConfirmationCard({
                 ? "Несколько блюд — поправьте порции и сохраните."
                 : "Проверьте порцию и калории. БЖУ можно уточнить ниже."}
             </p>
+            {!multi && dishes[0] ? (
+              <div className="mt-2">
+                <ConfidenceBadge
+                  confidence={dishes[0].original.confidence}
+                  threshold={lowConfidenceThreshold}
+                  photoKind={dishes[0].original.photoKind}
+                  source={dishes[0].original.source}
+                />
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -811,7 +865,9 @@ export function ConfirmationCard({
                     ? "Уточнение не завершилось — проверьте калории"
                     : anyMissingCalories
                       ? "Не хватает калорий — уточните название"
-                      : "Низкая уверенность — проверьте блюдо"}
+                      : anyLowConfidence && dishes[0]
+                        ? `Низкая уверенность (${formatConfidencePercent(dishes[0].original.confidence)}) — проверьте блюдо`
+                        : "Низкая уверенность — проверьте блюдо"}
               </p>
               {needsReview && multi ? (
                 <button
@@ -821,6 +877,16 @@ export function ConfirmationCard({
                   onClick={() => void handleLookupAll()}
                 >
                   {bulkLookupRunning ? "Уточняем…" : "Уточнить все"}
+                </button>
+              ) : null}
+              {needsReview && !multi && dishes[0] ? (
+                <button
+                  type="button"
+                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={formDisabled || enriching || searchingId === dishes[0].id}
+                  onClick={() => void handleLookup(dishes[0]!)}
+                >
+                  {searchingId === dishes[0].id ? "Уточняем…" : "Уточнить по названию"}
                 </button>
               ) : null}
             </div>
@@ -1007,7 +1073,7 @@ export function ConfirmationCard({
             <p>
               {multi
                 ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                : `Уверенность: ${formatConfidence(recognition.confidence)}`}
+                : `Уверенность: ${formatConfidencePercent(recognition.confidence)}`}
               {recognition.barcode ? ` · ${recognition.barcode}` : ""}
               {recognition.brand ? ` · ${recognition.brand}` : ""}
             </p>
@@ -1144,7 +1210,7 @@ function DishFields({
           <div>
             <p className="text-sm font-semibold text-slate-700">Блюдо {index + 1}</p>
             <p className="text-xs text-slate-500">
-              Уверенность: {formatConfidence(dish.original.confidence)}
+              Уверенность: {formatConfidencePercent(dish.original.confidence)}
               {review.missingCalories ? " · нет калорий" : ""}
               {review.lowConfidence ? " · низкая уверенность" : ""}
             </p>
@@ -1291,7 +1357,7 @@ function DishFields({
           <>
             {review.lowConfidence ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
-                Низкая уверенность ({formatConfidence(dish.original.confidence)}) — проверьте
+                Низкая уверенность ({formatConfidencePercent(dish.original.confidence)}) — проверьте
                 название или нажмите «Уточнить по названию».
               </p>
             ) : null}
