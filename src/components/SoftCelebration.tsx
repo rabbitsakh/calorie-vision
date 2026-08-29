@@ -16,6 +16,7 @@ type SoftCelebrationProps = {
   /** Optional small badge (e.g. streak days); shown under the mascot. */
   badge?: string;
   durationMs?: number;
+  ctaLabel?: string;
   /** When set, shows «Не показывать сегодня» and mutes soft celebrations for this date. */
   muteDate?: string;
   onClose: () => void;
@@ -39,6 +40,7 @@ export function SoftCelebration({
   variant,
   badge,
   durationMs = 3400,
+  ctaLabel,
   muteDate,
   onClose,
 }: SoftCelebrationProps) {
@@ -51,6 +53,7 @@ export function SoftCelebration({
       badge={badge}
       variant={variant ?? variantFromPose(pose)}
       durationMs={durationMs}
+      ctaLabel={ctaLabel}
       onMuteToday={muteDate ? () => muteSoftCelebrationsToday(muteDate) : undefined}
       onClose={onClose}
     />

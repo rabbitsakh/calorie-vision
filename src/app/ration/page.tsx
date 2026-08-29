@@ -17,10 +17,13 @@ import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
+import { ChallengeStrip } from "@/components/ChallengeStrip";
+import { NextBadgeChip } from "@/components/NextBadgeChip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
+import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import {
   requestOpenFoodCamera,
@@ -217,6 +220,11 @@ function RationBody({
           today={today}
           onAddFood={openFoodCamera}
         />
+        <ChallengeStrip
+          refreshKey={refreshKey}
+          onOpenHabits={() => setShowHabits(true)}
+        />
+        <NextBadgeChip refreshKey={refreshKey} />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
 
@@ -287,37 +295,37 @@ function RationBody({
 
         <PushNotificationPrompt />
 
-        <section className="card overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
-            onClick={() => setShowHabits((value) => !value)}
-            aria-expanded={showHabits}
-          >
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800">Привычки и заметки</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Серия, челлендж, список покупок, заметка
-              </p>
-            </div>
-            <ChevronIcon open={showHabits} />
-          </button>
-          {!showHabits ? (
-            <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
-              <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
-              <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-              <ShoppingListPanel selectedDate={date} />
-              <DiaryNoteWidget selectedDate={date} />
-            </div>
-          )}
-        </section>
-
         <CelebrationOrchestrator>
+          <section className="card overflow-hidden">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
+              onClick={() => setShowHabits((value) => !value)}
+              aria-expanded={showHabits}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">Привычки и заметки</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Серия, челлендж, список покупок, заметка
+                </p>
+              </div>
+              <ChevronIcon open={showHabits} />
+            </button>
+            {!showHabits ? (
+              <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+                <ShoppingListPanel selectedDate={date} />
+                <DiaryNoteWidget selectedDate={date} />
+              </div>
+            )}
+          </section>
+
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
@@ -325,6 +333,7 @@ function RationBody({
           <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <BadgeUnlockHost refreshKey={refreshKey} />
         </CelebrationOrchestrator>
 
         <PwaInstallWizard

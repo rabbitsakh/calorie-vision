@@ -26,6 +26,33 @@ export type NextBadgeHint = BadgeDef & {
   ratio: number;
 };
 
+export type BadgeGroupId =
+  | "streak"
+  | "meals"
+  | "water"
+  | "target"
+  | "weight"
+  | "challenges";
+
+export const BADGE_GROUP_LABELS: Record<BadgeGroupId, string> = {
+  streak: "Серия",
+  meals: "Дневник",
+  water: "Вода",
+  target: "Коридор",
+  weight: "Вес",
+  challenges: "Челленджи",
+};
+
+export function badgeGroup(key: string): BadgeGroupId {
+  if (key.startsWith("streak_")) return "streak";
+  if (key.startsWith("meals_") || key === "first_log") return "meals";
+  if (key.startsWith("water_")) return "water";
+  if (key === "week_on_target" || key === "month_on_target") return "target";
+  if (key.startsWith("weight_")) return "weight";
+  if (key.startsWith("challenges_")) return "challenges";
+  return "meals";
+}
+
 /** Days in ±corridor over last 30 needed for month_on_target. */
 export const MONTH_ON_TARGET_DAYS = 20;
 
@@ -151,7 +178,8 @@ export function badgeDef(key: string): BadgeDef | undefined {
   return BADGE_DEFS.find((b) => b.key === key);
 }
 
-function progressForBadge(
+/** Progress toward a badge unlock for UI bars. */
+export function getBadgeProgress(
   key: string,
   stats: BadgeStatsSnapshot,
 ): { current: number; target: number } | null {
@@ -214,7 +242,7 @@ function progressForBadge(
 export function qualifyingBadgeKeys(stats: BadgeStatsSnapshot): string[] {
   const keys: string[] = [];
   for (const def of BADGE_DEFS) {
-    const progress = progressForBadge(def.key, stats);
+    const progress = getBadgeProgress(def.key, stats);
     if (!progress) continue;
     if (progress.current >= progress.target) keys.push(def.key);
   }
@@ -231,7 +259,7 @@ export function nextBadgeHint(
 
   for (const def of BADGE_DEFS) {
     if (earned.has(def.key)) continue;
-    const progress = progressForBadge(def.key, stats);
+    const progress = getBadgeProgress(def.key, stats);
     if (!progress) continue;
     const ratio = progress.target > 0 ? progress.current / progress.target : 0;
     const candidate: NextBadgeHint = { ...def, ...progress, ratio };

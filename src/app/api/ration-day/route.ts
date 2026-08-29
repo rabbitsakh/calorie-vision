@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import { resolveWaterTargetMl } from "@/lib/water-target";
+import { loadActiveChallengeForUser } from "@/lib/challenge-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,8 @@ export async function GET(request: NextRequest) {
         : "Сегодня достаточно одного приёма пищи, чтобы войти в ритм.";
     })();
 
+    const activeChallenge = await loadActiveChallengeForUser(userId, account?.timezone);
+
     return NextResponse.json(
       {
         date,
@@ -126,7 +129,7 @@ export async function GET(request: NextRequest) {
         },
         tip,
         diaryMood: diaryNote?.mood != null ? String(diaryNote.mood) : null,
-        challenges: null,
+        challenges: { active: activeChallenge },
       },
       {
         headers: {
