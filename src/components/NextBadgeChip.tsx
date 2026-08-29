@@ -11,6 +11,7 @@ type NextBadgeChipProps = {
 
 /**
  * Quiet «почти значок» chip on ration — one hint, links to Profile achievements.
+ * Label must say it’s a badge (not a weekly challenge).
  */
 export function NextBadgeChip({ refreshKey }: NextBadgeChipProps) {
   const [hint, setHint] = useState<NextBadgeHint | null>(null);
@@ -42,15 +43,28 @@ export function NextBadgeChip({ refreshKey }: NextBadgeChipProps) {
   return (
     <Link
       href={withBasePath("/profile")}
-      className="flex items-center justify-between gap-2 rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2 text-left hover:border-teal-200"
+      className="block rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2.5 text-left hover:border-teal-200"
     >
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Близко</p>
-        <p className="truncate text-sm font-medium text-teal-950">{hint.title}</p>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">
+            Почти значок
+          </p>
+          <p className="truncate text-sm font-medium text-teal-950">{hint.title}</p>
+          {hint.description ? (
+            <p className="mt-0.5 truncate text-xs text-teal-800/80">{hint.description}</p>
+          ) : null}
+        </div>
+        <span className="shrink-0 pt-0.5 text-xs font-bold tabular-nums text-teal-800">
+          {hint.current}/{hint.target}
+        </span>
       </div>
-      <span className="shrink-0 text-xs font-bold tabular-nums text-teal-800">
-        {hint.current}/{hint.target} · {pct}%
-      </span>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-teal-100">
+        <div
+          className="h-full rounded-full bg-teal-500/80"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </Link>
   );
 }
