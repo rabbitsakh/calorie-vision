@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Manrope, Unbounded } from "next/font/google";
 import { LandingAudience } from "@/components/LandingAudience";
+import { LandingDayPulse } from "@/components/LandingDayPulse";
 import { LandingFeatureGrid } from "@/components/LandingFeatureGrid";
 import { LandingFooterCta } from "@/components/LandingFooterCta";
 import { LandingFreeHighlight } from "@/components/LandingFreeHighlight";
@@ -9,6 +10,7 @@ import { LandingScrollReveal } from "@/components/LandingScrollReveal";
 import { LandingShell } from "@/components/LandingShell";
 import { LandingStatsStrip } from "@/components/LandingStatsStrip";
 import { LandingTopNav } from "@/components/LandingTopNav";
+import { LandingTrustBand } from "@/components/LandingTrustBand";
 
 const display = Unbounded({
   subsets: ["latin", "cyrillic"],
@@ -53,6 +55,9 @@ function AppPreview({ className = "" }: { className?: string }) {
             <span>
               У <b>142</b>
             </span>
+            <span>
+              Кл <b>18</b>
+            </span>
           </div>
           <div className="landing-phone-water">
             <span>Вода</span>
@@ -64,7 +69,7 @@ function AppPreview({ className = "" }: { className?: string }) {
               <span>320</span>
             </div>
             <div className="landing-phone-meal">
-              <span>Куриный салат</span>
+              <span>Куриный салат · 86%</span>
               <span>480</span>
             </div>
             <div className="landing-phone-meal landing-phone-meal-soft">
@@ -94,6 +99,10 @@ function HeroAtmosphere() {
             <stop stopColor="#ffe8c7" />
             <stop offset="1" stopColor="#e8a35c" />
           </linearGradient>
+          <linearGradient id="lpLeaf" x1="460" y1="250" x2="560" y2="380" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#9be3a0" />
+            <stop offset="1" stopColor="#3f9e5a" />
+          </linearGradient>
           <filter id="lpSoft" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="8" />
           </filter>
@@ -102,9 +111,11 @@ function HeroAtmosphere() {
         <ellipse cx="450" cy="340" rx="250" ry="180" fill="url(#lpPlate)" />
         <ellipse cx="450" cy="340" rx="198" ry="140" fill="#f7fffc" opacity="0.42" />
         <ellipse cx="420" cy="318" rx="108" ry="82" fill="url(#lpFood)" opacity="0.95" />
-        <ellipse cx="500" cy="352" rx="78" ry="58" fill="#6ecf7a" opacity="0.82" />
+        <ellipse cx="500" cy="352" rx="78" ry="58" fill="url(#lpLeaf)" opacity="0.88" />
         <ellipse cx="388" cy="366" rx="56" ry="40" fill="#ef8b4a" opacity="0.9" />
         <ellipse cx="470" cy="278" rx="42" ry="32" fill="#e86b6b" opacity="0.78" />
+        <ellipse cx="360" cy="300" rx="28" ry="22" fill="#f4d35e" opacity="0.75" />
+        <ellipse cx="540" cy="310" rx="22" ry="18" fill="#7ec8e3" opacity="0.7" />
         <g className="landing-hero-scan" stroke="#4BE0BC" strokeWidth="5" strokeLinecap="square" fill="none">
           <path d="M250 170V118h52" />
           <path d="M650 170V118h-52" />
@@ -181,8 +192,8 @@ export function LandingPage() {
           <p className="landing-brand">Calorie Vision</p>
           <h1 className="landing-headline">Сфотографировали — калории уже в дневнике</h1>
           <p className="landing-lead">
-            Тарелка, этикетка, штрихкод или название. ИИ оценивает порцию, вы проверяете и сохраняете
-            за секунды.
+            Тарелка, этикетка, штрихкод или название. ИИ оценивает порцию — вы видите уверенность,
+            правите за секунды и сохраняете.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
@@ -216,8 +227,8 @@ export function LandingPage() {
               <div>
                 <h3 className="landing-step-title">Снимите или опишите еду</h3>
                 <p className="landing-section-text">
-                  Тарелка в кафе, упаковка, этикетка КБЖУ или штрихкод. Можно написать «гречка с
-                  курицей» — подберём калорийность по названию.
+                  Тарелка в кафе, упаковка, этикетка КБЖУ или штрихкод. Можно написать или надиктовать
+                  «гречка с курицей». Нет сети — фото сохранится в офлайн-очереди.
                 </p>
               </div>
             </li>
@@ -226,10 +237,10 @@ export function LandingPage() {
                 02
               </span>
               <div>
-                <h3 className="landing-step-title">Проверьте порцию</h3>
+                <h3 className="landing-step-title">Проверьте порцию и уверенность</h3>
                 <p className="landing-section-text">
-                  Подправьте граммы или название — калории и БЖУ пересчитаются до сохранения.
-                  Несколько блюд с одного фото редактируются по отдельности.
+                  Подправьте граммы или название — калории и БЖУ пересчитаются. При низкой уверенности
+                  — «Уточнить по названию». Несколько блюд с одного фото — по отдельности.
                 </p>
               </div>
             </li>
@@ -241,7 +252,7 @@ export function LandingPage() {
                 <h3 className="landing-step-title">Следите за днём</h3>
                 <p className="landing-section-text">
                   Завтрак, обед, ужин и перекусы в рационе. Видно, сколько осталось до нормы, как
-                  идёт вода и серия записей.
+                  идёт вода, серия и недельный план.
                 </p>
               </div>
             </li>
@@ -254,16 +265,25 @@ export function LandingPage() {
       </LandingScrollReveal>
 
       <LandingScrollReveal>
+        <LandingTrustBand />
+      </LandingScrollReveal>
+
+      <LandingScrollReveal>
         <section id="inside" className="landing-section landing-section-band">
           <div className="landing-section-head">
             <p className="landing-kicker">Что внутри</p>
             <h2 className="landing-section-title">Ежедневный учёт — в одном месте</h2>
             <p className="landing-section-text landing-section-text-wide">
-              Быстро добавить еду, не потерять привычку и понимать, куда уходит калорийный бюджет дня.
+              Быстро добавить еду, не потерять привычку и понимать, куда уходит калорийный бюджет дня —
+              даже если сеть пропала на минуту.
             </p>
           </div>
           <LandingFeatureGrid />
         </section>
+      </LandingScrollReveal>
+
+      <LandingScrollReveal>
+        <LandingDayPulse />
       </LandingScrollReveal>
 
       <LandingScrollReveal>
@@ -283,6 +303,7 @@ export function LandingPage() {
               Calorie Vision — PWA. Откройте{" "}
               <strong className="landing-inline-strong">calorievision.ru</strong> в браузере и
               добавьте на главный экран: иконка и полноэкранный режим без App Store и Google Play.
+              Напоминания на iPhone работают только с этой иконки (iOS 16.4+).
             </p>
           </div>
 
@@ -298,7 +319,11 @@ export function LandingPage() {
                   Нажмите «Поделиться» <ShareIcon /> внизу экрана.
                 </li>
                 <li>Выберите «На экран „Домой“» → «Добавить».</li>
-                <li>Запускайте с иконки — так работают уведомления (iOS 16.4+).</li>
+                <li>Запускайте с иконки — так работают уведомления.</li>
+                <li>
+                  Если push запретили — удалите иконку, добавьте снова и включите напоминания в
+                  профиле.
+                </li>
               </ol>
             </div>
 
@@ -345,21 +370,30 @@ export function LandingPage() {
               <dt>Насколько точны калории по фото?</dt>
               <dd>
                 Это умная оценка, а не лабораторный анализ. Перед сохранением вы видите порцию и
-                можете поправить название или граммы — приложение запомнит исправления.
+                уровень уверенности — можно поправить название или граммы; приложение запомнит
+                исправления.
               </dd>
             </div>
             <div className="landing-faq-item">
               <dt>Что распознаётся кроме тарелки?</dt>
               <dd>
-                Этикетки с КБЖУ, упаковки, напитки, штрихкоды и готовые блюда со стикерами. Можно и
-                просто ввести название текстом.
+                Этикетки с КБЖУ (включая клетчатку и сахар), упаковки, напитки, штрихкоды и готовые
+                блюда со стикерами. Можно ввести название текстом или голосом.
+              </dd>
+            </div>
+            <div className="landing-faq-item">
+              <dt>Что если нет интернета?</dt>
+              <dd>
+                Фото и неудавшиеся сохранения попадают в офлайн-очередь на устройстве. Когда сеть
+                появится — распознаем и отправим; черновик можно продолжить с экрана рациона.
               </dd>
             </div>
             <div className="landing-faq-item">
               <dt>Есть ли учёт воды и напоминания?</dt>
               <dd>
                 Да. В «Рационе» — трекер воды с быстрыми кнопками. Push о еде и воде включаются в
-                профиле (на iOS — после добавления на домашний экран).
+                профиле (на iOS — после добавления на домашний экран; при запрете — переустановите
+                ярлык).
               </dd>
             </div>
             <div className="landing-faq-item">
@@ -373,8 +407,8 @@ export function LandingPage() {
             <div className="landing-faq-item">
               <dt>Можно ли вести дневник без фото?</dt>
               <dd>
-                Да. Напишите название или отсканируйте штрихкод — калорийность подтянется из базы.
-                Фото просто быстрее дома и в кафе.
+                Да. Напишите название, выберите избранное или отсканируйте штрихкод — калорийность
+                подтянется из базы. Фото просто быстрее дома и в кафе.
               </dd>
             </div>
           </dl>
