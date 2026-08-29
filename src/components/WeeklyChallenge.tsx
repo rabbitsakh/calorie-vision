@@ -24,6 +24,7 @@ type ChallengeOption = {
   target: number;
   tight?: boolean;
   daysLeft?: number;
+  recommended?: boolean;
 };
 
 type ActiveChallenge = {
@@ -52,6 +53,9 @@ type WeeklyChallengeProps = {
 
 export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: WeeklyChallengeProps) {
   const [data, setData] = useState<ChallengesResponse | null>(null);
+  const [history, setHistory] = useState<
+    Array<{ weekStart: string; title: string; completed: boolean; progress: number; target: number }>
+  >([]);
   const [hidden, setHidden] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
@@ -102,6 +106,28 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   useEffect(() => {
     void load();
   }, [load, refreshKey, selectedDate]);
+
+  useEffect(() => {
+    if (mini) return;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/challenges?history=1"));
+        if (!resp.ok) return;
+        const next = (await resp.json()) as {
+          history?: Array<{
+            weekStart: string;
+            title: string;
+            completed: boolean;
+            progress: number;
+            target: number;
+          }>;
+        };
+        setHistory(next.history ?? []);
+      } catch {
+        // ignore
+      }
+    })();
+  }, [mini, refreshKey]);
 
   async function start(key: string, replace = false) {
     setStarting(key);
@@ -181,9 +207,12 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
 
   const daysLeft = data.daysLeft ?? data.options[0]?.daysLeft;
   const showPicker = !data.active || switching;
-  const options = switching
+  const options = (switching
     ? data.options.filter((o) => o.key !== data.active?.challengeKey)
-    : data.options;
+    : data.options
+  )
+    .slice()
+    .sort((a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)));
 
   return (
     <>
@@ -288,6 +317,9 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
               >
                 <p className="text-sm font-medium text-slate-800">{opt.title}</p>
                 <p className="text-xs text-slate-500">{opt.description}</p>
+                {opt.recommended ? (
+                  <p className="mt-1 text-xs font-semibold text-teal-700">Подойдёт на этой неделе</p>
+                ) : null}
                 {opt.tight ? (
                   <p className="mt-1 text-xs font-medium text-amber-700">
                     Сложно успеть: до конца недели меньше дней, чем нужно
@@ -298,6 +330,31 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
                 ) : null}
               </button>
             ))}
+          </div>
+        ) : null}
+
+        {history.length > 0 ? (
+          <div className="mt-4 border-t border-emerald-100 pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+              Прошлые недели
+            </p>
+            <ul className="flex flex-col gap-1.5">
+              {history.slice(0, 6).map((row) => (
+                <li
+                  key={row.weekStart}
+                  className="flex items-center justify-between gap-2 text-xs text-slate-600"
+                >
+                  <span className="min-w-0 truncate">
+                    <span className="font-medium text-slate-700">{row.weekStart}</span>
+                    {" · "}
+                    {row.title}
+                  </span>
+                  <span className="shrink-0 tabular-nums font-semibold text-emerald-800">
+                    {row.completed ? "✓" : `${row.progress}/${row.target}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </div>
