@@ -287,37 +287,37 @@ function RationBody({
 
         <PushNotificationPrompt />
 
-        <section className="card overflow-hidden">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
-            onClick={() => setShowHabits((value) => !value)}
-            aria-expanded={showHabits}
-          >
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800">Привычки и заметки</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Серия, челлендж, список покупок, заметка
-              </p>
-            </div>
-            <ChevronIcon open={showHabits} />
-          </button>
-          {!showHabits ? (
-            <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
-              <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
-              <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-              <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-              <ShoppingListPanel selectedDate={date} />
-              <DiaryNoteWidget selectedDate={date} />
-            </div>
-          )}
-        </section>
-
         <CelebrationOrchestrator>
+          <section className="card overflow-hidden">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
+              onClick={() => setShowHabits((value) => !value)}
+              aria-expanded={showHabits}
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">Привычки и заметки</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Серия, челлендж, список покупок, заметка
+                </p>
+              </div>
+              <ChevronIcon open={showHabits} />
+            </button>
+            {!showHabits ? (
+              <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
+                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+                <ShoppingListPanel selectedDate={date} />
+                <DiaryNoteWidget selectedDate={date} />
+              </div>
+            )}
+          </section>
+
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <StreakMilestoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />

@@ -3,26 +3,21 @@ import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import {
-  CHALLENGE_DEFS,
   challengeDef,
+  challengeOptionsForWeek,
+  shiftChallengeDate,
   weekStartMonday,
 } from "@/lib/challenges";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
 
-function shiftDate(dateKey: string, days: number): string {
-  const d = new Date(dateKey + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 async function computeProgress(
   userId: string,
   challengeKey: string,
   weekStart: string,
 ): Promise<number> {
-  const dates = Array.from({ length: 7 }, (_, i) => shiftDate(weekStart, i));
+  const dates = Array.from({ length: 7 }, (_, i) => shiftChallengeDate(weekStart, i));
 
   if (challengeKey === "breakfast_7") {
     const rows = await prisma.mealEntry.findMany({
@@ -84,6 +79,7 @@ export async function GET() {
     const timezone = user?.timezone ?? null;
     const today = toDateKeyTz(new Date(), timezone);
     const weekStart = weekStartMonday(today, timezone);
+    const options = challengeOptionsForWeek(today, weekStart);
 
     const active = await prisma.userChallenge.findUnique({
       where: {
@@ -94,8 +90,9 @@ export async function GET() {
     if (!active) {
       return NextResponse.json({
         active: null,
-        options: CHALLENGE_DEFS,
+        options,
         weekStart,
+        daysLeft: options[0]?.daysLeft ?? 7,
       });
     }
 
@@ -126,8 +123,9 @@ export async function GET() {
         completedAt,
         weekStart,
       },
-      options: CHALLENGE_DEFS,
+      options,
       weekStart,
+      daysLeft: options[0]?.daysLeft ?? 7,
     });
   } catch (error) {
     console.error(error);
