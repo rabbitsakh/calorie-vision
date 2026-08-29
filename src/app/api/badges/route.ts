@@ -162,7 +162,7 @@ export async function POST() {
     if (response) return response;
 
     const userId = session.user.id;
-    const { stats, existing, candidates } = await loadBadgeStats(userId);
+    const { stats, candidates } = await loadBadgeStats(userId);
     const newlyUnlocked: string[] = [];
 
     if (candidates.length > 0) {

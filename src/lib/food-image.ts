@@ -139,61 +139,6 @@ async function getJson(url: string): Promise<unknown | null> {
   }
 }
 
-async function searchWikipediaImage(query: string, lang: "ru" | "en"): Promise<string | undefined> {
-  const trimmed = query.trim();
-  if (trimmed.length < 2) {
-    return undefined;
-  }
-
-  const url = `https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({
-    action: "query",
-    format: "json",
-    origin: "*",
-    generator: "search",
-    gsrsearch: trimmed,
-    gsrlimit: "5",
-    gsrnamespace: "0",
-    prop: "pageimages",
-    piprop: "thumbnail",
-    pithumbsize: "640",
-    pilicense: "any",
-  }).toString()}`;
-
-  const data = (await getJson(url)) as WikiQueryResponse | null;
-  if (!data) {
-    return undefined;
-  }
-
-  return pickWikipediaThumbnail(data);
-}
-
-async function searchCommonsImage(query: string): Promise<string | undefined> {
-  const trimmed = query.trim();
-  if (trimmed.length < 2) {
-    return undefined;
-  }
-
-  const url = `https://commons.wikimedia.org/w/api.php?${new URLSearchParams({
-    action: "query",
-    format: "json",
-    origin: "*",
-    generator: "search",
-    gsrsearch: `${trimmed} food`,
-    gsrlimit: "8",
-    gsrnamespace: "6",
-    prop: "imageinfo",
-    iiprop: "url|mime|size",
-    iiurlwidth: "640",
-  }).toString()}`;
-
-  const data = (await getJson(url)) as CommonsQueryResponse | null;
-  if (!data) {
-    return undefined;
-  }
-
-  return pickCommonsImage(data);
-}
-
 function withoutBrand(query: string, brand?: string): string | undefined {
   if (!brand) {
     return undefined;

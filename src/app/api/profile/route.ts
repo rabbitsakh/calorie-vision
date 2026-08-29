@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
-import { goalNeedsPace, isGoalPace, isWeightGoal, type GoalPace, type WeightGoal } from "@/lib/diet";
+import { goalNeedsPace, isGoalPace, isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { prisma } from "@/lib/prisma";
 import {
   computeWeightChangeKg,

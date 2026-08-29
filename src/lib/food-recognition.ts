@@ -44,7 +44,6 @@ import {
   lookupOpenFoodFactsByBarcodeWithRepair,
   nutritionFromPer100g,
   offMatchesQuery,
-  searchOpenFoodFacts,
   searchOpenFoodFactsBest,
   type PackNutrition,
 } from "@/lib/open-food-facts";
