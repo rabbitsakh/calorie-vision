@@ -10,6 +10,8 @@ export type PwaInstallWizardProps = {
   open: boolean;
   onClose: () => void;
   prefer?: "ios" | "android" | "auto";
+  /** Fresh install vs fix denied/broken push after Home Screen install. */
+  mode?: "install" | "reinstall";
 };
 
 function ShareGlyph() {
@@ -69,10 +71,16 @@ export function setPwaOnboardingSeen(): void {
   }
 }
 
-/** Modal with iOS + Android Home Screen install steps (#39). */
-export function PwaInstallWizard({ open, onClose, prefer = "auto" }: PwaInstallWizardProps) {
+/** Modal with iOS + Android Home Screen install / reinstall steps (#39 / Wave E). */
+export function PwaInstallWizard({
+  open,
+  onClose,
+  prefer = "auto",
+  mode = "install",
+}: PwaInstallWizardProps) {
   const detectedIos = useMemo(() => (typeof window !== "undefined" ? isLikelyIos() : false), []);
   const [tab, setTab] = useState<"ios" | "android">("ios");
+  const reinstall = mode === "reinstall";
 
   useEffect(() => {
     if (!open) return;
@@ -98,10 +106,12 @@ export function PwaInstallWizard({ open, onClose, prefer = "auto" }: PwaInstallW
         <div className="flex items-start justify-between gap-2">
           <div>
             <p id="pwa-wizard-title" className="font-semibold text-slate-900">
-              Установить на телефон
+              {reinstall ? "Переустановить для уведомлений" : "Установить на телефон"}
             </p>
             <p className="mt-1 text-sm text-slate-500">
-              Ярлык на экране «Домой» — удобнее дневник и напоминания.
+              {reinstall
+                ? "Сбросит запрет уведомлений на iPhone и заново подключит пуши."
+                : "Ярлык на экране «Домой» — удобнее дневник и напоминания."}
             </p>
           </div>
           <button type="button" className="btn-quiet text-sm text-slate-500" onClick={onClose}>
@@ -131,13 +141,44 @@ export function PwaInstallWizard({ open, onClose, prefer = "auto" }: PwaInstallW
         </div>
 
         {tab === "ios" ? (
+          reinstall ? (
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+              <li>Удерживайте иконку Calorie Vision → «Удалить приложение» / с экрана «Домой».</li>
+              <li>Откройте сайт снова в Safari (не из старой вкладки PWA).</li>
+              <li>
+                «Поделиться» <ShareGlyph /> → «На экран „Домой“» → «Добавить».
+              </li>
+              <li>Откройте только с новой иконки.</li>
+              <li>
+                Профиль → «Включить напоминания». Если система спросит — нажмите «Разрешить».
+              </li>
+              <li>
+                Если уже запретили: Настройки → Уведомления → Calorie Vision → разрешите, затем снова
+                «Включить» в профиле.
+              </li>
+            </ol>
+          ) : (
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+              <li>Откройте сайт в Safari.</li>
+              <li>
+                Нажмите «Поделиться» <ShareGlyph /> внизу экрана.
+              </li>
+              <li>Выберите «На экран „Домой“» → «Добавить».</li>
+              <li>Запускайте с иконки — так работают уведомления (iOS 16.4+).</li>
+            </ol>
+          )
+        ) : reinstall ? (
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-            <li>Откройте сайт в Safari.</li>
+            <li>Удалите ярлык / установленное приложение с главного экрана.</li>
+            <li>Откройте сайт в Chrome.</li>
             <li>
-              Нажмите «Поделиться» <ShareGlyph /> внизу экрана.
+              Меню <MenuGlyph /> → «Установить приложение» или «На главный экран».
             </li>
-            <li>Выберите «На экран „Домой“» → «Добавить».</li>
-            <li>Запускайте с иконки — так работают уведомления (iOS 16.4+).</li>
+            <li>Откройте с иконки → Профиль → «Включить напоминания».</li>
+            <li>
+              Если уведомления запрещены: настройки сайта в Chrome → Разрешения → Уведомления →
+              Разрешить.
+            </li>
           </ol>
         ) : (
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
