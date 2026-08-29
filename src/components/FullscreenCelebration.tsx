@@ -7,9 +7,9 @@ import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
 import {
+  bindCelebrationPortalViewport,
   closeCelebrationPortal,
   getCelebrationPortalHost,
-  openCelebrationPortal,
 } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
@@ -92,7 +92,8 @@ const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
 
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
- * Portaled into a <dialog showModal()> host so iOS overflow never clips it.
+ * Portaled into a fixed <div> on <html> (same pattern as MobileTabBar) —
+ * <dialog showModal()> clipped to the left half on iOS Profile.
  */
 export function FullscreenCelebration({
   open,
@@ -127,19 +128,12 @@ export function FullscreenCelebration({
   useEffect(() => {
     if (!portalHost) return;
     if (show) {
-      openCelebrationPortal(portalHost);
-      const onCancel = (event: Event) => {
-        event.preventDefault();
-        onClose();
-      };
-      portalHost.addEventListener("cancel", onCancel);
-      return () => {
-        portalHost.removeEventListener("cancel", onCancel);
-        closeCelebrationPortal(portalHost);
-      };
+      portalHost.setAttribute("aria-hidden", "false");
+      return bindCelebrationPortalViewport(portalHost);
     }
+    portalHost.setAttribute("aria-hidden", "true");
     closeCelebrationPortal(portalHost);
-  }, [show, portalHost, onClose]);
+  }, [show, portalHost]);
 
   useEffect(() => {
     if (!show) return;
