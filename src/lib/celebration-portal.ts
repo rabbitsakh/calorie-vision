@@ -2,25 +2,36 @@
 
 const HOST_ID = "cv-fs-celeb-host";
 
+/**
+ * Size the host with inset + auto — never 100vw / percentage width alone.
+ * On iOS PWA, 100vw + body overflow-x (or UA dialog fit-content) shifts the
+ * stage so only the left ~half of the profile screen shows the celebration.
+ */
 function applyHostBaseStyles(host: HTMLElement) {
-  // Never use 100vw: with overflow-x clipping it shifts the stage to the left half.
-  // Prefer % + inset so the top-layer dialog fills the viewport.
-  host.style.cssText = [
-    "position:fixed",
-    "inset:0",
-    "width:100%",
-    "height:100%",
-    "max-width:none",
-    "max-height:none",
-    "margin:0",
-    "padding:0",
-    "border:none",
-    "background:transparent",
-    "overflow:hidden",
-    "z-index:2147483000",
-    "pointer-events:none",
-    "box-sizing:border-box",
-  ].join(";");
+  const s = host.style;
+  s.cssText = "";
+  s.setProperty("position", "fixed", "important");
+  s.setProperty("inset", "0", "important");
+  s.setProperty("top", "0", "important");
+  s.setProperty("right", "0", "important");
+  s.setProperty("bottom", "0", "important");
+  s.setProperty("left", "0", "important");
+  s.setProperty("width", "auto", "important");
+  s.setProperty("height", "auto", "important");
+  s.setProperty("max-width", "none", "important");
+  s.setProperty("max-height", "none", "important");
+  s.setProperty("min-width", "0", "important");
+  s.setProperty("min-height", "0", "important");
+  s.setProperty("margin", "0", "important");
+  s.setProperty("padding", "0", "important");
+  s.setProperty("border", "none", "important");
+  s.setProperty("background", "transparent", "important");
+  s.setProperty("overflow", "visible", "important");
+  s.setProperty("z-index", "2147483000", "important");
+  s.setProperty("pointer-events", "none");
+  s.setProperty("box-sizing", "border-box", "important");
+  s.setProperty("transform", "none", "important");
+  s.setProperty("translate", "none", "important");
 }
 
 /**
@@ -44,19 +55,15 @@ export function openCelebrationPortal(host?: HTMLElement | null) {
         // Already open or not allowed — keep fixed fallback styles.
       }
     }
+    // Re-apply after showModal: UA :modal rules can reset width/margin.
     applyHostBaseStyles(el);
     el.style.pointerEvents = "auto";
     return;
   }
 
-  // Legacy fallback: pin to layout viewport without visualViewport width math
-  // (that previously produced a left-half stage on some iOS PWAs).
-  el.style.top = "0px";
-  el.style.left = "0px";
-  el.style.right = "0px";
-  el.style.bottom = "0px";
-  el.style.width = "100%";
-  el.style.height = "100%";
+  // Legacy fallback: pin with inset only (no visualViewport / 100vw math).
+  applyHostBaseStyles(el);
+  el.style.pointerEvents = "auto";
 }
 
 export function closeCelebrationPortal(host?: HTMLElement | null) {

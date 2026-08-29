@@ -3407,21 +3407,34 @@ textarea {
 
 /* ── Fullscreen celebration stage (Duolingo-style) ───────────── */
 
-/* Top-layer dialog host — must beat UA dialog sizing (fit-content / auto margins). */
+/*
+ * Top-layer dialog host — beat UA dialog:modal (fit-content / auto margins).
+ * Use inset + width/height:auto (not 100% / 100vw): on iOS PWA those shift the
+ * stage so badge unlock covers only the left half of Profile.
+ */
 #cv-fs-celeb-host,
-#cv-fs-celeb-host[open] {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: transparent;
-  overflow: hidden;
-  box-sizing: border-box;
+#cv-fs-celeb-host[open],
+#cv-fs-celeb-host:modal {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  translate: none !important;
 }
 
 #cv-fs-celeb-host::backdrop {
@@ -3429,11 +3442,18 @@ textarea {
 }
 
 .fs-celeb-root {
-  /* Fill the portal host (top-layer dialog or fixed fallback). */
-  position: absolute;
+  /*
+   * Fixed to the viewport (top-layer / layout), not absolute to a possibly
+   * mis-sized dialog box — guarantees full-bleed even if the host shrinks.
+   */
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  height: auto;
   max-width: none;
   margin: 0;
   pointer-events: auto;
