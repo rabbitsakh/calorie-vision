@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Mascot, type MascotPose } from "@/components/Mascot";
+import { PwaInstallWizard } from "@/components/PwaInstallWizard";
 import {
   getPushCapability,
   setPushPromptDismissed,
@@ -17,6 +18,13 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
+import {
+  pushActionLabel,
+  pushUxMatrixSteps,
+  resolvePushUxState,
+  type PushUxAction,
+  type PushUxState,
+} from "@/lib/push-ux-state";
 
 type ServerPushStatus = {
   subscribed: boolean;
@@ -50,17 +58,11 @@ function prefsFromServer(raw: PushReminderPrefs | null | undefined): Record<Remi
   return rows;
 }
 
-function poseForStatus(
-  cap: PushCapability,
-  activeOnServer: boolean,
-): MascotPose {
-  if (cap.kind === "denied" || cap.kind === "ios-old" || cap.kind === "unsupported") {
-    return "idle";
-  }
-  if (cap.kind === "ios-browser") return "tip";
-  if (activeOnServer && cap.kind === "granted") return "cheer";
-  if (cap.kind === "granted" || cap.kind === "default") return "tip";
-  return "idle";
+function poseForUx(ux: PushUxState): MascotPose {
+  if (ux.tone === "ok") return "cheer";
+  if (ux.tone === "warn") return "idle";
+  if (ux.id === "install-needed" || ux.id === "needs-resync") return "tip";
+  return "tip";
 }
 
 function permissionLabelRu(permission: PushCapability["permission"]): string {
@@ -76,6 +78,32 @@ function permissionLabelRu(permission: PushCapability["permission"]): string {
   }
 }
 
+function toneClasses(tone: PushUxState["tone"]): string {
+  switch (tone) {
+    case "ok":
+      return "border-emerald-200 bg-emerald-50/80";
+    case "warn":
+      return "border-amber-200 bg-amber-50/90";
+    case "tip":
+      return "border-teal-200 bg-teal-50/70";
+    default:
+      return "border-slate-200 bg-slate-50";
+  }
+}
+
+function matrixStepClasses(status: "done" | "current" | "todo" | "blocked"): string {
+  switch (status) {
+    case "done":
+      return "border-emerald-300 bg-emerald-100 text-emerald-900";
+    case "current":
+      return "border-teal-400 bg-teal-100 text-teal-950 ring-1 ring-teal-300";
+    case "blocked":
+      return "border-amber-300 bg-amber-100 text-amber-950";
+    default:
+      return "border-slate-200 bg-white text-slate-500";
+  }
+}
+
 export function PushRemindersSettings() {
   const [cap, setCap] = useState<PushCapability | null>(null);
   const [server, setServer] = useState<ServerPushStatus | null>(null);
@@ -88,6 +116,8 @@ export function PushRemindersSettings() {
   const [quietSaving, setQuietSaving] = useState(false);
   const [reminderPrefs, setReminderPrefs] = useState<Record<ReminderKind, ReminderPrefRow>>(defaultPrefRows);
   const [prefsSaving, setPrefsSaving] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardMode, setWizardMode] = useState<"install" | "reinstall">("install");
 
   const refresh = useCallback(async () => {
     setCap(getPushCapability());
@@ -124,6 +154,29 @@ export function PushRemindersSettings() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  const ux = useMemo(() => {
+    if (!cap) {
+      return resolvePushUxState({
+        capability: {
+          kind: "loading",
+          canSubscribe: false,
+          isIos: false,
+          isStandalone: false,
+          permission: "unknown",
+          title: "Проверяем…",
+          detail: "",
+        },
+        serverSubscribed: null,
+      });
+    }
+    return resolvePushUxState({
+      capability: cap,
+      serverSubscribed: server == null ? null : server.subscribed,
+    });
+  }, [cap, server]);
+
+  const matrixSteps = useMemo(() => pushUxMatrixSteps(ux.id), [ux.id]);
 
   async function saveQuietHours() {
     setQuietSaving(true);
@@ -209,7 +262,11 @@ export function PushRemindersSettings() {
     const result = await subscribeBrowserPush();
     if (result.ok) {
       trackPushEnabledGoal();
-      setMessage("Готово — буду напоминать на этом устройстве");
+      setMessage(
+        ux.id === "needs-resync" || ux.id === "active"
+          ? "Подписка обновлена"
+          : "Готово — буду напоминать на этом устройстве",
+      );
     } else {
       setError(result.error);
     }
@@ -235,6 +292,25 @@ export function PushRemindersSettings() {
     setTesting(false);
   }
 
+  function openWizard(mode: "install" | "reinstall") {
+    setWizardMode(mode);
+    setWizardOpen(true);
+  }
+
+  function runAction(action: PushUxAction) {
+    if (action === "enable" || action === "resync") {
+      void handleEnable();
+      return;
+    }
+    if (action === "install") {
+      openWizard("install");
+      return;
+    }
+    if (action === "reinstall") {
+      openWizard("reinstall");
+    }
+  }
+
   if (!cap || cap.kind === "loading") {
     return (
       <section className="card p-4 md:p-6">
@@ -245,8 +321,8 @@ export function PushRemindersSettings() {
   }
 
   const activeOnServer = Boolean(server?.subscribed);
-  const showEnable = cap.canSubscribe;
-  const pose = poseForStatus(cap, activeOnServer);
+  const pose = poseForUx(ux);
+  const showTest = ux.id === "active" && cap.kind === "granted";
 
   return (
     <section className="card p-4 md:p-6">
@@ -262,9 +338,21 @@ export function PushRemindersSettings() {
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">{cap.title}</p>
-        <p className="mt-1 text-sm text-slate-600">{cap.detail}</p>
+      <div className={`mt-4 rounded-2xl border px-4 py-3 ${toneClasses(ux.tone)}`}>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Статус push</p>
+        <ol className="mt-2 flex flex-wrap gap-2" aria-label="Шаги подключения уведомлений">
+          {matrixSteps.map((step) => (
+            <li
+              key={`${step.id}-${step.label}`}
+              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${matrixStepClasses(step.status)}`}
+            >
+              {step.label}
+              {step.status === "done" ? " ✓" : step.status === "current" ? " · сейчас" : ""}
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-sm font-semibold text-slate-900">{ux.title}</p>
+        <p className="mt-1 text-sm text-slate-600">{ux.detail}</p>
         <dl className="mt-3 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
           <div>
             Устройство:{" "}
@@ -296,6 +384,42 @@ export function PushRemindersSettings() {
           </div>
         </dl>
       </div>
+
+      {ux.primaryAction !== "none" || ux.secondaryAction !== "none" || showTest ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {ux.primaryAction !== "none" ? (
+            <button
+              type="button"
+              className="btn btn-primary text-sm"
+              disabled={loading && (ux.primaryAction === "enable" || ux.primaryAction === "resync")}
+              onClick={() => runAction(ux.primaryAction)}
+            >
+              {loading && (ux.primaryAction === "enable" || ux.primaryAction === "resync")
+                ? "Подключаем…"
+                : pushActionLabel(ux.primaryAction, ux.id === "active")}
+            </button>
+          ) : null}
+          {ux.secondaryAction !== "none" ? (
+            <button
+              type="button"
+              className="btn btn-secondary text-sm"
+              onClick={() => runAction(ux.secondaryAction)}
+            >
+              {pushActionLabel(ux.secondaryAction)}
+            </button>
+          ) : null}
+          {showTest ? (
+            <button
+              type="button"
+              className="btn btn-secondary text-sm"
+              disabled={testing}
+              onClick={() => void handleTestPush()}
+            >
+              {testing ? "Отправляем…" : "Проверить уведомление"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Какие напоминания слать</p>
@@ -358,33 +482,6 @@ export function PushRemindersSettings() {
         </button>
       </div>
 
-      {showEnable ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="btn btn-primary text-sm"
-            disabled={loading}
-            onClick={() => void handleEnable()}
-          >
-            {loading
-              ? "Подключаем…"
-              : activeOnServer || cap.kind === "granted"
-                ? "Обновить подписку"
-                : "Включить напоминания"}
-          </button>
-          {activeOnServer && cap.kind === "granted" ? (
-            <button
-              type="button"
-              className="btn btn-secondary text-sm"
-              disabled={testing}
-              onClick={() => void handleTestPush()}
-            >
-              {testing ? "Отправляем…" : "Проверить уведомление"}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Тихие часы</p>
         <p className="mt-1 text-sm text-slate-600">
@@ -442,18 +539,36 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Установка на телефон</p>
         <p className="mt-1 text-sm text-slate-600">
-          Добавьте приложение на экран «Домой» — на iPhone так работают напоминания.
+          Добавьте приложение на экран «Домой» — на iPhone так работают напоминания. Если
+          уведомления запрещены — переустановите ярлык.
         </p>
-        <a
-          href={withBasePath("/#install")}
-          className="mt-2 inline-flex text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
-        >
-          Открыть инструкцию по установке
-        </a>
+        <div className="mt-2 flex flex-wrap gap-3">
+          <button
+            type="button"
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            onClick={() => openWizard("install")}
+          >
+            Как установить
+          </button>
+          <button
+            type="button"
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            onClick={() => openWizard("reinstall")}
+          >
+            Переустановить
+          </button>
+        </div>
       </div>
 
       {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+
+      <PwaInstallWizard
+        open={wizardOpen}
+        mode={wizardMode}
+        prefer={cap.isIos ? "ios" : "auto"}
+        onClose={() => setWizardOpen(false)}
+      />
     </section>
   );
 }
