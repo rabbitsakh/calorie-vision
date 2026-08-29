@@ -2,25 +2,27 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, recommendDietForProfile } from "@/lib/diet";
-import { BADGE_DEFS, type BadgeDef } from "@/lib/badges";
+import {
+  DIET_PROFILE_SELECT,
+  isCalorieGoalCorridor,
+  isWeightGoal,
+  recommendDietForProfile,
+} from "@/lib/diet";
+import {
+  BADGE_DEFS,
+  qualifyingBadgeKeys,
+  type BadgeDef,
+  type BadgeStatsSnapshot,
+} from "@/lib/badges";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { computeStreakFromSet, shiftDateKeyUtc } from "@/lib/streak-utils";
 
 export const dynamic = "force-dynamic";
 
-type BadgeStats = {
-  streak: number;
-  mealCount: number;
-  waterStreak: number;
-  onTargetDays: number;
-  weightLogCount: number;
-};
-
 async function loadBadgeStats(userId: string): Promise<{
   today: string;
-  stats: BadgeStats;
+  stats: BadgeStatsSnapshot;
   existing: Array<{ badgeKey: string; unlockedAt: Date }>;
   candidates: string[];
 }> {
@@ -29,8 +31,23 @@ async function loadBadgeStats(userId: string): Promise<{
     select: { timezone: true, ...DIET_PROFILE_SELECT },
   });
   const today = toDateKeyTz(new Date(), user?.timezone);
+  const goal = user?.goal && isWeightGoal(user.goal) ? user.goal : null;
 
-  const [mealDates, mealCount, waterEntries, existing, weight, freezes, weightLogCount] = await Promise.all([
+  const monthDates: string[] = [];
+  for (let i = 29; i >= 0; i--) monthDates.push(shiftDateKey(today, -i));
+  const weekDates = monthDates.slice(-7);
+
+  const [
+    mealDates,
+    mealCount,
+    waterEntries,
+    existing,
+    weight,
+    freezes,
+    weightLogCount,
+    challengesCompleted,
+    monthMeals,
+  ] = await Promise.all([
     prisma.mealEntry.findMany({
       where: { userId },
       select: { date: true },
@@ -53,6 +70,13 @@ async function loadBadgeStats(userId: string): Promise<{
       select: { date: true },
     }),
     prisma.weightEntry.count({ where: { userId } }),
+    prisma.userChallenge.count({
+      where: { userId, completedAt: { not: null } },
+    }),
+    prisma.mealEntry.findMany({
+      where: { userId, date: { in: monthDates } },
+      select: { date: true, calories: true },
+    }),
   ]);
 
   // Include freeze days in badge streak (#30)
@@ -67,7 +91,7 @@ async function loadBadgeStats(userId: string): Promise<{
   const waterByDate = new Map(waterEntries.map((w) => [w.date, w._sum.ml ?? 0]));
   let waterStreak = 0;
   let cursor = today;
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 90; i++) {
     if ((waterByDate.get(cursor) ?? 0) >= WATER_HABIT_DAY_ML) {
       waterStreak += 1;
       cursor = shiftDateKey(cursor, -1);
@@ -76,45 +100,41 @@ async function loadBadgeStats(userId: string): Promise<{
     }
   }
 
-  const weekDates: string[] = [];
-  for (let i = 6; i >= 0; i--) weekDates.push(shiftDateKey(today, -i));
-  const weekMeals = await prisma.mealEntry.findMany({
-    where: { userId, date: { in: weekDates } },
-    select: { date: true, calories: true },
-  });
   const calByDate = new Map<string, number>();
-  for (const m of weekMeals) {
+  for (const m of monthMeals) {
     calByDate.set(m.date, (calByDate.get(m.date) ?? 0) + m.calories);
   }
   const target = recommendDietForProfile(weight?.weightKg, user);
   let onTargetDays = 0;
+  let monthOnTargetDays = 0;
   if (target) {
-    for (const d of weekDates) {
+    for (const d of monthDates) {
       const cal = calByDate.get(d);
       if (cal == null || cal === 0) continue;
-      if (Math.abs(cal - target.calories) <= target.calories * 0.1) onTargetDays += 1;
+      if (!isCalorieGoalCorridor(cal, target.calories, goal)) continue;
+      monthOnTargetDays += 1;
+      if (weekDates.includes(d)) onTargetDays += 1;
     }
   }
 
+  const stats: BadgeStatsSnapshot = {
+    streak,
+    mealCount,
+    waterStreak,
+    onTargetDays,
+    monthOnTargetDays,
+    weightLogCount,
+    challengesCompleted,
+  };
+
   const earnedKeys = new Set(existing.map((b) => b.badgeKey));
-  const candidates: string[] = [];
-  if (mealCount >= 1) candidates.push("first_log");
-  if (streak >= 3) candidates.push("streak_3");
-  if (streak >= 7) candidates.push("streak_7");
-  if (streak >= 30) candidates.push("streak_30");
-  if (mealCount >= 10) candidates.push("meals_10");
-  if (mealCount >= 100) candidates.push("meals_100");
-  if (mealCount >= 500) candidates.push("meals_500");
-  if (waterStreak >= 3) candidates.push("water_3");
-  if (waterStreak >= 7) candidates.push("water_7");
-  if (onTargetDays >= 5) candidates.push("week_on_target");
-  if (weightLogCount >= 5) candidates.push("weight_5");
+  const candidates = qualifyingBadgeKeys(stats).filter((key) => !earnedKeys.has(key));
 
   return {
     today,
-    stats: { streak, mealCount, waterStreak, onTargetDays, weightLogCount },
+    stats,
     existing,
-    candidates: candidates.filter((key) => !earnedKeys.has(key)),
+    candidates,
   };
 }
 
