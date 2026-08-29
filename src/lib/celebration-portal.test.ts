@@ -6,6 +6,26 @@ import {
   openCelebrationPortal,
 } from "./celebration-portal.ts";
 
+function makeStyle() {
+  const props = new Map<string, string>();
+  const style: {
+    cssText: string;
+    pointerEvents: string;
+    setProperty: (name: string, value: string, priority?: string) => void;
+  } = {
+    cssText: "",
+    pointerEvents: "",
+    setProperty(name: string, value: string, _priority?: string) {
+      if (name === "pointer-events") {
+        this.pointerEvents = value;
+      }
+      props.set(name, value);
+      this.cssText = [...props.entries()].map(([k, v]) => `${k}:${v}`).join(";");
+    },
+  };
+  return style;
+}
+
 test("getCelebrationPortalHost returns null without document", () => {
   const hadDocument = typeof document !== "undefined";
   if (!hadDocument) {
@@ -23,7 +43,7 @@ test("getCelebrationPortalHost creates a dialog host on documentElement", () => 
   const created: {
     id: string;
     open?: boolean;
-    style: { cssText: string; pointerEvents?: string };
+    style: ReturnType<typeof makeStyle>;
     setAttribute: (k: string, v: string) => void;
     showModal?: () => void;
     close?: () => void;
@@ -34,7 +54,7 @@ test("getCelebrationPortalHost creates a dialog host on documentElement", () => 
       const node = {
         id: "",
         open: false,
-        style: { cssText: "", pointerEvents: "" },
+        style: makeStyle(),
         setAttribute() {},
         showModal() {
           this.open = true;
@@ -52,9 +72,11 @@ test("getCelebrationPortalHost creates a dialog host on documentElement", () => 
   const host = getCelebrationPortalHost();
   assert.ok(host);
   assert.equal(host!.id, "cv-fs-celeb-host");
-  assert.match(host!.style.cssText, /position:fixed/);
-  assert.match(host!.style.cssText, /width:100%/);
-  assert.doesNotMatch(host!.style.cssText, /100vw/);
+  const css = host!.style.cssText;
+  assert.match(css, /position:\s*fixed/i);
+  assert.match(css, /width:\s*auto/i);
+  assert.doesNotMatch(css, /100vw/);
+  assert.doesNotMatch(css, /width:\s*100%/i);
   delete (globalThis as { document?: unknown }).document;
 });
 
@@ -62,7 +84,7 @@ test("openCelebrationPortal calls showModal and closeCelebrationPortal closes", 
   let modalOpen = false;
   const el = {
     open: false,
-    style: { cssText: "", pointerEvents: "" },
+    style: makeStyle(),
     showModal() {
       modalOpen = true;
       this.open = true;
