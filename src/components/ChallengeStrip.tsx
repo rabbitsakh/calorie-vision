@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
 
 type ActiveChallenge = {
@@ -18,11 +19,18 @@ type ChallengeStripProps = {
 
 /**
  * Compact challenge progress under DayHero — visible without opening «Привычки».
+ * Prefers ration-day bootstrap; falls back to /api/challenges.
  */
 export function ChallengeStrip({ refreshKey, onOpenHabits }: ChallengeStripProps) {
+  const day = useOptionalRationDay();
+  const bootstrapped = day?.data?.challenges?.active;
   const [active, setActive] = useState<ActiveChallenge | null | undefined>(undefined);
 
   const load = useCallback(async () => {
+    if (bootstrapped !== undefined && day && !day.loading) {
+      setActive(bootstrapped);
+      return;
+    }
     try {
       const resp = await fetch(withBasePath("/api/challenges"));
       if (!resp.ok) return;
@@ -31,11 +39,17 @@ export function ChallengeStrip({ refreshKey, onOpenHabits }: ChallengeStripProps
     } catch {
       // non-critical
     }
-  }, []);
+  }, [bootstrapped, day]);
 
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  useEffect(() => {
+    if (bootstrapped !== undefined && day && !day.loading) {
+      setActive(bootstrapped);
+    }
+  }, [bootstrapped, day, day?.loading, day?.refreshKey]);
 
   if (active === undefined) return null;
 
