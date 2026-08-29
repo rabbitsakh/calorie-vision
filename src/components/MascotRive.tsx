@@ -124,12 +124,10 @@ function MascotRiveCanvas({
     rive.on(EventType.LoadError, onFail);
   }, [rive, onFail]);
 
-  const wrapperClass = ["mascot-rive-wrap", entrance ? "mascot-entrance" : "", className]
-    .filter(Boolean)
-    .join(" ");
+  const wrapperClass = ["mascot-rive-wrap", className].filter(Boolean).join(" ");
   const label = ariaLabel ?? title;
 
-  return (
+  const body = (
     <div
       className={wrapperClass}
       style={{ width: px, height: px }}
@@ -140,6 +138,14 @@ function MascotRiveCanvas({
       onKeyDown={onKeyDown}
     >
       <RiveComponent style={{ width: "100%", height: "100%" }} />
+    </div>
+  );
+
+  if (!entrance) return body;
+
+  return (
+    <div className="mascot-entrance-wrap" style={{ width: px, height: px }}>
+      {body}
     </div>
   );
 }

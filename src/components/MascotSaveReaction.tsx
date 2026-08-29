@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { mascotArtUrl } from "@/lib/mascot-art";
@@ -15,7 +16,35 @@ import {
 import { withBasePath } from "@/lib/paths";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
-const TOAST_MS = 2400;
+const TOAST_MS = 2600;
+const HOST_ID = "cv-mascot-save-toast-host";
+
+function getSaveToastHost(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  const existing = document.getElementById(HOST_ID);
+  if (existing) return existing;
+
+  const host = document.createElement("div");
+  host.id = HOST_ID;
+  host.setAttribute("data-cv-save-toast-host", "1");
+  // Attach to <html> so body overflow-x cannot clip fixed UI on iOS
+  // (same pattern as MobileTabBar / celebration portal).
+  host.style.cssText = [
+    "position:fixed",
+    "left:0",
+    "right:0",
+    "bottom:0",
+    "width:100%",
+    "margin:0",
+    "padding:0",
+    "border:none",
+    "z-index:80",
+    "pointer-events:none",
+    "overflow:visible",
+  ].join(";");
+  document.documentElement.appendChild(host);
+  return host;
+}
 
 function preloadCheerArt() {
   if (typeof window === "undefined") return;
@@ -29,16 +58,18 @@ function preloadCheerArt() {
 
 /**
  * Floating mini-cheer when the user saves a meal (soft Duo-style reaction).
- * Mascot is intentional — toast shows cheer art + a short line like «Отлично!».
+ * Portaled to <html> so the mascot is never clipped by body overflow on iOS.
  */
 export function MascotSaveReaction() {
   const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState("Записано!");
   const [toastKey, setToastKey] = useState(0);
+  const [host, setHost] = useState<HTMLElement | null>(null);
   const showTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
+    setHost(getSaveToastHost());
     preloadCheerArt();
   }, []);
 
@@ -87,19 +118,25 @@ export function MascotSaveReaction() {
     return () => window.clearTimeout(timer);
   }, [open, toastKey]);
 
-  if (!open) return null;
+  if (!open || !host) return null;
 
-  return (
+  return createPortal(
     <div
       key={toastKey}
-      className="pointer-events-none fixed bottom-28 left-1/2 z-[80] -translate-x-1/2"
+      className="pointer-events-none fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-[80] -translate-x-1/2"
       role="status"
       aria-live="polite"
     >
-      <div className="mascot-save-toast flex flex-col items-center rounded-2xl bg-teal-900/92 px-5 py-3.5 shadow-xl backdrop-blur-sm">
-        <Mascot pose="cheer" gesture="react" size="md" entrance animate />
-        <p className="mascot-save-toast-line mt-1.5 text-sm font-bold text-teal-50">{line}</p>
+      <div className="mascot-save-toast flex flex-col items-center overflow-visible rounded-2xl bg-teal-900/94 px-6 py-4 shadow-xl backdrop-blur-sm">
+        <div className="mascot-save-toast-mascot relative flex items-center justify-center">
+          <span className="mascot-save-toast-glow" aria-hidden />
+          <Mascot pose="cheer" gesture="react" size="lg" entrance animate />
+        </div>
+        <p className="mascot-save-toast-line mt-1 max-w-[14rem] text-center text-sm font-bold leading-snug text-teal-50">
+          {line}
+        </p>
       </div>
-    </div>
+    </div>,
+    host,
   );
 }

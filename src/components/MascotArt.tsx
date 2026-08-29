@@ -12,6 +12,7 @@ export type MascotArtProps = Omit<MascotBaseProps, "skin"> & {
 
 /**
  * Illustrated soft-3D mascot stills (V5 art) with light CSS motion.
+ * Entrance wraps the art so it never overrides pose / gesture animations.
  */
 export function MascotArt({
   pose = "idle",
@@ -41,7 +42,6 @@ export function MascotArt({
     "mascot-art-root",
     motion,
     gestureActive ? "mascot-gesture-active mascot-art-gesture" : "",
-    entrance ? "mascot-entrance" : "",
     className,
   ]
     .filter(Boolean)
@@ -49,7 +49,7 @@ export function MascotArt({
 
   const label = ariaLabel ?? title;
 
-  return (
+  const art = (
     <div
       className={classes}
       style={{
@@ -76,6 +76,14 @@ export function MascotArt({
         className="mascot-art-img"
         onError={() => onFail?.()}
       />
+    </div>
+  );
+
+  if (!entrance) return art;
+
+  return (
+    <div className="mascot-entrance-wrap" style={{ width: px, height: px, display: "inline-block" }}>
+      {art}
     </div>
   );
 }

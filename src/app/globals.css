@@ -588,18 +588,46 @@ textarea {
 }
 
 /* App splash (session / day bootstrap) */
+.app-splash-atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 28%, rgba(94, 234, 212, 0.38), transparent 62%),
+    radial-gradient(circle 28% at 18% 72%, rgba(45, 212, 191, 0.22), transparent 70%),
+    radial-gradient(circle 32% at 86% 18%, rgba(153, 246, 228, 0.2), transparent 68%),
+    radial-gradient(circle 40% at 50% 100%, rgba(15, 118, 110, 0.45), transparent 70%);
+  animation: app-splash-atmosphere-drift 9s ease-in-out infinite alternate;
+}
+
 .app-splash-brand {
   animation: app-splash-fade-up 0.55s ease-out both;
 }
 
 .app-splash-mascot {
+  position: relative;
+  isolation: isolate;
   animation:
     app-splash-fade-up 0.65s ease-out 0.08s both,
     app-splash-float 2.8s ease-in-out 0.7s infinite;
 }
 
+.app-splash-mascot-glow {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  z-index: -1;
+  width: 78%;
+  height: 62%;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(153, 246, 228, 0.55), rgba(20, 184, 166, 0.12) 55%, transparent 72%);
+  filter: blur(8px);
+  animation: app-splash-glow-pulse 2.4s ease-in-out infinite;
+}
+
 .app-splash-tip {
-  animation: app-splash-fade-up 0.55s ease-out 0.18s both;
+  animation: app-splash-fade-up 0.55s ease-out both;
 }
 
 .app-splash-bar-fill {
@@ -608,6 +636,27 @@ textarea {
 
 .app-splash-bar-done {
   animation: none;
+}
+
+@keyframes app-splash-atmosphere-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(0, -2.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes app-splash-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
 }
 
 @keyframes app-splash-fade-up {
@@ -627,7 +676,7 @@ textarea {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-10px);
   }
 }
 
@@ -708,6 +757,8 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .app-splash-brand,
   .app-splash-mascot,
+  .app-splash-mascot-glow,
+  .app-splash-atmosphere,
   .app-splash-tip,
   .app-splash-bar-fill,
   .day-hero,
@@ -1866,7 +1917,8 @@ textarea {
   .mascot-entrance,
   .mascot-entrance-wrap,
   .mascot-exit,
-  .mascot-save-toast {
+  .mascot-save-toast,
+  .mascot-save-toast-glow {
     animation: none !important;
   }
 }
@@ -1877,6 +1929,31 @@ textarea {
 
 .mascot-save-toast {
   animation: mascot-entrance-pop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  min-width: 8.5rem;
+}
+
+.mascot-save-toast-mascot {
+  min-height: 7rem;
+}
+
+.mascot-save-toast-glow {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  z-index: 0;
+  width: 5.5rem;
+  height: 4.25rem;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.55), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+.mascot-save-toast-mascot .mascot-root,
+.mascot-save-toast-mascot .mascot-entrance-wrap {
+  position: relative;
+  z-index: 1;
 }
 
 .mascot-save-toast-line {
