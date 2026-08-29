@@ -18,6 +18,7 @@ import {
 } from "@/lib/diet";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
+import { computeChallengeProgress } from "@/lib/challenge-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -30,75 +31,7 @@ async function computeProgress(
     goal?: Parameters<typeof isCalorieGoalCorridor>[2];
   },
 ): Promise<number> {
-  const key = normalizeChallengeKey(challengeKey);
-  const dates = Array.from({ length: 7 }, (_, i) => shiftChallengeDate(weekStart, i));
-
-  if (key === "breakfast_7") {
-    const rows = await prisma.mealEntry.findMany({
-      where: { userId, date: { in: dates }, mealType: "BREAKFAST" },
-      select: { date: true },
-      distinct: ["date"],
-    });
-    return rows.length;
-  }
-
-  if (key === "water_5" || key === "water_week_7") {
-    const rows = await prisma.waterEntry.groupBy({
-      by: ["date"],
-      where: { userId, date: { in: dates } },
-      _sum: { ml: true },
-    });
-    return rows.filter((r) => (r._sum.ml ?? 0) >= WATER_HABIT_DAY_ML).length;
-  }
-
-  if (key === "log_5") {
-    const rows = await prisma.mealEntry.findMany({
-      where: { userId, date: { in: dates } },
-      select: { date: true },
-      distinct: ["date"],
-    });
-    return rows.length;
-  }
-
-  if (key === "dinner_5") {
-    const rows = await prisma.mealEntry.findMany({
-      where: { userId, date: { in: dates }, mealType: "DINNER" },
-      select: { date: true },
-      distinct: ["date"],
-    });
-    return rows.length;
-  }
-
-  if (key === "weigh_3") {
-    const rows = await prisma.weightEntry.findMany({
-      where: { userId, date: { in: dates } },
-      select: { date: true },
-      distinct: ["date"],
-    });
-    return rows.length;
-  }
-
-  if (key === "corridor_4") {
-    const target = opts?.calorieTarget;
-    if (!target) return 0;
-    const meals = await prisma.mealEntry.findMany({
-      where: { userId, date: { in: dates } },
-      select: { date: true, calories: true },
-    });
-    const calByDate = new Map<string, number>();
-    for (const m of meals) {
-      calByDate.set(m.date, (calByDate.get(m.date) ?? 0) + m.calories);
-    }
-    let days = 0;
-    for (const d of dates) {
-      const cal = calByDate.get(d);
-      if (cal == null || cal === 0) continue;
-      if (isCalorieGoalCorridor(cal, target, opts?.goal)) days += 1;
-    }
-    return days;
-  }
-
-  return 0;
+  return computeChallengeProgress(userId, challengeKey, weekStart, opts);
 }
 
 async function weekHabitSnapshot(userId: string, weekStart: string, today: string) {

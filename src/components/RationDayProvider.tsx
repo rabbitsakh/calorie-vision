@@ -53,7 +53,17 @@ export type RationDayPayload = {
   };
   tip: string | null;
   diaryMood: string | null;
-  challenges: unknown | null;
+  challenges: {
+    active: {
+      challengeKey: string;
+      title: string;
+      description: string;
+      progress: number;
+      target: number;
+      completed: boolean;
+      weekStart: string;
+    } | null;
+  } | null;
 };
 
 type RationDayContextValue = {
