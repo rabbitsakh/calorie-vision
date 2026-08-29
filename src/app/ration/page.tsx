@@ -21,6 +21,7 @@ import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
+import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import {
   requestOpenFoodCamera,
@@ -325,6 +326,7 @@ function RationBody({
           <ProteinGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
+          <BadgeUnlockHost refreshKey={refreshKey} />
         </CelebrationOrchestrator>
 
         <PwaInstallWizard

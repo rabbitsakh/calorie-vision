@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import { SoftCelebration } from "@/components/SoftCelebration";
 import {
   isSoftCelebrationSeen,
   markSoftCelebrationSeen,
@@ -11,7 +11,9 @@ import {
   type BadgeStatsSnapshot,
   type NextBadgeHint,
 } from "@/lib/badges";
+import { unlockPendingBadges } from "@/lib/badge-unlock-client";
 import { withBasePath } from "@/lib/paths";
+import { toDateKey } from "@/lib/dates";
 
 type BadgeItem = {
   key: string;
@@ -58,34 +60,18 @@ export function BadgesPanel() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [nextHint, setNextHint] = useState<NextBadgeHint | null>(null);
   const [unlock, setUnlock] = useState<BadgeItem | null>(null);
+  const todayKey = toDateKey(new Date());
 
   const closeUnlock = useCallback(() => setUnlock(null), []);
 
   useEffect(() => {
     void (async () => {
       try {
-        const unlockResp = await fetch(withBasePath("/api/badges"), { method: "POST" });
-        if (!unlockResp.ok) {
-          const listResp = await fetch(withBasePath("/api/badges"));
-          if (!listResp.ok) return;
-          const listData = (await listResp.json()) as {
-            badges: BadgeItem[];
-            stats?: BadgeStatsSnapshot;
-          };
-          setBadges(listData.badges);
-          if (listData.stats) {
-            setNextHint(
-              nextBadgeHint(
-                listData.badges.filter((b) => b.unlocked).map((b) => b.key),
-                listData.stats,
-              ),
-            );
-          }
-          return;
-        }
-        const data = (await unlockResp.json()) as {
+        const { newlyUnlocked, ok } = await unlockPendingBadges();
+        const listResp = await fetch(withBasePath("/api/badges"));
+        if (!listResp.ok) return;
+        const data = (await listResp.json()) as {
           badges: BadgeItem[];
-          newlyUnlocked: BadgeItem[];
           stats?: BadgeStatsSnapshot;
         };
         setBadges(data.badges);
@@ -97,12 +83,20 @@ export function BadgesPanel() {
             ),
           );
         }
-        const next = data.newlyUnlocked?.[0];
+
+        if (!ok) return;
+        const next = newlyUnlocked[0];
         if (!next) return;
-        const flagKey = next.key;
-        if (isSoftCelebrationSeen("badge-unlock", flagKey)) return;
-        markSoftCelebrationSeen("badge-unlock", flagKey);
-        setUnlock(next);
+        if (isSoftCelebrationSeen("badge-unlock", next.key)) return;
+        markSoftCelebrationSeen("badge-unlock", next.key);
+        setUnlock({
+          key: next.key,
+          title: next.title,
+          description: next.description,
+          unlocked: true,
+          unlockedAt: null,
+          newlyUnlocked: true,
+        });
       } catch {
         // non-critical
       }
@@ -144,15 +138,16 @@ export function BadgesPanel() {
         </div>
       </div>
 
-      <FullscreenCelebration
+      <SoftCelebration
         open={unlock != null}
         variant="badge"
         pose="cheer"
         title={unlock?.title ?? "Новое достижение!"}
-        subtitle={unlock ? unlock.description : undefined}
+        subtitle={unlock?.description}
         badge="★"
         durationMs={0}
         ctaLabel="Круто!"
+        muteDate={todayKey}
         onClose={closeUnlock}
       />
     </>
