@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     const { session, response } = await requireSession();
     if (response) return response;
 
-    const body = (await request.json()) as { challengeKey?: string };
+    const body = (await request.json()) as { challengeKey?: string; replace?: boolean };
     const def = body.challengeKey ? challengeDef(body.challengeKey) : undefined;
     if (!def) {
       return NextResponse.json({ error: "Неизвестный челлендж" }, { status: 400 });
@@ -155,8 +155,25 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.userChallenge.findUnique({
       where: { userId_weekStart: { userId: session.user.id, weekStart } },
     });
+
     if (existing) {
-      return NextResponse.json({ error: "Челлендж на эту неделю уже выбран" }, { status: 400 });
+      if (!body.replace) {
+        return NextResponse.json({ error: "Челлендж на эту неделю уже выбран" }, { status: 400 });
+      }
+      if (existing.completedAt) {
+        return NextResponse.json({ error: "Закрытый челлендж нельзя сменить" }, { status: 400 });
+      }
+      const progress = await computeProgress(session.user.id, def.key, weekStart);
+      const challenge = await prisma.userChallenge.update({
+        where: { id: existing.id },
+        data: {
+          challengeKey: def.key,
+          progress,
+          target: def.target,
+          completedAt: progress >= def.target ? new Date() : null,
+        },
+      });
+      return NextResponse.json({ challenge, replaced: true });
     }
 
     const progress = await computeProgress(session.user.id, def.key, weekStart);

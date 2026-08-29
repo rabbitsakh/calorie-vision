@@ -8,7 +8,11 @@ import {
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 import { withBasePath } from "@/lib/paths";
-import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import {
+  hidePanelForWeek,
+  isPanelHiddenForWeek,
+  showPanelForWeek,
+} from "@/lib/panel-visibility";
 import { toDateKey } from "@/lib/dates";
 
 const PANEL_ID = "challenge";
@@ -50,13 +54,10 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   const [data, setData] = useState<ChallengesResponse | null>(null);
   const [hidden, setHidden] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const prevCompleted = useRef<boolean | null>(null);
   const todayKey = toDateKey(new Date());
-
-  useEffect(() => {
-    setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
-  }, [selectedDate]);
 
   const closeCelebrate = useCallback(() => setCelebrate(false), []);
 
@@ -66,6 +67,9 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
       if (!resp.ok) return;
       const next = (await resp.json()) as ChallengesResponse;
       setData(next);
+      if (next.weekStart) {
+        setHidden(isPanelHiddenForWeek(PANEL_ID, next.weekStart));
+      }
 
       const active = next.active;
       if (!active) {
@@ -97,17 +101,20 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
 
   useEffect(() => {
     void load();
-  }, [load, refreshKey]);
+  }, [load, refreshKey, selectedDate]);
 
-  async function start(key: string) {
+  async function start(key: string, replace = false) {
     setStarting(key);
     try {
       const resp = await fetch(withBasePath("/api/challenges"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeKey: key }),
+        body: JSON.stringify({ challengeKey: key, replace }),
       });
-      if (resp.ok) await load();
+      if (resp.ok) {
+        setSwitching(false);
+        await load();
+      }
     } finally {
       setStarting(null);
     }
@@ -160,7 +167,7 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
           type="button"
           className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-emerald-200 px-4 py-2.5 text-sm text-emerald-700 hover:border-emerald-300"
           onClick={() => {
-            showPanelToday(PANEL_ID, selectedDate);
+            if (data.weekStart) showPanelForWeek(PANEL_ID, data.weekStart);
             setHidden(false);
           }}
         >
@@ -173,6 +180,10 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   }
 
   const daysLeft = data.daysLeft ?? data.options[0]?.daysLeft;
+  const showPicker = !data.active || switching;
+  const options = switching
+    ? data.options.filter((o) => o.key !== data.active?.challengeKey)
+    : data.options;
 
   return (
     <>
@@ -186,7 +197,7 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
             type="button"
             className="btn-quiet text-xs text-emerald-700 hover:bg-emerald-100"
             onClick={() => {
-              hidePanelToday(PANEL_ID, selectedDate);
+              if (data.weekStart) hidePanelForWeek(PANEL_ID, data.weekStart);
               setHidden(true);
             }}
           >
@@ -194,7 +205,7 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
           </button>
         </div>
 
-        {data.active ? (
+        {data.active && !switching ? (
           <div>
             <p className="font-medium text-slate-800">{data.active.title}</p>
             <p className="text-xs text-slate-500">{data.active.description}</p>
@@ -234,23 +245,46 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
                 </>
               );
             })()}
+            {!data.active.completed ? (
+              <button
+                type="button"
+                className="mt-3 text-xs font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                onClick={() => setSwitching(true)}
+              >
+                Сменить цель
+              </button>
+            ) : null}
           </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {typeof daysLeft === "number" && daysLeft < 7 ? (
+        ) : null}
+
+        {showPicker ? (
+          <div className={`flex flex-col gap-2 ${data.active && switching ? "mt-3" : ""}`}>
+            {switching ? (
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-emerald-900">Новая цель на эту неделю</p>
+                <button
+                  type="button"
+                  className="text-xs text-slate-500 hover:text-slate-700"
+                  onClick={() => setSwitching(false)}
+                >
+                  Отмена
+                </button>
+              </div>
+            ) : null}
+            {typeof daysLeft === "number" && daysLeft < 7 && !data.active ? (
               <p className="text-xs text-amber-800">
                 До конца недели {daysLeft}{" "}
                 {daysLeft === 1 ? "день" : daysLeft < 5 ? "дня" : "дней"} — цели на 7 дней могут не
                 успеть без записей с понедельника.
               </p>
             ) : null}
-            {data.options.map((opt) => (
+            {options.map((opt) => (
               <button
                 key={opt.key}
                 type="button"
                 disabled={starting !== null}
                 className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-left hover:border-emerald-300 disabled:opacity-60"
-                onClick={() => void start(opt.key)}
+                onClick={() => void start(opt.key, switching)}
               >
                 <p className="text-sm font-medium text-slate-800">{opt.title}</p>
                 <p className="text-xs text-slate-500">{opt.description}</p>
@@ -265,7 +299,7 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
               </button>
             ))}
           </div>
-        )}
+        ) : null}
       </div>
       {celebration}
     </>

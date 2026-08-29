@@ -17,6 +17,7 @@ import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
+import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
@@ -217,6 +218,10 @@ function RationBody({
           selectedDate={date}
           today={today}
           onAddFood={openFoodCamera}
+        />
+        <ChallengeStrip
+          refreshKey={refreshKey}
+          onOpenHabits={() => setShowHabits(true)}
         />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
