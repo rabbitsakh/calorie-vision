@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { BrandMark } from "@/components/BrandMark";
 import { LiveMascot } from "@/components/LiveMascot";
 import { resolveMascotSkin } from "@/lib/mascot-skin";
@@ -30,6 +31,9 @@ type AppSplashProps = {
 /**
  * Brand splash: lively mascot + personal tip + thin progress.
  * Used while session resolves and while /ration day bootstraps.
+ *
+ * Fullscreen mode is portaled to <html>: `.cv-app-frame` is position:fixed
+ * and would otherwise clip fixed overlays so the tab bar showed through.
  */
 export function AppSplash({
   tip,
@@ -38,6 +42,7 @@ export function AppSplash({
   tipContext,
   ready = false,
 }: AppSplashProps) {
+  const [mounted, setMounted] = useState(false);
   const [phase, setPhase] = useState<SplashStatusPhase>("boot");
   const [localTip, setLocalTip] = useState(() =>
     tip ?? buildPersonalSplashTip(tipContext ?? {}, Date.now()),
@@ -48,6 +53,10 @@ export function AppSplash({
   const loggedToday = tipContext?.loggedToday ?? null;
   const serverTip = tipContext?.serverTip ?? null;
   const hour = tipContext?.hour ?? null;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (ready) {
@@ -137,7 +146,7 @@ export function AppSplash({
     );
   }
 
-  return (
+  const overlay = (
     <div
       className="app-splash app-splash-full fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-gradient-to-b from-teal-600 via-teal-800 to-teal-950"
       role="status"
@@ -148,4 +157,10 @@ export function AppSplash({
       {inner}
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") {
+    return overlay;
+  }
+
+  return createPortal(overlay, document.documentElement);
 }
