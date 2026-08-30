@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthPanel } from "@/components/AuthPanel";
 import { BrandMark } from "@/components/BrandMark";
+import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
@@ -95,6 +96,7 @@ export function AppShell({
       </main>
 
       <MobileTabBar date={date} />
+      <MetaChestCelebration />
     </div>
   );
 }

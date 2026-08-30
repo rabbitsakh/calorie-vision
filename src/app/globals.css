@@ -3949,6 +3949,44 @@ textarea {
   }
 }
 
+/* --- Equipped avatar frames (wave 8) --- */
+.cv-avatar-frame {
+  border-radius: 9999px;
+  padding: 2px;
+  line-height: 0;
+}
+
+.cv-avatar-frame > * {
+  display: block;
+}
+
+.cv-avatar-frame-teal {
+  background: linear-gradient(135deg, #5eead4, #0f766e);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+}
+
+.cv-avatar-frame-amber {
+  background: linear-gradient(135deg, #fde68a, #d97706);
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.25);
+}
+
+.cv-avatar-frame-mint {
+  background: linear-gradient(135deg, #a7f3d0, #059669);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.22);
+}
+
+.cv-avatar-frame-sky {
+  background: linear-gradient(135deg, #bae6fd, #0284c7);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.22);
+}
+
+.cv-avatar-frame-fest {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b 40%, #14b8a6);
+  box-shadow:
+    0 0 0 2px rgba(251, 191, 36, 0.35),
+    0 0 16px rgba(251, 191, 36, 0.35);
+}
+
 /* --- Mascot seasonal skins --- */
 .mascot-skin-winter .mascot-aura {
   filter: hue-rotate(18deg) saturate(0.92);

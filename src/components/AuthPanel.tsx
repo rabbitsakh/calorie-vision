@@ -3,6 +3,7 @@
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AvatarFrame } from "@/components/AvatarFrame";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
@@ -56,18 +57,20 @@ export function AuthPanel() {
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
       >
-        {session.user.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={getImageUrl(session.user.image)}
-            alt=""
-            className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
-          />
-        ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800">
-            {(session.user.name ?? session.user.email ?? session.user.phone ?? "?").charAt(0).toUpperCase()}
-          </div>
-        )}
+        <AvatarFrame>
+          {session.user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getImageUrl(session.user.image)}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
+            />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800">
+              {(session.user.name ?? session.user.email ?? session.user.phone ?? "?").charAt(0).toUpperCase()}
+            </div>
+          )}
+        </AvatarFrame>
         <div className="min-w-0 hidden sm:block">
           <p className="truncate text-sm font-medium text-slate-900">{label}</p>
           {subtitle ? <p className="truncate text-xs text-slate-500">{subtitle}</p> : null}

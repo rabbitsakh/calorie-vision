@@ -51,4 +51,7 @@ test("metrika funnel goal names are stable", () => {
   assert.equal(METRIKA_GOALS.weightLogged, "weight_logged");
   assert.equal(METRIKA_GOALS.pushEnabled, "push_enabled");
   assert.equal(METRIKA_GOALS.d7Return, "d7_return");
+  assert.equal(METRIKA_GOALS.chestOpened, "chest_opened");
+  assert.equal(METRIKA_GOALS.frameEquipped, "frame_equipped");
+  assert.equal(METRIKA_GOALS.metaChest, "meta_chest");
 });

@@ -28,6 +28,9 @@ export const METRIKA_GOALS = {
   weightLogged: "weight_logged",
   pushEnabled: "push_enabled",
   d7Return: "d7_return",
+  chestOpened: "chest_opened",
+  frameEquipped: "frame_equipped",
+  metaChest: "meta_chest",
 } as const;
 
 export type MetrikaGoal = (typeof METRIKA_GOALS)[keyof typeof METRIKA_GOALS];

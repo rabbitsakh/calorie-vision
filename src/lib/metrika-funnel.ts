@@ -103,6 +103,21 @@ export function trackPushEnabledGoal(): void {
   store?.setItem(PUSH_SENT_KEY, "1");
 }
 
+/** Chest opened with loot — once per day (wave 10). */
+export function trackChestOpenedGoal(now = Date.now()): void {
+  trackOncePerDay("cv_metrika_chest_opened_day", METRIKA_GOALS.chestOpened, now);
+}
+
+/** Avatar frame equipped — once per day (wave 10). */
+export function trackFrameEquippedGoal(now = Date.now()): void {
+  trackOncePerDay("cv_metrika_frame_equipped_day", METRIKA_GOALS.frameEquipped, now);
+}
+
+/** Meta collection chest — once per day (wave 10). */
+export function trackMetaChestGoal(now = Date.now()): void {
+  trackOncePerDay("cv_metrika_meta_chest_day", METRIKA_GOALS.metaChest, now);
+}
+
 /**
  * d7_return: user opened the app again at least 7 days after first open.
  * Fires once per browser.
@@ -146,5 +161,8 @@ export function resetMetrikaFunnelStorageForTests(): void {
   localStore()?.removeItem(WATER_DAY_KEY);
   localStore()?.removeItem(WEIGHT_DAY_KEY);
   localStore()?.removeItem(PUSH_SENT_KEY);
+  localStore()?.removeItem("cv_metrika_chest_opened_day");
+  localStore()?.removeItem("cv_metrika_frame_equipped_day");
+  localStore()?.removeItem("cv_metrika_meta_chest_day");
   sessionStore()?.removeItem(LOGIN_SENT_KEY);
 }

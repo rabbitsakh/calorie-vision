@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import {
   hashSalt,
+  pendingMetaMilestones,
+  pickMetaRewardKey,
   pickRewardKey,
   rewardDef,
   serializeReward,
@@ -11,6 +13,7 @@ import {
 export type GrantChestResult = {
   newlyGranted: boolean;
   reward: ReturnType<typeof serializeReward>;
+  metaRewards?: ReturnType<typeof serializeReward>[];
 };
 
 function fallbackDef(key: string): RewardDef {
@@ -21,6 +24,65 @@ function fallbackDef(key: string): RewardDef {
     rarity: "common",
     group: "sticker",
   };
+}
+
+async function loadCosmeticKeys(userId: string): Promise<string[]> {
+  const owned = await prisma.userReward.findMany({
+    where: { userId },
+    select: { rewardKey: true },
+  });
+  return owned.map((r) => r.rewardKey).filter((k) => !k.startsWith("quest_day"));
+}
+
+/**
+ * Grant soft meta chests for collection milestones (wave 9).
+ * Idempotent per milestone sourceKey.
+ */
+export async function tryGrantMetaChests(
+  userId: string,
+): Promise<ReturnType<typeof serializeReward>[]> {
+  const rows = await prisma.userReward.findMany({
+    where: { userId },
+    select: { rewardKey: true, source: true, sourceKey: true },
+  });
+  const cosmeticKeys = rows
+    .map((r) => r.rewardKey)
+    .filter((k) => !k.startsWith("quest_day"));
+  const metaSourceKeys = rows.filter((r) => r.source === "meta").map((r) => r.sourceKey);
+  const milestones = pendingMetaMilestones(cosmeticKeys, metaSourceKeys);
+  if (milestones.length === 0) return [];
+
+  const granted: ReturnType<typeof serializeReward>[] = [];
+  const owned = new Set(cosmeticKeys);
+
+  for (const milestone of milestones) {
+    const rewardKey = pickMetaRewardKey(owned, hashSalt(milestone.sourceKey));
+    const def = rewardDef(rewardKey);
+    if (!def) continue;
+
+    try {
+      const created = await prisma.userReward.create({
+        data: {
+          userId,
+          rewardKey: def.key,
+          source: "meta",
+          sourceKey: milestone.sourceKey,
+        },
+      });
+      owned.add(def.key);
+      granted.push(
+        serializeReward(def, {
+          unlockedAt: created.unlockedAt,
+          source: created.source,
+          sourceKey: created.sourceKey,
+        }),
+      );
+    } catch {
+      // unique race — already granted
+    }
+  }
+
+  return granted;
 }
 
 /**
@@ -37,6 +99,7 @@ export async function grantChestReward(
   });
   if (existing) {
     const def = rewardDef(existing.rewardKey) ?? fallbackDef(existing.rewardKey);
+    const metaRewards = await tryGrantMetaChests(userId);
     return {
       newlyGranted: false,
       reward: serializeReward(def, {
@@ -44,21 +107,18 @@ export async function grantChestReward(
         source: existing.source,
         sourceKey: existing.sourceKey,
       }),
+      metaRewards: metaRewards.length > 0 ? metaRewards : undefined,
     };
   }
 
-  const owned = await prisma.userReward.findMany({
-    where: { userId },
-    select: { rewardKey: true },
-  });
-  // Quest-day markers are not cosmetics — exclude from pity / owned cosmetics.
-  const cosmeticOwned = owned
-    .map((r) => r.rewardKey)
-    .filter((k) => !k.startsWith("quest_day"));
+  const cosmeticOwned = await loadCosmeticKeys(userId);
   const priorGrantCount = await prisma.userReward.count({
     where: {
       userId,
-      NOT: { rewardKey: { startsWith: "quest_day" } },
+      NOT: [
+        { rewardKey: { startsWith: "quest_day" } },
+        { source: "meta" },
+      ],
     },
   });
 
@@ -79,6 +139,8 @@ export async function grantChestReward(
     },
   });
 
+  const metaRewards = await tryGrantMetaChests(userId);
+
   return {
     newlyGranted: true,
     reward: serializeReward(def, {
@@ -86,6 +148,7 @@ export async function grantChestReward(
       source: created.source,
       sourceKey: created.sourceKey,
     }),
+    metaRewards: metaRewards.length > 0 ? metaRewards : undefined,
   };
 }
 
