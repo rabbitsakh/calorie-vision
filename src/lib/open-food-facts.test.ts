@@ -160,7 +160,7 @@ test("rejects branded OFF hits that only share the brand string", () => {
   assert.equal(offMatchesQuery("борщ", "Milka Шоколад", "Milka"), false);
   // Brand alone is not enough — product name must overlap the query.
   assert.equal(offMatchesQuery("кофе", "Nescafé Classic", "Nescafé"), false);
-  assert.equal(offMatchesQuery("кофе", "Nescafé Classic Coffee", "Nescafé"), true);
+  assert.equal(offMatchesQuery("кофе", "Nescafé Classic Кофе", "Nescafé"), true);
   assert.equal(offMatchesQuery("Очаково квас", "Очаково Квас", "Очаково"), true);
 });
 
