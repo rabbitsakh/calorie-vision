@@ -80,6 +80,7 @@ model User {
   pushReminderLogs  PushReminderLog[]
   challenges    UserChallenge[]
   userBadges    UserBadge[]
+  userRewards   UserReward[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -337,6 +338,24 @@ model UserBadge {
 
   @@unique([userId, badgeKey])
   @@index([userId])
+}
+
+/** Cosmetic loot from chests (challenge / streak). One grant per sourceKey. */
+model UserReward {
+  id         String   @id @default(cuid())
+  userId     String
+  rewardKey  String   @db.VarChar(64)
+  /** e.g. challenge | streak */
+  source     String   @db.VarChar(32)
+  /** e.g. weekStart-challengeKey or streak:14 */
+  sourceKey  String   @db.VarChar(96)
+  unlockedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceKey])
+  @@index([userId])
+  @@index([userId, rewardKey])
 }
 
 model FoodCorrection {

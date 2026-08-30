@@ -21,7 +21,8 @@ export type CelebrationVariant =
   | "goal"
   | "badge"
   | "challenge"
-  | "milestone";
+  | "milestone"
+  | "chest";
 
 type FullscreenCelebrationProps = {
   open: boolean;
@@ -79,6 +80,12 @@ const VARIANT_THEME: Record<
     glow: "fs-celeb-glow-amber",
     badgeClass: "bg-amber-500/95",
   },
+  chest: {
+    pose: "cheer",
+    colors: ["#fbbf24", "#f59e0b", "#5eead4", "#fde68a", "#ffffff"],
+    glow: "fs-celeb-glow-amber",
+    badgeClass: "bg-amber-500/95",
+  },
 };
 
 const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
@@ -88,6 +95,7 @@ const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
   badge: "badge",
   challenge: "goal",
   milestone: "streak",
+  chest: "badge",
 };
 
 /**
