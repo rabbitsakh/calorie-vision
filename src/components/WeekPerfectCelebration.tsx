@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
+import { openChest } from "@/lib/chest-client";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
@@ -24,8 +25,7 @@ type StreakPayload = {
 };
 
 /**
- * Fires once per week when every day Mon..today has at least one meal logged
- * (minimum 5 days in the week so far — i.e. from Friday onward if perfect).
+ * Soft week (Mon..today all logged, ≥5 days) → week chest (wave 3).
  */
 export function WeekPerfectCelebration({
   today,
@@ -41,7 +41,7 @@ export function WeekPerfectCelebration({
   useEffect(() => {
     if (selectedDate !== today) return;
 
-    function apply(data: StreakPayload) {
+    async function apply(data: StreakPayload) {
       const logged = data.daysLoggedThisWeek ?? 0;
       const total = data.daysInWeekSoFar ?? 0;
       const weekStart = data.weekStart ?? today;
@@ -54,10 +54,14 @@ export function WeekPerfectCelebration({
         !isSoftCelebrationSeen("week-perfect", weekStart)
       ) {
         markSoftCelebrationSeen("week-perfect", weekStart);
+        const result = await openChest({ source: "week", weekStart });
+        const loot = result?.reward;
         setCopy({
-          title: total >= 7 ? "Идеальная неделя!" : "Отличная неделя!",
-          subtitle: `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`,
-          badge: String(logged),
+          title: loot ? "Сундук недели!" : total >= 7 ? "Идеальная неделя!" : "Отличная неделя!",
+          subtitle: loot
+            ? `${loot.title}. ${logged} ${pluralDays(logged)} с записями — без перфекционизма.`
+            : `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`,
+          badge: loot ? "✦" : String(logged),
         });
         setOpen(true);
       }
@@ -66,7 +70,7 @@ export function WeekPerfectCelebration({
     }
 
     if (day?.data?.streak && day.today === today) {
-      apply(day.data.streak);
+      void apply(day.data.streak);
       return;
     }
 
@@ -78,7 +82,7 @@ export function WeekPerfectCelebration({
       try {
         const resp = await fetch(withBasePath(`/api/streak?today=${encodeURIComponent(today)}`));
         if (!resp.ok) return;
-        apply((await resp.json()) as StreakPayload);
+        await apply((await resp.json()) as StreakPayload);
       } catch {
         // non-critical
       }
@@ -89,10 +93,13 @@ export function WeekPerfectCelebration({
     <SoftCelebration
       muteDate={today}
       open={open}
+      variant="chest"
       title={copy.title}
       subtitle={copy.subtitle}
-      pose="streak"
+      pose="cheer"
       badge={copy.badge || undefined}
+      ctaLabel="Круто!"
+      durationMs={0}
       onClose={close}
     />
   );

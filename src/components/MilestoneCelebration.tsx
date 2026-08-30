@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import { openChest } from "@/lib/chest-client";
 import { pluralDays } from "@/lib/russian-text";
-
-const CELEBRATION_MILESTONES = [7, 14, 30, 60, 100, 200, 365];
+import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
 
 const MILESTONE_COPY: Record<number, string> = {
   7: "Неделя без пропусков — это уже привычка!",
@@ -39,7 +39,7 @@ function markMilestoneSeen(milestone: number): void {
 
 /** Highest reached celebration milestone that hasn't been shown yet. */
 export function findUnseenMilestone(streak: number): number | null {
-  const reached = CELEBRATION_MILESTONES.filter((m) => streak >= m);
+  const reached = CELEBRATION_STREAK_MILESTONES.filter((m) => streak >= m);
   for (let i = reached.length - 1; i >= 0; i--) {
     const m = reached[i]!;
     if (!isMilestoneSeen(m)) return m;
@@ -51,31 +51,46 @@ type MilestoneCelebrationProps = {
   streak: number;
 };
 
-/** Big streak milestones — fullscreen stage, manual dismiss. */
+/**
+ * Big streak milestones — fullscreen chest with loot (wave 3).
+ */
 export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   const [milestone, setMilestone] = useState<number | null>(null);
+  const [loot, setLoot] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
     const next = findUnseenMilestone(streak);
-    if (next != null) {
-      setMilestone(next);
-      markMilestoneSeen(next);
-    }
+    if (next == null) return;
+    setMilestone(next);
+    markMilestoneSeen(next);
+    void (async () => {
+      const result = await openChest({ source: "streak", milestone: next });
+      if (result?.reward) {
+        setLoot({ title: result.reward.title, description: result.reward.description });
+      }
+    })();
   }, [streak]);
 
   if (milestone == null) return null;
 
+  const subtitle = loot
+    ? `Сундук серии: ${loot.title}. ${loot.description}`
+    : (MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`);
+
   return (
     <FullscreenCelebration
       open
-      variant="milestone"
-      pose="streak"
+      variant="chest"
+      pose="cheer"
       badge={String(milestone)}
-      title={`${milestone} ${pluralDays(milestone)} подряд!`}
-      subtitle={MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`}
+      title={`${milestone} ${pluralDays(milestone)} — сундук!`}
+      subtitle={subtitle}
       durationMs={0}
-      ctaLabel="Продолжить"
-      onClose={() => setMilestone(null)}
+      ctaLabel="Круто!"
+      onClose={() => {
+        setMilestone(null);
+        setLoot(null);
+      }}
     />
   );
 }
