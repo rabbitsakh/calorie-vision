@@ -60,10 +60,49 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   const [starting, setStarting] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [chestReward, setChestReward] = useState<{ title: string; description: string } | null>(
+    null,
+  );
   const prevCompleted = useRef<boolean | null>(null);
   const todayKey = toDateKey(new Date());
 
-  const closeCelebrate = useCallback(() => setCelebrate(false), []);
+  const closeCelebrate = useCallback(() => {
+    setCelebrate(false);
+    setChestReward(null);
+  }, []);
+
+  const openChallengeChest = useCallback(
+    async (weekStart: string, challengeKey: string, challengeTitle: string) => {
+      try {
+        const resp = await fetch(withBasePath("/api/rewards"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "challenge", weekStart, challengeKey }),
+        });
+        if (resp.ok) {
+          const payload = (await resp.json()) as {
+            reward?: { title: string; description: string };
+          };
+          if (payload.reward) {
+            setChestReward({
+              title: payload.reward.title,
+              description: payload.reward.description || `${challengeTitle} — неделя в копилку.`,
+            });
+            setCelebrate(true);
+            return;
+          }
+        }
+      } catch {
+        // fall through to soft celebrate without loot
+      }
+      setChestReward({
+        title: challengeTitle,
+        description: "Неделя в копилку — сундук чуть позже.",
+      });
+      setCelebrate(true);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     try {
@@ -94,14 +133,14 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
         !isSoftCelebrationsMutedToday(todayKey)
       ) {
         markSoftCelebrationSeen("challenge-done", doneKey);
-        setCelebrate(true);
+        void openChallengeChest(active.weekStart, active.challengeKey, active.title);
       }
 
       prevCompleted.current = active.completed;
     } catch {
       // non-critical
     }
-  }, [todayKey]);
+  }, [todayKey, openChallengeChest]);
 
   useEffect(() => {
     void load();
@@ -149,17 +188,19 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   const celebration = (
     <SoftCelebration
       open={celebrate}
-      variant="challenge"
-      pose="goal"
-      title="Челлендж закрыт!"
+      variant="chest"
+      pose="cheer"
+      title="Сундук открыт!"
       subtitle={
-        data?.active
-          ? `${data.active.title} — неделя в копилку.`
-          : "Отличная работа на этой неделе."
+        chestReward
+          ? `${chestReward.title}. ${chestReward.description}`
+          : data?.active
+            ? `${data.active.title} — неделя в копилку.`
+            : "Отличная работа на этой неделе."
       }
-      badge="✓"
+      badge="✦"
       durationMs={0}
-      ctaLabel="Супер!"
+      ctaLabel="Круто!"
       muteDate={todayKey}
       onClose={closeCelebrate}
     />
