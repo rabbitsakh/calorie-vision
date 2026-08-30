@@ -390,17 +390,29 @@ export function offMatchesQuery(query: string, dishName: string, brand?: string)
   if (n.includes(q) || q.includes(n)) {
     return true;
   }
-  if (b && (n.includes(b) || q.includes(b) || b.split(" ").some((token) => token.length > 2 && q.includes(token)))) {
-    return true;
-  }
+
+  // Do NOT treat "dishName contains brand" as a match — production dishName is
+  // usually `${brand} ${name}`, so that check accepted any branded OFF hit
+  // (e.g. query «кофе» → «Очаково Квас»).
 
   const tokens = q.split(" ").filter((token) => token.length > 2);
   if (tokens.length === 0) {
     return false;
   }
 
-  const matched = tokens.filter((token) => n.includes(token) || (b && b.includes(token)));
-  return matched.length >= Math.ceil(tokens.length / 2);
+  // Prefer overlap with the product name. Brand may reinforce a token already
+  // in the query, but brand-only overlap is not enough on its own.
+  const nameHits = tokens.filter((token) => n.includes(token));
+  if (nameHits.length >= Math.ceil(tokens.length / 2)) {
+    return true;
+  }
+
+  if (b && q.includes(b)) {
+    // Query explicitly mentions this brand — still need at least one name token.
+    return nameHits.length >= 1;
+  }
+
+  return false;
 }
 
 /** Parallel OFF search — first matching query wins. Never returns unmatched hits. */

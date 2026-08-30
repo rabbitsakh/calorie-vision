@@ -153,6 +153,17 @@ test("accepts Open Food Facts hits that share product tokens", () => {
   assert.equal(offMatchesQuery("борщ", "Шоколад Milka"), false);
 });
 
+test("rejects branded OFF hits that only share the brand string", () => {
+  // dishName is built as `${brand} ${name}` — brand-in-name must not auto-match.
+  assert.equal(offMatchesQuery("кофе", "Очаково Квас", "Очаково"), false);
+  assert.equal(offMatchesQuery("кофе с молоком", "Очаково Квас хлебный", "Очаково"), false);
+  assert.equal(offMatchesQuery("борщ", "Milka Шоколад", "Milka"), false);
+  // Brand alone is not enough — product name must overlap the query.
+  assert.equal(offMatchesQuery("кофе", "Nescafé Classic", "Nescafé"), false);
+  assert.equal(offMatchesQuery("кофе", "Nescafé Classic Coffee", "Nescafé"), true);
+  assert.equal(offMatchesQuery("Очаково квас", "Очаково Квас", "Очаково"), true);
+});
+
 test("uses serving weight for a single snack bar in Open Food Facts", () => {
   const nutrition = offProductToNutrition({
     code: "4610169560862",
