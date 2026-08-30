@@ -3652,6 +3652,303 @@ textarea {
   }
 }
 
+/* --- Chest open stage (wave 5) --- */
+.fs-chest-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(280px, 72vw);
+  height: min(280px, 72vw);
+  animation: fs-chest-stage-in 0.35s ease-out both;
+}
+
+.fs-chest-wrap {
+  position: relative;
+  width: 168px;
+  height: 148px;
+  perspective: 420px;
+  animation: fs-chest-shake 0.55s ease-in-out 0.15s both;
+}
+
+.fs-chest-shadow {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 130px;
+  height: 18px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.35);
+  filter: blur(6px);
+}
+
+.fs-chest-body {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 148px;
+  height: 88px;
+  transform: translateX(-50%);
+  border-radius: 14px 14px 18px 18px;
+  background: linear-gradient(180deg, #d97706 0%, #b45309 55%, #92400e 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 16px rgba(69, 26, 3, 0.35),
+    0 14px 28px rgba(15, 23, 42, 0.35);
+}
+
+.fs-chest-band {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 14px;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, #fde68a 0%, #fbbf24 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.fs-chest-lock {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 26px;
+  transform: translate(-50%, -35%);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #fef3c7 0%, #fbbf24 100%);
+  box-shadow: 0 2px 6px rgba(69, 26, 3, 0.35);
+}
+
+.fs-chest-lock::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 16px;
+  height: 14px;
+  transform: translateX(-50%);
+  border: 3px solid #fbbf24;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+}
+
+.fs-chest-lid {
+  position: absolute;
+  bottom: 72px;
+  left: 50%;
+  width: 156px;
+  height: 52px;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  border-radius: 16px 16px 8px 8px;
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    0 8px 18px rgba(15, 23, 42, 0.25);
+  animation: fs-chest-lid-open 0.55s cubic-bezier(0.34, 1.2, 0.64, 1) 0.62s both;
+}
+
+.fs-chest-lid-rim {
+  position: absolute;
+  inset: auto 10px 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: rgba(254, 243, 199, 0.55);
+}
+
+.fs-chest-glow {
+  position: absolute;
+  bottom: 36px;
+  left: 50%;
+  width: 120px;
+  height: 120px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.85), transparent 68%);
+  opacity: 0;
+  animation: fs-chest-glow-burst 0.7s ease-out 0.72s both;
+}
+
+.fs-chest-loot-beam {
+  position: absolute;
+  bottom: 48px;
+  left: 50%;
+  width: 8px;
+  height: 0;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(251, 191, 36, 0.2));
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.75);
+  animation: fs-chest-beam-rise 0.45s ease-out 0.78s both;
+}
+
+.fs-chest-sparkles {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.fs-chest-sparkle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  animation: fs-chest-sparkle-pop 0.55s ease-out 0.82s both;
+}
+
+.fs-chest-sparkle-1 {
+  top: 18%;
+  left: 22%;
+}
+.fs-chest-sparkle-2 {
+  top: 8%;
+  left: 52%;
+  animation-delay: 0.88s;
+}
+.fs-chest-sparkle-3 {
+  top: 22%;
+  right: 18%;
+  animation-delay: 0.9s;
+}
+.fs-chest-sparkle-4 {
+  top: 42%;
+  left: 8%;
+  animation-delay: 0.94s;
+}
+.fs-chest-sparkle-5 {
+  top: 38%;
+  right: 10%;
+  animation-delay: 0.96s;
+}
+.fs-chest-sparkle-6 {
+  top: 12%;
+  left: 38%;
+  width: 6px;
+  height: 6px;
+  animation-delay: 1s;
+}
+
+.fs-chest-rarity-pill {
+  animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.fs-chest-rarity-pill.fs-chest-rarity-common {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.fs-chest-rarity-pill.fs-chest-rarity-rare {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.55), rgba(94, 234, 212, 0.35));
+  color: #fff;
+  border: 1px solid rgba(196, 181, 253, 0.55);
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.35);
+}
+
+.fs-chest-rarity-pill.fs-chest-rarity-festive {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.75), rgba(245, 158, 11, 0.55));
+  color: #fff;
+  border: 1px solid rgba(253, 230, 138, 0.65);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.45);
+}
+
+.fs-chest-rarity-rare .fs-chest-glow {
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.85), transparent 68%);
+}
+
+.fs-chest-rarity-festive .fs-chest-glow {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.95), rgba(245, 158, 11, 0.35) 45%, transparent 68%);
+}
+
+@keyframes fs-chest-stage-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fs-chest-shake {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  15% {
+    transform: translateX(-4px) rotate(-2deg);
+  }
+  30% {
+    transform: translateX(5px) rotate(2deg);
+  }
+  45% {
+    transform: translateX(-5px) rotate(-2.5deg);
+  }
+  60% {
+    transform: translateX(4px) rotate(2deg);
+  }
+  75% {
+    transform: translateX(-3px) rotate(-1deg);
+  }
+}
+
+@keyframes fs-chest-lid-open {
+  from {
+    transform: translateX(-50%) rotateX(0deg);
+  }
+  to {
+    transform: translateX(-50%) rotateX(-118deg) translateY(-6px);
+  }
+}
+
+@keyframes fs-chest-glow-burst {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.35);
+  }
+  40% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.75;
+    transform: translateX(-50%) scale(1.35);
+  }
+}
+
+@keyframes fs-chest-beam-rise {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: 96px;
+    opacity: 1;
+  }
+}
+
+@keyframes fs-chest-sparkle-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6) translateY(-12px);
+  }
+}
+
 /* --- Mascot seasonal skins --- */
 .mascot-skin-winter .mascot-aura {
   filter: hue-rotate(18deg) saturate(0.92);

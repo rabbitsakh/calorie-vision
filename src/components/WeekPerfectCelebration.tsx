@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { openChest } from "@/lib/chest-client";
+import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
@@ -34,7 +35,13 @@ export function WeekPerfectCelebration({
 }: WeekPerfectCelebrationProps) {
   const day = useOptionalRationDay();
   const [open, setOpen] = useState(false);
-  const [copy, setCopy] = useState({ title: "", subtitle: "", badge: "" });
+  const [copy, setCopy] = useState({
+    title: "",
+    subtitle: "",
+    badge: "",
+    rarity: undefined as RewardRarity | undefined,
+    rarityLabel: undefined as string | undefined,
+  });
   const prevPerfect = useRef<boolean | null>(null);
   const close = useCallback(() => setOpen(false), []);
 
@@ -57,11 +64,13 @@ export function WeekPerfectCelebration({
         const result = await openChest({ source: "week", weekStart });
         const loot = result?.reward;
         setCopy({
-          title: loot ? "Сундук недели!" : total >= 7 ? "Идеальная неделя!" : "Отличная неделя!",
+          title: loot ? loot.title : total >= 7 ? "Идеальная неделя!" : "Отличная неделя!",
           subtitle: loot
-            ? `${loot.title}. ${logged} ${pluralDays(logged)} с записями — без перфекционизма.`
+            ? loot.description
             : `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`,
           badge: loot ? "✦" : String(logged),
+          rarity: loot?.rarity,
+          rarityLabel: loot?.rarityLabel,
         });
         setOpen(true);
       }
@@ -98,6 +107,8 @@ export function WeekPerfectCelebration({
       subtitle={copy.subtitle}
       pose="cheer"
       badge={copy.badge || undefined}
+      lootRarity={copy.rarity}
+      lootRarityLabel={copy.rarityLabel}
       ctaLabel="Круто!"
       durationMs={0}
       onClose={close}

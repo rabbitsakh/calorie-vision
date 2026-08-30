@@ -3,7 +3,7 @@
  * Web Audio only — no asset files. Safe no-op when AudioContext unavailable.
  */
 
-export type CelebrationChimeKind = "cheer" | "streak" | "goal" | "badge" | "soft";
+export type CelebrationChimeKind = "cheer" | "streak" | "goal" | "badge" | "soft" | "chest";
 
 function canPlay(): boolean {
   return typeof window !== "undefined";
@@ -56,6 +56,13 @@ export function playCelebrationChime(kind: CelebrationChimeKind = "cheer"): void
     } else if (kind === "soft") {
       tone(ctx, now, 660, 0.08, 0.06);
       tone(ctx, now + 0.07, 880, 0.1, 0.05);
+    } else if (kind === "chest") {
+      // Warm ascending loot fanfare
+      tone(ctx, now, 329.63, 0.07, 0.05);
+      tone(ctx, now + 0.07, 440, 0.09, 0.06);
+      tone(ctx, now + 0.14, 554.37, 0.11, 0.07, "triangle");
+      tone(ctx, now + 0.24, 659.25, 0.14, 0.08, "triangle");
+      tone(ctx, now + 0.36, 880, 0.2, 0.09, "triangle");
     } else {
       // cheer — short fanfare
       tone(ctx, now, 523.25, 0.1, 0.08);
@@ -72,7 +79,9 @@ export function playCelebrationChime(kind: CelebrationChimeKind = "cheer"): void
   }
 
   try {
-    if (kind === "streak" || kind === "badge") {
+    if (kind === "chest") {
+      navigator.vibrate?.([14, 28, 14, 36, 20]);
+    } else if (kind === "streak" || kind === "badge") {
       navigator.vibrate?.([18, 40, 18]);
     } else if (kind === "soft") {
       navigator.vibrate?.(10);

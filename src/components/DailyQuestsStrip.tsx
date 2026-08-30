@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { openChest } from "@/lib/chest-client";
+import type { RewardRarity } from "@/lib/rewards";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import {
@@ -25,7 +26,12 @@ type DailyQuestsStripProps = {
 export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuestsStripProps) {
   const day = useOptionalRationDay();
   const [celebrate, setCelebrate] = useState(false);
-  const [loot, setLoot] = useState<{ title: string; description: string } | null>(null);
+  const [loot, setLoot] = useState<{
+    title: string;
+    description: string;
+    rarity?: RewardRarity;
+    rarityLabel?: string;
+  } | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const claimedRef = useRef<string | null>(null);
   const todayKey = toDateKey(new Date());
@@ -53,7 +59,12 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
     if (result.reward) {
       markSoftCelebrationSeen("quest-chest", today);
-      setLoot({ title: result.reward.title, description: result.reward.description });
+      setLoot({
+        title: result.reward.title,
+        description: result.reward.description,
+        rarity: result.reward.rarity,
+        rarityLabel: result.reward.rarityLabel,
+      });
       setCelebrate(true);
       setHint(null);
       return;
@@ -115,12 +126,12 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         open={celebrate}
         variant="chest"
         pose="cheer"
-        title="Сундук за ритм!"
+        title={loot?.title ?? "Сундук за ритм!"}
         subtitle={
-          loot
-            ? `${loot.title}. ${loot.description}`
-            : "Несколько спокойных дней — и вот награда."
+          loot ? loot.description : "Несколько спокойных дней — и вот награда."
         }
+        lootRarity={loot?.rarity}
+        lootRarityLabel={loot?.rarityLabel}
         badge="✦"
         durationMs={0}
         ctaLabel="Круто!"

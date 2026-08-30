@@ -1,11 +1,12 @@
 import { withBasePath } from "@/lib/paths";
-import type { ChestSource } from "@/lib/rewards";
+import type { ChestSource, RewardRarity } from "@/lib/rewards";
 
 export type ChestRewardPayload = {
   key: string;
   title: string;
   description: string;
-  rarity?: string;
+  rarity?: RewardRarity;
+  rarityLabel?: string;
 };
 
 export type OpenChestResult = {

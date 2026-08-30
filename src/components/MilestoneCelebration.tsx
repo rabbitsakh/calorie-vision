@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { openChest } from "@/lib/chest-client";
+import type { RewardRarity } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
 import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
 
@@ -56,7 +57,12 @@ type MilestoneCelebrationProps = {
  */
 export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   const [milestone, setMilestone] = useState<number | null>(null);
-  const [loot, setLoot] = useState<{ title: string; description: string } | null>(null);
+  const [loot, setLoot] = useState<{
+    title: string;
+    description: string;
+    rarity?: RewardRarity;
+    rarityLabel?: string;
+  } | null>(null);
 
   useEffect(() => {
     const next = findUnseenMilestone(streak);
@@ -66,7 +72,12 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
     void (async () => {
       const result = await openChest({ source: "streak", milestone: next });
       if (result?.reward) {
-        setLoot({ title: result.reward.title, description: result.reward.description });
+        setLoot({
+          title: result.reward.title,
+          description: result.reward.description,
+          rarity: result.reward.rarity,
+          rarityLabel: result.reward.rarityLabel,
+        });
       }
     })();
   }, [streak]);
@@ -74,7 +85,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   if (milestone == null) return null;
 
   const subtitle = loot
-    ? `Сундук серии: ${loot.title}. ${loot.description}`
+    ? loot.description
     : (MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`);
 
   return (
@@ -83,8 +94,10 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
       variant="chest"
       pose="cheer"
       badge={String(milestone)}
-      title={`${milestone} ${pluralDays(milestone)} — сундук!`}
+      title={loot?.title ?? `${milestone} ${pluralDays(milestone)} — сундук!`}
       subtitle={subtitle}
+      lootRarity={loot?.rarity}
+      lootRarityLabel={loot?.rarityLabel}
       durationMs={0}
       ctaLabel="Круто!"
       onClose={() => {

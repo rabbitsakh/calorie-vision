@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CelebrationBurst } from "@/components/CelebrationBurst";
+import { ChestOpenStage } from "@/components/ChestOpenStage";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import type { RewardRarity } from "@/lib/rewards";
 import { claimSaveCheerForFullscreen } from "@/lib/save-cheer-coordination";
 
 export type CelebrationVariant =
@@ -34,6 +36,9 @@ type FullscreenCelebrationProps = {
   /** Auto-close after ms; omit / 0 = manual dismiss only. */
   durationMs?: number;
   ctaLabel?: string;
+  /** Chest loot rarity (wave 5). */
+  lootRarity?: RewardRarity;
+  lootRarityLabel?: string;
   /** Optional mute-for-today control (#33). */
   muteTodayLabel?: string;
   onMuteToday?: () => void;
@@ -95,7 +100,7 @@ const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
   badge: "badge",
   challenge: "goal",
   milestone: "streak",
-  chest: "badge",
+  chest: "chest",
 };
 
 /**
@@ -112,12 +117,16 @@ export function FullscreenCelebration({
   pose,
   durationMs = 3200,
   ctaLabel = "Продолжить",
+  lootRarity,
+  lootRarityLabel,
   muteTodayLabel = "Не показывать сегодня",
   onMuteToday,
   onClose,
 }: FullscreenCelebrationProps) {
   const [mounted, setMounted] = useState(false);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+  const [chestRevealed, setChestRevealed] = useState(false);
+  const chestChimePlayed = useRef(false);
   const gate = useCelebrationGate();
   const celebrationId = useId();
   const theme = VARIANT_THEME[variant];
@@ -127,6 +136,25 @@ export function FullscreenCelebration({
   const quiet = isGamificationQuiet();
   const isActive = !gate || gate.activeId === celebrationId;
   const show = open && isActive && !quiet;
+  const isChest = variant === "chest";
+  const showChestStage = isChest && !chestRevealed;
+
+  useEffect(() => {
+    if (!show) {
+      setChestRevealed(false);
+      chestChimePlayed.current = false;
+    }
+  }, [show]);
+
+  const onChestLidOpen = useCallback(() => {
+    if (chestChimePlayed.current) return;
+    chestChimePlayed.current = true;
+    playCelebrationChime("chest");
+  }, []);
+
+  const onChestRevealComplete = useCallback(() => {
+    setChestRevealed(true);
+  }, []);
 
   useEffect(() => {
     setPortalHost(getCelebrationPortalHost());
@@ -146,8 +174,10 @@ export function FullscreenCelebration({
   useEffect(() => {
     if (!show) return;
     claimSaveCheerForFullscreen();
-    playCelebrationChime(VARIANT_CHIME[variant]);
-  }, [show, variant]);
+    if (!isChest) {
+      playCelebrationChime(VARIANT_CHIME[variant]);
+    }
+  }, [show, variant, isChest]);
 
   useEffect(() => {
     if (open && quiet) onClose();
@@ -209,59 +239,77 @@ export function FullscreenCelebration({
         className="fs-celeb-content relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] text-center"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
-          <div className="fs-celeb-halo" aria-hidden />
-          <MascotRenderer pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
-          {badge ? (
-            <span
-              className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}
-            >
-              {badge}
-            </span>
-          ) : null}
-        </div>
-
-        <h2
-          id="fs-celeb-title"
-          className="fs-celeb-title max-w-sm text-3xl font-extrabold tracking-tight text-white drop-shadow-sm sm:text-4xl"
-        >
-          {title}
-        </h2>
-        {subtitle ? (
-          <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-teal-50/90 sm:text-lg">
-            {subtitle}
-          </p>
-        ) : null}
-
-        {!autoClose ? (
-          <button
-            type="button"
-            className="fs-celeb-cta btn mt-10 min-h-12 w-full max-w-xs rounded-2xl bg-white px-6 text-base font-bold text-teal-900 shadow-lg hover:bg-teal-50"
-            onClick={onClose}
-          >
-            {ctaLabel}
-          </button>
+        {showChestStage ? (
+          <ChestOpenStage
+            rarity={lootRarity}
+            onLidOpen={onChestLidOpen}
+            onComplete={onChestRevealComplete}
+          />
         ) : (
-          <button
-            type="button"
-            className="fs-celeb-skip mt-10 text-sm font-semibold text-white/70 underline-offset-2 hover:text-white hover:underline"
-            onClick={onClose}
-          >
-            Закрыть
-          </button>
+          <>
+            <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
+              <div className="fs-celeb-halo" aria-hidden />
+              <MascotRenderer pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
+              {badge ? (
+                <span
+                  className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}
+                >
+                  {badge}
+                </span>
+              ) : null}
+            </div>
+
+            {isChest && lootRarityLabel ? (
+              <span
+                className={`fs-chest-rarity-pill fs-chest-rarity-${lootRarity ?? "common"} mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide`}
+              >
+                {lootRarityLabel}
+              </span>
+            ) : null}
+
+            <h2
+              id="fs-celeb-title"
+              className="fs-celeb-title max-w-sm text-3xl font-extrabold tracking-tight text-white drop-shadow-sm sm:text-4xl"
+            >
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-teal-50/90 sm:text-lg">
+                {subtitle}
+              </p>
+            ) : null}
+
+            {!autoClose ? (
+              <button
+                type="button"
+                className="fs-celeb-cta btn mt-10 min-h-12 w-full max-w-xs rounded-2xl bg-white px-6 text-base font-bold text-teal-900 shadow-lg hover:bg-teal-50"
+                onClick={onClose}
+              >
+                {ctaLabel}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="fs-celeb-skip mt-10 text-sm font-semibold text-white/70 underline-offset-2 hover:text-white hover:underline"
+                onClick={onClose}
+              >
+                Закрыть
+              </button>
+            )}
+            {onMuteToday ? (
+              <button
+                type="button"
+                className="mt-3 text-xs font-semibold text-white/55 underline-offset-2 hover:text-white/85 hover:underline"
+                onClick={() => {
+                  onMuteToday();
+                  onClose();
+                }}
+              >
+                {muteTodayLabel}
+              </button>
+            ) : null}
+          </>
         )}
-        {onMuteToday ? (
-          <button
-            type="button"
-            className="mt-3 text-xs font-semibold text-white/55 underline-offset-2 hover:text-white/85 hover:underline"
-            onClick={() => {
-              onMuteToday();
-              onClose();
-            }}
-          >
-            {muteTodayLabel}
-          </button>
-        ) : null}
       </div>
     </div>,
     portalHost,

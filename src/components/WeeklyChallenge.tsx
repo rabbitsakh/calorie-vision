@@ -8,6 +8,7 @@ import {
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 import { openChest } from "@/lib/chest-client";
+import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import {
   hidePanelForWeek,
@@ -61,9 +62,12 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
   const [starting, setStarting] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [chestReward, setChestReward] = useState<{ title: string; description: string } | null>(
-    null,
-  );
+  const [chestReward, setChestReward] = useState<{
+    title: string;
+    description: string;
+    rarity?: RewardRarity;
+    rarityLabel?: string;
+  } | null>(null);
   const prevCompleted = useRef<boolean | null>(null);
   const todayKey = toDateKey(new Date());
 
@@ -79,6 +83,8 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
         setChestReward({
           title: result.reward.title,
           description: result.reward.description || `${challengeTitle} — неделя в копилку.`,
+          rarity: result.reward.rarity,
+          rarityLabel: result.reward.rarityLabel,
         });
         setCelebrate(true);
         return;
@@ -178,14 +184,16 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
       open={celebrate}
       variant="chest"
       pose="cheer"
-      title="Сундук открыт!"
+      title={chestReward?.title ?? "Сундук открыт!"}
       subtitle={
         chestReward
-          ? `${chestReward.title}. ${chestReward.description}`
+          ? chestReward.description
           : data?.active
             ? `${data.active.title} — неделя в копилку.`
             : "Отличная работа на этой неделе."
       }
+      lootRarity={chestReward?.rarity}
+      lootRarityLabel={chestReward?.rarityLabel}
       badge="✦"
       durationMs={0}
       ctaLabel="Круто!"

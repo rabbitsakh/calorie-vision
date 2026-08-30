@@ -5,6 +5,7 @@ import {
   type CelebrationVariant,
 } from "@/components/FullscreenCelebration";
 import type { MascotPose } from "@/components/Mascot";
+import type { RewardRarity } from "@/lib/rewards";
 import { muteSoftCelebrationsToday } from "@/lib/soft-celebration";
 
 type SoftCelebrationProps = {
@@ -15,6 +16,8 @@ type SoftCelebrationProps = {
   variant?: CelebrationVariant;
   /** Optional small badge (e.g. streak days); shown under the mascot. */
   badge?: string;
+  lootRarity?: RewardRarity;
+  lootRarityLabel?: string;
   durationMs?: number;
   ctaLabel?: string;
   /** When set, shows «Не показывать сегодня» and mutes soft celebrations for this date. */
@@ -39,6 +42,8 @@ export function SoftCelebration({
   pose = "cheer",
   variant,
   badge,
+  lootRarity,
+  lootRarityLabel,
   durationMs = 3400,
   ctaLabel,
   muteDate,
@@ -51,6 +56,8 @@ export function SoftCelebration({
       subtitle={subtitle}
       pose={pose}
       badge={badge}
+      lootRarity={lootRarity}
+      lootRarityLabel={lootRarityLabel}
       variant={variant ?? variantFromPose(pose)}
       durationMs={durationMs}
       ctaLabel={ctaLabel}
