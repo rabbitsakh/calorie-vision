@@ -7,6 +7,7 @@ import {
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
+import { openChest } from "@/lib/chest-client";
 import { withBasePath } from "@/lib/paths";
 import {
   hidePanelForWeek,
@@ -73,27 +74,14 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
 
   const openChallengeChest = useCallback(
     async (weekStart: string, challengeKey: string, challengeTitle: string) => {
-      try {
-        const resp = await fetch(withBasePath("/api/rewards"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: "challenge", weekStart, challengeKey }),
+      const result = await openChest({ source: "challenge", weekStart, challengeKey });
+      if (result?.reward) {
+        setChestReward({
+          title: result.reward.title,
+          description: result.reward.description || `${challengeTitle} — неделя в копилку.`,
         });
-        if (resp.ok) {
-          const payload = (await resp.json()) as {
-            reward?: { title: string; description: string };
-          };
-          if (payload.reward) {
-            setChestReward({
-              title: payload.reward.title,
-              description: payload.reward.description || `${challengeTitle} — неделя в копилку.`,
-            });
-            setCelebrate(true);
-            return;
-          }
-        }
-      } catch {
-        // fall through to soft celebrate without loot
+        setCelebrate(true);
+        return;
       }
       setChestReward({
         title: challengeTitle,

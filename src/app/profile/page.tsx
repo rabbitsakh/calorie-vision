@@ -8,6 +8,7 @@ import { PushRemindersSettings } from "@/components/PushRemindersSettings";
 import { FastingWindowSettings } from "@/components/FastingWindowSettings";
 import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
+import { RewardsPanel } from "@/components/RewardsPanel";
 
 export default function ProfilePage() {
   return (
@@ -19,6 +20,7 @@ export default function ProfilePage() {
           <PushRemindersSettings />
           <GamificationQuietToggle />
           <BadgesPanel />
+          <RewardsPanel />
           <section className="card p-4 md:p-5">
             <h2 className="font-display text-base font-semibold text-slate-800">Цель по весу</h2>
             <p className="mt-1 text-sm text-slate-500">
