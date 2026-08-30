@@ -10,7 +10,8 @@ export type SoftCelebrationKind =
   | "week-perfect"
   | "checkin-done"
   | "protein-goal"
-  | "weight-target";
+  | "weight-target"
+  | "quest-chest";
 
 function storageKey(kind: SoftCelebrationKind, date: string): string {
   return `soft-celeb-${kind}-${date}`;
