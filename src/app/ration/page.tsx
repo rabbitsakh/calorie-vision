@@ -19,6 +19,7 @@ import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { NextBadgeChip } from "@/components/NextBadgeChip";
+import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
@@ -225,6 +226,7 @@ function RationBody({
           onOpenHabits={() => setShowHabits(true)}
         />
         <NextBadgeChip refreshKey={refreshKey} />
+        <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
 
