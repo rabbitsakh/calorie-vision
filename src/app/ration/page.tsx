@@ -161,6 +161,14 @@ function RationBody({
   const [showHabits, setShowHabits] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const splashStartedAt = useRef<number | null>(null);
+  const habitsRef = useRef<HTMLElement | null>(null);
+
+  const openHabitsPanel = useCallback(() => {
+    setShowHabits(true);
+    window.requestAnimationFrame(() => {
+      habitsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
 
   useEffect(() => {
     // Date change / first paint: arm splash until bootstrap finishes.
@@ -222,8 +230,9 @@ function RationBody({
           onAddFood={openFoodCamera}
         />
         <ChallengeStrip
+          selectedDate={date}
           refreshKey={refreshKey}
-          onOpenHabits={() => setShowHabits(true)}
+          onOpenHabits={openHabitsPanel}
         />
         <NextBadgeChip refreshKey={refreshKey} />
         <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
@@ -298,7 +307,7 @@ function RationBody({
         <PushNotificationPrompt />
 
         <CelebrationOrchestrator>
-          <section className="card overflow-hidden">
+          <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
@@ -316,7 +325,12 @@ function RationBody({
             {!showHabits ? (
               <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
                 <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} mini />
+                <WeeklyChallenge
+                  selectedDate={date}
+                  refreshKey={refreshKey}
+                  mini
+                  onMiniClick={openHabitsPanel}
+                />
               </div>
             ) : (
               <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">

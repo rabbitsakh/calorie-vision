@@ -51,9 +51,19 @@ type WeeklyChallengeProps = {
   refreshKey: number;
   /** One-line strip for collapsed habits accordion. */
   mini?: boolean;
+  /** Mini strip click (e.g. open habits panel). */
+  onMiniClick?: () => void;
+  /** Fires after a challenge is successfully started / replaced. */
+  onStarted?: () => void;
 };
 
-export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: WeeklyChallengeProps) {
+export function WeeklyChallenge({
+  selectedDate,
+  refreshKey,
+  mini = false,
+  onMiniClick,
+  onStarted,
+}: WeeklyChallengeProps) {
   const [data, setData] = useState<ChallengesResponse | null>(null);
   const [history, setHistory] = useState<
     Array<{ weekStart: string; title: string; completed: boolean; progress: number; target: number }>
@@ -173,6 +183,7 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
       if (resp.ok) {
         setSwitching(false);
         await load();
+        onStarted?.();
       }
     } finally {
       setStarting(null);
@@ -211,13 +222,29 @@ export function WeeklyChallenge({ selectedDate, refreshKey, mini = false }: Week
         ? `${active.title} ✓`
         : `${active.progress}/${active.target}`
       : "Выбрать цель";
+    const miniClass =
+      "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-left text-xs font-semibold text-emerald-900";
+    const miniLabel = (
+      <span className="truncate">
+        {active ? active.title : "Челлендж"} · {label}
+      </span>
+    );
     return (
       <>
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-900">
-          <span className="truncate" title={active?.title ?? "Челлендж недели"}>
-            {active ? active.title : "Челлендж"} · {label}
-          </span>
-        </div>
+        {onMiniClick ? (
+          <button
+            type="button"
+            className={miniClass}
+            onClick={onMiniClick}
+            title={active?.title ?? "Челлендж недели"}
+          >
+            {miniLabel}
+          </button>
+        ) : (
+          <div className={miniClass} title={active?.title ?? "Челлендж недели"}>
+            {miniLabel}
+          </div>
+        )}
         {celebration}
       </>
     );
