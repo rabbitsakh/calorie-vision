@@ -1,0 +1,46 @@
+{
+  "packageId": "ru.calorievision.app",
+  "host": "calorievision.ru",
+  "name": "Calorie Vision",
+  "launcherName": "Calorie Vision",
+  "display": "standalone",
+  "themeColor": "#0F766E",
+  "themeColorDark": "#0F766E",
+  "navigationColor": "#0F766E",
+  "navigationColorDark": "#071A17",
+  "navigationDividerColor": "#0F766E",
+  "navigationDividerColorDark": "#071A17",
+  "backgroundColor": "#F4F7FB",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://calorievision.ru/icon-512.png",
+  "maskableIconUrl": "https://calorievision.ru/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "calorievision"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap",
+  "webManifestUrl": "https://calorievision.ru/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSCompatible": false,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedFragments": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "auto"
+}

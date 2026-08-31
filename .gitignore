@@ -11,3 +11,11 @@ eval-fixtures/*
 .mysql-client-*.cnf
 
 tsconfig.tsbuildinfo
+
+# RuStore / TWA local build artifacts (never commit secrets)
+rustore/android/
+rustore/dist/
+rustore/*.keystore
+rustore/*.jks
+rustore/*.pepk
+rustore/*.pem
