@@ -24,7 +24,7 @@ Package: `ru.calorievision.app`
 - Node.js 24+ (как у проекта)
 - `@bubblewrap/cli` (ставится скриптом)
 
-**Windows:** пошагово в [`rustore/WINDOWS.md`](WINDOWS.md) — типичная ошибка: `ANDROID_HOME` указывает на `cmdline-tools\latest` вместо корня `...\Android\Sdk`.
+**Windows:** пошагово в [`rustore/WINDOWS.md`](WINDOWS.md). `androidSdkPath` в Bubblewrap и `ANDROID_HOME` — **оба** указывают на корень `...\Android\Sdk`, не на `cmdline-tools\latest`.
 
 ```bash
 # один раз

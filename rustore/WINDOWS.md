@@ -14,27 +14,34 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 java -version   # должно быть 17.x
 ```
 
-## 2. Android SDK — два разных пути
+## 2. Android SDK — один путь для всего
 
-| Инструмент | Путь |
-|------------|------|
-| **Bubblewrap** (`~/.bubblewrap/config.json`) | `...\Android\Sdk\cmdline-tools\latest` |
-| **Gradle** (`ANDROID_HOME`, `local.properties`) | `...\Android\Sdk` (корень!) |
+И **Bubblewrap**, и **Gradle** должны видеть **корень SDK**:
+
+`C:\Users\User\AppData\Local\Android\Sdk`
+
+**Не** указывайте `cmdline-tools\latest` — иначе Gradle падает на лицензиях, а Bubblewrap не находит `zipalign`.
 
 Пример `C:\Users\User\.bubblewrap\config.json`:
 
 ```json
 {
   "jdkPath": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot",
-  "androidSdkPath": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest"
+  "androidSdkPath": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk"
 }
 ```
 
-Gradle **не** должен видеть `cmdline-tools\latest` как SDK root — иначе ошибка «licences have not been accepted».
+Или одной командой:
 
-## 3. Установка platform 36 и build-tools 35
+```powershell
+npx @bubblewrap/cli updateConfig `
+  --jdkPath="C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot" `
+  --androidSdkPath="$env:LOCALAPPDATA\Android\Sdk"
+```
 
-**Вариант A — Android Studio:** SDK Manager → Android 16 (API 36) + Build-Tools 35.
+## 3. Установка platform 36 и build-tools
+
+**Вариант A — Android Studio:** SDK Manager → Android 16 (API 36) + Build-Tools **36.1.0** (или новее).
 
 **Вариант B — командная строка** (PowerShell):
 
@@ -42,21 +49,19 @@ Gradle **не** должен видеть `cmdline-tools\latest` как SDK root
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
 
-# Новый CLI (если установлен через Android Studio):
-android sdk install build-tools/35.0.0 platforms/android-36
-
-# Или классический sdkmanager:
 & "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" --licenses
-& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "platform-tools" "build-tools;35.0.0" "platforms;android-36"
+& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "platform-tools" "build-tools;36.1.0" "platforms;android-36"
 ```
 
 Проверка:
 
 ```powershell
-Test-Path "$env:ANDROID_HOME\build-tools\35.0.0"
+Test-Path "$env:ANDROID_HOME\build-tools\36.1.0\zipalign.exe"
 Test-Path "$env:ANDROID_HOME\platforms\android-36"
 Test-Path "$env:ANDROID_HOME\licenses"
 ```
+
+Все три — **`True`**.
 
 ## 4. Сборка (Git Bash)
 
@@ -71,13 +76,23 @@ bash scripts/rustore-init.sh    # если ещё не делали
 bash scripts/rustore-build.sh   # пароль keystore → rustore/dist/app-release.apk
 ```
 
-Скрипт `rustore-build.sh` сам пишет `rustore/android/local.properties` с правильным `sdk.dir`.
+Скрипт `rustore-build.sh` сам пишет `local.properties` и при необходимости чинит `~/.bubblewrap/config.json`.
 
-## 5. Ошибка «licences have not been accepted»
+## 5. Частые ошибки
+
+### «licences have not been accepted»
 
 1. `ANDROID_HOME` = корень `Sdk`, не `cmdline-tools\latest`.
-2. Запустите `sdkmanager.bat --licenses` и примите все (или `yes | sdkmanager --licenses` в Git Bash).
-3. Убедитесь, что папка `Sdk\licenses\` существует и в ней есть файлы `*.txt`.
+2. `sdkmanager.bat --licenses` → на всё `y`.
+3. Папка `Sdk\licenses\` с файлами `*.txt`.
+
+### «zipalign» / «Системе не удается найти указанный путь»
+
+Bubblewrap ищет `Sdk\build-tools\36.1.0\zipalign.exe`, а у вас в config указан `cmdline-tools\latest`.
+
+1. Исправьте `androidSdkPath` в `~/.bubblewrap/config.json` на корень `Sdk` (см. §2).
+2. Установите build-tools: `sdkmanager "build-tools;36.1.0"`.
+3. Снова `bash scripts/rustore-build.sh`.
 
 ## 6. После APK
 

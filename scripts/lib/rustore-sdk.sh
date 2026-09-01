@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Shared Android SDK helpers for RuStore TWA builds (Linux, macOS, Git Bash on Windows).
 
-# Bubblewrap stores cmdline-tools path; Gradle needs the SDK root (parent of cmdline-tools).
+# Bubblewrap and Gradle both need the SDK root (not cmdline-tools/latest).
 rustore_resolve_android_sdk_root() {
   local candidate sdk_path root parent
 
@@ -84,11 +84,22 @@ rustore_detect_compile_sdk() {
 rustore_detect_build_tools() {
   local android_dir="$1"
   local gradle="$android_dir/app/build.gradle"
-  local value="35.0.0"
+  local value=""
   if [[ -f "$gradle" ]]; then
     value="$(sed -n 's/.*buildToolsVersion[[:space:]]*"\([^"]*\)".*/\1/p' "$gradle" | head -1)"
   fi
-  [[ -z "$value" ]] && value="${RUSTORE_BUILD_TOOLS:-35.0.0}"
+  if [[ -z "$value" && -n "${RUSTORE_BUILD_TOOLS:-}" ]]; then
+    value="$RUSTORE_BUILD_TOOLS"
+  fi
+  if [[ -z "$value" ]]; then
+    # Bubblewrap 1.24+ often uses the latest installed build-tools (e.g. 36.1.0).
+    local sdk_root
+    sdk_root="$(rustore_resolve_android_sdk_root 2>/dev/null || true)"
+    if [[ -n "$sdk_root" && -d "$sdk_root/build-tools" ]]; then
+      value="$(ls -1 "$sdk_root/build-tools" 2>/dev/null | sort -V | tail -1)"
+    fi
+  fi
+  [[ -z "$value" ]] && value="36.1.0"
   printf '%s\n' "$value"
 }
 
@@ -154,6 +165,32 @@ rustore_prepare_android_sdk() {
     return 1
   fi
 
+  rustore_fix_bubblewrap_config "$sdk_root"
   rustore_write_local_properties "$android_dir" "$sdk_root"
   rustore_ensure_android_sdk "$sdk_root" "$android_dir"
+}
+
+rustore_fix_bubblewrap_config() {
+  local sdk_root="$1"
+  local cfg="${HOME}/.bubblewrap/config.json"
+  [[ -f "$cfg" ]] || return 0
+  command -v node >/dev/null 2>&1 || return 0
+
+  node - "$cfg" "$sdk_root" <<'NODE'
+const fs = require('fs');
+const [cfgPath, sdkRoot] = process.argv.slice(2);
+let config = {};
+try {
+  config = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+} catch {
+  process.exit(0);
+}
+const current = config.androidSdkPath || '';
+const normalized = current.replace(/\\/g, '/');
+if (normalized.includes('/cmdline-tools/') || normalized.endsWith('/cmdline-tools/latest')) {
+  config.androidSdkPath = sdkRoot;
+  fs.writeFileSync(cfgPath, JSON.stringify(config, null, 2) + '\n');
+  console.log(`==> bubblewrap config.json: androidSdkPath → ${sdkRoot}`);
+}
+NODE
 }
