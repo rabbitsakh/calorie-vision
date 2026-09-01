@@ -157,3 +157,38 @@ test("prefers candidate with filled macros", () => {
     true,
   );
 });
+
+test("retries packaged soup mismatch on instant cup", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "суп Том Ям",
+      calories: 148,
+      confidence: 0.8,
+      photoKind: "package",
+      portionGrams: 40,
+    }),
+    "packaged-soup-mismatch",
+  );
+});
+
+test("prefers non-soup name over packaged soup mismatch", () => {
+  assert.equal(
+    isBetterRecognitionResult(
+      {
+        dishName: "суп Том Ям",
+        calories: 148,
+        confidence: 0.8,
+        photoKind: "package",
+        portionGrams: 40,
+      },
+      {
+        dishName: "Овсянка по-новому",
+        calories: 148,
+        confidence: 0.75,
+        photoKind: "package",
+        portionGrams: 40,
+      },
+    ),
+    true,
+  );
+});

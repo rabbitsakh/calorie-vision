@@ -139,3 +139,20 @@ test("matches corrections by token overlap", () => {
 
   assert.equal(picked?.correctedName, "Греческий салат");
 });
+
+test("ignores unsafe grain-to-soup corrections", () => {
+  const picked = pickFoodCorrection("овсянка по-новому", [
+    {
+      originalKey: "овсянка",
+      correctedName: "суп Том Ям",
+      calories: 148,
+      protein: null,
+      fat: null,
+      carbs: null,
+      portionGrams: 40,
+      useCount: 5,
+    },
+  ]);
+
+  assert.equal(picked, null);
+});

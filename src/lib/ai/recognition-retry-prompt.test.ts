@@ -12,3 +12,9 @@ test("retry prompt falls back when reason is null", () => {
   const prompt = buildRecognitionRetryPrompt(null);
   assert.match(prompt, /валидный JSON/i);
 });
+
+test("retry prompt explains packaged soup mismatch", () => {
+  const prompt = buildRecognitionRetryPrompt("packaged-soup-mismatch");
+  assert.match(prompt, /овсянка/i);
+  assert.match(prompt, /не суп/i);
+});

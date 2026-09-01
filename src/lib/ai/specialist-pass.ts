@@ -2,6 +2,7 @@ import type { FoodRecognitionResult } from "../food-types";
 import { shouldRunBarcodePass } from "./barcode-vision";
 import { shouldRunDrinkPass } from "./drink-vision";
 import { shouldRunLabelPass } from "./label-vision";
+import { isSuspiciousSoupOnPackaged } from "../package-name-guard";
 import { shouldRunPackagePass } from "./package-vision";
 import { shouldRunPlatePass } from "./plate-vision";
 import { shouldRunStickerPass } from "./sticker-vision";
@@ -21,6 +22,8 @@ export type SpecialistPass =
 export function pickSpecialistPass(result: FoodRecognitionResult): SpecialistPass | null {
   // Packaged goods: prefer reading the barcode before guessing the front.
   if (shouldRunBarcodePass(result)) return "barcode";
+  // Oats-in-cup misread as soup — re-read front-of-pack text before label OCR.
+  if (isSuspiciousSoupOnPackaged(result)) return "package";
   if (shouldRunLabelPass(result)) return "label";
   // Mixed plates are sometimes misclassified as package — split before package front.
   if (shouldRunPlatePass(result)) return "plate";

@@ -45,6 +45,7 @@ import {
   rememberCachedFileId,
 } from "@/lib/ai/gigachat-file-cache";
 import { normalizeBarcode } from "@/lib/barcode";
+import { repairPackagedMislabel } from "@/lib/package-name-guard";
 
 const OAUTH_URL =
   process.env.GIGACHAT_OAUTH_URL ??
@@ -794,6 +795,8 @@ export async function recognizeWithGigaChat(
       console.warn("Post-specialist recognition retry failed", error);
     }
   }
+
+  result = repairPackagedMislabel(result);
 
   logRecognitionPass({
     pass: "accepted",

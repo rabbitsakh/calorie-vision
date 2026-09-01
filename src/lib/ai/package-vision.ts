@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "../food-types";
+import { needsPackageIdentityPass } from "../package-name-guard";
 
 function isFailedName(name: string): boolean {
   return /не удалось распознать/i.test(name) || /^(еда|продукт|упаковка|food|package)$/i.test(name.trim());
@@ -6,15 +7,7 @@ function isFailedName(name: string): boolean {
 
 /** Whether a package-front specialist pass is worth another call. */
 export function shouldRunPackagePass(result: FoodRecognitionResult): boolean {
-  if (result.photoKind !== "package") return false;
-
-  const weakName = !result.dishName.trim() || isFailedName(result.dishName);
-  const missingBrand = !result.brand?.trim();
-  const missingNet =
-    result.portionGrams === undefined || result.portionGrams <= 0 || result.portionGrams === 100;
-
-  // Run when name is weak, or brand+net both missing (common front-of-pack miss).
-  return weakName || (missingBrand && missingNet);
+  return needsPackageIdentityPass(result);
 }
 
 /** Prefer candidate with a clearer product name / brand / net weight. */

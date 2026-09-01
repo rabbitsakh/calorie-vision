@@ -11,6 +11,7 @@ import {
   hasTrustedBarcodeWebName,
   pickBarcodeWebProductName,
 } from "@/lib/barcode-web-lookup";
+import { repairPackagedMislabel } from "@/lib/package-name-guard";
 import {
   applyStoredFoodCorrection,
   lookupStoredFoodCorrection,
@@ -740,30 +741,32 @@ export async function enrichRecognitionAfterVision(
   vision: FoodRecognitionResult,
   userId?: string | null,
 ): Promise<FoodRecognitionResult> {
+  const repairedVision = repairPackagedMislabel(vision);
   const packaged =
-    vision.photoKind === "label" ||
-    vision.photoKind === "package" ||
-    vision.photoKind === "barcode";
+    repairedVision.photoKind === "label" ||
+    repairedVision.photoKind === "package" ||
+    repairedVision.photoKind === "barcode";
   const deadlineMs = Date.now() + (packaged ? PACKAGED_ENRICH_BUDGET_MS : POST_VISION_BUDGET_MS);
   const plated =
-    (vision.photoKind === "meal" || vision.photoKind === undefined) && isMultiItemRecognition(vision);
+    (repairedVision.photoKind === "meal" || repairedVision.photoKind === undefined) &&
+    isMultiItemRecognition(repairedVision);
 
-  if (plated && vision.items) {
-    const processed = await mapPool(vision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
+  if (plated && repairedVision.items) {
+    const processed = await mapPool(repairedVision.items, PLATE_ENRICH_CONCURRENCY, (item) =>
       enrichMealItem(item, userId, deadlineMs, { deferFiberSugar: true }),
     );
     const withFiberSugar = await enrichPlateFiberSugarBatch(processed, deadlineMs);
     return finalizeRecognitionResult(
-      combineRecognitionItems(withFiberSugar, { ...vision, source: "gigachat" }),
+      combineRecognitionItems(withFiberSugar, { ...repairedVision, source: "gigachat" }),
       userId,
       deadlineMs,
     );
   }
 
   const enriched = await withTimeoutFallback(
-    enrichPackagedProduct({ ...vision, source: "gigachat", items: undefined }),
+    enrichPackagedProduct({ ...repairedVision, source: "gigachat", items: undefined }),
     Math.max(0, deadlineMs - Date.now()),
-    { ...vision, source: "gigachat", items: undefined },
+    { ...repairedVision, source: "gigachat", items: undefined },
   );
   let result = normalizeRecognitionNutrition(enriched);
 
