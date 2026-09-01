@@ -18,6 +18,8 @@ const RETRY_HINTS: Record<RecognitionRetryReason, string> = {
     "Добавь protein, fat, carbs на всю порцию — не только calories.",
   "package-no-barcode":
     "Считай штрихкод EAN/UPC или per100g с упаковки; укажи brand и net weight.",
+  "packaged-soup-mismatch":
+    "На фото упаковка/стаканчик с крупой (овсянка, геркулес, хлопья) — прочитай КРУПНЫЙ текст с упаковки буквально. Это не суп и не том ям; укажи реальное название продукта с упаковки.",
 };
 
 /** Retry message tailored to the weak spot in the first vision response. */

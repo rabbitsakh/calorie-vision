@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "../food-types";
+import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "../package-name-guard";
 import { getRecognitionLowConfidenceThreshold } from "./recognition-thresholds";
 
 export type RecognitionRetryReason =
@@ -9,7 +10,8 @@ export type RecognitionRetryReason =
   | "empty-label"
   | "low-confidence"
   | "missing-macros"
-  | "package-no-barcode";
+  | "package-no-barcode"
+  | "packaged-soup-mismatch";
 
 const VAGUE_NAME_RE =
   /^(еда|блюдо|ужин|обед|завтрак|перекус|food|meal|snack|продукт|набор)$/i;
@@ -102,6 +104,10 @@ export function getRecognitionRetryReason(
     return "empty-label";
   }
 
+  if (isSuspiciousSoupOnPackaged(result)) {
+    return "packaged-soup-mismatch";
+  }
+
   return null;
 }
 
@@ -160,6 +166,14 @@ export function isBetterRecognitionResult(
   const curPer100 = current.per100g?.calories ?? 0;
   const newPer100 = candidate.per100g?.calories ?? 0;
   if (current.photoKind === "label" && newPer100 > curPer100) return true;
+
+  if (
+    isSuspiciousSoupOnPackaged(current) &&
+    !looksLikeSoupName(candidate.dishName) &&
+    candidate.dishName.trim().length >= 3
+  ) {
+    return true;
+  }
 
   return false;
 }

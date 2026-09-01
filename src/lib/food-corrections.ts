@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { looksLikeGrainPackName, looksLikeSoupName } from "./package-name-guard";
 
 export type FoodCorrectionRecord = {
   correctedName: string;
@@ -60,6 +61,21 @@ export function correctionTokenOverlap(a: string, b: string): number {
   return shared / Math.max(left.length, right.length);
 }
 
+/** Block corrections that remap grain cups/packs to soup names (bad memory or mis-save). */
+export function isUnsafeFoodCorrection(
+  dishName: string,
+  correction: FoodCorrectionRecord & { originalKey?: string },
+): boolean {
+  const original = correction.originalKey ?? dishName;
+  if (looksLikeGrainPackName(original) && looksLikeSoupName(correction.correctedName)) {
+    return true;
+  }
+  if (looksLikeGrainPackName(dishName) && looksLikeSoupName(correction.correctedName)) {
+    return true;
+  }
+  return false;
+}
+
 export function pickFoodCorrection(
   dishName: string,
   records: Array<FoodCorrectionRecord & { originalKey: string }>,
@@ -70,7 +86,7 @@ export function pickFoodCorrection(
   }
 
   const exact = records.find((row) => row.originalKey === key);
-  if (exact) {
+  if (exact && !isUnsafeFoodCorrection(dishName, exact)) {
     return exact;
   }
 
@@ -97,6 +113,10 @@ export function pickFoodCorrection(
       best = row;
       bestScore = overlap;
     }
+  }
+
+  if (best && isUnsafeFoodCorrection(dishName, best)) {
+    return null;
   }
 
   return best;
