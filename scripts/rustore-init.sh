@@ -23,8 +23,8 @@ if [[ ! -f "$KEYSTORE" ]]; then
   exit 1
 fi
 
-BUBBLEWRAP=(npx --yes @bubblewrap/cli@1.24.1)
-if command -v bubblewrap >/dev/null 2>&1; then
+BUBBLEWRAP=(npx --yes @bubblewrap/cli@1.25.0)
+if [[ "${RUSTORE_USE_GLOBAL_BUBBLEWRAP:-}" == "1" ]] && command -v bubblewrap >/dev/null 2>&1; then
   BUBBLEWRAP=(bubblewrap)
 fi
 

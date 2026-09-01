@@ -20,7 +20,15 @@ java -version   # должно быть 17.x
 
 `C:\Users\User\AppData\Local\Android\Sdk`
 
-**Не** указывайте `cmdline-tools\latest` — иначе Gradle падает на лицензиях, а Bubblewrap не находит `zipalign`.
+**Не** указывайте `cmdline-tools\latest` в `androidSdkPath`.
+
+Bubblewrap проверяет папку **`Sdk\bin`**, а в новых SDK она лежит в `cmdline-tools\latest\bin`. Создайте junction **один раз**:
+
+```powershell
+cmd /c mklink /J "$env:LOCALAPPDATA\Android\Sdk\bin" "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin"
+```
+
+После этого `androidSdkPath` = корень `Sdk` — Gradle и Bubblewrap работают вместе.
 
 Пример `C:\Users\User\.bubblewrap\config.json`:
 
@@ -41,27 +49,30 @@ npx @bubblewrap/cli updateConfig `
 
 ## 3. Установка platform 36 и build-tools
 
-**Вариант A — Android Studio:** SDK Manager → Android 16 (API 36) + Build-Tools **36.1.0** (или новее).
+Bubblewrap для подписи APK использует **Build-Tools 36.1.0** (отдельно от Gradle). Нужны **оба**, если Gradle тянет другую версию.
 
-**Вариант B — командная строка** (PowerShell):
+**Вариант A — Android Studio (рекомендуется):** SDK Manager → Android 16 (API 36) + Build-Tools **36.1.0**.
+
+**Вариант B — новый CLI `android`** (PowerShell):
 
 ```powershell
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+$android = "$env:ANDROID_HOME\cmdline-tools\latest\bin\android.bat"
 
-& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" --licenses
-& "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" "platform-tools" "build-tools;36.1.0" "platforms;android-36"
+& $android sdk licenses
+& $android sdk install build-tools/36.1.0 platforms/android-36 platform-tools
 ```
+
+**Не используйте** `sdkmanager "build-tools;36.1.0"` на новых CLI — он разбивает строку и пишет «Package not found».
 
 Проверка:
 
 ```powershell
 Test-Path "$env:ANDROID_HOME\build-tools\36.1.0\zipalign.exe"
 Test-Path "$env:ANDROID_HOME\platforms\android-36"
-Test-Path "$env:ANDROID_HOME\licenses"
 ```
 
-Все три — **`True`**.
+Обе команды — **`True`**.
 
 ## 4. Сборка (Git Bash)
 
@@ -97,10 +108,10 @@ npx @bubblewrap/cli updateConfig --androidSdkPath="$env:LOCALAPPDATA\Android\Sdk
 
 ### «zipalign» / «Системе не удается найти указанный путь»
 
-Bubblewrap ищет `Sdk\build-tools\36.1.0\zipalign.exe`, а у вас в config указан `cmdline-tools\latest`.
+Bubblewrap ищет **`Sdk\build-tools\36.1.0\zipalign.exe`**. У вас может быть только 35.0.0.
 
-1. Исправьте `androidSdkPath` в `~/.bubblewrap/config.json` на корень `Sdk` (см. §2).
-2. Установите build-tools: `sdkmanager "build-tools;36.1.0"`.
+1. Установите **Build-Tools 36.1.0** (Android Studio или `android sdk install build-tools/36.1.0`).
+2. Проверьте: `Test-Path "$env:LOCALAPPDATA\Android\Sdk\build-tools\36.1.0\zipalign.exe"` → **True**.
 3. Снова `bash scripts/rustore-build.sh`.
 
 ## 6. После APK

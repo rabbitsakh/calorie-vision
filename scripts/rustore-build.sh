@@ -22,10 +22,14 @@ if [[ ! -f "$KEYSTORE" ]]; then
   exit 1
 fi
 
-BUBBLEWRAP=(npx --yes @bubblewrap/cli@1.24.1)
-if command -v bubblewrap >/dev/null 2>&1; then
+RUSTORE_BUBBLEWRAP_VERSION=1.25.0
+BUBBLEWRAP=(npx --yes @bubblewrap/cli@"$RUSTORE_BUBBLEWRAP_VERSION")
+if [[ "${RUSTORE_USE_GLOBAL_BUBBLEWRAP:-}" == "1" ]] && command -v bubblewrap >/dev/null 2>&1; then
   BUBBLEWRAP=(bubblewrap)
+  RUSTORE_BUBBLEWRAP_VERSION=global
+  export RUSTORE_BUBBLEWRAP_VERSION
 fi
+export RUSTORE_BUBBLEWRAP_VERSION
 
 mkdir -p "$DIST"
 
