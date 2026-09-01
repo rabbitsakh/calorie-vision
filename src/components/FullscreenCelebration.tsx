@@ -105,8 +105,8 @@ const VARIANT_CHIME: Record<CelebrationVariant, CelebrationChimeKind> = {
 
 /**
  * Immersive fullscreen celebration stage (Duolingo-style).
- * Portaled into a fixed <div> on <html> (same pattern as MobileTabBar) —
- * <dialog showModal()> clipped to the left half on iOS Profile.
+ * Portaled into a fixed <div> on <html> — inset:0 + 100dvw (not innerWidth px;
+ * Android TWA clips to left half when innerWidth under-reports).
  */
 export function FullscreenCelebration({
   open,
