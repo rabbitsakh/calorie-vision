@@ -165,9 +165,44 @@ rustore_prepare_android_sdk() {
     return 1
   fi
 
+  rustore_ensure_bubblewrap_sdk_layout "$sdk_root"
   rustore_fix_bubblewrap_config "$sdk_root"
   rustore_write_local_properties "$android_dir" "$sdk_root"
   rustore_ensure_android_sdk "$sdk_root" "$android_dir"
+}
+
+# Bubblewrap validatePath requires Sdk/bin or Sdk/tools, but build-tools live under Sdk root.
+# On Windows, junction Sdk/bin → cmdline-tools/latest/bin satisfies both Gradle and Bubblewrap.
+rustore_ensure_bubblewrap_sdk_layout() {
+  local sdk_root="$1"
+  local cmdline_bin="$sdk_root/cmdline-tools/latest/bin"
+  local sdk_bin="$sdk_root/bin"
+
+  [[ -d "$cmdline_bin" ]] || return 0
+  if [[ -e "$sdk_bin" ]]; then
+    return 0
+  fi
+
+  echo "==> Bubblewrap: создаю Sdk/bin → cmdline-tools/latest/bin"
+  case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*)
+      local target
+      target="$(rustore_escape_sdk_dir_for_properties "$cmdline_bin")"
+      cmd //c "mklink /J \"$(cygpath -w "$sdk_bin")\" \"$target\"" >/dev/null 2>&1 \
+        || cmd //c "mklink /J \"$(cygpath -w "$sdk_bin")\" \"$(cygpath -w "$cmdline_bin")\"" \
+        || ln -s "$cmdline_bin" "$sdk_bin" 2>/dev/null \
+        || true
+      ;;
+    *)
+      ln -sfn "$cmdline_bin" "$sdk_bin" 2>/dev/null || true
+      ;;
+  esac
+
+  if [[ ! -e "$sdk_bin" ]]; then
+    echo "Не удалось создать $sdk_bin. В PowerShell (от администратора не нужно):" >&2
+    echo "  cmd /c mklink /J \"$sdk_root\\bin\" \"$sdk_root\\cmdline-tools\\latest\\bin\"" >&2
+    return 1
+  fi
 }
 
 rustore_fix_bubblewrap_config() {

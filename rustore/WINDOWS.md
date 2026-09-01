@@ -86,6 +86,15 @@ bash scripts/rustore-build.sh   # пароль keystore → rustore/dist/app-rel
 2. `sdkmanager.bat --licenses` → на всё `y`.
 3. Папка `Sdk\licenses\` с файлами `*.txt`.
 
+### «The provided androidSdk isn't correct»
+
+Bubblewrap ищет папку `Sdk\bin`, а у вас она только в `cmdline-tools\latest\bin`.
+
+```powershell
+cmd /c mklink /J "$env:LOCALAPPDATA\Android\Sdk\bin" "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\latest\bin"
+npx @bubblewrap/cli updateConfig --androidSdkPath="$env:LOCALAPPDATA\Android\Sdk"
+```
+
 ### «zipalign» / «Системе не удается найти указанный путь»
 
 Bubblewrap ищет `Sdk\build-tools\36.1.0\zipalign.exe`, а у вас в config указан `cmdline-tools\latest`.
