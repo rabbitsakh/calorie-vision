@@ -117,7 +117,7 @@ export function repairPackagedMislabel(result: FoodRecognitionResult): FoodRecog
       fat: alt.fat ?? result.fat,
       carbs: alt.carbs ?? result.carbs,
       photoKind: result.photoKind ?? "package",
-      confidence: Math.max(0.55, Math.min(result.confidence, alt.confidence ?? 0.75)),
+      confidence: Math.max(0.55, Math.min(result.confidence, 0.75)),
     };
   }
 
