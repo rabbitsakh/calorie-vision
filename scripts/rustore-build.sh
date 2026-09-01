@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/rustore-sdk.sh
+source "$ROOT/scripts/lib/rustore-sdk.sh"
 RUSTORE="$ROOT/rustore"
 ANDROID="$RUSTORE/android"
 DIST="$RUSTORE/dist"
@@ -26,6 +28,9 @@ if command -v bubblewrap >/dev/null 2>&1; then
 fi
 
 mkdir -p "$DIST"
+
+rustore_prepare_android_sdk "$ANDROID"
+
 cd "$ANDROID"
 
 # Keep version/source of truth from repo manifest.

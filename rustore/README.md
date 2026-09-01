@@ -19,10 +19,12 @@ Package: `ru.calorievision.app`
 
 ## Требования на машине сборки
 
-- JDK 17+
+- **JDK 17** (не Java 21/25 из Android Studio — Gradle падает)
 - Android SDK (cmdline-tools) или Android Studio
 - Node.js 24+ (как у проекта)
 - `@bubblewrap/cli` (ставится скриптом)
+
+**Windows:** пошагово в [`rustore/WINDOWS.md`](WINDOWS.md) — типичная ошибка: `ANDROID_HOME` указывает на `cmdline-tools\latest` вместо корня `...\Android\Sdk`.
 
 ```bash
 # один раз
