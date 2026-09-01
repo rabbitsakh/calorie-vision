@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/rustore-sdk.sh
+source "$ROOT/scripts/lib/rustore-sdk.sh"
 RUSTORE="$ROOT/rustore"
 MANIFEST="$RUSTORE/twa-manifest.json"
 OUT="$RUSTORE/android"
@@ -50,6 +52,8 @@ else
   # Re-apply our curated manifest after init.
   cp "$MANIFEST" ./twa-manifest.json
 fi
+
+rustore_prepare_android_sdk "$OUT" || true
 
 echo "==> Готово: $OUT"
 echo "Дальше: bash scripts/rustore-build.sh"

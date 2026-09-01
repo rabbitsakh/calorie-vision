@@ -14,6 +14,7 @@
 - [ ] `bash scripts/rustore-init.sh` отработал
 - [ ] `TWA_SHA256_FINGERPRINTS` на проде → `/.well-known/assetlinks.json` отдаёт JSON
 - [ ] `bash scripts/rustore-build.sh` → APK (и опционально AAB)
+- [ ] Windows: JDK 17 + `ANDROID_HOME` = корень SDK (см. `WINDOWS.md`)
 - [ ] Установка APK на телефон: открывается calorievision.ru без адресной строки
 - [ ] Логин (Google / VK / Telegram / email)
 - [ ] Фото → распознавание → сохранение
