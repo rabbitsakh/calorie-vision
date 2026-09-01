@@ -86,9 +86,10 @@ test("getCelebrationPortalHost creates a div host on documentElement", () => {
   assert.equal((host as { tagName: string }).tagName, "DIV");
   const css = host!.style.cssText;
   assert.match(css, /position:\s*fixed/i);
-  assert.match(css, /width:\s*390px/i);
-  assert.match(css, /height:\s*844px/i);
+  assert.match(css, /width:\s*100%/i);
+  assert.match(css, /height:\s*100%/i);
   assert.doesNotMatch(css, /100vw/);
+  assert.doesNotMatch(css, /\d+px/);
   delete (globalThis as { document?: unknown }).document;
   delete (globalThis as { window?: unknown }).window;
 });

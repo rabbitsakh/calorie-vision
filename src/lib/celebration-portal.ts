@@ -1,19 +1,14 @@
 /**
  * Fullscreen celebration host — plain fixed <div> on <html>.
  *
- * History: <dialog showModal()> was tried for top-layer immunity, but on iOS
- * PWA UA :modal sizing still clips the stage to the left ~half of Profile
- * (badge unlock / «Круто!»). MobileTabBar / save-toast use the same html+div
- * pattern and stay full-bleed — match that.
+ * History: <dialog showModal()> clipped on iOS; innerWidth px sizing clipped to
+ * the left half on Android TWA when innerWidth under-reports. Pin with inset:0
+ * + 100dvw/100dvh (see globals.css) — same pattern as AppSplash.
  */
 
 const HOST_ID = "cv-fs-celeb-host";
 
-/**
- * Pin the host to the layout viewport with left/right/top/bottom + width 100%.
- * Avoid 100vw (scrollbar / overflow quirks) and avoid visualViewport.offset*
- * (double-offset shifts the stage left on iOS).
- */
+/** Pin host to the layout viewport — never set width/height from innerWidth px. */
 function applyHostBaseStyles(host: HTMLElement) {
   const s = host.style;
   s.cssText = "";
@@ -38,13 +33,6 @@ function applyHostBaseStyles(host: HTMLElement) {
   s.setProperty("box-sizing", "border-box", "important");
   s.setProperty("transform", "none", "important");
   s.setProperty("translate", "none", "important");
-  // Explicit pixels beat % when a containing block is wrong on iOS.
-  if (typeof window !== "undefined") {
-    const w = Math.round(window.innerWidth);
-    const h = Math.round(window.innerHeight);
-    if (w > 0) s.setProperty("width", `${w}px`, "important");
-    if (h > 0) s.setProperty("height", `${h}px`, "important");
-  }
 }
 
 /** Show the host and re-pin size (call when celebration opens). */
@@ -82,9 +70,11 @@ export function bindCelebrationPortalViewport(host: HTMLElement): () => void {
   };
   window.addEventListener("resize", sync);
   window.visualViewport?.addEventListener("resize", sync);
+  window.visualViewport?.addEventListener("scroll", sync);
   return () => {
     window.removeEventListener("resize", sync);
     window.visualViewport?.removeEventListener("resize", sync);
+    window.visualViewport?.removeEventListener("scroll", sync);
     closeCelebrationPortal(host);
   };
 }
