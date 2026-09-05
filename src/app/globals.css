@@ -2150,28 +2150,41 @@ textarea {
 }
 
 .landing-mobile-drawer {
-  background: rgba(240, 250, 246, 0.98);
-  border-bottom: 1px solid var(--landing-line);
-  inset: 3.25rem 0 auto 0;
+  inset: 3.25rem 0 0 0;
   opacity: 0;
   pointer-events: none;
   position: fixed;
-  transform: translateY(-0.4rem);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 40;
+  transition: opacity 0.18s ease;
+  z-index: 30;
 }
 
 .landing-mobile-drawer-open {
   opacity: 1;
   pointer-events: auto;
-  transform: translateY(0);
+}
+
+.landing-mobile-drawer-backdrop {
+  background: rgba(7, 26, 23, 0.45);
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  position: absolute;
 }
 
 .landing-mobile-drawer-nav {
+  background: rgba(240, 250, 246, 0.98);
+  border-bottom: 1px solid var(--landing-line);
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+  max-height: min(100dvh - 3.25rem, 32rem);
+  overflow-y: auto;
   padding: 0.65rem 1.25rem 1.1rem;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .landing-mobile-drawer-link {
@@ -3223,7 +3236,8 @@ textarea {
   }
 }
 
-@media (max-width: 640px) {
+/* Phones + landscape: hamburger instead of crowded desktop links */
+@media (max-width: 899px) {
   .landing-top-nav .landing-top-link,
   .landing-top-nav .landing-top-cta {
     display: none;
@@ -3232,7 +3246,55 @@ textarea {
   .landing-top-menu-btn {
     display: inline-flex;
   }
+}
 
+/* Short landscape viewports: keep hero stacked, avoid overlapping copy */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landing-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: auto;
+    padding-bottom: 1rem;
+  }
+
+  .landing-hero-stage {
+    max-height: 42vh;
+    min-height: 120px;
+    order: -1;
+  }
+
+  .landing-hero-plate {
+    margin: 0;
+    max-height: 42vh;
+    opacity: 0.92;
+    width: min(100%, 420px);
+  }
+
+  .landing-hero-copy {
+    max-width: none;
+    padding: 0.35rem 1.25rem 0.75rem;
+  }
+
+  .landing-brand {
+    font-size: clamp(1.7rem, 6vw, 2.2rem);
+  }
+
+  .landing-headline {
+    font-size: clamp(1rem, 3.2vw, 1.2rem);
+    margin-top: 0.45rem;
+  }
+
+  .landing-lead {
+    display: none;
+  }
+
+  .landing-phone-hero {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
   .landing-hero-stage {
     max-height: 36vh;
     min-height: 168px;
