@@ -3,13 +3,13 @@ import type { NextResponse } from "next/server";
 
 const SESSION_MAX_AGE_SEC = 30 * 24 * 60 * 60;
 
-function useSecureAuthCookies(): boolean {
+function prefersSecureAuthCookies(): boolean {
   const url = process.env.NEXTAUTH_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
   return url.startsWith("https://");
 }
 
 export function nextAuthSessionCookieName(): string {
-  return useSecureAuthCookies() ? "__Secure-next-auth.session-token" : "next-auth.session-token";
+  return prefersSecureAuthCookies() ? "__Secure-next-auth.session-token" : "next-auth.session-token";
 }
 
 /** Create a NextAuth JWT session cookie so OIDC can finish without a client-side ticket. */
@@ -22,7 +22,7 @@ export async function setNextAuthSessionCookie(
     throw new Error("NEXTAUTH_SECRET is required for Telegram OIDC session");
   }
 
-  const secure = useSecureAuthCookies();
+  const secure = prefersSecureAuthCookies();
   const token = await encode({
     token: {
       sub: user.id,
