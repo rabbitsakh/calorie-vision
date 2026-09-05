@@ -11,7 +11,7 @@ export type TelegramLoginTicketPayload = {
 };
 
 function ticketSecret(): string {
-  const secret = process.env.NEXTAUTH_SECRET?.trim();
+  const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
   if (!secret) {
     throw new Error("NEXTAUTH_SECRET is required for Telegram OIDC tickets");
   }
