@@ -32,6 +32,23 @@ function clearOidcCookies(response: NextResponse, secure: boolean) {
   response.cookies.set(TG_OIDC_VERIFIER_COOKIE, "", clear);
 }
 
+function userFacingOidcError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/invalid_grant|redirect_uri|redirect uri/i.test(message)) {
+    return "Telegram отклонил callback URL. В BotFather укажите https://calorievision.ru/api/auth/telegram/callback";
+  }
+  if (/invalid_client|unauthorized/i.test(message)) {
+    return "Неверный TELEGRAM_CLIENT_SECRET. Скопируйте Client Secret из BotFather → Login Widget (OIDC).";
+  }
+  if (/BAD_AUD|MISSING_SUB|JWT|JWS|JWKS|issuer/i.test(message)) {
+    return "Не удалось проверить ответ Telegram. Проверьте TELEGRAM_CLIENT_ID (должен совпадать с Client ID в BotFather).";
+  }
+  if (/NEXTAUTH_SECRET/i.test(message)) {
+    return "На сервере не задан NEXTAUTH_SECRET.";
+  }
+  return "Не удалось войти через Telegram";
+}
+
 /**
  * Telegram OIDC callback: exchange code → verify id_token → issue short-lived ticket
  * for Credentials sign-in on /login/telegram.
@@ -61,6 +78,7 @@ export async function GET(request: Request) {
   const codeVerifier = cookieStore.get(TG_OIDC_VERIFIER_COOKIE)?.value;
   const origin = telegramOidcSiteOrigin(request);
   const secure = origin.startsWith("https://");
+  const redirectUri = telegramOidcRedirectUri(origin);
 
   if (!code || !state || !expectedState || state !== expectedState || !codeVerifier) {
     const response = loginErrorRedirect(request, "Сессия Telegram истекла. Попробуйте ещё раз.");
@@ -71,7 +89,7 @@ export async function GET(request: Request) {
   try {
     const { id_token } = await exchangeTelegramOidcCode({
       code,
-      redirectUri: telegramOidcRedirectUri(origin),
+      redirectUri,
       codeVerifier,
       clientId,
       clientSecret,
@@ -93,8 +111,13 @@ export async function GET(request: Request) {
     clearOidcCookies(response, secure);
     return response;
   } catch (error) {
-    console.error("[telegram-oidc] callback failed:", error);
-    const response = loginErrorRedirect(request, "Не удалось войти через Telegram");
+    console.error("[telegram-oidc] callback failed:", {
+      error,
+      redirectUri,
+      clientId,
+      origin,
+    });
+    const response = loginErrorRedirect(request, userFacingOidcError(error));
     clearOidcCookies(response, secure);
     return response;
   }

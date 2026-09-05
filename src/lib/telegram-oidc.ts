@@ -74,6 +74,34 @@ export function buildTelegramOidcAuthorizeUrl(input: {
   return url.toString();
 }
 
+function audienceMatches(aud: unknown, clientId: string): boolean {
+  const expected = String(clientId);
+  if (typeof aud === "string" || typeof aud === "number") {
+    return String(aud) === expected;
+  }
+  if (Array.isArray(aud)) {
+    return aud.some((value) => String(value) === expected);
+  }
+  return false;
+}
+
+/** Prefer Telegram numeric user id when present; otherwise a numeric `sub`. */
+export function resolveTelegramUserId(claims: Pick<TelegramOidcClaims, "id" | "sub">): string {
+  if (claims.id !== undefined && claims.id !== null && String(claims.id).trim()) {
+    return String(claims.id);
+  }
+  const sub = String(claims.sub);
+  if (/^\d+$/.test(sub)) {
+    return sub;
+  }
+  // Some Telegram tokens nest the user id after a prefix — keep digits-only tail if obvious.
+  const digits = sub.match(/(\d{5,})$/);
+  if (digits?.[1]) {
+    return digits[1];
+  }
+  return sub;
+}
+
 export async function exchangeTelegramOidcCode(input: {
   code: string;
   redirectUri: string;
@@ -81,7 +109,6 @@ export async function exchangeTelegramOidcCode(input: {
   clientId: string;
   clientSecret: string;
 }): Promise<{ id_token: string }> {
-  const basic = Buffer.from(`${input.clientId}:${input.clientSecret}`).toString("base64");
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code: input.code,
@@ -90,36 +117,64 @@ export async function exchangeTelegramOidcCode(input: {
     code_verifier: input.codeVerifier,
   });
 
-  const response = await fetch(TELEGRAM_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${basic}`,
-      "Content-Type": "application/x-www-form-urlencoded",
+  // Prefer Basic auth (Telegram default); fall back to client_secret_post.
+  const attempts: Array<Record<string, string>> = [
+    {
+      Authorization: `Basic ${Buffer.from(`${input.clientId}:${input.clientSecret}`).toString("base64")}`,
     },
-    body,
-    cache: "no-store",
-  });
+    {},
+  ];
 
-  const json = (await response.json()) as {
-    id_token?: string;
-    error?: string;
-    error_description?: string;
-  };
-  if (!response.ok || !json.id_token) {
-    throw new Error(json.error_description || json.error || "TELEGRAM_TOKEN_EXCHANGE_FAILED");
+  let lastError = "TELEGRAM_TOKEN_EXCHANGE_FAILED";
+
+  for (const [index, extraHeaders] of attempts.entries()) {
+    const attemptBody = new URLSearchParams(body);
+    if (index === 1) {
+      attemptBody.set("client_secret", input.clientSecret);
+    }
+
+    const response = await fetch(TELEGRAM_TOKEN_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...extraHeaders,
+      },
+      body: attemptBody,
+      cache: "no-store",
+    });
+
+    const json = (await response.json()) as {
+      id_token?: string;
+      error?: string;
+      error_description?: string;
+    };
+
+    if (response.ok && json.id_token) {
+      return { id_token: json.id_token };
+    }
+
+    lastError = json.error_description || json.error || `TELEGRAM_TOKEN_EXCHANGE_FAILED_${response.status}`;
+    // invalid_client on Basic → try POST secret; otherwise stop.
+    if (index === 0 && json.error && json.error !== "invalid_client") {
+      break;
+    }
   }
 
-  return { id_token: json.id_token };
+  throw new Error(lastError);
 }
 
 export async function verifyTelegramIdToken(
   idToken: string,
   clientId: string,
 ): Promise<TelegramOidcClaims> {
+  // Don't pass `audience` to jose — Telegram may emit numeric `aud`, which fails strict string checks.
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: TELEGRAM_ISSUER,
-    audience: clientId,
   });
+
+  if (!audienceMatches(payload.aud, clientId)) {
+    throw new Error(`TELEGRAM_ID_TOKEN_BAD_AUD:${String(payload.aud)}`);
+  }
 
   const sub = payload.sub;
   if (!sub) {
@@ -128,7 +183,7 @@ export async function verifyTelegramIdToken(
 
   return {
     sub,
-    id: (payload.id as number | string | undefined) ?? sub,
+    id: (payload.id as number | string | undefined) ?? undefined,
     name: typeof payload.name === "string" ? payload.name : undefined,
     given_name: typeof payload.given_name === "string" ? payload.given_name : undefined,
     family_name: typeof payload.family_name === "string" ? payload.family_name : undefined,
@@ -163,7 +218,7 @@ export function claimsToTelegramAuthFields(claims: TelegramOidcClaims): {
   }
 
   return {
-    id: String(claims.id ?? claims.sub),
+    id: resolveTelegramUserId(claims),
     first_name: first || undefined,
     last_name: last || undefined,
     username: claims.preferred_username || undefined,
