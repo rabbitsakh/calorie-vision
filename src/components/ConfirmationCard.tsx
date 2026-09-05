@@ -16,8 +16,10 @@ import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
   confidenceActionHint,
+  confidenceReshootHint,
   confidenceShortLabel,
   confidenceToneClasses,
+  confidenceWhyHint,
   formatConfidencePercent,
   getConfidenceTone,
 } from "@/lib/recognition-confidence-ui";
@@ -267,16 +269,28 @@ function ConfidenceBadge({
   const classes = inverted
     ? "border-white/30 bg-black/35 text-white"
     : confidenceToneClasses(tone);
+  const why = confidenceWhyHint(tone, { photoKind, source });
+  const reshoot = confidenceReshootHint(tone, { photoKind });
 
   return (
-    <span
-      className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold leading-snug ${classes}`}
-    >
-      <span>{formatConfidencePercent(confidence)}</span>
-      <span className={inverted ? "text-white/85" : "opacity-80"}>
-        · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, { photoKind, source })}
+    <div className="flex max-w-full flex-col gap-1">
+      <span
+        className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold leading-snug ${classes}`}
+      >
+        <span>{formatConfidencePercent(confidence)}</span>
+        <span className={inverted ? "text-white/85" : "opacity-80"}>
+          · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, { photoKind, source })}
+        </span>
       </span>
-    </span>
+      {why ? (
+        <p className={`text-xs leading-snug ${inverted ? "text-white/80" : "text-slate-600"}`}>{why}</p>
+      ) : null}
+      {reshoot ? (
+        <p className={`text-xs font-medium leading-snug ${inverted ? "text-amber-100" : "text-amber-800"}`}>
+          {reshoot}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -308,22 +322,52 @@ function portionChipOptions(
   historyPortions: number[] = [],
 ): Array<{ label: string; grams: number }> {
   const drink = looksLikeDrink(dish);
+  const unit = drink ? "мл" : "г";
   const base: Array<{ label: string; grams: number }> = (
     drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS
   ).map((grams) => ({
-    label: drink ? `${grams} мл` : `${grams} г`,
+    label: `${grams} ${unit}`,
     grams,
   }));
 
+  const recognizedGrams = dish.original.portionGrams;
   const packGrams = dish.original.portionGrams;
   const packaged =
     dish.original.photoKind === "package" ||
     dish.original.photoKind === "barcode" ||
     dish.original.photoKind === "label";
 
-  if (packaged && packGrams && packGrams > 0 && !base.some((chip) => chip.grams === packGrams)) {
+  const prependUnique = (chip: { label: string; grams: number }) => {
+    if (!chip.grams || chip.grams <= 0) return;
+    const existing = base.findIndex((item) => item.grams === chip.grams);
+    if (existing >= 0) {
+      base.splice(existing, 1);
+    }
+    base.unshift(chip);
+  };
+
+  if (recognizedGrams && recognizedGrams > 0) {
+    prependUnique({
+      label: `Как на фото (${recognizedGrams} ${unit})`,
+      grams: recognizedGrams,
+    });
+    const half = Math.round(recognizedGrams / 2);
+    if (half >= 10) {
+      prependUnique({
+        label: `½ (${half} ${unit})`,
+        grams: half,
+      });
+      // keep photo chip first: re-prepend after half
+      prependUnique({
+        label: `Как на фото (${recognizedGrams} ${unit})`,
+        grams: recognizedGrams,
+      });
+    }
+  }
+
+  if (packaged && packGrams && packGrams > 0) {
     const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName);
-    base.unshift({
+    prependUnique({
       label: bar
         ? `1 шт (${packGrams} г)`
         : drink
@@ -336,7 +380,7 @@ function portionChipOptions(
   for (const grams of historyPortions) {
     if (!grams || grams <= 0 || base.some((chip) => chip.grams === grams)) continue;
     base.push({
-      label: drink ? `${grams} мл` : `${grams} г`,
+      label: `${grams} ${unit}`,
       grams,
     });
   }
@@ -1275,6 +1319,31 @@ function DishFields({
               )}
             </button>
           </div>
+                    {(() => {
+            const recognizedName = decodeHtmlEntities(dish.original.dishName).trim();
+            const currentName = dish.dishName.trim();
+            if (
+              recognizedName &&
+              currentName &&
+              recognizedName.toLowerCase() !== currentName.toLowerCase()
+            ) {
+              return (
+                <p className="mt-1 text-xs text-slate-600">
+                  Было: <span className="font-medium">{recognizedName}</span>
+                  {" → "}
+                  стало: <span className="font-medium">{currentName}</span>
+                </p>
+              );
+            }
+            if (dish.original.source === "correction-memory") {
+              return (
+                <p className="mt-1 text-xs text-teal-800">
+                  Подставлено из вашего прошлого исправления
+                </p>
+              );
+            }
+            return null;
+          })()}
           {wrongDishHint ? (
             <p className="mt-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
               Исправьте название и сохраните — приложение запомнит исправление и подставит его в

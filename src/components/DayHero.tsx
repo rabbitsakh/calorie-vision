@@ -60,7 +60,7 @@ function HeroRing({ pct }: { pct: number }) {
           cy="50"
           r={r}
           fill="none"
-          stroke={over ? "#e11d48" : "#0f766e"}
+          stroke={over ? "#d97706" : "#0f766e"}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -69,7 +69,7 @@ function HeroRing({ pct }: { pct: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-display text-base font-bold leading-none ${over ? "text-rose-600" : "text-teal-800"}`}>
+        <span className={`font-display text-base font-bold leading-none ${over ? "text-amber-700" : "text-teal-800"}`}>
           {Math.round(clamped)}%
         </span>
         <span className="mt-0.5 text-[0.5rem] font-semibold uppercase tracking-wide text-slate-500">
@@ -104,7 +104,7 @@ function MiniBar({
       </div>
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/70">
         <div
-          className={`h-1 rounded-full transition-all duration-500 ${over ? "bg-rose-400" : "bg-teal-500"}`}
+          className={`h-1 rounded-full transition-all duration-500 ${over ? "bg-amber-400" : "bg-teal-500"}`}
           style={{ width: `${clamped}%` }}
         />
       </div>

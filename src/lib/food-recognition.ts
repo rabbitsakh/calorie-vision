@@ -5,6 +5,7 @@ import type { VisionPromptHints } from "@/lib/ai/prompt-variants";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
+import { lookupRuSkuCache } from "@/lib/barcode-ru-sku-cache";
 import {
   formatBarcodeWebContext,
   gatherBarcodeWebEvidence,
@@ -896,6 +897,30 @@ export async function lookupFoodByBarcode(
       );
     }
 
+    return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  }
+
+  const ruSku = lookupRuSkuCache(barcode);
+  if (ruSku) {
+    const portion = ruSku.portionGrams ?? 100;
+    const kcal100 = ruSku.kcalPer100 ?? 0;
+    const calories = Math.round((kcal100 * portion) / 100);
+    result = normalizeRecognitionNutrition(
+      await withFoodImage(
+        {
+          dishName: ruSku.name,
+          brand: ruSku.brand,
+          barcode,
+          calories,
+          portionGrams: portion,
+          per100g: kcal100 > 0 ? { calories: kcal100 } : undefined,
+          confidence: 0.7,
+          source: "ru-sku-cache",
+          photoKind: "barcode",
+        },
+        ruSku.name,
+      ),
+    );
     return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
   }
 
