@@ -7,22 +7,32 @@ type TelegramLoginButtonProps = {
   botUsername: string;
   /** Canonical site origin from NEXTAUTH_URL (must match BotFather /setdomain). */
   origin?: string | null;
+  /**
+   * When true, use Telegram OIDC (Authorization Code + phone scope).
+   * Requires TELEGRAM_CLIENT_SECRET on the server.
+   */
+  useOidc?: boolean;
   disabled?: boolean;
 };
 
 /**
- * Styled Telegram login — redirects via oauth.telegram.org.
- * The embedded Login Widget often renders an empty box on mobile Safari.
- * @see https://core.telegram.org/widgets/login
+ * Styled Telegram login — OIDC (phone linking) when configured, else legacy widget redirect.
+ * @see https://core.telegram.org/bots/telegram-login
  */
 export function TelegramLoginButton({
   botId,
   botUsername,
   origin: originProp,
+  useOidc = false,
   disabled,
 }: TelegramLoginButtonProps) {
   function handleClick() {
     if (disabled || !botId) return;
+
+    if (useOidc) {
+      window.location.assign(withBasePath("/api/auth/telegram/start"));
+      return;
+    }
 
     let origin = (originProp?.trim() || window.location.origin).replace("://www.", "://");
     try {
