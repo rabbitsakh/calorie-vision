@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { withBasePath } from "@/lib/paths";
+import { parseTelegramLoginCallback } from "@/lib/telegram-oauth-result";
 
 function TelegramCallbackInner() {
   const router = useRouter();
@@ -13,25 +14,19 @@ function TelegramCallbackInner() {
 
   useEffect(() => {
     const fromQuery = Object.fromEntries(searchParams.entries());
-    const fromHash: Record<string, string> = {};
+    const data = parseTelegramLoginCallback(
+      typeof window !== "undefined" ? window.location.hash : "",
+      fromQuery,
+    );
 
-    if (typeof window !== "undefined" && window.location.hash.length > 1) {
-      const hash = window.location.hash.replace(/^#/, "");
-      for (const part of hash.split("&")) {
-        const [key, ...rest] = part.split("=");
-        if (key) {
-          fromHash[decodeURIComponent(key)] = decodeURIComponent(rest.join("=") || "");
-        }
-      }
-    }
-
-    const data = { ...fromHash, ...fromQuery };
     const id = data.id?.trim();
     const hash = data.hash?.trim();
     const authDate = data.auth_date?.trim();
 
     if (!id || !hash || !authDate) {
-      setError("Telegram не вернул данные входа. Проверьте /setdomain у бота (calorievision.ru).");
+      setError(
+        "Telegram не вернул данные входа. Если ошибка повторяется: в BotFather выполните /setdomain → calorievision.ru (без https и www), затем попробуйте ещё раз в Chrome.",
+      );
       return;
     }
 

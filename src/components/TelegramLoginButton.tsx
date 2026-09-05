@@ -5,6 +5,8 @@ import { withBasePath } from "@/lib/paths";
 type TelegramLoginButtonProps = {
   botId: string;
   botUsername: string;
+  /** Canonical site origin from NEXTAUTH_URL (must match BotFather /setdomain). */
+  origin?: string | null;
   disabled?: boolean;
 };
 
@@ -13,11 +15,22 @@ type TelegramLoginButtonProps = {
  * The embedded Login Widget often renders an empty box on mobile Safari.
  * @see https://core.telegram.org/widgets/login
  */
-export function TelegramLoginButton({ botId, botUsername, disabled }: TelegramLoginButtonProps) {
+export function TelegramLoginButton({
+  botId,
+  botUsername,
+  origin: originProp,
+  disabled,
+}: TelegramLoginButtonProps) {
   function handleClick() {
     if (disabled || !botId) return;
 
-    const origin = window.location.origin;
+    let origin = (originProp?.trim() || window.location.origin).replace("://www.", "://");
+    try {
+      origin = new URL(origin).origin.replace("://www.", "://");
+    } catch {
+      origin = window.location.origin.replace("://www.", "://");
+    }
+
     const returnTo = `${origin}${withBasePath("/login/telegram")}`;
     const url = new URL("https://oauth.telegram.org/auth");
     url.searchParams.set("bot_id", botId);
