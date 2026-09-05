@@ -9,8 +9,11 @@ Package: `ru.calorievision.app`
 | Путь | Назначение |
 |------|------------|
 | `rustore/twa-manifest.json` | Конфиг Bubblewrap / TWA |
-| `rustore/listing.ru.md` | Черновик карточки витрины |
+| `rustore/listing.ru.md` | Тексты карточки витрины (готово к вставке) |
+| `rustore/PUBLISH.md` | Пошаговая публикация: что куда в Консоли |
 | `rustore/CHECKLIST.md` | Чеклист аккаунта и модерации |
+| `rustore/icon-512-store.png` | Иконка 512×512 без прозрачности |
+| `rustore/screenshots/submit/` | Стартовый набор скриншотов 1080×1920 |
 | `scripts/rustore-init.sh` | Первичная генерация Android-проекта |
 | `scripts/rustore-build.sh` | Сборка signed APK/AAB |
 | `src/app/.well-known/assetlinks.json/route.ts` | Digital Asset Links (после fingerprint) |
