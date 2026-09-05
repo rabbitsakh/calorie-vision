@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isEmailLoginConfigured } from "@/lib/email-auth";
 import { getTelegramBotUsername } from "@/lib/telegram-login-config";
 import { isTelegramLoginConfigured } from "@/lib/telegram-auth";
+import { isTelegramOidcConfigured } from "@/lib/telegram-oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export async function GET() {
     telegramBotUsername: isTelegramLoginConfigured() ? getTelegramBotUsername() : null,
     telegramBotId: botId || null,
     telegramOrigin,
+    /** OIDC + phone scope (needs TELEGRAM_CLIENT_SECRET from BotFather Login Widget). */
+    telegramOidc: isTelegramOidcConfigured(),
     google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     vk: Boolean(process.env.VK_CLIENT_ID),
   });

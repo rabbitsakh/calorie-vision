@@ -48,6 +48,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
@@ -109,6 +110,34 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
     return () => observer.disconnect();
   }, [hasMore, loadMore, users.length]);
 
+  async function handleDelete(user: AdminUserRow) {
+    const label = displayName(user);
+    const confirmed = window.confirm(
+      `Удалить пользователя «${label}» безвозвратно?\n\nНужно, например, для дубликата после входа через Telegram.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingId(user.id);
+    setError(null);
+    try {
+      const response = await fetch(withBasePath(`/api/admin/users/${user.id}`), {
+        method: "DELETE",
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Не удалось удалить пользователя");
+      }
+      setUsers((current) => current.filter((row) => row.id !== user.id));
+      setTotal((current) => (current === null ? current : Math.max(0, current - 1)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка удаления");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <section className="card p-4 md:p-6">
       <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -135,6 +164,14 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
                   Блюда {user.mealCount} · Вес {user.weightCount} · Фото {user.photoCount}
                 </p>
               ) : null}
+              <button
+                type="button"
+                className="mt-2 text-sm font-medium text-red-700 hover:underline disabled:opacity-50"
+                disabled={deletingId === user.id}
+                onClick={() => void handleDelete(user)}
+              >
+                {deletingId === user.id ? "Удаляем…" : "Удалить"}
+              </button>
             </div>
           </li>
         ))}
@@ -156,6 +193,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
                   <th>Фото</th>
                 </>
               ) : null}
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -178,6 +216,16 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
                     <td>{user.photoCount}</td>
                   </>
                 ) : null}
+                <td>
+                  <button
+                    type="button"
+                    className="text-sm font-medium text-red-700 hover:underline disabled:opacity-50"
+                    disabled={deletingId === user.id}
+                    onClick={() => void handleDelete(user)}
+                  >
+                    {deletingId === user.id ? "Удаляем…" : "Удалить"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

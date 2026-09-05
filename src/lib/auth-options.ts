@@ -39,8 +39,36 @@ if (isTelegramLoginConfigured() && process.env.TELEGRAM_BOT_TOKEN) {
         photo_url: { label: "photo_url", type: "text" },
         auth_date: { label: "auth_date", type: "text" },
         hash: { label: "hash", type: "text" },
+        /** Signed OIDC ticket from /api/auth/telegram/callback (includes phone). */
+        ticket: { label: "ticket", type: "text" },
       },
       async authorize(credentials) {
+        if (credentials?.ticket?.trim()) {
+          const { verifyTelegramLoginTicket } = await import("@/lib/telegram-oidc-ticket");
+          const ticket = verifyTelegramLoginTicket(credentials.ticket);
+          if (!ticket) {
+            return null;
+          }
+
+          const user = await findOrCreateTelegramUser({
+            id: ticket.id,
+            first_name: ticket.first_name,
+            last_name: ticket.last_name,
+            username: ticket.username,
+            photo_url: ticket.photo_url,
+            phone_number: ticket.phone_number,
+            auth_date: Math.floor(Date.now() / 1000),
+            hash: "oidc-ticket",
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        }
+
         if (!credentials?.id || !credentials.hash || !credentials.auth_date) {
           return null;
         }

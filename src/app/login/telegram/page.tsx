@@ -13,6 +13,33 @@ function TelegramCallbackInner() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const queryError = searchParams.get("error")?.trim();
+    if (queryError) {
+      setError(queryError);
+      return;
+    }
+
+    const ticket = searchParams.get("ticket")?.trim();
+    if (ticket) {
+      let cancelled = false;
+      void (async () => {
+        const result = await signIn("telegram", {
+          ticket,
+          redirect: false,
+          callbackUrl: withBasePath("/"),
+        });
+        if (cancelled) return;
+        if (!result?.ok) {
+          setError("Не удалось войти через Telegram. Попробуйте ещё раз.");
+          return;
+        }
+        router.replace("/ration/");
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const fromQuery = Object.fromEntries(searchParams.entries());
     const data = parseTelegramLoginCallback(
       typeof window !== "undefined" ? window.location.hash : "",
@@ -25,7 +52,7 @@ function TelegramCallbackInner() {
 
     if (!id || !hash || !authDate) {
       setError(
-        "Telegram не вернул данные входа. Если ошибка повторяется: в BotFather выполните /setdomain → calorievision.ru (без https и www), затем попробуйте ещё раз в Chrome.",
+        "Telegram не вернул данные входа. Если ошибка повторяется: добавьте в BotFather Login Widget callback https://calorievision.ru/api/auth/telegram/callback и TELEGRAM_CLIENT_SECRET, либо /setdomain → calorievision.ru.",
       );
       return;
     }

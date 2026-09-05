@@ -14,6 +14,7 @@ type LoginOptions = {
   telegramBotUsername: string | null;
   telegramBotId: string | null;
   telegramOrigin?: string | null;
+  telegramOidc?: boolean;
   google: boolean;
   vk: boolean;
 };
@@ -195,6 +196,7 @@ export default function LoginForm() {
                     botId={ready.telegramBotId}
                     botUsername={ready.telegramBotUsername}
                     origin={ready.telegramOrigin}
+                    useOidc={Boolean(ready.telegramOidc)}
                     disabled={loading}
                   />
                 ) : null}

@@ -132,13 +132,18 @@ npm run start
 ### Telegram (вход)
 
 1. Создайте бота у [@BotFather](https://t.me/BotFather) (продакшен: **@CalorieVisionAppBot**).
-2. Команда `/setdomain` → укажите `calorievision.ru` (для локалки — временный HTTPS-туннель, например ngrok).
+2. В BotFather откройте бота → **Login Widget**:
+   - domain: `calorievision.ru`
+   - callback URL для OIDC: `https://calorievision.ru/api/auth/telegram/callback`
+   - сохраните **Client Secret**
 3. В `.env`:
    ```env
    NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=CalorieVisionAppBot
    TELEGRAM_BOT_TOKEN=123456:AA...
+   TELEGRAM_CLIENT_SECRET=...   # из Login Widget — чтобы запрашивать телефон и входить в существующий аккаунт
    ```
 4. Перезапустите приложение. На `/login` появится кнопка «Войти через Telegram».
+5. При OIDC пользователь подтверждает телефон: если в базе уже есть аккаунт с этим номером, Telegram **привязывается к нему** (новый аккаунт не создаётся). Пустой дубликат от прежнего входа можно удалить в админке.
 
 ### Email (magic link)
 
