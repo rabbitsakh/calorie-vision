@@ -5,6 +5,7 @@ import {
   isSuspiciousSoupOnPackaged,
   looksLikeGrainPackName,
   looksLikeSoupName,
+  inferInstantGrainFallbackName,
   repairPackagedMislabel,
 } from "./package-name-guard.ts";
 
@@ -53,7 +54,7 @@ test("repairs soup mislabel using dense instant cup fallback", () => {
     photoKind: "package",
     portionGrams: 40,
   });
-  assert.equal(repaired.dishName, "Овсянка быстрого приготовления");
+  assert.equal(repaired.dishName, "Каша быстрого приготовления");
   assert.ok(repaired.confidence <= 0.68);
 });
 
@@ -67,4 +68,22 @@ test("does not repair real soup on plate", () => {
   };
   assert.equal(isSuspiciousSoupOnPackaged(result), false);
   assert.equal(repairPackagedMislabel(result).dishName, "суп Том Ям");
+});
+
+test("infers buckwheat fallback from brand cues", () => {
+  assert.equal(inferInstantGrainFallbackName("Гречка по-купечески"), "Гречка быстрого приготовления");
+  const repaired = repairPackagedMislabel({
+    dishName: "суп Том Ям",
+    brand: "Гречка Экстра",
+    calories: 148,
+    confidence: 0.8,
+    photoKind: "package",
+    portionGrams: 40,
+  });
+  // brand itself is grain-like → used as dishName
+  assert.match(repaired.dishName, /гречк/i);
+});
+
+test("dense cup without grain cues falls back to generic porridge", () => {
+  assert.equal(inferInstantGrainFallbackName("стакан 40г"), "Каша быстрого приготовления");
 });

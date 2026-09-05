@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult } from "./food-types";
 import { looksLikeGrainPackName, looksLikeSoupName } from "./package-name-guard";
+import { looksLikeDrinkName } from "./portion-unit";
 
 export type FoodCorrectionRecord = {
   correctedName: string;
@@ -71,6 +72,12 @@ export function isUnsafeFoodCorrection(
     return true;
   }
   if (looksLikeGrainPackName(dishName) && looksLikeSoupName(correction.correctedName)) {
+    return true;
+  }
+  // Block drink ↔ food remaps (bad memory from a mis-tap).
+  const originalDrink = looksLikeDrinkName(original) || looksLikeDrinkName(dishName);
+  const correctedDrink = looksLikeDrinkName(correction.correctedName);
+  if (originalDrink !== correctedDrink) {
     return true;
   }
   return false;

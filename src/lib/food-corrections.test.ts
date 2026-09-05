@@ -156,3 +156,35 @@ test("ignores unsafe grain-to-soup corrections", () => {
 
   assert.equal(picked, null);
 });
+
+test("ignores unsafe drink-to-food corrections", () => {
+  const picked = pickFoodCorrection("апельсиновый сок", [
+    {
+      originalKey: "апельсиновый сок",
+      correctedName: "Куриный суп",
+      calories: 80,
+      protein: null,
+      fat: null,
+      carbs: null,
+      portionGrams: 250,
+      useCount: 2,
+    },
+  ]);
+  assert.equal(picked, null);
+});
+
+test("ignores unsafe food-to-drink corrections", () => {
+  const picked = pickFoodCorrection("греческий салат", [
+    {
+      originalKey: "греческий салат",
+      correctedName: "Апельсиновый сок",
+      calories: 110,
+      protein: null,
+      fat: null,
+      carbs: null,
+      portionGrams: 250,
+      useCount: 1,
+    },
+  ]);
+  assert.equal(picked, null);
+});

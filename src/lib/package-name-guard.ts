@@ -88,6 +88,26 @@ export function needsPackageIdentityPass(result: FoodRecognitionResult): boolean
   return weakName || (missingBrand && missingNet);
 }
 
+/** Pick a grain-aware instant-cup fallback instead of always "oatmeal". */
+export function inferInstantGrainFallbackName(
+  ...parts: Array<string | null | undefined>
+): string {
+  const joined = parts
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/ё/g, "е");
+
+  if (/гречк/.test(joined)) return "Гречка быстрого приготовления";
+  if (/манк/.test(joined)) return "Манка быстрого приготовления";
+  if (/перлов/.test(joined)) return "Перловка быстрого приготовления";
+  if (/мюсли|granola|muesli/.test(joined)) return "Мюсли";
+  if (/овсян|геркулес|oatmeal|porridge|хлопья/.test(joined)) {
+    return "Овсянка быстрого приготовления";
+  }
+  return "Каша быстрого приготовления";
+}
+
 /** Prefer grain/alternative names when soup on a pack is obviously wrong. */
 export function repairPackagedMislabel(result: FoodRecognitionResult): FoodRecognitionResult {
   if (!isSuspiciousSoupOnPackaged(result)) {
@@ -129,9 +149,16 @@ export function repairPackagedMislabel(result: FoodRecognitionResult): FoodRecog
     kcal100 !== null &&
     kcal100 >= DENSE_KCAL_PER_100_MIN
   ) {
+    const altNames = (result.alternatives ?? [])
+      .map((alt) => alt.dishName)
+      .filter(Boolean);
     return {
       ...result,
-      dishName: "Овсянка быстрого приготовления",
+      dishName: inferInstantGrainFallbackName(
+        result.brand,
+        result.dishName,
+        ...altNames,
+      ),
       photoKind: result.photoKind ?? "package",
       confidence: Math.min(result.confidence, 0.68),
     };

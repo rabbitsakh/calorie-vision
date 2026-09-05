@@ -53,3 +53,47 @@ export function confidenceActionHint(
   }
   return "Уточните название или калории";
 }
+
+
+/** Short "why" line under the confidence badge — shown for medium/low. */
+export function confidenceWhyHint(
+  tone: ConfidenceTone,
+  opts?: { photoKind?: string; source?: string },
+): string | null {
+  if (opts?.photoKind === "barcode" && opts.source?.includes("openfoodfacts")) {
+    return null;
+  }
+  if (tone === "high") {
+    return null;
+  }
+  if (tone === "medium") {
+    if (opts?.photoKind === "package" || opts?.photoKind === "label") {
+      return "Упаковка читается неуверенно — сверьте название с этикеткой";
+    }
+    return "Модель не уверена в порции или названии";
+  }
+  if (opts?.photoKind === "package" || opts?.photoKind === "label") {
+    return "Крупный шрифт на упаковке мог быть прочитан неверно";
+  }
+  if (opts?.photoKind === "barcode") {
+    return "Штрихкод не дал надёжного совпадения в базе";
+  }
+  return "Фото неоднозначное — название и калории стоит проверить";
+}
+
+/** When to reshoot — only for low confidence. */
+export function confidenceReshootHint(
+  tone: ConfidenceTone,
+  opts?: { photoKind?: string },
+): string | null {
+  if (tone !== "low") {
+    return null;
+  }
+  if (opts?.photoKind === "package" || opts?.photoKind === "label") {
+    return "Переснимите упаковку ближе, без бликов, чтобы было видно название";
+  }
+  if (opts?.photoKind === "barcode") {
+    return "Переснимите штрихкод ровнее или введите название вручную";
+  }
+  return "Переснимите блюдо при хорошем свете, целиком в кадре";
+}

@@ -43,6 +43,7 @@ import {
 import { pluralDays } from "@/lib/russian-text";
 import {
   diaryHasMealTypes,
+  MEAL_TYPE_SECTION_ORDER,
   mealTypeForListItem,
   organizeDiaryByMealType,
   sectionLabel,
@@ -99,7 +100,7 @@ function UndoToast({
   );
 }
 
-const UNDO_DELETE_MS = 4000;
+const UNDO_DELETE_MS = 5000;
 
 type DailyLogProps = {
   selectedDate: string;
@@ -748,14 +749,48 @@ function MealTimeInlineEdit({
   );
 }
 
-function MealSectionHeader({ section }: { section: MealTypeSection }) {
-  return (
-    <div className="flex items-center gap-2 pt-0.5">
-      <span className={`h-3 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`} aria-hidden />
+function MealSectionHeader({
+  section,
+  collapsed,
+  onToggle,
+  count,
+}: {
+  section: MealTypeSection;
+  collapsed?: boolean;
+  onToggle?: () => void;
+  count?: number;
+}) {
+  const content = (
+    <>
+      <span
+        className={`h-3 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`}
+        aria-hidden
+      />
       <h3 className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
         {sectionLabel(section)}
+        {count != null ? ` · ${count}` : ""}
       </h3>
-    </div>
+      {onToggle ? (
+        <span className="ml-auto text-[0.65rem] font-medium text-slate-400" aria-hidden>
+          {collapsed ? "показать" : "скрыть"}
+        </span>
+      ) : null}
+    </>
+  );
+
+  if (!onToggle) {
+    return <div className="flex items-center gap-2 pt-0.5">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      className="flex w-full items-center gap-2 pt-0.5 text-left"
+      aria-expanded={!collapsed}
+      onClick={onToggle}
+    >
+      {content}
+    </button>
   );
 }
 
@@ -1433,6 +1468,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [copyError, setCopyError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
+  const [yesterdayHasBreakfast, setYesterdayHasBreakfast] = useState(false);
+  const [mealFilter, setMealFilter] = useState<"ALL" | MealTypeSection>("ALL");
+  const [collapsedSections, setCollapsedSections] = useState<Partial<Record<MealTypeSection, boolean>>>({});
 
   useEffect(() => {
     if (!actionError) return;
@@ -1444,6 +1482,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     const empty = !loading && !error && entries.length === 0 && pendingDeletes.length === 0;
     if (!empty) {
       setYesterdayHasMeals(false);
+      setYesterdayHasBreakfast(false);
       return;
     }
     const fromDate = shiftDateKey(selectedDate, -1);
@@ -1456,13 +1495,17 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         });
         if (!response.ok) {
           setYesterdayHasMeals(false);
+          setYesterdayHasBreakfast(false);
           return;
         }
         const data = (await response.json()) as DayMealsResponse;
-        setYesterdayHasMeals((data.entries?.length ?? 0) > 0);
+        const entries = data.entries ?? [];
+        setYesterdayHasMeals(entries.length > 0);
+        setYesterdayHasBreakfast(entries.some((entry) => entry.mealType === "BREAKFAST"));
       } catch {
         if (!controller.signal.aborted) {
           setYesterdayHasMeals(false);
+          setYesterdayHasBreakfast(false);
         }
       }
     })();
@@ -1493,16 +1536,52 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     }
   }
 
+  async function handleCopyYesterdayBreakfast() {
+    setCopying(true);
+    setCopyError(null);
+    try {
+      const fromDate = shiftDateKey(selectedDate, -1);
+      const resp = await fetch(withBasePath("/api/meals/copy"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromDate, toDate: selectedDate, mealType: "BREAKFAST" }),
+      });
+      const data = (await resp.json()) as { copied?: number; error?: string };
+      if (resp.ok) {
+        await reloadDayAfterMutation(false);
+        onChanged?.();
+      } else {
+        setCopyError(data.error ?? "Не удалось скопировать завтрак");
+      }
+    } catch {
+      setCopyError("Не удалось скопировать завтрак — проверьте сеть и попробуйте снова");
+    } finally {
+      setCopying(false);
+    }
+  }
+
   const displayDate = formatDateWords(selectedDate);
   const listItems = useMemo(() => groupMealEntries(entries), [entries]);
   const organizedItems = useMemo(
     () => organizeDiaryByMealType(listItems),
     [listItems],
   );
+  const filteredItems = useMemo(() => {
+    if (mealFilter === "ALL") return organizedItems;
+    return organizedItems.filter((item) => mealTypeForListItem(item) === mealFilter);
+  }, [organizedItems, mealFilter]);
   const showMealSections = useMemo(() => diaryHasMealTypes(listItems), [listItems]);
+  const sectionCounts = useMemo(() => {
+    const counts: Partial<Record<MealTypeSection, number>> = {};
+    for (const item of organizedItems) {
+      const section = mealTypeForListItem(item);
+      counts[section] = (counts[section] ?? 0) + 1;
+    }
+    return counts;
+  }, [organizedItems]);
   const displayRows = useMemo(
-    () => buildDiaryDisplayRows(organizedItems, pendingDeletes),
-    [organizedItems, pendingDeletes],
+    () => buildDiaryDisplayRows(filteredItems, pendingDeletes),
+    [filteredItems, pendingDeletes],
   );
 
   const confirmDeleteRef = useRef(confirmDelete);
@@ -1635,7 +1714,13 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           </p>
         ) : null}
 
-        {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
+        {loading ? (
+          <div className="flex flex-col gap-2" aria-busy="true" aria-label="Загрузка дневника">
+            <div className="skeleton-line h-12 w-full rounded-2xl" />
+            <div className="skeleton-line h-12 w-full rounded-2xl" />
+            <div className="skeleton-line h-12 w-5/6 rounded-2xl" />
+          </div>
+        ) : null}
         {error ? (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm text-red-600">{error}</p>
@@ -1666,7 +1751,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
             <p className="font-medium text-slate-700">{MASCOT_COPY.emptyDiary.headline}</p>
-            <p className="max-w-xs text-sm">{MASCOT_COPY.emptyDiary.body}</p>
+            <p className="max-w-xs text-sm">Сфотографируйте приём или введите название.</p>
             <button
               type="button"
               className="btn btn-primary text-sm"
@@ -1683,6 +1768,16 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 Ввести текстом
               </button>
             ) : null}
+            {yesterdayHasBreakfast ? (
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                disabled={copying}
+                onClick={() => void handleCopyYesterdayBreakfast()}
+              >
+                {copying ? "Копируем..." : "Только вчерашний завтрак"}
+              </button>
+            ) : null}
             {yesterdayHasMeals ? (
               <>
                 <button
@@ -1691,7 +1786,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                   disabled={copying}
                   onClick={() => void handleCopyYesterday()}
                 >
-                  {copying ? "Копируем..." : "Повторить вчерашний день"}
+                  {copying ? "Копируем..." : "Весь вчерашний день"}
                 </button>
                 {copyError ? (
                   <p className="max-w-xs text-sm text-red-600" role="alert">
@@ -1700,6 +1795,41 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 ) : null}
               </>
             ) : null}
+          </div>
+        ) : null}
+
+        {!loading && !error && entries.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label="Фильтр приёмов пищи">
+            <button
+              type="button"
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                mealFilter === "ALL"
+                  ? "bg-teal-700 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+              onClick={() => setMealFilter("ALL")}
+            >
+              Все
+            </button>
+            {MEAL_TYPE_SECTION_ORDER.map((type) => {
+              const count = sectionCounts[type] ?? 0;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    mealFilter === type
+                      ? "bg-teal-700 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                  onClick={() => setMealFilter(type)}
+                >
+                  {sectionLabel(type)}
+                  <span className="ml-1 opacity-70">{count}</span>
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -1721,13 +1851,34 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               const item = row.item;
               const section = showMealSections ? mealTypeForListItem(item) : null;
               const showHeader = section != null && section !== lastSection;
-              if (showHeader) {
+              if (showHeader && section != null) {
                 lastSection = section;
+              }
+              const sectionCollapsed =
+                section != null && Boolean(collapsedSections[section]) && mealFilter === "ALL";
+              if (sectionCollapsed && !showHeader) {
+                return null;
               }
 
               return (
                 <div key={mealListItemKey(item)} className="flex flex-col gap-2">
-                  {showHeader ? <MealSectionHeader section={section} /> : null}
+                  {showHeader && section != null ? (
+                    <MealSectionHeader
+                      section={section}
+                      count={sectionCounts[section]}
+                      collapsed={Boolean(collapsedSections[section])}
+                      onToggle={
+                        mealFilter === "ALL"
+                          ? () =>
+                              setCollapsedSections((prev) => ({
+                                ...prev,
+                                [section]: !prev[section],
+                              }))
+                          : undefined
+                      }
+                    />
+                  ) : null}
+                  {sectionCollapsed ? null : (
                   <MealListRow
                     item={item}
                     timezone={timezone}
@@ -1749,6 +1900,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                       requestDelete(ids, label);
                     }}
                   />
+                  )}
                 </div>
               );
             });

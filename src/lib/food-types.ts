@@ -12,6 +12,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "correction-memory": "Уточнено по прошлым исправлениям",
   "gigachat-plate": "Несколько блюд на тарелке",
   "ru-nutrition-table": "Справочник типичных порций",
+  "ru-sku-cache": "Офлайн-подсказка по штрихкоду (RU)",
 };
 
 export type FoodRecognitionResult = {
