@@ -19,6 +19,7 @@ import {
   telegramOidcSiteOrigin,
 } from "@/lib/telegram-oidc-route";
 import { unsealTelegramOidcState } from "@/lib/telegram-oidc-state";
+import { preferTelegramIpv4 } from "@/lib/telegram-net";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ function userFacingOidcError(error: unknown): string {
   if (/NEXTAUTH_SECRET/i.test(message)) {
     return `На сервере не задан NEXTAUTH_SECRET [${code}].`;
   }
-  if (/fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND/i.test(message)) {
+  if (/fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|ENETUNREACH|ipv4\/curl/i.test(message)) {
     return `Сервер не достучался до Telegram [${code}]. Попробуйте ещё раз.`;
   }
   return `Не удалось войти через Telegram [${code}]`;
@@ -63,6 +64,7 @@ function userFacingOidcError(error: unknown): string {
  * Avoids client-side ticket sign-in (fragile on iOS URL length / WebView).
  */
 export async function GET(request: Request) {
+  preferTelegramIpv4();
   if (!isTelegramOidcConfigured()) {
     return loginErrorRedirect(request, "Telegram OIDC не настроен");
   }

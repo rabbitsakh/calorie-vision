@@ -1,12 +1,24 @@
 import { createHash, randomBytes } from "crypto";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
+import { fetchTelegramHttps, preferTelegramIpv4, telegramIpv4HttpsAgent } from "@/lib/telegram-net";
 
 const TELEGRAM_ISSUER = "https://oauth.telegram.org";
 const TELEGRAM_JWKS_URL = new URL("https://oauth.telegram.org/.well-known/jwks.json");
 const TELEGRAM_AUTH_URL = "https://oauth.telegram.org/auth";
 const TELEGRAM_TOKEN_URL = "https://oauth.telegram.org/token";
 
-const jwks = createRemoteJWKSet(TELEGRAM_JWKS_URL);
+let jwks: JWTVerifyGetKey | null = null;
+
+function getTelegramJwks(): JWTVerifyGetKey {
+  if (!jwks) {
+    preferTelegramIpv4();
+    jwks = createRemoteJWKSet(TELEGRAM_JWKS_URL, {
+      // Node jose uses https.get — pin IPv4 so VPS without working IPv6 can verify id_token.
+      agent: telegramIpv4HttpsAgent(),
+    });
+  }
+  return jwks;
+}
 
 export type TelegramOidcClaims = {
   sub: string;
@@ -133,7 +145,7 @@ export async function exchangeTelegramOidcCode(input: {
       attemptBody.set("client_secret", input.clientSecret);
     }
 
-    const response = await fetch(TELEGRAM_TOKEN_URL, {
+    const response = await fetchTelegramHttps(TELEGRAM_TOKEN_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -168,7 +180,7 @@ export async function verifyTelegramIdToken(
   clientId: string,
 ): Promise<TelegramOidcClaims> {
   // Don't pass `audience` to jose — Telegram may emit numeric `aud`, which fails strict string checks.
-  const { payload } = await jwtVerify(idToken, jwks, {
+  const { payload } = await jwtVerify(idToken, getTelegramJwks(), {
     issuer: TELEGRAM_ISSUER,
     clockTolerance: 60,
   });
