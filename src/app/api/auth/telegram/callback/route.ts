@@ -19,7 +19,11 @@ import {
   telegramOidcSiteOrigin,
 } from "@/lib/telegram-oidc-route";
 import { unsealTelegramOidcState } from "@/lib/telegram-oidc-state";
-import { preferTelegramIpv4 } from "@/lib/telegram-net";
+import {
+  preferTelegramIpv4,
+  telegramNetworkErrorCode,
+  telegramNetworkUserHint,
+} from "@/lib/telegram-net";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +41,7 @@ function clearOidcCookies(response: NextResponse, secure: boolean) {
 
 function userFacingOidcError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  const code = message
-    .replace(/[^A-Za-z0-9_:]/g, "")
-    .slice(0, 48) || "UNKNOWN";
+  const code = telegramNetworkErrorCode(error);
 
   if (/invalid_grant|redirect_uri|redirect uri/i.test(message)) {
     return `Telegram отклонил callback URL [${code}]. В BotFather: https://calorievision.ru/api/auth/telegram/callback`;
@@ -53,8 +55,12 @@ function userFacingOidcError(error: unknown): string {
   if (/NEXTAUTH_SECRET/i.test(message)) {
     return `На сервере не задан NEXTAUTH_SECRET [${code}].`;
   }
-  if (/fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|ENETUNREACH|ipv4\/curl/i.test(message)) {
-    return `Сервер не достучался до Telegram [${code}]. Попробуйте ещё раз.`;
+  if (
+    /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|ENETUNREACH|curl:|CURL|Failed to connect|TimeoutError|AbortError/i.test(
+      message,
+    )
+  ) {
+    return telegramNetworkUserHint(error);
   }
   return `Не удалось войти через Telegram [${code}]`;
 }

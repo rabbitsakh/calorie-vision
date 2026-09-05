@@ -1,22 +1,39 @@
 import { createHash, randomBytes } from "crypto";
-import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
-import { fetchTelegramHttps, preferTelegramIpv4, telegramIpv4HttpsAgent } from "@/lib/telegram-net";
+import {
+  createLocalJWKSet,
+  jwtVerify,
+  type JSONWebKeySet,
+  type JWTVerifyGetKey,
+} from "jose";
+import { fetchTelegramHttps, preferTelegramIpv4 } from "@/lib/telegram-net";
 
 const TELEGRAM_ISSUER = "https://oauth.telegram.org";
-const TELEGRAM_JWKS_URL = new URL("https://oauth.telegram.org/.well-known/jwks.json");
+const TELEGRAM_JWKS_URL = "https://oauth.telegram.org/.well-known/jwks.json";
 const TELEGRAM_AUTH_URL = "https://oauth.telegram.org/auth";
 const TELEGRAM_TOKEN_URL = "https://oauth.telegram.org/token";
 
 let jwks: JWTVerifyGetKey | null = null;
+let jwksFetchedAt = 0;
+const JWKS_TTL_MS = 60 * 60 * 1000;
 
-function getTelegramJwks(): JWTVerifyGetKey {
-  if (!jwks) {
-    preferTelegramIpv4();
-    jwks = createRemoteJWKSet(TELEGRAM_JWKS_URL, {
-      // Node jose uses https.get — pin IPv4 so VPS without working IPv6 can verify id_token.
-      agent: telegramIpv4HttpsAgent(),
-    });
+/** Load JWKS via fetchTelegramHttps so TELEGRAM_HTTPS_PROXY / curl --ipv4 apply. */
+async function getTelegramJwks(): Promise<JWTVerifyGetKey> {
+  preferTelegramIpv4();
+  const fresh = jwks && Date.now() - jwksFetchedAt < JWKS_TTL_MS;
+  if (fresh && jwks) {
+    return jwks;
   }
+
+  const response = await fetchTelegramHttps(TELEGRAM_JWKS_URL, { method: "GET" });
+  if (!response.ok) {
+    throw new Error(`TELEGRAM_JWKS_HTTP_${response.status}`);
+  }
+  const json = (await response.json()) as JSONWebKeySet;
+  if (!json?.keys?.length) {
+    throw new Error("TELEGRAM_JWKS_EMPTY");
+  }
+  jwks = createLocalJWKSet(json);
+  jwksFetchedAt = Date.now();
   return jwks;
 }
 
@@ -180,7 +197,7 @@ export async function verifyTelegramIdToken(
   clientId: string,
 ): Promise<TelegramOidcClaims> {
   // Don't pass `audience` to jose — Telegram may emit numeric `aud`, which fails strict string checks.
-  const { payload } = await jwtVerify(idToken, getTelegramJwks(), {
+  const { payload } = await jwtVerify(idToken, await getTelegramJwks(), {
     issuer: TELEGRAM_ISSUER,
     clockTolerance: 60,
   });
