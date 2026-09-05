@@ -20,7 +20,9 @@ import {
 } from "@/lib/telegram-oidc-route";
 import { unsealTelegramOidcState } from "@/lib/telegram-oidc-state";
 import {
+  getTelegramHttpsProxyUrl,
   preferTelegramIpv4,
+  telegramErrorDetail,
   telegramNetworkErrorCode,
   telegramNetworkUserHint,
 } from "@/lib/telegram-net";
@@ -42,6 +44,7 @@ function clearOidcCookies(response: NextResponse, secure: boolean) {
 function userFacingOidcError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   const code = telegramNetworkErrorCode(error);
+  const detail = telegramErrorDetail(error);
 
   if (/invalid_grant|redirect_uri|redirect uri/i.test(message)) {
     return `Telegram отклонил callback URL [${code}]. В BotFather: https://calorievision.ru/api/auth/telegram/callback`;
@@ -56,13 +59,22 @@ function userFacingOidcError(error: unknown): string {
     return `На сервере не задан NEXTAUTH_SECRET [${code}].`;
   }
   if (
-    /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|ENETUNREACH|curl:|CURL|Failed to connect|TimeoutError|AbortError/i.test(
+    /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|ENETUNREACH|curl:|CURL|Failed to connect|TimeoutError|AbortError|TG_HTTP|TG_JSON|TELEGRAM_.*_JSON|TELEGRAM_JWKS_HTTP|TELEGRAM_TOKEN_JSON/i.test(
       message,
-    )
+    ) ||
+    code === "CURL28" ||
+    code === "FETCH" ||
+    code === "TG_HTTP" ||
+    code === "TG_JSON" ||
+    code === "PROXY"
   ) {
-    return telegramNetworkUserHint(error);
+    // If proxy is missing, keep the actionable hint; otherwise include detail.
+    if (!getTelegramHttpsProxyUrl()) {
+      return telegramNetworkUserHint(error);
+    }
+    return `Ошибка входа через Telegram [${code}]: ${detail}`;
   }
-  return `Не удалось войти через Telegram [${code}]`;
+  return `Не удалось войти через Telegram [${code}]: ${detail}`;
 }
 
 /**
@@ -144,6 +156,7 @@ export async function GET(request: Request) {
     return next;
   } catch (error) {
     console.error("[telegram-oidc] callback failed:", {
+      proxyConfigured: Boolean(getTelegramHttpsProxyUrl()),
       error,
       redirectUri,
       clientId,

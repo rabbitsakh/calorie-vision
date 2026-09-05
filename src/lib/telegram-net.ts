@@ -31,12 +31,20 @@ export function telegramIpv4HttpsAgent(): https.Agent {
   return new https.Agent({ family: 4, keepAlive: true });
 }
 
+/**
+ * Prefer socks5h (DNS via proxy). Plain socks5:// is upgraded so Telegram
+ * hostnames resolve on the proxy side, not on a blocked VPS DNS path.
+ */
 export function getTelegramHttpsProxyUrl(): string | null {
   const proxy =
     process.env.TELEGRAM_HTTPS_PROXY?.trim() ||
     process.env.HTTPS_PROXY?.trim() ||
     process.env.HTTP_PROXY?.trim();
-  return proxy || null;
+  if (!proxy) return null;
+  if (/^socks5:\/\//i.test(proxy) && !/^socks5h:\/\//i.test(proxy)) {
+    return proxy.replace(/^socks5:\/\//i, "socks5h://");
+  }
+  return proxy;
 }
 
 export function telegramUsesCurlTransport(): boolean {
@@ -84,8 +92,22 @@ export function telegramNetworkErrorCode(error: unknown): string {
   if (/ENOTFOUND/i.test(message)) return "ENOTFOUND";
   if (/ECONNREFUSED/i.test(message)) return "ECONNREFUSED";
   if (/ECONNRESET/i.test(message)) return "ECONNRESET";
+  if (/TELEGRAM_JWKS_HTTP_|TELEGRAM_TOKEN_HTTP_|TELEGRAM_.*_JSON/i.test(message)) {
+    return "TG_HTTP";
+  }
+  if (/is not valid JSON|Unexpected token|JSON\.parse/i.test(message)) {
+    return "TG_JSON";
+  }
   if (/proxy/i.test(message)) return "PROXY";
-  return "FETCH";
+  if (/fetch failed/i.test(message)) return "FETCH";
+  const slug = message.replace(/[^A-Za-z0-9_:]/g, "").slice(0, 24);
+  return slug || "UNKNOWN";
+}
+
+/** Safe snippet for UI (no secrets). */
+export function telegramErrorDetail(error: unknown, maxLen = 96): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.replace(/\s+/g, " ").trim().slice(0, maxLen);
 }
 
 export function telegramNetworkUserHint(error: unknown): string {

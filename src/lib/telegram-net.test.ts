@@ -37,3 +37,21 @@ describe("telegram-net error hints", () => {
     delete process.env.TELEGRAM_HTTPS_PROXY;
   });
 });
+
+describe("telegram-net proxy URL", () => {
+  it("upgrades socks5:// to socks5h://", async () => {
+    const { getTelegramHttpsProxyUrl } = await import("./telegram-net.ts");
+    process.env.TELEGRAM_HTTPS_PROXY = "socks5://PsR1G9:secret@77.83.187.153:8000";
+    assert.equal(
+      getTelegramHttpsProxyUrl(),
+      "socks5h://PsR1G9:secret@77.83.187.153:8000",
+    );
+    delete process.env.TELEGRAM_HTTPS_PROXY;
+  });
+
+  it("does not use FETCH as a catch-all code", async () => {
+    const { telegramNetworkErrorCode } = await import("./telegram-net.ts");
+    assert.equal(telegramNetworkErrorCode(new Error("prisma unique constraint")), "prismauniqueconstraint");
+    assert.equal(telegramNetworkErrorCode(new Error("fetch failed")), "FETCH");
+  });
+});

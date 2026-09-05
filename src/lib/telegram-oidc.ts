@@ -25,10 +25,16 @@ async function getTelegramJwks(): Promise<JWTVerifyGetKey> {
   }
 
   const response = await fetchTelegramHttps(TELEGRAM_JWKS_URL, { method: "GET" });
+  const raw = await response.text();
   if (!response.ok) {
-    throw new Error(`TELEGRAM_JWKS_HTTP_${response.status}`);
+    throw new Error(`TELEGRAM_JWKS_HTTP_${response.status}:${raw.slice(0, 80)}`);
   }
-  const json = (await response.json()) as JSONWebKeySet;
+  let json: JSONWebKeySet;
+  try {
+    json = JSON.parse(raw) as JSONWebKeySet;
+  } catch {
+    throw new Error(`TELEGRAM_JWKS_JSON:${raw.slice(0, 80)}`);
+  }
   if (!json?.keys?.length) {
     throw new Error("TELEGRAM_JWKS_EMPTY");
   }
@@ -172,11 +178,21 @@ export async function exchangeTelegramOidcCode(input: {
       cache: "no-store",
     });
 
-    const json = (await response.json()) as {
+    const raw = await response.text();
+    let json: {
       id_token?: string;
       error?: string;
       error_description?: string;
     };
+    try {
+      json = JSON.parse(raw) as {
+        id_token?: string;
+        error?: string;
+        error_description?: string;
+      };
+    } catch {
+      throw new Error(`TELEGRAM_TOKEN_JSON_${response.status}:${raw.slice(0, 80)}`);
+    }
 
     if (response.ok && json.id_token) {
       return { id_token: json.id_token };
