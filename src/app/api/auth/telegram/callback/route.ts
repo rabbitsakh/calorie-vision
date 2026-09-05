@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { withBasePath } from "@/lib/paths";
 import {
   claimsToTelegramAuthFields,
   exchangeTelegramOidcCode,
@@ -13,6 +12,7 @@ import { createTelegramLoginTicket } from "@/lib/telegram-oidc-ticket";
 import {
   TG_OIDC_STATE_COOKIE,
   TG_OIDC_VERIFIER_COOKIE,
+  telegramOidcAppUrl,
   telegramOidcCookieOptions,
   telegramOidcRedirectUri,
   telegramOidcSiteOrigin,
@@ -21,7 +21,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function loginErrorRedirect(request: Request, message: string) {
-  const url = new URL(withBasePath("/login/telegram"), request.url);
+  const url = new URL(telegramOidcAppUrl("/login/telegram", request));
   url.searchParams.set("error", message);
   return NextResponse.redirect(url);
 }
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   const cookieStore = await cookies();
   const expectedState = cookieStore.get(TG_OIDC_STATE_COOKIE)?.value;
   const codeVerifier = cookieStore.get(TG_OIDC_VERIFIER_COOKIE)?.value;
-  const origin = telegramOidcSiteOrigin(request.url);
+  const origin = telegramOidcSiteOrigin(request);
   const secure = origin.startsWith("https://");
 
   if (!code || !state || !expectedState || state !== expectedState || !codeVerifier) {
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
       phone_number: fields.phone_number,
     });
 
-    const next = new URL(withBasePath("/login/telegram"), request.url);
+    const next = new URL(telegramOidcAppUrl("/login/telegram", request));
     next.searchParams.set("ticket", ticket);
     const response = NextResponse.redirect(next);
     clearOidcCookies(response, secure);

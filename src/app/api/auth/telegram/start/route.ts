@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { withBasePath } from "@/lib/paths";
 import {
   buildTelegramOidcAuthorizeUrl,
   createOidcState,
@@ -10,6 +9,7 @@ import {
 import {
   TG_OIDC_STATE_COOKIE,
   TG_OIDC_VERIFIER_COOKIE,
+  telegramOidcAppUrl,
   telegramOidcCookieOptions,
   telegramOidcRedirectUri,
   telegramOidcSiteOrigin,
@@ -23,15 +23,23 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   if (!isTelegramOidcConfigured()) {
-    return NextResponse.redirect(new URL(withBasePath("/login?error=Telegram"), request.url));
+    return NextResponse.redirect(telegramOidcAppUrl("/login?error=Telegram", request));
   }
 
   const clientId = getTelegramOidcClientId();
   if (!clientId) {
-    return NextResponse.redirect(new URL(withBasePath("/login?error=Telegram"), request.url));
+    return NextResponse.redirect(telegramOidcAppUrl("/login?error=Telegram", request));
   }
 
-  const origin = telegramOidcSiteOrigin(request.url);
+  const origin = telegramOidcSiteOrigin(request);
+  if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    console.error(
+      "[telegram-oidc] Public origin missing or localhost. Set NEXTAUTH_URL=https://calorievision.ru",
+      { origin },
+    );
+    return NextResponse.redirect(telegramOidcAppUrl("/login?error=TelegramConfig", request));
+  }
+
   const { verifier, challenge } = createPkcePair();
   const state = createOidcState();
   const authorizeUrl = buildTelegramOidcAuthorizeUrl({
