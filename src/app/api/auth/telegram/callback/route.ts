@@ -13,9 +13,10 @@ import { createTelegramLoginTicket } from "@/lib/telegram-oidc-ticket";
 import {
   TG_OIDC_STATE_COOKIE,
   TG_OIDC_VERIFIER_COOKIE,
+  telegramOidcCookieOptions,
   telegramOidcRedirectUri,
   telegramOidcSiteOrigin,
-} from "../start/route";
+} from "@/lib/telegram-oidc-route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +27,7 @@ function loginErrorRedirect(request: Request, message: string) {
 }
 
 function clearOidcCookies(response: NextResponse, secure: boolean) {
-  const clear = {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure,
-    path: "/",
-    maxAge: 0,
-  };
+  const clear = telegramOidcCookieOptions(secure, 0);
   response.cookies.set(TG_OIDC_STATE_COOKIE, "", clear);
   response.cookies.set(TG_OIDC_VERIFIER_COOKIE, "", clear);
 }
