@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import {
   buildTelegramOidcAuthorizeUrl,
-  createOidcState,
   createPkcePair,
   getTelegramOidcClientId,
   isTelegramOidcConfigured,
@@ -14,6 +13,7 @@ import {
   telegramOidcRedirectUri,
   telegramOidcSiteOrigin,
 } from "@/lib/telegram-oidc-route";
+import { sealTelegramOidcState } from "@/lib/telegram-oidc-state";
 
 export const dynamic = "force-dynamic";
 
@@ -40,19 +40,26 @@ export async function GET(request: Request) {
     return NextResponse.redirect(telegramOidcAppUrl("/login?error=TelegramConfig", request));
   }
 
-  const { verifier, challenge } = createPkcePair();
-  const state = createOidcState();
-  const authorizeUrl = buildTelegramOidcAuthorizeUrl({
-    clientId,
-    redirectUri: telegramOidcRedirectUri(origin),
-    state,
-    codeChallenge: challenge,
-    requestPhone: true,
-  });
+  try {
+    const { verifier, challenge } = createPkcePair();
+    // Embed verifier in `state` so iOS can finish login even if cookies are dropped.
+    const state = sealTelegramOidcState(verifier);
+    const authorizeUrl = buildTelegramOidcAuthorizeUrl({
+      clientId,
+      redirectUri: telegramOidcRedirectUri(origin),
+      state,
+      codeChallenge: challenge,
+      requestPhone: true,
+    });
 
-  const secure = origin.startsWith("https://");
-  const response = NextResponse.redirect(authorizeUrl);
-  response.cookies.set(TG_OIDC_STATE_COOKIE, state, telegramOidcCookieOptions(secure));
-  response.cookies.set(TG_OIDC_VERIFIER_COOKIE, verifier, telegramOidcCookieOptions(secure));
-  return response;
+    const secure = origin.startsWith("https://");
+    const response = NextResponse.redirect(authorizeUrl);
+    // Keep cookies as a fallback for older clients / non-iOS browsers.
+    response.cookies.set(TG_OIDC_STATE_COOKIE, state, telegramOidcCookieOptions(secure));
+    response.cookies.set(TG_OIDC_VERIFIER_COOKIE, verifier, telegramOidcCookieOptions(secure));
+    return response;
+  } catch (error) {
+    console.error("[telegram-oidc] start failed:", error);
+    return NextResponse.redirect(telegramOidcAppUrl("/login?error=TelegramConfig", request));
+  }
 }

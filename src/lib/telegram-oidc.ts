@@ -170,6 +170,7 @@ export async function verifyTelegramIdToken(
   // Don't pass `audience` to jose — Telegram may emit numeric `aud`, which fails strict string checks.
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: TELEGRAM_ISSUER,
+    clockTolerance: 60,
   });
 
   if (!audienceMatches(payload.aud, clientId)) {
