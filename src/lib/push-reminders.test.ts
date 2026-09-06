@@ -29,6 +29,7 @@ const baseCtx = {
   hasDinner: false,
   daysLoggedLastWeek: 3,
   daysInLastWeek: 7,
+  daysSinceLastMeal: null,
 };
 
 test("resolvePushTimezone falls back to Europe/Moscow", () => {
@@ -51,8 +52,8 @@ test("remindersForLocalTime returns dinner and water_evening at 18", () => {
   assert.deepEqual(remindersForLocalTime(18, 1).sort(), ["dinner", "water_evening"]);
 });
 
-test("schedule has 9 reminder slots", () => {
-  assert.equal(REMINDER_SCHEDULE.length, 9);
+test("schedule has 10 reminder slots", () => {
+  assert.equal(REMINDER_SCHEDULE.length, 10);
 });
 
 test("dinner reminder skipped when already logged", () => {
@@ -222,6 +223,7 @@ test("pickPushCopyVariant covers both buckets across users", () => {
     "streak",
     "checkin",
     "weekly",
+    "reactivation",
   ];
   const seen = new Set<string>();
   for (let i = 0; i < 40; i += 1) {
@@ -276,4 +278,23 @@ test("lunch deep link includes meal=LUNCH", () => {
   const payload = buildReminderPayload("lunch", { ...baseCtx, mealCount: 1, hasBreakfast: true });
   assert.ok(payload);
   assert.equal(payload.url, "/ration?meal=LUNCH");
+});
+
+
+test("reactivation skipped when recently active", () => {
+  assert.equal(
+    buildReminderPayload("reactivation", { ...baseCtx, daysSinceLastMeal: 1 }),
+    null,
+  );
+});
+
+test("reactivation soft nudge after idle days", () => {
+  const payload = buildReminderPayload("reactivation", { ...baseCtx, daysSinceLastMeal: 5 });
+  assert.ok(payload);
+  assert.match(payload.title, /скучали|рядом/i);
+  assert.equal(payload.url, "/ration");
+});
+
+test("remindersForLocalTime returns reactivation at 11", () => {
+  assert.deepEqual(remindersForLocalTime(11, 2), ["reactivation"]);
 });

@@ -78,6 +78,16 @@ async function loadUserReminderContext(
     latestWeightKg: latestWeight?.weightKg ?? null,
   });
 
+  const lastMealDate = mealDates[0] ?? null;
+  let daysSinceLastMeal: number | null = null;
+  if (lastMealDate) {
+    const lastMs = Date.parse(`${lastMealDate}T12:00:00Z`);
+    const todayMs = Date.parse(`${today}T12:00:00Z`);
+    if (Number.isFinite(lastMs) && Number.isFinite(todayMs)) {
+      daysSinceLastMeal = Math.max(0, Math.round((todayMs - lastMs) / 86_400_000));
+    }
+  }
+
   return {
     today,
     mealCount: meals.length,
@@ -93,6 +103,7 @@ async function loadUserReminderContext(
     hasDinner: meals.some((meal) => meal.mealType === "DINNER"),
     daysLoggedLastWeek: weekStats.daysLoggedLastWeek,
     daysInLastWeek: weekStats.daysInLastWeek,
+    daysSinceLastMeal,
   };
 }
 

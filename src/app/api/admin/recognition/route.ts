@@ -26,10 +26,13 @@ function countByKey<T extends string>(
     .sort((a, b) => b.count - a.count);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { response } = await requireAdmin();
     if (response) return response;
+
+    const misreadWindowParam = new URL(request.url).searchParams.get("misreadWindow");
+    const misreadWindow = misreadWindowParam === "all" ? "all" : "7d";
 
     await loadLowConfidenceThresholdFromDb();
     const currentLowConfidence = getRecognitionLowConfidenceThreshold();
@@ -55,7 +58,11 @@ export async function GET() {
       }),
       prisma.mealEntry.groupBy({
         by: ["originalDish"],
-        where: { wasCorrected: true, originalDish: { not: null } },
+        where: {
+          ...(misreadWindow === "7d" ? { createdAt: { gte: since } } : {}),
+          wasCorrected: true,
+          originalDish: { not: null },
+        },
         _count: { id: true },
         orderBy: { _count: { id: "desc" } },
         take: 10,
@@ -175,6 +182,7 @@ export async function GET() {
         suggestedLowConfidence,
         buckets: confidenceBuckets,
       },
+      misreadWindow,
       topMisrecognized: topMisrecognized
         .filter((row) => row.originalDish)
         .map((row) => ({

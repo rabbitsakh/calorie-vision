@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
+import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { WeightHistory } from "@/components/WeightHistory";
 import { WeightTargetCelebration } from "@/components/WeightTargetCelebration";
 import { toDateKeyTz } from "@/lib/dates";
@@ -21,6 +22,7 @@ export default function WeightPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-6">
+          <OfflineMealQueueBanner onFlushed={() => setRefreshKey((value) => value + 1)} />
           <WeightHistory
             refreshKey={refreshKey}
             timezone={timezone}

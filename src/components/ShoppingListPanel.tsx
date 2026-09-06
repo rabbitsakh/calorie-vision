@@ -8,6 +8,7 @@ import {
   clearChecked,
   loadList,
   removeItem,
+  saveList,
   toggleItem,
   type ShoppingListItem,
 } from "@/lib/shopping-list";
@@ -48,9 +49,55 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
     setItems(loadList(opts()));
   }, [opts]);
 
+  const syncToServer = useCallback(
+    async (next: ShoppingListItem[]) => {
+      if (!userId) return;
+      try {
+        await fetch(withBasePath("/api/shopping-list"), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: next }),
+        });
+      } catch {
+        // keep local copy
+      }
+    },
+    [userId],
+  );
+
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+    async function hydrate() {
+      const local = loadList(opts());
+      setItems(local);
+      if (!userId) return;
+      try {
+        const resp = await fetch(withBasePath("/api/shopping-list"), { cache: "no-store" });
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { items?: ShoppingListItem[] };
+        const remote = Array.isArray(data.items) ? data.items : [];
+        if (cancelled) return;
+        if (remote.length === 0 && local.length > 0) {
+          await fetch(withBasePath("/api/shopping-list"), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: local }),
+          });
+          return;
+        }
+        if (remote.length > 0) {
+          saveList(remote, opts());
+          setItems(remote);
+        }
+      } catch {
+        // offline — local list is enough
+      }
+    }
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [opts, userId]);
 
   async function collectFromRation() {
     setBusy(true);
@@ -75,6 +122,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
       const next = addItemsFromDishNames(names, selectedDate, opts());
       const added = next.length - before;
       setItems(next);
+      void syncToServer(next);
       setOpen(true);
       setMessage(
         added > 0
@@ -89,21 +137,29 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
   }
 
   function handleToggle(id: string) {
-    setItems(toggleItem(id, opts()));
+    const next = toggleItem(id, opts());
+    setItems(next);
+    void syncToServer(next);
   }
 
   function handleRemove(id: string) {
-    setItems(removeItem(id, opts()));
+    const next = removeItem(id, opts());
+    setItems(next);
+    void syncToServer(next);
   }
 
   function handleClearChecked() {
-    setItems(clearChecked(opts()));
+    const next = clearChecked(opts());
+    setItems(next);
     setMessage(null);
+    void syncToServer(next);
   }
 
   function handleClearAll() {
-    setItems(clearAll(opts()));
+    const next = clearAll(opts());
+    setItems(next);
     setMessage(null);
+    void syncToServer(next);
   }
 
   function handleManualAdd(e: React.FormEvent) {
@@ -112,6 +168,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
     if (!name) return;
     const next = addItemsFromDishNames([name], undefined, opts());
     setItems(next);
+    void syncToServer(next);
     setManual("");
     setMessage(null);
     setOpen(true);
@@ -234,7 +291,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
           )}
 
           <p className="text-[11px] text-slate-400">
-            Хранится только на этом устройстве.
+            Синхронизируется между устройствами при входе.
           </p>
         </div>
       ) : null}

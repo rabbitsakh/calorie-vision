@@ -28,6 +28,7 @@ type RecognitionStats = {
     }>;
   };
   topMisrecognized: Array<{ dish: string; count: number }>;
+  misreadWindow?: "7d" | "all";
   savedCorrections: number;
   bySource?: Array<{ source: string; label: string; count: number }>;
   byPhotoKind?: Array<{ photoKind: string; count: number }>;
@@ -58,9 +59,10 @@ export function AdminRecognitionStats() {
   const [error, setError] = useState<string | null>(null);
   const [applyingThreshold, setApplyingThreshold] = useState(false);
   const [thresholdMessage, setThresholdMessage] = useState<string | null>(null);
+  const [misreadWindow, setMisreadWindow] = useState<"7d" | "all">("7d");
 
-  async function loadStats() {
-    const resp = await fetch(withBasePath("/api/admin/recognition"));
+  async function loadStats(window: "7d" | "all" = misreadWindow) {
+    const resp = await fetch(withBasePath(`/api/admin/recognition?misreadWindow=${window}`));
     const data = (await resp.json()) as RecognitionStats;
     if (!resp.ok) throw new Error(data.error ?? "Ошибка загрузки");
     setStats(data);
@@ -68,15 +70,17 @@ export function AdminRecognitionStats() {
 
   useEffect(() => {
     void (async () => {
+      setLoading(true);
+      setError(null);
       try {
-        await loadStats();
+        await loadStats(misreadWindow);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка");
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [misreadWindow]);
 
   async function applySuggestedThreshold() {
     if (!stats?.confidenceCalibration) return;
@@ -370,9 +374,28 @@ export function AdminRecognitionStats() {
             </div>
           ) : null}
 
+          <div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-700">Чаще всего исправляют</p>
+              <div className="flex gap-1 rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  className={`rounded-md px-2.5 py-1 ${misreadWindow === "7d" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                  onClick={() => setMisreadWindow("7d")}
+                >
+                  7 дней
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-md px-2.5 py-1 ${misreadWindow === "all" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}
+                  onClick={() => setMisreadWindow("all")}
+                >
+                  За всё время
+                </button>
+              </div>
+            </div>
           {stats.topMisrecognized.length > 0 ? (
             <div>
-              <p className="mb-3 text-sm font-semibold text-slate-700">Чаще всего исправляют</p>
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
@@ -392,7 +415,10 @@ export function AdminRecognitionStats() {
                 </table>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="text-sm text-slate-500">Пока нет исправлений за выбранный период.</p>
+          )}
+          </div>
         </div>
       ) : null}
     </section>

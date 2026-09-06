@@ -18,6 +18,12 @@ import {
   removeWaterDraft,
   subscribeWaterDraftQueue,
 } from "@/lib/water-draft-queue";
+import {
+  countWeightDrafts,
+  listWeightDrafts,
+  removeWeightDraft,
+  subscribeWeightDraftQueue,
+} from "@/lib/weight-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { withBasePath } from "@/lib/paths";
@@ -33,21 +39,25 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   const [failedCount, setFailedCount] = useState(0);
   const [recognitionCount, setRecognitionCount] = useState(0);
   const [waterCount, setWaterCount] = useState(0);
+  const [weightCount, setWeightCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
     setRecognitionCount(countPendingRecognitions());
     setWaterCount(countWaterDrafts());
+    setWeightCount(countWeightDrafts());
   }, []);
 
   useEffect(() => {
     refreshCounts();
     const unsubMeal = subscribeMealDraftQueue(refreshCounts);
     const unsubWater = subscribeWaterDraftQueue(refreshCounts);
+    const unsubWeight = subscribeWeightDraftQueue(refreshCounts);
     return () => {
       unsubMeal();
       unsubWater();
+      unsubWeight();
     };
   }, [refreshCounts]);
 
@@ -55,7 +65,8 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
     const pending = listPendingRecognitions();
     const failed = listFailedSaves();
     const water = listWaterDrafts();
-    if (pending.length === 0 && failed.length === 0 && water.length === 0) return;
+    const weights = listWeightDrafts();
+    if (pending.length === 0 && failed.length === 0 && water.length === 0 && weights.length === 0) return;
 
     setFlushing(true);
     let savedAny = false;
@@ -115,6 +126,26 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
           break;
         }
       }
+
+      for (const item of weights) {
+        try {
+          const response = await fetch(withBasePath("/api/weights"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              date: item.date,
+              weightKg: item.weightKg,
+              measuredAt: item.measuredAt,
+              note: item.note,
+            }),
+          });
+          if (!response.ok) break;
+          removeWeightDraft(item.id);
+          savedAny = true;
+        } catch {
+          break;
+        }
+      }
     } finally {
       setFlushing(false);
       refreshCounts();
@@ -135,7 +166,7 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
     return () => window.removeEventListener("online", onOnline);
   }, [flush]);
 
-  const totalCount = countOfflineQueue() + waterCount;
+  const totalCount = countOfflineQueue() + waterCount + weightCount;
   if (totalCount <= 0) return null;
 
   const statusParts: string[] = [];
@@ -152,6 +183,11 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   if (waterCount > 0) {
     statusParts.push(
       `${waterCount} ${waterCount === 1 ? "запись воды ждёт отправки" : "записей воды ждут отправки"}`,
+    );
+  }
+  if (weightCount > 0) {
+    statusParts.push(
+      `${weightCount} ${weightCount === 1 ? "запись веса ждёт отправки" : "записей веса ждут отправки"}`,
     );
   }
 

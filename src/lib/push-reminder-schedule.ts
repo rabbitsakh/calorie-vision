@@ -7,10 +7,12 @@ export type ReminderKind =
   | "calories"
   | "streak"
   | "checkin"
-  | "weekly";
+  | "weekly"
+  | "reactivation";
 
 export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekday?: number }> = [
   { kind: "weekly", hour: 9, weekday: 1 },
+  { kind: "reactivation", hour: 11 },
   { kind: "breakfast", hour: 8 },
   { kind: "lunch", hour: 13 },
   { kind: "water_midday", hour: 14 },
@@ -99,6 +101,7 @@ export function reminderKindLabel(kind: ReminderKind, hour?: number): string {
     streak: `Серия (${time})`,
     checkin: `Чек-ин (${time})`,
     weekly: `Итог недели (пн ${time})`,
+    reactivation: `Мягкое возвращение (${time})`,
   };
   return labels[kind];
 }

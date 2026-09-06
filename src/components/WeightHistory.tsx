@@ -7,6 +7,7 @@ import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 import { groupWeightEntriesByDate } from "@/lib/weight-entries";
 import { trackWeightLoggedGoal } from "@/lib/metrika-funnel";
+import { enqueueWeightDraft } from "@/lib/weight-draft-queue";
 import { Mascot } from "@/components/Mascot";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 
@@ -96,29 +97,40 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     setSaving(true);
     setError(null);
 
+    const now = new Date();
+    const dateKey = timezone
+      ? (() => {
+          const parts = new Intl.DateTimeFormat("en-CA", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            timeZone: timezone,
+          }).formatToParts(now);
+          const m = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+          return `${m.year}-${m.month}-${m.day}`;
+        })()
+      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const weightKg = Number(weightInput);
+    const measuredAt = now.toISOString();
+    const note = noteInput.trim() || null;
+
     try {
-      const now = new Date();
-      const dateKey = timezone
-        ? (() => {
-            const parts = new Intl.DateTimeFormat("en-CA", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              timeZone: timezone,
-            }).formatToParts(now);
-            const m = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-            return `${m.year}-${m.month}-${m.day}`;
-          })()
-        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note });
+        setWeightInput("");
+        setNoteInput("");
+        setError("Нет сети — вес сохранён в офлайн-очередь");
+        return;
+      }
 
       const response = await fetch(withBasePath("/api/weights"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           date: dateKey,
-          weightKg: Number(weightInput),
-          measuredAt: now.toISOString(),
-          note: noteInput.trim() || null,
+          weightKg,
+          measuredAt,
+          note,
         }),
       });
       const payload = (await response.json()) as { error?: string };
@@ -132,7 +144,15 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
       notifyDietTargetsChanged();
       onChanged?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка сохранения");
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      if (offline || (err instanceof TypeError && /fetch|network|failed/i.test(err.message))) {
+        enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note });
+        setWeightInput("");
+        setNoteInput("");
+        setError("Нет сети — вес сохранён в офлайн-очередь");
+      } else {
+        setError(err instanceof Error ? err.message : "Ошибка сохранения");
+      }
     } finally {
       setSaving(false);
     }

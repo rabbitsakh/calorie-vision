@@ -13,7 +13,7 @@ test("returns null for unknown barcode", () => {
 });
 
 test("SKU cache has unique barcodes and enough entries", () => {
-  assert.ok(RU_SKU_CACHE.length >= 20, `expected >=20 SKUs, got ${RU_SKU_CACHE.length}`);
+  assert.ok(RU_SKU_CACHE.length >= 40, `expected >=40 SKUs, got ${RU_SKU_CACHE.length}`);
   const codes = RU_SKU_CACHE.map((row) => row.barcode);
   assert.equal(new Set(codes).size, codes.length, "barcode codes must be unique");
   for (const row of RU_SKU_CACHE) {
