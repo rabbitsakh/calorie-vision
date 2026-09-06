@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
+import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
@@ -101,6 +102,26 @@ export function WaterTracker({
         const data = (await resp.json()) as WaterResponse;
         setTotalMl(data.totalMl);
         setTarget(data.target);
+        trackWaterLoggedGoal();
+        onChanged?.();
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        enqueueWaterDraft(selectedDate, ml);
+        setTotalMl((value) => value + ml);
+        trackWaterLoggedGoal();
+        onChanged?.();
+      }
+    } catch {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        enqueueWaterDraft(selectedDate, ml);
+        setTotalMl((value) => value + ml);
+        trackWaterLoggedGoal();
+        onChanged?.();
+      } else {
+        // network flake — still queue so taps are not lost
+        enqueueWaterDraft(selectedDate, ml);
+        setTotalMl((value) => value + ml);
         trackWaterLoggedGoal();
         onChanged?.();
       }

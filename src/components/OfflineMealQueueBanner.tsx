@@ -12,6 +12,12 @@ import {
   subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
+import {
+  countWaterDrafts,
+  listWaterDrafts,
+  removeWaterDraft,
+  subscribeWaterDraftQueue,
+} from "@/lib/water-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { withBasePath } from "@/lib/paths";
@@ -26,22 +32,30 @@ type OfflineMealQueueBannerProps = {
 export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: OfflineMealQueueBannerProps) {
   const [failedCount, setFailedCount] = useState(0);
   const [recognitionCount, setRecognitionCount] = useState(0);
+  const [waterCount, setWaterCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
     setRecognitionCount(countPendingRecognitions());
+    setWaterCount(countWaterDrafts());
   }, []);
 
   useEffect(() => {
     refreshCounts();
-    return subscribeMealDraftQueue(refreshCounts);
+    const unsubMeal = subscribeMealDraftQueue(refreshCounts);
+    const unsubWater = subscribeWaterDraftQueue(refreshCounts);
+    return () => {
+      unsubMeal();
+      unsubWater();
+    };
   }, [refreshCounts]);
 
   const flush = useCallback(async () => {
     const pending = listPendingRecognitions();
     const failed = listFailedSaves();
-    if (pending.length === 0 && failed.length === 0) return;
+    const water = listWaterDrafts();
+    if (pending.length === 0 && failed.length === 0 && water.length === 0) return;
 
     setFlushing(true);
     let savedAny = false;
@@ -86,6 +100,21 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
           // stay queued
         }
       }
+
+      for (const item of water) {
+        try {
+          const response = await fetch(withBasePath("/api/water"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: item.selectedDate, ml: item.ml }),
+          });
+          if (!response.ok) break;
+          removeWaterDraft(item.id);
+          savedAny = true;
+        } catch {
+          break;
+        }
+      }
     } finally {
       setFlushing(false);
       refreshCounts();
@@ -106,7 +135,7 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
     return () => window.removeEventListener("online", onOnline);
   }, [flush]);
 
-  const totalCount = countOfflineQueue();
+  const totalCount = countOfflineQueue() + waterCount;
   if (totalCount <= 0) return null;
 
   const statusParts: string[] = [];
@@ -118,6 +147,11 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   if (failedCount > 0) {
     statusParts.push(
       `${failedCount} ${failedCount === 1 ? "запись ждёт отправки" : "записей ждут отправки"}`,
+    );
+  }
+  if (waterCount > 0) {
+    statusParts.push(
+      `${waterCount} ${waterCount === 1 ? "запись воды ждёт отправки" : "записей воды ждут отправки"}`,
     );
   }
 

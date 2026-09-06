@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
 import { withBasePath } from "@/lib/paths";
+import { ensureQuietDefaultForNewUsers } from "@/lib/gamification-quiet";
 
 const STORAGE_KEY = "cv-onboarding-v1";
 
@@ -64,6 +65,7 @@ export function OnboardingOverlay() {
   const finish = useCallback(() => {
     markDone();
     setPwaOnboardingSeen();
+    ensureQuietDefaultForNewUsers();
     setOpen(false);
   }, []);
 

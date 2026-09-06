@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.7.7",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 5 — offline favorites/water, quiet default, Cyrillic PDF",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Избранные продукты работают офлайн: кэш списка и очередь сохранений"
+      },
+      {
+        "kind": "improvement",
+        "text": "В сводке дня — мини-прогресс по воде рядом с белком"
+      },
+      {
+        "kind": "improvement",
+        "text": "Быстрые +мл воды уходят в офлайн-очередь и доезжают при сети"
+      },
+      {
+        "kind": "improvement",
+        "text": "После онбординга по умолчанию включается тихий режим празднований"
+      },
+      {
+        "kind": "fix",
+        "text": "PDF-экспорт для врача с кириллицей (DejaVu), без транслита"
+      }
+    ]
+  },
+  {
     "version": "1.7.6",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 4 — offline continuity, stats→ration jumps, diary source filters",
