@@ -78,7 +78,12 @@ test("sectionLabel maps untagged", () => {
 test("matchesDiarySourceFilter photo/text/low confidence", () => {
   const photo = {
     kind: "single" as const,
-    entry: { imagePath: "/x.jpg", confidence: 0.9, mealType: "LUNCH" } as never,
+    entry: {
+      imagePath: "/x.jpg",
+      confidence: 0.9,
+      mealType: "LUNCH",
+      recognitionSource: "gigachat",
+    } as never,
   };
   const textItem = {
     kind: "single" as const,
@@ -89,4 +94,52 @@ test("matchesDiarySourceFilter photo/text/low confidence", () => {
   assert.equal(matchesDiarySourceFilter(textItem, "TEXT", 0.55), true);
   assert.equal(matchesDiarySourceFilter(textItem, "LOW_CONFIDENCE", 0.55), true);
   assert.equal(matchesDiarySourceFilter(photo, "LOW_CONFIDENCE", 0.55), false);
+});
+
+test("TEXT filter keeps name-lookup meals that cached a product image", () => {
+  const lookupWithImage = {
+    kind: "single" as const,
+    entry: {
+      imagePath: "/api/uploads/product.webp",
+      confidence: 0.8,
+      mealType: "BREAKFAST",
+      recognitionSource: "gigachat-lookup",
+    } as never,
+  };
+  const offSearchWithImage = {
+    kind: "single" as const,
+    entry: {
+      imagePath: "/api/uploads/off.webp",
+      confidence: 0.85,
+      mealType: "SNACK",
+      recognitionSource: "openfoodfacts-search",
+    } as never,
+  };
+  assert.equal(matchesDiarySourceFilter(lookupWithImage, "TEXT", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(lookupWithImage, "PHOTO", 0.55), false);
+  assert.equal(matchesDiarySourceFilter(offSearchWithImage, "TEXT", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(offSearchWithImage, "PHOTO", 0.55), false);
+});
+
+test("PHOTO filter keeps camera meals; barcode sources stay photo-adjacent", () => {
+  const plate = {
+    kind: "single" as const,
+    entry: {
+      imagePath: "/api/uploads/plate.webp",
+      confidence: 0.7,
+      recognitionSource: "gigachat-plate",
+    } as never,
+  };
+  const barcode = {
+    kind: "single" as const,
+    entry: {
+      imagePath: "/api/uploads/sku.webp",
+      confidence: 0.9,
+      recognitionSource: "openfoodfacts-barcode",
+    } as never,
+  };
+  assert.equal(matchesDiarySourceFilter(plate, "PHOTO", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(plate, "TEXT", 0.55), false);
+  assert.equal(matchesDiarySourceFilter(barcode, "PHOTO", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(barcode, "TEXT", 0.55), false);
 });

@@ -1862,6 +1862,25 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         ) : null}
 
         <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+          {!loading &&
+          !error &&
+          entries.length > 0 &&
+          displayRows.length === 0 &&
+          (mealFilter !== "ALL" || sourceFilter !== "ALL") ? (
+            <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+              Нет записей по этому фильтру.{" "}
+              <button
+                type="button"
+                className="font-semibold text-teal-700 underline-offset-2 hover:underline"
+                onClick={() => {
+                  setMealFilter("ALL");
+                  setSourceFilter("ALL");
+                }}
+              >
+                Сбросить фильтр
+              </button>
+            </p>
+          ) : null}
           {(() => {
             let lastSection: MealTypeSection | null = null;
             return displayRows.map((row) => {
