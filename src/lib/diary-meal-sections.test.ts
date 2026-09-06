@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  matchesDiarySourceFilter,
   diaryHasMealTypes,
   mealTypeForListItem,
   organizeDiaryByMealType,
@@ -71,4 +72,21 @@ test("mealTypeForListItem reads group head entry", () => {
 test("sectionLabel maps untagged", () => {
   assert.equal(sectionLabel("UNTAGGED"), "Без типа");
   assert.equal(sectionLabel("BREAKFAST"), "Завтрак");
+});
+
+
+test("matchesDiarySourceFilter photo/text/low confidence", () => {
+  const photo = {
+    kind: "single" as const,
+    entry: { imagePath: "/x.jpg", confidence: 0.9, mealType: "LUNCH" } as never,
+  };
+  const textItem = {
+    kind: "single" as const,
+    entry: { imagePath: null, confidence: 0.4, mealType: "LUNCH" } as never,
+  };
+  assert.equal(matchesDiarySourceFilter(photo, "PHOTO", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(photo, "TEXT", 0.55), false);
+  assert.equal(matchesDiarySourceFilter(textItem, "TEXT", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(textItem, "LOW_CONFIDENCE", 0.55), true);
+  assert.equal(matchesDiarySourceFilter(photo, "LOW_CONFIDENCE", 0.55), false);
 });

@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { withDateQuery } from "@/lib/use-selected-date";
 import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
 import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
@@ -563,7 +565,7 @@ function MonthHeatmap({
     <section className="card p-4 md:p-6">
       <h2 className="font-display text-lg font-bold">Календарь калорий</h2>
       <p className="mt-1 text-xs text-slate-500">
-        Дни относительно цели{calorieTarget ? ` (${calorieTarget} ккал)` : ""}
+        Дни относительно цели{calorieTarget ? ` (${calorieTarget} ккал)` : ""}. Нажмите день, чтобы открыть рацион.
       </p>
       <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
         {weekdays.map((d) => (
@@ -579,17 +581,19 @@ function MonthHeatmap({
           const tone = heatmapCellTone(kcal, calorieTarget);
           const dayNum = Number(dateKey.slice(8, 10));
           return (
-            <div
+            <Link
               key={dateKey}
-              className={`flex aspect-square items-center justify-center rounded-md text-xs font-semibold ${HEATMAP_TONE_CLASS[tone]}`}
+              href={withBasePath(withDateQuery("/ration", dateKey))}
+              className={`flex aspect-square items-center justify-center rounded-md text-xs font-semibold transition-transform hover:scale-[1.04] hover:ring-2 hover:ring-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${HEATMAP_TONE_CLASS[tone]}`}
               title={
                 kcal > 0
-                  ? `${formatDateShort(dateKey)}: ${kcal} ккал`
-                  : `${formatDateShort(dateKey)}: нет записей`
+                  ? `${formatDateShort(dateKey)}: ${kcal} ккал — открыть рацион`
+                  : `${formatDateShort(dateKey)}: нет записей — открыть рацион`
               }
+              aria-label={`Открыть рацион за ${formatDateShort(dateKey)}`}
             >
               {dayNum}
-            </div>
+            </Link>
           );
         })}
       </div>

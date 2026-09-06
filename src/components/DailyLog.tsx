@@ -44,11 +44,14 @@ import { pluralDays } from "@/lib/russian-text";
 import {
   diaryHasMealTypes,
   MEAL_TYPE_SECTION_ORDER,
+  matchesDiarySourceFilter,
   mealTypeForListItem,
   organizeDiaryByMealType,
   sectionLabel,
+  type DiarySourceFilter,
   type MealTypeSection,
 } from "@/lib/diary-meal-sections";
+import { DEFAULT_LOW_CONFIDENCE_THRESHOLD } from "@/lib/ai/recognition-confidence-calibration";
 
 type EditPatch = {
   dishName: string;
@@ -1470,6 +1473,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
   const [yesterdayHasBreakfast, setYesterdayHasBreakfast] = useState(false);
   const [mealFilter, setMealFilter] = useState<"ALL" | MealTypeSection>("ALL");
+  const [sourceFilter, setSourceFilter] = useState<DiarySourceFilter>("ALL");
   const [collapsedSections, setCollapsedSections] = useState<Partial<Record<MealTypeSection, boolean>>>({});
 
   useEffect(() => {
@@ -1567,9 +1571,11 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     [listItems],
   );
   const filteredItems = useMemo(() => {
-    if (mealFilter === "ALL") return organizedItems;
-    return organizedItems.filter((item) => mealTypeForListItem(item) === mealFilter);
-  }, [organizedItems, mealFilter]);
+    return organizedItems.filter((item) => {
+      if (mealFilter !== "ALL" && mealTypeForListItem(item) !== mealFilter) return false;
+      return matchesDiarySourceFilter(item, sourceFilter, DEFAULT_LOW_CONFIDENCE_THRESHOLD);
+    });
+  }, [organizedItems, mealFilter, sourceFilter]);
   const showMealSections = useMemo(() => diaryHasMealTypes(listItems), [listItems]);
   const sectionCounts = useMemo(() => {
     const counts: Partial<Record<MealTypeSection, number>> = {};
@@ -1830,6 +1836,28 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 </button>
               );
             })}
+            <span className="mx-0.5 h-4 w-px bg-slate-200" aria-hidden />
+            {(
+              [
+                ["PHOTO", "С фото"],
+                ["TEXT", "Текстом"],
+                ["LOW_CONFIDENCE", "Низкая уверенность"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  sourceFilter === value
+                    ? "bg-amber-700 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+                onClick={() => setSourceFilter((prev) => (prev === value ? "ALL" : value))}
+                aria-pressed={sourceFilter === value}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         ) : null}
 

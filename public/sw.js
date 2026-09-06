@@ -18,8 +18,8 @@ function withBase(path) {
 }
 
 /** Shell + static asset cache — bump when strategy changes. */
-const CACHE_NAME = "cv-shell-v4";
-const STATIC_CACHE = "cv-static-v4";
+const CACHE_NAME = "cv-shell-v5";
+const STATIC_CACHE = "cv-static-v5";
 
 function precacheUrls() {
   return [
@@ -28,6 +28,8 @@ function precacheUrls() {
     withBase("/ration/"),
     withBase("/stats"),
     withBase("/stats/"),
+    withBase("/weight"),
+    withBase("/weight/"),
     withBase("/profile"),
     withBase("/profile/"),
     withBase("/manifest.json"),
@@ -40,6 +42,7 @@ function precacheUrls() {
 function isShellPath(pathname) {
   const ration = withBase("/ration");
   const stats = withBase("/stats");
+  const weight = withBase("/weight");
   const profile = withBase("/profile");
   return (
     pathname === withBase("/") ||
@@ -47,6 +50,8 @@ function isShellPath(pathname) {
     pathname === `${ration}/` ||
     pathname === stats ||
     pathname === `${stats}/` ||
+    pathname === weight ||
+    pathname === `${weight}/` ||
     pathname === profile ||
     pathname === `${profile}/` ||
     pathname === withBase("/manifest.json") ||
