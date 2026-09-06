@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DaisyLoading } from "@/components/DaisyLoading";
 import { withBasePath } from "@/lib/paths";
 
@@ -61,12 +61,12 @@ export function AdminRecognitionStats() {
   const [thresholdMessage, setThresholdMessage] = useState<string | null>(null);
   const [misreadWindow, setMisreadWindow] = useState<"7d" | "all">("7d");
 
-  async function loadStats(window: "7d" | "all" = misreadWindow) {
+  const loadStats = useCallback(async (window: "7d" | "all" = misreadWindow) => {
     const resp = await fetch(withBasePath(`/api/admin/recognition?misreadWindow=${window}`));
     const data = (await resp.json()) as RecognitionStats;
     if (!resp.ok) throw new Error(data.error ?? "Ошибка загрузки");
     setStats(data);
-  }
+  }, [misreadWindow]);
 
   useEffect(() => {
     void (async () => {
@@ -80,7 +80,7 @@ export function AdminRecognitionStats() {
         setLoading(false);
       }
     })();
-  }, [misreadWindow]);
+  }, [loadStats, misreadWindow]);
 
   async function applySuggestedThreshold() {
     if (!stats?.confidenceCalibration) return;

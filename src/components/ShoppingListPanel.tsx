@@ -45,10 +45,6 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
 
   const opts = useCallback(() => ({ userId }), [userId]);
 
-  const refresh = useCallback(() => {
-    setItems(loadList(opts()));
-  }, [opts]);
-
   const syncToServer = useCallback(
     async (next: ShoppingListItem[]) => {
       if (!userId) return;
