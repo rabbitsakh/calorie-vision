@@ -782,6 +782,12 @@ textarea {
 
 .day-hero-ring {
   animation: day-hero-ring-in 0.6s ease-out 0.12s both;
+  overflow: visible;
+}
+
+/* Unbounded ascenders sit high; nudge label stack so % clears the stroke. */
+.day-hero-ring-label {
+  transform: translateY(3px);
 }
 
 @keyframes day-hero-in {

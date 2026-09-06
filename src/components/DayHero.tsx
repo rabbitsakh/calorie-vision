@@ -68,11 +68,13 @@ function HeroRing({ pct }: { pct: number }) {
           className="transition-all duration-700 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-display text-base font-bold leading-none ${over ? "text-amber-700" : "text-teal-800"}`}>
+      <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center px-1">
+        <span
+          className={`font-display text-sm font-bold leading-[1.15] tracking-tight ${over ? "text-amber-700" : "text-teal-800"}`}
+        >
           {Math.round(clamped)}%
         </span>
-        <span className="mt-0.5 text-[0.5rem] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="mt-px text-[0.5rem] font-semibold uppercase leading-none tracking-wide text-slate-500">
           ккал
         </span>
       </div>

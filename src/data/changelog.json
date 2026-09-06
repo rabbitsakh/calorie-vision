@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.9",
+    "date": "2026-09-06",
+    "summary": "fix(ui): DayHero calorie % no longer clipped in the ring",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Процент калорий в кольце сводки дня больше не обрезается сверху"
+      }
+    ]
+  },
+  {
     "version": "1.7.8",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 6 — soft reactivation, shopping sync, offline weight, plan shell",
