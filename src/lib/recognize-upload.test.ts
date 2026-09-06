@@ -7,6 +7,11 @@ test("parseRecognitionContext accepts restaurant", () => {
   assert.equal(parseRecognitionContext(" Restaurant "), "restaurant");
 });
 
+test("parseRecognitionContext accepts plate and label", () => {
+  assert.equal(parseRecognitionContext("plate"), "plate");
+  assert.equal(parseRecognitionContext("label"), "label");
+});
+
 test("parseRecognitionContext rejects unknown values", () => {
   assert.equal(parseRecognitionContext("home"), undefined);
   assert.equal(parseRecognitionContext(""), undefined);

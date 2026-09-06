@@ -24,7 +24,7 @@ export type VisionPromptHints = {
   /** width / height */
   aspectRatio?: number;
   /** Canteen / restaurant tray — prefer typical plated portions and multi-item plates. */
-  context?: "restaurant";
+  context?: "restaurant" | "plate" | "label";
 };
 
 const CATEGORY_FIRST_PROMPT = `Ты диетолог и CV-эксперт. Проанализируй ФОТО еды.
@@ -100,6 +100,16 @@ function hintLines(hints?: VisionPromptHints): string {
   if (hints.context === "restaurant") {
     lines.push(
       "- Контекст: столовая / ресторан — типичные порции общепита, часто несколько позиций на подносе; предпочитай meal + items, не package/label.",
+    );
+  }
+  if (hints.context === "plate") {
+    lines.push(
+      "- Контекст: тарелка с едой — оцени готовое блюдо (meal), не этикетку и не упаковку; порция как на фото.",
+    );
+  }
+  if (hints.context === "label") {
+    lines.push(
+      "- Контекст: этикетка / таблица КБЖУ — читай числа с упаковки (label/package), photoKind=label если видна таблица.",
     );
   }
 

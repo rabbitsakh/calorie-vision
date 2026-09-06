@@ -601,7 +601,7 @@ export function ProfileForm() {
               >
                 Скачать PDF
               </a>
-              <a href={withBasePath("/#install")} className="btn btn-secondary">
+              <a href={withBasePath("/install")} className="btn btn-secondary">
                 Установить приложение
               </a>
             </div>

@@ -31,7 +31,7 @@ export function LandingFooterCta() {
               <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
                 Войти и начать
               </Link>
-              <a href="#install" className="landing-cta-secondary">
+              <a href="/install" className="landing-cta-secondary">
                 Сначала на телефон
               </a>
             </div>

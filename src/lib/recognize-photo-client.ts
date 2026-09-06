@@ -11,6 +11,7 @@ const ENRICHING_UI_TIMEOUT_MS = 12_000;
 
 export type RecognizePhotoOptions = {
   restaurantMode?: boolean;
+  recognitionContext?: "plate" | "label" | "restaurant";
   /** Skip local barcode scan when already known (offline retry). */
   barcode?: string;
   signal?: AbortSignal;
@@ -86,8 +87,11 @@ export async function recognizePhotoFile(
   if (localBarcode) {
     formData.append("barcode", localBarcode);
   }
-  if (options.restaurantMode) {
-    formData.append("context", "restaurant");
+  const context =
+    options.recognitionContext ??
+    (options.restaurantMode ? "restaurant" : undefined);
+  if (context) {
+    formData.append("context", context);
   }
 
   let streamImagePath = "";

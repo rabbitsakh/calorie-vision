@@ -948,7 +948,22 @@ export function ConfirmationCard({
                   {searchingId === dishes[0].id ? "Уточняем…" : "Уточнить по названию"}
                 </button>
               ) : null}
+              {recognition.enrichmentTimedOut && !enriching ? (
+                <button
+                  type="button"
+                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={formDisabled || bulkLookupRunning}
+                  onClick={() => void handleLookupAll()}
+                >
+                  {bulkLookupRunning ? "Считаем…" : "Досчитать"}
+                </button>
+              ) : null}
             </div>
+            {anyLowConfidence ? (
+              <p className="mt-1.5 text-xs opacity-90">
+                Оценка по фото, не лабораторный анализ — при сомнении сверьте этикетку или вес порции.
+              </p>
+            ) : null}
           </div>
         ) : null}
 

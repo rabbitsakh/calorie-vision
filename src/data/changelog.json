@@ -1,5 +1,52 @@
 [
   {
+    "version": "1.7.11",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 7 — diary CTA, habits sheet, date swipe, recognition trust, /install",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Главный CTA в рационе — «Сфотографировать»; текст и штрихкод вторичны"
+      },
+      {
+        "kind": "improvement",
+        "text": "Привычки открываются нижним листом, а не длинным аккордеоном"
+      },
+      {
+        "kind": "improvement",
+        "text": "Свайп влево/вправо по датам в шапке рациона"
+      },
+      {
+        "kind": "improvement",
+        "text": "Крупнее блок «Снова» — последние блюда заметнее"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подсказка «тарелка / этикетка / столовая» перед фото"
+      },
+      {
+        "kind": "improvement",
+        "text": "Кнопка «Досчитать» если уточнение КБЖУ оборвалось по таймауту"
+      },
+      {
+        "kind": "improvement",
+        "text": "Дисклеймер оценки — только при низкой уверенности"
+      },
+      {
+        "kind": "improvement",
+        "text": "Спокойное сравнение недель в статистике без оценочных формулировок"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подбор фото к частым блюдам из статистики"
+      },
+      {
+        "kind": "improvement",
+        "text": "Страница /install для установки PWA (и заготовка под RuStore)"
+      }
+    ]
+  },
+  {
     "version": "1.7.10",
     "date": "2026-09-06",
     "summary": "fix(diary): show text-logged meals under Текстом even with product images",

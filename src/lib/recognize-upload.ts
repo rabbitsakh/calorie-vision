@@ -23,7 +23,7 @@ export function uploadFilename(file: File): string {
   return "photo.jpg";
 }
 
-export type RecognitionContext = "restaurant";
+export type RecognitionContext = "restaurant" | "plate" | "label";
 
 export type PreparedRecognizeUpload = {
   compressed: Awaited<ReturnType<typeof compressFoodImage>>;
@@ -36,7 +36,10 @@ export function parseRecognitionContext(
   value: FormDataEntryValue | string | null | undefined,
 ): RecognitionContext | undefined {
   const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
-  return raw === "restaurant" ? "restaurant" : undefined;
+  if (raw === "restaurant" || raw === "plate" || raw === "label") {
+    return raw;
+  }
+  return undefined;
 }
 
 export async function prepareRecognizeUpload(formData: FormData): Promise<

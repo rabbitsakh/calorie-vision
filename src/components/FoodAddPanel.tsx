@@ -87,6 +87,8 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
   const [error, setError] = useState<string | null>(null);
   const [barcodeFailure, setBarcodeFailure] = useState<BarcodeLookupFailure | null>(null);
   const [restaurantMode, setRestaurantMode] = useState(false);
+  /** Wave 7: hint for vision — plate vs label when confidence is shaky. */
+  const [photoContext, setPhotoContext] = useState<"auto" | "plate" | "label" | "restaurant">("auto");
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const lookupAbortRef = useRef<AbortController | null>(null);
@@ -448,46 +450,83 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           </div>
         ) : null}
 
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              disabled={disabled || loading}
-              className={`chip min-h-10 w-full justify-center ${
-                mode === tab.id ? "chip-active" : ""
-              }`}
-              onClick={() => {
-                lookupAbortRef.current?.abort();
-                photoAbortRef.current?.abort();
-                stopVoice();
-                setMode(tab.id);
-                setError(null);
-                setBarcodeFailure(null);
-                setTextQuery("");
-                setBarcodeQuery("");
-                setLoading(false);
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={disabled || loading}
+            className={`btn w-full min-h-12 justify-center text-base font-semibold ${
+              mode === "photo" ? "btn-primary" : "btn-secondary"
+            }`}
+            onClick={() => {
+              lookupAbortRef.current?.abort();
+              photoAbortRef.current?.abort();
+              stopVoice();
+              setMode("photo");
+              setError(null);
+              setBarcodeFailure(null);
+              setTextQuery("");
+              setBarcodeQuery("");
+              setLoading(false);
+            }}
+          >
+            Сфотографировать
+          </button>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+            {tabs.filter((tab) => tab.id !== "photo").map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                disabled={disabled || loading}
+                className={`chip min-h-10 w-full justify-center ${
+                  mode === tab.id ? "chip-active" : ""
+                }`}
+                onClick={() => {
+                  lookupAbortRef.current?.abort();
+                  photoAbortRef.current?.abort();
+                  stopVoice();
+                  setMode(tab.id);
+                  setError(null);
+                  setBarcodeFailure(null);
+                  setTextQuery("");
+                  setBarcodeQuery("");
+                  setLoading(false);
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
-            checked={restaurantMode}
-            disabled={disabled || loading}
-            onChange={(event) => setRestaurantMode(event.target.checked)}
-          />
-          <span>Режим столовой / ресторана</span>
-        </label>
-        {restaurantMode ? (
-          <p className="text-xs text-slate-500">
-            Подсказка для распознавания: типичные порции общепита и несколько блюд на подносе.
-          </p>
+        {mode === "photo" ? (
+          <div className="flex flex-col gap-1.5">
+            <p className="text-xs font-medium text-slate-600">Что на фото</p>
+            <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1">
+              {(
+                [
+                  ["auto", "Авто"],
+                  ["plate", "Тарелка"],
+                  ["label", "Этикетка"],
+                  ["restaurant", "Столовая"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={disabled || loading}
+                  className={`rounded-lg px-1.5 py-2 text-[0.7rem] font-semibold ${
+                    photoContext === id ? "bg-white text-teal-800 shadow-sm" : "text-slate-600"
+                  }`}
+                  onClick={() => {
+                    setPhotoContext(id);
+                    setRestaurantMode(id === "restaurant");
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         {mode === "photo" ? (
@@ -496,7 +535,8 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
             selectedDate={selectedDate}
             disabled={disabled}
             compact
-            restaurantMode={restaurantMode}
+            restaurantMode={restaurantMode || photoContext === "restaurant"}
+            recognitionContext={photoContext === "auto" ? undefined : photoContext}
             onOfflineQueued={() => {
               refreshQueueCount();
               setSavedToast("Фото в офлайн-очереди — распознаем при появлении сети");

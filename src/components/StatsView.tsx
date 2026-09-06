@@ -705,6 +705,8 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [exportPeriod, setExportPeriod] = useState<"week" | "month" | "quarter" | "custom">("week");
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState(endDate);
+  const [photoBackfillBusy, setPhotoBackfillBusy] = useState(false);
+  const [photoBackfillMsg, setPhotoBackfillMsg] = useState<string | null>(null);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -742,6 +744,36 @@ export function StatsView({ endDate }: StatsViewProps) {
     if (!from || !to) return withBasePath(`/api/export?format=${format}`);
     return withBasePath(`/api/export?format=${format}&from=${from}&to=${to}`);
   };
+
+
+  async function backfillTopFoodPhotos() {
+    setPhotoBackfillBusy(true);
+    setPhotoBackfillMsg(null);
+    try {
+      const resp = await fetch(withBasePath("/api/meals/images"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const payload = (await resp.json().catch(() => ({}))) as {
+        error?: string;
+        updated?: number;
+      };
+      if (!resp.ok) {
+        throw new Error(payload.error ?? "Не удалось подобрать фото");
+      }
+      const updated = payload.updated ?? 0;
+      setPhotoBackfillMsg(
+        updated > 0
+          ? `Обновили фото у ${updated} записей`
+          : "Новых фото не нашлось — у частых блюд уже есть картинки или нет совпадений",
+      );
+    } catch (err) {
+      setPhotoBackfillMsg(err instanceof Error ? err.message : "Ошибка подбора фото");
+    } finally {
+      setPhotoBackfillBusy(false);
+    }
+  }
 
   const wow = data?.weekOverWeek;
 
@@ -810,8 +842,10 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {wow && (wow.thisWeek.daysLogged > 0 || wow.prevWeek.daysLogged > 0) ? (
             <section className="card p-4 md:p-6">
-              <h2 className="font-display text-lg font-bold">Эта неделя vs прошлая</h2>
-              <p className="mt-1 text-xs text-slate-500">Средние ккал в дни с записями</p>
+              <h2 className="font-display text-lg font-bold">Спокойное сравнение недель</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                Средние ккал в дни с записями — без оценок «хорошо/плохо», просто ориентир.
+              </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-teal-50 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
@@ -853,9 +887,13 @@ export function StatsView({ endDate }: StatsViewProps) {
                       : `${wow.deltaAvgCalories > 0 ? "+" : ""}${wow.deltaAvgCalories}`}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {wow.deltaPct == null
+                    {wow.deltaAvgCalories == null
                       ? "нужны обе недели"
-                      : `${wow.deltaPct > 0 ? "+" : ""}${wow.deltaPct}% к прошлой`}
+                      : Math.abs(wow.deltaAvgCalories) < 40
+                        ? "почти как прошлая"
+                        : wow.deltaAvgCalories < 0
+                          ? `ниже прошлой примерно на ${Math.abs(wow.deltaAvgCalories)} ккал`
+                          : `выше прошлой примерно на ${wow.deltaAvgCalories} ккал`}
                   </p>
                 </div>
               </div>
@@ -934,7 +972,20 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Top foods */}
           {data.topFoods.length > 0 ? (
             <section className="card p-4 md:p-6">
-              <h2 className="text-lg font-bold">Что вы часто едите</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-bold">Что вы часто едите</h2>
+                <button
+                  type="button"
+                  className="btn-quiet text-sm text-teal-800"
+                  disabled={photoBackfillBusy}
+                  onClick={() => void backfillTopFoodPhotos()}
+                >
+                  {photoBackfillBusy ? "Подбираем…" : "Подобрать фото"}
+                </button>
+              </div>
+              {photoBackfillMsg ? (
+                <p className="mt-1 text-xs text-slate-500">{photoBackfillMsg}</p>
+              ) : null}
               <ul className="mt-3 divide-y divide-slate-100">
                 {data.topFoods.map((food) => (
                   <li key={food.dishName} className="flex items-center justify-between gap-3 py-2.5">
