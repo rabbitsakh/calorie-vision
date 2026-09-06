@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { withBasePath } from "@/lib/paths";
+import { readRationDayCache, writeRationDayCache } from "@/lib/ration-day-cache";
 import type { DayMealsResponse } from "@/types";
 
 export type RationDayStreak = {
@@ -72,6 +73,8 @@ type RationDayContextValue = {
   data: RationDayPayload | null;
   loading: boolean;
   error: string | null;
+  /** True when `data` came from localStorage after a network failure. */
+  fromCache: boolean;
   refresh: (quiet?: boolean) => Promise<void>;
   bump: () => void;
   refreshKey: number;
@@ -91,6 +94,7 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
   const [data, setData] = useState<RationDayPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fromCache, setFromCache] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -116,12 +120,25 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
       if (gen !== fetchGenRef.current) return;
       if (dateRef.current !== requestDate) return;
       setData(json);
+      setFromCache(false);
+      writeRationDayCache(json);
       if (!readyOnce.current) {
         readyOnce.current = true;
         onReadyRef.current?.();
       }
     } catch (err) {
-      if (!quiet) {
+      if (gen !== fetchGenRef.current) return;
+      if (dateRef.current !== requestDate) return;
+      const cached = readRationDayCache(requestDate);
+      if (cached) {
+        setData(cached);
+        setFromCache(true);
+        setError(null);
+        if (!readyOnce.current) {
+          readyOnce.current = true;
+          onReadyRef.current?.();
+        }
+      } else if (!quiet) {
         setError(err instanceof Error ? err.message : "Ошибка загрузки");
       }
     } finally {
@@ -131,14 +148,15 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
 
   useEffect(() => {
     readyOnce.current = false;
+    setFromCache(false);
     void refresh(false);
   }, [date, refresh, refreshKey]);
 
   const bump = useCallback(() => setRefreshKey((v) => v + 1), []);
 
   const value = useMemo(
-    () => ({ date, today, data, loading, error, refresh, bump, refreshKey }),
-    [date, today, data, loading, error, refresh, bump, refreshKey],
+    () => ({ date, today, data, loading, error, fromCache, refresh, bump, refreshKey }),
+    [date, today, data, loading, error, fromCache, refresh, bump, refreshKey],
   );
 
   return <RationDayContext.Provider value={value}>{children}</RationDayContext.Provider>;

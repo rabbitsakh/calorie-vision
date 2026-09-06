@@ -264,6 +264,20 @@ function RationBody({
               Обновить
             </button>
           </div>
+        ) : day.fromCache ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+            <p className="min-w-0 flex-1 font-medium">
+              Офлайн: показываем сохранённый день с устройства
+            </p>
+            <button
+              type="button"
+              className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+              disabled={day.loading}
+              onClick={() => void day.refresh()}
+            >
+              Обновить
+            </button>
+          </div>
         ) : null}
 
         <QuickAddAgain

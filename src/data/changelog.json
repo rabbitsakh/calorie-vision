@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.7.6",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 4 — offline continuity, stats→ration jumps, diary source filters",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Бейдж офлайн-очереди на вкладке «Рацион» в нижнем меню"
+      },
+      {
+        "kind": "improvement",
+        "text": "День рациона кэшируется офлайн (сегодня и недавние дни) с мягким баннером"
+      },
+      {
+        "kind": "improvement",
+        "text": "SW кэширует оболочку /weight"
+      },
+      {
+        "kind": "improvement",
+        "text": "Календарь калорий: тап по дню открывает рацион"
+      },
+      {
+        "kind": "improvement",
+        "text": "В дневнике фильтры: с фото, текстом, низкая уверенность"
+      }
+    ]
+  },
+  {
     "version": "1.7.5",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 3 — declutter ration, offline quick-add, richer RU barcode cache",

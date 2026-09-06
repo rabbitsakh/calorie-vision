@@ -43,3 +43,37 @@ export function sectionLabel(section: MealTypeSection): string {
   if (section === "UNTAGGED") return "Без типа";
   return MEAL_TYPE_LABELS[section];
 }
+
+
+export type DiarySourceFilter = "ALL" | "PHOTO" | "TEXT" | "LOW_CONFIDENCE";
+
+export function listItemHasPhoto(item: MealListItem): boolean {
+  if (item.kind === "single") return Boolean(item.entry.imagePath);
+  return Boolean(item.imagePath) || item.entries.some((entry) => Boolean(entry.imagePath));
+}
+
+export function listItemMinConfidence(item: MealListItem): number | null {
+  const values =
+    item.kind === "single"
+      ? [item.entry.confidence]
+      : item.entries.map((entry) => entry.confidence);
+  const nums = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (nums.length === 0) return null;
+  return Math.min(...nums);
+}
+
+export function listItemIsLowConfidence(item: MealListItem, threshold: number): boolean {
+  const min = listItemMinConfidence(item);
+  return min != null && min < threshold;
+}
+
+export function matchesDiarySourceFilter(
+  item: MealListItem,
+  filter: DiarySourceFilter,
+  lowConfidenceThreshold: number,
+): boolean {
+  if (filter === "ALL") return true;
+  if (filter === "PHOTO") return listItemHasPhoto(item);
+  if (filter === "TEXT") return !listItemHasPhoto(item);
+  return listItemIsLowConfidence(item, lowConfidenceThreshold);
+}
