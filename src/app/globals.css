@@ -787,7 +787,7 @@ textarea {
 
 /* Unbounded ascenders sit high; nudge label stack so % clears the stroke. */
 .day-hero-ring-label {
-  transform: translateY(3px);
+  transform: translateY(5px);
 }
 
 @keyframes day-hero-in {
