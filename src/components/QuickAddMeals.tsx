@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import type { SaveMealInput } from "@/lib/save-meal";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 const PANEL_ID = "quick-add";
+const QUICK_ADD_CACHE_KEY = "cv-quick-add-cache-v1";
 
 type QuickAddItem = {
   dishName: string;
@@ -41,11 +44,42 @@ type QuickAddMealsProps = {
 
 const SLOT_ORDER: MealType[] = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"];
 
+function readQuickAddCache(): QuickAddResponse | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(QUICK_ADD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as QuickAddResponse;
+    if (!parsed || !Array.isArray(parsed.suggestions)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeQuickAddCache(payload: QuickAddResponse): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(QUICK_ADD_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // quota / private mode
+  }
+}
+
+function isLikelyOfflineError(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
+  return false;
+}
+
 export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = false }: QuickAddMealsProps) {
   const [data, setData] = useState<QuickAddResponse | null>(null);
+  const [fromCache, setFromCache] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [copying, setCopying] = useState<string | null>(null);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [addNotice, setAddNotice] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -55,10 +89,24 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   const load = useCallback(async () => {
     try {
       const resp = await fetch(withBasePath("/api/meals/quick-add"));
-      if (!resp.ok) return;
-      setData((await resp.json()) as QuickAddResponse);
+      if (!resp.ok) {
+        const cached = readQuickAddCache();
+        if (cached) {
+          setData(cached);
+          setFromCache(true);
+        }
+        return;
+      }
+      const payload = (await resp.json()) as QuickAddResponse;
+      writeQuickAddCache(payload);
+      setData(payload);
+      setFromCache(false);
     } catch {
-      // non-critical
+      const cached = readQuickAddCache();
+      if (cached) {
+        setData(cached);
+        setFromCache(true);
+      }
     }
   }, []);
 
@@ -68,26 +116,40 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
 
   async function addMeal(item: QuickAddItem) {
     setAdding(item.dishName);
+    setAddNotice(null);
+    const body: SaveMealInput = {
+      date: selectedDate,
+      dishName: item.dishName,
+      calories: item.calories,
+      protein: item.protein ?? undefined,
+      fat: item.fat ?? undefined,
+      carbs: item.carbs ?? undefined,
+      fiber: item.fiber ?? undefined,
+      sugar: item.sugar ?? undefined,
+      portionGrams: item.portionGrams ?? undefined,
+      mealType: item.mealType ?? undefined,
+    };
     try {
       const resp = await fetch(withBasePath("/api/meals"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: selectedDate,
-          dishName: item.dishName,
-          calories: item.calories,
-          protein: item.protein,
-          fat: item.fat,
-          carbs: item.carbs,
-          fiber: item.fiber,
-          sugar: item.sugar,
-          portionGrams: item.portionGrams,
-          mealType: item.mealType,
-        }),
+        body: JSON.stringify(body),
       });
       if (resp.ok) {
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
+        onSaved();
+        return;
+      }
+      if (!resp.ok && typeof navigator !== "undefined" && navigator.onLine === false) {
+        enqueueFailedSave(selectedDate, body);
+        setAddNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        onSaved();
+      }
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueFailedSave(selectedDate, body);
+        setAddNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
         onSaved();
       }
     } finally {
@@ -117,6 +179,8 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       } else {
         setCopyError(payload.error ?? "Не удалось скопировать");
       }
+    } catch {
+      setCopyError("Нет сети — копирование недоступно офлайн");
     } finally {
       setCopying(null);
     }
@@ -131,7 +195,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
     SNACK: 0,
   };
   const slotChips = SLOT_ORDER.filter((type) => (bySlot[type] ?? 0) > 0);
-  const showCopy = data.yesterdayCount > 0;
+  const showCopy = data.yesterdayCount > 0 && !fromCache;
   const showSuggestions = data.suggestions.length > 0;
   if (!showCopy && !showSuggestions) return null;
 
@@ -160,9 +224,11 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         <div>
           <p className="font-semibold text-teal-900">Быстрое добавление</p>
           <p className="text-xs text-teal-700">
-            {showSuggestions
-              ? `Ваши частые блюда на ${data.mealTypeLabel}`
-              : "Повторите вчерашний рацион одним нажатием"}
+            {fromCache
+              ? "Офлайн: показываем последние предложения с устройства"
+              : showSuggestions
+                ? `Ваши частые блюда на ${data.mealTypeLabel}`
+                : "Повторите вчерашний рацион одним нажатием"}
           </p>
         </div>
         <button
@@ -178,9 +244,11 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       </div>
       ) : (
         <p className="mb-3 text-xs text-slate-500">
-          {showSuggestions
-            ? `Частые блюда на ${data.mealTypeLabel}`
-            : "Повторите вчерашний рацион"}
+          {fromCache
+            ? "Офлайн: последние предложения"
+            : showSuggestions
+              ? `Частые блюда на ${data.mealTypeLabel}`
+              : "Повторите вчерашний рацион"}
         </p>
       )}
 
@@ -227,6 +295,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       ) : null}
 
       {copyError ? <p className="mb-2 text-xs text-red-600">{copyError}</p> : null}
+      {addNotice ? <p className="mb-2 text-xs text-amber-800">{addNotice}</p> : null}
 
       {showSuggestions ? (
         <div className="flex flex-col gap-2">
