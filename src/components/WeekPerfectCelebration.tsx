@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
@@ -11,6 +11,7 @@ import {
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
+  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 
 type WeekPerfectCelebrationProps = {
@@ -99,8 +100,8 @@ export function WeekPerfectCelebration({
   }, [today, selectedDate, refreshKey, day]);
 
   return (
-    <SoftCelebration
-      muteDate={today}
+    <FullscreenCelebration
+      onMuteToday={() => muteSoftCelebrationsToday(today)}
       open={open}
       variant="chest"
       title={copy.title}

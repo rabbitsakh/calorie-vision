@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import {
   isSoftCelebrationSeen,
   markSoftCelebrationSeen,
+  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import {
   BADGE_GROUP_LABELS,
@@ -208,7 +209,7 @@ export function BadgesPanel() {
         </div>
       </div>
 
-      <SoftCelebration
+      <FullscreenCelebration
         open={unlock != null}
         variant="badge"
         pose="cheer"
@@ -217,7 +218,7 @@ export function BadgesPanel() {
         badge="★"
         durationMs={0}
         ctaLabel="Круто!"
-        muteDate={todayKey}
+        onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
         onClose={closeUnlock}
       />
     </>

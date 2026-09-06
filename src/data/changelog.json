@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.7.4",
+    "date": "2026-09-06",
+    "summary": "feat(ux): quieter celebrations, morning camera deeplink, offline shells",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Повседневные победы снова мягкой карточкой; fullscreen — только для сундуков, значков и крупных вех"
+      },
+      {
+        "kind": "improvement",
+        "text": "Тихие часы глушат не только push, но и празднования"
+      },
+      {
+        "kind": "improvement",
+        "text": "Утренний пуш с meal=… сразу открывает камеру"
+      },
+      {
+        "kind": "improvement",
+        "text": "Итоги вчера: три числа и один совет"
+      },
+      {
+        "kind": "improvement",
+        "text": "SW кэширует оболочки /stats и /profile"
+      },
+      {
+        "kind": "fix",
+        "text": "Защита от двойного сохранения блюда и понятнее ошибки таймаута распознавания"
+      }
+    ]
+  },
+  {
     "version": "1.7.3",
     "date": "2026-08-28",
     "summary": "feat(ux): diary trust #3 — inline time edit and save feedback",

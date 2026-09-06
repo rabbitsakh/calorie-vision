@@ -18,6 +18,7 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
+import { syncQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import {
   pushActionLabel,
   pushUxMatrixSteps,
@@ -144,6 +145,7 @@ export function PushRemindersSettings() {
           account.quietHoursStart == null ? "" : String(account.quietHoursStart),
         );
         setQuietEnd(account.quietHoursEnd == null ? "" : String(account.quietHoursEnd));
+        syncQuietHoursPrefs(account.quietHoursStart ?? null, account.quietHoursEnd ?? null);
         setReminderPrefs(prefsFromServer(account.pushReminderPrefs));
       }
     } catch {
@@ -210,6 +212,7 @@ export function PushRemindersSettings() {
       } else {
         setQuietStart(data.quietHoursStart == null ? "" : String(data.quietHoursStart));
         setQuietEnd(data.quietHoursEnd == null ? "" : String(data.quietHoursEnd));
+        syncQuietHoursPrefs(data.quietHoursStart ?? null, data.quietHoursEnd ?? null);
         setMessage(
           `Тихие часы: ${formatQuietHoursLabel(data.quietHoursStart, data.quietHoursEnd)}`,
         );
@@ -485,8 +488,8 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Тихие часы</p>
         <p className="mt-1 text-sm text-slate-600">
-          В этом интервале (по часовому поясу профиля) напоминания не отправляются. Можно
-          через полночь — например, с 22 до 7.
+          В этом интервале (по часовому поясу профиля) не приходят напоминания и не показываются
+          празднования. Можно через полночь — например, с 22 до 7.
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="text-sm text-slate-700">

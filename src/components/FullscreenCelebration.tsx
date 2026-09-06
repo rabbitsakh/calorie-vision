@@ -14,6 +14,10 @@ import {
 } from "@/lib/celebration-portal";
 import { playCelebrationChime, type CelebrationChimeKind } from "@/lib/celebration-chime";
 import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import {
+  areCelebrationsInQuietHours,
+  hydrateQuietHoursFromAccount,
+} from "@/lib/quiet-hours-prefs";
 import type { RewardRarity } from "@/lib/rewards";
 import { claimSaveCheerForFullscreen } from "@/lib/save-cheer-coordination";
 
@@ -133,7 +137,7 @@ export function FullscreenCelebration({
   const resolvedPose = pose ?? theme.pose;
   const colors = useMemo(() => theme.colors, [theme.colors]);
   const autoClose = durationMs > 0;
-  const quiet = isGamificationQuiet();
+  const quiet = isGamificationQuiet() || areCelebrationsInQuietHours();
   const isActive = !gate || gate.activeId === celebrationId;
   const show = open && isActive && !quiet;
   const isChest = variant === "chest";
@@ -159,6 +163,10 @@ export function FullscreenCelebration({
   useEffect(() => {
     setPortalHost(getCelebrationPortalHost());
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    hydrateQuietHoursFromAccount();
   }, []);
 
   useEffect(() => {

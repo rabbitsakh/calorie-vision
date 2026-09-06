@@ -407,6 +407,7 @@ export function ConfirmationCard({
   );
   const [eatenTime, setEatenTime] = useState(() => toTimeInputValue(new Date(), timezone));
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -765,6 +766,8 @@ export function ConfirmationCard({
   }
 
   async function handleSave() {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError(null);
 
@@ -820,6 +823,7 @@ export function ConfirmationCard({
         setError(err instanceof Error ? err.message : "Не удалось сохранить");
       }
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }

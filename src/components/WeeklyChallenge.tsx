@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import {
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
+  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
@@ -191,7 +192,7 @@ export function WeeklyChallenge({
   }
 
   const celebration = (
-    <SoftCelebration
+    <FullscreenCelebration
       open={celebrate}
       variant="chest"
       pose="cheer"
@@ -208,7 +209,7 @@ export function WeeklyChallenge({
       badge="✦"
       durationMs={0}
       ctaLabel="Круто!"
-      muteDate={todayKey}
+      onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
       onClose={closeCelebrate}
     />
   );

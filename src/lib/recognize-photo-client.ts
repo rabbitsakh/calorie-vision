@@ -185,6 +185,20 @@ export async function recognizePhotoFile(
 }
 
 export function describeRecognizeError(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    const name = error.name;
+    const message = error.message.trim();
+    if (
+      name === "AbortError" ||
+      name === "TimeoutError" ||
+      /timed?\s*out|timeout|превышен[оа]?\s*время|не успел/i.test(message)
+    ) {
+      return "Распознавание заняло слишком много времени. Попробуйте ещё раз или сделайте фото попроще.";
+    }
+    if (/\b5\d\d\b|server error|internal server|недоступен|не успел обработать/i.test(message)) {
+      return "Сервер временно не отвечает. Подождите немного и попробуйте снова.";
+    }
+  }
   return humanizeClientFetchError(error, fallback);
 }
 

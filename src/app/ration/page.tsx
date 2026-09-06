@@ -439,9 +439,7 @@ export default function RationPage() {
     const meal = parseMealQueryParam(params.get("meal"));
     if (!meal) return;
     setDeepLinkMeal(meal);
-    window.requestAnimationFrame(() => {
-      document.getElementById("food-add-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    requestOpenFoodCamera(true);
     const clean = withBasePath("/ration");
     window.history.replaceState({}, "", clean.endsWith("/") ? clean : `${clean}/`);
   }, []);
