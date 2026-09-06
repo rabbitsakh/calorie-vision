@@ -367,6 +367,10 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           setError(null);
           if (meta?.rememberedCorrection) {
             setSavedToast("Запомнили исправление — в следующий раз подставим автоматически");
+          } else if (meta?.savedCount && meta.savedCount > 1) {
+            setSavedToast(`Сохранено ${meta.savedCount} блюд`);
+          } else if (meta?.savedCount === 1) {
+            setSavedToast("Сохранено");
           }
           emitMascotReaction("save");
           onSaved();

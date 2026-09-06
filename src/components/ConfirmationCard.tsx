@@ -74,7 +74,7 @@ type ConfirmationCardProps = {
   /** Prefill from push deep link (`?meal=BREAKFAST`). */
   initialMealType?: string;
   onCancel: () => void;
-  onSaved: (meta?: { rememberedCorrection?: boolean }) => void;
+  onSaved: (meta?: { rememberedCorrection?: boolean; savedCount?: number }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
   onSaveQueued?: () => void;
 };
@@ -793,7 +793,7 @@ export function ConfirmationCard({
         }
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
-        onSaved({ rememberedCorrection });
+        onSaved({ rememberedCorrection, savedCount: dishes.length });
         return;
       }
 
@@ -809,7 +809,7 @@ export function ConfirmationCard({
 
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
-      onSaved({ rememberedCorrection });
+      onSaved({ rememberedCorrection, savedCount: 1 });
     } catch (err) {
       if (queuedBody) {
         enqueueFailedSave(selectedDate, queuedBody);
@@ -838,6 +838,15 @@ export function ConfirmationCard({
   const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
   const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
   const needsReview = anyMissingCalories || anyLowConfidence;
+  const lowConfidenceDishes = dishes.filter(
+    (dish) => dishNeedsReview(dish, lowConfidenceThreshold).lowConfidence,
+  );
+  const lowestConfidenceDish =
+    lowConfidenceDishes.length > 0
+      ? lowConfidenceDishes.reduce((worst, dish) =>
+          dish.original.confidence < worst.original.confidence ? dish : worst,
+        )
+      : null;
 
   return (
     <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
@@ -913,9 +922,11 @@ export function ConfirmationCard({
                     ? "Уточнение не завершилось — проверьте калории"
                     : anyMissingCalories
                       ? "Не хватает калорий — уточните название"
-                      : anyLowConfidence && dishes[0]
-                        ? `Низкая уверенность (${formatConfidencePercent(dishes[0].original.confidence)}) — проверьте блюдо`
-                        : "Низкая уверенность — проверьте блюдо"}
+                      : anyLowConfidence && multi && lowestConfidenceDish
+                        ? `Низкая уверенность у ${lowConfidenceDishes.length} из ${dishes.length} (мин. ${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте позиции`
+                        : anyLowConfidence && lowestConfidenceDish
+                          ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
+                          : "Низкая уверенность — проверьте блюдо"}
               </p>
               {needsReview && multi ? (
                 <button

@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.7.5",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 3 — declutter ration, offline quick-add, richer RU barcode cache",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Челлендж, квесты и следующий значок свёрнуты в «Привычки» — первый экран рациона чище"
+      },
+      {
+        "kind": "improvement",
+        "text": "Быстрое добавление работает офлайн: кэш предложений и очередь сохранений"
+      },
+      {
+        "kind": "improvement",
+        "text": "Расширен офлайн-кэш популярных российских штрихкодов (~28 SKU)"
+      },
+      {
+        "kind": "fix",
+        "text": "Мульти-блюдо: баннер низкой уверенности по всем позициям; тост «Сохранено N блюд»"
+      },
+      {
+        "kind": "fix",
+        "text": "Версия в package.json синхронизирована с changelog"
+      }
+    ]
+  },
+  {
     "version": "1.7.4",
     "date": "2026-09-06",
     "summary": "feat(ux): quieter celebrations, morning camera deeplink, offline shells",

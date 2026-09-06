@@ -229,13 +229,6 @@ function RationBody({
           today={today}
           onAddFood={openFoodCamera}
         />
-        <ChallengeStrip
-          selectedDate={date}
-          refreshKey={refreshKey}
-          onOpenHabits={openHabitsPanel}
-        />
-        <NextBadgeChip refreshKey={refreshKey} />
-        <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
 
@@ -317,7 +310,7 @@ function RationBody({
               <div className="min-w-0">
                 <p className="font-semibold text-slate-800">Привычки и заметки</p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Серия, челлендж, список покупок, заметка
+                  Серия, челлендж, квесты, значки, список покупок
                 </p>
               </div>
               <ChevronIcon open={showHabits} />
@@ -336,6 +329,13 @@ function RationBody({
               <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
                 <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
                 <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+                <ChallengeStrip
+                  selectedDate={date}
+                  refreshKey={refreshKey}
+                  onOpenHabits={openHabitsPanel}
+                />
+                <NextBadgeChip refreshKey={refreshKey} />
+                <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
                 <ShoppingListPanel selectedDate={date} />
                 <DiaryNoteWidget selectedDate={date} />
               </div>
