@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { DayCalendar } from "@/components/DayCalendar";
 import { formatDateWords, mondayOfWeek, shiftDateKey, weekdayShort } from "@/lib/dates";
 
@@ -33,6 +33,8 @@ function Chevron({ dir }: { dir: "left" | "right" }) {
 export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBarProps) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
   const weekStart = mondayOfWeek(date);
   const weekDays = Array.from({ length: 7 }, (_, index) => shiftDateKey(weekStart, index));
 
@@ -60,8 +62,36 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
   const isToday = date === today;
   const dateLabel = isToday ? `Сегодня · ${formatDateWords(date)}` : formatDateWords(date);
 
+  function onTouchStart(event: TouchEvent) {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    touchStartX.current = touch.clientX;
+    touchStartY.current = touch.clientY;
+  }
+
+  function onTouchEnd(event: TouchEvent) {
+    const startX = touchStartX.current;
+    const startY = touchStartY.current;
+    touchStartX.current = null;
+    touchStartY.current = null;
+    const touch = event.changedTouches[0];
+    if (startX == null || startY == null || !touch) return;
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    if (dx > 0) {
+      onDateChange(shiftDateKey(date, -1));
+    } else if (canGoForward) {
+      onDateChange(shiftDateKey(date, 1));
+    }
+  }
+
   return (
-    <div className="relative">
+    <div
+      className="relative touch-pan-y"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="flex items-center gap-0.5">
         <button
           type="button"

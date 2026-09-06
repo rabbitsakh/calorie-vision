@@ -304,15 +304,15 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
               key={item.dishName}
               type="button"
               disabled={busy}
-              className="flex items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white px-3 py-2.5 text-left transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+              className="flex min-h-[3.5rem] items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white px-3.5 py-3.5 text-left transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
               onClick={() => void addMeal(item)}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-slate-800">{item.dishName}</p>
+                <p className="truncate text-base font-semibold text-slate-800">{item.dishName}</p>
                 <p className="text-xs text-slate-500">{item.why}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold text-teal-800">{item.calories} ккал</p>
+                <p className="text-base font-bold text-teal-800">{item.calories} ккал</p>
                 {adding === item.dishName ? (
                   <span className="text-xs text-teal-600">Добавляем…</span>
                 ) : (

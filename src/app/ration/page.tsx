@@ -165,9 +165,6 @@ function RationBody({
 
   const openHabitsPanel = useCallback(() => {
     setShowHabits(true);
-    window.requestAnimationFrame(() => {
-      habitsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   }, []);
 
   useEffect(() => {
@@ -318,7 +315,7 @@ function RationBody({
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
-              onClick={() => setShowHabits((value) => !value)}
+              onClick={() => setShowHabits(true)}
               aria-expanded={showHabits}
             >
               <div className="min-w-0">
@@ -329,32 +326,60 @@ function RationBody({
               </div>
               <ChevronIcon open={showHabits} />
             </button>
-            {!showHabits ? (
-              <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
-                <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-                <WeeklyChallenge
-                  selectedDate={date}
-                  refreshKey={refreshKey}
-                  mini
-                  onMiniClick={openHabitsPanel}
-                />
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 border-t border-slate-100 p-3 md:gap-4 md:p-4">
-                <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-                <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
-                <ChallengeStrip
-                  selectedDate={date}
-                  refreshKey={refreshKey}
-                  onOpenHabits={openHabitsPanel}
-                />
-                <NextBadgeChip refreshKey={refreshKey} />
-                <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
-                <ShoppingListPanel selectedDate={date} />
-                <DiaryNoteWidget selectedDate={date} />
-              </div>
-            )}
+            <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+              <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
+              <WeeklyChallenge
+                selectedDate={date}
+                refreshKey={refreshKey}
+                mini
+                onMiniClick={openHabitsPanel}
+              />
+            </div>
           </section>
+
+          {showHabits ? (
+            <div
+              className="habits-sheet fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="habits-sheet-title"
+              onClick={() => setShowHabits(false)}
+            >
+              <div
+                className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                  <div className="min-w-0">
+                    <p id="habits-sheet-title" className="font-semibold text-slate-900">
+                      Привычки и заметки
+                    </p>
+                    <p className="text-xs text-slate-500">Серия, челлендж, квесты, список покупок</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-quiet text-sm text-slate-500"
+                    onClick={() => setShowHabits(false)}
+                  >
+                    Закрыть
+                  </button>
+                </div>
+                <div className="flex flex-col gap-3 overflow-y-auto p-3 md:gap-4 md:p-4">
+                  <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                  <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
+                  <ChallengeStrip
+                    selectedDate={date}
+                    refreshKey={refreshKey}
+                    onOpenHabits={openHabitsPanel}
+                  />
+                  <NextBadgeChip refreshKey={refreshKey} />
+                  <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
+                  <ShoppingListPanel selectedDate={date} />
+                  <DiaryNoteWidget selectedDate={date} />
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />

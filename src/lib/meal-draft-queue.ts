@@ -20,6 +20,7 @@ export type PendingRecognitionDraft = {
   fileName: string;
   mimeType: string;
   restaurantMode?: boolean;
+  recognitionContext?: "plate" | "label" | "restaurant";
   barcode?: string;
 };
 
@@ -159,7 +160,7 @@ export function removeMealDraft(id: string): void {
 export async function enqueuePendingRecognition(
   selectedDate: string,
   file: File,
-  options?: { restaurantMode?: boolean; barcode?: string },
+  options?: { restaurantMode?: boolean; recognitionContext?: "plate" | "label" | "restaurant"; barcode?: string },
 ): Promise<string> {
   const id =
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -175,6 +176,7 @@ export async function enqueuePendingRecognition(
     fileName: file.name || "photo.jpg",
     mimeType: file.type || "image/jpeg",
     restaurantMode: options?.restaurantMode,
+    recognitionContext: options?.recognitionContext,
     barcode: options?.barcode,
   });
   writeQueue(items);

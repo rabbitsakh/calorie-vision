@@ -26,6 +26,8 @@ type PhotoUploaderProps = {
   compact?: boolean;
   /** When true, pass context=restaurant to recognize APIs. */
   restaurantMode?: boolean;
+  /** Wave 7: plate | label | restaurant hint for vision. */
+  recognitionContext?: "plate" | "label" | "restaurant";
 };
 
 export type PhotoUploaderHandle = {
@@ -83,7 +85,7 @@ function isLikelyImageFile(file: File): boolean {
 }
 
 export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>(function PhotoUploader(
-  { selectedDate, onRecognized, onOfflineQueued, disabled, compact, restaurantMode },
+  { selectedDate, onRecognized, onOfflineQueued, disabled, compact, restaurantMode, recognitionContext },
   ref,
 ) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +134,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
 
   async function queueOfflinePhoto(file: File, barcode?: string) {
     try {
-      await enqueuePendingRecognition(selectedDate, file, { restaurantMode, barcode });
+      await enqueuePendingRecognition(selectedDate, file, { restaurantMode, recognitionContext, barcode });
       setOfflineQueued(true);
       setError(null);
       onOfflineQueued?.();
@@ -166,6 +168,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     try {
       const data = await recognizePhotoFile(file, {
         restaurantMode,
+        recognitionContext,
         signal: controller.signal,
         onVision: (snapshot) => {
           if (controller.signal.aborted) {
