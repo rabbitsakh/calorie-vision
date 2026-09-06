@@ -252,12 +252,22 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       </div>
 
       {data ? (
-        <div className="relative mt-2.5 border-t border-teal-900/5 pt-2">
+        <div className="relative mt-2.5 flex flex-col gap-2 border-t border-teal-900/5 pt-2">
           <MiniBar
             label="Белок"
             value={`${Math.round(data.protein)} г`}
             detail={data.proteinTarget ? `/ ${data.proteinTarget}` : ""}
             pct={data.proteinTarget ? proteinPct : 0}
+          />
+          <MiniBar
+            label="Вода"
+            value={`${Math.round(data.waterMl)} мл`}
+            detail={data.waterTarget ? `/ ${data.waterTarget}` : ""}
+            pct={
+              data.waterTarget > 0
+                ? (data.waterMl / data.waterTarget) * 100
+                : 0
+            }
           />
         </div>
       ) : null}

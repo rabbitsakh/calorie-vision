@@ -41,3 +41,24 @@ export function setGamificationQuiet(quiet: boolean): void {
     // ignore quota / private mode
   }
 }
+
+export const QUIET_DEFAULT_APPLIED_KEY = "cv-quiet-default-applied-v1";
+
+/**
+ * First onboarding completion: enable quiet celebrations unless the user
+ * already chose a preference. Existing users who never hit finish again
+ * are left unchanged.
+ */
+export function ensureQuietDefaultForNewUsers(): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    if (storage.getItem(QUIET_DEFAULT_APPLIED_KEY) === "1") return;
+    if (storage.getItem(GAMIFICATION_QUIET_KEY) == null) {
+      storage.setItem(GAMIFICATION_QUIET_KEY, "1");
+    }
+    storage.setItem(QUIET_DEFAULT_APPLIED_KEY, "1");
+  } catch {
+    // ignore
+  }
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
@@ -8,8 +9,10 @@ import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { useTimezone } from "@/lib/use-timezone";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
+import type { SaveMealInput } from "@/lib/save-meal";
 
 const PANEL_ID = "favorites";
+const FAVORITES_CACHE_KEY = "cv-favorites-cache-v1";
 
 type CustomFood = {
   id: string;
@@ -39,9 +42,48 @@ function TrashIcon() {
   );
 }
 
+
+function readFavoritesCache(): CustomFood[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(FAVORITES_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is CustomFood =>
+        item != null &&
+        typeof item === "object" &&
+        typeof (item as CustomFood).id === "string" &&
+        typeof (item as CustomFood).name === "string" &&
+        typeof (item as CustomFood).calories === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeFavoritesCache(foods: CustomFood[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(FAVORITES_CACHE_KEY, JSON.stringify(foods.slice(0, 80)));
+  } catch {
+    // quota / private mode
+  }
+}
+
+function isLikelyOfflineError(err: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
+  return false;
+}
+
 export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: FavoriteFoodsProps) {
   const timezone = useTimezone();
   const [foods, setFoods] = useState<CustomFood[]>([]);
+  const [fromCache, setFromCache] = useState(false);
+  const [logNotice, setLogNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -64,9 +106,24 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   const load = useCallback(async () => {
     try {
       const resp = await fetch(withBasePath("/api/custom-foods"));
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        const cached = readFavoritesCache();
+        if (cached.length > 0) {
+          setFoods(cached);
+          setFromCache(true);
+        }
+        return;
+      }
       const data = (await resp.json()) as { foods: CustomFood[] };
+      writeFavoritesCache(data.foods);
       setFoods(data.foods);
+      setFromCache(false);
+    } catch {
+      const cached = readFavoritesCache();
+      if (cached.length > 0) {
+        setFoods(cached);
+        setFromCache(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -102,29 +159,46 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   }
 
   async function logFavoriteFood(food: CustomFood) {
+    setLogNotice(null);
     const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
-    const resp = await fetch(withBasePath("/api/meals"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: selectedDate,
-        dishName: food.name,
-        calories: food.calories,
-        protein: food.protein,
-        fat: food.fat,
-        carbs: food.carbs,
-        fiber: food.fiber,
-        sugar: food.sugar,
-        portionGrams: food.portionGrams,
-        mealType,
-        eatenAt,
-      }),
-    });
-    if (!resp.ok) return;
-    void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
-    trackFirstMealSaveGoal();
-    trackMealSavedGoal();
-    onSaved();
+    const body: SaveMealInput = {
+      date: selectedDate,
+      dishName: food.name,
+      calories: food.calories,
+      protein: food.protein ?? undefined,
+      fat: food.fat ?? undefined,
+      carbs: food.carbs ?? undefined,
+      fiber: food.fiber ?? undefined,
+      sugar: food.sugar ?? undefined,
+      portionGrams: food.portionGrams ?? undefined,
+      mealType,
+      eatenAt,
+    };
+    try {
+      const resp = await fetch(withBasePath("/api/meals"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (resp.ok) {
+        void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
+        trackFirstMealSaveGoal();
+        trackMealSavedGoal();
+        onSaved();
+        return;
+      }
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        enqueueFailedSave(selectedDate, body);
+        setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        onSaved();
+      }
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueFailedSave(selectedDate, body);
+        setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        onSaved();
+      }
+    }
   }
 
   async function deleteFood(id: string) {
@@ -186,6 +260,10 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
 
   return (
     <section className={embedded ? "" : "card p-4 md:p-6"}>
+      {fromCache ? (
+        <p className="mb-2 text-xs text-amber-800">Офлайн: показываем сохранённые продукты с устройства</p>
+      ) : null}
+      {logNotice ? <p className="mb-2 text-xs text-amber-800">{logNotice}</p> : null}
       <div className="flex items-center justify-between gap-2">
         {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-slate-700">Избранное / мои продукты</span>}
         <div className="flex gap-2">

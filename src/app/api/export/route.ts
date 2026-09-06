@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
@@ -98,36 +100,32 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    // Register font that supports Cyrillic — use built-in Helvetica as fallback
-    // pdfkit's built-ins don't include Cyrillic so we transliterate non-ASCII
-    const safeText = (s: string) => s.replace(/[^\x00-\x7F]/g, (c) => {
-      const map: Record<string, string> = {
-        а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"yo",ж:"zh",з:"z",и:"i",й:"j",к:"k",л:"l",м:"m",н:"n",
-        о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"kh",ц:"ts",ч:"ch",ш:"sh",щ:"shch",ъ:"",ы:"y",
-        ь:"",э:"e",ю:"yu",я:"ya",
-        А:"A",Б:"B",В:"V",Г:"G",Д:"D",Е:"E",Ё:"Yo",Ж:"Zh",З:"Z",И:"I",Й:"J",К:"K",Л:"L",М:"M",Н:"N",
-        О:"O",П:"P",Р:"R",С:"S",Т:"T",У:"U",Ф:"F",Х:"Kh",Ц:"Ts",Ч:"Ch",Ш:"Sh",Щ:"Shch",Ъ:"",Ы:"Y",
-        Ь:"",Э:"E",Ю:"Yu",Я:"Ya",
-      };
-      return map[c] ?? c;
-    });
+    const regularFont = path.join(process.cwd(), "fonts", "DejaVuSans.ttf");
+    const boldFont = path.join(process.cwd(), "fonts", "DejaVuSans-Bold.ttf");
+    const hasCyrillicFonts = existsSync(regularFont) && existsSync(boldFont);
+    if (hasCyrillicFonts) {
+      doc.registerFont("CV-Regular", regularFont);
+      doc.registerFont("CV-Bold", boldFont);
+    }
+    const fontRegular = hasCyrillicFonts ? "CV-Regular" : "Helvetica";
+    const fontBold = hasCyrillicFonts ? "CV-Bold" : "Helvetica-Bold";
+    const t = (value: string) => value;
 
-    const periodStr = from && to ? `${from} - ${to}` : from ?? to ?? "all time";
-    // Brand header
+    const periodStr = from && to ? `${from} — ${to}` : from ?? to ?? "всё время";
     doc
       .fontSize(22)
-      .font("Helvetica-Bold")
+      .font(fontBold)
       .fillColor("#0f766e")
       .text("Calorie Vision", { align: "center" });
     doc
       .fontSize(12)
-      .font("Helvetica")
+      .font(fontRegular)
       .fillColor("#334155")
-      .text(safeText("Dnevnik pitaniya"), { align: "center" });
+      .text(t("Дневник питания"), { align: "center" });
     doc
       .fontSize(10)
       .fillColor("#64748b")
-      .text(safeText(`Period: ${periodStr}`), { align: "center" });
+      .text(t(`Период: ${periodStr}`), { align: "center" });
     doc.moveDown(0.4);
     doc
       .moveTo(40, doc.y)
@@ -140,7 +138,7 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
 
     for (const [date, dayEntries] of byDate.entries()) {
       const totalCal = dayEntries.reduce((s, e) => s + e.calories, 0);
-      doc.fontSize(12).font("Helvetica-Bold").text(`${date}  (${totalCal} kcal)`);
+      doc.fontSize(12).font(fontBold).text(`${date}  (${totalCal} ккал)`);
       doc.moveDown(0.2);
 
       for (const e of dayEntries) {
@@ -151,8 +149,8 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
           e.fiber ? `Fi:${e.fiber}g` : null,
           e.sugar ? `S:${e.sugar}g` : null,
         ].filter(Boolean).join(" ");
-        const line = `  ${safeText(decodeHtmlEntities(e.dishName))} — ${e.calories} kcal${macros ? `  ${macros}` : ""}`;
-        doc.fontSize(10).font("Helvetica").text(line);
+        const line = `  ${t(decodeHtmlEntities(e.dishName))} — ${e.calories} ккал${macros ? `  ${macros}` : ""}`;
+        doc.fontSize(10).font(fontRegular).text(line);
       }
       doc.moveDown(0.5);
 
