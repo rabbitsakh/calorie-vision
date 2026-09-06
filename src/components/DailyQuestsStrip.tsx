@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
@@ -11,6 +11,7 @@ import {
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
+  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
 
@@ -122,7 +123,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         ) : null}
       </div>
 
-      <SoftCelebration
+      <FullscreenCelebration
         open={celebrate}
         variant="chest"
         pose="cheer"
@@ -135,7 +136,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         badge="✦"
         durationMs={0}
         ctaLabel="Круто!"
-        muteDate={todayKey}
+        onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
         onClose={() => {
           setCelebrate(false);
           setLoot(null);

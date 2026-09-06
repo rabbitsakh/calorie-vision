@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { unlockPendingBadges } from "@/lib/badge-unlock-client";
 import type { BadgeDef } from "@/lib/badges";
 import {
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
+  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
 
@@ -53,7 +54,7 @@ export function BadgeUnlockHost({ refreshKey }: BadgeUnlockHostProps) {
   }, [refreshKey, todayKey]);
 
   return (
-    <SoftCelebration
+    <FullscreenCelebration
       open={unlock != null}
       variant="badge"
       pose="cheer"
@@ -62,7 +63,7 @@ export function BadgeUnlockHost({ refreshKey }: BadgeUnlockHostProps) {
       badge="★"
       durationMs={0}
       ctaLabel="Круто!"
-      muteDate={todayKey}
+      onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
       onClose={close}
     />
   );

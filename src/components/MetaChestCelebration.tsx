@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import type { ChestRewardPayload } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 
@@ -32,7 +32,7 @@ export function MetaChestCelebration() {
   if (!current) return null;
 
   return (
-    <SoftCelebration
+    <FullscreenCelebration
       open
       variant="chest"
       pose="cheer"
