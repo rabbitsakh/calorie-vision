@@ -44,6 +44,8 @@ export type UserReminderContext = {
   hasDinner: boolean;
   daysLoggedLastWeek: number;
   daysInLastWeek: number;
+  /** Days since last meal log; null if never logged. */
+  daysSinceLastMeal: number | null;
 };
 
 export function resolvePushTimezone(timezone: string | null | undefined): string {
@@ -386,6 +388,19 @@ export function buildReminderPayload(
         url: statsUrl,
         tag: "cv-weekly",
       };
+
+    case "reactivation":
+      if (ctx.daysSinceLastMeal == null) return null;
+      if (ctx.daysSinceLastMeal < 3 || ctx.daysSinceLastMeal > 30) return null;
+      return {
+        title: isB ? "Мы рядом, без давления" : "Скучали по вам",
+        body: isB
+          ? `Уже ${ctx.daysSinceLastMeal} дн. без записей — можно начать с одного приёма пищи.`
+          : `${ctx.daysSinceLastMeal} дн. без записей. Один приём пищи — и день снова открыт.`,
+        url: rationUrl,
+        tag: "cv-reactivation",
+      };
+
 
     default:
       return null;

@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.7.8",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 6 — soft reactivation, shopping sync, offline weight, plan shell",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Мягкий push о возвращении, если давно не было записей (с учётом тихих часов)"
+      },
+      {
+        "kind": "improvement",
+        "text": "В админке распознавания — переключатель «7 дней / за всё время» для частых исправлений"
+      },
+      {
+        "kind": "improvement",
+        "text": "Список покупок синхронизируется между устройствами"
+      },
+      {
+        "kind": "improvement",
+        "text": "Расширен офлайн-кэш популярных RU-штрихкодов (~45 SKU)"
+      },
+      {
+        "kind": "improvement",
+        "text": "Запись веса уходит в офлайн-очередь и доезжает при сети"
+      },
+      {
+        "kind": "improvement",
+        "text": "Service Worker заранее кэширует оболочку /plan"
+      }
+    ]
+  },
+  {
     "version": "1.7.7",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 5 — offline favorites/water, quiet default, Cyrillic PDF",

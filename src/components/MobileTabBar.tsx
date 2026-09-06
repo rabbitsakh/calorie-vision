@@ -7,6 +7,7 @@ import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
+import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type MobileTabBarProps = {
@@ -22,13 +23,15 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
   const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
-    const refresh = () => setQueueCount(countOfflineQueue() + countWaterDrafts());
+    const refresh = () => setQueueCount(countOfflineQueue() + countWaterDrafts() + countWeightDrafts());
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);
     const unsubWater = subscribeWaterDraftQueue(refresh);
+    const unsubWeight = subscribeWeightDraftQueue(refresh);
     return () => {
       unsubMeal();
       unsubWater();
+      unsubWeight();
     };
   }, []);
 
