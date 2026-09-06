@@ -5,6 +5,7 @@ import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import type { SaveMealInput } from "@/lib/save-meal";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 const PANEL_ID = "quick-add";
@@ -116,17 +117,17 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   async function addMeal(item: QuickAddItem) {
     setAdding(item.dishName);
     setAddNotice(null);
-    const body = {
+    const body: SaveMealInput = {
       date: selectedDate,
       dishName: item.dishName,
       calories: item.calories,
-      protein: item.protein,
-      fat: item.fat,
-      carbs: item.carbs,
-      fiber: item.fiber,
-      sugar: item.sugar,
-      portionGrams: item.portionGrams,
-      mealType: item.mealType,
+      protein: item.protein ?? undefined,
+      fat: item.fat ?? undefined,
+      carbs: item.carbs ?? undefined,
+      fiber: item.fiber ?? undefined,
+      sugar: item.sugar ?? undefined,
+      portionGrams: item.portionGrams ?? undefined,
+      mealType: item.mealType ?? undefined,
     };
     try {
       const resp = await fetch(withBasePath("/api/meals"), {
