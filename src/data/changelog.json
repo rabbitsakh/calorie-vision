@@ -1,5 +1,44 @@
 [
   {
+    "version": "1.7.19",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 11 — stats fiber/sugar, habits tidy, offline confirm, profile accordion",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "В статистике средние клетчатка и сахар рядом с целями из профиля"
+      },
+      {
+        "kind": "improvement",
+        "text": "Sheet «Привычки» разгружен: один челлендж, компактные значок/мета, покупки на Плане"
+      },
+      {
+        "kind": "improvement",
+        "text": "После офлайн-распознавания сразу открывается подтверждение"
+      },
+      {
+        "kind": "improvement",
+        "text": "Профиль свёрнут в секции: цели, напоминания, награды"
+      },
+      {
+        "kind": "improvement",
+        "text": "Push: основные напоминания сверху, остальные под «Ещё»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Экран «План» — хаб недели с отчётом и списком покупок"
+      },
+      {
+        "kind": "improvement",
+        "text": "«Что дальше» показывает понятные пункты из changelog"
+      },
+      {
+        "kind": "improvement",
+        "text": "Claim реферала: меньше нагрузка на legacy-скан"
+      }
+    ]
+  },
+  {
     "version": "1.7.18",
     "date": "2026-09-07",
     "summary": "feat(ux): Wave 10 — fiber/sugar pulse, shopping on plan, quieter push, equip sync",

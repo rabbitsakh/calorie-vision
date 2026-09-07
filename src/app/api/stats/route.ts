@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, applyFiberSugarOverrides, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { hourInTimezone } from "@/lib/meal-type";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +71,12 @@ export async function GET(request: NextRequest) {
       }),
       prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { ...DIET_PROFILE_SELECT, timezone: true },
+        select: {
+          ...DIET_PROFILE_SELECT,
+          timezone: true,
+          fiberTargetG: true,
+          sugarTargetG: true,
+        },
       }),
       prisma.weightEntry.findFirst({
         where: { userId: session.user.id },
@@ -147,8 +152,22 @@ export async function GET(request: NextRequest) {
         ? Math.round(daysWithMeals.reduce((sum, day) => sum + day.calories, 0) / daysWithMeals.length)
         : 0;
 
-    const calorieTarget =
-      recommendDietForProfile(latestWeight?.weightKg, user)?.calories ?? null;
+    const diet = recommendDietForProfile(latestWeight?.weightKg, user);
+    const withFiberSugar = diet
+      ? applyFiberSugarOverrides(diet, {
+          fiberTargetG: user?.fiberTargetG,
+          sugarTargetG: user?.sugarTargetG,
+        })
+      : null;
+    const calorieTarget = withFiberSugar?.calories ?? null;
+    const fiberTarget =
+      user?.fiberTargetG != null && Number.isFinite(user.fiberTargetG)
+        ? round1(user.fiberTargetG)
+        : null;
+    const sugarTarget =
+      user?.sugarTargetG != null && Number.isFinite(user.sugarTargetG)
+        ? round1(user.sugarTargetG)
+        : null;
 
     // Hourly calorie distribution (0–23), prefer eatenAt; bin in user timezone
     const hourlyCalories = new Array<number>(24).fill(0);
@@ -226,12 +245,30 @@ export async function GET(request: NextRequest) {
       deltaPct,
     };
 
+    // Avg fiber/sugar on days with meals
+    const avgFiber =
+      daysWithMeals.length > 0
+        ? round1(
+            daysWithMeals.reduce((sum, day) => sum + (day.fiber ?? 0), 0) / daysWithMeals.length,
+          )
+        : 0;
+    const avgSugar =
+      daysWithMeals.length > 0
+        ? round1(
+            daysWithMeals.reduce((sum, day) => sum + (day.sugar ?? 0), 0) / daysWithMeals.length,
+          )
+        : 0;
+
     return NextResponse.json({
       period,
       start,
       end,
       days,
       calorieTarget,
+      fiberTarget,
+      sugarTarget,
+      avgFiber,
+      avgSugar,
       hourlyCalories,
       moodInsight,
       corridorAlert,

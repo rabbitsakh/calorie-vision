@@ -58,21 +58,22 @@ export async function POST(request: NextRequest) {
       select: { id: true, referralCode: true },
     });
 
-    // Legacy: code derived but not yet persisted on referrer row.
+    // Legacy: code derived but not yet persisted — bounded scan of recent null rows.
     if (!referrer) {
       const candidates = await prisma.user.findMany({
         where: { referralCode: null },
         select: { id: true },
-        take: 500,
+        take: 80,
         orderBy: { createdAt: "desc" },
       });
       for (const row of candidates) {
         if (referralCodesMatch(row.id, code)) {
+          const persisted = referralCodeForUser(row.id);
           await prisma.user.update({
             where: { id: row.id },
-            data: { referralCode: referralCodeForUser(row.id) },
+            data: { referralCode: persisted },
           });
-          referrer = { id: row.id, referralCode: referralCodeForUser(row.id) };
+          referrer = { id: row.id, referralCode: persisted };
           break;
         }
       }
