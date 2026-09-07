@@ -4,7 +4,7 @@
 
 export type RewardRarity = "common" | "rare" | "festive";
 export type RewardGroup = "sticker" | "cheer" | "frame";
-export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta";
+export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta" | "referral";
 
 export type RewardDef = {
   key: string;

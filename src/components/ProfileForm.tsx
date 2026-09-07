@@ -25,6 +25,8 @@ import {
 } from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
+import { ProfileRoadmap } from "@/components/ProfileRoadmap";
+import { ALLERGEN_OPTIONS } from "@/lib/allergens";
 
 type AccountResponse = {
   firstName: string;
@@ -41,6 +43,7 @@ type AccountResponse = {
   sugarTargetG: number | null;
   waterTargetMl: number | null;
   weeklyDigestEmail?: boolean;
+  allergens?: string[];
   linkedProviders: string[];
   emailLocked: boolean;
   referralCode?: string;
@@ -88,6 +91,7 @@ export function ProfileForm() {
   const [sugarTargetG, setSugarTargetG] = useState("");
   const [waterTargetMl, setWaterTargetMl] = useState("");
   const [weeklyDigestEmail, setWeeklyDigestEmail] = useState(false);
+  const [allergens, setAllergens] = useState<string[]>([]);
   const [emailLocked, setEmailLocked] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(true);
@@ -129,6 +133,7 @@ export function ProfileForm() {
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
       setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
+      setAllergens(data.allergens ?? []);
       setEmailLocked(data.emailLocked);
       setReferralCode(data.referralCode?.trim() || "");
     } catch (err) {
@@ -176,6 +181,7 @@ export function ProfileForm() {
               ? Math.round(Number(waterTargetMl))
               : null,
           weeklyDigestEmail,
+          allergens,
         }),
       });
       const data = (await response.json()) as AccountResponse;
@@ -197,6 +203,7 @@ export function ProfileForm() {
       setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
       setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
       setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
+      setAllergens(data.allergens ?? []);
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
@@ -573,6 +580,37 @@ export function ProfileForm() {
                   Москве. Если пусто — подставим пояс устройства при открытии приложения.
                 </p>
               </div>
+              <div>
+                <p className="text-sm font-medium text-slate-800">Аллергены</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Мягкое предупреждение при сохранении блюда — не медицинский совет
+                </p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                  {ALLERGEN_OPTIONS.map((option) => {
+                    const checked = allergens.includes(option.id);
+                    return (
+                      <label
+                        key={option.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                          checked={checked}
+                          onChange={() => {
+                            setAllergens((prev) =>
+                              checked
+                                ? prev.filter((id) => id !== option.id)
+                                : [...prev, option.id],
+                            );
+                          }}
+                        />
+                        {option.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </section>
 
@@ -613,7 +651,8 @@ export function ProfileForm() {
         <section className="card p-4 md:p-6">
           <h2 className="font-display text-lg font-semibold text-slate-900">Пригласить друзей</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения.
+            Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения, а вам
+            начислится мягкий бонус к сундуку, когда они присоединятся.
           </p>
           <p className="mt-3 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
             {referralUrl}
@@ -769,6 +808,8 @@ export function ProfileForm() {
           )}
         </section>
       ) : null}
+
+      {!loading ? <ProfileRoadmap /> : null}
 
       {!loading ? (
         <footer className="px-1 pt-1 text-sm text-slate-500">

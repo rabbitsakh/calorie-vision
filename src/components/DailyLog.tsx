@@ -706,13 +706,79 @@ function MealTimeInlineEdit({
   onChange: (eatenAt: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [nudgeOpen, setNudgeOpen] = useState(false);
+  const longPressRef = useRef<number | null>(null);
+  const longPressFiredRef = useRef(false);
   const when = entry.eatenAt ?? entry.createdAt;
   const display = formatTimeShort(when, timezone);
   const timeValue = toTimeInputValue(when, timezone);
 
   useEffect(() => {
     setExpanded(false);
+    setNudgeOpen(false);
   }, [when]);
+
+  useEffect(() => {
+    return () => {
+      if (longPressRef.current != null) window.clearTimeout(longPressRef.current);
+    };
+  }, []);
+
+  function shiftMinutes(delta: number) {
+    const base = dateKeyAndTimeToIso(entry.date, timeValue, timezone);
+    if (!base) return;
+    const d = new Date(base);
+    d.setMinutes(d.getMinutes() + delta);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const eatenAt = dateKeyAndTimeToIso(entry.date, `${hh}:${mm}`, timezone);
+    if (eatenAt) onChange(eatenAt);
+    setNudgeOpen(false);
+  }
+
+  function clearLongPress() {
+    if (longPressRef.current != null) {
+      window.clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  }
+
+  if (nudgeOpen && !expanded) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <button
+          type="button"
+          className="meal-time-badge"
+          disabled={disabled}
+          title="Минус 15 минут"
+          onClick={() => shiftMinutes(-15)}
+        >
+          −15
+        </button>
+        <button
+          type="button"
+          className="meal-time-badge"
+          disabled={disabled}
+          title="Точное время"
+          onClick={() => {
+            setNudgeOpen(false);
+            setExpanded(true);
+          }}
+        >
+          {display}
+        </button>
+        <button
+          type="button"
+          className="meal-time-badge"
+          disabled={disabled}
+          title="Плюс 15 минут"
+          onClick={() => shiftMinutes(15)}
+        >
+          +15
+        </button>
+      </span>
+    );
+  }
 
   if (!expanded) {
     return (
@@ -720,9 +786,27 @@ function MealTimeInlineEdit({
         type="button"
         disabled={disabled}
         className="meal-time-badge"
-        title="Время приёма — нажмите, чтобы изменить"
+        title="Время приёма — нажмите, чтобы изменить; удерживайте ±15 мин"
         aria-label={`Время ${display}, изменить`}
-        onClick={() => setExpanded(true)}
+        onClick={() => {
+          if (longPressFiredRef.current) {
+            longPressFiredRef.current = false;
+            return;
+          }
+          setExpanded(true);
+        }}
+        onPointerDown={() => {
+          longPressFiredRef.current = false;
+          clearLongPress();
+          longPressRef.current = window.setTimeout(() => {
+            longPressRef.current = null;
+            longPressFiredRef.current = true;
+            setNudgeOpen(true);
+          }, 420);
+        }}
+        onPointerUp={clearLongPress}
+        onPointerLeave={clearLongPress}
+        onPointerCancel={clearLongPress}
       >
         {display}
       </button>

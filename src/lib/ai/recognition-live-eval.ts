@@ -19,8 +19,8 @@ export type LiveRecognitionEvalCase = {
   };
 };
 
-/** Small starter set — enable with RECOGNITION_LIVE_EVAL=1 once photos are added. */
-export const LIVE_RECOGNITION_EVAL_CASES: LiveRecognitionEvalCase[] = [
+/** Live golden set (Wave 8: 30–50 slots). Missing images skip without failing the suite. */
+const LIVE_EVAL_SEED: LiveRecognitionEvalCase[] = [
   {
     id: "live-plate-borscht",
     description: "Plate photo — borscht",
@@ -39,6 +39,52 @@ export const LIVE_RECOGNITION_EVAL_CASES: LiveRecognitionEvalCase[] = [
     imageFile: "drink-bottle.jpg",
     expect: { dishNameIncludes: "пиво|кола|напиток|молоко", minCalories: 20 },
   },
+];
+
+/** Extra slots — drop photos into eval-fixtures/ with matching names to activate. */
+const LIVE_EVAL_EXTRA_NAMES = [
+  "plate-oatmeal",
+  "plate-salad",
+  "plate-pasta",
+  "plate-soup",
+  "plate-steak",
+  "plate-sushi",
+  "plate-pizza",
+  "plate-rice-chicken",
+  "plate-pelmeni",
+  "plate-blini",
+  "label-juice",
+  "label-cheese",
+  "label-bread",
+  "label-cereal",
+  "label-chocolate",
+  "label-cottage",
+  "package-chips",
+  "package-cookies",
+  "package-bar",
+  "barcode-milk",
+  "barcode-kefir",
+  "canteen-tray",
+  "canteen-soup",
+  "drink-smoothie",
+  "drink-coffee",
+  "snack-apple",
+  "snack-banana",
+  "multi-plate-2",
+  "multi-plate-3",
+  "ready-meal-sticker",
+  "cafe-salad",
+  "cafe-bowl",
+] as const;
+
+export const LIVE_RECOGNITION_EVAL_CASES: LiveRecognitionEvalCase[] = [
+  ...LIVE_EVAL_SEED,
+  ...LIVE_EVAL_EXTRA_NAMES.map((name) => ({
+    id: `live-${name}`,
+    description: `Live fixture ${name}`,
+    imageFile: `${name}.jpg`,
+    expect: { minCalories: 10 },
+  })),
 ];
 
 export type LiveEvalCaseResult = {
