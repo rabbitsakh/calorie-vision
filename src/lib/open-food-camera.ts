@@ -1,44 +1,59 @@
 /**
- * Custom events: FAB / CTAs ask FoodAddPanel to open camera or text mode.
- * Dispatched on `window` so ration page stays decoupled from panel refs.
+ * Unified food-add open API (Wave C0).
+ * Dispatched on `window` so tab bar / CTAs stay decoupled from the sheet host.
  */
+
+export type FoodAddMode = "photo" | "text" | "barcode";
+
+export type OpenFoodAddDetail = {
+  /** Omit to show the mode picker first. */
+  mode?: FoodAddMode;
+  /** When mode is photo, also open the device camera picker. */
+  openCamera?: boolean;
+  /** Prefill meal type on confirm (push deep link). */
+  mealType?: string;
+};
+
+export const OPEN_FOOD_ADD_EVENT = "cv-open-food-add";
+/** @deprecated Prefer OPEN_FOOD_ADD_EVENT — kept for stable tests / legacy listeners. */
 export const OPEN_FOOD_CAMERA_EVENT = "cv-open-food-camera";
+/** @deprecated Prefer OPEN_FOOD_ADD_EVENT */
 export const OPEN_FOOD_TEXT_EVENT = "cv-open-food-text";
+export const OPEN_FOOD_BARCODE_EVENT = "cv-open-food-barcode";
+/** Fired after a meal is saved from the add sheet — ration refreshes. */
+export const FOOD_SAVED_EVENT = "cv-food-saved";
 
-function scrollToFoodPanel(): void {
-  document.getElementById("food-add-panel")?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
-}
-
-export function requestOpenFoodCamera(scrollFirst = true): void {
+export function openFoodAdd(detail: OpenFoodAddDetail = {}): void {
   if (typeof window === "undefined") return;
-  if (scrollFirst) {
-    scrollToFoodPanel();
-    window.setTimeout(() => {
-      window.dispatchEvent(new Event(OPEN_FOOD_CAMERA_EVENT));
-    }, 380);
-    return;
-  }
-  window.dispatchEvent(new Event(OPEN_FOOD_CAMERA_EVENT));
+  window.dispatchEvent(new CustomEvent<OpenFoodAddDetail>(OPEN_FOOD_ADD_EVENT, { detail }));
 }
 
-/** Scroll to food panel and switch to text entry (not camera). */
-export function requestOpenFoodText(scrollFirst = true): void {
+/** Explicit photo CTA — skips mode picker, opens camera. */
+export function requestOpenFoodCamera(_scrollFirst = true): void {
+  openFoodAdd({ mode: "photo", openCamera: true });
+}
+
+/** Explicit text CTA — skips mode picker. */
+export function requestOpenFoodText(_scrollFirst = true): void {
+  openFoodAdd({ mode: "text" });
+}
+
+/** Explicit barcode CTA — skips mode picker. */
+export function requestOpenFoodBarcode(): void {
+  openFoodAdd({ mode: "barcode" });
+}
+
+/** Bare «+» / «Добавить» — mode picker. */
+export function requestOpenFoodAddPicker(): void {
+  openFoodAdd({});
+}
+
+export function notifyFoodSaved(): void {
   if (typeof window === "undefined") return;
-  if (scrollFirst) {
-    scrollToFoodPanel();
-    window.setTimeout(() => {
-      window.dispatchEvent(new Event(OPEN_FOOD_TEXT_EVENT));
-    }, 280);
-    return;
-  }
-  window.dispatchEvent(new Event(OPEN_FOOD_TEXT_EVENT));
+  window.dispatchEvent(new Event(FOOD_SAVED_EVENT));
 }
 
-/** Just scroll to the food add panel without forcing a mode. */
+/** @deprecated Panel is in a sheet; no-op kept for callers. */
 export function scrollToFoodAdd(): void {
-  if (typeof window === "undefined") return;
-  scrollToFoodPanel();
+  // no-op: add UI lives in FoodAddHost sheet
 }

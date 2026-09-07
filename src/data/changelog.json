@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.9.0",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave C0–C1 — «+» в центре, add sheet",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Центральная кнопка «+» в таббаре открывает выбор: фото / текст / штрихкод"
+      },
+      {
+        "kind": "feature",
+        "text": "Добавление еды в bottom sheet — панель убрана со страницы рациона"
+      },
+      {
+        "kind": "feature",
+        "text": "На десктопе кнопка «Добавить» в шапке — тот же поток"
+      },
+      {
+        "kind": "improvement",
+        "text": "Единый openFoodAdd API; явные CTA «Фото» сразу в камеру"
+      },
+      {
+        "kind": "improvement",
+        "text": "FAB убран — без дубля с центральным «+»"
+      }
+    ]
+  },
+  {
     "version": "1.8.1",
     "date": "2026-09-07",
     "summary": "fix(ux): profile safe-area, form overflow, remove Недавнее",
