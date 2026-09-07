@@ -40,8 +40,36 @@ fi
 echo "==> Version"
 node --experimental-strip-types --no-warnings scripts/sync-app-version.ts
 
+# Load .env early so SENTRY_* flags are visible for install/build.
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
 echo "==> Install dependencies"
-npm install
+# @sentry/cli postinstall downloads a binary from CDN and often hangs on VPS
+# (IPv6 / CDN timeout). Skip unless we explicitly upload source maps.
+if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
+  export SENTRYCLI_SKIP_DOWNLOAD="${SENTRYCLI_SKIP_DOWNLOAD:-1}"
+  echo "   SENTRYCLI_SKIP_DOWNLOAD=$SENTRYCLI_SKIP_DOWNLOAD (no SENTRY_AUTH_TOKEN)"
+else
+  echo "   SENTRY_AUTH_TOKEN set — allowing @sentry/cli binary download"
+fi
+# Prefer lockfile install; fall back to npm install if lock is out of sync.
+export npm_config_fetch_timeout="${npm_config_fetch_timeout:-120000}"
+export npm_config_fetch_retries="${npm_config_fetch_retries:-3}"
+if [[ -f package-lock.json ]]; then
+  echo "   npm ci…"
+  if ! npm ci --no-audit --no-fund; then
+    echo "   npm ci failed — falling back to npm install"
+    npm install --no-audit --no-fund
+  fi
+else
+  echo "   npm install…"
+  npm install --no-audit --no-fund
+fi
 
 echo "==> Prisma: apply schema changes"
 # Run the hand-written SQL migration first so prisma db push does not trip over
