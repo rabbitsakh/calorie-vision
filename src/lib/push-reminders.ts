@@ -25,7 +25,7 @@ export {
 } from "@/lib/push-reminder-schedule";
 
 export { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
-import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { resolveWaterTargetMl, WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 export const DEFAULT_PUSH_TIMEZONE = "Europe/Moscow";
 
@@ -35,6 +35,8 @@ export type UserReminderContext = {
   totalCalories: number;
   calorieTarget: number | null;
   waterMl: number;
+  /** Personal water goal (ml); falls back to default when omitted. */
+  waterTargetMl?: number | null;
   streak: number;
   streakBeforeToday: number;
   loggedToday: boolean;
@@ -114,9 +116,13 @@ function pluralMeals(count: number): string {
   return "приёмов пищи";
 }
 
-function waterProgressLine(waterMl: number): string {
-  const pct = Math.round((waterMl / WATER_DAILY_TARGET_ML) * 100);
-  return `${waterMl} мл из ${WATER_DAILY_TARGET_ML} (${pct}%)`;
+function waterTargetOf(ctx: UserReminderContext): number {
+  return resolveWaterTargetMl(ctx.waterTargetMl);
+}
+
+function waterProgressLine(waterMl: number, targetMl: number): string {
+  const pct = Math.round((waterMl / targetMl) * 100);
+  return `${waterMl} мл из ${targetMl} (${pct}%)`;
 }
 
 export function computeCalorieTarget(
@@ -264,27 +270,31 @@ export function buildReminderPayload(
         tag: "cv-dinner",
       };
 
-    case "water_midday":
-      if (ctx.waterMl >= WATER_DAILY_TARGET_ML / 2) return null;
+    case "water_midday": {
+      const waterTarget = waterTargetOf(ctx);
+      if (ctx.waterMl >= waterTarget / 2) return null;
       return {
         title: isB ? "Напомните себе про воду" : "Стакан воды?",
         body: isB
-          ? `${waterProgressLine(ctx.waterMl)}. До середины цели осталось ~${WATER_DAILY_TARGET_ML / 2 - ctx.waterMl} мл.`
-          : `${waterProgressLine(ctx.waterMl)}. До половины цели ~${WATER_DAILY_TARGET_ML / 2 - ctx.waterMl} мл.`,
+          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. До середины цели осталось ~${waterTarget / 2 - ctx.waterMl} мл.`
+          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До половины цели ~${waterTarget / 2 - ctx.waterMl} мл.`,
         url: rationUrl,
         tag: "cv-water-mid",
       };
+    }
 
-    case "water_evening":
-      if (ctx.waterMl >= WATER_DAILY_TARGET_ML) return null;
+    case "water_evening": {
+      const waterTarget = waterTargetOf(ctx);
+      if (ctx.waterMl >= waterTarget) return null;
       return {
         title: isB ? "Допить до цели?" : "Вечерняя вода",
         body: isB
-          ? `${waterProgressLine(ctx.waterMl)}. Ещё ${WATER_DAILY_TARGET_ML - ctx.waterMl} мл — и день по воде закрыт.`
-          : `${waterProgressLine(ctx.waterMl)}. До цели ещё ${WATER_DAILY_TARGET_ML - ctx.waterMl} мл.`,
+          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. Ещё ${waterTarget - ctx.waterMl} мл — и день по воде закрыт.`
+          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До цели ещё ${waterTarget - ctx.waterMl} мл.`,
         url: rationUrl,
         tag: "cv-water-eve",
       };
+    }
 
     case "calories":
       if (ctx.mealCount === 0) return null;

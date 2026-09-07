@@ -33,8 +33,10 @@ type StatsResponse = {
   calorieTarget: number | null;
   fiberTarget?: number | null;
   sugarTarget?: number | null;
+  waterTarget?: number | null;
   avgFiber?: number;
   avgSugar?: number;
+  avgWaterMl?: number;
   hourlyCalories: number[];
   moodInsight?: string | null;
   corridorAlert?: CorridorStreakAlert | null;
@@ -465,6 +467,8 @@ function MacroChart({
   sugarTarget,
   avgFiber,
   avgSugar,
+  waterTarget,
+  avgWaterMl,
 }: {
   days: StatsDay[];
   period: "week" | "month" | "quarter";
@@ -472,6 +476,8 @@ function MacroChart({
   sugarTarget?: number | null;
   avgFiber?: number;
   avgSugar?: number;
+  waterTarget?: number | null;
+  avgWaterMl?: number;
 }) {
   const hasData = days.some((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
@@ -479,7 +485,10 @@ function MacroChart({
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
   const xLabels = axisLabelIndices(days.length, period);
   const compactAxis = days.length > 5;
-  const showPulse = fiberTarget != null || sugarTarget != null;
+  const showPulse =
+    fiberTarget != null ||
+    sugarTarget != null ||
+    (waterTarget != null && (avgWaterMl ?? 0) > 0);
 
   return (
     <div className="flex flex-col gap-2">
@@ -491,6 +500,9 @@ function MacroChart({
               : null,
             sugarTarget != null
               ? `сахар ср. ${Math.round(avgSugar ?? 0)} / ${Math.round(sugarTarget)} г`
+              : null,
+            waterTarget != null && (avgWaterMl ?? 0) > 0
+              ? `вода ср. ${Math.round(avgWaterMl ?? 0)} / ${Math.round(waterTarget)} мл`
               : null,
           ]
             .filter(Boolean)
@@ -997,6 +1009,8 @@ export function StatsView({ endDate }: StatsViewProps) {
                 sugarTarget={data.sugarTarget}
                 avgFiber={data.avgFiber}
                 avgSugar={data.avgSugar}
+                waterTarget={data.waterTarget}
+                avgWaterMl={data.avgWaterMl}
               />
             </div>
           </section>

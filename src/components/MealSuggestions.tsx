@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AllergenHint } from "@/components/AllergenHint";
+import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
@@ -86,12 +88,30 @@ export function MealSuggestions({
   const [addError, setAddError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
     setData(null);
     setVisible(false);
   }, [selectedDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"));
+        if (!resp.ok) return;
+        const json = (await resp.json()) as { allergens?: unknown };
+        if (!cancelled) setUserAllergens(parseAllergensJson(json.allergens));
+      } catch {
+        // non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function load() {
     setLoading(true);
@@ -277,6 +297,7 @@ export function MealSuggestions({
                         {cat.label}
                       </span>
                     </div>
+                    <AllergenHint text={s.name} allergens={userAllergens} />
                     {s.why ? <p className="mt-1 text-xs text-slate-500">{s.why}</p> : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">

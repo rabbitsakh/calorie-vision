@@ -1787,6 +1787,12 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                 </div>
               ) : null}
             </div>
+          ) : (totals.fiber > 0 || totals.sugar > 0) ? (
+            <p className="text-[11px] text-slate-500">
+              {totals.fiber > 0 ? `Клетч. ${totals.fiber} г` : null}
+              {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
+              {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
+            </p>
           ) : null}
         </div>
 

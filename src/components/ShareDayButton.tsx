@@ -17,12 +17,17 @@ type DayTotals = {
   totalProtein: number;
   totalFat: number;
   totalCarbs: number;
+  totalFiber?: number;
+  totalSugar?: number;
+  waterMl?: number;
+  fiberTarget?: number | null;
+  sugarTarget?: number | null;
   streak?: number | null;
   targetCalories?: number | null;
 };
 
 /**
- * Canvas share card for the selected day (kcal / macros / streak).
+ * Canvas share card for the selected day (kcal / macros / fiber·sugar / water / streak).
  */
 export function ShareDayButton({
   date,
@@ -37,9 +42,11 @@ export function ShareDayButton({
     setBusy(true);
     setHint(null);
     try {
-      const [mealsResp, streakResp] = await Promise.all([
+      const [mealsResp, streakResp, waterResp, accountResp] = await Promise.all([
         fetch(withBasePath(`/api/meals?date=${encodeURIComponent(date)}`)),
         fetch(withBasePath("/api/streak")),
+        fetch(withBasePath(`/api/water?date=${encodeURIComponent(date)}`)),
+        fetch(withBasePath("/api/account")),
       ]);
       if (!mealsResp.ok) throw new Error("meals");
       const mealsJson = (await mealsResp.json()) as {
@@ -47,6 +54,8 @@ export function ShareDayButton({
         totalProtein?: number;
         totalFat?: number;
         totalCarbs?: number;
+        totalFiber?: number;
+        totalSugar?: number;
         target?: { calories?: number } | null;
       };
       let streak: number | null = null;
@@ -54,12 +63,32 @@ export function ShareDayButton({
         const s = (await streakResp.json()) as { streak?: number };
         streak = typeof s.streak === "number" ? s.streak : null;
       }
+      const waterJson = waterResp.ok
+        ? ((await waterResp.json()) as { totalMl?: number })
+        : null;
+      const accountJson = accountResp.ok
+        ? ((await accountResp.json()) as {
+            fiberTargetG?: number | null;
+            sugarTargetG?: number | null;
+          })
+        : null;
 
       const totals: DayTotals = {
         totalCalories: Math.round(mealsJson.totalCalories ?? 0),
         totalProtein: Math.round(mealsJson.totalProtein ?? 0),
         totalFat: Math.round(mealsJson.totalFat ?? 0),
         totalCarbs: Math.round(mealsJson.totalCarbs ?? 0),
+        totalFiber: Math.round(mealsJson.totalFiber ?? 0),
+        totalSugar: Math.round(mealsJson.totalSugar ?? 0),
+        waterMl: Math.round(waterJson?.totalMl ?? 0),
+        fiberTarget:
+          accountJson?.fiberTargetG != null && Number.isFinite(accountJson.fiberTargetG)
+            ? Math.round(accountJson.fiberTargetG)
+            : null,
+        sugarTarget:
+          accountJson?.sugarTargetG != null && Number.isFinite(accountJson.sugarTargetG)
+            ? Math.round(accountJson.sugarTargetG)
+            : null,
         streak,
         targetCalories:
           mealsJson.target?.calories != null ? Math.round(mealsJson.target.calories) : null,
@@ -182,13 +211,34 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
     x += 220;
   }
 
+  const fiberSugarParts: string[] = [];
+  if (totals.fiberTarget != null) {
+    fiberSugarParts.push(
+      `клетчатка ${Math.round(totals.totalFiber ?? 0)}/${Math.round(totals.fiberTarget)} г`,
+    );
+  }
+  if (totals.sugarTarget != null) {
+    fiberSugarParts.push(
+      `сахар ${Math.round(totals.totalSugar ?? 0)}/${Math.round(totals.sugarTarget)} г`,
+    );
+  }
+  if ((totals.waterMl ?? 0) > 0) {
+    fiberSugarParts.push(`вода ${Math.round(totals.waterMl ?? 0)} мл`);
+  }
+  if (fiberSugarParts.length > 0) {
+    ctx.fillStyle = "rgba(236,253,245,0.85)";
+    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.fillText(fiberSugarParts.join(" · "), 48, 510);
+  }
+
   if (totals.streak != null && totals.streak > 0) {
+    const streakY = fiberSugarParts.length > 0 ? 540 : 520;
     ctx.fillStyle = "rgba(255,255,255,0.18)";
-    roundRect(ctx, 48, 520, 624, 100, 24);
+    roundRect(ctx, 48, streakY, 624, 100, 24);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
     ctx.font = "700 36px system-ui, sans-serif";
-    ctx.fillText(`Серия ${totals.streak} ${daysWord(totals.streak)}`, 72, 582);
+    ctx.fillText(`Серия ${totals.streak} ${daysWord(totals.streak)}`, 72, streakY + 62);
   }
 
   ctx.fillStyle = "rgba(236,253,245,0.65)";

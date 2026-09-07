@@ -6,6 +6,7 @@ import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { hourInTimezone } from "@/lib/meal-type";
 import { prisma } from "@/lib/prisma";
 import { buildMoodFoodInsight, detectCalorieCorridorStreak } from "@/lib/stats-insights";
+import { resolveWaterTargetMl } from "@/lib/water-target";
 import {
   computeWeightChangeKg,
   medianWeightByDate,
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
-    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight, allMealsForTiming, diaryNotes] = await Promise.all([
+    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight, allMealsForTiming, diaryNotes, waterEntries] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
@@ -76,6 +77,7 @@ export async function GET(request: NextRequest) {
           timezone: true,
           fiberTargetG: true,
           sugarTargetG: true,
+          waterTargetMl: true,
         },
       }),
       prisma.weightEntry.findFirst({
@@ -109,6 +111,13 @@ export async function GET(request: NextRequest) {
           mood: { not: null },
         },
         select: { date: true, mood: true },
+      }),
+      prisma.waterEntry.findMany({
+        where: {
+          userId: session.user.id,
+          date: { gte: start, lte: end },
+        },
+        select: { date: true, ml: true },
       }),
     ]);
 
@@ -168,6 +177,19 @@ export async function GET(request: NextRequest) {
       user?.sugarTargetG != null && Number.isFinite(user.sugarTargetG)
         ? round1(user.sugarTargetG)
         : null;
+    const waterTarget = resolveWaterTargetMl(user?.waterTargetMl);
+
+    const waterByDate = new Map<string, number>();
+    for (const entry of waterEntries) {
+      waterByDate.set(entry.date, (waterByDate.get(entry.date) ?? 0) + entry.ml);
+    }
+    const waterDays = dates.filter((d) => (waterByDate.get(d) ?? 0) > 0);
+    const avgWaterMl =
+      waterDays.length > 0
+        ? Math.round(
+            waterDays.reduce((sum, d) => sum + (waterByDate.get(d) ?? 0), 0) / waterDays.length,
+          )
+        : 0;
 
     // Hourly calorie distribution (0–23), prefer eatenAt; bin in user timezone
     const hourlyCalories = new Array<number>(24).fill(0);
@@ -267,8 +289,10 @@ export async function GET(request: NextRequest) {
       calorieTarget,
       fiberTarget,
       sugarTarget,
+      waterTarget,
       avgFiber,
       avgSugar,
+      avgWaterMl,
       hourlyCalories,
       moodInsight,
       corridorAlert,

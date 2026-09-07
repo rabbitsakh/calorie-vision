@@ -146,8 +146,8 @@ async function buildPdf(userId: string, from: string | null, to: string | null):
           e.protein ? `P:${e.protein}g` : null,
           e.fat ? `F:${e.fat}g` : null,
           e.carbs ? `C:${e.carbs}g` : null,
-          e.fiber ? `Fi:${e.fiber}g` : null,
-          e.sugar ? `S:${e.sugar}g` : null,
+          e.fiber ? `клетч.:${e.fiber}г` : null,
+          e.sugar ? `сахар:${e.sugar}г` : null,
         ].filter(Boolean).join(" ");
         const line = `  ${t(decodeHtmlEntities(e.dishName))} — ${e.calories} ккал${macros ? `  ${macros}` : ""}`;
         doc.fontSize(10).font(fontRegular).text(line);
