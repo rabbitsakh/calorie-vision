@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.7.12",
+    "date": "2026-09-07",
+    "summary": "fix(images): stop attaching unrelated Wikipedia portraits for barcode/text lookups",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "По штрихкоду и тексту больше не подставляются случайные фото из Wikipedia (маски, портреты)"
+      },
+      {
+        "kind": "fix",
+        "text": "Автофото только из Open Food Facts; без упаковки в базе — лучше без картинки, чем чужая"
+      },
+      {
+        "kind": "fix",
+        "text": "Уже сохранённые неверные картинки у текстовых/штрихкод-записей очищаются или заменяются на OFF"
+      }
+    ]
+  },
+  {
     "version": "1.7.11",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 7 — diary CTA, habits sheet, date swipe, recognition trust, /install",
