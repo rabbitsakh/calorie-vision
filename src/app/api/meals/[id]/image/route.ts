@@ -44,22 +44,34 @@ export async function POST(
     }
 
     let remoteUrl = body.imageUrl?.trim() ?? "";
-    if (!remoteUrl && body.query?.trim()) {
+    let allowWeb = false;
+    if (remoteUrl) {
+      allowWeb = !isAllowedImageUrl(remoteUrl);
+    } else if (body.query?.trim()) {
       const candidates = await searchMealPhotoCandidates(body.query.trim(), 8);
-      remoteUrl =
-        candidates.find((c) => c.source === "openfoodfacts")?.url ??
-        candidates[0]?.url ??
-        "";
+      const preferred =
+        candidates.find((c) => c.source === "openfoodfacts") ??
+        candidates.find((c) => c.source === "web") ??
+        candidates[0];
+      remoteUrl = preferred?.url ?? "";
+      allowWeb = preferred?.source === "web";
     }
     if (!remoteUrl) {
       const candidates = await searchMealPhotoCandidates(existing.dishName, 8);
-      // Auto-pick: prefer OFF product photos; skip Wikimedia if OFF has anything.
-      remoteUrl =
-        candidates.find((c) => c.source === "openfoodfacts")?.url ??
-        "";
+      const preferred =
+        candidates.find((c) => c.source === "openfoodfacts") ??
+        candidates.find((c) => c.source === "web");
+      remoteUrl = preferred?.url ?? "";
+      allowWeb = preferred?.source === "web";
     }
 
-    if (!remoteUrl || !isAllowedImageUrl(remoteUrl)) {
+    if (!remoteUrl) {
+      return NextResponse.json(
+        { error: "Не нашли подходящее фото продукта. Выберите вручную или оставьте без фото." },
+        { status: 404 },
+      );
+    }
+    if (!allowWeb && !isAllowedImageUrl(remoteUrl)) {
       return NextResponse.json(
         { error: "Не нашли подходящее фото продукта. Выберите вручную или оставьте без фото." },
         { status: 404 },

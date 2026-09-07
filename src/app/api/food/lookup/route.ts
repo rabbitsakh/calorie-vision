@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       const recognition = await lookupFoodByBarcode(barcode, session.user.id);
       const imagePath = await cacheRemoteImage(recognition.imageUrl, {
         ownerUserId: session.user.id,
+        allowWebProduct: true,
       });
       return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
     }
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     const recognition = await lookupFoodByName(dishName, session.user.id);
     const imagePath = await cacheRemoteImage(recognition.imageUrl, {
       ownerUserId: session.user.id,
+      allowWebProduct: true,
     });
     return NextResponse.json({ recognition, imagePath: imagePath ?? "" });
   } catch (error) {

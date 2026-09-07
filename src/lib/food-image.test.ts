@@ -100,17 +100,11 @@ test("wiki queries always add food/product context for brands", () => {
   assert.ok(!qs.includes("Маска"));
 });
 
-test("auto findFoodImage uses OFF product url only — never invents wiki art", async () => {
+test("auto findFoodImage prefers OFF product url when present", async () => {
   const off = await findFoodImage({
     query: "Bombbar",
     productImageUrl: "https://images.openfoodfacts.org/bombbar.jpg",
     mode: "auto",
   });
   assert.equal(off, "https://images.openfoodfacts.org/bombbar.jpg");
-
-  const empty = await findFoodImage({
-    query: "конфеты Маска",
-    mode: "auto",
-  });
-  assert.equal(empty, undefined);
 });

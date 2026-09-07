@@ -240,17 +240,26 @@ export async function findFoodImage(options: {
   query: string;
   brand?: string;
   productImageUrl?: string;
-  /** auto (default): OFF product image only — never invent wiki portraits for brands. */
+  /**
+   * auto (default): OFF product image, then web packaging search (cached by caller).
+   * Never uses bare Wikipedia brand pages.
+   */
   mode?: FoodImageSearchMode;
 }): Promise<string | undefined> {
   const mode = options.mode ?? "auto";
+  const off = options.productImageUrl?.trim();
+  if (off && isAllowedImageUrl(off)) {
+    return off;
+  }
+
   if (mode === "auto") {
-    const off = options.productImageUrl?.trim();
-    if (off && isAllowedImageUrl(off)) {
-      return off;
-    }
-    // Prefer empty over a wrong Wikipedia portrait for barcode/text brands.
-    return undefined;
+    // Web hits are remote URLs — caller (backfill / lookup) caches with allowWebProduct.
+    const { searchProductWebImages } = await import("@/lib/product-web-image");
+    const hits = await searchProductWebImages(options.query, {
+      brand: options.brand,
+      limit: 4,
+    });
+    return hits[0]?.url;
   }
 
   const candidates = await searchFoodImageCandidates(options.query, {
@@ -264,7 +273,7 @@ export async function findFoodImage(options: {
 
 export type FoodImageCandidate = {
   url: string;
-  source: "openfoodfacts" | "wikipedia" | "commons";
+  source: "openfoodfacts" | "wikipedia" | "commons" | "web";
   label?: string;
 };
 
@@ -284,8 +293,20 @@ export async function searchFoodImageCandidates(
   const out: FoodImageCandidate[] = [];
   const seen = new Set<string>();
 
-  const push = (url: string | undefined, source: FoodImageCandidate["source"], label?: string) => {
-    if (!url || !isAllowedImageUrl(url) || seen.has(url) || out.length >= limit) {
+  const push = (
+    url: string | undefined,
+    source: FoodImageCandidate["source"],
+    label?: string,
+    /** Web product URLs bypass catalog allowlist (download-only). */
+    allowWeb?: boolean,
+  ) => {
+    if (!url || seen.has(url) || out.length >= limit) {
+      return;
+    }
+    if (source === "web" || allowWeb) {
+      // Defer host check to download step; still require https shape here via caller.
+      if (!/^https:\/\//i.test(url)) return;
+    } else if (!isAllowedImageUrl(url)) {
       return;
     }
     seen.add(url);
@@ -296,7 +317,18 @@ export async function searchFoodImageCandidates(
     push(options.productImageUrl, "openfoodfacts", "Open Food Facts");
   }
 
-  // Auto-attach never falls through to Wikimedia (portraits / costumes / actors).
+  // Web packaging search for both auto attach and picker.
+  if (query.length >= 2) {
+    const { searchProductWebImages } = await import("@/lib/product-web-image");
+    const webHits = await searchProductWebImages(query, {
+      brand: options?.brand,
+      limit: mode === "auto" ? Math.min(4, limit) : Math.min(6, limit),
+    });
+    for (const hit of webHits) {
+      push(hit.url, "web", "Интернет", true);
+    }
+  }
+
   if (mode === "auto") {
     return out.slice(0, limit);
   }
@@ -312,12 +344,16 @@ export async function searchFoodImageCandidates(
 
   // Search food-biased queries (not bare brand). Cap parallel calls.
   const searchQs = wikiQueries.slice(0, 3);
-  const commonsSeed = wikiQueries.find((q) => /продукт|еда|food|блюдо|упаковка/i.test(q)) ?? wikiQueries[0]!;
+  const commonsSeed =
+    wikiQueries.find((q) => /продукт|еда|food|блюдо|упаковка/i.test(q)) ?? wikiQueries[0]!;
 
   const [wikiRu, wikiEn, commons] = await Promise.all([
     Promise.all(searchQs.map((q) => searchWikipediaImageList(q, "ru", 4))),
     Promise.all(searchQs.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
-    searchCommonsImageList(commonsSeed.replace(/\s+(продукт|еда|упаковка|блюдо|food|product)$/i, "").trim() || query, 4),
+    searchCommonsImageList(
+      commonsSeed.replace(/\s+(продукт|еда|упаковка|блюдо|food|product)$/i, "").trim() || query,
+      4,
+    ),
   ]);
 
   for (const urls of wikiRu) {
