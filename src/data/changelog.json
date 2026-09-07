@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.17",
+    "date": "2026-09-07",
+    "summary": "fix(ux): compact share menu for day and week",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "«Поделиться днём» и «неделей» свернуты в одно тихое меню под героем дня"
+      }
+    ]
+  },
+  {
     "version": "1.7.16",
     "date": "2026-09-07",
     "summary": "feat(ux): Wave 9 — meta progress, stickers, cheer, share week, RuStore, allergens",
