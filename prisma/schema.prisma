@@ -57,6 +57,13 @@ model User {
   /** Opt-in weekly email digest (Sunday/Monday cron). */
   weeklyDigestEmail Boolean @default(false)
   timezone      String?        @db.VarChar(64)
+  /** Opaque invite code (HMAC-derived); unique for ?ref= lookup. */
+  referralCode  String?        @unique @db.VarChar(16)
+  /** User who invited this account via ?ref= (set once). */
+  referredByUserId String?     @db.VarChar(191)
+  referralClaimedAt DateTime?
+  /** Soft allergen tags for confirm warnings (JSON string[]). */
+  allergensJson Json?
   /** Local hour (0–23) when quiet hours begin; null = disabled. */
   quietHoursStart Int?
   /** Local hour (0–23) when quiet hours end (exclusive); null = disabled. */

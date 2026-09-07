@@ -5,6 +5,7 @@ import { lockedEmailDecision } from "@/lib/account-email";
 import { requireSession } from "@/lib/auth-session";
 import { isActivityLevel, isSex, type ActivityLevel, type Sex } from "@/lib/diet";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
+import { normalizeAllergenIds, parseAllergensJson } from "@/lib/allergens";
 import { prisma } from "@/lib/prisma";
 import { referralCodeForUser } from "@/lib/referral";
 import { clampHour } from "@/lib/quiet-hours";
@@ -62,6 +63,9 @@ export async function GET() {
           sugarTargetG: true,
           waterTargetMl: true,
           weeklyDigestEmail: true,
+          allergensJson: true,
+          referralCode: true,
+          referredByUserId: true,
         },
       }),
       prisma.account.findMany({
@@ -76,6 +80,13 @@ export async function GET() {
 
     const { firstName, lastName } = splitName(user.name);
     const linkedProviders = accounts.map((account) => account.provider);
+    const code = user.referralCode?.trim() || referralCodeForUser(user.id);
+    if (!user.referralCode) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { referralCode: code },
+      });
+    }
 
     return NextResponse.json({
       firstName,
@@ -97,9 +108,11 @@ export async function GET() {
       sugarTargetG: user.sugarTargetG ?? null,
       waterTargetMl: user.waterTargetMl ?? null,
       weeklyDigestEmail: user.weeklyDigestEmail ?? false,
+      allergens: parseAllergensJson(user.allergensJson),
+      referredByUserId: user.referredByUserId ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
-      referralCode: referralCodeForUser(user.id),
+      referralCode: code,
     });
   } catch (error) {
     console.error(error);
@@ -134,6 +147,7 @@ export async function PUT(request: NextRequest) {
       sugarTargetG?: number | null;
       waterTargetMl?: number | null;
       weeklyDigestEmail?: boolean;
+      allergens?: string[] | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -173,6 +187,7 @@ export async function PUT(request: NextRequest) {
       sugarTargetG?: number | null;
       waterTargetMl?: number | null;
       weeklyDigestEmail?: boolean;
+      allergensJson?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -220,6 +235,11 @@ export async function PUT(request: NextRequest) {
 
     if (body.weeklyDigestEmail !== undefined) {
       data.weeklyDigestEmail = Boolean(body.weeklyDigestEmail);
+    }
+
+    if (body.allergens !== undefined) {
+      const allergens = normalizeAllergenIds(body.allergens);
+      data.allergensJson = allergens.length > 0 ? allergens : Prisma.JsonNull;
     }
 
     if (body.sex !== undefined) {
@@ -405,6 +425,7 @@ export async function PUT(request: NextRequest) {
         sugarTargetG: true,
         waterTargetMl: true,
         weeklyDigestEmail: true,
+        allergensJson: true,
       },
     });
 
@@ -429,6 +450,7 @@ export async function PUT(request: NextRequest) {
       sugarTargetG: user.sugarTargetG ?? null,
       waterTargetMl: user.waterTargetMl ?? null,
       weeklyDigestEmail: user.weeklyDigestEmail ?? false,
+      allergens: parseAllergensJson(user.allergensJson),
       linkedProviders,
       emailLocked,
     });

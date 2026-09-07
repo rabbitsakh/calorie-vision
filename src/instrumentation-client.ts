@@ -1,0 +1,12 @@
+import * as Sentry from "@sentry/nextjs";
+
+const dsn =
+  process.env.NEXT_PUBLIC_SENTRY_DSN?.trim() || process.env.SENTRY_DSN?.trim() || "";
+
+Sentry.init({
+  dsn: dsn || undefined,
+  enabled: Boolean(dsn),
+  release: `calorie-vision@${process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0"}`,
+  tracesSampleRate: 0.08,
+  environment: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT || process.env.NODE_ENV,
+});
