@@ -1,5 +1,52 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 14 — Первый час доверия",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Онбординг из 4 шагов: цель, аллергены, фото CTA, PWA"
+      },
+      {
+        "kind": "feature",
+        "text": "После онбординга сразу открывается камера для первого фото"
+      },
+      {
+        "kind": "feature",
+        "text": "На подтверждении — чекбокс аллергенов и акцент на порции при низкой уверенности"
+      },
+      {
+        "kind": "improvement",
+        "text": "В дневнике исправления помечены «запомнили»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Первая неделя тише: реферал скрыт, пока меньше 3 дней с записями"
+      },
+      {
+        "kind": "improvement",
+        "text": "Офлайн-баннер ведёт к подтверждению после сети"
+      },
+      {
+        "kind": "feature",
+        "text": "Metrika: onboarding_complete, onboarding_photo_cta, first_confirm_save"
+      },
+      {
+        "kind": "improvement",
+        "text": "Тихий «Поделиться днём» после первой записи"
+      },
+      {
+        "kind": "improvement",
+        "text": "Голосовой ввод заметнее на текстовом добавлении"
+      },
+      {
+        "kind": "feature",
+        "text": "Мягкое aha после 7 дней — ссылка в статистику"
+      }
+    ]
+  },
+  {
     "version": "1.7.22",
     "date": "2026-09-07",
     "summary": "fix(deploy): skip sentry-cli download that hangs npm install on VPS",

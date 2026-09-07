@@ -9,6 +9,9 @@ const MEAL_DAY_KEY = "cv_metrika_meal_saved_day";
 const WATER_DAY_KEY = "cv_metrika_water_logged_day";
 const WEIGHT_DAY_KEY = "cv_metrika_weight_logged_day";
 const PUSH_SENT_KEY = "cv_metrika_push_enabled_sent";
+const ONBOARDING_COMPLETE_KEY = "cv_metrika_onboarding_complete_sent";
+const ONBOARDING_PHOTO_CTA_KEY = "cv_metrika_onboarding_photo_cta_sent";
+const FIRST_CONFIRM_SAVE_KEY = "cv_metrika_first_confirm_save_sent";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -118,6 +121,30 @@ export function trackMetaChestGoal(now = Date.now()): void {
   trackOncePerDay("cv_metrika_meta_chest_day", METRIKA_GOALS.metaChest, now);
 }
 
+/** Onboarding finished (or skipped) — once per browser. */
+export function trackOnboardingCompleteGoal(): void {
+  const store = localStore();
+  if (store?.getItem(ONBOARDING_COMPLETE_KEY) === "1") return;
+  trackMetrikaGoal(METRIKA_GOALS.onboardingComplete);
+  store?.setItem(ONBOARDING_COMPLETE_KEY, "1");
+}
+
+/** User tapped «Сфотографировать» in onboarding — once per browser. */
+export function trackOnboardingPhotoCtaGoal(): void {
+  const store = localStore();
+  if (store?.getItem(ONBOARDING_PHOTO_CTA_KEY) === "1") return;
+  trackMetrikaGoal(METRIKA_GOALS.onboardingPhotoCta);
+  store?.setItem(ONBOARDING_PHOTO_CTA_KEY, "1");
+}
+
+/** First save from photo confirmation card — once per browser. */
+export function trackFirstConfirmSaveGoal(): void {
+  const store = localStore();
+  if (store?.getItem(FIRST_CONFIRM_SAVE_KEY) === "1") return;
+  trackMetrikaGoal(METRIKA_GOALS.firstConfirmSave);
+  store?.setItem(FIRST_CONFIRM_SAVE_KEY, "1");
+}
+
 /**
  * d7_return: user opened the app again at least 7 days after first open.
  * Fires once per browser.
@@ -164,5 +191,8 @@ export function resetMetrikaFunnelStorageForTests(): void {
   localStore()?.removeItem("cv_metrika_chest_opened_day");
   localStore()?.removeItem("cv_metrika_frame_equipped_day");
   localStore()?.removeItem("cv_metrika_meta_chest_day");
+  localStore()?.removeItem(ONBOARDING_COMPLETE_KEY);
+  localStore()?.removeItem(ONBOARDING_PHOTO_CTA_KEY);
+  localStore()?.removeItem(FIRST_CONFIRM_SAVE_KEY);
   sessionStore()?.removeItem(LOGIN_SENT_KEY);
 }

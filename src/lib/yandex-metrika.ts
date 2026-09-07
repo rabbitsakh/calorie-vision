@@ -31,6 +31,9 @@ export const METRIKA_GOALS = {
   chestOpened: "chest_opened",
   frameEquipped: "frame_equipped",
   metaChest: "meta_chest",
+  onboardingComplete: "onboarding_complete",
+  onboardingPhotoCta: "onboarding_photo_cta",
+  firstConfirmSave: "first_confirm_save",
 } as const;
 
 export type MetrikaGoal = (typeof METRIKA_GOALS)[keyof typeof METRIKA_GOALS];

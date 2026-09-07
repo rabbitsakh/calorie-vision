@@ -26,11 +26,14 @@ import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
+import { FirstShareNudge } from "@/components/FirstShareNudge";
+import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
+import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
 import {
   requestOpenFoodCamera,
   requestOpenFoodText,
@@ -202,9 +205,21 @@ function RationBody({
     return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
   }, [bump]);
 
+  useEffect(() => {
+    const total = day.data?.streak?.daysLoggedTotal;
+    if (typeof total === "number") cacheLoggedDaysTotal(total);
+  }, [day.data?.streak?.daysLoggedTotal]);
+
   // Only splashDone dismisses — not the moment data arrives (that was the flash).
   const showSplash = !splashDone;
   const splashReady = Boolean(!day.loading && (day.data || day.error));
+
+  useEffect(() => {
+    if (showSplash) return;
+    if (!claimOpenCameraAfterOnboarding()) return;
+    const t = window.setTimeout(() => requestOpenFoodCamera(true), 500);
+    return () => window.clearTimeout(t);
+  }, [showSplash]);
 
   return (
     <>
@@ -228,12 +243,24 @@ function RationBody({
         <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+        <SevenDayAhaCard today={today} selectedDate={date} />
         <ChallengeStrip
           selectedDate={date}
           refreshKey={refreshKey}
           onOpenHabits={openHabitsPanel}
         />
         <ShareMenu date={date} className="px-0.5" />
+        <FirstShareNudge
+          date={date}
+          today={today}
+          mealCount={
+            Array.isArray(day.data?.meals.entries)
+              ? day.data.meals.entries.length
+              : day.data?.meals.totalCalories
+                ? 1
+                : 0
+          }
+        />
         <NextStepBar
           selectedDate={date}
           today={today}
@@ -305,7 +332,7 @@ function RationBody({
           showHolidayToggle={date === today}
           onHolidayChange={() => bump()}
         />
-        <MedicalDisclaimerNote className="px-1" />
+        <MedicalDisclaimerNote className="px-1 opacity-80" />
 
         <MotivationQueue>
           <StreakNudge

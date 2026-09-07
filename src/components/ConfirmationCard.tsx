@@ -35,7 +35,7 @@ import {
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
-import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { trackFirstMealSaveGoal, trackMealSavedGoal, trackFirstConfirmSaveGoal } from "@/lib/metrika-funnel";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
@@ -422,6 +422,7 @@ export function ConfirmationCard({
   const [activeDish, setActiveDish] = useState(0);
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
+  const [allergenAck, setAllergenAck] = useState(false);
   const lookupAbortRef = useRef<AbortController | null>(null);
   const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
@@ -787,6 +788,21 @@ export function ConfirmationCard({
 
   async function handleSave() {
     if (savingRef.current) return;
+    const hits = Array.from(
+      new Set(
+        dishes.flatMap((dish) => {
+          const brand = dish.original.brand?.trim();
+          const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+          return matchAllergensInText(text, userAllergens);
+        }),
+      ),
+    );
+    if (hits.length > 0 && !allergenAck) {
+      setError(
+        "Отметьте, что проверили возможный контакт с аллергенами — или уберите совпадения в названии.",
+      );
+      return;
+    }
     savingRef.current = true;
     setSaving(true);
     setError(null);
@@ -813,6 +829,7 @@ export function ConfirmationCard({
         }
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
+        trackFirstConfirmSaveGoal();
         onSaved({ rememberedCorrection, savedCount: dishes.length });
         return;
       }
@@ -829,6 +846,7 @@ export function ConfirmationCard({
 
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
+      trackFirstConfirmSaveGoal();
       onSaved({ rememberedCorrection, savedCount: 1 });
     } catch (err) {
       if (queuedBody) {
@@ -936,12 +954,21 @@ export function ConfirmationCard({
         )}
 
         {allergenHits.length > 0 ? (
-          <div className="rounded-xl border border-amber-200/80 bg-sky-50 px-3 py-2.5 text-sm text-amber-950">
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
             <p className="leading-snug">
               Возможен контакт с:{" "}
               {allergenHits.map((id) => allergenLabel(id)).join(", ")}. Проверьте состав — это
               мягкая подсказка, не диагноз.
             </p>
+            <label className="mt-2 flex items-start gap-2 text-xs font-medium text-amber-950">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={allergenAck}
+                onChange={(e) => setAllergenAck(e.target.checked)}
+              />
+              <span>Проверил(а) — можно сохранить</span>
+            </label>
           </div>
         ) : null}
 
@@ -1001,6 +1028,7 @@ export function ConfirmationCard({
             {anyLowConfidence ? (
               <p className="mt-1.5 text-xs opacity-90">
                 Оценка по фото, не лабораторный анализ — при сомнении сверьте этикетку или вес порции.
+                Проверьте чипы порции ниже перед сохранением.
               </p>
             ) : null}
           </div>
@@ -1476,6 +1504,11 @@ function DishFields({
             })}
           </div>
           <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
+          {review.lowConfidence || review.missingCalories ? (
+            <p className="mt-1 text-xs font-medium text-amber-800">
+              Стоит сверить порцию — уверенность или калории требуют внимания.
+            </p>
+          ) : null}
           {describeNutritionBasis(dish.original) ? (
             <p className="mt-1 text-xs font-medium text-teal-800">{describeNutritionBasis(dish.original)}</p>
           ) : null}
