@@ -1,6 +1,6 @@
 {
   "name": "calorie-vision",
-  "version": "1.7.13",
+  "version": "1.7.14",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -26,6 +26,7 @@
   "allowScripts": {
     "@prisma/client": true,
     "@prisma/engines": true,
+    "@sentry/cli": true,
     "esbuild": true,
     "prisma": true,
     "sharp": true,
