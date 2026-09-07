@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { listCommonsImages, listWikipediaThumbnails, isAllowedImageUrl } from "./food-image.ts";
+import {
+  buildFoodImageWikiQueries,
+  findFoodImage,
+  isAmbiguousBareImageQuery,
+  isAllowedImageUrl,
+  isRejectedWikiTitle,
+  listCommonsImages,
+  listWikipediaThumbnails,
+} from "./food-image.ts";
 
 test("isAllowedImageUrl accepts OFF and Wikimedia hosts", () => {
   assert.equal(isAllowedImageUrl("https://images.openfoodfacts.org/a.jpg"), true);
@@ -28,6 +36,11 @@ test("listWikipediaThumbnails returns multiple safe thumbs", () => {
             index: 0,
             title: "Soup",
             thumbnail: { source: "https://upload.wikimedia.org/wikipedia/commons/soup.jpg" },
+          },
+          "4": {
+            index: 3,
+            title: "Portrait of a scientist",
+            thumbnail: { source: "https://upload.wikimedia.org/wikipedia/commons/man.jpg" },
           },
         },
       },
@@ -64,4 +77,40 @@ test("listCommonsImages skips svg and non-images", () => {
     3,
   );
   assert.deepEqual(urls, ["https://upload.wikimedia.org/pasta-thumb.jpg"]);
+});
+
+test("rejects non-food wiki titles like masks and biographies", () => {
+  assert.equal(isRejectedWikiTitle("Маска (значения)"), true);
+  assert.equal(isRejectedWikiTitle("Portrait of Einstein"), true);
+  assert.equal(isRejectedWikiTitle("Carnival costume"), true);
+  assert.equal(isRejectedWikiTitle("Борщ"), false);
+});
+
+test("ambiguous bare brands must not be wiki-searched as-is", () => {
+  assert.equal(isAmbiguousBareImageQuery("Маска"), true);
+  assert.equal(isAmbiguousBareImageQuery("Bombbar"), true);
+  assert.equal(isAmbiguousBareImageQuery("борщ"), false);
+  assert.equal(isAmbiguousBareImageQuery("гречневая каша"), false);
+});
+
+test("wiki queries always add food/product context for brands", () => {
+  const qs = buildFoodImageWikiQueries("конфеты Маска");
+  assert.ok(qs.some((q) => /продукт/i.test(q)));
+  assert.ok(qs.every((q) => !/^маска$/i.test(q.trim())));
+  assert.ok(!qs.includes("Маска"));
+});
+
+test("auto findFoodImage uses OFF product url only — never invents wiki art", async () => {
+  const off = await findFoodImage({
+    query: "Bombbar",
+    productImageUrl: "https://images.openfoodfacts.org/bombbar.jpg",
+    mode: "auto",
+  });
+  assert.equal(off, "https://images.openfoodfacts.org/bombbar.jpg");
+
+  const empty = await findFoodImage({
+    query: "конфеты Маска",
+    mode: "auto",
+  });
+  assert.equal(empty, undefined);
 });

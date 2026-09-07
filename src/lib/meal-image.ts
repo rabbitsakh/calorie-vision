@@ -57,8 +57,18 @@ export function dishImageLookupQueries(dishName: string, limit = 5): string[] {
   }
   if (tokens.length >= 2) {
     push(tokens.slice(-2).join(" "));
-    push(tokens[tokens.length - 1]);
+    // Bare last token only when it looks like food ("подушечки"), never brands ("Маска", "Bombbar").
+    const last = tokens[tokens.length - 1]!;
+    if (last.length >= 5 && looksLikeFoodToken(last)) {
+      push(last);
+    }
   }
 
   return out.slice(0, limit);
+}
+
+function looksLikeFoodToken(token: string): boolean {
+  return /(каш|суп|борщ|салат|яйц|куриц|индейк|мяс|напит|сок|хлеб|пицц|паст|рис|греч|овсян|творог|йогурт|сыр|конфет|шоколад|батончик|печень|подушечк|варен|тушен|котлет|молоко|кефир|орех|фрукт|ягод|овощ|картоф|макарон|пельмен|блин|вафл|candy|chocolate|yogurt|cheese|bread|soup|salad|chicken|turkey|porridge|pasta|pizza|snack|bar)/i.test(
+    token,
+  );
 }

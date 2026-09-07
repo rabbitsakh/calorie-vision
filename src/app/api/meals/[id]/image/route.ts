@@ -45,17 +45,23 @@ export async function POST(
 
     let remoteUrl = body.imageUrl?.trim() ?? "";
     if (!remoteUrl && body.query?.trim()) {
-      const candidates = await searchMealPhotoCandidates(body.query.trim(), 5);
-      remoteUrl = candidates[0]?.url ?? "";
+      const candidates = await searchMealPhotoCandidates(body.query.trim(), 8);
+      remoteUrl =
+        candidates.find((c) => c.source === "openfoodfacts")?.url ??
+        candidates[0]?.url ??
+        "";
     }
     if (!remoteUrl) {
-      const candidates = await searchMealPhotoCandidates(existing.dishName, 5);
-      remoteUrl = candidates[0]?.url ?? "";
+      const candidates = await searchMealPhotoCandidates(existing.dishName, 8);
+      // Auto-pick: prefer OFF product photos; skip Wikimedia if OFF has anything.
+      remoteUrl =
+        candidates.find((c) => c.source === "openfoodfacts")?.url ??
+        "";
     }
 
     if (!remoteUrl || !isAllowedImageUrl(remoteUrl)) {
       return NextResponse.json(
-        { error: "Не нашли подходящее фото. Попробуйте другой запрос." },
+        { error: "Не нашли подходящее фото продукта. Выберите вручную или оставьте без фото." },
         { status: 404 },
       );
     }

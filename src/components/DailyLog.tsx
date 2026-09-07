@@ -1264,12 +1264,32 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
     const missingIds = entries
       .filter((entry) => !entry.imagePath && !attemptedImageMealIds.current.has(entry.id))
       .map((entry) => entry.id);
-    if (missingIds.length === 0) {
+    const lookupWithImageIds = entries
+      .filter((entry) => {
+        if (!entry.imagePath || attemptedImageMealIds.current.has(`repair:${entry.id}`)) {
+          return false;
+        }
+        const source = entry.recognitionSource?.trim() || "";
+        return (
+          source === "gigachat-lookup" ||
+          source === "gigachat-barcode" ||
+          source === "openfoodfacts-search" ||
+          source === "openfoodfacts-barcode" ||
+          source === "ru-sku-cache" ||
+          source === "ru-nutrition-table"
+        );
+      })
+      .map((entry) => entry.id);
+
+    if (missingIds.length === 0 && lookupWithImageIds.length === 0) {
       return;
     }
 
     for (const id of missingIds) {
       attemptedImageMealIds.current.add(id);
+    }
+    for (const id of lookupWithImageIds) {
+      attemptedImageMealIds.current.add(`repair:${id}`);
     }
     const date = selectedDate;
 
@@ -1281,8 +1301,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ date }),
           });
-          const data = (await response.json()) as { updated?: number };
-          if (response.ok && (data.updated ?? 0) > 0 && selectedDateRef.current === date) {
+          const data = (await response.json()) as { updated?: number; repaired?: number };
+          const changed = (data.updated ?? 0) + (data.repaired ?? 0);
+          if (response.ok && changed > 0 && selectedDateRef.current === date) {
             if (dayRefresh) {
               void dayRefresh(true);
             } else {

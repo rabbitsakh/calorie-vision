@@ -28,7 +28,13 @@ test("dishImageLookupQueries shortens long product names", () => {
   const queries = dishImageLookupQueries("Хрустящие банановые подушечки");
   assert.ok(queries.includes("Хрустящие банановые подушечки"));
   assert.ok(queries.some((q) => /банановые подушечки/i.test(q)));
-  assert.ok(queries.some((q) => normalizeDishName(q) === "подушечки" || /подушечк/i.test(q)));
+  assert.ok(queries.some((q) => /подушечк/i.test(q)));
   assert.ok(queries.length >= 2);
   assert.ok(queries.length <= 5);
+});
+
+test("dishImageLookupQueries does not use bare brand tokens like Маска", () => {
+  const queries = dishImageLookupQueries("конфеты Маска");
+  assert.ok(queries.some((q) => /конфеты/i.test(q)));
+  assert.ok(!queries.some((q) => normalizeDishName(q) === "маска"));
 });
