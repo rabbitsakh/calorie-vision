@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
+import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 import { useRouter } from "next/navigation";
@@ -22,13 +23,13 @@ export default function PlanPage() {
     <AppShell
       title="План"
       compact
-      description="Неделя: норма и факт по калориям."
+      description="Неделя, покупки и спокойный обзор."
       date={date}
     >
       <AuthGate>
         <div className="flex flex-col gap-4">
           <p className="text-sm text-slate-600">
-            Полный обзор недели: норма и факт по калориям. Нажмите на день — откроется рацион.
+            Норма и факт по калориям. Нажмите на день — откроется рацион.
           </p>
           <WeeklyPlan
             selectedDate={date}
@@ -36,6 +37,7 @@ export default function PlanPage() {
               router.push(`/ration?date=${next}`);
             }}
           />
+          <WeeklyReportCard endDate={date} />
           <ShoppingListPanel selectedDate={date} />
         </div>
       </AuthGate>

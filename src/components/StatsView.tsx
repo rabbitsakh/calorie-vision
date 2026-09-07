@@ -31,6 +31,10 @@ type StatsResponse = {
   period: "week" | "month" | "quarter";
   days: StatsDay[];
   calorieTarget: number | null;
+  fiberTarget?: number | null;
+  sugarTarget?: number | null;
+  avgFiber?: number;
+  avgSugar?: number;
   hourlyCalories: number[];
   moodInsight?: string | null;
   corridorAlert?: CorridorStreakAlert | null;
@@ -454,16 +458,45 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 
 // ── MacroChart ────────────────────────────────────────────────────────────────
 
-function MacroChart({ days, period }: { days: StatsDay[]; period: "week" | "month" | "quarter" }) {
+function MacroChart({
+  days,
+  period,
+  fiberTarget,
+  sugarTarget,
+  avgFiber,
+  avgSugar,
+}: {
+  days: StatsDay[];
+  period: "week" | "month" | "quarter";
+  fiberTarget?: number | null;
+  sugarTarget?: number | null;
+  avgFiber?: number;
+  avgSugar?: number;
+}) {
   const hasData = days.some((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
 
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
   const xLabels = axisLabelIndices(days.length, period);
   const compactAxis = days.length > 5;
+  const showPulse = fiberTarget != null || sugarTarget != null;
 
   return (
     <div className="flex flex-col gap-2">
+      {showPulse ? (
+        <p className="text-xs text-slate-600">
+          {[
+            fiberTarget != null
+              ? `клетчатка ср. ${Math.round(avgFiber ?? 0)} / ${Math.round(fiberTarget)} г`
+              : null,
+            sugarTarget != null
+              ? `сахар ср. ${Math.round(avgSugar ?? 0)} / ${Math.round(sugarTarget)} г`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      ) : null}
       <div className="flex gap-3 text-xs text-slate-600">
         {[{ label: "Белки", color: "bg-teal-500" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-violet-400" }].map((m) => (
           <span key={m.label} className="flex items-center gap-1">
@@ -957,7 +990,14 @@ export function StatsView({ endDate }: StatsViewProps) {
           <section className="card p-4 md:p-6">
             <h2 className="font-display text-lg font-bold">БЖУ, клетчатка и сахар</h2>
             <div className="mt-4">
-              <MacroChart days={data.days} period={period} />
+              <MacroChart
+                days={data.days}
+                period={period}
+                fiberTarget={data.fiberTarget}
+                sugarTarget={data.sugarTarget}
+                avgFiber={data.avgFiber}
+                avgSugar={data.avgSugar}
+              />
             </div>
           </section>
 

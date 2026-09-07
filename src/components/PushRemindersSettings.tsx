@@ -12,6 +12,7 @@ import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import {
+  QUIET_FIRST_RUN_KINDS,
   REMINDER_SCHEDULE,
   isEmptyPushReminderPrefs,
   quietFirstRunPrefs,
@@ -127,6 +128,7 @@ export function PushRemindersSettings() {
   const [quietSaving, setQuietSaving] = useState(false);
   const [reminderPrefs, setReminderPrefs] = useState<Record<ReminderKind, ReminderPrefRow>>(defaultPrefRows);
   const [prefsSaving, setPrefsSaving] = useState(false);
+  const [showMoreReminders, setShowMoreReminders] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardMode, setWizardMode] = useState<"install" | "reinstall">("install");
 
@@ -437,10 +439,10 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Какие напоминания слать</p>
         <p className="mt-1 text-sm text-slate-600">
-          Выключите ненужные или сдвиньте час — по умолчанию как в расписании.
+          Основные включены по умолчанию. Остальные — по желанию.
         </p>
         <ul className="mt-3 space-y-2">
-          {REMINDER_SCHEDULE.map((slot) => {
+          {REMINDER_SCHEDULE.filter((slot) => QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {
             const row = reminderPrefs[slot.kind] ?? { enabled: true, hour: slot.hour };
             return (
               <li
@@ -485,6 +487,65 @@ export function PushRemindersSettings() {
             );
           })}
         </ul>
+        <button
+          type="button"
+          className="mt-2 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+          onClick={() => setShowMoreReminders((v) => !v)}
+        >
+          {showMoreReminders ? "Скрыть дополнительные" : "Ещё напоминания"}
+        </button>
+        {showMoreReminders ? (
+          <ul className="mt-2 space-y-2">
+            {REMINDER_SCHEDULE.filter((slot) => !QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {
+              const row = reminderPrefs[slot.kind] ?? { enabled: true, hour: slot.hour };
+              return (
+                <li
+                  key={slot.kind}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+                >
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                      checked={row.enabled}
+                      onChange={(event) => {
+                        const enabled = event.target.checked;
+                        setReminderPrefs((prev) => ({
+                          ...prev,
+                          [slot.kind]: {
+                            ...prev[slot.kind],
+                            enabled,
+                            hour: prev[slot.kind]?.hour ?? slot.hour,
+                          },
+                        }));
+                      }}
+                    />
+                    <span className="min-w-0">{reminderKindLabel(slot.kind, row.hour)}</span>
+                  </label>
+                  <select
+                    className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                    value={String(row.hour)}
+                    disabled={!row.enabled}
+                    aria-label={`Час: ${slot.kind}`}
+                    onChange={(event) => {
+                      const hour = Number(event.target.value);
+                      setReminderPrefs((prev) => ({
+                        ...prev,
+                        [slot.kind]: { enabled: prev[slot.kind]?.enabled ?? true, hour },
+                      }));
+                    }}
+                  >
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <option key={hour} value={String(hour)}>
+                        {String(hour).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
         <button
           type="button"
           className="btn btn-secondary mt-3 text-sm"

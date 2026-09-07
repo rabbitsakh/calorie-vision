@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AppSplash } from "@/components/AppSplash";
@@ -22,8 +23,7 @@ import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
-import { NextBadgeChip } from "@/components/NextBadgeChip";
-import { NextMetaChip } from "@/components/NextMetaChip";
+import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
@@ -44,10 +44,6 @@ import { useTimezone } from "@/lib/use-timezone";
 
 const WeeklyPlan = dynamic(
   () => import("@/components/WeeklyPlan").then((m) => m.WeeklyPlan),
-  { ssr: false, loading: () => null },
-);
-const ShoppingListPanel = dynamic(
-  () => import("@/components/ShoppingListPanel").then((m) => m.ShoppingListPanel),
   { ssr: false, loading: () => null },
 );
 const StreakWidget = dynamic(
@@ -382,16 +378,20 @@ function RationBody({
                 </div>
                 <div className="flex flex-col gap-3 overflow-y-auto p-3 md:gap-4 md:p-4">
                   <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-                  <WeeklyChallenge selectedDate={date} refreshKey={refreshKey} />
                   <ChallengeStrip
                     selectedDate={date}
                     refreshKey={refreshKey}
                     onOpenHabits={openHabitsPanel}
                   />
-                  <NextBadgeChip refreshKey={refreshKey} />
-                  <NextMetaChip refreshKey={refreshKey} />
+                  <ProgressHintsRow refreshKey={refreshKey} />
                   <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
-                  <ShoppingListPanel selectedDate={date} />
+                  <Link
+                    href={withBasePath("/plan")}
+                    className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-teal-200"
+                  >
+                    Список покупок — на экране «План»
+                    <ShoppingCountChip />
+                  </Link>
                   <DiaryNoteWidget selectedDate={date} />
                 </div>
               </div>

@@ -129,7 +129,13 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
     setDraftBanner(draft?.result ?? null);
   }, [pendingResult, selectedDate]);
 
+  const pendingResultRef = useRef<RecognitionResponse | null>(null);
+  useEffect(() => {
+    pendingResultRef.current = pendingResult;
+  }, [pendingResult]);
+
   const openPending = useCallback((result: RecognitionResponse) => {
+    pendingResultRef.current = result;
     setPendingResult(result);
     setDraftBanner(null);
     upsertPendingConfirmDraft(selectedDate, result);
@@ -143,6 +149,28 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
       }
     }
   }, [selectedDate, photoContext]);
+
+  const openPendingRef = useRef(openPending);
+  useEffect(() => {
+    openPendingRef.current = openPending;
+  }, [openPending]);
+
+  useEffect(() => {
+    return subscribeMealDraftQueue(() => {
+      refreshQueueCount();
+      if (pendingResultRef.current) {
+        refreshDraftBanner();
+        return;
+      }
+      // Soft auto-open after offline flush wrote a pending-confirm for this day.
+      const draft = getPendingConfirmDraft(selectedDate);
+      if (draft?.result) {
+        openPendingRef.current(draft.result);
+        return;
+      }
+      refreshDraftBanner();
+    });
+  }, [refreshDraftBanner, refreshQueueCount, selectedDate]);
 
   const flushFailedSaves = useCallback(async () => {
     const failed = listFailedSaves();
@@ -206,13 +234,6 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
     // hydrate on date change only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
-
-  useEffect(() => {
-    return subscribeMealDraftQueue(() => {
-      refreshQueueCount();
-      refreshDraftBanner();
-    });
-  }, [refreshDraftBanner, refreshQueueCount]);
 
   useEffect(() => {
     function onOnline() {
