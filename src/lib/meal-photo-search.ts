@@ -22,7 +22,10 @@ export async function searchMealPhotoCandidates(
   const offLists = await Promise.all(
     queries.slice(0, 2).map((query) => searchOpenFoodFactsImageCandidates(query, 5)),
   );
-  const wiki = await searchFoodImageCandidates(primary, { limit: Math.max(6, limit) });
+  const wiki = await searchFoodImageCandidates(primary, {
+    limit: Math.max(6, limit),
+    mode: "picker",
+  });
 
   const out: MealPhotoCandidate[] = [];
   const seen = new Set<string>();
@@ -43,10 +46,10 @@ export async function searchMealPhotoCandidates(
     push(item);
   }
 
-  // Secondary wiki queries if still thin.
+  // Secondary wiki queries if still thin (food-context only inside searchFoodImageCandidates).
   if (out.length < 4) {
     for (const query of queries.slice(1, 3)) {
-      const extra = await searchFoodImageCandidates(query, { limit: 4 });
+      const extra = await searchFoodImageCandidates(query, { limit: 4, mode: "picker" });
       for (const item of extra) {
         push(item);
       }

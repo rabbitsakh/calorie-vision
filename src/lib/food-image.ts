@@ -1,9 +1,13 @@
 const USER_AGENT = "CalorieVision/1.0 (https://calorievision.ru; food image lookup)";
 const WIKI_TIMEOUT_MS = 8000;
 
-const SKIP_TITLE =
-  /(значения|список|категория|дизамбиг|disambiguation|list of|category:|flag of|coat of arms)/i;
-const SKIP_FILE = /(flag|map|logo|icon|svg|diagram|chart|coat_of_arms|wordmark)/i;
+/** Disambiguation / non-food Wikipedia titles. */
+export const SKIP_WIKI_TITLE =
+  /(значения|список|категория|дизамбиг|disambiguation|list of|category:|flag of|coat of arms|биограф|biography|акт[её]р|actress|actor|персона|person\b|фильм|filmography|\bfilm\b|кино|маскарад|карнавал|костюм|costume|портрет|portrait|художник|painter|писатель|writer|политик|учёный|ученый|scientist|музыкант|musician|спортсмен|athlete|футболист|маска\b|mask\b|супергерой|superhero|комикс|comic)/i;
+
+/** File names that are almost never product photos. */
+export const SKIP_IMAGE_FILE =
+  /(flag|map|logo|icon|svg|diagram|chart|coat_of_arms|wordmark|portrait|self[-_]?portrait|costume|carnival|mask_|_mask|actor|actress|person|people|statue|sculpture|painting|drawing)/i;
 
 type WikiThumbnailPage = {
   pageid?: number;
@@ -56,6 +60,77 @@ export function isAllowedImageUrl(url: string): boolean {
   }
 }
 
+export function isRejectedWikiTitle(title: string): boolean {
+  return SKIP_WIKI_TITLE.test(title.trim());
+}
+
+/** True when a short bare token is likely a brand / ambiguous name, not a dish. */
+export function isAmbiguousBareImageQuery(query: string): boolean {
+  const tokens = query
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .split(/[^a-zа-я0-9]+/i)
+    .filter(Boolean);
+  if (tokens.length === 0) return true;
+  if (tokens.length >= 3) return false;
+  if (tokens.length === 1) {
+    const t = tokens[0]!;
+    if (looksLikeFoodToken(t)) return false;
+    // Single food words are ok (борщ, овсянка); short Latin brands are not.
+    if (/^[a-z0-9]+$/i.test(t) && t.length <= 12) return true;
+    if (t.length <= 5) return true;
+    return true;
+  }
+  // Two tokens: still ambiguous if neither looks like food ("energy bombbar").
+  return !tokens.some((t) => looksLikeFoodToken(t));
+}
+
+const FOOD_TOKEN =
+  /(каш[аеи]|суп|борщ|щи\b|салат|яйц|куриц|индейк|говяд|свин|рыб|мяс|напит|сок\b|хлеб|пицц|паст|рис\b|греч|овсян|творог|йогурт|сыр\b|конфет|шоколад|батончик|печень|варен|тушен|жарен|запеч|котлет|сосиск|колбас|молоко|кефир|сметан|масло|орех|фрукт|ягод|овощ|картоф|макарон|лапш|пельмен|блин|вафл|пудинг|протеин|energy|drink|candy|chocolate|yogurt|cheese|bread|soup|salad|chicken|turkey|porridge|oatmeal|buckwheat|pasta|pizza|meal|food|product|dish|snack|(?:^|[^a-zа-я])bars?(?:[^a-zа-я]|$))/i;
+
+export function looksLikeFoodToken(token: string): boolean {
+  return FOOD_TOKEN.test(token);
+}
+
+/**
+ * Wikipedia/Commons queries: always bias toward food/product pages.
+ * Bare brand names ("Маска", "Bombbar") are never searched as-is.
+ */
+export function buildFoodImageWikiQueries(query: string, brand?: string): string[] {
+  const base = query.trim();
+  if (base.length < 2) return [];
+
+  const stripped = withoutBrand(base, brand);
+  const core = (stripped && stripped.length >= 3 ? stripped : base).trim();
+  const out: string[] = [];
+  const push = (value: string) => {
+    const next = value.trim().replace(/\s+/g, " ");
+    if (next.length < 3) return;
+    if (out.some((q) => q.toLowerCase() === next.toLowerCase())) return;
+    out.push(next);
+  };
+
+  // Prefer food-context forms first.
+  push(`${core} продукт`);
+  push(`${core} еда`);
+  push(`${core} упаковка`);
+  push(`${core} блюдо`);
+  push(`${core} food`);
+  push(`${core} food product`);
+
+  if (brand?.trim() && core.toLowerCase() !== brand.trim().toLowerCase()) {
+    push(`${brand.trim()} ${core} продукт`);
+  }
+
+  // Only allow unsuffixed core when it already looks like a dish description.
+  if (!isAmbiguousBareImageQuery(core)) {
+    push(core);
+  }
+
+  return out.slice(0, 6);
+}
+
 export function pickWikipediaThumbnail(data: WikiQueryResponse): string | undefined {
   return listWikipediaThumbnails(data, 1)[0];
 }
@@ -68,7 +143,7 @@ export function listWikipediaThumbnails(data: WikiQueryResponse, limit = 6): str
   for (const page of ranked) {
     const title = page.title ?? "";
     const source = page.thumbnail?.source;
-    if (!source || SKIP_TITLE.test(title) || SKIP_FILE.test(source)) {
+    if (!source || isRejectedWikiTitle(title) || SKIP_IMAGE_FILE.test(source)) {
       continue;
     }
     if (isAllowedImageUrl(source) && !urls.includes(source)) {
@@ -92,7 +167,7 @@ export function listCommonsImages(data: CommonsQueryResponse, limit = 6): string
 
   for (const page of pages) {
     const title = page.title ?? "";
-    if (SKIP_TITLE.test(title) || SKIP_FILE.test(title)) {
+    if (isRejectedWikiTitle(title) || SKIP_IMAGE_FILE.test(title)) {
       continue;
     }
 
@@ -106,7 +181,12 @@ export function listCommonsImages(data: CommonsQueryResponse, limit = 6): string
     }
 
     const source = info?.thumburl || info?.url;
-    if (source && isAllowedImageUrl(source) && !SKIP_FILE.test(source) && !urls.includes(source)) {
+    if (
+      source &&
+      isAllowedImageUrl(source) &&
+      !SKIP_IMAGE_FILE.test(source) &&
+      !urls.includes(source)
+    ) {
       urls.push(source);
     }
     if (urls.length >= limit) {
@@ -154,15 +234,30 @@ function withoutBrand(query: string, brand?: string): string | undefined {
   return stripped.length >= 3 && stripped.toLowerCase() !== query.toLowerCase() ? stripped : undefined;
 }
 
+export type FoodImageSearchMode = "auto" | "picker";
+
 export async function findFoodImage(options: {
   query: string;
   brand?: string;
   productImageUrl?: string;
+  /** auto (default): OFF product image only — never invent wiki portraits for brands. */
+  mode?: FoodImageSearchMode;
 }): Promise<string | undefined> {
+  const mode = options.mode ?? "auto";
+  if (mode === "auto") {
+    const off = options.productImageUrl?.trim();
+    if (off && isAllowedImageUrl(off)) {
+      return off;
+    }
+    // Prefer empty over a wrong Wikipedia portrait for barcode/text brands.
+    return undefined;
+  }
+
   const candidates = await searchFoodImageCandidates(options.query, {
     brand: options.brand,
     productImageUrl: options.productImageUrl,
     limit: 1,
+    mode: "picker",
   });
   return candidates[0]?.url;
 }
@@ -176,9 +271,15 @@ export type FoodImageCandidate = {
 /** Collect several safe HTTPS candidates for a dish photo picker. */
 export async function searchFoodImageCandidates(
   rawQuery: string,
-  options?: { brand?: string; productImageUrl?: string; limit?: number },
+  options?: {
+    brand?: string;
+    productImageUrl?: string;
+    limit?: number;
+    mode?: FoodImageSearchMode;
+  },
 ): Promise<FoodImageCandidate[]> {
   const limit = options?.limit ?? 8;
+  const mode = options?.mode ?? "picker";
   const query = rawQuery.trim();
   const out: FoodImageCandidate[] = [];
   const seen = new Set<string>();
@@ -195,19 +296,28 @@ export async function searchFoodImageCandidates(
     push(options.productImageUrl, "openfoodfacts", "Open Food Facts");
   }
 
+  // Auto-attach never falls through to Wikimedia (portraits / costumes / actors).
+  if (mode === "auto") {
+    return out.slice(0, limit);
+  }
+
   if (query.length < 2) {
     return out;
   }
 
-  const stripped = withoutBrand(query, options?.brand);
-  const wikiQueries = [query, stripped, `${stripped || query} блюдо`, `${stripped || query} food`].filter(
-    (value): value is string => Boolean(value && value.trim().length >= 2),
-  );
+  const wikiQueries = buildFoodImageWikiQueries(query, options?.brand);
+  if (wikiQueries.length === 0) {
+    return out.slice(0, limit);
+  }
+
+  // Search food-biased queries (not bare brand). Cap parallel calls.
+  const searchQs = wikiQueries.slice(0, 3);
+  const commonsSeed = wikiQueries.find((q) => /продукт|еда|food|блюдо|упаковка/i.test(q)) ?? wikiQueries[0]!;
 
   const [wikiRu, wikiEn, commons] = await Promise.all([
-    Promise.all(wikiQueries.slice(0, 2).map((q) => searchWikipediaImageList(q, "ru", 4))),
-    Promise.all(wikiQueries.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
-    searchCommonsImageList(stripped || query, 4),
+    Promise.all(searchQs.map((q) => searchWikipediaImageList(q, "ru", 4))),
+    Promise.all(searchQs.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
+    searchCommonsImageList(commonsSeed.replace(/\s+(продукт|еда|упаковка|блюдо|food|product)$/i, "").trim() || query, 4),
   ]);
 
   for (const urls of wikiRu) {
@@ -270,7 +380,7 @@ async function searchCommonsImageList(query: string, limit: number): Promise<str
     format: "json",
     origin: "*",
     generator: "search",
-    gsrsearch: `${trimmed} food`,
+    gsrsearch: `${trimmed} food product`,
     gsrlimit: String(Math.max(8, limit)),
     gsrnamespace: "6",
     prop: "imageinfo",
