@@ -7,6 +7,9 @@ type ShareDayCardProps = {
   date: string;
   timezone?: string | null;
   className?: string;
+  /** Full secondary button (legacy) or quiet menu row inside ShareMenu. */
+  variant?: "button" | "menu";
+  onDone?: () => void;
 };
 
 type DayTotals = {
@@ -21,7 +24,12 @@ type DayTotals = {
 /**
  * Canvas share card for the selected day (kcal / macros / streak).
  */
-export function ShareDayButton({ date, className = "" }: ShareDayCardProps) {
+export function ShareDayButton({
+  date,
+  className = "",
+  variant = "button",
+  onDone,
+}: ShareDayCardProps) {
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -76,13 +84,29 @@ export function ShareDayButton({ date, className = "" }: ShareDayCardProps) {
         URL.revokeObjectURL(url);
         setHint("Картинка скачана");
       }
+      onDone?.();
     } catch {
       setHint("Не удалось поделиться");
     } finally {
       setBusy(false);
       window.setTimeout(() => setHint(null), 2500);
     }
-  }, [date]);
+  }, [date, onDone]);
+
+  if (variant === "menu") {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 ${className}`.trim()}
+        disabled={busy}
+        onClick={() => void share()}
+      >
+        <span>{busy ? "Готовим…" : "День"}</span>
+        {hint ? <span className="text-[11px] text-slate-400">{hint}</span> : null}
+      </button>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-2 ${className}`.trim()}>
