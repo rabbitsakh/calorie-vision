@@ -228,6 +228,11 @@ function RationBody({
         <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+        <ChallengeStrip
+          selectedDate={date}
+          refreshKey={refreshKey}
+          onOpenHabits={openHabitsPanel}
+        />
         <ShareMenu date={date} className="px-0.5" />
         <NextStepBar
           selectedDate={date}
@@ -330,10 +335,9 @@ function RationBody({
               <div className="min-w-0">
                 <p className="font-semibold text-slate-800">
                   Привычки и заметки
-                  <ShoppingCountChip />
                 </p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Серия, челлендж, квесты, значки, список покупок
+                  Серия, челлендж, квесты, значки
                 </p>
               </div>
               <ChevronIcon open={showHabits} />
@@ -366,7 +370,7 @@ function RationBody({
                     <p id="habits-sheet-title" className="font-semibold text-slate-900">
                       Привычки и заметки
                     </p>
-                    <p className="text-xs text-slate-500">Серия, челлендж, квесты, список покупок</p>
+                    <p className="text-xs text-slate-500">Серия, челлендж, квесты</p>
                   </div>
                   <button
                     type="button"
@@ -378,11 +382,6 @@ function RationBody({
                 </div>
                 <div className="flex flex-col gap-3 overflow-y-auto p-3 md:gap-4 md:p-4">
                   <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-                  <ChallengeStrip
-                    selectedDate={date}
-                    refreshKey={refreshKey}
-                    onOpenHabits={openHabitsPanel}
-                  />
                   <ProgressHintsRow refreshKey={refreshKey} />
                   <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
                   <Link

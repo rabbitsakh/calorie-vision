@@ -63,10 +63,22 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (hash !== "#rewards" && hash !== "#reminders") return;
-    const id = hash === "#rewards" ? "rewards" : "reminders";
-    const el = document.getElementById(id);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (hash !== "#rewards" && hash !== "#reminders" && hash !== "#nutrient-goals" && hash !== "#account") {
+      return;
+    }
+    const id =
+      hash === "#rewards"
+        ? "rewards"
+        : hash === "#reminders"
+          ? "reminders"
+          : hash === "#nutrient-goals"
+            ? "nutrient-goals"
+            : "account";
+    // Wait a tick so accordion content (ProfileForm) is mounted when account opens.
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+    return () => window.clearTimeout(t);
   }, [hash]);
 
   return (
@@ -77,7 +89,10 @@ export default function ProfilePage() {
             id="account"
             title="Аккаунт и цели"
             hint="Профиль, норма, окно еды"
-            defaultOpen={hash !== "#rewards" && hash !== "#reminders"}
+            defaultOpen={
+              hash !== "#rewards" && hash !== "#reminders"
+            }
+            forceOpen={hash === "#account" || hash === "#nutrient-goals"}
           >
             <div className="flex flex-col gap-4">
               <ProfileForm />

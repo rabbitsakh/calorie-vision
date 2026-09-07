@@ -1,5 +1,52 @@
 [
   {
+    "version": "1.7.21",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 13 — day share parity, water push target, habits tidy",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Карточка «Поделиться днём» с клетчаткой, сахаром и водой"
+      },
+      {
+        "kind": "fix",
+        "text": "Push по воде считает цель из профиля, а не всегда 2000 мл"
+      },
+      {
+        "kind": "improvement",
+        "text": "Привычки без устаревшего «список покупок» в подзаголовке"
+      },
+      {
+        "kind": "improvement",
+        "text": "Тихий nudge к целям клетчатки/сахара в сводке дня"
+      },
+      {
+        "kind": "feature",
+        "text": "В статистике средний пульс воды рядом с клетчаткой/сахаром"
+      },
+      {
+        "kind": "improvement",
+        "text": "ChallengeStrip снова под сводкой дня, не только в sheet"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мягкие аллергены на быстром добавлении, избранном и AI"
+      },
+      {
+        "kind": "improvement",
+        "text": "Compact дневник показывает клетчатку и сахар в итоге"
+      },
+      {
+        "kind": "improvement",
+        "text": "Share недели на экране «План»"
+      },
+      {
+        "kind": "improvement",
+        "text": "PDF-экспорт: подписи клетчатка/сахар на русском"
+      }
+    ]
+  },
+  {
     "version": "1.7.20",
     "date": "2026-09-07",
     "summary": "feat(ux): Wave 12 — allergens in diary, week fiber/sugar, weight chip, quick-add more",

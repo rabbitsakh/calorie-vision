@@ -29,6 +29,7 @@ const baseCtx = {
   totalCalories: 0,
   calorieTarget: 2000,
   waterMl: 0,
+  waterTargetMl: null,
   streak: 0,
   streakBeforeToday: 5,
   loggedToday: false,
@@ -143,6 +144,29 @@ test("water midday includes progress", () => {
   const payload = buildReminderPayload("water_midday", { ...baseCtx, waterMl: 400 });
   assert.ok(payload);
   assert.match(payload.body, /400 мл/);
+  assert.match(payload.body, new RegExp(String(WATER_DAILY_TARGET_ML)));
+});
+
+test("water reminders use personal waterTargetMl", () => {
+  const payload = buildReminderPayload("water_evening", {
+    ...baseCtx,
+    waterMl: 900,
+    waterTargetMl: 1500,
+  });
+  assert.ok(payload);
+  assert.match(payload.body, /900 мл из 1500/);
+  assert.match(payload.body, /600 мл/);
+});
+
+test("water evening skipped when personal target reached", () => {
+  assert.equal(
+    buildReminderPayload("water_evening", {
+      ...baseCtx,
+      waterMl: 1500,
+      waterTargetMl: 1500,
+    }),
+    null,
+  );
 });
 
 test("calories reminder shows target progress", () => {

@@ -48,7 +48,7 @@ async function loadUserReminderContext(
     }),
     prisma.user.findUnique({
       where: { id: userId },
-      select: DIET_PROFILE_SELECT,
+      select: { ...DIET_PROFILE_SELECT, waterTargetMl: true },
     }),
     prisma.weightEntry.findFirst({
       where: { userId },
@@ -94,6 +94,7 @@ async function loadUserReminderContext(
     totalCalories,
     calorieTarget,
     waterMl: waterTotal._sum.ml ?? 0,
+    waterTargetMl: user?.waterTargetMl ?? null,
     streak: streakStats.streak,
     streakBeforeToday: streakStats.streakBeforeToday,
     loggedToday: streakStats.loggedToday,

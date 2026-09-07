@@ -116,6 +116,7 @@ function MiniBar({
   detail,
   pct,
   warnOver = true,
+  href,
 }: {
   label: string;
   value: string;
@@ -123,11 +124,12 @@ function MiniBar({
   pct: number;
   /** When false, over-target is fine (e.g. fiber). */
   warnOver?: boolean;
+  href?: string;
 }) {
   const clamped = Math.min(100, Math.max(0, pct));
   const over = warnOver && pct > 105;
-  return (
-    <div className="min-w-0 flex-1">
+  const inner = (
+    <>
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
         <p className="truncate text-xs font-semibold text-slate-700">
@@ -141,8 +143,16 @@ function MiniBar({
           style={{ width: `${clamped}%` }}
         />
       </div>
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="min-w-0 flex-1 rounded-lg outline-offset-2 hover:opacity-90">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="min-w-0 flex-1">{inner}</div>;
 }
 
 function DayHeroSkeleton() {
@@ -335,6 +345,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
                   ? (data.waterMl / data.waterTarget) * 100
                   : 0
               }
+              href={withBasePath(`/water?date=${encodeURIComponent(selectedDate)}`)}
             />
           </div>
           {data.showFiberSugar ? (
@@ -358,6 +369,13 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
                 />
               ) : null}
             </div>
+          ) : isToday ? (
+            <Link
+              href={withBasePath("/profile#nutrient-goals")}
+              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+            >
+              Цели по клетчатке и сахару
+            </Link>
           ) : null}
           {data.weightKg == null && isToday ? (
             <Link

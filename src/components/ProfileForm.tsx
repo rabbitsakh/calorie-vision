@@ -482,7 +482,7 @@ export function ProfileForm() {
             </div>
           </section>
 
-          <section className="card p-4 md:p-6">
+          <section id="nutrient-goals" className="card p-4 md:p-6 scroll-mt-3">
             <h2 className="font-display text-lg font-semibold text-slate-900">Цели нутриентов</h2>
             <p className="mt-0.5 text-sm text-slate-500">
               Вода, клетчатка и мягкий лимит сахара

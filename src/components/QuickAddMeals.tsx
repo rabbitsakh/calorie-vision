@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { AllergenHint } from "@/components/AllergenHint";
+import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
@@ -81,10 +83,28 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   const [copyError, setCopyError] = useState<string | null>(null);
   const [addNotice, setAddNotice] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
+  const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
   }, [selectedDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"));
+        if (!resp.ok) return;
+        const json = (await resp.json()) as { allergens?: unknown };
+        if (!cancelled) setUserAllergens(parseAllergensJson(json.allergens));
+      } catch {
+        // non-critical
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
 
   const load = useCallback(async () => {
     try {
@@ -309,6 +329,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-semibold text-slate-800">{item.dishName}</p>
+                <AllergenHint text={item.dishName} allergens={userAllergens} />
                 <p className="text-xs text-slate-500">{item.why}</p>
               </div>
               <div className="shrink-0 text-right">
