@@ -3,11 +3,33 @@
 import { useEffect, useState } from "react";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { cheerPhrase } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 
 const PANEL_ID = "motivation-tip";
 const CACHE_PREFIX = "motivation-tip-";
+const CHEER_DAY_KEY = "cv-cheer-day";
+
+async function pickOwnedCheerPhrase(): Promise<string | null> {
+  try {
+    const resp = await fetch(withBasePath("/api/rewards"));
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as {
+      rewards?: Array<{ key: string; group: string; unlocked: boolean }>;
+    };
+    const cheers = (data.rewards ?? []).filter((r) => r.group === "cheer" && r.unlocked);
+    if (cheers.length === 0) return null;
+    // Stable per calendar day so the tip doesn’t flicker.
+    const day = new Date().toISOString().slice(0, 10);
+    let salt = 0;
+    for (const ch of day) salt += ch.charCodeAt(0);
+    const pick = cheers[salt % cheers.length]!;
+    return cheerPhrase(pick.key);
+  } catch {
+    return null;
+  }
+}
 
 type MotivationTipProps = {
   today: string;
@@ -65,17 +87,30 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
     void (async () => {
       try {
         const resp = await fetch(withBasePath("/api/motivation-tip"));
-        if (!resp.ok) return;
-        const data = (await resp.json()) as { tip?: string; date?: string };
-        if (!data.tip || data.date !== today) return;
-        setTip(data.tip);
+        if (resp.ok) {
+          const data = (await resp.json()) as { tip?: string; date?: string };
+          if (data.tip && data.date === today) {
+            setTip(data.tip);
+            try {
+              localStorage.setItem(`${CACHE_PREFIX}${today}`, data.tip);
+            } catch {
+              // ignore
+            }
+            return;
+          }
+        }
+      } catch {
+        // fall through to cheer
+      }
+      const cheer = await pickOwnedCheerPhrase();
+      if (cheer) {
+        setTip(cheer);
         try {
-          localStorage.setItem(`${CACHE_PREFIX}${today}`, data.tip);
+          localStorage.setItem(`${CACHE_PREFIX}${today}`, cheer);
+          localStorage.setItem(CHEER_DAY_KEY, today);
         } catch {
           // ignore
         }
-      } catch {
-        // non-critical
       }
     })();
   }, [today, tipAllowed, day]);

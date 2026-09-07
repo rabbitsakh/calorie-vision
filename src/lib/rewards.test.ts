@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   challengeChestSourceKey,
+  cheerPhrase,
+  isCheerReward,
+  isStickerReward,
   META_OWNED_THRESHOLDS,
+  nextMetaProgress,
   PITY_CHEST_EVERY,
   pendingMetaMilestones,
   pickRewardKey,
@@ -11,6 +15,7 @@ import {
   rewardDef,
   REWARD_DEFS,
   chestPoolDefs,
+  stickerGlyph,
   streakChestSourceKey,
   weekChestSourceKey,
 } from "./rewards.ts";
@@ -70,5 +75,23 @@ describe("rewards", () => {
     assert.equal(weekChestSourceKey("2026-08-24"), "week:2026-08-24");
     assert.equal(questChestSourceKey(2), "quest-chest:2");
     assert.equal(QUEST_DAYS_PER_CHEST, 3);
+  });
+
+  test("nextMetaProgress shows remaining until next threshold", () => {
+    const first = META_OWNED_THRESHOLDS[0]!;
+    const hint = nextMetaProgress(first - 2);
+    assert.ok(hint);
+    assert.equal(hint!.target, first);
+    assert.equal(hint!.remaining, 2);
+    assert.match(hint!.label, /Ещё 2/);
+    assert.equal(nextMetaProgress(META_OWNED_THRESHOLDS[META_OWNED_THRESHOLDS.length - 1]!), null);
+  });
+
+  test("sticker and cheer helpers", () => {
+    assert.equal(isStickerReward("sticker_sprout"), true);
+    assert.equal(stickerGlyph("sticker_sprout"), "🌱");
+    assert.equal(isCheerReward("cheer_steady"), true);
+    const phrase = cheerPhrase("cheer_steady");
+    assert.ok(phrase && phrase.length > 0);
   });
 });

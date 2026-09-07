@@ -89,6 +89,14 @@ bash scripts/rustore-build.sh
 - Android: `appVersionCode` / `appVersionName` в `rustore/twa-manifest.json`  
   Каждая публикация в RuStore: **увеличивайте `appVersionCode`**.
 
+После публикации карточки в RuStore задайте на сайте:
+
+```bash
+NEXT_PUBLIC_RUSTORE_URL=https://www.rustore.ru/catalog/app/...
+```
+
+Кнопка «Открыть в RuStore» появится на `/install`. Fingerprint для Digital Asset Links по-прежнему через `TWA_SHA256_FINGERPRINTS`.
+
 ## Монетизация
 
 Сейчас приложение **бесплатное**. RuStore Pay / подписки — отдельный этап, не блокирует первую публикацию.

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Mascot } from "@/components/Mascot";
+import { DiarySticker } from "@/components/DiarySticker";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
 import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
@@ -235,8 +236,9 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     <section className="day-hero" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
       <div className="relative flex items-center gap-3">
-        <div className="day-hero-mascot shrink-0">
+        <div className="day-hero-mascot relative shrink-0">
           <Mascot pose={copy.pose} size="sm" title={copy.headline} entrance animate />
+          <DiarySticker className="absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-teal-800/70">

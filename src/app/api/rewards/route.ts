@@ -8,6 +8,7 @@ import {
   questChestSourceKey,
   questDaySourceKey,
   REWARD_DEFS,
+  nextMetaProgress,
   serializeReward,
   streakChestSourceKey,
   weekChestSourceKey,
@@ -52,6 +53,7 @@ export async function GET() {
       total: REWARD_DEFS.length,
       questDayCount,
       questDaysPerChest: QUEST_DAYS_PER_CHEST,
+      metaNext: nextMetaProgress(ownedUnique),
     });
   } catch (error) {
     console.error("rewards GET", error);

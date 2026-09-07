@@ -16,12 +16,14 @@ import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { TimezoneConflictBanner } from "@/components/TimezoneConflictBanner";
 import { ShareDayButton } from "@/components/ShareDayButton";
+import { ShareWeekButton } from "@/components/ShareWeekButton";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { NextBadgeChip } from "@/components/NextBadgeChip";
+import { NextMetaChip } from "@/components/NextMetaChip";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
@@ -227,6 +229,7 @@ function RationBody({
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         <ShareDayButton date={date} className="px-0.5" />
+        <ShareWeekButton endDate={date} className="px-0.5" />
         <NextStepBar
           selectedDate={date}
           today={today}
@@ -379,6 +382,7 @@ function RationBody({
                     onOpenHabits={openHabitsPanel}
                   />
                   <NextBadgeChip refreshKey={refreshKey} />
+                  <NextMetaChip refreshKey={refreshKey} />
                   <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
                   <ShoppingListPanel selectedDate={date} />
                   <DiaryNoteWidget selectedDate={date} />

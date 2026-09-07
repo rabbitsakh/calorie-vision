@@ -169,25 +169,29 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   const totalCount = countOfflineQueue() + waterCount + weightCount;
   if (totalCount <= 0) return null;
 
-  const statusParts: string[] = [];
+  const lines: string[] = [];
   if (recognitionCount > 0) {
-    statusParts.push(
-      `${recognitionCount} ${recognitionCount === 1 ? "фото ждёт распознавания" : "фото ждут распознавания"}`,
+    lines.push(
+      recognitionCount === 1
+        ? "1 фото — распознать при сети"
+        : `${recognitionCount} фото — распознать при сети`,
     );
   }
   if (failedCount > 0) {
-    statusParts.push(
-      `${failedCount} ${failedCount === 1 ? "запись ждёт отправки" : "записей ждут отправки"}`,
+    lines.push(
+      failedCount === 1
+        ? "1 блюдо — отправить в дневник"
+        : `${failedCount} блюда — отправить в дневник`,
     );
   }
   if (waterCount > 0) {
-    statusParts.push(
-      `${waterCount} ${waterCount === 1 ? "запись воды ждёт отправки" : "записей воды ждут отправки"}`,
+    lines.push(
+      waterCount === 1 ? "1 запись воды" : `${waterCount} записи воды`,
     );
   }
   if (weightCount > 0) {
-    statusParts.push(
-      `${weightCount} ${weightCount === 1 ? "запись веса ждёт отправки" : "записей веса ждут отправки"}`,
+    lines.push(
+      weightCount === 1 ? "1 запись веса" : `${weightCount} записи веса`,
     );
   }
 
@@ -196,17 +200,28 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
       className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
       role="status"
     >
-      <p className="min-w-0 flex-1 font-medium">
-        Офлайн-очередь: {statusParts.join(" · ")}
-        {flushing ? " — отправляем…" : ""}
-      </p>
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold">
+          {flushing ? "Отправляем офлайн-очередь…" : "Есть офлайн-черновики"}
+        </p>
+        <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
+          {lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        {!flushing ? (
+          <p className="mt-1 text-[11px] text-amber-800/80">
+            Данные на устройстве — нажмите «Отправить», когда появится сеть.
+          </p>
+        ) : null}
+      </div>
       <button
         type="button"
         className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
         disabled={flushing}
         onClick={() => void flush()}
       >
-        Отправить
+        {flushing ? "Отправка…" : "Отправить"}
       </button>
     </div>
   );
