@@ -14,6 +14,7 @@ import {
   parsePushReminderPrefs,
   type PushReminderPrefs,
 } from "@/lib/push-reminder-schedule";
+import { isFrameReward, isStickerReward } from "@/lib/rewards";
 import { saveUploadedImage } from "@/lib/upload";
 import { isValidWaterTargetMl } from "@/lib/water-target";
 import { Prisma } from "@prisma/client";
@@ -66,6 +67,8 @@ export async function GET() {
           allergensJson: true,
           referralCode: true,
           referredByUserId: true,
+          equippedFrameKey: true,
+          equippedStickerKey: true,
         },
       }),
       prisma.account.findMany({
@@ -110,6 +113,8 @@ export async function GET() {
       weeklyDigestEmail: user.weeklyDigestEmail ?? false,
       allergens: parseAllergensJson(user.allergensJson),
       referredByUserId: user.referredByUserId ?? null,
+      equippedFrameKey: user.equippedFrameKey ?? null,
+      equippedStickerKey: user.equippedStickerKey ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
       referralCode: code,
@@ -148,6 +153,8 @@ export async function PUT(request: NextRequest) {
       waterTargetMl?: number | null;
       weeklyDigestEmail?: boolean;
       allergens?: string[] | null;
+      equippedFrameKey?: string | null;
+      equippedStickerKey?: string | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -188,6 +195,8 @@ export async function PUT(request: NextRequest) {
       waterTargetMl?: number | null;
       weeklyDigestEmail?: boolean;
       allergensJson?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      equippedFrameKey?: string | null;
+      equippedStickerKey?: string | null;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -276,6 +285,28 @@ export async function PUT(request: NextRequest) {
         );
       } else {
         data.waterTargetMl = Math.round(Number(raw));
+      }
+    }
+
+    if (body.equippedFrameKey !== undefined) {
+      const raw = typeof body.equippedFrameKey === "string" ? body.equippedFrameKey.trim() : "";
+      if (!raw) {
+        data.equippedFrameKey = null;
+      } else if (!isFrameReward(raw)) {
+        return NextResponse.json({ error: "Неизвестная рамка" }, { status: 400 });
+      } else {
+        data.equippedFrameKey = raw;
+      }
+    }
+
+    if (body.equippedStickerKey !== undefined) {
+      const raw = typeof body.equippedStickerKey === "string" ? body.equippedStickerKey.trim() : "";
+      if (!raw) {
+        data.equippedStickerKey = null;
+      } else if (!isStickerReward(raw)) {
+        return NextResponse.json({ error: "Неизвестная наклейка" }, { status: 400 });
+      } else {
+        data.equippedStickerKey = raw;
       }
     }
 
@@ -426,6 +457,8 @@ export async function PUT(request: NextRequest) {
         waterTargetMl: true,
         weeklyDigestEmail: true,
         allergensJson: true,
+        equippedFrameKey: true,
+        equippedStickerKey: true,
       },
     });
 
@@ -451,6 +484,8 @@ export async function PUT(request: NextRequest) {
       waterTargetMl: user.waterTargetMl ?? null,
       weeklyDigestEmail: user.weeklyDigestEmail ?? false,
       allergens: parseAllergensJson(user.allergensJson),
+      equippedFrameKey: user.equippedFrameKey ?? null,
+      equippedStickerKey: user.equippedStickerKey ?? null,
       linkedProviders,
       emailLocked,
     });

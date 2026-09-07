@@ -11,6 +11,7 @@ import {
   saveList,
   shoppingListStorageKey,
   toggleItem,
+  countUnchecked,
 } from "./shopping-list.ts";
 
 function memoryStorage() {
@@ -118,4 +119,16 @@ test("per-user key keeps lists separate", () => {
   assert.equal(loadList({ storage, userId: "user-a" }).length, 1);
   assert.equal(loadList({ storage, userId: "user-a" })[0]?.name, "Личный");
   assert.ok(storage.getItem(`${SHOPPING_LIST_KEY}:user-a`));
+});
+
+test("countUnchecked ignores checked items", () => {
+  assert.equal(
+    countUnchecked([
+      { id: "1", name: "a", checked: false },
+      { id: "2", name: "b", checked: true },
+      { id: "3", name: "c", checked: false },
+    ]),
+    2,
+  );
+  assert.equal(countUnchecked([]), 0);
 });

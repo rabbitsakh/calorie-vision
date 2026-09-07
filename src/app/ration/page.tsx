@@ -16,6 +16,7 @@ import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { TimezoneConflictBanner } from "@/components/TimezoneConflictBanner";
 import { ShareMenu } from "@/components/ShareMenu";
+import { ShoppingCountChip } from "@/components/ShoppingCountChip";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
@@ -79,6 +80,10 @@ const EveningCheckin = dynamic(
 );
 const MotivationTip = dynamic(
   () => import("@/components/MotivationTip").then((m) => m.MotivationTip),
+  { ssr: false, loading: () => null },
+);
+const ReferralNudge = dynamic(
+  () => import("@/components/ReferralNudge").then((m) => m.ReferralNudge),
   { ssr: false, loading: () => null },
 );
 const PwaInstallOnboardingPrompt = dynamic(
@@ -312,6 +317,7 @@ function RationBody({
           <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
           {date === today ? <DailySummaryCard today={today} /> : null}
           <MotivationTip today={today} selectedDate={date} quietHide />
+          <ReferralNudge today={today} selectedDate={date} quietHide />
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
         </MotivationQueue>
 
@@ -326,7 +332,10 @@ function RationBody({
               aria-expanded={showHabits}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-slate-800">Привычки и заметки</p>
+                <p className="font-semibold text-slate-800">
+                  Привычки и заметки
+                  <ShoppingCountChip />
+                </p>
                 <p className="mt-0.5 text-xs text-slate-500">
                   Серия, челлендж, квесты, значки, список покупок
                 </p>

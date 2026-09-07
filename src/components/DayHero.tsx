@@ -16,6 +16,11 @@ type ProgressData = {
   proteinTarget: number | null;
   waterMl: number;
   waterTarget: number;
+  fiber: number;
+  fiberTarget: number | null;
+  sugar: number;
+  sugarTarget: number | null;
+  showFiberSugar: boolean;
 };
 
 type DayHeroProps = {
@@ -29,12 +34,25 @@ function progressFromPayload(
   meals: {
     totalCalories: number;
     totalProtein: number;
-    target: { calories: number; protein: number } | null;
+    totalFiber?: number;
+    totalSugar?: number;
+    target: {
+      calories: number;
+      protein: number;
+      fiber?: number;
+      sugar?: number;
+    } | null;
   },
   water: { totalMl: number; target: number },
+  account?: {
+    fiberTargetG?: number | null;
+    sugarTargetG?: number | null;
+  } | null,
 ): ProgressData {
   const holiday = isHolidayBufferOn(selectedDate);
   const baseCal = meals.target?.calories ?? null;
+  const fiberOverride = account?.fiberTargetG ?? null;
+  const sugarOverride = account?.sugarTargetG ?? null;
   return {
     calories: meals.totalCalories,
     calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
@@ -42,6 +60,11 @@ function progressFromPayload(
     proteinTarget: meals.target?.protein ?? null,
     waterMl: water.totalMl,
     waterTarget: water.target || WATER_DAILY_TARGET_ML,
+    fiber: meals.totalFiber ?? 0,
+    fiberTarget: fiberOverride != null ? fiberOverride : null,
+    sugar: meals.totalSugar ?? 0,
+    sugarTarget: sugarOverride != null ? sugarOverride : null,
+    showFiberSugar: fiberOverride != null || sugarOverride != null,
   };
 }
 
@@ -88,14 +111,17 @@ function MiniBar({
   value,
   detail,
   pct,
+  warnOver = true,
 }: {
   label: string;
   value: string;
   detail: string;
   pct: number;
+  /** When false, over-target is fine (e.g. fiber). */
+  warnOver?: boolean;
 }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const over = pct > 105;
+  const over = warnOver && pct > 105;
   return (
     <div className="min-w-0 flex-1">
       <div className="flex items-baseline justify-between gap-2">
@@ -153,10 +179,15 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   useEffect(() => {
     if (day?.data?.date === selectedDate && day.data.meals) {
       setData(
-        progressFromPayload(selectedDate, day.data.meals, day.data.water ?? {
-          totalMl: 0,
-          target: WATER_DAILY_TARGET_ML,
-        }),
+        progressFromPayload(
+          selectedDate,
+          day.data.meals,
+          day.data.water ?? {
+            totalMl: 0,
+            target: WATER_DAILY_TARGET_ML,
+          },
+          day.data.account,
+        ),
       );
       return;
     }
@@ -167,20 +198,34 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
 
     void (async () => {
       try {
-        const [mealsResp, waterResp] = await Promise.all([
+        const [mealsResp, waterResp, accountResp] = await Promise.all([
           fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
           fetch(withBasePath(`/api/water?date=${selectedDate}`)),
+          fetch(withBasePath("/api/account")),
         ]);
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
           totalCalories: number;
           totalProtein: number;
-          target: { calories: number; protein: number } | null;
+          totalFiber?: number;
+          totalSugar?: number;
+          target: {
+            calories: number;
+            protein: number;
+            fiber?: number;
+            sugar?: number;
+          } | null;
         };
         const water = waterResp.ok
           ? ((await waterResp.json()) as { totalMl: number; target: number })
           : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
-        setData(progressFromPayload(selectedDate, meals, water));
+        const account = accountResp.ok
+          ? ((await accountResp.json()) as {
+              fiberTargetG?: number | null;
+              sugarTargetG?: number | null;
+            })
+          : null;
+        setData(progressFromPayload(selectedDate, meals, water, account));
       } catch {
         // non-critical
       }
@@ -257,22 +302,46 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
 
       {data ? (
         <div className="relative mt-2.5 flex flex-col gap-2 border-t border-teal-900/5 pt-2">
-          <MiniBar
-            label="Белок"
-            value={`${Math.round(data.protein)} г`}
-            detail={data.proteinTarget ? `/ ${data.proteinTarget}` : ""}
-            pct={data.proteinTarget ? proteinPct : 0}
-          />
-          <MiniBar
-            label="Вода"
-            value={`${Math.round(data.waterMl)} мл`}
-            detail={data.waterTarget ? `/ ${data.waterTarget}` : ""}
-            pct={
-              data.waterTarget > 0
-                ? (data.waterMl / data.waterTarget) * 100
-                : 0
-            }
-          />
+          <div className="flex gap-3">
+            <MiniBar
+              label="Белок"
+              value={`${Math.round(data.protein)} г`}
+              detail={data.proteinTarget ? `/ ${data.proteinTarget}` : ""}
+              pct={data.proteinTarget ? proteinPct : 0}
+            />
+            <MiniBar
+              label="Вода"
+              value={`${Math.round(data.waterMl)} мл`}
+              detail={data.waterTarget ? `/ ${data.waterTarget}` : ""}
+              pct={
+                data.waterTarget > 0
+                  ? (data.waterMl / data.waterTarget) * 100
+                  : 0
+              }
+            />
+          </div>
+          {data.showFiberSugar ? (
+            <div className="flex gap-3">
+              {data.fiberTarget != null ? (
+                <MiniBar
+                  label="Клетчатка"
+                  value={`${Math.round(data.fiber)} г`}
+                  detail={`/ ${Math.round(data.fiberTarget)}`}
+                  pct={data.fiberTarget > 0 ? (data.fiber / data.fiberTarget) * 100 : 0}
+                  warnOver={false}
+                />
+              ) : null}
+              {data.sugarTarget != null ? (
+                <MiniBar
+                  label="Сахар"
+                  value={`${Math.round(data.sugar)} г`}
+                  detail={`/ ${Math.round(data.sugarTarget)}`}
+                  pct={data.sugarTarget > 0 ? (data.sugar / data.sugarTarget) * 100 : 0}
+                  warnOver
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

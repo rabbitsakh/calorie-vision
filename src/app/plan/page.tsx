@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 import { useRouter } from "next/navigation";
+
+const ShoppingListPanel = dynamic(
+  () => import("@/components/ShoppingListPanel").then((m) => m.ShoppingListPanel),
+  { ssr: false },
+);
 
 export default function PlanPage() {
   const timezone = useTimezone();
@@ -30,9 +36,7 @@ export default function PlanPage() {
               router.push(`/ration?date=${next}`);
             }}
           />
-          <p className="text-sm text-slate-500">
-            Список покупок и шаблоны дня — в разделе «Привычки» на странице рациона.
-          </p>
+          <ShoppingListPanel selectedDate={date} />
         </div>
       </AuthGate>
     </AppShell>

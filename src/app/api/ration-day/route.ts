@@ -36,6 +36,8 @@ export async function GET(request: NextRequest) {
         fastingEndHour: true,
         timezone: true,
         waterTargetMl: true,
+        fiberTargetG: true,
+        sugarTargetG: true,
       },
     });
 
@@ -122,6 +124,8 @@ export async function GET(request: NextRequest) {
           fastingEndHour: account?.fastingEndHour ?? null,
           timezone: account?.timezone ?? null,
           waterTargetMl: account?.waterTargetMl ?? null,
+          fiberTargetG: account?.fiberTargetG ?? null,
+          sugarTargetG: account?.sugarTargetG ?? null,
         },
         week: {
           days: weekDays,

@@ -67,13 +67,35 @@ export function normalizePushReminderPrefs(input: unknown): PushReminderPrefs {
   return parsePushReminderPrefs(input);
 }
 
+/** Kinds left on for first-run / empty prefs (Wave 10 — quieter defaults). */
+export const QUIET_FIRST_RUN_KINDS: ReminderKind[] = [
+  "lunch",
+  "dinner",
+  "streak",
+  "weekly",
+];
+
+/** Explicit prefs object when DB value is null — meals + streak/weekly only. */
+export function quietFirstRunPrefs(): PushReminderPrefs {
+  const prefs: PushReminderPrefs = {};
+  for (const slot of REMINDER_SCHEDULE) {
+    prefs[slot.kind] = { enabled: QUIET_FIRST_RUN_KINDS.includes(slot.kind) };
+  }
+  return prefs;
+}
+
+export function isEmptyPushReminderPrefs(prefs?: PushReminderPrefs | null): boolean {
+  return !prefs || Object.keys(prefs).length === 0;
+}
+
 /** Schedule with user hour overrides; disabled kinds omitted. */
 export function effectiveReminderSchedule(
   prefs?: PushReminderPrefs | null,
 ): Array<{ kind: ReminderKind; hour: number; weekday?: number }> {
+  const resolved = isEmptyPushReminderPrefs(prefs) ? quietFirstRunPrefs() : prefs!;
   const result: Array<{ kind: ReminderKind; hour: number; weekday?: number }> = [];
   for (const slot of REMINDER_SCHEDULE) {
-    const pref = prefs?.[slot.kind];
+    const pref = resolved[slot.kind];
     if (pref?.enabled === false) continue;
     const hour =
       pref?.hour != null && Number.isFinite(pref.hour)
