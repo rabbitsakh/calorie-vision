@@ -3,36 +3,41 @@
 import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
-import { withBasePath } from "@/lib/paths";
+import { ALLERGEN_OPTIONS, type AllergenId } from "@/lib/allergens";
+import { markOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
 import { ensureQuietDefaultForNewUsers } from "@/lib/gamification-quiet";
+import { trackOnboardingCompleteGoal, trackOnboardingPhotoCtaGoal } from "@/lib/metrika-funnel";
+import { requestOpenFoodCamera } from "@/lib/open-food-camera";
+import { withBasePath } from "@/lib/paths";
 
 const STORAGE_KEY = "cv-onboarding-v1";
 
-type Step = {
-  title: string;
-  body: string;
-  pose: "tip" | "cheer" | "idle";
-  cta: string;
-};
+type StepId = "goal" | "allergens" | "photo" | "pwa";
 
-const STEPS: Step[] = [
+const STEP_META: Array<{ id: StepId; title: string; body: string; pose: "tip" | "cheer" | "idle" }> = [
   {
-    title: "Ваша цель рядом",
-    body: "На рационе сверху — прогресс за день. Держите калории и белок в комфортной зоне.",
+    id: "goal",
+    title: "Цель рядом",
+    body: "На рационе сверху — прогресс за день. Норму можно уточнить в профиле за минуту.",
     pose: "tip",
-    cta: "Дальше",
   },
   {
+    id: "allergens",
+    title: "Мягкие аллергены",
+    body: "Отметьте, что важно избегать — подскажем на подтверждении и в дневнике. Это не диагноз.",
+    pose: "tip",
+  },
+  {
+    id: "photo",
     title: "Первое фото",
-    body: "Сфотографируйте тарелку или этикетку — распознаем блюдо и калории. Можно и текстом, если так удобнее.",
+    body: "Сфотографируйте тарелку или этикетку — проверьте порцию и сохраните. Так начинается доверие к дневнику.",
     pose: "cheer",
-    cta: "Дальше",
   },
   {
-    title: "Ярлык на экран «Домой»",
-    body: "Добавьте Calorie Vision как приложение — быстрее открывается, удобнее напоминания. Подсказка есть в профиле.",
+    id: "pwa",
+    title: "Ярлык на «Домой»",
+    body: "Добавьте приложение — быстрее открывается и удобнее напоминания. Можно позже в профиле.",
     pose: "idle",
-    cta: "Готово",
   },
 ];
 
@@ -52,34 +57,66 @@ function markDone(): void {
   }
 }
 
-/** First-visit post-login tips on the ration page. */
+async function saveAllergens(ids: AllergenId[]): Promise<void> {
+  try {
+    await fetch(withBasePath("/api/account"), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ allergens: ids }),
+    });
+  } catch {
+    // non-critical
+  }
+}
+
+/** First-visit guided run: goal → allergens → photo CTA → optional PWA. */
 export function OnboardingOverlay() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [allergens, setAllergens] = useState<AllergenId[]>([]);
+  const [savingAllergens, setSavingAllergens] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!isDone()) setOpen(true);
   }, []);
 
-  const finish = useCallback(() => {
+  const finish = useCallback((opts?: { openCamera?: boolean }) => {
     markDone();
     setPwaOnboardingSeen();
     ensureQuietDefaultForNewUsers();
+    trackOnboardingCompleteGoal();
     setOpen(false);
+    if (opts?.openCamera) {
+      markOpenCameraAfterOnboarding();
+      trackOnboardingPhotoCtaGoal();
+      window.setTimeout(() => requestOpenFoodCamera(true), 420);
+    }
   }, []);
 
-  const next = useCallback(() => {
-    if (step >= STEPS.length - 1) {
+  const next = useCallback(async () => {
+    const current = STEP_META[step];
+    if (current?.id === "allergens") {
+      setSavingAllergens(true);
+      await saveAllergens(allergens);
+      setSavingAllergens(false);
+    }
+    if (step >= STEP_META.length - 1) {
       finish();
       return;
     }
     setStep((value) => value + 1);
-  }, [finish, step]);
+  }, [allergens, finish, step]);
 
   if (!open) return null;
 
-  const current = STEPS[step] ?? STEPS[0];
+  const current = STEP_META[step] ?? STEP_META[0]!;
+  const isPhoto = current.id === "photo";
+  const isPwa = current.id === "pwa";
+
+  function toggleAllergen(id: AllergenId) {
+    setAllergens((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
 
   return (
     <div
@@ -93,7 +130,7 @@ export function OnboardingOverlay() {
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
-              Шаг {step + 1} из {STEPS.length}
+              Шаг {step + 1} из {STEP_META.length}
             </p>
             <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-slate-900">
               {current.title}
@@ -102,19 +139,79 @@ export function OnboardingOverlay() {
           </div>
         </div>
 
+        {current.id === "allergens" ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {ALLERGEN_OPTIONS.map((opt) => {
+              const on = allergens.includes(opt.id);
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    on
+                      ? "bg-amber-700 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  aria-pressed={on}
+                  onClick={() => toggleAllergen(opt.id)}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         <div className="mt-5 flex items-center justify-between gap-3">
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={finish}>
+          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={() => finish()}>
             Пропустить
           </button>
-          <div className="flex items-center gap-2">
-            {step === STEPS.length - 1 ? (
-              <a href={withBasePath("/profile")} className="btn-quiet text-sm text-teal-800" onClick={finish}>
-                В профиль
-              </a>
-            ) : null}
-            <button type="button" className="btn btn-primary text-sm" onClick={next}>
-              {current.cta}
-            </button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {isPhoto ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-quiet text-sm text-teal-800"
+                  onClick={() => void next()}
+                >
+                  Позже
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary text-sm"
+                  onClick={() => finish({ openCamera: true })}
+                >
+                  Сфотографировать
+                </button>
+              </>
+            ) : isPwa ? (
+              <>
+                <a
+                  href={withBasePath("/profile")}
+                  className="btn-quiet text-sm text-teal-800"
+                  onClick={() => finish()}
+                >
+                  В профиль
+                </a>
+                <button
+                  type="button"
+                  className="btn btn-primary text-sm"
+                  disabled={savingAllergens}
+                  onClick={() => void next()}
+                >
+                  Готово
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary text-sm"
+                disabled={savingAllergens}
+                onClick={() => void next()}
+              >
+                {savingAllergens ? "Сохраняем…" : "Дальше"}
+              </button>
+            )}
           </div>
         </div>
       </div>

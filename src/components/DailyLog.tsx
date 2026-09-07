@@ -338,7 +338,7 @@ function GroupedMealCard({
                         <h4 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h4>
                         {entry.wasCorrected ? (
                           <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                            изм.
+                            запомнили
                           </span>
                         ) : null}
                       </div>
@@ -973,7 +973,7 @@ function SingleMealCard({
                 <h3 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h3>
                 {entry.wasCorrected ? (
                   <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                    изм.
+                    запомнили
                   </span>
                 ) : null}
               </div>

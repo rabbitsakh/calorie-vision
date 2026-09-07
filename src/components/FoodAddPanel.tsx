@@ -599,9 +599,9 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
                 {voiceSupported ? (
                   <button
                     type="button"
-                    className="btn-icon"
+                    className={`btn-icon ${listening ? "ring-2 ring-teal-500" : "bg-teal-50 text-teal-800"}`}
                     title={listening ? "Остановить диктовку" : "Сказать название"}
-                    aria-label={listening ? "Остановить диктовку" : "Сказать название"}
+                    aria-label={listening ? "Остановить диктовку" : "Сказать название голосом"}
                     aria-pressed={listening}
                     disabled={disabled || loading}
                     onClick={() => (listening ? stopVoice() : startVoice())}
@@ -611,9 +611,9 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
                 ) : null}
               </div>
               {listening ? (
-                <p className="text-xs text-teal-800">Слушаю… скажите название блюда</p>
+                <p className="text-xs font-medium text-teal-800">Слушаю… скажите название блюда</p>
               ) : voiceSupported ? (
-                <p className="text-xs text-slate-500">Можно надиктовать название голосом</p>
+                <p className="text-xs font-medium text-teal-700">Микрофон справа — надиктуйте название</p>
               ) : null}
             </div>
             <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>

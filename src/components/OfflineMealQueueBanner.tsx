@@ -202,7 +202,7 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
     >
       <div className="min-w-0 flex-1">
         <p className="font-semibold">
-          {flushing ? "Отправляем офлайн-очередь…" : "Есть офлайн-черновики"}
+          {flushing ? "Отправляем офлайн-очередь…" : "Офлайн: черновики на устройстве"}
         </p>
         <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
           {lines.map((line) => (
@@ -211,7 +211,7 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
         </ul>
         {!flushing ? (
           <p className="mt-1 text-[11px] text-amber-800/80">
-            Данные на устройстве — нажмите «Отправить», когда появится сеть.
+            После сети фото уйдут в подтверждение, а блюда — в дневник. Нажмите «Отправить».
           </p>
         ) : null}
       </div>

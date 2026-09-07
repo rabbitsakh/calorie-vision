@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
 import { buildReferralShareUrl, telegramShareUrl, vkShareUrl } from "@/lib/referral";
 
@@ -65,6 +66,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
   }, [selectedDate, today, seenWeek]);
 
   if (selectedDate !== today || seenWeek || !code || !shareUrl) return null;
+  if (isFirstWeekQuiet(3)) return null;
 
   if (hidden) {
     if (quietHide) return null;
