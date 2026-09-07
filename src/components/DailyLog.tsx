@@ -27,6 +27,8 @@ import {
 } from "@/lib/nutrition";
 import { groupMealEntries, type MealListGroup, type MealListItem } from "@/lib/meal-groups";
 import { MealPhotoPicker } from "@/components/MealPhotoPicker";
+import { AllergenHint } from "@/components/AllergenHint";
+import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import {
   addMealTotals,
   appendPendingDelete,
@@ -197,6 +199,7 @@ function GroupedMealCard({
   onEatenAtChange,
   onDuplicate,
   onImageChange,
+  userAllergens = [],
 }: {
   group: MealListGroup;
   timezone?: string | null;
@@ -207,6 +210,7 @@ function GroupedMealCard({
   onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
+  userAllergens?: AllergenId[];
 }) {
   const macros = formatMacros({
     protein: group.totalProtein,
@@ -338,6 +342,10 @@ function GroupedMealCard({
                           </span>
                         ) : null}
                       </div>
+                      <AllergenHint
+                        text={decodeHtmlEntities(entry.dishName)}
+                        allergens={userAllergens}
+                      />
                       <MealEntryDetails entry={entry} timezone={timezone} hideTime />
                     </div>
                     <div className="meal-card-actions shrink-0">
@@ -890,6 +898,7 @@ function SingleMealCard({
   onEatenAtChange,
   onDuplicate,
   onImageChange,
+  userAllergens = [],
 }: {
   entry: MealEntry;
   timezone?: string | null;
@@ -899,6 +908,7 @@ function SingleMealCard({
   onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
+  userAllergens?: AllergenId[];
 }) {
   const [editing, setEditing] = useState(false);
   const [typeBusy, setTypeBusy] = useState(false);
@@ -967,6 +977,10 @@ function SingleMealCard({
                   </span>
                 ) : null}
               </div>
+              <AllergenHint
+                text={decodeHtmlEntities(entry.dishName)}
+                allergens={userAllergens}
+              />
               <MealEntryDetails entry={entry} timezone={timezone} hideTime />
             </div>
             <div className="meal-card-actions shrink-0">
@@ -1024,6 +1038,7 @@ function MealListRow({
   onEatenAtChange,
   onDuplicate,
   onImageChange,
+  userAllergens = [],
 }: {
   item: MealListItem;
   timezone?: string | null;
@@ -1034,6 +1049,7 @@ function MealListRow({
   onEatenAtChange: (id: string, eatenAt: string) => Promise<void>;
   onDuplicate: (id: string) => Promise<void>;
   onImageChange: (id: string, imagePath: string | null) => void;
+  userAllergens?: AllergenId[];
 }) {
   if (item.kind === "group") {
     return (
@@ -1047,6 +1063,7 @@ function MealListRow({
         onEatenAtChange={onEatenAtChange}
         onDuplicate={onDuplicate}
         onImageChange={onImageChange}
+        userAllergens={userAllergens}
       />
     );
   }
@@ -1061,6 +1078,7 @@ function MealListRow({
       onEatenAtChange={onEatenAtChange}
       onDuplicate={onDuplicate}
       onImageChange={onImageChange}
+      userAllergens={userAllergens}
     />
   );
 }
@@ -1069,6 +1087,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
+  const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
   const [daySummary, setDaySummary] = useState<
     Pick<
       DayMealsResponse,
@@ -1106,6 +1125,23 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   const dayLoading = day?.loading ?? false;
   const dayDate = day?.date;
   const hasProvider = day != null;
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"), { cache: "no-store" });
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { allergens?: unknown };
+        if (!cancelled) setUserAllergens(parseAllergensJson(data.allergens));
+      } catch {
+        // soft hint only
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function toggleNormDetails() {
     setShowNormDetails((value) => {
@@ -2034,6 +2070,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
                   <MealListRow
                     item={item}
                     timezone={timezone}
+                    userAllergens={userAllergens}
                     onDelete={(id) => {
                       const label = item.kind === "single"
                         ? decodeHtmlEntities(item.entry.dishName)

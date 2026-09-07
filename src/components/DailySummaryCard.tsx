@@ -133,6 +133,23 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         </div>
       </div>
 
+      {entryCount > 0 &&
+      ((data.totalFiber != null && data.totalFiber > 0) ||
+        (data.totalSugar != null && data.totalSugar > 0)) ? (
+        <p className="mt-2 text-xs text-slate-600">
+          {[
+            data.totalFiber != null && data.totalFiber > 0
+              ? `клетчатка ${Math.round(data.totalFiber)} г`
+              : null,
+            data.totalSugar != null && data.totalSugar > 0
+              ? `сахар ${Math.round(data.totalSugar)} г`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      ) : null}
+
       <p className="mt-3 text-sm text-teal-900">{data.tip}</p>
 
       <button

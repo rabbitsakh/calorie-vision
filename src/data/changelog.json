@@ -1,5 +1,44 @@
 [
   {
+    "version": "1.7.20",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 12 — allergens in diary, week fiber/sugar, weight chip, quick-add more",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Мягкие подсказки аллергенов на карточках приёмов в дневнике"
+      },
+      {
+        "kind": "feature",
+        "text": "Клетчатка и сахар в недельном отчёте и на карточке «Поделиться»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Блок roadmap переименован в «Недавнее»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Тихая ссылка «Вес сегодня» в сводке дня, если вес не записан"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подсказки прогресса ведут в профиль → награды"
+      },
+      {
+        "kind": "improvement",
+        "text": "Компактная полоска недели со ссылкой на План"
+      },
+      {
+        "kind": "improvement",
+        "text": "Быстрое добавление: рецепт и AI под «Ещё»"
+      },
+      {
+        "kind": "improvement",
+        "text": "В итогах вчера — строка клетчатки и сахара"
+      }
+    ]
+  },
+  {
     "version": "1.7.19",
     "date": "2026-09-07",
     "summary": "feat(ux): Wave 11 — stats fiber/sugar, habits tidy, offline confirm, profile accordion",

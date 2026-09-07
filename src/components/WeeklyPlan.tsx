@@ -119,22 +119,33 @@ export function WeeklyPlan({
 
   return (
     <section className={compact ? "overflow-hidden" : "card overflow-hidden"}>
-      <div className={`flex items-start justify-between gap-2 ${compact ? "pb-2" : "px-4 py-3 md:px-5"}`}>
+      <div className={`flex items-start justify-between gap-2 ${compact ? "pb-1.5" : "px-4 py-3 md:px-5"}`}>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <p className="font-semibold text-slate-800">План недели</p>
+            <p className={`font-semibold text-slate-800 ${compact ? "text-sm" : ""}`}>
+              {compact ? "Неделя" : "План недели"}
+            </p>
             <Link
               href={withDateQuery("/plan", selectedDate)}
               className="text-xs font-semibold text-teal-800 underline-offset-2 hover:underline"
             >
-              Подробнее →
+              {compact ? "План →" : "Подробнее →"}
             </Link>
           </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Цель vs факт по дням
-            {effectiveTarget ? ` · норма ${effectiveTarget} ккал` : ""}
-            {holidayOn ? " · праздничный запас" : ""}
-          </p>
+          {compact ? (
+            effectiveTarget ? (
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                норма {effectiveTarget} ккал
+                {holidayOn ? " · праздн." : ""}
+              </p>
+            ) : null
+          ) : (
+            <p className="mt-0.5 text-xs text-slate-500">
+              Цель vs факт по дням
+              {effectiveTarget ? ` · норма ${effectiveTarget} ккал` : ""}
+              {holidayOn ? " · праздничный запас" : ""}
+            </p>
+          )}
         </div>
         {showHolidayToggle ? (
           <label className="flex shrink-0 cursor-pointer items-center gap-2 pl-2">

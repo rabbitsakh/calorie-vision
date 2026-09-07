@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
@@ -16,15 +16,21 @@ function ProfileSection({
   title,
   hint,
   defaultOpen = false,
+  forceOpen = false,
   children,
 }: {
   id: string;
   title: string;
   hint: string;
   defaultOpen?: boolean;
+  forceOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(defaultOpen || forceOpen);
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
+
   return (
     <section className="card overflow-hidden" id={id}>
       <button
@@ -47,6 +53,22 @@ function ProfileSection({
 }
 
 export default function ProfilePage() {
+  const [hash, setHash] = useState("");
+
+  useEffect(() => {
+    const sync = () => setHash(typeof window !== "undefined" ? window.location.hash : "");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
+  useEffect(() => {
+    if (hash !== "#rewards" && hash !== "#reminders") return;
+    const id = hash === "#rewards" ? "rewards" : "reminders";
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hash]);
+
   return (
     <AppShell title="Профиль" compact description="Аккаунт, норма, напоминания и награды.">
       <AuthGate>
@@ -55,7 +77,7 @@ export default function ProfilePage() {
             id="account"
             title="Аккаунт и цели"
             hint="Профиль, норма, окно еды"
-            defaultOpen
+            defaultOpen={hash !== "#rewards" && hash !== "#reminders"}
           >
             <div className="flex flex-col gap-4">
               <ProfileForm />
@@ -76,6 +98,7 @@ export default function ProfilePage() {
             id="reminders"
             title="Напоминания"
             hint="Push, тихие часы, спокойный режим"
+            forceOpen={hash === "#reminders"}
           >
             <div className="flex flex-col gap-4">
               <PushRemindersSettings />
@@ -83,7 +106,12 @@ export default function ProfilePage() {
             </div>
           </ProfileSection>
 
-          <ProfileSection id="rewards" title="Награды" hint="Значки и коллекция">
+          <ProfileSection
+            id="rewards"
+            title="Награды"
+            hint="Значки и коллекция"
+            forceOpen={hash === "#rewards"}
+          >
             <div className="flex flex-col gap-4">
               <BadgesPanel />
               <RewardsPanel />

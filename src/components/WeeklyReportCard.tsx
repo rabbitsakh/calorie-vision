@@ -11,7 +11,11 @@ type WeeklyReportData = {
   daysLogged: number;
   avgCalories: number;
   avgWaterMl: number;
+  avgFiber?: number;
+  avgSugar?: number;
   calorieTarget: number | null;
+  fiberTarget?: number | null;
+  sugarTarget?: number | null;
   insights: string[];
   topFoods: Array<{ dishName: string; count: number }>;
   closestToTarget: { date: string; calories: number; diff: number } | null;
@@ -97,6 +101,21 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
           </p>
         </div>
       </div>
+
+      {data.fiberTarget != null || data.sugarTarget != null ? (
+        <p className="mt-2 text-center text-xs text-indigo-800/90">
+          {[
+            data.fiberTarget != null
+              ? `клетчатка ср. ${Math.round(data.avgFiber ?? 0)} / ${Math.round(data.fiberTarget)} г`
+              : null,
+            data.sugarTarget != null
+              ? `сахар ср. ${Math.round(data.avgSugar ?? 0)} / ${Math.round(data.sugarTarget)} г`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      ) : null}
 
       {data.insights.length > 0 ? (
         <ul className="mt-3 space-y-1.5 text-sm text-indigo-900">

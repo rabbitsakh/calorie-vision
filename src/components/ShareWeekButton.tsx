@@ -15,7 +15,11 @@ type WeekShareData = {
   daysLogged: number;
   avgCalories: number;
   avgWaterMl: number;
+  avgFiber?: number;
+  avgSugar?: number;
   calorieTarget: number | null;
+  fiberTarget?: number | null;
+  sugarTarget?: number | null;
   streak?: number | null;
 };
 
@@ -165,13 +169,30 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
     x += 320;
   }
 
+  const fiberSugarParts: string[] = [];
+  if (data.fiberTarget != null) {
+    fiberSugarParts.push(
+      `клетчатка ${Math.round(data.avgFiber ?? 0)}/${Math.round(data.fiberTarget)} г`,
+    );
+  }
+  if (data.sugarTarget != null) {
+    fiberSugarParts.push(
+      `сахар ${Math.round(data.avgSugar ?? 0)}/${Math.round(data.sugarTarget)} г`,
+    );
+  }
+  if (fiberSugarParts.length > 0) {
+    ctx.fillStyle = "rgba(236,253,245,0.85)";
+    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.fillText(fiberSugarParts.join(" · "), 48, 510);
+  }
+
   if (data.streak != null && data.streak > 0) {
     ctx.fillStyle = "rgba(255,255,255,0.18)";
-    roundRect(ctx, 48, 520, 624, 100, 24);
+    roundRect(ctx, 48, fiberSugarParts.length > 0 ? 540 : 520, 624, 100, 24);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
     ctx.font = "700 36px system-ui, sans-serif";
-    ctx.fillText(`Серия ${data.streak} дн.`, 72, 582);
+    ctx.fillText(`Серия ${data.streak} дн.`, 72, fiberSugarParts.length > 0 ? 602 : 582);
   }
 
   ctx.fillStyle = "rgba(236,253,245,0.65)";

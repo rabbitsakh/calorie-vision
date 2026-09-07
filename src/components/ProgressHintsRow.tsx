@@ -56,7 +56,7 @@ export function ProgressHintsRow({ refreshKey }: ProgressHintsProps) {
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {showBadge && badge ? (
         <Link
-          href={withBasePath("/profile")}
+          href={withBasePath("/profile#rewards")}
           className="rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2 text-left hover:border-teal-200"
         >
           <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Значок</p>
@@ -68,7 +68,7 @@ export function ProgressHintsRow({ refreshKey }: ProgressHintsProps) {
       ) : null}
       {showMeta && meta ? (
         <Link
-          href={withBasePath("/profile")}
+          href={withBasePath("/profile#rewards")}
           className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2 text-left hover:border-amber-200"
         >
           <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800">Мета</p>
