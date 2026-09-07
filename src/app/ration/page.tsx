@@ -14,6 +14,9 @@ import { MotivationQueue } from "@/components/MotivationQueue";
 import { CelebrationOrchestrator } from "@/components/CelebrationOrchestrator";
 import { OnboardingOverlay } from "@/components/OnboardingOverlay";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import { TimezoneConflictBanner } from "@/components/TimezoneConflictBanner";
+import { ShareDayButton } from "@/components/ShareDayButton";
+import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { NextStepBar } from "@/components/NextStepBar";
@@ -218,9 +221,12 @@ function RationBody({
         <OnboardingOverlay />
         <MascotSaveReaction />
         <ProfileCompletionBanner />
+        <TimezoneConflictBanner />
+        <ReferralCapture signedIn />
         <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+        <ShareDayButton date={date} className="px-0.5" />
         <NextStepBar
           selectedDate={date}
           today={today}

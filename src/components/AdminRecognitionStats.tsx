@@ -28,6 +28,13 @@ type RecognitionStats = {
     }>;
   };
   topMisrecognized: Array<{ dish: string; count: number }>;
+  missSummary?: {
+    window: "7d" | "all";
+    uniqueDishes: number;
+    topMissCount: number;
+    topMissDish: string | null;
+    correctedInWindow: number;
+  };
   misreadWindow?: "7d" | "all";
   savedCorrections: number;
   bySource?: Array<{ source: string; label: string; count: number }>;
@@ -394,6 +401,17 @@ export function AdminRecognitionStats() {
                 </button>
               </div>
             </div>
+            {stats.missSummary ? (
+              <p className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Сводка промахов ({stats.missSummary.window === "7d" ? "7 дней" : "всё время"}):{" "}
+                {stats.missSummary.correctedInWindow} исправлений ·{" "}
+                {stats.missSummary.uniqueDishes} блюд в топе
+                {stats.missSummary.topMissDish
+                  ? ` · лидер «${stats.missSummary.topMissDish}» (${stats.missSummary.topMissCount})`
+                  : ""}
+                . Live-eval слотов: 35 (фото в eval-fixtures/).
+              </p>
+            ) : null}
           {stats.topMisrecognized.length > 0 ? (
             <div>
               <div className="admin-table-wrap">

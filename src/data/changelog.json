@@ -1,5 +1,48 @@
 [
   {
+    "version": "1.7.12",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 8 — timezone sync, share day, referral, allergens, Sentry",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Баннер, если пояс устройства не совпадает с профилем — синхронизация в один тап"
+      },
+      {
+        "kind": "improvement",
+        "text": "Время приёма: долгое нажатие даёт ±15 минут"
+      },
+      {
+        "kind": "improvement",
+        "text": "«Поделиться днём» — картинка с ккал, БЖУ и серией"
+      },
+      {
+        "kind": "improvement",
+        "text": "Приглашение ?ref= учитывается; пригласившему — мягкий сундук"
+      },
+      {
+        "kind": "improvement",
+        "text": "Аллергены в профиле и мягкое предупреждение при сохранении блюда"
+      },
+      {
+        "kind": "improvement",
+        "text": "После фото в режиме «Авто» чип подстраивается под photoKind модели"
+      },
+      {
+        "kind": "improvement",
+        "text": "Sentry (клиент + API), release = версия приложения"
+      },
+      {
+        "kind": "improvement",
+        "text": "В профиле блок «Что дальше» из changelog"
+      },
+      {
+        "kind": "improvement",
+        "text": "Live-eval: 35 слотов; в админке краткая сводка промахов распознавания"
+      }
+    ]
+  },
+  {
     "version": "1.7.11",
     "date": "2026-09-06",
     "summary": "feat(ux): Wave 7 — diary CTA, habits sheet, date swipe, recognition trust, /install",

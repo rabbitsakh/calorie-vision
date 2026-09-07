@@ -27,6 +27,7 @@ import {
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { useTimezone } from "@/lib/use-timezone";
 import { OPEN_FOOD_CAMERA_EVENT, OPEN_FOOD_TEXT_EVENT } from "@/lib/open-food-camera";
+import { photoKindToContextChip } from "@/lib/photo-kind-context";
 import { withBasePath } from "@/lib/paths";
 import {
   createRuSpeechRecognition,
@@ -132,7 +133,16 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
     setPendingResult(result);
     setDraftBanner(null);
     upsertPendingConfirmDraft(selectedDate, result);
-  }, [selectedDate]);
+    if (photoContext === "auto") {
+      const chip = photoKindToContextChip(
+        result.recognition.photoKind ?? result.recognition.items?.[0]?.photoKind,
+      );
+      if (chip) {
+        setPhotoContext(chip);
+        setRestaurantMode(false);
+      }
+    }
+  }, [selectedDate, photoContext]);
 
   const flushFailedSaves = useCallback(async () => {
     const failed = listFailedSaves();

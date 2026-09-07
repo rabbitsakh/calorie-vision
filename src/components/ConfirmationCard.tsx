@@ -40,6 +40,12 @@ import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
 import { isLikelyIos } from "@/lib/push-client";
+import {
+  allergenLabel,
+  matchAllergensInText,
+  parseAllergensJson,
+  type AllergenId,
+} from "@/lib/allergens";
 
 type NutritionFields = {
   dishName: string;
@@ -415,6 +421,7 @@ export function ConfirmationCard({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeDish, setActiveDish] = useState(0);
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
+  const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
   const lookupAbortRef = useRef<AbortController | null>(null);
   const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
@@ -441,6 +448,19 @@ export function ConfirmationCard({
         }
       } catch {
         // keep env/default fallback
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"));
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { allergens?: unknown };
+        setUserAllergens(parseAllergensJson(data.allergens));
+      } catch {
+        // soft hint only — ignore load failures
       }
     })();
   }, []);
@@ -847,6 +867,15 @@ export function ConfirmationCard({
           dish.original.confidence < worst.original.confidence ? dish : worst,
         )
       : null;
+  const allergenHits = Array.from(
+    new Set(
+      dishes.flatMap((dish) => {
+        const brand = dish.original.brand?.trim();
+        const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+        return matchAllergensInText(text, userAllergens);
+      }),
+    ),
+  );
 
   return (
     <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
@@ -905,6 +934,16 @@ export function ConfirmationCard({
             ) : null}
           </div>
         )}
+
+        {allergenHits.length > 0 ? (
+          <div className="rounded-xl border border-amber-200/80 bg-sky-50 px-3 py-2.5 text-sm text-amber-950">
+            <p className="leading-snug">
+              Возможен контакт с:{" "}
+              {allergenHits.map((id) => allergenLabel(id)).join(", ")}. Проверьте состав — это
+              мягкая подсказка, не диагноз.
+            </p>
+          </div>
+        ) : null}
 
         {enriching || recognition.enrichmentTimedOut || needsReview ? (
           <div

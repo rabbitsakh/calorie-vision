@@ -189,6 +189,15 @@ export async function GET(request: Request) {
           dish: decodeHtmlEntities(row.originalDish!),
           count: row._count.id,
         })),
+      missSummary: {
+        window: misreadWindow,
+        uniqueDishes: topMisrecognized.filter((row) => row.originalDish).length,
+        topMissCount: topMisrecognized[0]?._count.id ?? 0,
+        topMissDish: topMisrecognized[0]?.originalDish
+          ? decodeHtmlEntities(topMisrecognized[0].originalDish)
+          : null,
+        correctedInWindow: topMisrecognized.reduce((sum, row) => sum + row._count.id, 0),
+      },
       savedCorrections: corrections,
       bySource: bySource.map((row) => ({
         source: row.recognitionSource ?? "unknown",

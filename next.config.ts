@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import { readPackageVersion } from "./src/lib/read-package-version";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -25,4 +26,18 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryEnabled = Boolean(
+  process.env.SENTRY_DSN?.trim() || process.env.NEXT_PUBLIC_SENTRY_DSN?.trim(),
+);
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      sourcemaps: {
+        disable: !process.env.SENTRY_AUTH_TOKEN?.trim(),
+      },
+      widenClientFileUpload: false,
+      disableLogger: true,
+      automaticVercelMonitors: false,
+    })
+  : nextConfig;
