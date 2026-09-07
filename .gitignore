@@ -6,6 +6,7 @@ public/uploads/*
 !public/uploads/.gitkeep
 eval-fixtures/*
 !eval-fixtures/.gitkeep
+!eval-fixtures/README.md
 *.log
 .DS_Store
 .mysql-client-*.cnf

@@ -25,8 +25,23 @@ export default function InstallPage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <h2 className="font-semibold text-slate-900">RuStore (Android)</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Готовим бесплатное приложение в RuStore на базе этого же сайта. Пока удобнее установить PWA —
-          так вы сразу получите офлайн-очередь и напоминания.
+          {process.env.NEXT_PUBLIC_RUSTORE_URL
+            ? "Приложение в RuStore — тот же сайт в обёртке TWA. Можно поставить из магазина или добавить PWA на экран «Домой»."
+            : "Готовим бесплатное приложение в RuStore на базе этого же сайта. Пока удобнее установить PWA — так вы сразу получите офлайн-очередь и напоминания."}
+        </p>
+        {process.env.NEXT_PUBLIC_RUSTORE_URL ? (
+          <a
+            href={process.env.NEXT_PUBLIC_RUSTORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary mt-3 inline-flex"
+          >
+            Открыть в RuStore
+          </a>
+        ) : null}
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+          Для TWA на сервере нужен <code className="text-slate-500">TWA_SHA256_FINGERPRINTS</code> — см.{" "}
+          <code className="text-slate-500">rustore/README.md</code>.
         </p>
       </section>
 

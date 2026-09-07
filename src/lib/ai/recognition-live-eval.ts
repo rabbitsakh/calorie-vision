@@ -39,11 +39,22 @@ const LIVE_EVAL_SEED: LiveRecognitionEvalCase[] = [
     imageFile: "drink-bottle.jpg",
     expect: { dishNameIncludes: "пиво|кола|напиток|молоко", minCalories: 20 },
   },
+  {
+    id: "live-plate-oatmeal",
+    description: "Plate photo — oatmeal",
+    imageFile: "plate-oatmeal.jpg",
+    expect: { dishNameIncludes: "овсян|каша", minCalories: 80 },
+  },
+  {
+    id: "live-package-bar",
+    description: "Package bar / snack",
+    imageFile: "package-bar.jpg",
+    expect: { dishNameIncludes: "батончик|бар|протеин|snack|шоколад", minCalories: 40 },
+  },
 ];
 
 /** Extra slots — drop photos into eval-fixtures/ with matching names to activate. */
 const LIVE_EVAL_EXTRA_NAMES = [
-  "plate-oatmeal",
   "plate-salad",
   "plate-pasta",
   "plate-soup",
@@ -61,7 +72,6 @@ const LIVE_EVAL_EXTRA_NAMES = [
   "label-cottage",
   "package-chips",
   "package-cookies",
-  "package-bar",
   "barcode-milk",
   "barcode-kefir",
   "canteen-tray",

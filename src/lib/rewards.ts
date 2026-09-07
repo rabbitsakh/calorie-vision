@@ -229,6 +229,62 @@ export function isFrameReward(key: string): boolean {
   return rewardDef(key)?.group === "frame";
 }
 
+export function isStickerReward(key: string): boolean {
+  return rewardDef(key)?.group === "sticker";
+}
+
+export function isCheerReward(key: string): boolean {
+  return rewardDef(key)?.group === "cheer";
+}
+
+/** Soft phrase text for cheer rewards (strip catalog prefix). */
+export function cheerPhrase(key: string): string | null {
+  const def = rewardDef(key);
+  if (!def || def.group !== "cheer") return null;
+  const m = def.description.match(/«([^»]+)»/);
+  if (m?.[1]) return m[1];
+  const stripped = def.description.replace(/^Фраза маскота:\s*/i, "").trim();
+  return stripped || null;
+}
+
+/** Next collection meta milestone for soft progress UI. */
+export function nextMetaProgress(ownedCount: number): {
+  current: number;
+  target: number;
+  remaining: number;
+  ratio: number;
+  label: string;
+} | null {
+  const next = META_OWNED_THRESHOLDS.find((t) => ownedCount < t);
+  if (next == null) return null;
+  const remaining = next - ownedCount;
+  return {
+    current: ownedCount,
+    target: next,
+    remaining,
+    ratio: next > 0 ? ownedCount / next : 0,
+    label: `Ещё ${remaining} до мета-сундука`,
+  };
+}
+
+/** Tiny diary decoration glyph for equipped sticker. */
+export function stickerGlyph(key: string | null | undefined): string {
+  if (!key) return "";
+  const map: Record<string, string> = {
+    sticker_sprout: "🌱",
+    sticker_cup: "💧",
+    sticker_sunrise: "🌅",
+    sticker_plate: "🍽️",
+    sticker_moon: "🌙",
+    sticker_leaf: "🍃",
+    sticker_berry: "🫐",
+    sticker_steam: "☕",
+    sticker_path: "👣",
+    sticker_star: "✨",
+  };
+  return map[key] ?? "🏷️";
+}
+
 export function challengeChestSourceKey(weekStart: string, challengeKey: string): string {
   return `challenge:${weekStart}:${challengeKey}`;
 }

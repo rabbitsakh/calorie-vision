@@ -21,6 +21,7 @@ const SOURCE_LABEL: Record<string, string> = {
   openfoodfacts: "OFF",
   wikipedia: "Wiki",
   commons: "Commons",
+  web: "Сеть",
 };
 
 /** Search web food photos and apply one to a meal entry. */

@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
+  allergenLabel,
+  matchAllergensInText,
+  parseAllergensJson,
+  type AllergenId,
+} from "@/lib/allergens";
+import {
   addItemsFromDishNames,
   clearAll,
   clearChecked,
@@ -42,8 +48,30 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
   const [manual, setManual] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
 
   const opts = useCallback(() => ({ userId }), [userId]);
+
+  useEffect(() => {
+    if (!userId) {
+      setUserAllergens([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"), { cache: "no-store" });
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { allergens?: unknown };
+        if (!cancelled) setUserAllergens(parseAllergensJson(data.allergens));
+      } catch {
+        // soft hint only
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   const syncToServer = useCallback(
     async (next: ShoppingListItem[]) => {
@@ -253,36 +281,46 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex items-center gap-2 rounded-xl px-1 py-1 hover:bg-slate-50"
-                >
-                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={item.checked}
-                      onChange={() => handleToggle(item.id)}
-                      className="h-4 w-4 shrink-0 rounded border-slate-300"
-                    />
-                    <span
-                      className={`truncate text-sm ${
-                        item.checked ? "text-slate-400 line-through" : "text-slate-800"
-                      }`}
-                    >
-                      {item.name}
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    className="btn-quiet shrink-0 px-2 text-xs text-slate-400 hover:text-rose-600"
-                    aria-label={`Удалить ${item.name}`}
-                    onClick={() => handleRemove(item.id)}
+              {items.map((item) => {
+                const allergenHits = matchAllergensInText(item.name, userAllergens);
+                return (
+                  <li
+                    key={item.id}
+                    className="flex items-start gap-2 rounded-xl px-1 py-1 hover:bg-slate-50"
                   >
-                    ✕
-                  </button>
-                </li>
-              ))}
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={() => handleToggle(item.id)}
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"
+                      />
+                      <span className="min-w-0">
+                        <span
+                          className={`block truncate text-sm ${
+                            item.checked ? "text-slate-400 line-through" : "text-slate-800"
+                          }`}
+                        >
+                          {item.name}
+                        </span>
+                        {allergenHits.length > 0 && !item.checked ? (
+                          <span className="mt-0.5 block text-[11px] leading-snug text-amber-800">
+                            Возможно: {allergenHits.map((id) => allergenLabel(id)).join(", ")}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-quiet shrink-0 px-2 text-xs text-slate-400 hover:text-rose-600"
+                      aria-label={`Удалить ${item.name}`}
+                      onClick={() => handleRemove(item.id)}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
 

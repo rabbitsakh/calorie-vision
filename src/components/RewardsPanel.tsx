@@ -6,6 +6,9 @@ import {
   RARITY_LABELS,
   frameAvatarClass,
   isFrameReward,
+  isStickerReward,
+  nextMetaProgress,
+  stickerGlyph,
   type RewardGroup,
   type RewardRarity,
 } from "@/lib/rewards";
@@ -14,6 +17,11 @@ import {
   setEquippedFrameKey,
   subscribeEquippedFrame,
 } from "@/lib/equipped-frame";
+import {
+  getEquippedStickerKey,
+  setEquippedStickerKey,
+  subscribeEquippedSticker,
+} from "@/lib/equipped-sticker";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 
@@ -60,10 +68,17 @@ export function RewardsPanel() {
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState<FilterId>("all");
   const [equipped, setEquipped] = useState<string | null>(null);
+  const [equippedSticker, setEquippedSticker] = useState<string | null>(null);
 
   useEffect(() => {
     setEquipped(getEquippedFrameKey());
-    return subscribeEquippedFrame(setEquipped);
+    setEquippedSticker(getEquippedStickerKey());
+    const unsubFrame = subscribeEquippedFrame(setEquipped);
+    const unsubSticker = subscribeEquippedSticker(setEquippedSticker);
+    return () => {
+      unsubFrame();
+      unsubSticker();
+    };
   }, []);
 
   const load = useCallback(async () => {
@@ -108,14 +123,23 @@ export function RewardsPanel() {
   }, [filtered]);
 
   function toggleEquip(key: string) {
-    if (!isFrameReward(key)) return;
-    const next = equipped === key ? null : key;
-    setEquippedFrameKey(next);
-    setEquipped(next);
-    if (next) trackFrameEquippedGoal();
+    if (isFrameReward(key)) {
+      const next = equipped === key ? null : key;
+      setEquippedFrameKey(next);
+      setEquipped(next);
+      if (next) trackFrameEquippedGoal();
+      return;
+    }
+    if (isStickerReward(key)) {
+      const next = equippedSticker === key ? null : key;
+      setEquippedStickerKey(next);
+      setEquippedSticker(next);
+    }
   }
 
   if (rewards.length === 0) return null;
+
+  const metaHint = nextMetaProgress(ownedCount);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -128,6 +152,11 @@ export function RewardsPanel() {
       <p className="mb-3 text-sm text-slate-500">
         Награды из сундуков — за челленджи, серии и спокойные недели. Без штрафов.
       </p>
+      {metaHint ? (
+        <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950">
+          {metaHint.label} · {metaHint.current}/{metaHint.target}
+        </p>
+      ) : null}
 
       <div className="mb-4 flex flex-wrap gap-1.5" role="toolbar" aria-label="Фильтр коллекции">
         {FILTERS.map((f) => {
@@ -162,7 +191,10 @@ export function RewardsPanel() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {group.items.map((reward) => {
                   const isFrame = reward.group === "frame";
-                  const isEquipped = equipped === reward.key;
+                  const isSticker = reward.group === "sticker";
+                  const isEquipped =
+                    (isFrame && equipped === reward.key) ||
+                    (isSticker && equippedSticker === reward.key);
                   return (
                     <div
                       key={reward.key}
@@ -178,6 +210,14 @@ export function RewardsPanel() {
                           aria-hidden
                         />
                       ) : null}
+                      {isSticker && reward.unlocked ? (
+                        <div
+                          className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm"
+                          aria-hidden
+                        >
+                          {stickerGlyph(reward.key)}
+                        </div>
+                      ) : null}
                       <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
                         {reward.rarityLabel}
                         {reward.metaOnly ? " · мета" : ""}
@@ -188,7 +228,7 @@ export function RewardsPanel() {
                       <p className="mt-0.5 text-xs opacity-80">
                         {reward.unlocked ? reward.description : "Откроется из сундука"}
                       </p>
-                      {isFrame && reward.unlocked ? (
+                      {(isFrame || isSticker) && reward.unlocked ? (
                         <button
                           type="button"
                           className={`mt-2 w-full rounded-lg px-2 py-1 text-xs font-semibold ${
@@ -198,7 +238,13 @@ export function RewardsPanel() {
                           }`}
                           onClick={() => toggleEquip(reward.key)}
                         >
-                          {isEquipped ? "Надета" : "Надеть"}
+                          {isEquipped
+                            ? isSticker
+                              ? "В дневнике"
+                              : "Надета"
+                            : isSticker
+                              ? "В дневник"
+                              : "Надеть"}
                         </button>
                       ) : null}
                     </div>

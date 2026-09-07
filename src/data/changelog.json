@@ -1,5 +1,48 @@
 [
   {
+    "version": "1.7.16",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 9 — meta progress, stickers, cheer, share week, RuStore, allergens",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Прогресс до мета-сундука: «ещё N» в коллекции и на экране привычек"
+      },
+      {
+        "kind": "feature",
+        "text": "Наклейки из коллекции можно надеть в дневник рядом с маскотом"
+      },
+      {
+        "kind": "feature",
+        "text": "Фразы-cheer из коллекции подхватываются в совет дня маскота"
+      },
+      {
+        "kind": "feature",
+        "text": "Поделиться неделей — картинка со средними ккал и серией"
+      },
+      {
+        "kind": "improvement",
+        "text": "Список покупок мягко подсвечивает возможные аллергены из профиля"
+      },
+      {
+        "kind": "improvement",
+        "text": "Офлайн-очередь: понятнее, что именно ждёт отправки"
+      },
+      {
+        "kind": "improvement",
+        "text": "Страница /install: ссылка RuStore и подсказка по TWA fingerprint"
+      },
+      {
+        "kind": "improvement",
+        "text": "Live-eval: README для fixtures и расширенные seed-кейсы"
+      },
+      {
+        "kind": "improvement",
+        "text": "В выборе фото метка источника «Сеть» рядом с OFF/Wiki"
+      }
+    ]
+  },
+  {
     "version": "1.7.15",
     "date": "2026-09-07",
     "summary": "feat(images): web packaging search when Open Food Facts has no photo",
