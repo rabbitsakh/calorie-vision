@@ -149,3 +149,8 @@ export function clearAll(opts?: ShoppingListOpts): ShoppingListItem[] {
   saveList([], opts);
   return [];
 }
+
+/** Unchecked items left to buy. */
+export function countUnchecked(items: ShoppingListItem[]): number {
+  return items.reduce((n, item) => n + (item.checked ? 0 : 1), 0);
+}

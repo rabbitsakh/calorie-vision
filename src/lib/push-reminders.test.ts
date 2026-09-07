@@ -13,6 +13,15 @@ import {
   WATER_DAILY_TARGET_ML,
   type ReminderKind,
 } from "./push-reminders.ts";
+import {
+  quietFirstRunPrefs,
+  QUIET_FIRST_RUN_KINDS,
+} from "./push-reminder-schedule.ts";
+
+/** Explicit all-on prefs for schedule slot tests (null now means quiet first-run). */
+const ALL_ON = Object.fromEntries(
+  REMINDER_SCHEDULE.map((slot) => [slot.kind, { enabled: true }]),
+) as Record<ReminderKind, { enabled: true }>;
 
 const baseCtx = {
   today: "2026-08-22",
@@ -39,8 +48,14 @@ test("resolvePushTimezone falls back to Europe/Moscow", () => {
   assert.equal(resolvePushTimezone("Not/AZone"), "Europe/Moscow");
 });
 
-test("remindersForLocalTime returns breakfast at 8", () => {
-  assert.deepEqual(remindersForLocalTime(8, 1), ["breakfast"]);
+test("remindersForLocalTime returns breakfast at 8 when enabled", () => {
+  assert.deepEqual(remindersForLocalTime(8, 1, ALL_ON), ["breakfast"]);
+});
+
+test("quiet first-run defaults skip breakfast", () => {
+  assert.deepEqual(remindersForLocalTime(8, 1), []);
+  assert.deepEqual(remindersForLocalTime(8, 1, quietFirstRunPrefs()), []);
+  assert.ok(QUIET_FIRST_RUN_KINDS.includes("lunch"));
 });
 
 test("remindersForLocalTime returns weekly only on Monday 9", () => {
@@ -48,8 +63,12 @@ test("remindersForLocalTime returns weekly only on Monday 9", () => {
   assert.deepEqual(remindersForLocalTime(9, 2), []);
 });
 
-test("remindersForLocalTime returns dinner and water_evening at 18", () => {
-  assert.deepEqual(remindersForLocalTime(18, 1).sort(), ["dinner", "water_evening"]);
+test("remindersForLocalTime returns dinner and water_evening at 18 when all on", () => {
+  assert.deepEqual(remindersForLocalTime(18, 1, ALL_ON).sort(), ["dinner", "water_evening"]);
+});
+
+test("quiet defaults keep dinner but skip water_evening", () => {
+  assert.deepEqual(remindersForLocalTime(18, 1), ["dinner"]);
 });
 
 test("schedule has 10 reminder slots", () => {
@@ -84,8 +103,8 @@ test("Sakhalin local hour is +8 from Moscow schedule slots", () => {
   const moscowCheckin = new Date("2026-08-22T18:00:00Z"); // 21:00 Europe/Moscow
   assert.equal(localHour("Europe/Moscow", moscowCheckin), 21);
   assert.equal(localHour("Asia/Sakhalin", moscowCheckin), 5);
-  assert.deepEqual(remindersForLocalTime(21, 5), ["checkin"]);
-  assert.deepEqual(remindersForLocalTime(5, 5), []);
+  assert.deepEqual(remindersForLocalTime(21, 5, ALL_ON), ["checkin"]);
+  assert.deepEqual(remindersForLocalTime(5, 5, ALL_ON), []);
 
   const moscowWater = new Date("2026-08-22T11:00:00Z"); // 14:00 Europe/Moscow
   assert.equal(localHour("Europe/Moscow", moscowWater), 14);
@@ -295,6 +314,7 @@ test("reactivation soft nudge after idle days", () => {
   assert.equal(payload.url, "/ration");
 });
 
-test("remindersForLocalTime returns reactivation at 11", () => {
-  assert.deepEqual(remindersForLocalTime(11, 2), ["reactivation"]);
+test("remindersForLocalTime returns reactivation at 11 when enabled", () => {
+  assert.deepEqual(remindersForLocalTime(11, 2, ALL_ON), ["reactivation"]);
+  assert.deepEqual(remindersForLocalTime(11, 2), []);
 });

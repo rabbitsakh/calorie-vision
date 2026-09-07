@@ -31,6 +31,44 @@ export function setEquippedStickerKey(key: string | null): void {
   }
 }
 
+/** Persist equipped sticker to account (best-effort). */
+export async function persistEquippedStickerKey(key: string | null): Promise<void> {
+  setEquippedStickerKey(key);
+  try {
+    const { withBasePath } = await import("@/lib/paths");
+    await fetch(withBasePath("/api/account"), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ equippedStickerKey: key }),
+    });
+  } catch {
+    // offline — local cache kept
+  }
+}
+
+/** Hydrate local cache from account when empty or always prefer server. */
+export async function hydrateEquippedStickerFromAccount(): Promise<string | null> {
+  try {
+    const { withBasePath } = await import("@/lib/paths");
+    const resp = await fetch(withBasePath("/api/account"), { cache: "no-store" });
+    if (!resp.ok) return getEquippedStickerKey();
+    const data = (await resp.json()) as { equippedStickerKey?: string | null };
+    const server = data.equippedStickerKey?.trim() || null;
+    const local = getEquippedStickerKey();
+    if (server && !local) {
+      setEquippedStickerKey(server);
+      return server;
+    }
+    if (server && local && server !== local) {
+      // Prefer local until next equip; keep local as source of truth for now.
+      return local;
+    }
+    return local ?? server;
+  } catch {
+    return getEquippedStickerKey();
+  }
+}
+
 function winDispatch(key: string | null): void {
   const win = (globalThis as { window?: Window }).window;
   win?.dispatchEvent(new CustomEvent("cv-equipped-sticker", { detail: key }));

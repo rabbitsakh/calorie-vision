@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   getEquippedStickerKey,
+  hydrateEquippedStickerFromAccount,
   subscribeEquippedSticker,
 } from "@/lib/equipped-sticker";
 import { stickerGlyph } from "@/lib/rewards";
@@ -13,6 +14,7 @@ export function DiarySticker({ className = "" }: { className?: string }) {
 
   useEffect(() => {
     setKey(getEquippedStickerKey());
+    void hydrateEquippedStickerFromAccount().then(setKey);
     return subscribeEquippedSticker(setKey);
   }, []);
 

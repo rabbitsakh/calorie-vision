@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.7.18",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 10 — fiber/sugar pulse, shopping on plan, quieter push, equip sync",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "В герое дня мягкий пульс клетчатки и сахара, если цели заданы в профиле"
+      },
+      {
+        "kind": "feature",
+        "text": "Список покупок на экране «План» и счётчик в привычках"
+      },
+      {
+        "kind": "feature",
+        "text": "Рамка и наклейка синхронизируются с аккаунтом между устройствами"
+      },
+      {
+        "kind": "improvement",
+        "text": "Тише дефолтные push-напоминания: обед, ужин, серия, неделя"
+      },
+      {
+        "kind": "improvement",
+        "text": "На подтверждении блюда клетчатка и сахар видны одной строкой"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мягкий раз в неделю намёк пригласить друга"
+      }
+    ]
+  },
+  {
     "version": "1.7.17",
     "date": "2026-09-07",
     "summary": "fix(ux): compact share menu for day and week",

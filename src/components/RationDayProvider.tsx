@@ -47,6 +47,8 @@ export type RationDayPayload = {
     fastingEndHour: number | null;
     timezone: string | null;
     waterTargetMl: number | null;
+    fiberTargetG: number | null;
+    sugarTargetG: number | null;
   };
   week: {
     days: Array<{ date: string; calories: number }>;

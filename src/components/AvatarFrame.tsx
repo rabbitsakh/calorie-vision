@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { frameAvatarClass } from "@/lib/rewards";
 import {
   getEquippedFrameKey,
+  hydrateEquippedFrameFromAccount,
   subscribeEquippedFrame,
 } from "@/lib/equipped-frame";
 
@@ -20,6 +21,7 @@ export function AvatarFrame({ className = "", children }: AvatarFrameProps) {
 
   useEffect(() => {
     setFrameKey(getEquippedFrameKey());
+    void hydrateEquippedFrameFromAccount().then(setFrameKey);
     return subscribeEquippedFrame(setFrameKey);
   }, []);
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { isValidIanaTimezone } from "@/lib/device-timezone";
 import { prisma } from "@/lib/prisma";
+import { quietFirstRunPrefs } from "@/lib/push-reminder-schedule";
+import { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +41,27 @@ export async function POST(request: NextRequest) {
     }
 
     const deviceTz = body.timezone?.trim() || null;
+    const userUpdate: {
+      timezone?: string;
+      pushReminderPrefs?: Prisma.InputJsonValue;
+    } = {};
     if (deviceTz && isValidIanaTimezone(deviceTz)) {
-      // Keep reminder hours aligned with the device that enabled push.
+      userUpdate.timezone = deviceTz;
+    }
+
+    // Seed quieter first-run prefs only when still unset.
+    const current = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { pushReminderPrefs: true },
+    });
+    if (current?.pushReminderPrefs == null) {
+      userUpdate.pushReminderPrefs = quietFirstRunPrefs() as Prisma.InputJsonValue;
+    }
+
+    if (Object.keys(userUpdate).length > 0) {
       await prisma.user.update({
         where: { id: session.user.id },
-        data: { timezone: deviceTz },
+        data: userUpdate,
       });
     }
 

@@ -14,12 +14,14 @@ import {
 } from "@/lib/rewards";
 import {
   getEquippedFrameKey,
-  setEquippedFrameKey,
+  hydrateEquippedFrameFromAccount,
+  persistEquippedFrameKey,
   subscribeEquippedFrame,
 } from "@/lib/equipped-frame";
 import {
   getEquippedStickerKey,
-  setEquippedStickerKey,
+  hydrateEquippedStickerFromAccount,
+  persistEquippedStickerKey,
   subscribeEquippedSticker,
 } from "@/lib/equipped-sticker";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
@@ -73,6 +75,14 @@ export function RewardsPanel() {
   useEffect(() => {
     setEquipped(getEquippedFrameKey());
     setEquippedSticker(getEquippedStickerKey());
+    void (async () => {
+      const [frame, sticker] = await Promise.all([
+        hydrateEquippedFrameFromAccount(),
+        hydrateEquippedStickerFromAccount(),
+      ]);
+      setEquipped(frame);
+      setEquippedSticker(sticker);
+    })();
     const unsubFrame = subscribeEquippedFrame(setEquipped);
     const unsubSticker = subscribeEquippedSticker(setEquippedSticker);
     return () => {
@@ -125,14 +135,14 @@ export function RewardsPanel() {
   function toggleEquip(key: string) {
     if (isFrameReward(key)) {
       const next = equipped === key ? null : key;
-      setEquippedFrameKey(next);
+      void persistEquippedFrameKey(next);
       setEquipped(next);
       if (next) trackFrameEquippedGoal();
       return;
     }
     if (isStickerReward(key)) {
       const next = equippedSticker === key ? null : key;
-      setEquippedStickerKey(next);
+      void persistEquippedStickerKey(next);
       setEquippedSticker(next);
     }
   }

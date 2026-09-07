@@ -72,8 +72,12 @@ model User {
   fastingStartHour Int?
   /** Local hour (0–23) when eating window ends (exclusive); null = off. */
   fastingEndHour   Int?
-  /** Per-kind push reminder toggles/hours; null → schedule defaults. */
+  /** Per-kind push reminder toggles/hours; null → quiet first-run defaults. */
   pushReminderPrefs Json?
+  /** Equipped collection frame key (synced across devices). */
+  equippedFrameKey   String? @db.VarChar(64)
+  /** Equipped diary sticker key (synced across devices). */
+  equippedStickerKey String? @db.VarChar(64)
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]

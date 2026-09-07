@@ -13,6 +13,8 @@ import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import {
   REMINDER_SCHEDULE,
+  isEmptyPushReminderPrefs,
+  quietFirstRunPrefs,
   reminderKindLabel,
   type PushReminderPrefs,
   type ReminderKind,
@@ -38,19 +40,27 @@ type ReminderPrefRow = {
 };
 
 function defaultPrefRows(): Record<ReminderKind, ReminderPrefRow> {
+  const quiet = quietFirstRunPrefs();
   const rows = {} as Record<ReminderKind, ReminderPrefRow>;
   for (const slot of REMINDER_SCHEDULE) {
-    rows[slot.kind] = { enabled: true, hour: slot.hour };
+    rows[slot.kind] = {
+      enabled: quiet[slot.kind]?.enabled !== false,
+      hour: slot.hour,
+    };
   }
   return rows;
 }
 
 function prefsFromServer(raw: PushReminderPrefs | null | undefined): Record<ReminderKind, ReminderPrefRow> {
   const rows = defaultPrefRows();
-  if (!raw) return rows;
+  if (isEmptyPushReminderPrefs(raw)) return rows;
   for (const slot of REMINDER_SCHEDULE) {
-    const pref = raw[slot.kind];
-    if (!pref) continue;
+    const pref = raw![slot.kind];
+    if (!pref) {
+      // Missing kind in a saved prefs object → still on (same as effective schedule).
+      rows[slot.kind] = { enabled: true, hour: slot.hour };
+      continue;
+    }
     rows[slot.kind] = {
       enabled: pref.enabled !== false,
       hour: pref.hour != null ? pref.hour : slot.hour,

@@ -1479,6 +1479,16 @@ function DishFields({
           {describeNutritionBasis(dish.original) ? (
             <p className="mt-1 text-xs font-medium text-teal-800">{describeNutritionBasis(dish.original)}</p>
           ) : null}
+          {dish.fiber.trim() || dish.sugar.trim() ? (
+            <p className="mt-1 text-xs text-slate-500">
+              {[
+                dish.fiber.trim() ? `клетчатка ${dish.fiber.trim()} г` : null,
+                dish.sugar.trim() ? `сахар ${dish.sugar.trim()} г` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
         </div>
 
         <div className="sm:col-span-2">
