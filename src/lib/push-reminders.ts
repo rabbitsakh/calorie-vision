@@ -25,7 +25,7 @@ export {
 } from "@/lib/push-reminder-schedule";
 
 export { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
-import { resolveWaterTargetMl, WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { resolveWaterTargetMl } from "@/lib/water-target";
 
 export const DEFAULT_PUSH_TIMEZONE = "Europe/Moscow";
 
