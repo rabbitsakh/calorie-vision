@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.7.14",
+    "date": "2026-09-07",
+    "summary": "chore(deps): allow @sentry/cli install scripts",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Разрешён postinstall @sentry/cli — без npm warn allow-scripts при деплое"
+      }
+    ]
+  },
+  {
     "version": "1.7.13",
     "date": "2026-09-07",
     "summary": "fix(images): stop attaching unrelated Wikipedia portraits for barcode/text lookups",
