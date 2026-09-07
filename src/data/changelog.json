@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.7.15",
+    "date": "2026-09-07",
+    "summary": "feat(images): web packaging search when Open Food Facts has no photo",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Если в Open Food Facts нет фото — ищем упаковку в интернете по названию продукта"
+      },
+      {
+        "kind": "improvement",
+        "text": "Запросы с «упаковка/продукт/купить»; портреты и костюмы отсекаются"
+      },
+      {
+        "kind": "improvement",
+        "text": "Картинка скачивается в приложение (не горячая ссылка на чужой CDN)"
+      }
+    ]
+  },
+  {
     "version": "1.7.14",
     "date": "2026-09-07",
     "summary": "chore(deps): allow @sentry/cli install scripts",

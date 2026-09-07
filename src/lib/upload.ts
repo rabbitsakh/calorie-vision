@@ -3,6 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
 import { isAllowedImageUrl } from "./food-image";
+import { isDownloadableProductImageUrl } from "./product-web-image";
 import { compressFoodImage, FOOD_IMAGE_MAX_BYTES, FOOD_IMAGE_MAX_EDGE } from "./image-compress";
 import { prisma } from "@/lib/prisma";
 import { MAX_UPLOAD_INPUT_BYTES } from "@/lib/upload-limits";
@@ -179,11 +180,34 @@ export async function readUploadedImageById(id: string): Promise<{
 
 const MAX_REMOTE_IMAGE_BYTES = 2.5 * 1024 * 1024;
 
+function isPrivateOrBlockedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host === "::1" ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host === "metadata.google.internal"
+  ) {
+    return true;
+  }
+  return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|169\.254\.)/.test(host);
+}
+
+function canFetchRemoteImage(url: string, allowWebProduct: boolean): boolean {
+  if (isAllowedImageUrl(url)) return true;
+  if (!allowWebProduct) return false;
+  return isDownloadableProductImageUrl(url);
+}
+
 export async function saveRemoteImage(
   url: string,
-  options?: { ownerUserId?: string },
+  options?: { ownerUserId?: string; allowWebProduct?: boolean },
 ): Promise<string | null> {
-  if (!isAllowedImageUrl(url)) {
+  const allowWebProduct = Boolean(options?.allowWebProduct);
+  if (!canFetchRemoteImage(url, allowWebProduct)) {
     return null;
   }
 
@@ -200,7 +224,22 @@ export async function saveRemoteImage(
       signal: controller.signal,
     });
 
-    if (!response.ok || !isAllowedImageUrl(response.url)) {
+    if (!response.ok) {
+      return null;
+    }
+
+    // After redirects: catalog hosts OR (web product download with SSRF guard).
+    let finalOk = false;
+    try {
+      const finalHost = new URL(response.url).hostname;
+      if (isPrivateOrBlockedHost(finalHost)) {
+        return null;
+      }
+      finalOk = canFetchRemoteImage(response.url, allowWebProduct);
+    } catch {
+      return null;
+    }
+    if (!finalOk) {
       return null;
     }
 
@@ -225,7 +264,7 @@ export async function saveRemoteImage(
 
 export async function cacheRemoteImage(
   url: string | undefined,
-  options?: { ownerUserId?: string },
+  options?: { ownerUserId?: string; allowWebProduct?: boolean },
 ): Promise<string | undefined> {
   if (!url) {
     return undefined;
@@ -236,6 +275,7 @@ export async function cacheRemoteImage(
     return saved;
   }
 
+  // Never hotlink arbitrary web CDNs into the diary — only catalog hosts.
   return isAllowedImageUrl(url) ? url : undefined;
 }
 

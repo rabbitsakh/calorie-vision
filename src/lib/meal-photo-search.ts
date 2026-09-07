@@ -67,6 +67,9 @@ export async function applyMealPhotoFromUrl(
   imageUrl: string,
   options?: { ownerUserId?: string },
 ): Promise<string | null> {
-  const cached = await cacheRemoteImage(imageUrl.trim(), options);
+  const cached = await cacheRemoteImage(imageUrl.trim(), {
+    ...options,
+    allowWebProduct: true,
+  });
   return cached ?? null;
 }

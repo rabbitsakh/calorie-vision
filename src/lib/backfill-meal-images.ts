@@ -1,3 +1,4 @@
+import { findFoodImage } from "./food-image";
 import { dishImageLookupQueries, mealNeedsImage, normalizeDishName, shouldSkipDishName } from "./meal-image";
 import { searchOpenFoodFactsBest } from "./open-food-facts";
 import { prisma } from "./prisma";
@@ -28,7 +29,7 @@ const LOOKUP_IMAGE_SOURCES = new Set([
   "ru-nutrition-table",
 ]);
 
-async function lookupOffImageOnly(dishName: string): Promise<string | undefined> {
+async function lookupProductImage(dishName: string): Promise<string | undefined> {
   const queries = dishImageLookupQueries(dishName, 5);
   if (queries.length === 0) {
     return undefined;
@@ -37,6 +38,20 @@ async function lookupOffImageOnly(dishName: string): Promise<string | undefined>
   const off = await searchOpenFoodFactsBest(queries);
   if (off?.imageUrl) {
     const cached = await cacheRemoteImage(off.imageUrl);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // OFF miss → web packaging search (food-biased query, download+cache only).
+  for (const query of queries.slice(0, 2)) {
+    const remoteUrl = await findFoodImage({
+      query,
+      brand: off?.brand,
+      productImageUrl: off?.imageUrl,
+      mode: "auto",
+    });
+    const cached = await cacheRemoteImage(remoteUrl, { allowWebProduct: true });
     if (cached) {
       return cached;
     }
@@ -52,8 +67,8 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Replace or clear auto-attached photos on text/barcode meals.
- * Prefer OFF packaging art; otherwise leave empty rather than a Wikipedia portrait.
+ * Replace wrong auto-attached photos on text/barcode meals.
+ * Prefer OFF, then web packaging; clear only if neither works.
  */
 async function repairLookupMealImages(
   options: BackfillMealImagesOptions,
@@ -85,14 +100,14 @@ async function repairLookupMealImages(
       continue;
     }
     try {
-      const offPath = await lookupOffImageOnly(meal.dishName);
-      if (offPath && offPath !== meal.imagePath) {
+      const nextPath = await lookupProductImage(meal.dishName);
+      if (nextPath && nextPath !== meal.imagePath) {
         await prisma.mealEntry.update({
           where: { id: meal.id },
-          data: { imagePath: offPath },
+          data: { imagePath: nextPath },
         });
         repaired += 1;
-      } else if (!offPath) {
+      } else if (!nextPath) {
         await prisma.mealEntry.update({
           where: { id: meal.id },
           data: { imagePath: null },
@@ -192,7 +207,7 @@ export async function backfillMealImages(
     const dishName = sample?.dishName ?? key;
 
     try {
-      const imagePath = await lookupOffImageOnly(dishName);
+      const imagePath = await lookupProductImage(dishName);
       lookups += 1;
 
       if (!imagePath) {
