@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { DiarySticker } from "@/components/DiarySticker";
@@ -21,6 +22,7 @@ type ProgressData = {
   sugar: number;
   sugarTarget: number | null;
   showFiberSugar: boolean;
+  weightKg: number | null;
 };
 
 type DayHeroProps = {
@@ -48,6 +50,7 @@ function progressFromPayload(
     fiberTargetG?: number | null;
     sugarTargetG?: number | null;
   } | null,
+  weightKg?: number | null,
 ): ProgressData {
   const holiday = isHolidayBufferOn(selectedDate);
   const baseCal = meals.target?.calories ?? null;
@@ -65,6 +68,7 @@ function progressFromPayload(
     sugar: meals.totalSugar ?? 0,
     sugarTarget: sugarOverride != null ? sugarOverride : null,
     showFiberSugar: fiberOverride != null || sugarOverride != null,
+    weightKg: weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
   };
 }
 
@@ -187,6 +191,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             target: WATER_DAILY_TARGET_ML,
           },
           day.data.account,
+          day.data.weightKg,
         ),
       );
       return;
@@ -198,10 +203,11 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
 
     void (async () => {
       try {
-        const [mealsResp, waterResp, accountResp] = await Promise.all([
+        const [mealsResp, waterResp, accountResp, profileResp] = await Promise.all([
           fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
           fetch(withBasePath(`/api/water?date=${selectedDate}`)),
           fetch(withBasePath("/api/account")),
+          fetch(withBasePath(`/api/profile?date=${selectedDate}`)),
         ]);
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
@@ -225,7 +231,18 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
               sugarTargetG?: number | null;
             })
           : null;
-        setData(progressFromPayload(selectedDate, meals, water, account));
+        const profile = profileResp.ok
+          ? ((await profileResp.json()) as { selectedWeightKg?: number | null })
+          : null;
+        setData(
+          progressFromPayload(
+            selectedDate,
+            meals,
+            water,
+            account,
+            profile?.selectedWeightKg ?? null,
+          ),
+        );
       } catch {
         // non-critical
       }
@@ -341,6 +358,14 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
                 />
               ) : null}
             </div>
+          ) : null}
+          {data.weightKg == null && isToday ? (
+            <Link
+              href={withBasePath("/weight")}
+              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+            >
+              Вес сегодня
+            </Link>
           ) : null}
         </div>
       ) : null}

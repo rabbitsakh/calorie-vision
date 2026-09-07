@@ -9,6 +9,7 @@ import { buildStreakPayload } from "@/lib/streak-payload";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import { resolveWaterTargetMl } from "@/lib/water-target";
 import { loadActiveChallengeForUser } from "@/lib/challenge-progress";
+import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const [meals, streak, waterAgg, account, weekRows, diaryNote] = await Promise.all([
+    const [meals, streak, waterAgg, account, weekRows, diaryNote, weightEntry] = await Promise.all([
       buildDayMealsPayload(userId, date),
       buildStreakPayload(userId, todayParam),
       prisma.waterEntry.aggregate({
@@ -64,6 +65,11 @@ export async function GET(request: NextRequest) {
       prisma.diaryNote.findUnique({
         where: { userId_date: { userId, date } },
         select: { mood: true },
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId, date },
+        select: { weightKg: true },
+        orderBy: weightEntryOrderNewestFirst,
       }),
     ]);
 
@@ -131,6 +137,7 @@ export async function GET(request: NextRequest) {
           days: weekDays,
           calorieTarget: meals.target?.calories ?? null,
         },
+        weightKg: weightEntry?.weightKg ?? null,
         tip,
         diaryMood: diaryNote?.mood != null ? String(diaryNote.mood) : null,
         challenges: { active: activeChallenge },

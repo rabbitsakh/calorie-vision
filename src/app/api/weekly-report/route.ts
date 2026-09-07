@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { dateRangeEnding, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile } from "@/lib/diet";
+import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { timezone: true, ...DIET_PROFILE_SELECT },
+      select: { timezone: true, fiberTargetG: true, sugarTargetG: true, ...DIET_PROFILE_SELECT },
     });
 
     const endParam = request.nextUrl.searchParams.get("end");
@@ -44,7 +44,15 @@ export async function GET(request: NextRequest) {
     const [meals, waterEntries, weight, topFoods] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: { gte: start, lte: end } },
-        select: { date: true, calories: true, protein: true, fat: true, carbs: true },
+        select: {
+          date: true,
+          calories: true,
+          protein: true,
+          fat: true,
+          carbs: true,
+          fiber: true,
+          sugar: true,
+        },
       }),
       prisma.waterEntry.findMany({
         where: { userId: session.user.id, date: { gte: start, lte: end } },
@@ -64,8 +72,12 @@ export async function GET(request: NextRequest) {
     ]);
 
     const caloriesByDate = new Map<string, number>();
+    const fiberByDate = new Map<string, number>();
+    const sugarByDate = new Map<string, number>();
     for (const m of meals) {
       caloriesByDate.set(m.date, (caloriesByDate.get(m.date) ?? 0) + m.calories);
+      fiberByDate.set(m.date, (fiberByDate.get(m.date) ?? 0) + (m.fiber ?? 0));
+      sugarByDate.set(m.date, (sugarByDate.get(m.date) ?? 0) + (m.sugar ?? 0));
     }
 
     const waterByDate = new Map<string, number>();
@@ -190,6 +202,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const avgFiber =
+      daysWithMeals.length > 0
+        ? round1(
+            daysWithMeals.reduce((s, d) => s + (fiberByDate.get(d) ?? 0), 0) / daysWithMeals.length,
+          )
+        : 0;
+    const avgSugar =
+      daysWithMeals.length > 0
+        ? round1(
+            daysWithMeals.reduce((s, d) => s + (sugarByDate.get(d) ?? 0), 0) / daysWithMeals.length,
+          )
+        : 0;
+    const fiberTarget =
+      user?.fiberTargetG != null && Number.isFinite(user.fiberTargetG)
+        ? round1(user.fiberTargetG)
+        : null;
+    const sugarTarget =
+      user?.sugarTargetG != null && Number.isFinite(user.sugarTargetG)
+        ? round1(user.sugarTargetG)
+        : null;
+
     return NextResponse.json({
       start,
       end,
@@ -197,7 +230,11 @@ export async function GET(request: NextRequest) {
       daysLogged: daysWithMeals.length,
       avgCalories,
       avgWaterMl,
+      avgFiber,
+      avgSugar,
       calorieTarget: target?.calories ?? null,
+      fiberTarget,
+      sugarTarget,
       bestDay,
       lightestDay,
       closestToTarget,

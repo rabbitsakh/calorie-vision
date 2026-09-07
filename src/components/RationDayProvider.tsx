@@ -54,6 +54,8 @@ export type RationDayPayload = {
     days: Array<{ date: string; calories: number }>;
     calorieTarget: number | null;
   };
+  /** Weight logged for this date, if any. */
+  weightKg?: number | null;
   tip: string | null;
   diaryMood: string | null;
   challenges: {

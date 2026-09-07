@@ -19,9 +19,9 @@ export function ProfileRoadmap() {
 
   return (
     <section className="card p-4 md:p-6">
-      <h2 className="font-display text-lg font-semibold text-slate-900">Что дальше</h2>
+      <h2 className="font-display text-lg font-semibold text-slate-900">Недавнее</h2>
       <p className="mt-0.5 text-sm text-slate-500">
-        Недавние улучшения приложения — коротко и по делу
+        Последние улучшения приложения — коротко и по делу
       </p>
       <ul className="mt-4 flex flex-col gap-3">
         {recent.map((entry) => {

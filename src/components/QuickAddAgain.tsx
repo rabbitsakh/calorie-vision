@@ -9,7 +9,8 @@ import { MealSuggestions } from "@/components/MealSuggestions";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { withBasePath } from "@/lib/paths";
 
-type Tab = "again" | "favorites" | "recipe" | "templates" | "ai";
+type MainTab = "again" | "favorites" | "templates" | "more";
+type MoreTab = "recipe" | "ai";
 
 type QuickAddAgainProps = {
   selectedDate: string;
@@ -19,7 +20,8 @@ type QuickAddAgainProps = {
 };
 
 /**
- * One secondary block for “add again”: yesterday/frequent, favorites, templates, optional AI.
+ * One secondary block for “add again”: yesterday/frequent, favorites, templates;
+ * Recipe + AI nested under «Ещё».
  */
 export function QuickAddAgain({
   selectedDate,
@@ -27,7 +29,8 @@ export function QuickAddAgain({
   totalCalories,
   onSaved,
 }: QuickAddAgainProps) {
-  const [tab, setTab] = useState<Tab>("again");
+  const [tab, setTab] = useState<MainTab>("again");
+  const [moreTab, setMoreTab] = useState<MoreTab>("recipe");
   const [favoritesCount, setFavoritesCount] = useState(0);
 
   const loadFavoritesCount = useCallback(async () => {
@@ -56,7 +59,7 @@ export function QuickAddAgain({
       <div className="border-b border-slate-100 px-4 py-3 md:px-5">
         <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
         <p className="mt-0.5 text-xs text-slate-500">
-          Повтор вчерашнего, избранное, шаблоны дня или подсказка AI
+          Повтор вчерашнего, избранное или шаблоны дня
         </p>
       </div>
       <div className="flex border-b border-slate-100 overflow-x-auto">
@@ -67,9 +70,8 @@ export function QuickAddAgain({
               id: "favorites" as const,
               label: favoritesCount > 0 ? `Избранное (${favoritesCount})` : "Избранное",
             },
-            { id: "recipe" as const, label: "Рецепт" },
             { id: "templates" as const, label: "Шаблоны" },
-            { id: "ai" as const, label: "AI" },
+            { id: "more" as const, label: "Ещё" },
           ] as const
         ).map((item) => (
           <button
@@ -99,9 +101,6 @@ export function QuickAddAgain({
         {tab === "favorites" ? (
           <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
         ) : null}
-        {tab === "recipe" ? (
-          <RecipeBuilder selectedDate={selectedDate} onSaved={handleSaved} onLoggedToDiary={handleSaved} embedded />
-        ) : null}
         {tab === "templates" ? (
           <DayTemplates
             selectedDate={selectedDate}
@@ -109,13 +108,46 @@ export function QuickAddAgain({
             onSaved={handleSaved}
           />
         ) : null}
-        {tab === "ai" ? (
-          <MealSuggestions
-            selectedDate={selectedDate}
-            totalCalories={totalCalories}
-            embedded
-            onSaved={handleSaved}
-          />
+        {tab === "more" ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex gap-2">
+              {(
+                [
+                  { id: "recipe" as const, label: "Рецепт" },
+                  { id: "ai" as const, label: "AI" },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    moreTab === item.id
+                      ? "bg-teal-700 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  onClick={() => setMoreTab(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {moreTab === "recipe" ? (
+              <RecipeBuilder
+                selectedDate={selectedDate}
+                onSaved={handleSaved}
+                onLoggedToDiary={handleSaved}
+                embedded
+              />
+            ) : null}
+            {moreTab === "ai" ? (
+              <MealSuggestions
+                selectedDate={selectedDate}
+                totalCalories={totalCalories}
+                embedded
+                onSaved={handleSaved}
+              />
+            ) : null}
+          </div>
         ) : null}
       </div>
     </section>
