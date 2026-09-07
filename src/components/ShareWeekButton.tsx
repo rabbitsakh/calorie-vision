@@ -6,6 +6,8 @@ import { withBasePath } from "@/lib/paths";
 type ShareWeekButtonProps = {
   endDate: string;
   className?: string;
+  variant?: "button" | "menu";
+  onDone?: () => void;
 };
 
 type WeekShareData = {
@@ -18,7 +20,12 @@ type WeekShareData = {
 };
 
 /** Canvas share card for the soft weekly summary. */
-export function ShareWeekButton({ endDate, className = "" }: ShareWeekButtonProps) {
+export function ShareWeekButton({
+  endDate,
+  className = "",
+  variant = "button",
+  onDone,
+}: ShareWeekButtonProps) {
   const [busy, setBusy] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
@@ -61,13 +68,29 @@ export function ShareWeekButton({ endDate, className = "" }: ShareWeekButtonProp
         URL.revokeObjectURL(url);
         setHint("Картинка скачана");
       }
+      onDone?.();
     } catch {
       setHint("Не удалось поделиться");
     } finally {
       setBusy(false);
       window.setTimeout(() => setHint(null), 2500);
     }
-  }, [endDate]);
+  }, [endDate, onDone]);
+
+  if (variant === "menu") {
+    return (
+      <button
+        type="button"
+        role="menuitem"
+        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 ${className}`.trim()}
+        disabled={busy}
+        onClick={() => void share()}
+      >
+        <span>{busy ? "Готовим…" : "Неделя"}</span>
+        {hint ? <span className="text-[11px] text-slate-400">{hint}</span> : null}
+      </button>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-2 ${className}`.trim()}>
