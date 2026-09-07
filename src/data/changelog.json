@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.7.22",
+    "date": "2026-09-07",
+    "summary": "fix(deploy): skip sentry-cli download that hangs npm install on VPS",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Деплой: SENTRYCLI_SKIP_DOWNLOAD по умолчанию — npm install больше не зависает на CDN @sentry/cli"
+      },
+      {
+        "kind": "improvement",
+        "text": "Деплой: npm ci по lockfile с fallback на npm install"
+      }
+    ]
+  },
+  {
     "version": "1.7.21",
     "date": "2026-09-07",
     "summary": "feat(ux): Wave 13 — day share parity, water push target, habits tidy",
