@@ -25,7 +25,6 @@ import {
 } from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
-import { ProfileRoadmap } from "@/components/ProfileRoadmap";
 import { ALLERGEN_OPTIONS } from "@/lib/allergens";
 
 type AccountResponse = {
@@ -407,8 +406,8 @@ export function ProfileForm() {
             <p className="mt-0.5 text-sm text-slate-500">
               Пол, рост и активность — для калорийной нормы
             </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div className="field sm:col-span-2">
+            <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+              <div className="field min-w-0 sm:col-span-2">
                 <label htmlFor="sex">Пол</label>
                 <select
                   id="sex"
@@ -808,8 +807,6 @@ export function ProfileForm() {
           )}
         </section>
       ) : null}
-
-      {!loading ? <ProfileRoadmap /> : null}
 
       {!loading ? (
         <footer className="px-1 pt-1 text-sm text-slate-500">

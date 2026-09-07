@@ -148,6 +148,7 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  min-width: 0;
 }
 
 .field label {
@@ -162,8 +163,12 @@ textarea {
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
+  box-sizing: border-box;
+  max-width: 100%;
   min-height: var(--control-h);
+  min-width: 0;
   padding: 0.75rem 0.9rem;
+  width: 100%;
 }
 
 .field input:focus,
@@ -241,7 +246,6 @@ textarea {
 }
 
 .app-shell {
-  padding-top: env(safe-area-inset-top, 0px);
   /* Tab bar is in-flow on mobile (.cv-app-frame); keep spacer for desktop only below. */
   padding-bottom: 1rem;
 }
@@ -252,6 +256,8 @@ textarea {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
+  /* Safe area on the frame (not scrollable main) so content never slides under the notch/status bar. */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .cv-app-main {

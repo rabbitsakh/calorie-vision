@@ -47,7 +47,7 @@ function ProfileSection({
           ▾
         </span>
       </button>
-      {open ? <div className="border-t border-slate-100 px-4 py-3 md:px-5">{children}</div> : null}
+      {open ? <div className="min-w-0 overflow-x-hidden border-t border-slate-100 px-4 py-3 md:px-5">{children}</div> : null}
     </section>
   );
 }
