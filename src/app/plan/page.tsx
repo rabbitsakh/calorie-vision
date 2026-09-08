@@ -1,11 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { ShareWeekButton } from "@/components/ShareWeekButton";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
+import { withBasePath } from "@/lib/paths";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 import { useRouter } from "next/navigation";
@@ -43,6 +45,16 @@ export default function PlanPage() {
           />
           <WeeklyReportCard endDate={date} />
           <ShoppingListPanel selectedDate={date} />
+          <Link
+            href={withBasePath("/weight")}
+            className="card flex items-center justify-between gap-3 p-4 transition-colors hover:border-teal-200"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-900">Вес и цель</p>
+              <p className="mt-0.5 text-sm text-slate-500">Журнал веса и темп к цели</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-teal-800">Открыть →</span>
+          </Link>
         </div>
       </AuthGate>
     </AppShell>
