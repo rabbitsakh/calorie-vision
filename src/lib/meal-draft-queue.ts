@@ -1,8 +1,31 @@
 import type { RecognitionResponse } from "@/types";
+import type { NutritionValues } from "@/lib/nutrition";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { deleteOfflinePhoto, loadOfflinePhoto, saveOfflinePhoto } from "@/lib/offline-photo-store";
 
 export const MEAL_DRAFT_QUEUE_KEY = "cv-meal-draft-queue-v1";
+
+/** Editable confirm fields persisted across reload / PWA kill (1.11.1). */
+export type PendingConfirmDishUi = {
+  id: string;
+  dishName: string;
+  calories: string;
+  protein: string;
+  fat: string;
+  carbs: string;
+  fiber: string;
+  sugar: string;
+  portionGrams: string;
+  baseline: NutritionValues | null;
+};
+
+export type PendingConfirmUi = {
+  mealType?: string;
+  eatenTime?: string;
+  allergenAck?: boolean;
+  activeDish?: number;
+  dishes?: PendingConfirmDishUi[];
+};
 
 export type PendingConfirmDraft = {
   id: string;
@@ -10,6 +33,8 @@ export type PendingConfirmDraft = {
   createdAt: string;
   selectedDate: string;
   result: RecognitionResponse;
+  /** User edits on the confirm screen; optional for older drafts. */
+  ui?: PendingConfirmUi;
 };
 
 export type PendingRecognitionDraft = {
@@ -106,21 +131,62 @@ export function countPendingConfirms(): number {
   return readQueue().filter((item) => item.kind === "pending-confirm").length;
 }
 
+function sameConfirmPhoto(
+  previous: RecognitionResponse | undefined,
+  next: RecognitionResponse,
+): boolean {
+  if (!previous) return false;
+  const prevPath = previous.imagePath?.trim() ?? "";
+  const nextPath = next.imagePath?.trim() ?? "";
+  if (prevPath && nextPath) return prevPath === nextPath;
+  if (previous.previewUrl && next.previewUrl) return previous.previewUrl === next.previewUrl;
+  return previous === next;
+}
+
+export type UpsertPendingConfirmOptions = {
+  id?: string;
+  /** Pass to replace UI; omit to keep existing UI when the same photo is upserted. */
+  ui?: PendingConfirmUi | null;
+};
+
 export function upsertPendingConfirmDraft(
   selectedDate: string,
   result: RecognitionResponse,
-  id = "pending-confirm",
+  idOrOptions: string | UpsertPendingConfirmOptions = "pending-confirm",
 ): void {
+  const options: UpsertPendingConfirmOptions =
+    typeof idOrOptions === "string" ? { id: idOrOptions } : idOrOptions;
+  const id = options.id ?? "pending-confirm";
+
+  const existing = readQueue().find(
+    (item): item is PendingConfirmDraft =>
+      item.kind === "pending-confirm" && item.selectedDate === selectedDate,
+  );
+
+  let ui: PendingConfirmUi | undefined;
+  if (options.ui === null) {
+    ui = undefined;
+  } else if (options.ui !== undefined) {
+    ui = options.ui;
+  } else if (existing?.ui && sameConfirmPhoto(existing.result, result)) {
+    // Re-upsert / SSE enrichment for the same photo — keep edits.
+    ui = existing.ui;
+  }
+
   const items = readQueue().filter(
     (item) => !(item.kind === "pending-confirm" && item.selectedDate === selectedDate),
   );
-  items.push({
+  const next: PendingConfirmDraft = {
     id,
     kind: "pending-confirm",
-    createdAt: new Date().toISOString(),
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
     selectedDate,
     result,
-  });
+  };
+  if (ui) {
+    next.ui = ui;
+  }
+  items.push(next);
   writeQueue(items);
 }
 

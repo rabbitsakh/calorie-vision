@@ -36,7 +36,12 @@ import {
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { trackFirstMealSaveGoal, trackMealSavedGoal, trackFirstConfirmSaveGoal } from "@/lib/metrika-funnel";
-import { enqueueFailedSave } from "@/lib/meal-draft-queue";
+import {
+  enqueueFailedSave,
+  upsertPendingConfirmDraft,
+  type PendingConfirmDishUi,
+  type PendingConfirmUi,
+} from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
 import { isLikelyIos } from "@/lib/push-client";
@@ -79,6 +84,8 @@ type ConfirmationCardProps = {
   timezone?: string | null;
   /** Prefill from push deep link (`?meal=BREAKFAST`). */
   initialMealType?: string;
+  /** Restored confirm edits from pending-confirm draft (1.11.1). */
+  initialUi?: PendingConfirmUi | null;
   onCancel: () => void;
   onSaved: (meta?: { rememberedCorrection?: boolean; savedCount?: number }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
@@ -127,6 +134,55 @@ function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] 
   return flattenRecognitionItems(recognition).map((item, index) =>
     draftFromRecognition(item, `${item.dishName}-${index}`),
   );
+}
+
+function serializeDishUi(dish: DishDraft): PendingConfirmDishUi {
+  return {
+    id: dish.id,
+    dishName: dish.dishName,
+    calories: dish.calories,
+    protein: dish.protein,
+    fat: dish.fat,
+    carbs: dish.carbs,
+    fiber: dish.fiber,
+    sugar: dish.sugar,
+    portionGrams: dish.portionGrams,
+    baseline: dish.baseline,
+  };
+}
+
+function applyUiToDishes(dishes: DishDraft[], ui?: PendingConfirmUi | null): DishDraft[] {
+  if (!ui?.dishes?.length) return dishes;
+  const byId = new Map(ui.dishes.map((item) => [item.id, item]));
+  return dishes.map((dish, index) => {
+    const saved = byId.get(dish.id) ?? ui.dishes![index];
+    if (!saved) return dish;
+    return {
+      ...dish,
+      dishName: saved.dishName,
+      calories: saved.calories,
+      protein: saved.protein,
+      fat: saved.fat,
+      carbs: saved.carbs,
+      fiber: saved.fiber,
+      sugar: saved.sugar,
+      portionGrams: saved.portionGrams,
+      baseline: saved.baseline ?? dish.baseline,
+    };
+  });
+}
+
+function resolveInitialMealType(
+  initialMealType: string | undefined,
+  ui: PendingConfirmUi | null | undefined,
+): string {
+  if (ui?.mealType && ui.mealType in MEAL_TYPE_LABELS) {
+    return ui.mealType;
+  }
+  if (initialMealType && initialMealType in MEAL_TYPE_LABELS) {
+    return initialMealType;
+  }
+  return inferMealTypeFromHour(new Date().getHours());
 }
 
 /** Keep user-selected portion when SSE enrichment updates recognition. */
@@ -400,19 +456,22 @@ export function ConfirmationCard({
   selectedDate,
   timezone,
   initialMealType = "",
+  initialUi = null,
   onCancel,
   onSaved,
   onSaveQueued,
 }: ConfirmationCardProps) {
   const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
-  const [dishes, setDishes] = useState<DishDraft[]>(() => draftsFromRecognition(recognition));
+  const [dishes, setDishes] = useState<DishDraft[]>(() =>
+    applyUiToDishes(draftsFromRecognition(recognition), initialUi),
+  );
   const [imagePath, setImagePath] = useState(initialImagePath);
   const [mealType, setMealType] = useState<string>(() =>
-    initialMealType && initialMealType in MEAL_TYPE_LABELS
-      ? initialMealType
-      : inferMealTypeFromHour(new Date().getHours()),
+    resolveInitialMealType(initialMealType, initialUi),
   );
-  const [eatenTime, setEatenTime] = useState(() => toTimeInputValue(new Date(), timezone));
+  const [eatenTime, setEatenTime] = useState(
+    () => initialUi?.eatenTime || toTimeInputValue(new Date(), timezone),
+  );
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [searchingId, setSearchingId] = useState<string | null>(null);
@@ -420,15 +479,20 @@ export function ConfirmationCard({
   const [error, setError] = useState<string | null>(null);
   const [heroSrc, setHeroSrc] = useState(() => resolveConfirmHeroSrc(initialImagePath, previewUrl));
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [activeDish, setActiveDish] = useState(0);
+  const [activeDish, setActiveDish] = useState(() =>
+    typeof initialUi?.activeDish === "number" && initialUi.activeDish >= 0
+      ? initialUi.activeDish
+      : 0,
+  );
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
-  const [allergenAck, setAllergenAck] = useState(false);
+  const [allergenAck, setAllergenAck] = useState(() => Boolean(initialUi?.allergenAck));
   const lookupAbortRef = useRef<AbortController | null>(null);
   const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const heroFallbackTriedRef = useRef(false);
   const allergenBlockRef = useRef<HTMLDivElement>(null);
+  const skipUiPersistRef = useRef(true);
   const isIos = typeof navigator !== "undefined" && isLikelyIos();
 
   useEffect(() => {
@@ -475,6 +539,25 @@ export function ConfirmationCard({
   useEffect(() => {
     setDishes((current) => mergeDishesFromRecognition(current, recognition));
   }, [recognition]);
+
+  // Persist confirm edits into pending-confirm so reload / PWA kill keeps them (1.11.1).
+  useEffect(() => {
+    if (skipUiPersistRef.current) {
+      skipUiPersistRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const ui: PendingConfirmUi = {
+        mealType,
+        eatenTime,
+        allergenAck,
+        activeDish,
+        dishes: dishes.map(serializeDishUi),
+      };
+      upsertPendingConfirmDraft(selectedDate, result, { ui });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [allergenAck, activeDish, dishes, eatenTime, mealType, result, selectedDate]);
 
   useEffect(() => {
     setImagePath(initialImagePath);

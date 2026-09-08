@@ -386,12 +386,14 @@ export function FoodAddPanel({
   }
 
   if (pendingResult) {
+    const draftUi = getPendingConfirmDraft(selectedDate)?.ui ?? null;
     return (
       <ConfirmationCard
         result={pendingResult}
         selectedDate={selectedDate}
         timezone={timezone}
         initialMealType={initialMealType}
+        initialUi={draftUi}
         onCancel={() => {
           photoAbortRef.current?.abort();
           lookupAbortRef.current?.abort();

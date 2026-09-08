@@ -55,6 +55,98 @@ test("upsertPendingConfirmDraft stores and replaces same date", () => {
   assert.equal(countPendingConfirms(), 0);
 });
 
+test("upsertPendingConfirmDraft keeps ui edits for same photo", () => {
+  mockStorage();
+  upsertPendingConfirmDraft("2026-08-24", {
+    imagePath: "/soup.jpg",
+    recognition: { dishName: "Суп", calories: 200 } as never,
+  });
+  upsertPendingConfirmDraft(
+    "2026-08-24",
+    {
+      imagePath: "/soup.jpg",
+      recognition: { dishName: "Суп", calories: 200 } as never,
+    },
+    {
+      ui: {
+        mealType: "LUNCH",
+        eatenTime: "13:40",
+        allergenAck: true,
+        dishes: [
+          {
+            id: "Суп-0",
+            dishName: "Борщ",
+            calories: "250",
+            protein: "12",
+            fat: "8",
+            carbs: "30",
+            fiber: "4",
+            sugar: "3",
+            portionGrams: "350",
+            baseline: null,
+          },
+        ],
+      },
+    },
+  );
+
+  // Re-upsert result only (SSE enrichment / openPending) must keep UI.
+  upsertPendingConfirmDraft("2026-08-24", {
+    imagePath: "/soup.jpg",
+    recognition: { dishName: "Суп", calories: 210, enriching: false } as never,
+  });
+
+  const draft = getPendingConfirmDraft("2026-08-24");
+  assert.equal(draft?.ui?.mealType, "LUNCH");
+  assert.equal(draft?.ui?.eatenTime, "13:40");
+  assert.equal(draft?.ui?.allergenAck, true);
+  assert.equal(draft?.ui?.dishes?.[0]?.dishName, "Борщ");
+  assert.equal(draft?.ui?.dishes?.[0]?.portionGrams, "350");
+  assert.equal(draft?.result.recognition.calories, 210);
+});
+
+test("upsertPendingConfirmDraft clears ui when photo changes", () => {
+  mockStorage();
+  upsertPendingConfirmDraft(
+    "2026-08-24",
+    {
+      imagePath: "/a.jpg",
+      recognition: { dishName: "Суп", calories: 200 } as never,
+    },
+    {
+      ui: { mealType: "DINNER", eatenTime: "19:00" },
+    },
+  );
+  upsertPendingConfirmDraft("2026-08-24", {
+    imagePath: "/b.jpg",
+    recognition: { dishName: "Салат", calories: 150 } as never,
+  });
+  const draft = getPendingConfirmDraft("2026-08-24");
+  assert.equal(draft?.result.imagePath, "/b.jpg");
+  assert.equal(draft?.ui, undefined);
+});
+
+test("upsertPendingConfirmDraft can explicitly clear ui", () => {
+  mockStorage();
+  upsertPendingConfirmDraft(
+    "2026-08-24",
+    {
+      imagePath: "/a.jpg",
+      recognition: { dishName: "Суп", calories: 200 } as never,
+    },
+    { ui: { mealType: "SNACK" } },
+  );
+  upsertPendingConfirmDraft(
+    "2026-08-24",
+    {
+      imagePath: "/a.jpg",
+      recognition: { dishName: "Суп", calories: 200 } as never,
+    },
+    { ui: null },
+  );
+  assert.equal(getPendingConfirmDraft("2026-08-24")?.ui, undefined);
+});
+
 test("enqueueFailedSave and removeMealDraft", () => {
   mockStorage();
   const id = enqueueFailedSave("2026-08-24", {
