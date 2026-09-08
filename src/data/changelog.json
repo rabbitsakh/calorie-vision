@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.9.2",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Wave C4 — long-press «+» и быстрые режимы",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Удержание «+» — быстрое меню Фото / Текст / Штрихкод"
+      },
+      {
+        "kind": "feature",
+        "text": "На десктопе «Добавить» со стрелкой режимов"
+      },
+      {
+        "kind": "improvement",
+        "text": "Горячая клавиша A (и Ф) открывает выбор режима на десктопе"
+      }
+    ]
+  },
+  {
     "version": "1.9.1",
     "date": "2026-09-08",
     "summary": "feat(ux): Wave C3 — рацион add-first declutter",

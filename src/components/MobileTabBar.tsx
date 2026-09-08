@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useFoodAddUi } from "@/components/FoodAddHost";
+import { LongPressAddButton } from "@/components/FoodAddQuickMenu";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
-import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type MobileTabBarProps = {
@@ -20,7 +20,7 @@ type MobileTabBarProps = {
 
 /**
  * Bottom tab bar — in-flow flex child of `.cv-app-frame` (not position:fixed).
- * Center slot is «+» (action), not a route — Wave C1.
+ * Center «+»: tap = picker, long-press = quick modes (C4).
  */
 export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const pathname = usePathname();
@@ -60,12 +60,10 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
         ))}
 
         {showAdd ? (
-          <button
-            type="button"
-            className="tab-add-btn flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-0.5"
-            aria-label="Добавить еду"
+          <LongPressAddButton
             disabled={confirmOpen}
-            onClick={() => requestOpenFoodAddPicker()}
+            className="min-w-0 flex-1"
+            aria-label="Добавить еду. Удержание — быстрый выбор режима"
           >
             <span
               className={`flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-md shadow-teal-800/25 transition-transform ${
@@ -76,7 +74,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
                 <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
             </span>
-          </button>
+          </LongPressAddButton>
         ) : null}
 
         {right.map((item) => (
