@@ -30,6 +30,8 @@ type WeeklyPlanProps = {
   /** Show compact holiday buffer switch in the header (today only). */
   showHolidayToggle?: boolean;
   onHolidayChange?: () => void;
+  /** Link to /plan hub — hide when already on Plan (Weekly OS polish). */
+  showPlanLink?: boolean;
 };
 
 export function WeeklyPlan({
@@ -39,6 +41,7 @@ export function WeeklyPlan({
   compact = false,
   showHolidayToggle = false,
   onHolidayChange,
+  showPlanLink = true,
 }: WeeklyPlanProps) {
   const day = useOptionalRationDay();
   const [days, setDays] = useState<DayRow[]>([]);
@@ -125,12 +128,16 @@ export function WeeklyPlan({
             <p className={`font-semibold text-slate-800 ${compact ? "text-sm" : ""}`}>
               {compact ? "Неделя" : "План недели"}
             </p>
-            <Link
-              href={withDateQuery("/plan", selectedDate)}
-              className="text-xs font-semibold text-teal-800 underline-offset-2 hover:underline"
-            >
-              {compact ? "План →" : "Подробнее →"}
-            </Link>
+            {showPlanLink ? (
+              <Link
+                href={withDateQuery("/plan", selectedDate)}
+                className={`font-semibold text-teal-800 underline-offset-2 hover:underline ${
+                  compact ? "text-[11px] text-slate-500 hover:text-teal-800" : "text-xs"
+                }`}
+              >
+                {compact ? "открыть план" : "Подробнее →"}
+              </Link>
+            ) : null}
           </div>
           {compact ? (
             effectiveTarget ? (

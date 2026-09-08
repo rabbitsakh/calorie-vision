@@ -2,11 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { ShareWeekButton } from "@/components/ShareWeekButton";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
+import { WeightGoalCard } from "@/components/WeightGoalCard";
+import { toDateKeyTz } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
@@ -20,13 +23,15 @@ const ShoppingListPanel = dynamic(
 export default function PlanPage() {
   const timezone = useTimezone();
   const { date } = useSelectedDate(timezone);
+  const today = toDateKeyTz(new Date(), timezone);
   const router = useRouter();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <AppShell
       title="План"
       compact
-      description="Неделя, покупки и спокойный обзор."
+      description="Неделя, цель по весу, покупки."
       date={date}
     >
       <AuthGate>
@@ -39,21 +44,28 @@ export default function PlanPage() {
           </div>
           <WeeklyPlan
             selectedDate={date}
+            refreshKey={refreshKey}
+            showPlanLink={false}
+            showHolidayToggle={date === today}
+            onHolidayChange={() => setRefreshKey((k) => k + 1)}
             onSelectDate={(next) => {
               router.push(`/ration?date=${next}`);
             }}
           />
           <WeeklyReportCard endDate={date} />
+          <WeightGoalCard
+            selectedDate={date === today ? today : date}
+            refreshKey={refreshKey}
+            showCurrentWeight
+            onChanged={() => setRefreshKey((k) => k + 1)}
+          />
           <ShoppingListPanel selectedDate={date} />
           <Link
             href={withBasePath("/weight")}
-            className="card flex items-center justify-between gap-3 p-4 transition-colors hover:border-teal-200"
+            className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm transition-colors hover:border-teal-200"
           >
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-900">Вес и цель</p>
-              <p className="mt-0.5 text-sm text-slate-500">Журнал веса и темп к цели</p>
-            </div>
-            <span className="shrink-0 text-sm font-semibold text-teal-800">Открыть →</span>
+            <span className="font-medium text-slate-700">Журнал веса</span>
+            <span className="shrink-0 font-semibold text-teal-800">Открыть →</span>
           </Link>
         </div>
       </AuthGate>
