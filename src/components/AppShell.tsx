@@ -7,7 +7,7 @@ import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
-import { APP_NAV, isAppNavPath } from "@/lib/navigation";
+import { APP_NAV, isAppNavPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -98,7 +98,7 @@ export function AppShell({
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
-  const foodAddEnabled = isAppNavPath(pathname) || pathname === "/plan";
+  const foodAddEnabled = isAppNavPath(pathname);
 
   return (
     <FoodAddHost date={date} enabled={foodAddEnabled}>
@@ -147,9 +147,7 @@ export function AppShell({
               {APP_NAV.map((item) => {
                 const active = pathname === item.href;
                 const href =
-                  date && (item.href === "/ration" || item.href === "/stats")
-                    ? withDateQuery(item.href, date)
-                    : item.href;
+                  date && navKeepsDate(item.href) ? withDateQuery(item.href, date) : item.href;
 
                 return (
                   <Link

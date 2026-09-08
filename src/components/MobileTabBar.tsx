@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useFoodAddUi } from "@/components/FoodAddHost";
 import { LongPressAddButton } from "@/components/FoodAddQuickMenu";
 import { NavIcon } from "@/components/NavIcons";
-import { APP_NAV } from "@/lib/navigation";
+import { APP_NAV, navKeepsDate } from "@/lib/navigation";
 import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
@@ -103,10 +103,7 @@ function TabLink({
   queueCount: number;
 }) {
   const active = pathname === item.href;
-  const href =
-    date && (item.href === "/ration" || item.href === "/stats")
-      ? withDateQuery(item.href, date)
-      : item.href;
+  const href = date && navKeepsDate(item.href) ? withDateQuery(item.href, date) : item.href;
   const showQueueBadge = queueCount > 0;
 
   return (
