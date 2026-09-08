@@ -10,11 +10,11 @@ import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
 import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
 import {
+  buildPrimaryStatsInsight,
   buildWeekSummary,
   type CorridorStreakAlert,
-  type WeekSummary,
+  type PrimaryStatsInsight,
 } from "@/lib/stats-insights";
-import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 
 type StatsDay = {
   date: string;
@@ -673,47 +673,35 @@ function MonthHeatmap({
   );
 }
 
-// ── WeekSummaryCard ───────────────────────────────────────────────────────────
+// ── PrimaryInsightCard ────────────────────────────────────────────────────────
 
-function WeekSummaryCard({ summary }: { summary: WeekSummary }) {
+const INSIGHT_TONE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
+  amber: "border-amber-200 bg-amber-50 text-amber-950",
+  sky: "border-sky-200 bg-sky-50 text-sky-950",
+  teal: "border-teal-100 bg-teal-50/70 text-teal-950",
+  slate: "border-slate-200 bg-slate-50 text-slate-800",
+};
+
+const INSIGHT_TITLE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
+  amber: "opacity-80",
+  sky: "opacity-80",
+  teal: "text-teal-700",
+  slate: "text-teal-700",
+};
+
+function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
   return (
-    <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
-        Итоги недели
+    <div
+      className={`rounded-2xl border px-4 py-3 text-sm ${INSIGHT_TONE_CLASS[insight.tone]}`}
+      role="status"
+    >
+      <p
+        className={`text-xs font-medium uppercase tracking-wide ${INSIGHT_TITLE_CLASS[insight.tone]}`}
+      >
+        {insight.title}
       </p>
-      <p className="mt-1 font-semibold text-teal-950">{summary.headline}</p>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-xl bg-white/80 px-3 py-2">
-          <p className="text-xs text-slate-500">Дней с едой</p>
-          <p className="text-lg font-bold text-slate-900">{summary.daysLogged}/7</p>
-        </div>
-        <div className="rounded-xl bg-white/80 px-3 py-2">
-          <p className="text-xs text-slate-500">Среднее ккал</p>
-          <p className="text-lg font-bold text-slate-900">{summary.avgCalories}</p>
-          {summary.calorieTarget ? (
-            <p className="text-[10px] text-slate-500">цель {summary.calorieTarget}</p>
-          ) : null}
-        </div>
-        <div className="rounded-xl bg-white/80 px-3 py-2">
-          <p className="text-xs text-slate-500">В коридоре</p>
-          <p className="text-lg font-bold text-slate-900">
-            {summary.daysInCorridor != null ? summary.daysInCorridor : "—"}
-          </p>
-        </div>
-        <div className="rounded-xl bg-white/80 px-3 py-2">
-          <p className="text-xs text-slate-500">Вес за неделю</p>
-          <p className="text-lg font-bold text-slate-900">
-            {summary.weightChangeKg != null
-              ? `${summary.weightChangeKg > 0 ? "+" : ""}${summary.weightChangeKg} кг`
-              : "—"}
-          </p>
-        </div>
-      </div>
-      {summary.bestDay ? (
-        <p className="mt-2 text-xs text-teal-800">
-          Ближе всего к цели: {formatDateShort(summary.bestDay.date)} · {summary.bestDay.calories} ккал
-        </p>
-      ) : null}
+      <p className="mt-1 font-semibold">{insight.body}</p>
+      {insight.detail ? <p className="mt-1.5 text-xs opacity-80">{insight.detail}</p> : null}
     </div>
   );
 }
@@ -825,6 +813,21 @@ export function StatsView({ endDate }: StatsViewProps) {
   const weekSummary =
     data && period === "week" ? buildWeekSummary(data.days, data.calorieTarget) : null;
 
+  const primaryInsight =
+    data && data.summary.totalMealDays > 0
+      ? buildPrimaryStatsInsight({
+          corridorAlert: data.corridorAlert,
+          weekSummary,
+          // Week rollup already covers the story — mood/WoW stay for month/90 or as fallback.
+          moodInsight: period === "week" && weekSummary ? null : data.moodInsight,
+          weekOverWeek: period === "week" && weekSummary ? null : wow,
+        })
+      : null;
+
+  const showWowSection =
+    Boolean(wow && (wow.thisWeek.daysLogged > 0 || wow.prevWeek.daysLogged > 0)) &&
+    primaryInsight?.title !== "Сравнение недель";
+
   return (
     <div className="flex flex-col gap-4">
       {/* Sticky under the notch — scrollport is `.cv-app-main`, so top:0 sticks to its top edge */}
@@ -861,31 +864,49 @@ export function StatsView({ endDate }: StatsViewProps) {
         </div>
       ) : null}
 
-      {data ? (
+      {data && data.summary.totalMealDays > 0 ? (
         <>
-          {weekSummary ? <WeekSummaryCard summary={weekSummary} /> : null}
+          {primaryInsight ? <PrimaryInsightCard insight={primaryInsight} /> : null}
 
-          {period === "week" ? <WeeklyReportCard endDate={endDate} /> : null}
-
-          {data.corridorAlert ? (
-            <div
-              className={`rounded-2xl border px-4 py-3 text-sm ${
-                data.corridorAlert.direction === "above"
-                  ? "border-amber-200 bg-amber-50 text-amber-950"
-                  : "border-sky-200 bg-sky-50 text-sky-950"
-              }`}
-              role="status"
-            >
-              <p className="text-xs font-medium uppercase tracking-wide opacity-80">
-                {data.corridorAlert.direction === "above"
-                  ? "Выше цели 3+ дня"
-                  : "Ниже цели 3+ дня"}
-              </p>
-              <p className="mt-1">{data.corridorAlert.message}</p>
+          {/* Month/90: keep summary tiles. Week: numbers live in insight + charts. */}
+          {period !== "week" ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <StatCard
+                label="Среднее ккал/день"
+                value={String(data.summary.avgCalories)}
+                sub={data.calorieTarget ? `цель ${data.calorieTarget} ккал` : undefined}
+                accent={!!data.calorieTarget && data.summary.avgCalories >= data.calorieTarget * 0.9 && data.summary.avgCalories <= data.calorieTarget * 1.05}
+              />
+              <StatCard label="Дней с едой" value={`${data.summary.totalMealDays} / ${data.days.length}`} />
+              <StatCard
+                label="Изменение веса"
+                value={data.summary.weightChangeKg != null
+                  ? `${data.summary.weightChangeKg > 0 ? "+" : ""}${data.summary.weightChangeKg} кг`
+                  : "—"}
+                sub={data.summary.firstWeightKg && data.summary.lastWeightKg
+                  ? `${data.summary.firstWeightKg} → ${data.summary.lastWeightKg} кг`
+                  : undefined}
+              />
             </div>
           ) : null}
 
-          {wow && (wow.thisWeek.daysLogged > 0 || wow.prevWeek.daysLogged > 0) ? (
+          {/* Calories */}
+          <section className="card p-4 md:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-display text-lg font-bold">Калории по дням</h2>
+              {data.calorieTarget ? (
+                <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                  <span className="inline-block h-0 w-6 border-t-2 border-dashed border-amber-400" />
+                  цель {data.calorieTarget} ккал
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-4">
+              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
+            </div>
+          </section>
+
+          {showWowSection && wow ? (
             <section className="card p-4 md:p-6">
               <h2 className="font-display text-lg font-bold">Спокойное сравнение недель</h2>
               <p className="mt-1 text-xs text-slate-500">
@@ -944,51 +965,6 @@ export function StatsView({ endDate }: StatsViewProps) {
               </div>
             </section>
           ) : null}
-
-          {data.moodInsight ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
-              <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
-                Настроение и еда
-              </p>
-              <p className="mt-1">{data.moodInsight}</p>
-            </div>
-          ) : null}
-
-          {/* Summary tiles */}
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatCard
-              label="Среднее ккал/день"
-              value={String(data.summary.avgCalories)}
-              sub={data.calorieTarget ? `цель ${data.calorieTarget} ккал` : undefined}
-              accent={!!data.calorieTarget && data.summary.avgCalories >= data.calorieTarget * 0.9 && data.summary.avgCalories <= data.calorieTarget * 1.05}
-            />
-            <StatCard label="Дней с едой" value={`${data.summary.totalMealDays} / ${data.days.length}`} />
-            <StatCard
-              label="Изменение веса"
-              value={data.summary.weightChangeKg != null
-                ? `${data.summary.weightChangeKg > 0 ? "+" : ""}${data.summary.weightChangeKg} кг`
-                : "—"}
-              sub={data.summary.firstWeightKg && data.summary.lastWeightKg
-                ? `${data.summary.firstWeightKg} → ${data.summary.lastWeightKg} кг`
-                : undefined}
-            />
-          </div>
-
-          {/* Calories */}
-          <section className="card p-4 md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-display text-lg font-bold">Калории по дням</h2>
-              {data.calorieTarget ? (
-                <div className="flex items-center gap-1.5 text-xs text-amber-600">
-                  <span className="inline-block h-0 w-6 border-t-2 border-dashed border-amber-400" />
-                  цель {data.calorieTarget} ккал
-                </div>
-              ) : null}
-            </div>
-            <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
-            </div>
-          </section>
 
           {period === "month" ? (
             <MonthHeatmap

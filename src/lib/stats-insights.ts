@@ -4,7 +4,7 @@ import {
   type GoalPace,
   type WeightGoal,
 } from "@/lib/diet";
-import { formatDateInput, parseDateInput } from "@/lib/dates";
+import { formatDateInput, formatDateShort, parseDateInput } from "@/lib/dates";
 import { pluralDays } from "@/lib/russian-text";
 
 export type DayCalories = {
@@ -137,6 +137,80 @@ export function buildWeekSummary(
     bestDay: bestDay ? { date: bestDay.date, calories: bestDay.calories } : null,
     headline,
   };
+}
+
+export type PrimaryStatsInsight = {
+  title: string;
+  body: string;
+  tone: "amber" | "sky" | "teal" | "slate";
+  detail?: string;
+};
+
+export type WeekOverWeekBrief = {
+  deltaAvgCalories: number | null;
+};
+
+/**
+ * One clear insight for Stats first viewport (1.11.2).
+ * Priority: corridor streak → week headline → WoW one-liner → mood tip.
+ */
+export function buildPrimaryStatsInsight(input: {
+  corridorAlert?: CorridorStreakAlert | null;
+  weekSummary?: WeekSummary | null;
+  moodInsight?: string | null;
+  weekOverWeek?: WeekOverWeekBrief | null;
+}): PrimaryStatsInsight | null {
+  const { corridorAlert, weekSummary, moodInsight, weekOverWeek } = input;
+
+  if (corridorAlert) {
+    return {
+      title:
+        corridorAlert.direction === "above" ? "Выше цели 3+ дня" : "Ниже цели 3+ дня",
+      body: corridorAlert.message,
+      tone: corridorAlert.direction === "above" ? "amber" : "sky",
+    };
+  }
+
+  if (weekSummary) {
+    let detail: string | undefined;
+    if (weekSummary.bestDay) {
+      detail = `Ближе всего к цели: ${formatDateShort(weekSummary.bestDay.date)} · ${weekSummary.bestDay.calories} ккал`;
+    } else if (weekSummary.weightChangeKg != null) {
+      const delta = weekSummary.weightChangeKg;
+      detail = `Вес за неделю: ${delta > 0 ? "+" : ""}${delta} кг`;
+    }
+    return {
+      title: "Итоги недели",
+      body: weekSummary.headline,
+      tone: "teal",
+      detail,
+    };
+  }
+
+  if (weekOverWeek && weekOverWeek.deltaAvgCalories != null) {
+    const delta = weekOverWeek.deltaAvgCalories;
+    const body =
+      Math.abs(delta) < 40
+        ? "Среднее почти как на прошлой неделе — спокойный ориентир."
+        : delta < 0
+          ? `Среднее ниже прошлой примерно на ${Math.abs(delta)} ккал.`
+          : `Среднее выше прошлой примерно на ${delta} ккал.`;
+    return {
+      title: "Сравнение недель",
+      body,
+      tone: "slate",
+    };
+  }
+
+  if (moodInsight) {
+    return {
+      title: "Настроение и еда",
+      body: moodInsight,
+      tone: "slate",
+    };
+  }
+
+  return null;
 }
 
 export type MoodNote = { date: string; mood: number | null };
