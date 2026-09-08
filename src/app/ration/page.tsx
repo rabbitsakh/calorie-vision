@@ -36,8 +36,8 @@ import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding } from "@/lib/firs
 import {
   FOOD_SAVED_EVENT,
   openFoodAdd,
+  requestOpenFoodAddPicker,
   requestOpenFoodCamera,
-  requestOpenFoodText,
 } from "@/lib/open-food-camera";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
@@ -146,8 +146,7 @@ function RationBody({
   timezone,
   setPwaWizardOpen,
   pwaWizardOpen,
-  openFoodCamera,
-  openFoodText,
+  openFoodPicker,
   onSelectDate,
 }: {
   date: string;
@@ -155,8 +154,7 @@ function RationBody({
   timezone: string | null | undefined;
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
-  openFoodCamera: () => void;
-  openFoodText: () => void;
+  openFoodPicker: () => void;
   onSelectDate: (next: string) => void;
 }) {
   const day = useRationDay();
@@ -249,6 +247,20 @@ function RationBody({
           refreshKey={refreshKey}
           onOpenHabits={openHabitsPanel}
         />
+        <NextStepBar selectedDate={date} today={today} />
+
+        <WaterTracker selectedDate={date} onChanged={bump} compact />
+
+        <DailyLog
+          selectedDate={date}
+          refreshKey={refreshKey}
+          compact
+          timezone={timezone}
+          onChanged={bump}
+          onTotalsChange={() => {}}
+          onAddFood={openFoodPicker}
+        />
+
         <ShareMenu date={date} className="px-0.5" />
         <FirstShareNudge
           date={date}
@@ -260,24 +272,6 @@ function RationBody({
                 ? 1
                 : 0
           }
-        />
-        <NextStepBar
-          selectedDate={date}
-          today={today}
-          onAddFood={openFoodCamera}
-        />
-
-        <WaterTracker selectedDate={date} onChanged={bump} compact />
-
-        <DailyLog
-          selectedDate={date}
-          refreshKey={refreshKey}
-          compact
-          timezone={timezone}
-          onChanged={bump}
-          onTotalsChange={() => {}}
-          onAddFood={openFoodCamera}
-          onAddFoodText={openFoodText}
         />
 
         {day.error ? (
@@ -332,7 +326,7 @@ function RationBody({
             selectedDate={date}
             today={today}
             refreshKey={refreshKey}
-            onAddFood={openFoodCamera}
+            onAddFood={openFoodPicker}
             quietHide
           />
           <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
@@ -450,8 +444,7 @@ function RationShell({
 }) {
   const day = useRationDay();
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
-  const openFoodCamera = useCallback(() => requestOpenFoodCamera(true), []);
-  const openFoodText = useCallback(() => requestOpenFoodText(true), []);
+  const openFoodPicker = useCallback(() => requestOpenFoodAddPicker(), []);
 
   return (
     <AppShell
@@ -473,8 +466,7 @@ function RationShell({
         timezone={timezone}
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
-        openFoodCamera={openFoodCamera}
-        openFoodText={openFoodText}
+        openFoodPicker={openFoodPicker}
         onSelectDate={setDate}
       />
     </AppShell>

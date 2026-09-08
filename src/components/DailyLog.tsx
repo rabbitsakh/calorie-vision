@@ -1083,7 +1083,7 @@ function MealListRow({
   );
 }
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood, onAddFoodText }: DailyLogProps) {
+export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
@@ -1904,21 +1904,14 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
             <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
             <p className="font-medium text-slate-700">{MASCOT_COPY.emptyDiary.headline}</p>
-            <p className="max-w-xs text-sm">Сфотографируйте приём или введите название.</p>
-            <button
-              type="button"
-              className="btn btn-primary text-sm"
-              onClick={() => onAddFood?.()}
-            >
-              Сфотографировать
-            </button>
-            {onAddFoodText ? (
+            <p className="max-w-xs text-sm">Кнопка «+» внизу — фото, текст или штрихкод.</p>
+            {onAddFood ? (
               <button
                 type="button"
-                className="btn btn-secondary text-sm"
-                onClick={() => onAddFoodText()}
+                className="btn btn-primary text-sm"
+                onClick={() => onAddFood()}
               >
-                Ввести текстом
+                Добавить
               </button>
             ) : null}
             {yesterdayHasBreakfast ? (
