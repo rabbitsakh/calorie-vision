@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { AuthPanel } from "@/components/AuthPanel";
 import { BrandMark } from "@/components/BrandMark";
+import { FoodAddHost, useFoodAddUi } from "@/components/FoodAddHost";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
-import { APP_NAV } from "@/lib/navigation";
+import { APP_NAV, isAppNavPath } from "@/lib/navigation";
+import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type AppShellProps = {
@@ -21,6 +23,23 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+function DesktopAddButton() {
+  const { confirmOpen } = useFoodAddUi();
+  return (
+    <button
+      type="button"
+      className="hidden min-h-10 items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40 md:inline-flex"
+      disabled={confirmOpen}
+      onClick={() => requestOpenFoodAddPicker()}
+    >
+      <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+      </svg>
+      Добавить
+    </button>
+  );
+}
+
 export function AppShell({
   title,
   description,
@@ -32,72 +51,82 @@ export function AppShell({
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
+  const foodAddEnabled = isAppNavPath(pathname) || pathname === "/plan";
 
   return (
-    <div className="cv-app-frame">
-      <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2.5 md:gap-6 md:px-4 md:py-8">
-        <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <Link href={homeHref} className="inline-flex items-center gap-2 md:gap-3">
-                <BrandMark size={compact ? 28 : 40} className="md:hidden" />
-                <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
-                <span className="font-display hidden text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] md:inline md:text-sm md:tracking-[0.2em]">
-                  Calorie Vision
-                </span>
-              </Link>
-              <h1
-                className={`font-display font-bold tracking-tight text-slate-900 ${
-                  hideTitleOnMobile ? "mt-0 hidden md:mt-1.5 md:block md:text-2xl" : compact ? "mt-1.5 text-xl md:text-2xl" : "mt-2 text-2xl md:text-3xl"
-                }`}
-              >
-                {title}
-              </h1>
-              {description ? (
-                <p
-                  className={`max-w-2xl text-sm text-slate-600 ${
-                    compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
-                  }`}
-                >
-                  {description}
-                </p>
-              ) : null}
-            </div>
-            <AuthPanel />
-          </div>
-
-          {headerExtra ? <div className={compact ? "mt-2" : "mt-4"}>{headerExtra}</div> : null}
-
-          <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
-            {APP_NAV.map((item) => {
-              const active = pathname === item.href;
-              const href =
-                date && (item.href === "/ration" || item.href === "/stats")
-                  ? withDateQuery(item.href, date)
-                  : item.href;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                    active ? "bg-[var(--accent)] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  <NavIcon name={item.icon} className="h-4 w-4" />
-                  {item.label}
+    <FoodAddHost date={date} enabled={foodAddEnabled}>
+      <div className="cv-app-frame">
+        <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2.5 md:gap-6 md:px-4 md:py-8">
+          <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <Link href={homeHref} className="inline-flex items-center gap-2 md:gap-3">
+                  <BrandMark size={compact ? 28 : 40} className="md:hidden" />
+                  <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
+                  <span className="font-display hidden text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] md:inline md:text-sm md:tracking-[0.2em]">
+                    Calorie Vision
+                  </span>
                 </Link>
-              );
-            })}
-          </nav>
-        </header>
+                <h1
+                  className={`font-display font-bold tracking-tight text-slate-900 ${
+                    hideTitleOnMobile
+                      ? "mt-0 hidden md:mt-1.5 md:block md:text-2xl"
+                      : compact
+                        ? "mt-1.5 text-xl md:text-2xl"
+                        : "mt-2 text-2xl md:text-3xl"
+                  }`}
+                >
+                  {title}
+                </h1>
+                {description ? (
+                  <p
+                    className={`max-w-2xl text-sm text-slate-600 ${
+                      compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
+                    }`}
+                  >
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {foodAddEnabled ? <DesktopAddButton /> : null}
+                <AuthPanel />
+              </div>
+            </div>
 
-        {children}
-      </main>
+            {headerExtra ? <div className={compact ? "mt-2" : "mt-4"}>{headerExtra}</div> : null}
 
-      <MobileTabBar date={date} />
-      <MetaChestCelebration />
-    </div>
+            <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
+              {APP_NAV.map((item) => {
+                const active = pathname === item.href;
+                const href =
+                  date && (item.href === "/ration" || item.href === "/stats")
+                    ? withDateQuery(item.href, date)
+                    : item.href;
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={href}
+                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                      active ? "bg-[var(--accent)] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    <NavIcon name={item.icon} className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </header>
+
+          {children}
+        </main>
+
+        <MobileTabBar date={date} showAdd={foodAddEnabled} />
+        <MetaChestCelebration />
+      </div>
+    </FoodAddHost>
   );
 }
 

@@ -3,23 +3,28 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useFoodAddUi } from "@/components/FoodAddHost";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV } from "@/lib/navigation";
 import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
+import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type MobileTabBarProps = {
   date?: string;
+  /** Center «+» — off on admin shells. */
+  showAdd?: boolean;
 };
 
 /**
  * Bottom tab bar — in-flow flex child of `.cv-app-frame` (not position:fixed).
- * Fixed + visualViewport pin caused the bar to jump mid-page on iOS Stats.
+ * Center slot is «+» (action), not a route — Wave C1.
  */
-export function MobileTabBar({ date }: MobileTabBarProps) {
+export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const pathname = usePathname();
+  const { confirmOpen } = useFoodAddUi();
   const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
@@ -35,51 +40,101 @@ export function MobileTabBar({ date }: MobileTabBarProps) {
     };
   }, []);
 
+  const left = APP_NAV.slice(0, 2);
+  const right = APP_NAV.slice(2);
+
   return (
     <nav
       className="mobile-tab-bar shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
       aria-label="Основные разделы"
     >
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-1">
-        {APP_NAV.map((item) => {
-          const active = pathname === item.href;
-          const href =
-            date && (item.href === "/ration" || item.href === "/stats")
-              ? withDateQuery(item.href, date)
-              : item.href;
-          const showQueueBadge = item.href === "/ration" && queueCount > 0;
+      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)] pt-1">
+        {left.map((item) => (
+          <TabLink
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            date={date}
+            queueCount={item.href === "/ration" ? queueCount : 0}
+          />
+        ))}
 
-          return (
-            <Link
-              key={item.href}
-              href={href}
-              className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-semibold transition-colors ${
-                active ? "text-[var(--accent)]" : "text-slate-500"
+        {showAdd ? (
+          <button
+            type="button"
+            className="tab-add-btn flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-0.5"
+            aria-label="Добавить еду"
+            disabled={confirmOpen}
+            onClick={() => requestOpenFoodAddPicker()}
+          >
+            <span
+              className={`flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-md shadow-teal-800/25 transition-transform ${
+                confirmOpen ? "opacity-40" : "active:scale-95"
               }`}
-              aria-label={
-                showQueueBadge ? `${item.label}: ${queueCount} в офлайн-очереди` : item.label
-              }
             >
-              <div
-                className={`relative flex h-8 w-full max-w-[4.5rem] items-center justify-center rounded-full transition-colors ${
-                  active ? "bg-teal-50" : ""
-                }`}
-              >
-                <NavIcon
-                  name={item.icon}
-                  className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-slate-500"}`}
-                />
-                {showQueueBadge ? (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
-                    {queueCount > 9 ? "9+" : queueCount}
-                  </span>
-                ) : null}
-              </div>
-              <span className="truncate">{item.shortLabel}</span>
-            </Link>
-          );
-        })}
+              <svg aria-hidden className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              </svg>
+            </span>
+          </button>
+        ) : null}
+
+        {right.map((item) => (
+          <TabLink
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            date={date}
+            queueCount={0}
+          />
+        ))}
       </div>
     </nav>
+  );
+}
+
+function TabLink({
+  item,
+  pathname,
+  date,
+  queueCount,
+}: {
+  item: (typeof APP_NAV)[number];
+  pathname: string;
+  date?: string;
+  queueCount: number;
+}) {
+  const active = pathname === item.href;
+  const href =
+    date && (item.href === "/ration" || item.href === "/stats")
+      ? withDateQuery(item.href, date)
+      : item.href;
+  const showQueueBadge = queueCount > 0;
+
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-semibold transition-colors ${
+        active ? "text-[var(--accent)]" : "text-slate-500"
+      }`}
+      aria-label={showQueueBadge ? `${item.label}: ${queueCount} в офлайн-очереди` : item.label}
+    >
+      <div
+        className={`relative flex h-8 w-full max-w-[4.5rem] items-center justify-center rounded-full transition-colors ${
+          active ? "bg-teal-50" : ""
+        }`}
+      >
+        <NavIcon
+          name={item.icon}
+          className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-slate-500"}`}
+        />
+        {showQueueBadge ? (
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+            {queueCount > 9 ? "9+" : queueCount}
+          </span>
+        ) : null}
+      </div>
+      <span className="truncate">{item.shortLabel}</span>
+    </Link>
   );
 }

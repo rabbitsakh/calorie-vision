@@ -26,7 +26,7 @@ import {
 } from "@/lib/barcode-lookup-client";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { useTimezone } from "@/lib/use-timezone";
-import { OPEN_FOOD_CAMERA_EVENT, OPEN_FOOD_TEXT_EVENT } from "@/lib/open-food-camera";
+import type { FoodAddMode } from "@/lib/open-food-camera";
 import { photoKindToContextChip } from "@/lib/photo-kind-context";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -36,13 +36,21 @@ import {
 } from "@/lib/speech-recognition";
 import type { RecognitionResponse } from "@/types";
 
-type AddMode = "photo" | "text" | "barcode";
+type AddMode = FoodAddMode;
 
 type FoodAddPanelProps = {
   selectedDate: string;
   disabled?: boolean;
   /** Prefill meal type from push deep link. */
   initialMealType?: string;
+  /** Starting capture mode when opened from host / picker. */
+  initialMode?: AddMode;
+  /** Open device camera once after mount (photo mode). */
+  autoOpenCamera?: boolean;
+  /** Bumps when host re-opens with a new mode — sync mode without full remount. */
+  launchKey?: number;
+  /** card = legacy page block; plain = sheet body (no outer card / duplicate title). */
+  layout?: "card" | "plain";
   onSaved: () => void;
   onPendingChange?: (open: boolean) => void;
 };
@@ -74,9 +82,19 @@ function MicIcon({ listening }: { listening?: boolean }) {
   );
 }
 
-export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved, onPendingChange }: FoodAddPanelProps) {
+export function FoodAddPanel({
+  selectedDate,
+  disabled,
+  initialMealType,
+  initialMode = "photo",
+  autoOpenCamera = false,
+  launchKey = 0,
+  layout = "card",
+  onSaved,
+  onPendingChange,
+}: FoodAddPanelProps) {
   const timezone = useTimezone();
-  const [mode, setMode] = useState<AddMode>("photo");
+  const [mode, setMode] = useState<AddMode>(initialMode);
   const [pendingResult, setPendingResult] = useState<RecognitionResponse | null>(null);
   const [savedToast, setSavedToast] = useState<string | null>(null);
   const [draftBanner, setDraftBanner] = useState<RecognitionResponse | null>(null);
@@ -97,25 +115,17 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
   const speechRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    const onOpenCamera = () => {
-      setMode("photo");
-      window.setTimeout(() => photoAbortRef.current?.openCamera(), 80);
-    };
-    const onOpenText = () => {
-      lookupAbortRef.current?.abort();
-      photoAbortRef.current?.abort();
-      setMode("text");
-      setError(null);
-      setBarcodeQuery("");
-      setLoading(false);
-    };
-    window.addEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
-    window.addEventListener(OPEN_FOOD_TEXT_EVENT, onOpenText);
-    return () => {
-      window.removeEventListener(OPEN_FOOD_CAMERA_EVENT, onOpenCamera);
-      window.removeEventListener(OPEN_FOOD_TEXT_EVENT, onOpenText);
-    };
-  }, []);
+    if (launchKey === 0 && !autoOpenCamera) return;
+    setMode(initialMode);
+    setError(null);
+    setBarcodeFailure(null);
+    setLoading(false);
+    if (initialMode === "photo" && autoOpenCamera) {
+      const t = window.setTimeout(() => photoAbortRef.current?.openCamera(), 120);
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [launchKey, initialMode, autoOpenCamera]);
 
   const refreshQueueCount = useCallback(() => {
     setQueuedCount(countOfflineQueue());
@@ -418,15 +428,20 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
     { id: "barcode", label: "Штрихкод" },
   ];
 
-  return (
-    <section id="food-add-panel" className="card p-4 md:p-6 scroll-mt-4">
+  const body = (
       <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
-          <p className="mt-1 text-sm text-slate-500">
+        {layout === "card" ? (
+          <div>
+            <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Сфотографируйте блюдо — или найдите по названию и штрихкоду.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">
             Сфотографируйте блюдо — или найдите по названию и штрихкоду.
           </p>
-        </div>
+        )}
 
         {draftBanner ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
@@ -746,6 +761,19 @@ export function FoodAddPanel({ selectedDate, disabled, initialMealType, onSaved,
           <p className="rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">{savedToast}</p>
         ) : null}
       </div>
+  );
+
+  if (layout === "plain") {
+    return (
+      <div id="food-add-panel" className="scroll-mt-4">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <section id="food-add-panel" className="card p-4 md:p-6 scroll-mt-4">
+      {body}
     </section>
   );
 }

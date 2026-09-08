@@ -8,7 +8,6 @@ import { AppSplash } from "@/components/AppSplash";
 import { AuthGate } from "@/components/AuthGate";
 import { DateNavBar } from "@/components/DateNavBar";
 import { DailyLog } from "@/components/DailyLog";
-import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { RationDayProvider, useRationDay } from "@/components/RationDayProvider";
 import { WaterTracker } from "@/components/WaterTracker";
 import { MotivationQueue } from "@/components/MotivationQueue";
@@ -35,13 +34,14 @@ import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
 import {
+  FOOD_SAVED_EVENT,
+  openFoodAdd,
   requestOpenFoodCamera,
   requestOpenFoodText,
 } from "@/lib/open-food-camera";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
-import type { MealType } from "@/types";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -144,9 +144,6 @@ function RationBody({
   date,
   today,
   timezone,
-  deepLinkMeal,
-  confirmOpen,
-  setConfirmOpen,
   setPwaWizardOpen,
   pwaWizardOpen,
   openFoodCamera,
@@ -156,9 +153,6 @@ function RationBody({
   date: string;
   today: string;
   timezone: string | null | undefined;
-  deepLinkMeal: MealType | null;
-  confirmOpen: boolean;
-  setConfirmOpen: (v: boolean) => void;
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
   openFoodCamera: () => void;
@@ -203,6 +197,12 @@ function RationBody({
     const onDietTargetsChanged = () => bump();
     window.addEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
     return () => window.removeEventListener(DIET_TARGETS_CHANGED_EVENT, onDietTargetsChanged);
+  }, [bump]);
+
+  useEffect(() => {
+    const onFoodSaved = () => bump();
+    window.addEventListener(FOOD_SAVED_EVENT, onFoodSaved);
+    return () => window.removeEventListener(FOOD_SAVED_EVENT, onFoodSaved);
   }, [bump]);
 
   useEffect(() => {
@@ -268,13 +268,6 @@ function RationBody({
         />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
-
-        <FoodAddPanel
-          selectedDate={date}
-          initialMealType={deepLinkMeal ?? undefined}
-          onSaved={bump}
-          onPendingChange={setConfirmOpen}
-        />
 
         <DailyLog
           selectedDate={date}
@@ -440,22 +433,6 @@ function RationBody({
           onClose={() => setPwaWizardOpen(false)}
         />
       </div>
-
-      <button
-        type="button"
-        className={`fab-add md:hidden ${confirmOpen || showSplash ? "pointer-events-none opacity-0" : ""}`}
-        aria-label="Сфотографировать еду"
-        aria-hidden={confirmOpen || showSplash}
-        tabIndex={confirmOpen || showSplash ? -1 : 0}
-        onClick={() => requestOpenFoodCamera(true)}
-      >
-        <span className="fab-add-icon" aria-hidden>
-          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" strokeLinejoin="round" />
-            <circle cx="12" cy="13" r="3.25" />
-          </svg>
-        </span>
-      </button>
     </>
   );
 }
@@ -464,17 +441,14 @@ function RationShell({
   date,
   today,
   timezone,
-  deepLinkMeal,
   setDate,
 }: {
   date: string;
   today: string;
   timezone: string | null | undefined;
-  deepLinkMeal: MealType | null;
   setDate: (next: string) => void;
 }) {
   const day = useRationDay();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
   const openFoodCamera = useCallback(() => requestOpenFoodCamera(true), []);
   const openFoodText = useCallback(() => requestOpenFoodText(true), []);
@@ -497,9 +471,6 @@ function RationShell({
         date={date}
         today={today}
         timezone={timezone}
-        deepLinkMeal={deepLinkMeal}
-        confirmOpen={confirmOpen}
-        setConfirmOpen={setConfirmOpen}
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
         openFoodCamera={openFoodCamera}
@@ -513,15 +484,13 @@ function RationShell({
 export default function RationPage() {
   const timezone = useTimezone();
   const { date, setDate, today } = useSelectedDate(timezone);
-  const [deepLinkMeal, setDeepLinkMeal] = useState<MealType | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const meal = parseMealQueryParam(params.get("meal"));
     if (!meal) return;
-    setDeepLinkMeal(meal);
-    requestOpenFoodCamera(true);
+    openFoodAdd({ mode: "photo", openCamera: true, mealType: meal });
     const clean = withBasePath("/ration");
     window.history.replaceState({}, "", clean.endsWith("/") ? clean : `${clean}/`);
   }, []);
@@ -533,7 +502,6 @@ export default function RationPage() {
           date={date}
           today={today}
           timezone={timezone}
-          deepLinkMeal={deepLinkMeal}
           setDate={setDate}
         />
       </RationDayProvider>
