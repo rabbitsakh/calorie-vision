@@ -1,46 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
-import { dayPartFromHour } from "@/lib/splash-tips";
 
 type NextStepBarProps = {
   selectedDate: string;
   today: string;
-  onAddFood: () => void;
 };
 
 /**
- * One soft CTA under the day hero — food / weight only.
- * Water lives in the compact chip strip just below; do not duplicate +мл here.
+ * Soft nudge under the day hero — weight only (Wave C3).
+ * Food add lives on the center «+»; do not compete with a second photo CTA.
  */
-export function NextStepBar({ selectedDate, today, onAddFood }: NextStepBarProps) {
+export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
   const day = useOptionalRationDay();
   const router = useRouter();
-  const [hour, setHour] = useState(() => new Date().getHours());
-
-  useEffect(() => {
-    setHour(new Date().getHours());
-  }, [selectedDate]);
 
   const step = useMemo(() => {
     if (selectedDate !== today) return null;
     const meals = day?.data?.meals;
     const logged = (meals?.entries.length ?? 0) > 0 || Boolean(day?.data?.streak?.loggedToday);
-    const part = dayPartFromHour(hour);
-
-    if (!logged) {
-      return {
-        label: part === "morning" ? "Начните день — добавьте завтрак" : "Добавьте первый приём пищи",
-        actionLabel: "Фото",
-        onClick: onAddFood,
-      };
-    }
 
     // After the first meal, nudge weight once so calorie targets appear.
-    if (meals && meals.target == null) {
+    if (logged && meals && meals.target == null) {
       return {
         label: "Укажите вес — появится норма калорий",
         actionLabel: "К весу",
@@ -49,7 +33,7 @@ export function NextStepBar({ selectedDate, today, onAddFood }: NextStepBarProps
     }
 
     return null;
-  }, [selectedDate, today, day, hour, router, onAddFood]);
+  }, [selectedDate, today, day, router]);
 
   if (!step) return null;
 
