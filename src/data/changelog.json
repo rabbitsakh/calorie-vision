@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.10.2",
+    "date": "2026-09-08",
+    "summary": "fix(lint): unused FoodAddMode import in FoodAddQuickMenu",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "ESLint: убран неиспользуемый type import FoodAddMode"
+      }
+    ]
+  },
+  {
     "version": "1.10.1",
     "date": "2026-09-08",
     "summary": "feat(ux): Weekly OS polish — план как второй дом",

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 
 import {
   openFoodAdd,
   requestOpenFoodAddPicker,
-  type FoodAddMode,
 } from "@/lib/open-food-camera";
 import { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
 
