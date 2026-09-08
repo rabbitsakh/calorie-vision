@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.11.2",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Stats one clear insight",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Статистика за 7 дней: один инсайт вместо стопки карточек"
+      },
+      {
+        "kind": "fix",
+        "text": "Полный недельный отчёт остаётся на вкладке План — без дубля в Стат"
+      },
+      {
+        "kind": "improvement",
+        "text": "Сравнение недель перенесено ниже графика калорий"
+      },
+      {
+        "kind": "fix",
+        "text": "План: убран лишний intro — описание уже в шапке"
+      }
+    ]
+  },
+  {
     "version": "1.11.1",
     "date": "2026-09-08",
     "summary": "feat(ux): persist confirm edits in pending draft",

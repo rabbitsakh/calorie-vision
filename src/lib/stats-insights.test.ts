@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildMoodFoodInsight,
+  buildPrimaryStatsInsight,
   buildWeekSummary,
   dayVsCorridor,
   detectCalorieCorridorStreak,
@@ -77,6 +78,72 @@ test("buildWeekSummary returns headline and corridor days", () => {
   assert.equal(summary!.daysInCorridor, 3);
   assert.equal(summary!.weightChangeKg, -0.5);
   assert.match(summary!.headline, /среднее/);
+});
+
+test("buildPrimaryStatsInsight prefers corridor over week summary", () => {
+  const insight = buildPrimaryStatsInsight({
+    corridorAlert: {
+      direction: "above",
+      days: 3,
+      avgDiff: 400,
+      message: "Уже 3 дня подряд выше цели примерно на 400 ккал.",
+    },
+    weekSummary: {
+      daysLogged: 5,
+      daysInCorridor: 2,
+      avgCalories: 2100,
+      calorieTarget: 2000,
+      weightChangeKg: null,
+      bestDay: null,
+      headline: "За 7 дней: среднее 2100 ккал",
+    },
+    moodInsight: "Настроение и еда tip",
+  });
+  assert.ok(insight);
+  assert.equal(insight!.tone, "amber");
+  assert.equal(insight!.title, "Выше цели 3+ дня");
+  assert.match(insight!.body, /выше цели/);
+});
+
+test("buildPrimaryStatsInsight falls back to week headline with one detail", () => {
+  const insight = buildPrimaryStatsInsight({
+    weekSummary: {
+      daysLogged: 5,
+      daysInCorridor: 4,
+      avgCalories: 1950,
+      calorieTarget: 2000,
+      weightChangeKg: -0.4,
+      bestDay: { date: "2026-08-20", calories: 1980 },
+      headline: "За 7 дней: среднее 1950 ккал · в коридоре 4 из 5",
+    },
+  });
+  assert.ok(insight);
+  assert.equal(insight!.tone, "teal");
+  assert.equal(insight!.title, "Итоги недели");
+  assert.match(insight!.body, /среднее 1950/);
+  assert.match(insight!.detail ?? "", /Ближе всего к цели/);
+});
+
+test("buildPrimaryStatsInsight uses WoW one-liner when no week summary", () => {
+  const insight = buildPrimaryStatsInsight({
+    weekOverWeek: { deltaAvgCalories: -120 },
+  });
+  assert.ok(insight);
+  assert.equal(insight!.title, "Сравнение недель");
+  assert.match(insight!.body, /ниже прошлой/);
+});
+
+test("buildPrimaryStatsInsight uses mood tip last", () => {
+  const insight = buildPrimaryStatsInsight({
+    moodInsight: "В дни с настроением 4–5 вы чаще попадали в цель.",
+  });
+  assert.ok(insight);
+  assert.equal(insight!.title, "Настроение и еда");
+  assert.match(insight!.body, /попадали в цель/);
+});
+
+test("buildPrimaryStatsInsight returns null when empty", () => {
+  assert.equal(buildPrimaryStatsInsight({}), null);
 });
 
 test("buildMoodFoodInsight is actionable for high-mood correlation", () => {
