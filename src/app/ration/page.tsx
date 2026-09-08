@@ -402,7 +402,7 @@ function RationBody({
                     href={withBasePath("/plan")}
                     className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-teal-200"
                   >
-                    Список покупок — на экране «План»
+                    Неделя и покупки — вкладка «План»
                     <ShoppingCountChip />
                   </Link>
                   <DiaryNoteWidget selectedDate={date} />
