@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 import { AuthPanel } from "@/components/AuthPanel";
 import { BrandMark } from "@/components/BrandMark";
 import { FoodAddHost, useFoodAddUi } from "@/components/FoodAddHost";
+import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV, isAppNavPath } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type AppShellProps = {
   title: string;
@@ -25,19 +26,65 @@ type AppShellProps = {
 
 function DesktopAddButton() {
   const { confirmOpen } = useFoodAddUi();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  useEffect(() => {
+    if (confirmOpen) setMenuOpen(false);
+  }, [confirmOpen]);
+
   return (
-    <button
-      type="button"
-      className="hidden min-h-10 items-center gap-2 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40 md:inline-flex"
-      disabled={confirmOpen}
-      onClick={() => requestOpenFoodAddPicker()}
-    >
-      <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-      </svg>
-      Добавить
-    </button>
+    <div className="relative hidden md:inline-flex">
+      <div className="inline-flex overflow-hidden rounded-full bg-[var(--accent)] shadow-sm">
+        <button
+          type="button"
+          className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
+          disabled={confirmOpen}
+          onClick={() => requestOpenFoodAddPicker()}
+        >
+          <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+          </svg>
+          Добавить
+        </button>
+        <button
+          type="button"
+          className="inline-flex min-h-10 items-center border-l border-white/25 px-2.5 text-white transition-opacity hover:opacity-95 disabled:opacity-40"
+          disabled={confirmOpen}
+          aria-label="Способ добавления"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+      <FoodAddModeMenu open={menuOpen} onClose={closeMenu} placement="down" className="right-0 left-auto translate-x-0" />
+      {/* Keyboard: A opens picker when not typing in a field */}
+      <DesktopAddHotkey disabled={confirmOpen} />
+    </div>
   );
+}
+
+function DesktopAddHotkey({ disabled }: { disabled?: boolean }) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (disabled) return;
+      if (event.key !== "a" && event.key !== "A" && event.key !== "ф" && event.key !== "Ф") return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const tag = target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable) return;
+      event.preventDefault();
+      requestOpenFoodAddPicker();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [disabled]);
+  return null;
 }
 
 export function AppShell({
