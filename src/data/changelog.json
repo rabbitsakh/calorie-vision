@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.10.3",
+    "date": "2026-09-08",
+    "summary": "feat(ux): ration declutter after Weekly OS",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Быстрое добавление свёрнуто по умолчанию — основной вход «+»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Полоска недели заменена ссылкой на вкладку План"
+      },
+      {
+        "kind": "improvement",
+        "text": "Челлендж под героем только если уже выбран"
+      },
+      {
+        "kind": "improvement",
+        "text": "Один share-блок: nudge или меню, не оба"
+      },
+      {
+        "kind": "improvement",
+        "text": "Дисклеймер убран из рациона (остаётся в профиле); push в MotivationQueue"
+      }
+    ]
+  },
+  {
     "version": "1.10.2",
     "date": "2026-09-08",
     "summary": "fix(lint): unused FoodAddMode import in FoodAddQuickMenu",
