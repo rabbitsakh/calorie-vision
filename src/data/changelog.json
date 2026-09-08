@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.11.1",
+    "date": "2026-09-08",
+    "summary": "feat(ux): persist confirm edits in pending draft",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Правки на проверке (название, порция, макросы, приём, время) сохраняются в черновик"
+      },
+      {
+        "kind": "improvement",
+        "text": "После перезагрузки / закрытия PWA можно продолжить с теми же правками"
+      },
+      {
+        "kind": "fix",
+        "text": "Повторный upsert того же фото не сбрасывает UI-правки черновика"
+      }
+    ]
+  },
+  {
     "version": "1.11.0",
     "date": "2026-09-08",
     "summary": "feat(ux): confirm trust after FoodAdd sheet",
