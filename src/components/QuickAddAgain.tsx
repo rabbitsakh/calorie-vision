@@ -17,18 +17,22 @@ type QuickAddAgainProps = {
   refreshKey: number;
   totalCalories: number;
   onSaved: () => void;
+  /** Start collapsed (Wave 1.10.3) — primary add is center «+». */
+  defaultCollapsed?: boolean;
 };
 
 /**
  * One secondary block for “add again”: yesterday/frequent, favorites, templates;
- * Recipe + AI nested under «Ещё».
+ * Recipe + AI nested under «Ещё». Collapsed by default after Weekly OS / add-first.
  */
 export function QuickAddAgain({
   selectedDate,
   refreshKey,
   totalCalories,
   onSaved,
+  defaultCollapsed = true,
 }: QuickAddAgainProps) {
+  const [expanded, setExpanded] = useState(!defaultCollapsed);
   const [tab, setTab] = useState<MainTab>("again");
   const [moreTab, setMoreTab] = useState<MoreTab>("recipe");
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -56,100 +60,124 @@ export function QuickAddAgain({
 
   return (
     <section className="card overflow-hidden">
-      <div className="border-b border-slate-100 px-4 py-3 md:px-5">
-        <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Повтор вчерашнего, избранное или шаблоны дня
-        </p>
-      </div>
-      <div className="flex border-b border-slate-100 overflow-x-auto">
-        {(
-          [
-            { id: "again" as const, label: "Снова" },
-            {
-              id: "favorites" as const,
-              label: favoritesCount > 0 ? `Избранное (${favoritesCount})` : "Избранное",
-            },
-            { id: "templates" as const, label: "Шаблоны" },
-            { id: "more" as const, label: "Ещё" },
-          ] as const
-        ).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`min-h-11 shrink-0 flex-1 px-3 text-sm font-semibold transition-colors ${
-              tab === item.id
-                ? "border-b-2 border-teal-700 text-teal-800"
-                : "text-slate-500 hover:text-slate-700"
-            }`}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {expanded
+              ? "Повтор вчерашнего, избранное или шаблоны дня"
+              : "Снова, избранное, шаблоны — по запросу"}
+          </p>
+        </div>
+        <svg
+          aria-hidden
+          className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
-      <div className="p-4 md:p-5">
-        {tab === "again" ? (
-          <QuickAddMeals
-            selectedDate={selectedDate}
-            refreshKey={refreshKey}
-            onSaved={handleSaved}
-            embedded
-          />
-        ) : null}
-        {tab === "favorites" ? (
-          <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
-        ) : null}
-        {tab === "templates" ? (
-          <DayTemplates
-            selectedDate={selectedDate}
-            refreshKey={refreshKey}
-            onSaved={handleSaved}
-          />
-        ) : null}
-        {tab === "more" ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-2">
-              {(
-                [
-                  { id: "recipe" as const, label: "Рецепт" },
-                  { id: "ai" as const, label: "AI" },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    moreTab === item.id
-                      ? "bg-teal-700 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                  onClick={() => setMoreTab(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            {moreTab === "recipe" ? (
-              <RecipeBuilder
+      {expanded ? (
+        <>
+          <div className="flex overflow-x-auto border-b border-t border-slate-100">
+            {(
+              [
+                { id: "again" as const, label: "Снова" },
+                {
+                  id: "favorites" as const,
+                  label: favoritesCount > 0 ? `Избранное (${favoritesCount})` : "Избранное",
+                },
+                { id: "templates" as const, label: "Шаблоны" },
+                { id: "more" as const, label: "Ещё" },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`min-h-11 shrink-0 flex-1 px-3 text-sm font-semibold transition-colors ${
+                  tab === item.id
+                    ? "border-b-2 border-teal-700 text-teal-800"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+                onClick={() => setTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-4 md:p-5">
+            {tab === "again" ? (
+              <QuickAddMeals
                 selectedDate={selectedDate}
+                refreshKey={refreshKey}
                 onSaved={handleSaved}
-                onLoggedToDiary={handleSaved}
                 embedded
               />
             ) : null}
-            {moreTab === "ai" ? (
-              <MealSuggestions
+            {tab === "favorites" ? (
+              <FavoriteFoods selectedDate={selectedDate} onSaved={handleSaved} embedded />
+            ) : null}
+            {tab === "templates" ? (
+              <DayTemplates
                 selectedDate={selectedDate}
-                totalCalories={totalCalories}
-                embedded
+                refreshKey={refreshKey}
                 onSaved={handleSaved}
               />
+            ) : null}
+            {tab === "more" ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  {(
+                    [
+                      { id: "recipe" as const, label: "Рецепт" },
+                      { id: "ai" as const, label: "AI" },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        moreTab === item.id
+                          ? "bg-teal-700 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                      onClick={() => setMoreTab(item.id)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                {moreTab === "recipe" ? (
+                  <RecipeBuilder
+                    selectedDate={selectedDate}
+                    onSaved={handleSaved}
+                    onLoggedToDiary={handleSaved}
+                    embedded
+                  />
+                ) : null}
+                {moreTab === "ai" ? (
+                  <MealSuggestions
+                    selectedDate={selectedDate}
+                    totalCalories={totalCalories}
+                    embedded
+                    onSaved={handleSaved}
+                  />
+                ) : null}
+              </div>
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </>
+      ) : null}
     </section>
   );
 }

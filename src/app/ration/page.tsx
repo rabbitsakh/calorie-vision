@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AppSplash } from "@/components/AppSplash";
 import { AuthGate } from "@/components/AuthGate";
@@ -27,12 +27,11 @@ import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
-import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
-import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
+import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding, shouldShowFirstShareNudge } from "@/lib/first-hour-trust";
 import {
   FOOD_SAVED_EVENT,
   openFoodAdd,
@@ -42,13 +41,9 @@ import {
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
-import { useSelectedDate } from "@/lib/use-selected-date";
+import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
-const WeeklyPlan = dynamic(
-  () => import("@/components/WeeklyPlan").then((m) => m.WeeklyPlan),
-  { ssr: false, loading: () => null },
-);
 const StreakWidget = dynamic(
   () => import("@/components/StreakWidget").then((m) => m.StreakWidget),
   { ssr: false, loading: () => null },
@@ -147,7 +142,6 @@ function RationBody({
   setPwaWizardOpen,
   pwaWizardOpen,
   openFoodPicker,
-  onSelectDate,
 }: {
   date: string;
   today: string;
@@ -155,7 +149,6 @@ function RationBody({
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
   openFoodPicker: () => void;
-  onSelectDate: (next: string) => void;
 }) {
   const day = useRationDay();
   const [showHabits, setShowHabits] = useState(false);
@@ -190,6 +183,11 @@ function RationBody({
   const bump = day.bump;
   const refreshKey = day.refreshKey;
   const totalCalories = day.data?.meals.totalCalories ?? 0;
+  const mealCount = useMemo(() => {
+    if (Array.isArray(day.data?.meals.entries)) return day.data.meals.entries.length;
+    return day.data?.meals.totalCalories ? 1 : 0;
+  }, [day.data?.meals.entries, day.data?.meals.totalCalories]);
+  const showShareNudge = date === today && shouldShowFirstShareNudge(mealCount);
 
   useEffect(() => {
     const onDietTargetsChanged = () => bump();
@@ -261,18 +259,8 @@ function RationBody({
           onAddFood={openFoodPicker}
         />
 
-        <ShareMenu date={date} className="px-0.5" />
-        <FirstShareNudge
-          date={date}
-          today={today}
-          mealCount={
-            Array.isArray(day.data?.meals.entries)
-              ? day.data.meals.entries.length
-              : day.data?.meals.totalCalories
-                ? 1
-                : 0
-          }
-        />
+        {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
+        <FirstShareNudge date={date} today={today} mealCount={mealCount} />
 
         {day.error ? (
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
@@ -311,15 +299,13 @@ function RationBody({
           onSaved={bump}
         />
 
-        <WeeklyPlan
-          selectedDate={date}
-          refreshKey={refreshKey}
-          onSelectDate={onSelectDate}
-          compact
-          showHolidayToggle={date === today}
-          onHolidayChange={() => bump()}
-        />
-        <MedicalDisclaimerNote className="px-1 opacity-80" />
+        <Link
+          href={withDateQuery("/plan", date)}
+          className="px-1 text-sm font-medium text-slate-600 underline-offset-2 hover:text-teal-800 hover:underline"
+        >
+          Неделя и покупки — вкладка «План»
+          <ShoppingCountChip />
+        </Link>
 
         <MotivationQueue>
           <StreakNudge
@@ -334,9 +320,8 @@ function RationBody({
           <MotivationTip today={today} selectedDate={date} quietHide />
           <ReferralNudge today={today} selectedDate={date} quietHide />
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+          <PushNotificationPrompt />
         </MotivationQueue>
-
-        <PushNotificationPrompt />
 
         <CelebrationOrchestrator>
           <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
@@ -467,7 +452,6 @@ function RationShell({
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
         openFoodPicker={openFoodPicker}
-        onSelectDate={setDate}
       />
     </AppShell>
   );
