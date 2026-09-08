@@ -56,6 +56,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
   const [mealType, setMealType] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [launchKey, setLaunchKey] = useState(0);
+  const [resumeKey, setResumeKey] = useState(0);
 
   const closeAll = useCallback(() => {
     if (confirmOpen) return;
@@ -77,6 +78,13 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
       const detail = (event as CustomEvent<OpenFoodAddDetail>).detail ?? {};
       if (detail.mealType) {
         setMealType(detail.mealType);
+      }
+      if (detail.resumePending) {
+        setOpenCameraOnce(false);
+        setResumeKey((k) => k + 1);
+        setLaunchKey((k) => k + 1);
+        setPhase("sheet");
+        return;
       }
       if (!detail.mode) {
         setPhase("picker");
@@ -158,6 +166,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
                   initialMode={mode}
                   autoOpenCamera={openCameraOnce}
                   launchKey={launchKey}
+                  resumeKey={resumeKey}
                   layout="plain"
                   disabled={!sheetVisible}
                   onSaved={() => {

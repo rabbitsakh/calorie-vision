@@ -25,6 +25,7 @@ import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
+import { PendingConfirmBanner } from "@/components/PendingConfirmBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
@@ -237,6 +238,7 @@ function RationBody({
         <TimezoneConflictBanner />
         <ReferralCapture signedIn />
         <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
+        <PendingConfirmBanner selectedDate={date} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         <SevenDayAhaCard today={today} selectedDate={date} />

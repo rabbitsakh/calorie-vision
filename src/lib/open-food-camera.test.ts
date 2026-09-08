@@ -11,6 +11,7 @@ import {
   requestOpenFoodBarcode,
   requestOpenFoodCamera,
   requestOpenFoodText,
+  requestOpenPendingConfirm,
 } from "./open-food-camera.ts";
 
 test("open food camera event name is stable", () => {
@@ -62,6 +63,7 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   requestOpenFoodCamera();
   requestOpenFoodText();
   requestOpenFoodBarcode();
+  requestOpenPendingConfirm();
 
   assert.deepEqual(captured[0], {});
   assert.deepEqual(captured[1], { mode: "photo", openCamera: true });
@@ -69,4 +71,5 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   assert.deepEqual(captured[3], { mode: "photo", openCamera: true });
   assert.deepEqual(captured[4], { mode: "text" });
   assert.deepEqual(captured[5], { mode: "barcode" });
+  assert.deepEqual(captured[6], { resumePending: true });
 });

@@ -4,6 +4,7 @@ import {
   clearPendingConfirmDraft,
   countFailedSaves,
   countOfflineQueue,
+  countPendingConfirms,
   countPendingRecognitions,
   enqueueFailedSave,
   getPendingConfirmDraft,
@@ -48,8 +49,10 @@ test("upsertPendingConfirmDraft stores and replaces same date", () => {
   const draft = getPendingConfirmDraft("2026-08-24");
   assert.equal(draft?.result.imagePath, "/b.jpg");
   assert.equal(listMealDrafts().length, 1);
+  assert.equal(countPendingConfirms(), 1);
   clearPendingConfirmDraft("2026-08-24");
   assert.equal(getPendingConfirmDraft("2026-08-24"), null);
+  assert.equal(countPendingConfirms(), 0);
 });
 
 test("enqueueFailedSave and removeMealDraft", () => {

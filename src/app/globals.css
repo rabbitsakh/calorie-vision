@@ -429,7 +429,7 @@ textarea {
   z-index: 22;
 }
 
-/* Confirm card: static actions — sticky would float over the diary below. */
+/* Confirm card: static in diary; sticky inside FoodAdd sheet scrollport (1.11.0). */
 .confirm-card-actions {
   background: var(--card);
   border-top: 1px solid rgba(15, 118, 110, 0.1);
@@ -438,6 +438,23 @@ textarea {
   gap: 0.65rem;
   margin: 0.25rem -1rem 0;
   padding: 1rem 1rem 0.75rem;
+}
+
+.food-add-sheet .confirm-card-actions {
+  bottom: 0;
+  box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06);
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  position: sticky;
+  z-index: 12;
+}
+
+@media (min-width: 768px) {
+  .food-add-sheet .confirm-card-actions {
+    margin-left: -1rem;
+    margin-right: -1rem;
+  }
 }
 
 .confirm-card-actions .btn {

@@ -49,6 +49,8 @@ type FoodAddPanelProps = {
   autoOpenCamera?: boolean;
   /** Bumps when host re-opens with a new mode — sync mode without full remount. */
   launchKey?: number;
+  /** Bumps to resume pending-confirm draft for selectedDate. */
+  resumeKey?: number;
   /** card = legacy page block; plain = sheet body (no outer card / duplicate title). */
   layout?: "card" | "plain";
   onSaved: () => void;
@@ -89,6 +91,7 @@ export function FoodAddPanel({
   initialMode = "photo",
   autoOpenCamera = false,
   launchKey = 0,
+  resumeKey = 0,
   layout = "card",
   onSaved,
   onPendingChange,
@@ -166,21 +169,20 @@ export function FoodAddPanel({
   }, [openPending]);
 
   useEffect(() => {
+    if (resumeKey === 0) return;
+    const draft = getPendingConfirmDraft(selectedDate);
+    if (draft?.result) {
+      openPendingRef.current(draft.result);
+    }
+  }, [resumeKey, selectedDate]);
+
+  useEffect(() => {
     return subscribeMealDraftQueue(() => {
       refreshQueueCount();
-      if (pendingResultRef.current) {
-        refreshDraftBanner();
-        return;
-      }
-      // Soft auto-open after offline flush wrote a pending-confirm for this day.
-      const draft = getPendingConfirmDraft(selectedDate);
-      if (draft?.result) {
-        openPendingRef.current(draft.result);
-        return;
-      }
+      // Soft: surface draft banner, do not auto-hijack the sheet (1.11.0).
       refreshDraftBanner();
     });
-  }, [refreshDraftBanner, refreshQueueCount, selectedDate]);
+  }, [refreshDraftBanner, refreshQueueCount]);
 
   const flushFailedSaves = useCallback(async () => {
     const failed = listFailedSaves();
@@ -397,8 +399,7 @@ export function FoodAddPanel({
           setPendingResult(null);
         }}
         onSaveQueued={() => {
-          clearPendingConfirmDraft(selectedDate);
-          setPendingResult(null);
+          // Keep confirm open with edits; only refresh queue badge/toast (1.11.0).
           refreshQueueCount();
           setSavedToast("Сохранение в очереди — отправим при появлении сети");
         }}
