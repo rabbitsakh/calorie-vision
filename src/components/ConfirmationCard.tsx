@@ -371,7 +371,7 @@ function portionChipOptions(
     }
   }
 
-  if (packaged && packGrams && packGrams > 0) {
+  if (packaged && packGrams && packGrams > 0 && packGrams !== recognizedGrams) {
     const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName);
     prependUnique({
       label: bar
@@ -391,7 +391,8 @@ function portionChipOptions(
     });
   }
 
-  return base;
+  // Cap chip row — photo/½/history first, then defaults.
+  return base.slice(0, 8);
 }
 
 export function ConfirmationCard({
@@ -427,6 +428,7 @@ export function ConfirmationCard({
   const dishesListTouchedRef = useRef(false);
   const heroImgRef = useRef<HTMLImageElement>(null);
   const heroFallbackTriedRef = useRef(false);
+  const allergenBlockRef = useRef<HTMLDivElement>(null);
   const isIos = typeof navigator !== "undefined" && isLikelyIos();
 
   useEffect(() => {
@@ -798,9 +800,14 @@ export function ConfirmationCard({
       ),
     );
     if (hits.length > 0 && !allergenAck) {
-      setError(
-        "Отметьте, что проверили возможный контакт с аллергенами — или уберите совпадения в названии.",
-      );
+      setError("Сначала подтвердите проверку аллергенов — чекбокс выше.");
+      window.requestAnimationFrame(() => {
+        allergenBlockRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const checkbox = allergenBlockRef.current?.querySelector("input[type='checkbox']");
+        if (checkbox instanceof HTMLInputElement) {
+          checkbox.focus();
+        }
+      });
       return;
     }
     savingRef.current = true;
@@ -954,7 +961,11 @@ export function ConfirmationCard({
         )}
 
         {allergenHits.length > 0 ? (
-          <div className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+          <div
+            ref={allergenBlockRef}
+            id="confirm-allergen-ack"
+            className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+          >
             <p className="leading-snug">
               Возможен контакт с:{" "}
               {allergenHits.map((id) => allergenLabel(id)).join(", ")}. Проверьте состав — это
@@ -1461,6 +1472,9 @@ function DishFields({
               Уточнить по названию
             </button>
           ) : null}
+          {showReviewCta && alternativesSection ? (
+            <div className="mt-3">{alternativesSection}</div>
+          ) : null}
         </div>
 
         <div className="field">
@@ -1549,7 +1563,7 @@ function DishFields({
               </p>
             ) : null}
 
-            {alternativesSection}
+            {!showReviewCta ? alternativesSection : null}
 
             <div className="field">
               <label htmlFor={fieldId("protein")}>Белки, г</label>

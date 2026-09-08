@@ -102,6 +102,10 @@ export function getPendingConfirmDraft(selectedDate?: string): PendingConfirmDra
   return items[0] ?? null;
 }
 
+export function countPendingConfirms(): number {
+  return readQueue().filter((item) => item.kind === "pending-confirm").length;
+}
+
 export function upsertPendingConfirmDraft(
   selectedDate: string,
   result: RecognitionResponse,

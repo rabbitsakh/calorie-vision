@@ -12,6 +12,8 @@ export type OpenFoodAddDetail = {
   openCamera?: boolean;
   /** Prefill meal type on confirm (push deep link). */
   mealType?: string;
+  /** Open sheet and resume pending-confirm draft if any. */
+  resumePending?: boolean;
 };
 
 export const OPEN_FOOD_ADD_EVENT = "cv-open-food-add";
@@ -46,6 +48,11 @@ export function requestOpenFoodBarcode(): void {
 /** Bare «+» / «Добавить» — mode picker. */
 export function requestOpenFoodAddPicker(): void {
   openFoodAdd({});
+}
+
+/** Resume unfinished confirm draft (if present). */
+export function requestOpenPendingConfirm(): void {
+  openFoodAdd({ resumePending: true });
 }
 
 export function notifyFoodSaved(): void {
