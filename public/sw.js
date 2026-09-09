@@ -17,9 +17,15 @@ function withBase(path) {
   return `${base}${path}`;
 }
 
-/** Shell + static asset cache — bump when strategy changes. */
-const CACHE_NAME = "cv-shell-v7";
-const STATIC_CACHE = "cv-static-v7";
+/** Shell + static asset cache — bump when strategy or icons change. */
+const CACHE_NAME = "cv-shell-v8";
+const STATIC_CACHE = "cv-static-v8";
+/** Bump with logo/icon releases so precache + notifications pick new assets. */
+const ICON_VER = "1.12.1";
+
+function iconUrl(path) {
+  return `${withBase(path)}?v=${ICON_VER}`;
+}
 
 function precacheUrls() {
   return [
@@ -37,9 +43,9 @@ function precacheUrls() {
     withBase("/install"),
     withBase("/install/"),
     withBase("/manifest.json"),
-    withBase("/icon-192.png"),
-    withBase("/icon-512.png"),
-    withBase("/apple-icon.png"),
+    iconUrl("/icon-192.png"),
+    iconUrl("/icon-512.png"),
+    iconUrl("/apple-icon.png"),
   ];
 }
 

@@ -54,7 +54,8 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${body.variable} ${display.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=1.12.1" />
+        <link rel="icon" href="/favicon.png?v=1.12.1" type="image/png" />
       </head>
       <body className={body.className}>
         <Providers>
