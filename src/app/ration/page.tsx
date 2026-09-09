@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AppShell } from "@/components/AppShell";
 import { AppSplash } from "@/components/AppSplash";
 import { AuthGate } from "@/components/AuthGate";
@@ -354,49 +355,52 @@ function RationBody({
             </div>
           </section>
 
-          {showHabits ? (
-            <div
-              className="habits-sheet fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="habits-sheet-title"
-              onClick={() => setShowHabits(false)}
-            >
-              <div
-                className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-                  <div className="min-w-0">
-                    <p id="habits-sheet-title" className="font-semibold text-slate-900">
-                      Привычки и заметки
-                    </p>
-                    <p className="text-xs text-slate-500">Серия, челлендж, квесты</p>
+          {showHabits
+            ? createPortal(
+                <div
+                  className="habits-sheet fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="habits-sheet-title"
+                  onClick={() => setShowHabits(false)}
+                >
+                  <div
+                    className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                      <div className="min-w-0">
+                        <p id="habits-sheet-title" className="font-semibold text-slate-900">
+                          Привычки и заметки
+                        </p>
+                        <p className="text-xs text-slate-500">Серия, челлендж, квесты</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-quiet text-sm text-slate-500"
+                        onClick={() => setShowHabits(false)}
+                      >
+                        Закрыть
+                      </button>
+                    </div>
+                    <div className="flex flex-col gap-3 overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:gap-4 md:p-4">
+                      <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                      <ProgressHintsRow refreshKey={refreshKey} />
+                      <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
+                      <Link
+                        href={withBasePath("/plan")}
+                        className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-teal-200"
+                      >
+                        Неделя и покупки — вкладка «План»
+                        <ShoppingCountChip />
+                      </Link>
+                      <DiaryNoteWidget selectedDate={date} />
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className="btn-quiet text-sm text-slate-500"
-                    onClick={() => setShowHabits(false)}
-                  >
-                    Закрыть
-                  </button>
-                </div>
-                <div className="flex flex-col gap-3 overflow-y-auto p-3 md:gap-4 md:p-4">
-                  <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
-                  <ProgressHintsRow refreshKey={refreshKey} />
-                  <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
-                  <Link
-                    href={withBasePath("/plan")}
-                    className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-teal-200"
-                  >
-                    Неделя и покупки — вкладка «План»
-                    <ShoppingCountChip />
-                  </Link>
-                  <DiaryNoteWidget selectedDate={date} />
-                </div>
-              </div>
-            </div>
-          ) : null}
+                </div>,
+                document.documentElement,
+              )
+            : null}
 
           <DayOpenedCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <DailyGoalCelebration today={today} selectedDate={date} refreshKey={refreshKey} />

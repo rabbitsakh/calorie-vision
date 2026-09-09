@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
 import { ALLERGEN_OPTIONS, type AllergenId } from "@/lib/allergens";
@@ -70,16 +71,21 @@ async function saveAllergens(ids: AllergenId[]): Promise<void> {
 }
 
 /** First-visit guided run: goal → allergens → photo CTA → optional PWA. */
-export function OnboardingOverlay() {
+export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean } = {}) {
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [allergens, setAllergens] = useState<AllergenId[]>([]);
   const [savingAllergens, setSavingAllergens] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!isDone()) setOpen(true);
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (forceOpen || !isDone()) setOpen(true);
+  }, [forceOpen]);
 
   const finish = useCallback((opts?: { openCamera?: boolean }) => {
     markDone();
@@ -108,7 +114,7 @@ export function OnboardingOverlay() {
     setStep((value) => value + 1);
   }, [allergens, finish, step]);
 
-  if (!open) return null;
+  if (!open || !mounted || typeof document === "undefined") return null;
 
   const current = STEP_META[step] ?? STEP_META[0]!;
   const isPhoto = current.id === "photo";
@@ -118,9 +124,11 @@ export function OnboardingOverlay() {
     setAllergens((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  return (
+  // Portal to <html>: overlay is mounted inside .cv-app-main, and MobileTabBar is a
+  // sibling with z-index 40 — fixed+z-[80] inside main still paints under the tab bar.
+  const overlay = (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-4 sm:items-center"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cv-onboarding-title"
@@ -217,4 +225,6 @@ export function OnboardingOverlay() {
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.documentElement);
 }

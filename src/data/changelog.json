@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.5",
+    "date": "2026-09-09",
+    "summary": "fix(ui): onboarding steps above tab bar",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Шаги онбординга больше не залезают под нижнее меню"
+      },
+      {
+        "kind": "fix",
+        "text": "То же для PWA-мастера и листа привычек на Рационе"
+      }
+    ]
+  },
+  {
     "version": "1.12.3",
     "date": "2026-09-09",
     "summary": "fix(rustore): rebuild APK launcher icon for A2",
