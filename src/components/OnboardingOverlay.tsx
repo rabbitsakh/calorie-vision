@@ -71,7 +71,7 @@ async function saveAllergens(ids: AllergenId[]): Promise<void> {
 }
 
 /** First-visit guided run: goal → allergens → photo CTA → optional PWA. */
-export function OnboardingOverlay() {
+export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean } = {}) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -84,8 +84,8 @@ export function OnboardingOverlay() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (!isDone()) setOpen(true);
-  }, []);
+    if (forceOpen || !isDone()) setOpen(true);
+  }, [forceOpen]);
 
   const finish = useCallback((opts?: { openCamera?: boolean }) => {
     markDone();
