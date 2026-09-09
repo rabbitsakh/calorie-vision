@@ -1,6 +1,6 @@
 [
   {
-    "version": "1.12.4",
+    "version": "1.12.5",
     "date": "2026-09-09",
     "summary": "fix(ui): onboarding steps above tab bar",
     "items": [
