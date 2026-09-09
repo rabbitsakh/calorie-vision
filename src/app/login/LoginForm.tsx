@@ -128,7 +128,7 @@ export default function LoginForm() {
     <main className="login-screen mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
       <div className="card p-8">
         <div className="flex items-center gap-3">
-          <BrandMark size={48} />
+          <BrandMark size={72} />
           <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
             Calorie Vision
           </p>

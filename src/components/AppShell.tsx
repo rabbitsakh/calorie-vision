@@ -108,8 +108,8 @@ export function AppShell({
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <Link href={homeHref} className="inline-flex items-center gap-2 md:gap-3">
-                  <BrandMark size={compact ? 28 : 40} className="md:hidden" />
-                  <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
+                  <BrandMark size={compact ? 44 : 56} className="md:hidden" />
+                  <BrandMark size={compact ? 56 : 72} className="hidden md:block" />
                   <span className="font-display hidden text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] md:inline md:text-sm md:tracking-[0.2em]">
                     Calorie Vision
                   </span>

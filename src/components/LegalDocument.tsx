@@ -18,7 +18,7 @@ export function LegalDocument({ title, updated, children }: LegalDocumentProps) 
           href={withBasePath("/")}
           className="inline-flex items-center gap-2 text-teal-800 no-underline hover:opacity-90"
         >
-          <BrandMark size={36} decorative={false} />
+          <BrandMark size={48} decorative={false} />
           <span className="font-display text-lg font-semibold tracking-tight">Calorie Vision</span>
         </Link>
         <h1 className="font-display mt-6 text-2xl font-bold text-slate-900 md:text-3xl">{title}</h1>
