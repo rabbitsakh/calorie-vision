@@ -35,6 +35,25 @@ npm i -g @bubblewrap/cli
 # или npx — скрипты умеют оба варианта
 ```
 
+## Иконка приложения (APK / ярлык)
+
+Сайт и PWA могут уже показывать новый логотип, а **установленный APK — нет**:
+Bubblewrap зашивает `iconUrl` в ресурсы при сборке. После смены логотипа:
+
+1. Убедитесь, что `rustore/icon-512-store.png` — актуальный непрозрачный A2.
+2. Поднимите `appVersionCode` в `rustore/twa-manifest.json` (обязательно для RuStore).
+3. Пересоберите:
+
+```bash
+git pull origin main
+bash scripts/rustore-build.sh
+# → rustore/dist/app-release.apk
+```
+
+Скрипт сам делает `bubblewrap update` и **перезаписывает mipmap-иконки** из `icon-512-store.png`.
+4. Загрузите новый APK **и** иконку витрины в [RuStore Консоль](https://console.rustore.ru).
+5. На телефоне обновите приложение из RuStore (или удалите старое и поставьте снова).
+
 ## Быстрый старт
 
 1. Заведите компанию в [RuStore Консоль](https://console.rustore.ru) (роль Владелец).
