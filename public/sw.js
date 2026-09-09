@@ -73,7 +73,8 @@ function isShellPath(pathname) {
     pathname === withBase("/manifest.json") ||
     pathname === withBase("/icon-192.png") ||
     pathname === withBase("/icon-512.png") ||
-    pathname === withBase("/apple-icon.png")
+    pathname === withBase("/apple-icon.png") ||
+    pathname === withBase("/favicon.png")
   );
 }
 
@@ -170,8 +171,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: withBase("/icon-192.png"),
-      badge: withBase("/icon-192.png"),
+      icon: iconUrl("/icon-192.png"),
+      badge: iconUrl("/icon-192.png"),
       tag: data.tag ?? "cv-reminder",
       data: { url: targetUrl },
     }),
