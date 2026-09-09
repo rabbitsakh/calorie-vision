@@ -158,7 +158,9 @@ rustore_prepare_android_sdk() {
   rustore_ensure_android_sdk "$sdk_root" "$android_dir"
 }
 
-# Force local A2 / store icon into Bubblewrap mipmaps so APK does not keep a stale cache.
+# Exact Bubblewrap (@bubblewrap/core TwaGenerator) icon destinations.
+# API 26+ launcher uses mipmap-anydpi-v26/ic_launcher.xml → @mipmap/ic_maskable
+# (legacy uses ic_launcher.png). Wrong sizes / missing maskable = "old" APK icon.
 # Source of truth: rustore/icon-512-store.png (opaque) falling back to public/icon-512.png.
 rustore_sync_launcher_icons() {
   local android_dir="$1"
@@ -182,57 +184,85 @@ from PIL import Image
 
 src = Image.open(sys.argv[1]).convert("RGBA")
 android = Path(sys.argv[2])
+# Opaque RGB plate (RuStore / launcher expect no soft alpha edges).
+opaque = Image.new("RGB", src.size, (30, 115, 108))
+opaque.paste(src, mask=src.split()[-1])
 
-# Common Bubblewrap / Android launcher sizes (px).
-density = {
-    "mipmap-mdpi": 48,
-    "mipmap-hdpi": 72,
-    "mipmap-xhdpi": 96,
-    "mipmap-xxhdpi": 144,
-    "mipmap-xxxhdpi": 192,
+# Paths/sizes from @bubblewrap/core TwaGenerator IMAGES / ADAPTIVE / SPLASH / NOTIFICATION.
+assets = [
+    ("store_icon.png", 512),
+    ("app/src/main/res/mipmap-mdpi/ic_launcher.png", 48),
+    ("app/src/main/res/mipmap-hdpi/ic_launcher.png", 72),
+    ("app/src/main/res/mipmap-xhdpi/ic_launcher.png", 96),
+    ("app/src/main/res/mipmap-xxhdpi/ic_launcher.png", 144),
+    ("app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", 192),
+    ("app/src/main/res/mipmap-mdpi/ic_maskable.png", 82),
+    ("app/src/main/res/mipmap-hdpi/ic_maskable.png", 123),
+    ("app/src/main/res/mipmap-xhdpi/ic_maskable.png", 164),
+    ("app/src/main/res/mipmap-xxhdpi/ic_maskable.png", 246),
+    ("app/src/main/res/mipmap-xxxhdpi/ic_maskable.png", 328),
+    ("app/src/main/res/drawable-mdpi/splash.png", 300),
+    ("app/src/main/res/drawable-hdpi/splash.png", 450),
+    ("app/src/main/res/drawable-xhdpi/splash.png", 600),
+    ("app/src/main/res/drawable-xxhdpi/splash.png", 900),
+    ("app/src/main/res/drawable-xxxhdpi/splash.png", 1200),
+    ("app/src/main/res/drawable-mdpi/ic_notification_icon.png", 24),
+    ("app/src/main/res/drawable-hdpi/ic_notification_icon.png", 36),
+    ("app/src/main/res/drawable-xhdpi/ic_notification_icon.png", 48),
+    ("app/src/main/res/drawable-xxhdpi/ic_notification_icon.png", 72),
+    ("app/src/main/res/drawable-xxxhdpi/ic_notification_icon.png", 96),
+]
+
+written = 0
+for rel, size in assets:
+    path = android / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    opaque.resize((size, size), Image.Resampling.LANCZOS).save(path, optimize=True)
+    written += 1
+    print(f"  wrote {rel} ({size}px)")
+
+# Legacy / alternate names some forks leave behind.
+for name in ("ic_launcher_round.png", "ic_launcher_foreground.png"):
+    for folder in ("mipmap-mdpi", "mipmap-hdpi", "mipmap-xhdpi", "mipmap-xxhdpi", "mipmap-xxxhdpi"):
+        path = android / "app/src/main/res" / folder / name
+        if path.exists():
+            # Match sibling ic_launcher size if present, else 192.
+            sib = path.with_name("ic_launcher.png")
+            size = Image.open(sib).size[0] if sib.exists() else 192
+            opaque.resize((size, size), Image.Resampling.LANCZOS).save(path, optimize=True)
+            written += 1
+            print(f"  wrote {path.relative_to(android)} ({size}px)")
+
+# Sanity: adaptive icon must be teal A2, not old black CV.
+probe = android / "app/src/main/res/mipmap-xxxhdpi/ic_maskable.png"
+if probe.exists():
+    c = Image.open(probe).convert("RGB").getpixel((8, 8))
+    # A2 teal plate ≈ (30, 115, 108); old mark was near-black.
+    if c[1] < 80 or c[2] < 70:
+        print(f"ERROR: {probe.name} corner={c} — похоже на старую иконку", file=sys.stderr)
+        sys.exit(1)
+    print(f"  OK probe ic_maskable xxxhdpi corner={c}")
+
+print(f"  обновлено файлов: {written}")
+PY
 }
 
-# Also keep a full 512 asset if Bubblewrap left one in the project root.
-for name in ("icon.png", "icon-512.png", "store_icon.png", "maskable_icon.png"):
-    target = android / name
-    if target.exists() or name in {"icon.png", "maskable_icon.png"}:
-        src.resize((512, 512), Image.Resampling.LANCZOS).convert("RGB").save(target, optimize=True)
-        print(f"  wrote {target.relative_to(android)}")
+# Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).
+rustore_lock_manifest_checksum() {
+  local android_dir="$1"
+  local manifest="$android_dir/twa-manifest.json"
+  local checksum_file="$android_dir/manifest-checksum.txt"
 
-res = android / "app" / "src" / "main" / "res"
-written = 0
-for folder, size in density.items():
-    d = res / folder
-    if not d.is_dir():
-        continue
-    resized = src.resize((size, size), Image.Resampling.LANCZOS)
-    for pattern in ("ic_launcher.png", "ic_launcher_round.png", "ic_maskable.png", "ic_launcher_foreground.png"):
-        # Replace existing launcher assets; create standard names if folder exists.
-        path = d / pattern
-        if path.exists() or pattern in {"ic_launcher.png", "ic_launcher_round.png"}:
-            # Prefer RGB for launcher (no semi-transparent edges on older Android).
-            resized.convert("RGB").save(path, optimize=True)
-            written += 1
-            print(f"  wrote {path.relative_to(android)}")
+  if [[ ! -f "$manifest" ]]; then
+    echo "Нет $manifest — checksum не обновлён" >&2
+    return 1
+  fi
 
-# Adaptive foreground often lives as a larger asset.
-for folder, size in {
-    "mipmap-mdpi": 108,
-    "mipmap-hdpi": 162,
-    "mipmap-xhdpi": 216,
-    "mipmap-xxhdpi": 324,
-    "mipmap-xxxhdpi": 432,
-}.items():
-    d = res / folder
-    fg = d / "ic_launcher_foreground.png"
-    if fg.exists():
-        src.resize((size, size), Image.Resampling.LANCZOS).save(fg, optimize=True)
-        written += 1
-        print(f"  wrote {fg.relative_to(android)}")
-
-if written == 0:
-    print("  (mipmap-* не найдены — после bubblewrap init/update запустите build снова)")
-else:
-    print(f"  обновлено файлов: {written}")
+  python3 - "$manifest" "$checksum_file" <<'PY'
+import hashlib, pathlib, sys
+data = pathlib.Path(sys.argv[1]).read_bytes()
+digest = hashlib.sha1(data).hexdigest()
+pathlib.Path(sys.argv[2]).write_text(digest)
+print(f"  manifest-checksum.txt = {digest}")
 PY
 }
