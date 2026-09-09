@@ -94,7 +94,7 @@ export function AppSplash({
   const inner = (
     <div className="app-splash-inner relative z-10 flex w-full max-w-sm flex-col items-center px-6 text-center">
       <div className="app-splash-brand flex items-center gap-2.5">
-        <BrandMark size={40} />
+        <BrandMark size={64} />
         <span className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-teal-50">
           Calorie Vision
         </span>

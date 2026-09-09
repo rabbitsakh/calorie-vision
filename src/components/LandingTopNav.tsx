@@ -107,7 +107,7 @@ export function LandingTopNav() {
     <>
       <header className="landing-top">
         <Link href="/" className="landing-top-brand" aria-label="Calorie Vision — на главную">
-          <BrandMark size={34} decorative={false} />
+          <BrandMark size={48} decorative={false} />
           <span>Calorie Vision</span>
         </Link>
 

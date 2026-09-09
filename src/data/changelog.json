@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.2",
+    "date": "2026-09-09",
+    "summary": "fix(brand): transparent BrandMark, larger in-app sizes",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Знак в шапке/splash/логине без teal-рамки — прозрачный фон"
+      },
+      {
+        "kind": "improvement",
+        "text": "BrandMark крупнее: ~44–72px вместо 28–48px"
+      },
+      {
+        "kind": "improvement",
+        "text": "Иконки PWA/RuStore остаются на непрозрачной плашке (требование сторов)"
+      }
+    ]
+  },
+  {
     "version": "1.12.1",
     "date": "2026-09-09",
     "summary": "fix(brand): bust PWA icon cache after A2 logo",
