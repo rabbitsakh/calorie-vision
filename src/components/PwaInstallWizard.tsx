@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { isLikelyIos, isStandalonePwa } from "@/lib/push-client";
 
 const WIZARD_DISMISS_KEY = "pwa-install-wizard-dismissed";
@@ -89,11 +90,12 @@ export function PwaInstallWizard({
     else setTab(detectedIos ? "ios" : "android");
   }, [open, prefer, detectedIos]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  // Portal above MobileTabBar (sibling of .cv-app-main; z-index alone inside main loses).
+  return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-3 sm:items-center"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-3"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pwa-wizard-title"
@@ -203,7 +205,8 @@ export function PwaInstallWizard({
           Понятно
         </button>
       </div>
-    </div>
+    </div>,
+    document.documentElement,
   );
 }
 
