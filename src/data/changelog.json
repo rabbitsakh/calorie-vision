@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.3",
+    "date": "2026-09-09",
+    "summary": "fix(rustore): rebuild APK launcher icon for A2",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "TWA: appVersionCode 2 / 1.12.2 — новая сборка с иконкой A2"
+      },
+      {
+        "kind": "fix",
+        "text": "rustore-build.sh перезаписывает mipmap из icon-512-store.png"
+      },
+      {
+        "kind": "improvement",
+        "text": "README: как обновить значок в установленном APK"
+      }
+    ]
+  },
+  {
     "version": "1.12.2",
     "date": "2026-09-09",
     "summary": "fix(brand): transparent BrandMark, larger in-app sizes",

@@ -99,6 +99,8 @@ bash scripts/rustore-build.sh  # → rustore/dist/app-release.apk
 
 Каждый следующий релиз: поднять `appVersionCode` в `twa-manifest.json`.
 
+После смены логотипа: `bash scripts/rustore-build.sh` (скрипт обновляет mipmap из `icon-512-store.png`) + залить APK и иконку витрины.
+
 ---
 
 ## 4. Требования к медиа (актуально)

@@ -36,6 +36,16 @@ cd "$ANDROID"
 # Keep version/source of truth from repo manifest.
 cp "$RUSTORE/twa-manifest.json" ./twa-manifest.json
 
+# Re-fetch icons from cache-busted URLs, then force local opaque A2 into mipmaps.
+echo "==> bubblewrap update (icons / manifest)"
+"${BUBBLEWRAP[@]}" update --skipVersionUpgrade || true
+
+ICON_SRC="$RUSTORE/icon-512-store.png"
+if [[ ! -f "$ICON_SRC" ]]; then
+  ICON_SRC="$ROOT/public/icon-512.png"
+fi
+rustore_sync_launcher_icons "$ANDROID" "$ICON_SRC"
+
 echo "==> bubblewrap build"
 "${BUBBLEWRAP[@]}" build
 
