@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.1",
+    "date": "2026-09-09",
+    "summary": "fix(brand): bust PWA icon cache after A2 logo",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Service Worker cache v8 — подтягивает новый значок A2"
+      },
+      {
+        "kind": "fix",
+        "text": "Manifest / BrandMark / apple-touch с ?v=1.12.1 против кэша"
+      }
+    ]
+  },
+  {
     "version": "1.12.0",
     "date": "2026-09-09",
     "summary": "feat(brand): unified A2 logo across PWA, TWA, RuStore",

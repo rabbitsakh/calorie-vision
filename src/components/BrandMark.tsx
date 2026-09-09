@@ -11,7 +11,7 @@ export function BrandMark({ size = 48, className = "", decorative = true }: Bran
   return (
     // eslint-disable-next-line @next/next/no-img-element -- small brand mark; avoids layout shift in chrome
     <img
-      src={withBasePath("/icon-192.png")}
+      src={withBasePath("/icon-192.png?v=1.12.1")}
       width={size}
       height={size}
       alt={decorative ? "" : "Calorie Vision"}
