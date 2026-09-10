@@ -127,22 +127,31 @@ export function WeightQuickSheet() {
           className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
           onSubmit={(event) => void saveWeight(event)}
         >
-          <div className="field">
-            <label htmlFor="weight-quick-kg">Вес, кг</label>
-            <input
-              id="weight-quick-kg"
-              type="number"
-              inputMode="decimal"
-              min={20}
-              max={300}
-              step={0.1}
-              placeholder="78.5"
-              value={weightInput}
-              disabled={saving}
-              autoFocus
-              required
-              onChange={(event) => setWeightInput(event.target.value)}
-            />
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+            <div className="field">
+              <label htmlFor="weight-quick-kg">Вес, кг</label>
+              <input
+                id="weight-quick-kg"
+                type="number"
+                inputMode="decimal"
+                min={20}
+                max={300}
+                step={0.1}
+                placeholder="78.5"
+                value={weightInput}
+                disabled={saving}
+                autoFocus
+                required
+                onChange={(event) => setWeightInput(event.target.value)}
+              />
+            </div>
+            <Link
+              href={withBasePath("/weight")}
+              className="mt-2 inline-flex text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+              onClick={close}
+            >
+              Открыть журнал веса
+            </Link>
           </div>
 
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
@@ -151,14 +160,6 @@ export function WeightQuickSheet() {
           <button type="submit" className="btn btn-primary w-full" disabled={saving}>
             {saving ? "Сохраняем…" : "Сохранить"}
           </button>
-
-          <Link
-            href={withBasePath("/weight")}
-            className="btn-quiet text-center text-sm text-teal-800"
-            onClick={close}
-          >
-            Журнал и цель веса
-          </Link>
         </form>
       </div>
     </div>
