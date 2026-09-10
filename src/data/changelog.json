@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.6",
+    "date": "2026-09-09",
+    "summary": "fix(rustore): APK adaptive icon (ic_maskable) sync",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "TWA: правильные размеры ic_maskable — ярлык Android 8+ брал старый слой"
+      },
+      {
+        "kind": "fix",
+        "text": "Сборка: локальный icon URL + checksum lock, чтобы bubblewrap build не затирал A2"
+      },
+      {
+        "kind": "fix",
+        "text": "appVersionCode 3 / 1.12.6 — перезалейте APK в RuStore и обновите на телефоне"
+      }
+    ]
+  },
+  {
     "version": "1.12.5",
     "date": "2026-09-09",
     "summary": "fix(ui): onboarding steps above tab bar",
