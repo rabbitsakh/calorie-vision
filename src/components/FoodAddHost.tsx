@@ -17,6 +17,7 @@ import {
   type FoodAddMode,
   type OpenFoodAddDetail,
 } from "@/lib/open-food-camera";
+import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { useTimezone } from "@/lib/use-timezone";
 
 type FoodAddUiValue = {
@@ -214,9 +215,9 @@ function FoodAddModePicker({
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
           <div className="min-w-0">
             <p id="food-add-picker-title" className="font-semibold text-slate-900">
-              Добавить еду
+              Добавить
             </p>
-            <p className="text-xs text-slate-500">Выберите способ</p>
+            <p className="text-xs text-slate-500">Еда или вес</p>
           </div>
           <button type="button" className="btn-quiet text-sm text-slate-500" onClick={onClose}>
             Закрыть
@@ -234,6 +235,17 @@ function FoodAddModePicker({
               <span className="text-xs text-slate-500">{opt.hint}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className="flex min-h-14 flex-col items-start rounded-2xl border border-teal-200 bg-teal-50/70 px-4 py-3 text-left transition-colors hover:border-teal-400 hover:bg-teal-50"
+            onClick={() => {
+              onClose();
+              requestOpenWeightQuick();
+            }}
+          >
+            <span className="text-base font-semibold text-slate-900">Вес</span>
+            <span className="text-xs text-slate-500">Записать кг за сегодня</span>
+          </button>
         </div>
       </div>
     </div>

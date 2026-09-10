@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.8",
+    "date": "2026-09-10",
+    "summary": "feat(ui): weight quick log in center +",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Вес снова в плюсе посередине — быстрая запись кг без похода в журнал"
+      },
+      {
+        "kind": "improvement",
+        "text": "В пикере «+» и долгом нажатии: Фото / Текст / Штрихкод / Вес"
+      }
+    ]
+  },
+  {
     "version": "1.12.6",
     "date": "2026-09-09",
     "summary": "fix(rustore): APK adaptive icon (ic_maskable) sync",
