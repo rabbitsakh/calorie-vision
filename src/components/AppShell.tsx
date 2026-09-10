@@ -7,6 +7,7 @@ import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
+import { WeightQuickSheet } from "@/components/WeightQuickSheet";
 import { APP_NAV, isAppNavPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -170,6 +171,7 @@ export function AppShell({
 
         <MobileTabBar date={date} showAdd={foodAddEnabled} />
         <MetaChestCelebration />
+        <WeightQuickSheet />
       </div>
     </FoodAddHost>
   );
