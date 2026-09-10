@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
@@ -10,7 +9,6 @@ import { WeeklyPlan } from "@/components/WeeklyPlan";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
 import { toDateKeyTz } from "@/lib/dates";
-import { withBasePath } from "@/lib/paths";
 import { useSelectedDate } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 import { useRouter } from "next/navigation";
@@ -57,13 +55,6 @@ export default function PlanPage() {
             onChanged={() => setRefreshKey((k) => k + 1)}
           />
           <ShoppingListPanel selectedDate={date} />
-          <Link
-            href={withBasePath("/weight")}
-            className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm transition-colors hover:border-teal-200"
-          >
-            <span className="font-medium text-slate-700">Журнал веса</span>
-            <span className="shrink-0 font-semibold text-teal-800">Открыть →</span>
-          </Link>
         </div>
       </AuthGate>
     </AppShell>

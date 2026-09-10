@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GOAL_OPTIONS,
@@ -236,19 +237,28 @@ export function WeightGoalCard({
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
 
         {!loading && showCurrentWeight ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">
-                {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+          <div className="flex flex-col gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">
+                  {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
+                </div>
               </div>
             </div>
-            <div className="rounded-2xl bg-slate-50 px-4 py-3">
-              <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
-              <div className="mt-1 text-2xl font-bold text-slate-900">
-                {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
-              </div>
-            </div>
+            <Link
+              href={withBasePath("/weight")}
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-teal-800 transition-colors hover:border-teal-200 hover:bg-teal-50/60"
+            >
+              <span className="font-medium">Журнал веса</span>
+              <span className="shrink-0 font-semibold">Открыть →</span>
+            </Link>
           </div>
         ) : null}
 
