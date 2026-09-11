@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
@@ -11,6 +12,7 @@ import {
 } from "@/lib/push-client";
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
+import { withBasePath } from "@/lib/paths";
 
 export function PushNotificationPrompt() {
   const [visible, setVisible] = useState(false);
@@ -87,6 +89,13 @@ export function PushNotificationPrompt() {
                   >
                     {MASCOT_COPY.pushIosHint.install}
                   </button>
+                  <Link
+                    href={withBasePath("/profile#reminders")}
+                    className="btn-quiet text-sm text-amber-800"
+                    onClick={dismiss}
+                  >
+                    Напоминания в профиле
+                  </Link>
                   <button type="button" className="btn-quiet text-sm text-amber-800" onClick={dismiss}>
                     {MASCOT_COPY.pushIosHint.dismiss}
                   </button>

@@ -6,6 +6,7 @@ import {
   getConfidenceTone,
   confidenceWhyHint,
   confidenceReshootHint,
+  confidenceActionHint,
 } from "./recognition-confidence-ui.ts";
 
 test("formatConfidencePercent clamps and rounds", () => {
@@ -35,4 +36,26 @@ test("confidenceReshootHint only for low", () => {
   assert.equal(confidenceReshootHint("medium"), null);
   assert.match(confidenceReshootHint("low") ?? "", /Переснимите/);
   assert.match(confidenceReshootHint("low", { photoKind: "package" }) ?? "", /упаковк/);
+});
+
+test("confidenceWhyHint drink-aware medium and low", () => {
+  assert.match(confidenceWhyHint("medium", { dishName: "Апельсиновый сок" }) ?? "", /мл|объём/i);
+  assert.match(confidenceWhyHint("low", { dishName: "Кофе латте" }) ?? "", /бутылк|налив|объём/i);
+  assert.match(confidenceWhyHint("medium", { isDrink: true }) ?? "", /мл|объём/i);
+  assert.match(confidenceWhyHint("medium", { dishName: "Борщ" }) ?? "", /порции|названия|упаковк/);
+});
+
+test("confidenceReshootHint drink-aware low", () => {
+  assert.match(
+    confidenceReshootHint("low", { dishName: "Пиво светлое" }) ?? "",
+    /этикетк|налив|объём/i,
+  );
+  assert.match(
+    confidenceReshootHint("low", { isDrink: true, photoKind: "package" }) ?? "",
+    /бутылк|налив|этикетк/i,
+  );
+});
+
+test("confidenceActionHint drink medium mentions volume", () => {
+  assert.match(confidenceActionHint("medium", { dishName: "Молоко 2.5%" }) ?? "", /мл|объём/i);
 });

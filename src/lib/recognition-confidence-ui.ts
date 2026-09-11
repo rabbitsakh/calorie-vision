@@ -1,4 +1,20 @@
+import { looksLikeDrinkName } from "@/lib/portion-unit";
+
 export type ConfidenceTone = "high" | "medium" | "low";
+
+export type ConfidenceHintOpts = {
+  photoKind?: string;
+  source?: string;
+  dishName?: string;
+  /** When known from caller; otherwise inferred from dishName via looksLikeDrinkName. */
+  isDrink?: boolean;
+};
+
+function isDrinkHint(opts?: ConfidenceHintOpts): boolean {
+  if (opts?.isDrink === true) return true;
+  if (opts?.isDrink === false) return false;
+  return looksLikeDrinkName(opts?.dishName);
+}
 
 export function formatConfidencePercent(value: number): string {
   const clamped = Math.max(0, Math.min(1, value));
@@ -40,7 +56,7 @@ export function confidenceShortLabel(tone: ConfidenceTone): string {
 
 export function confidenceActionHint(
   tone: ConfidenceTone,
-  opts?: { photoKind?: string; source?: string },
+  opts?: ConfidenceHintOpts,
 ): string {
   if (opts?.photoKind === "barcode" && opts.source?.includes("openfoodfacts")) {
     return "Данные из базы по штрихкоду";
@@ -49,16 +65,16 @@ export function confidenceActionHint(
     return "Можно сохранить";
   }
   if (tone === "medium") {
-    return "Быстро проверьте порцию";
+    return isDrinkHint(opts) ? "Быстро проверьте объём (мл)" : "Быстро проверьте порцию";
   }
-  return "Уточните название или калории";
+  return isDrinkHint(opts) ? "Уточните объём или название" : "Уточните название или калории";
 }
 
 
 /** Short "why" line under the confidence badge — shown for medium/low. */
 export function confidenceWhyHint(
   tone: ConfidenceTone,
-  opts?: { photoKind?: string; source?: string },
+  opts?: ConfidenceHintOpts,
 ): string | null {
   if (opts?.photoKind === "barcode" && opts.source?.includes("openfoodfacts")) {
     return null;
@@ -66,11 +82,18 @@ export function confidenceWhyHint(
   if (tone === "high") {
     return null;
   }
+  const drink = isDrinkHint(opts);
   if (tone === "medium") {
+    if (drink) {
+      return "Объём по фото неуверенный — сверьте мл на этикетке или в порции";
+    }
     if (opts?.photoKind === "package" || opts?.photoKind === "label") {
       return "Упаковка читается неуверенно — сверьте название с этикеткой";
     }
     return "Модель не уверена в порции или названии";
+  }
+  if (drink) {
+    return "Напиток неоднозначный — проверьте этикетку бутылки и объём налива";
   }
   if (opts?.photoKind === "package" || opts?.photoKind === "label") {
     return "Крупный шрифт на упаковке мог быть прочитан неверно";
@@ -84,10 +107,13 @@ export function confidenceWhyHint(
 /** When to reshoot — only for low confidence. */
 export function confidenceReshootHint(
   tone: ConfidenceTone,
-  opts?: { photoKind?: string },
+  opts?: ConfidenceHintOpts,
 ): string | null {
   if (tone !== "low") {
     return null;
+  }
+  if (isDrinkHint(opts)) {
+    return "Переснимите этикетку бутылки ближе или уточните объём налива";
   }
   if (opts?.photoKind === "package" || opts?.photoKind === "label") {
     return "Переснимите упаковку ближе, без бликов, чтобы было видно название";

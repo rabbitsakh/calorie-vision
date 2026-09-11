@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.12",
+    "date": "2026-09-11",
+    "summary": "feat(ui): waves 2–4 trust, retention, weekly OS polish",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Черновик подтверждения только за выбранный день + кнопка «Удалить» и название блюда"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подсказки уверенности для напитков (объём/мл, этикетка бутылки) и базис КБЖУ у бейджа"
+      },
+      {
+        "kind": "improvement",
+        "text": "Первый шаринг и push: тихая первая неделя; копирайт напоминаний под quiet defaults; ссылка на профиль"
+      },
+      {
+        "kind": "improvement",
+        "text": "Статистика недели без отдельного WoW; список покупок «за неделю»; авто-цель веса с CTA"
+      }
+    ]
+  },
+  {
     "version": "1.12.11",
     "date": "2026-09-11",
     "summary": "feat(landing): Android APK download CTA",

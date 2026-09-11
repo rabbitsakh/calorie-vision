@@ -825,6 +825,7 @@ export function StatsView({ endDate }: StatsViewProps) {
       : null;
 
   const showWowSection =
+    period !== "week" &&
     Boolean(wow && (wow.thisWeek.daysLogged > 0 || wow.prevWeek.daysLogged > 0)) &&
     primaryInsight?.title !== "Сравнение недель";
 

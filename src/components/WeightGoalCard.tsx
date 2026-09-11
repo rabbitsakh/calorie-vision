@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   GOAL_OPTIONS,
   PACE_OPTIONS,
@@ -75,6 +75,7 @@ export function WeightGoalCard({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoOpenedNoGoalRef = useRef(false);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -96,7 +97,12 @@ export function WeightGoalCard({
       setGoalPace(nextPace);
       setDraftGoal(nextGoal);
       setDraftPace(nextPace);
-      if (!nextGoal || (goalNeedsPace(nextGoal) && !nextPace)) {
+      if (!nextGoal) {
+        if (!autoOpenedNoGoalRef.current) {
+          autoOpenedNoGoalRef.current = true;
+          setEditingGoal(true);
+        }
+      } else if (goalNeedsPace(nextGoal) && !nextPace) {
         setEditingGoal(true);
       }
       setCurrentWeightKg(data.currentWeightKg);
@@ -265,6 +271,11 @@ export function WeightGoalCard({
         {!loading ? (
           <div>
             <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
+            {!goal ? (
+              <p className="mb-2 text-xs text-teal-800">
+                Задайте цель — появится прогноз на Плане
+              </p>
+            ) : null}
             {goal && !editingGoal ? (
               <div className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">

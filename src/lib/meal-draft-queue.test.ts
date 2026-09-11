@@ -55,6 +55,17 @@ test("upsertPendingConfirmDraft stores and replaces same date", () => {
   assert.equal(countPendingConfirms(), 0);
 });
 
+test("getPendingConfirmDraft with selectedDate does not fall back to another day", () => {
+  mockStorage();
+  upsertPendingConfirmDraft("2026-08-24", {
+    imagePath: "/a.jpg",
+    recognition: { dishName: "Суп", calories: 200 } as never,
+  });
+  assert.equal(getPendingConfirmDraft("2026-08-25"), null);
+  assert.equal(getPendingConfirmDraft("2026-08-24")?.result.imagePath, "/a.jpg");
+  assert.equal(getPendingConfirmDraft()?.result.imagePath, "/a.jpg");
+});
+
 test("upsertPendingConfirmDraft keeps ui edits for same photo", () => {
   mockStorage();
   upsertPendingConfirmDraft("2026-08-24", {
