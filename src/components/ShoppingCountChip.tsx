@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { toDateKey } from "@/lib/dates";
 import { countUnchecked, loadList } from "@/lib/shopping-list";
 import { withBasePath } from "@/lib/paths";
 
-/** Soft unchecked shopping count for habits header. */
-export function ShoppingCountChip() {
+type ShoppingCountChipProps = {
+  /** Prefer selected date when linking into Plan shopping. */
+  date?: string;
+};
+
+/** Soft unchecked shopping count for habits header — links to Plan #shopping. */
+export function ShoppingCountChip({ date }: ShoppingCountChipProps) {
   const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
   const [count, setCount] = useState(0);
@@ -49,9 +56,16 @@ export function ShoppingCountChip() {
 
   if (count <= 0) return null;
 
+  const dateKey = date && date.length >= 10 ? date : toDateKey(new Date());
+  const href = withBasePath(`/plan?date=${encodeURIComponent(dateKey)}#shopping`);
+
   return (
-    <span className="ml-1.5 inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-teal-800">
+    <Link
+      href={href}
+      className="ml-1.5 inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-teal-800 hover:bg-teal-100"
+      onClick={(e) => e.stopPropagation()}
+    >
       покупки {count}
-    </span>
+    </Link>
   );
 }

@@ -302,13 +302,15 @@ function RationBody({
           onSaved={bump}
         />
 
-        <Link
-          href={withDateQuery("/plan", date)}
-          className="px-1 text-sm font-medium text-slate-600 underline-offset-2 hover:text-teal-800 hover:underline"
-        >
-          Неделя и покупки — вкладка «План»
-          <ShoppingCountChip />
-        </Link>
+        <p className="flex flex-wrap items-center gap-x-1 px-1 text-sm font-medium text-slate-600">
+          <Link
+            href={`${withDateQuery("/plan", date)}#shopping`}
+            className="underline-offset-2 hover:text-teal-800 hover:underline"
+          >
+            Неделя и покупки — вкладка «План»
+          </Link>
+          <ShoppingCountChip date={date} />
+        </p>
 
         <MotivationQueue>
           <StreakNudge
@@ -387,13 +389,15 @@ function RationBody({
                       <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
                       <ProgressHintsRow refreshKey={refreshKey} />
                       <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
-                      <Link
-                        href={withBasePath("/plan")}
-                        className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-teal-200"
-                      >
-                        Неделя и покупки — вкладка «План»
-                        <ShoppingCountChip />
-                      </Link>
+                      <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700">
+                        <Link
+                          href={`${withDateQuery("/plan", date)}#shopping`}
+                          className="hover:border-teal-200 hover:text-teal-800"
+                        >
+                          Неделя и покупки — вкладка «План»
+                        </Link>
+                        <ShoppingCountChip date={date} />
+                      </p>
                       <DiaryNoteWidget selectedDate={date} />
                     </div>
                   </div>

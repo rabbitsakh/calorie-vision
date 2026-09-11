@@ -21,9 +21,22 @@ import {
   type WeightGoal,
 } from "@/lib/diet";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
-import { parseDateInput } from "@/lib/dates";
+import { isDateKey, parseDateInput, toDateKey } from "@/lib/dates";
+import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { withBasePath } from "@/lib/paths";
 import { forecastGoalDate } from "@/lib/stats-insights";
+
+function daysSinceWeight(weightDate: string, todayKey: string): number {
+  const ms =
+    parseDateInput(todayKey).getTime() - parseDateInput(weightDate).getTime();
+  return Math.max(0, Math.round(ms / 86_400_000));
+}
+
+function weighInRhythmLabel(days: number): string {
+  if (days <= 0) return "сегодня";
+  if (days === 1) return "вчера";
+  return `${days} дн. без взвешивания`;
+}
 
 type ProfileResponse = {
   goal: WeightGoal | null;
@@ -237,6 +250,12 @@ export function WeightGoalCard({
 
   const showPace = Boolean(draftGoal && goalNeedsPace(draftGoal));
 
+  const todayKey = toDateKey(new Date());
+  const weighInDays =
+    currentWeightDate && isDateKey(currentWeightDate)
+      ? daysSinceWeight(currentWeightDate, todayKey)
+      : null;
+
   return (
     <section className="card p-6">
       <div className="flex flex-col gap-5">
@@ -258,6 +277,22 @@ export function WeightGoalCard({
                 </div>
               </div>
             </div>
+            {weighInDays != null ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3 py-2.5">
+                <p className="text-sm text-teal-900">
+                  {weighInDays <= 1
+                    ? `Взвешивание: ${weighInRhythmLabel(weighInDays)}`
+                    : weighInRhythmLabel(weighInDays)}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary min-h-9 px-3 text-sm"
+                  onClick={() => requestOpenWeightQuick()}
+                >
+                  Взвеситься
+                </button>
+              </div>
+            ) : null}
             <Link
               href={withBasePath("/weight")}
               className="inline-flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-teal-800 transition-colors hover:border-teal-200 hover:bg-teal-50/60"

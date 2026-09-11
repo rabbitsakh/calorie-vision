@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.12.14",
+    "date": "2026-09-11",
+    "summary": "feat(plan): Weekly OS 2 — Mon–Sun report, week nav, shopping bridge",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Недельный отчёт и шаринг: окно пн–вс как у полосок Плана"
+      },
+      {
+        "kind": "feature",
+        "text": "План: навигация «← неделя / эта / →» и одна строка итога недели"
+      },
+      {
+        "kind": "improvement",
+        "text": "Поделиться неделей в шапке отчёта; без отдельной CTA-строки"
+      },
+      {
+        "kind": "feature",
+        "text": "Список покупок: #shopping, авто-открытие, sourceDate по дням → рацион"
+      },
+      {
+        "kind": "feature",
+        "text": "Цель по весу: ритм взвешивания и быстрый лист"
+      },
+      {
+        "kind": "improvement",
+        "text": "Отчёт без дублей closest/hardest в буллетах"
+      }
+    ]
+  },
+  {
     "version": "1.12.13",
     "date": "2026-09-11",
     "summary": "feat(recog): trust depth — portion chips, drink gate, eval, admin",

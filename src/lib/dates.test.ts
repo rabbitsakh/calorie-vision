@@ -50,6 +50,11 @@ test("shifts date keys and builds inclusive ranges", () => {
 test("mondayOfWeek starts ISO weeks on Monday", () => {
   assert.equal(mondayOfWeek("2026-08-22"), "2026-08-17");
   assert.equal(mondayOfWeek("2026-08-17"), "2026-08-17");
+  // Sunday belongs to the week that started the previous Monday
+  assert.equal(mondayOfWeek("2026-08-23"), "2026-08-17");
+  const mon = mondayOfWeek("2026-09-11");
+  assert.equal(mon, "2026-09-07");
+  assert.equal(shiftDateKey(mon, 6), "2026-09-13");
 });
 
 test("toDateKeyTz returns YYYY-MM-DD in the given timezone", () => {
