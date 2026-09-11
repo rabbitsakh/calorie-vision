@@ -48,15 +48,18 @@ Bubblewrap зашивает иконки в mipmap при сборке. На And
 git pull origin main
 bash scripts/rustore-build.sh
 # → rustore/dist/app-release.apk
+# → public/downloads/calorie-vision.apk  (кнопка на лендинге и /install)
 ```
 
 Скрипт:
 - отдаёт локальный A2 в `bubblewrap update` (без CDN-кэша);
 - пишет все размеры Bubblewrap (`ic_launcher`, `ic_maskable`, splash, store_icon);
 - фиксирует `manifest-checksum.txt`, чтобы `bubblewrap build` не перетёр иконки;
-- проверяет, что в APK угол иконки — teal A2, не чёрный CV.
+- проверяет, что в APK угол иконки — teal A2, не чёрный CV;
+- кладёт APK в `public/downloads/` для кнопки «Скачать APK» на сайте (файл в gitignore).
 4. Загрузите новый APK **и** иконку витрины (`icon-512-store.png`) в [RuStore Консоль](https://console.rustore.ru).
 5. На телефоне: обновление из RuStore **или удалите приложение и поставьте снова** — лаунчер часто кэширует старый ярлык.
+6. На проде: задеплойте сайт вместе с `public/downloads/calorie-vision.apk` (или задайте `NEXT_PUBLIC_APK_URL`).
 
 ## Быстрый старт
 

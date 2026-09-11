@@ -134,6 +134,10 @@ for f in "${APKS[@]}"; do
     cp -f "$f" "$DIST/app-release.apk"
     APK_OUT="$DIST/app-release.apk"
     echo "==> APK → rustore/dist/app-release.apk"
+    # Host on the landing/install pages (gitignored binary).
+    mkdir -p "$ROOT/public/downloads"
+    cp -f "$APK_OUT" "$ROOT/public/downloads/calorie-vision.apk"
+    echo "==> APK → public/downloads/calorie-vision.apk (лендинг /install)"
     COPIED=1
     break
   fi
