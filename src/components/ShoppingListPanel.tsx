@@ -13,12 +13,14 @@ import {
   clearAll,
   clearChecked,
   loadList,
+  normalizeShoppingName,
   removeItem,
   saveList,
   toggleItem,
   type ShoppingListItem,
 } from "@/lib/shopping-list";
 import { withBasePath } from "@/lib/paths";
+import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import type { MealEntry } from "@/types";
 
 type ShoppingListPanelProps = {
@@ -123,27 +125,58 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
     };
   }, [opts, userId]);
 
-  async function collectFromRation() {
+  async function fetchDishNamesForDate(dateKey: string): Promise<string[]> {
+    const resp = await fetch(withBasePath(`/api/meals?date=${dateKey}`), {
+      cache: "no-store",
+    });
+    if (!resp.ok) {
+      throw new Error("load-failed");
+    }
+    const data = (await resp.json()) as { entries?: MealEntry[] };
+    return (data.entries ?? [])
+      .map((e) => e.dishName)
+      .filter((name): name is string => typeof name === "string" && name.trim().length > 0);
+  }
+
+  function dedupeNames(names: string[]): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const raw of names) {
+      const name = raw.trim().replace(/\s+/g, " ");
+      if (!name) continue;
+      const key = normalizeShoppingName(name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
+    return out;
+  }
+
+  async function collectFromRation(scope: "day" | "week") {
     setBusy(true);
     setMessage(null);
     try {
-      const resp = await fetch(withBasePath(`/api/meals?date=${selectedDate}`), {
-        cache: "no-store",
-      });
-      if (!resp.ok) {
-        setMessage("Не удалось загрузить рацион");
-        return;
+      let names: string[];
+      let sourceDate = selectedDate;
+      if (scope === "week") {
+        const start = weekStartMonday(selectedDate);
+        const dates = Array.from({ length: 7 }, (_, i) => shiftDateKeyUtc(start, i));
+        const batches = await Promise.all(dates.map((d) => fetchDishNamesForDate(d)));
+        names = dedupeNames(batches.flat());
+        sourceDate = start;
+      } else {
+        names = dedupeNames(await fetchDishNamesForDate(selectedDate));
       }
-      const data = (await resp.json()) as { entries?: MealEntry[] };
-      const names = (data.entries ?? [])
-        .map((e) => e.dishName)
-        .filter((name): name is string => typeof name === "string" && name.trim().length > 0);
       if (names.length === 0) {
-        setMessage("В рационе за этот день нет блюд");
+        setMessage(
+          scope === "week"
+            ? "В рационе за эту неделю нет блюд"
+            : "В рационе за этот день нет блюд",
+        );
         return;
       }
       const before = loadList(opts()).length;
-      const next = addItemsFromDishNames(names, selectedDate, opts());
+      const next = addItemsFromDishNames(names, sourceDate, opts());
       const added = next.length - before;
       setItems(next);
       void syncToServer(next);
@@ -231,9 +264,17 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
               type="button"
               className="btn-primary min-h-10 px-3 text-sm"
               disabled={busy}
-              onClick={() => void collectFromRation()}
+              onClick={() => void collectFromRation("week")}
             >
-              {busy ? "Собираю…" : "Собрать из рациона"}
+              {busy ? "Собираю…" : "Собрать за неделю"}
+            </button>
+            <button
+              type="button"
+              className="btn-quiet min-h-10 px-3 text-sm font-semibold"
+              disabled={busy}
+              onClick={() => void collectFromRation("day")}
+            >
+              За день
             </button>
             {checked > 0 ? (
               <button
@@ -277,7 +318,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
 
           {items.length === 0 ? (
             <p className="text-sm text-slate-500">
-              Список пуст. Соберите блюда из рациона или добавьте вручную.
+              Список пуст. Соберите блюда за неделю или за день, либо добавьте вручную.
             </p>
           ) : (
             <ul className="flex flex-col gap-1.5">

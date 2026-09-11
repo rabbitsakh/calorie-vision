@@ -122,7 +122,8 @@ export function listMealDrafts(): MealDraftItem[] {
 export function getPendingConfirmDraft(selectedDate?: string): PendingConfirmDraft | null {
   const items = readQueue().filter((item): item is PendingConfirmDraft => item.kind === "pending-confirm");
   if (selectedDate) {
-    return items.find((item) => item.selectedDate === selectedDate) ?? items[0] ?? null;
+    // Date-scoped callers must not fall back to another day's draft.
+    return items.find((item) => item.selectedDate === selectedDate) ?? null;
   }
   return items[0] ?? null;
 }

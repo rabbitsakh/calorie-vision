@@ -5,6 +5,7 @@ import { ShareDayButton } from "@/components/ShareDayButton";
 import {
   markFirstShareNudgeSeen,
   shouldShowFirstShareNudge,
+  isFirstWeekQuiet,
 } from "@/lib/first-hour-trust";
 
 /** Soft one-time nudge to share the day after the first logged meal today. */
@@ -21,6 +22,10 @@ export function FirstShareNudge({
 
   useEffect(() => {
     if (date !== today) {
+      setVisible(false);
+      return;
+    }
+    if (isFirstWeekQuiet(3)) {
       setVisible(false);
       return;
     }

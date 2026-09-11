@@ -314,25 +314,39 @@ function dishNeedsReview(
   };
 }
 
+function shouldSurfaceNutritionBasis(item: FoodRecognitionResult): boolean {
+  const kind = item.photoKind;
+  return (
+    kind === "label" ||
+    kind === "package" ||
+    looksLikeDrinkName(item.dishName, item.brand)
+  );
+}
+
 function ConfidenceBadge({
   confidence,
   threshold,
   photoKind,
   source,
+  dishName,
+  nutritionBasis,
   inverted,
 }: {
   confidence: number;
   threshold: number;
   photoKind?: string;
   source?: string;
+  dishName?: string;
+  nutritionBasis?: string | null;
   inverted?: boolean;
 }) {
   const tone = getConfidenceTone(confidence, threshold);
   const classes = inverted
     ? "border-white/30 bg-black/35 text-white"
     : confidenceToneClasses(tone);
-  const why = confidenceWhyHint(tone, { photoKind, source });
-  const reshoot = confidenceReshootHint(tone, { photoKind });
+  const hintOpts = { photoKind, source, dishName };
+  const why = confidenceWhyHint(tone, hintOpts);
+  const reshoot = confidenceReshootHint(tone, hintOpts);
 
   return (
     <div className="flex max-w-full flex-col gap-1">
@@ -341,9 +355,14 @@ function ConfidenceBadge({
       >
         <span>{formatConfidencePercent(confidence)}</span>
         <span className={inverted ? "text-white/85" : "opacity-80"}>
-          · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, { photoKind, source })}
+          · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, hintOpts)}
         </span>
       </span>
+      {nutritionBasis ? (
+        <p className={`text-xs font-medium leading-snug ${inverted ? "text-teal-100" : "text-teal-800"}`}>
+          {nutritionBasis}
+        </p>
+      ) : null}
       {why ? (
         <p className={`text-xs leading-snug ${inverted ? "text-white/80" : "text-slate-600"}`}>{why}</p>
       ) : null}
@@ -984,6 +1003,15 @@ export function ConfirmationCard({
       }),
     ),
   );
+  const activeDishIndex = multi ? Math.min(activeDish, dishes.length - 1) : 0;
+  const allergenOnOtherDish =
+    multi &&
+    dishes.some((dish, index) => {
+      if (index === activeDishIndex) return false;
+      const brand = dish.original.brand?.trim();
+      const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+      return matchAllergensInText(text, userAllergens).length > 0;
+    });
 
   return (
     <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
@@ -1016,6 +1044,12 @@ export function ConfirmationCard({
                     threshold={lowConfidenceThreshold}
                     photoKind={dishes[0].original.photoKind}
                     source={dishes[0].original.source}
+                    dishName={dishes[0].dishName || dishes[0].original.dishName}
+                    nutritionBasis={
+                      shouldSurfaceNutritionBasis(dishes[0].original)
+                        ? describeNutritionBasis(dishes[0].original)
+                        : null
+                    }
                     inverted
                   />
                 </div>
@@ -1037,6 +1071,12 @@ export function ConfirmationCard({
                   threshold={lowConfidenceThreshold}
                   photoKind={dishes[0].original.photoKind}
                   source={dishes[0].original.source}
+                  dishName={dishes[0].dishName || dishes[0].original.dishName}
+                  nutritionBasis={
+                    shouldSurfaceNutritionBasis(dishes[0].original)
+                      ? describeNutritionBasis(dishes[0].original)
+                      : null
+                  }
                 />
               </div>
             ) : null}
@@ -1147,6 +1187,18 @@ export function ConfirmationCard({
                 </Chip>
               ))}
             </div>
+            {allergenOnOtherDish ? (
+              <p className="text-xs text-amber-800">
+                Аллерген может быть в другой позиции — переключите чип и проверьте.
+              </p>
+            ) : null}
+            {(() => {
+              const active = dishes[activeDishIndex];
+              if (!active || !shouldSurfaceNutritionBasis(active.original)) return null;
+              const basis = describeNutritionBasis(active.original);
+              if (!basis) return null;
+              return <p className="text-xs font-medium text-teal-800">{basis}</p>;
+            })()}
           </div>
         ) : null}
 
