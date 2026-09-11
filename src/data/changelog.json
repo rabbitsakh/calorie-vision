@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.12.13",
+    "date": "2026-09-11",
+    "summary": "feat(recog): trust depth — portion chips, drink gate, eval, admin",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Чипы порции: pack vs photo из resolveDisplayPortionGrams; без «Как на фото (100 мл)» после rescale бутылки; brand в детекции напитка"
+      },
+      {
+        "kind": "improvement",
+        "text": "Эвристика напитков: нектар, Red Bull/Lipton/Schweppes, питьевой йогурт; виноград≠вино"
+      },
+      {
+        "kind": "fix",
+        "text": "Drink specialist не пропускает бутылку с КБЖУ как на 100 мл"
+      },
+      {
+        "kind": "improvement",
+        "text": "Eval harness: minNormalizedCalories / expectNormalized.portionGrams; жёстче drink/label фикстуры"
+      },
+      {
+        "kind": "feature",
+        "text": "Админ: % исправлений по photoKind; мульти-блюдо — ⚠ на аллергенных чипах"
+      }
+    ]
+  },
+  {
     "version": "1.12.12",
     "date": "2026-09-11",
     "summary": "feat(ui): waves 2–4 trust, retention, weekly OS polish",

@@ -38,7 +38,12 @@ type RecognitionStats = {
   misreadWindow?: "7d" | "all";
   savedCorrections: number;
   bySource?: Array<{ source: string; label: string; count: number }>;
-  byPhotoKind?: Array<{ photoKind: string; count: number }>;
+  byPhotoKind?: Array<{
+    photoKind: string;
+    count: number;
+    correctedCount?: number;
+    correctionRate?: number;
+  }>;
   telemetry?: {
     windowDays: number;
     eventCount: number;
@@ -366,6 +371,8 @@ export function AdminRecognitionStats() {
                     <tr>
                       <th>Тип</th>
                       <th>Записей</th>
+                      <th>Исправлений</th>
+                      <th>% corr</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -373,6 +380,8 @@ export function AdminRecognitionStats() {
                       <tr key={row.photoKind}>
                         <td className="font-medium">{row.photoKind}</td>
                         <td>{row.count}</td>
+                        <td>{row.correctedCount ?? 0}</td>
+                        <td>{row.correctionRate ?? 0}%</td>
                       </tr>
                     ))}
                   </tbody>

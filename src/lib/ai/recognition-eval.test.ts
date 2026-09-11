@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseFoodRecognitionResponse } from "./parse-response.ts";
-import { shouldRetryFoodRecognition } from "./recognition-retry.ts";
 import { RECOGNITION_EVAL_CASES } from "./recognition-eval-fixtures.ts";
+import { evaluateRecognitionCase } from "./recognition-eval-harness.ts";
 import {
   mergeNutritionBackfill,
   needsNutritionLookup,
@@ -11,23 +11,8 @@ import {
 
 for (const fixture of RECOGNITION_EVAL_CASES) {
   test(`eval/${fixture.id}: ${fixture.description}`, () => {
-    const parsed = parseFoodRecognitionResponse(fixture.rawModelJson);
-
-    if (fixture.expect.dishNameIncludes) {
-      assert.match(parsed.dishName, new RegExp(fixture.expect.dishNameIncludes, "i"));
-    }
-    if (fixture.expect.photoKind) {
-      assert.equal(parsed.photoKind, fixture.expect.photoKind);
-    }
-    if (fixture.expect.minItems !== undefined) {
-      assert.ok((parsed.items?.length ?? 0) >= fixture.expect.minItems);
-    }
-    if (fixture.expect.minCalories !== undefined) {
-      assert.ok(parsed.calories >= fixture.expect.minCalories);
-    }
-    if (fixture.expect.shouldRetry !== undefined) {
-      assert.equal(shouldRetryFoodRecognition(parsed), fixture.expect.shouldRetry);
-    }
+    const result = evaluateRecognitionCase(fixture);
+    assert.equal(result.passed, true, result.errors.join("; "));
   });
 }
 

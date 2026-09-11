@@ -54,6 +54,22 @@ test("drink pass skips when bottle volume and calories look good", () => {
   );
 });
 
+test("drink pass runs when macros look like per-100ml on bottle volume", () => {
+  assert.equal(
+    shouldRunDrinkPass({
+      dishName: "Пиво светлое",
+      calories: 42,
+      carbs: 4,
+      confidence: 0.9,
+      photoKind: "label",
+      source: "label",
+      portionGrams: 1500,
+      per100g: { calories: 42, protein: 0.4, fat: 0, carbs: 4 },
+    }),
+    true,
+  );
+});
+
 test("prefers candidate with typical bottle volume", () => {
   assert.equal(
     isBetterDrinkResult(

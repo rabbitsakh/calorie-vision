@@ -17,6 +17,22 @@ describe("looksLikeDrinkName", () => {
     assert.equal(looksLikeDrinkName("Coca-Cola Zero", "Coca-Cola"), true);
   });
 
+  it("detects nectar and common drink brands", () => {
+    assert.equal(looksLikeDrinkName("Нектар персиковый"), true);
+    assert.equal(looksLikeDrinkName("Энергетик", "Red Bull"), true);
+    assert.equal(looksLikeDrinkName("Чай холодный", "Lipton"), true);
+    assert.equal(looksLikeDrinkName("Тоник", "Schweppes"), true);
+    assert.equal(looksLikeDrinkName("Швеппс Индиан Тоник"), true);
+  });
+
+  it("detects drinkable yogurt patterns", () => {
+    assert.equal(looksLikeDrinkName("Питьевой йогурт"), true);
+    assert.equal(looksLikeDrinkName("Йогурт питьевой 1.5%"), true);
+    assert.equal(looksLikeDrinkName("Йогурт пить"), true);
+    assert.equal(looksLikeDrinkName("Actimel клубника"), true);
+    assert.equal(looksLikeDrinkName("Имунеле"), true);
+  });
+
   it("does not treat sausage as juice", () => {
     assert.equal(looksLikeDrinkName("Сосиски"), false);
   });
