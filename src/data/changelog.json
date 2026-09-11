@@ -1,20 +1,20 @@
 [
   {
-    "version": "1.12.9",
+    "version": "1.12.10",
     "date": "2026-09-11",
-    "summary": "fix(rustore): Windows Python for APK build",
+    "summary": "chore(rustore): listing polish for store submit",
     "items": [
       {
-        "kind": "fix",
-        "text": "Сборка APK больше не зависает на Microsoft Store stub python3"
+        "kind": "improvement",
+        "text": "Скриншоты submit: сначала продукт (штрихкод, статистика), маркетинг ниже"
       },
       {
         "kind": "improvement",
-        "text": "WINDOWS.md: Python 3.9+ и Pillow для иконки"
+        "text": "listing.ru.md: шпаргалка декларации данных и чеклист Консоли"
       },
       {
-        "kind": "fix",
-        "text": "TWA appVersionCode 4 / 1.12.9 — для загрузки в RuStore"
+        "kind": "improvement",
+        "text": "Сырые кадры убраны в screenshots/archive"
       }
     ]
   },
