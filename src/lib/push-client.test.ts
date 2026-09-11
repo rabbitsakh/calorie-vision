@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isLikelyIos } from "./push-client.ts";
+import {
+  getPushPromptDismissed,
+  isLikelyIos,
+  PUSH_PROMPT_DISMISS_COOLDOWN_MS,
+  PUSH_PROMPT_DISMISS_KEY,
+  setPushPromptDismissed,
+} from "./push-client.ts";
 
 test("detects classic iPhone user agents", () => {
   assert.equal(
@@ -27,4 +33,32 @@ test("does not treat desktop Chrome as iOS", () => {
     ),
     false,
   );
+});
+
+test("push prompt dismiss cools down after 10 days", () => {
+  const store = new Map<string, string>();
+  const memoryStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+  };
+  (globalThis as { localStorage?: unknown }).localStorage = memoryStorage;
+
+  assert.equal(getPushPromptDismissed(), false);
+  setPushPromptDismissed(true);
+  assert.equal(getPushPromptDismissed(), true);
+
+  const old = String(Date.now() - PUSH_PROMPT_DISMISS_COOLDOWN_MS - 1000);
+  store.set(PUSH_PROMPT_DISMISS_KEY, old);
+  assert.equal(getPushPromptDismissed(), false);
+
+  store.set(PUSH_PROMPT_DISMISS_KEY, "1");
+  assert.equal(getPushPromptDismissed(), true);
+  assert.notEqual(store.get(PUSH_PROMPT_DISMISS_KEY), "1");
+
+  delete (globalThis as { localStorage?: unknown }).localStorage;
 });

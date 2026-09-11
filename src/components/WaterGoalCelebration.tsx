@@ -5,6 +5,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -47,6 +48,9 @@ export function WaterGoalCelebration({
         !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("water-goal", today)
       ) {
+        if (isSoftCelebrationQuietBlocked()) {
+          return;
+        }
         markSoftCelebrationSeen("water-goal", today);
         setOpen(true);
       }

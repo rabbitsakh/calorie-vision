@@ -1,6 +1,8 @@
 /** Client-only helpers for Web Push / iOS PWA diagnostics. */
 
 export const PUSH_PROMPT_DISMISS_KEY = "push-prompt-dismissed";
+/** Soft re-prompt window after dismiss (avoid daily spam). */
+export const PUSH_PROMPT_DISMISS_COOLDOWN_MS = 10 * 24 * 60 * 60 * 1000;
 
 export type PushStatusKind =
   | "loading"
@@ -56,7 +58,17 @@ export function isPushApiAvailable(): boolean {
 
 export function getPushPromptDismissed(): boolean {
   try {
-    return localStorage.getItem(PUSH_PROMPT_DISMISS_KEY) === "1";
+    const raw = localStorage.getItem(PUSH_PROMPT_DISMISS_KEY);
+    if (!raw) return false;
+    // Legacy permanent flag → start soft cooldown from first read after upgrade.
+    if (raw === "1") {
+      const now = String(Date.now());
+      localStorage.setItem(PUSH_PROMPT_DISMISS_KEY, now);
+      return true;
+    }
+    const ts = Number(raw);
+    if (!Number.isFinite(ts)) return false;
+    return Date.now() - ts < PUSH_PROMPT_DISMISS_COOLDOWN_MS;
   } catch {
     return false;
   }
@@ -65,7 +77,7 @@ export function getPushPromptDismissed(): boolean {
 export function setPushPromptDismissed(dismissed: boolean): void {
   try {
     if (dismissed) {
-      localStorage.setItem(PUSH_PROMPT_DISMISS_KEY, "1");
+      localStorage.setItem(PUSH_PROMPT_DISMISS_KEY, String(Date.now()));
     } else {
       localStorage.removeItem(PUSH_PROMPT_DISMISS_KEY);
     }

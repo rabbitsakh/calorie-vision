@@ -62,6 +62,10 @@ const PushNotificationPrompt = dynamic(
   () => import("@/components/PushNotificationPrompt").then((m) => m.PushNotificationPrompt),
   { ssr: false, loading: () => null },
 );
+const PushSubscriptionResync = dynamic(
+  () => import("@/components/PushSubscriptionResync").then((m) => m.PushSubscriptionResync),
+  { ssr: false, loading: () => null },
+);
 const StreakNudge = dynamic(
   () => import("@/components/StreakNudge").then((m) => m.StreakNudge),
   { ssr: false, loading: () => null },
@@ -235,6 +239,7 @@ function RationBody({
       <div className={`ration-page flex flex-col gap-2.5 md:gap-3 ${showSplash ? "invisible h-0 overflow-hidden" : ""}`}>
         <OnboardingOverlay />
         <MascotSaveReaction />
+        <PushSubscriptionResync />
         <ProfileCompletionBanner />
         <TimezoneConflictBanner />
         <ReferralCapture signedIn />
@@ -324,9 +329,12 @@ function RationBody({
           {date === today ? <DailySummaryCard today={today} /> : null}
           <MotivationTip today={today} selectedDate={date} quietHide />
           <ReferralNudge today={today} selectedDate={date} quietHide />
+        </MotivationQueue>
+
+        <div className="flex flex-col gap-4">
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
           <PushNotificationPrompt />
-        </MotivationQueue>
+        </div>
 
         <CelebrationOrchestrator>
           <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">

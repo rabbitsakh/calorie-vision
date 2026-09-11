@@ -8,6 +8,7 @@ import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -72,8 +73,15 @@ export function DayOpenedCelebration({
         if (milestonePending) {
           markSoftCelebrationSeen("day-opened", today);
           markSoftCelebrationSeen("streak-saved", today);
-        } else if (streak > 0 && !isSoftCelebrationsMutedToday(today) &&
-        !isSoftCelebrationSeen("streak-saved", today)) {
+        } else if (
+          streak > 0 &&
+          !isSoftCelebrationsMutedToday(today) &&
+          !isSoftCelebrationSeen("streak-saved", today)
+        ) {
+          if (isSoftCelebrationQuietBlocked()) {
+            // Keep prevLogged false so we can show once quiet lifts.
+            return;
+          }
           markSoftCelebrationSeen("day-opened", today);
           markSoftCelebrationSeen("streak-saved", today);
           openedRef.current = true;
@@ -84,8 +92,13 @@ export function DayOpenedCelebration({
             pose: "streak",
           });
           setOpen(true);
-        } else if (!isSoftCelebrationsMutedToday(today) &&
-        !isSoftCelebrationSeen("day-opened", today)) {
+        } else if (
+          !isSoftCelebrationsMutedToday(today) &&
+          !isSoftCelebrationSeen("day-opened", today)
+        ) {
+          if (isSoftCelebrationQuietBlocked()) {
+            return;
+          }
           markSoftCelebrationSeen("day-opened", today);
           openedRef.current = true;
           setCopy({

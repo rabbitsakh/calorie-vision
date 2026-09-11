@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { withBasePath } from "@/lib/paths";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -41,6 +42,9 @@ export function CheckinDoneCelebration({
           !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("checkin-done", today)
         ) {
+          if (isSoftCelebrationQuietBlocked()) {
+            return;
+          }
           markSoftCelebrationSeen("checkin-done", today);
           setOpen(true);
         }

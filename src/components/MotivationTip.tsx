@@ -51,8 +51,21 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
   const loggedToday =
     Boolean(day?.data?.streak?.loggedToday) ||
     (day?.data?.meals.entries.length ?? 0) > 0;
-  /** DayHero already motivates empty mornings — tip waits until after lunch + a meal. */
-  const tipAllowed = selectedDate === today && loggedToday && hour >= 13;
+
+  const last14 = day?.data?.streak?.last14;
+  const yesterdayEntry =
+    last14 && last14.length >= 2 ? last14[last14.length - 2] : undefined;
+  const yesterdayEmpty = Boolean(
+    yesterdayEntry && !yesterdayEntry.logged && !yesterdayEntry.frozen,
+  );
+  /** Soft return: empty morning after a gap — tip API already coaches re-entry. */
+  const softReturnMorning =
+    !loggedToday &&
+    (yesterdayEmpty || Boolean(day?.data?.streak?.canFreezeYesterday));
+
+  /** DayHero covers empty active mornings; tip waits until after lunch once logging. */
+  const tipAllowed =
+    selectedDate === today && (softReturnMorning || (loggedToday && hour >= 13));
 
   useEffect(() => {
     if (!tipAllowed) {

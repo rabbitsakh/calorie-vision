@@ -5,6 +5,7 @@ import { SoftCelebration } from "@/components/SoftCelebration";
 import { isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -68,6 +69,9 @@ export function WeightTargetCelebration({ refreshKey }: WeightTargetCelebrationP
           !isSoftCelebrationsMutedToday(today) &&
           !isSoftCelebrationSeen("weight-target", flagKey)
         ) {
+          if (isSoftCelebrationQuietBlocked()) {
+            return;
+          }
           markSoftCelebrationSeen("weight-target", flagKey);
           setCopy({
             title: "Цель по весу!",

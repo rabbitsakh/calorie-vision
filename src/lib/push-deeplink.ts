@@ -29,6 +29,9 @@ export function reminderDeepLink(kind: ReminderKind): string {
   if (kind === "weekly" || kind === "calories") {
     return withBasePath("/stats");
   }
+  if (kind === "checkin") {
+    return `${withBasePath("/ration")}#checkin`;
+  }
   const meal = mealTypeForReminder(kind);
   return rationMealLink(meal);
 }
