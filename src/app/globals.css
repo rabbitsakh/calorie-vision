@@ -2896,6 +2896,34 @@ textarea {
   width: 0.95rem;
 }
 
+.landing-apk {
+  align-items: flex-start;
+  border-top: 1px solid var(--landing-line);
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+}
+
+.landing-apk-copy .landing-install-heading {
+  margin-bottom: 0.4rem;
+}
+
+.landing-apk-text {
+  color: var(--landing-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 36rem;
+}
+
+.landing-apk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
 /* FAQ */
 .landing-faq-list {
   display: grid;
@@ -3527,6 +3555,12 @@ textarea {
   .landing-install-grid {
     gap: 2.5rem;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .landing-apk {
+    align-items: center;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
   }
 
   .landing-cta-row {

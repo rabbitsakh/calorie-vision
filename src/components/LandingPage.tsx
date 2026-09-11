@@ -11,6 +11,7 @@ import { LandingShell } from "@/components/LandingShell";
 import { LandingStatsStrip } from "@/components/LandingStatsStrip";
 import { LandingTopNav } from "@/components/LandingTopNav";
 import { LandingTrustBand } from "@/components/LandingTrustBand";
+import { getApkDownloadUrl, getRustoreUrl } from "@/lib/android-install";
 
 const display = Unbounded({
   subsets: ["latin", "cyrillic"],
@@ -168,7 +169,68 @@ function MenuIcon() {
   );
 }
 
+function DownloadIcon() {
+  return (
+    <svg className="landing-install-icon" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 4v10M8.5 10.5 12 14l3.5-3.5M5 17.5v1.2A1.3 1.3 0 0 0 6.3 20h11.4a1.3 1.3 0 0 0 1.3-1.3v-1.2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** Android APK (+ optional RuStore) — outside hero, under #install steps. */
+function AndroidApkCta() {
+  const apkUrl = getApkDownloadUrl();
+  const rustoreUrl = getRustoreUrl();
+
+  return (
+    <div className="landing-apk">
+      <div className="landing-apk-copy">
+        <h3 className="landing-install-heading">
+          <DownloadIcon />
+          Android · APK
+        </h3>
+        <p className="landing-apk-text">
+          Тот же дневник в обёртке приложения. Скачайте APK или поставьте из RuStore — без Google
+          Play.
+        </p>
+      </div>
+      <div className="landing-apk-actions">
+        <a
+          href={apkUrl}
+          className="btn btn-primary landing-cta-primary landing-cta-sheen"
+          download
+        >
+          Скачать APK
+        </a>
+        {rustoreUrl ? (
+          <a
+            href={rustoreUrl}
+            className="landing-cta-secondary"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Открыть в RuStore
+          </a>
+        ) : (
+          <a href="/install" className="landing-cta-secondary">
+            Подробнее про установку
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function LandingPage() {
+  const apkUrl = getApkDownloadUrl();
+  const rustoreUrl = getRustoreUrl();
+
   return (
     <LandingShell className={`landing ${display.variable} ${body.variable}`}>
       <div className="landing-noise" aria-hidden />
@@ -303,7 +365,8 @@ export function LandingPage() {
               Calorie Vision — PWA. Откройте{" "}
               <strong className="landing-inline-strong">calorievision.ru</strong> в браузере и
               добавьте на главный экран: иконка и полноэкранный режим без App Store и Google Play.
-              Напоминания на iPhone работают только с этой иконки (iOS 16.4+).
+              На Android можно скачать APK. Напоминания на iPhone работают только с иконки
+              (iOS 16.4+).
             </p>
           </div>
 
@@ -342,6 +405,8 @@ export function LandingPage() {
               </ol>
             </div>
           </div>
+
+          <AndroidApkCta />
         </section>
       </LandingScrollReveal>
 
@@ -363,7 +428,20 @@ export function LandingPage() {
               <dt>Нужно скачивать из App Store или Google Play?</dt>
               <dd>
                 Нет. Добавьте сайт на экран «Домой» — появится иконка и почти нативное ощущение
-                приложения.
+                приложения. На Android также можно{" "}
+                <a href={apkUrl} download>
+                  скачать APK
+                </a>
+                {rustoreUrl ? (
+                  <>
+                    {" "}
+                    или поставить из{" "}
+                    <a href={rustoreUrl} target="_blank" rel="noopener noreferrer">
+                      RuStore
+                    </a>
+                  </>
+                ) : null}
+                .
               </dd>
             </div>
             <div className="landing-faq-item">

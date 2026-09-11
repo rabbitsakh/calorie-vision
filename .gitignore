@@ -4,6 +4,8 @@ node_modules
 .env.local
 public/uploads/*
 !public/uploads/.gitkeep
+public/downloads/*.apk
+!public/downloads/.gitkeep
 eval-fixtures/*
 !eval-fixtures/.gitkeep
 !eval-fixtures/README.md

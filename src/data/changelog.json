@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.11",
+    "date": "2026-09-11",
+    "summary": "feat(landing): Android APK download CTA",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Лендинг #install и /install: кнопка «Скачать APK» (+ RuStore, если задан URL)"
+      },
+      {
+        "kind": "improvement",
+        "text": "rustore:build копирует APK в public/downloads/calorie-vision.apk для сайта"
+      },
+      {
+        "kind": "improvement",
+        "text": "NEXT_PUBLIC_APK_URL в .env.example — можно указать CDN вместо локального файла"
+      }
+    ]
+  },
+  {
     "version": "1.12.10",
     "date": "2026-09-11",
     "summary": "chore(rustore): listing polish for store submit",
