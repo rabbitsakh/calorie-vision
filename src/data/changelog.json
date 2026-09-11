@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.10",
+    "date": "2026-09-11",
+    "summary": "chore(rustore): listing polish for store submit",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Скриншоты submit: сначала продукт (штрихкод, статистика), маркетинг ниже"
+      },
+      {
+        "kind": "improvement",
+        "text": "listing.ru.md: шпаргалка декларации данных и чеклист Консоли"
+      },
+      {
+        "kind": "improvement",
+        "text": "Сырые кадры убраны в screenshots/archive"
+      }
+    ]
+  },
+  {
     "version": "1.12.8",
     "date": "2026-09-10",
     "summary": "feat(ui): weight quick log in center +",
