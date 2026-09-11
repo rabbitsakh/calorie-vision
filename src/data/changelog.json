@@ -11,6 +11,10 @@
       {
         "kind": "improvement",
         "text": "WINDOWS.md: Python 3.9+ и Pillow для иконки"
+      },
+      {
+        "kind": "fix",
+        "text": "TWA appVersionCode 4 / 1.12.9 — для загрузки в RuStore"
       }
     ]
   },
