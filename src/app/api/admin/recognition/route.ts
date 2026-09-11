@@ -47,6 +47,7 @@ export async function GET(request: Request) {
       corrections,
       bySource,
       byPhotoKind,
+      correctedByPhotoKind,
       telemetryRows,
       confidenceRows,
     ] = await Promise.all([
@@ -78,6 +79,12 @@ export async function GET(request: Request) {
         by: ["photoKind"],
         _count: { id: true },
         where: { photoKind: { not: null } },
+        orderBy: { _count: { id: "desc" } },
+      }),
+      prisma.mealEntry.groupBy({
+        by: ["photoKind"],
+        _count: { id: true },
+        where: { photoKind: { not: null }, wasCorrected: true },
         orderBy: { _count: { id: "desc" } },
       }),
       prisma.recognitionPassLog.findMany({
@@ -207,10 +214,17 @@ export async function GET(request: Request) {
           "Неизвестно",
         count: row._count.id,
       })),
-      byPhotoKind: byPhotoKind.map((row) => ({
-        photoKind: row.photoKind ?? "unknown",
-        count: row._count.id,
-      })),
+      byPhotoKind: byPhotoKind.map((row) => {
+        const count = row._count.id;
+        const correctedCount =
+          correctedByPhotoKind.find((item) => item.photoKind === row.photoKind)?._count.id ?? 0;
+        return {
+          photoKind: row.photoKind ?? "unknown",
+          count,
+          correctedCount,
+          correctionRate: count > 0 ? Math.round((correctedCount / count) * 100) : 0,
+        };
+      }),
       telemetry: {
         windowDays: TELEMETRY_WINDOW_DAYS,
         eventCount: telemetryRows.length,

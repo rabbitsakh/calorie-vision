@@ -395,7 +395,7 @@ const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
 const DRINK_PORTION_CHIPS = [200, 250, 330, 500, 1000, 1500] as const;
 
 function looksLikeDrink(dish: DishDraft): boolean {
-  return looksLikeDrinkName(dish.dishName, dish.original.dishName);
+  return looksLikeDrinkName(dish.dishName, dish.original.dishName, dish.original.brand);
 }
 
 function portionChipOptions(
@@ -411,12 +411,28 @@ function portionChipOptions(
     grams,
   }));
 
-  const recognizedGrams = dish.original.portionGrams;
-  const packGrams = dish.original.portionGrams;
+  const recognizedGrams =
+    dish.original.portionGrams && dish.original.portionGrams > 0
+      ? dish.original.portionGrams
+      : undefined;
+  const displayGrams = resolveDisplayPortionGrams(dish.original);
   const packaged =
     dish.original.photoKind === "package" ||
     dish.original.photoKind === "barcode" ||
     dish.original.photoKind === "label";
+
+  // Vision often leaves 100 ml/g while display already resolved to bottle volume (e.g. 1500).
+  const skipPhotoAsPer100 = Boolean(
+    recognizedGrams &&
+      displayGrams &&
+      displayGrams > recognizedGrams &&
+      recognizedGrams <= 100,
+  );
+  const photoGrams = skipPhotoAsPer100 ? undefined : recognizedGrams;
+  const packGrams =
+    packaged && displayGrams && displayGrams > 0 && displayGrams !== photoGrams
+      ? displayGrams
+      : undefined;
 
   const prependUnique = (chip: { label: string; grams: number }) => {
     if (!chip.grams || chip.grams <= 0) return;
@@ -427,12 +443,12 @@ function portionChipOptions(
     base.unshift(chip);
   };
 
-  if (recognizedGrams && recognizedGrams > 0) {
+  const prependPhotoFamily = (grams: number) => {
     prependUnique({
-      label: `Как на фото (${recognizedGrams} ${unit})`,
-      grams: recognizedGrams,
+      label: `Как на фото (${grams} ${unit})`,
+      grams,
     });
-    const half = Math.round(recognizedGrams / 2);
+    const half = Math.round(grams / 2);
     if (half >= 10) {
       prependUnique({
         label: `½ (${half} ${unit})`,
@@ -440,14 +456,18 @@ function portionChipOptions(
       });
       // keep photo chip first: re-prepend after half
       prependUnique({
-        label: `Как на фото (${recognizedGrams} ${unit})`,
-        grams: recognizedGrams,
+        label: `Как на фото (${grams} ${unit})`,
+        grams,
       });
     }
+  };
+
+  if (photoGrams) {
+    prependPhotoFamily(photoGrams);
   }
 
-  if (packaged && packGrams && packGrams > 0 && packGrams !== recognizedGrams) {
-    const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName);
+  if (packGrams) {
+    const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName, dish.original.brand);
     prependUnique({
       label: bar
         ? `1 шт (${packGrams} г)`
@@ -456,6 +476,23 @@ function portionChipOptions(
           : `Вся упаковка (${packGrams} г)`,
       grams: packGrams,
     });
+    if (!photoGrams) {
+      const half = Math.round(packGrams / 2);
+      if (half >= 10) {
+        prependUnique({
+          label: `½ (${half} ${unit})`,
+          grams: half,
+        });
+        prependUnique({
+          label: bar
+            ? `1 шт (${packGrams} г)`
+            : drink
+              ? `Вся упаковка (${packGrams} мл)`
+              : `Вся упаковка (${packGrams} г)`,
+          grams: packGrams,
+        });
+      }
+    }
   }
 
   for (const grams of historyPortions) {
@@ -903,8 +940,26 @@ export function ConfirmationCard({
     );
     if (hits.length > 0 && !allergenAck) {
       setError("Сначала подтвердите проверку аллергенов — чекбокс выше.");
+      const allergenDishIndex = dishes.findIndex((dish) => {
+        const brand = dish.original.brand?.trim();
+        const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+        return matchAllergensInText(text, userAllergens).length > 0;
+      });
+      if (allergenDishIndex >= 0 && dishes.length > 1) {
+        setActiveDish(allergenDishIndex);
+      }
       window.requestAnimationFrame(() => {
         allergenBlockRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const allergenChip =
+          allergenDishIndex >= 0
+            ? document.querySelector<HTMLButtonElement>(
+                `[data-allergen-dish="${allergenDishIndex}"]`,
+              )
+            : null;
+        if (allergenChip) {
+          allergenChip.focus();
+          return;
+        }
         const checkbox = allergenBlockRef.current?.querySelector("input[type='checkbox']");
         if (checkbox instanceof HTMLInputElement) {
           checkbox.focus();
@@ -1171,21 +1226,31 @@ export function ConfirmationCard({
         {multi ? (
           <div className="flex flex-col gap-2">
             <div className="chip-row">
-              {dishes.map((dish, index) => (
-                <Chip
-                  key={dish.id}
-                  active={index === activeDish}
-                  title={
-                    reviewFlags[index]?.lowConfidence
-                      ? "Выберите позицию и нажмите «Уточнить»"
-                      : undefined
-                  }
-                  onClick={() => setActiveDish(index)}
-                >
-                  {index + 1}. {dish.dishName || "Блюдо"}
-                  {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
-                </Chip>
-              ))}
+              {dishes.map((dish, index) => {
+                const brand = dish.original.brand?.trim();
+                const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+                const dishAllergenHits = matchAllergensInText(text, userAllergens);
+                const hasAllergen = dishAllergenHits.length > 0;
+                return (
+                  <Chip
+                    key={dish.id}
+                    active={index === activeDish}
+                    data-allergen-dish={hasAllergen ? String(index) : undefined}
+                    title={
+                      hasAllergen
+                        ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
+                        : reviewFlags[index]?.lowConfidence
+                          ? "Выберите позицию и нажмите «Уточнить»"
+                          : undefined
+                    }
+                    onClick={() => setActiveDish(index)}
+                  >
+                    {index + 1}. {dish.dishName || "Блюдо"}
+                    {hasAllergen ? " ⚠" : ""}
+                    {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
+                  </Chip>
+                );
+              })}
             </div>
             {allergenOnOtherDish ? (
               <p className="text-xs text-amber-800">

@@ -1,6 +1,7 @@
 import type { RecognitionEvalCase } from "./recognition-eval-fixtures";
 import { parseFoodRecognitionResponse } from "./parse-response";
 import { getRecognitionRetryReason, shouldRetryFoodRecognition } from "./recognition-retry";
+import { normalizeRecognitionNutrition } from "../recognition-nutrition";
 
 export type EvalCaseResult = {
   id: string;
@@ -41,6 +42,28 @@ export function evaluateRecognitionCase(fixture: RecognitionEvalCase): EvalCaseR
     if (retry !== expect.shouldRetry) {
       errors.push(
         `shouldRetry ${retry} !== ${expect.shouldRetry} (reason=${getRecognitionRetryReason(parsed) ?? "none"})`,
+      );
+    }
+  }
+
+  const needsNormalized =
+    expect.minNormalizedCalories !== undefined || expect.expectNormalized !== undefined;
+  if (needsNormalized) {
+    const normalized = normalizeRecognitionNutrition(parsed);
+    if (
+      expect.minNormalizedCalories !== undefined &&
+      normalized.calories < expect.minNormalizedCalories
+    ) {
+      errors.push(
+        `normalized calories ${normalized.calories} < ${expect.minNormalizedCalories}`,
+      );
+    }
+    if (
+      expect.expectNormalized?.portionGrams !== undefined &&
+      normalized.portionGrams !== expect.expectNormalized.portionGrams
+    ) {
+      errors.push(
+        `normalized portionGrams ${normalized.portionGrams} !== ${expect.expectNormalized.portionGrams}`,
       );
     }
   }

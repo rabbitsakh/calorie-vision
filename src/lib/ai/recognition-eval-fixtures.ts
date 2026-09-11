@@ -11,6 +11,11 @@ export type RecognitionEvalCase = {
     photoKind?: string;
     minItems?: number;
     minCalories?: number;
+    /** After normalizeRecognitionNutrition — catches per-100 stuck on bottle volume. */
+    minNormalizedCalories?: number;
+    expectNormalized?: {
+      portionGrams?: number;
+    };
     shouldRetry?: boolean;
   };
 };
@@ -687,7 +692,12 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       alternatives: [],
       items: [],
     }),
-    expect: { photoKind: "label", minCalories: 30 },
+    expect: {
+      photoKind: "label",
+      minCalories: 30,
+      minNormalizedCalories: 500,
+      expectNormalized: { portionGrams: 1500 },
+    },
   },
   {
     id: "barcode-invalid-checksum",
@@ -750,7 +760,11 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       alternatives: [],
       items: [],
     }),
-    expect: { photoKind: "label" },
+    expect: {
+      photoKind: "label",
+      minNormalizedCalories: 200,
+      expectNormalized: { portionGrams: 700 },
+    },
   },
   {
     id: "package-yogurt-danone",
@@ -857,7 +871,13 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       alternatives: [],
       items: [],
     }),
-    expect: { photoKind: "label", dishNameIncludes: "Пиво", minCalories: 30 },
+    expect: {
+      photoKind: "label",
+      dishNameIncludes: "Пиво",
+      minCalories: 30,
+      minNormalizedCalories: 500,
+      expectNormalized: { portionGrams: 1500 },
+    },
   },
   {
     id: "plate-three-items-min",

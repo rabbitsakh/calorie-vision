@@ -1,5 +1,6 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { looksLikeDrinkName } from "../portion-unit";
+import { recognitionNeedsPortionRescale } from "../recognition-nutrition";
 
 const TYPICAL_BOTTLE_ML = new Set([200, 250, 330, 350, 450, 500, 750, 1000]);
 
@@ -21,7 +22,10 @@ export function shouldRunDrinkPass(result: FoodRecognitionResult): boolean {
   if (hasDrinkVolume(result) && hasDrinkMacros(result)) {
     const g = result.portionGrams ?? 0;
     // 100 g is a common wrong default for bottles — still worth a pass.
-    if (g !== 100) return false;
+    if (g === 100) return true;
+    // Macros still look like per-100ml stuck on a bottle volume — still worth a pass.
+    if (recognitionNeedsPortionRescale(result, result.calories)) return true;
+    return false;
   }
 
   return true;
