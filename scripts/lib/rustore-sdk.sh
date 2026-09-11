@@ -1,6 +1,84 @@
 #!/usr/bin/env bash
 # Shared Android SDK helpers for RuStore TWA builds (Linux, macOS, Git Bash on Windows).
 
+# Real CPython for Git Bash on Windows (skip Microsoft Store stubs in WindowsApps).
+# Sets RUSTORE_PY as a bash array: (python3) or (py -3) or (python).
+# Override: export RUSTORE_PYTHON=/c/Python312/python.exe
+rustore_init_python() {
+  if declare -p RUSTORE_PY >/dev/null 2>&1 && ((${#RUSTORE_PY[@]} > 0)); then
+    return 0
+  fi
+
+  local -a candidates=()
+  local cand exe resolved
+
+  if [[ -n "${RUSTORE_PYTHON:-}" ]]; then
+    candidates+=("${RUSTORE_PYTHON}")
+  fi
+  # Prefer py launcher on Windows, then python3/python from PATH.
+  if command -v py >/dev/null 2>&1; then
+    candidates+=("py:-3")
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    candidates+=("python3")
+  fi
+  if command -v python >/dev/null 2>&1; then
+    candidates+=("python")
+  fi
+
+  for cand in "${candidates[@]}"; do
+    local -a cmd=()
+    if [[ "$cand" == py:-3 ]]; then
+      cmd=(py -3)
+    else
+      cmd=("$cand")
+      # Skip Microsoft Store stubs BEFORE invoking — they hang in Git Bash.
+      resolved="$(command -v "$cand" 2>/dev/null || true)"
+      case "$resolved" in
+        *WindowsApps*|*windowsapps*)
+          echo "==> skip Store stub: $resolved"
+          continue
+          ;;
+      esac
+    fi
+    # Bound probe: Store stubs can hang forever on -c.
+    exe="$(
+      if command -v timeout >/dev/null 2>&1; then
+        timeout 5 "${cmd[@]}" -c "import sys; print(sys.executable)" 2>/dev/null
+      else
+        "${cmd[@]}" -c "import sys; print(sys.executable)" 2>/dev/null
+      fi
+    )" || continue
+    [[ -n "$exe" ]] || continue
+    case "$exe" in
+      *WindowsApps*|*windowsapps*) continue ;;
+    esac
+    "${cmd[@]}" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" 2>/dev/null || continue
+    RUSTORE_PY=("${cmd[@]}")
+    echo "==> Python: $("${cmd[@]}" -c "import sys; print(sys.executable + ' (' + sys.version.split()[0] + ')' )" 2>/dev/null)"
+    if ! "${cmd[@]}" -c "from PIL import Image" >/dev/null 2>&1; then
+      echo "Нет Pillow для синхронизации иконок. В Git Bash:" >&2
+      echo "  ${cmd[*]} -m pip install pillow" >&2
+      return 1
+    fi
+    return 0
+  done
+
+  echo "Не найден рабочий Python 3.9+ (или сработал Microsoft Store stub)." >&2
+  echo "1) Установите Python с https://www.python.org/downloads/ (галочка Add to PATH)" >&2
+  echo "2) Отключите App execution aliases: Параметры → Приложения → Псевдонимы →" >&2
+  echo "   python.exe / python3.exe = Выкл" >&2
+  echo "3) Проверка в Git Bash:  py -3 -c \"import sys; print(sys.executable)\"" >&2
+  echo "   Затем:  py -3 -m pip install pillow" >&2
+  echo "Или задайте:  export RUSTORE_PYTHON=/c/Path/to/python.exe" >&2
+  return 1
+}
+
+rustore_py() {
+  rustore_init_python || return 1
+  "${RUSTORE_PY[@]}" "$@"
+}
+
 # Bubblewrap stores cmdline-tools path; Gradle needs the SDK root (parent of cmdline-tools).
 rustore_resolve_android_sdk_root() {
   local candidate sdk_path root parent
@@ -177,7 +255,7 @@ rustore_sync_launcher_icons() {
   fi
 
   echo "==> Синхронизация launcher icons из $(basename "$icon_src")"
-  python3 - "$icon_src" "$android_dir" <<'PY'
+  rustore_py - "$icon_src" "$android_dir" <<'PY'
 import sys
 from pathlib import Path
 from PIL import Image
@@ -258,7 +336,7 @@ rustore_lock_manifest_checksum() {
     return 1
   fi
 
-  python3 - "$manifest" "$checksum_file" <<'PY'
+  rustore_py - "$manifest" "$checksum_file" <<'PY'
 import hashlib, pathlib, sys
 data = pathlib.Path(sys.argv[1]).read_bytes()
 digest = hashlib.sha1(data).hexdigest()

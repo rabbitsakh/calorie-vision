@@ -30,6 +30,8 @@ fi
 mkdir -p "$DIST"
 
 rustore_prepare_android_sdk "$ANDROID"
+# Fail fast on Windows Store python stubs (hang after "Android SDK OK").
+rustore_init_python
 
 cd "$ANDROID"
 
@@ -56,7 +58,8 @@ trap cleanup_icon_http EXIT
 
 cp "$ICON_SRC" "$ICON_HTTP_DIR/icon-512.png"
 # Pick a free port.
-ICON_HTTP_PORT="$(python3 - <<'PY'
+echo "==> starting local icon HTTP server"
+ICON_HTTP_PORT="$(rustore_py - <<'PY'
 import socket
 s = socket.socket()
 s.bind(("127.0.0.1", 0))
@@ -64,7 +67,7 @@ print(s.getsockname()[1])
 s.close()
 PY
 )"
-python3 -m http.server "$ICON_HTTP_PORT" --bind 127.0.0.1 --directory "$ICON_HTTP_DIR" >/dev/null 2>&1 &
+rustore_py -m http.server "$ICON_HTTP_PORT" --bind 127.0.0.1 --directory "$ICON_HTTP_DIR" >/dev/null 2>&1 &
 ICON_HTTP_PID=$!
 LOCAL_ICON_URL="http://127.0.0.1:${ICON_HTTP_PORT}/icon-512.png"
 # Wait until the server answers.
@@ -76,7 +79,7 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 echo "==> local icon URL: $LOCAL_ICON_URL"
 
-python3 - "$ANDROID/twa-manifest.json" "$LOCAL_ICON_URL" <<'PY'
+rustore_py - "$ANDROID/twa-manifest.json" "$LOCAL_ICON_URL" <<'PY'
 import json, sys
 path, url = sys.argv[1], sys.argv[2]
 data = json.loads(open(path, encoding="utf-8").read())
@@ -93,7 +96,7 @@ echo "==> bubblewrap update (icons / manifest)"
 rustore_sync_launcher_icons "$ANDROID" "$ICON_SRC"
 
 # Restore production icon URLs in the project manifest (local server dies after build).
-python3 - "$ANDROID/twa-manifest.json" "$RUSTORE/twa-manifest.json" <<'PY'
+rustore_py - "$ANDROID/twa-manifest.json" "$RUSTORE/twa-manifest.json" <<'PY'
 import json, sys
 android_path, repo_path = sys.argv[1], sys.argv[2]
 android = json.loads(open(android_path, encoding="utf-8").read())
@@ -158,7 +161,7 @@ if [[ -n "$APK_OUT" ]] && command -v unzip >/dev/null 2>&1; then
   if unzip -l "$APK_OUT" | grep -q 'res/mipmap-xxxhdpi-v4/ic_maskable.png\|res/mipmap-xxxhdpi/ic_maskable.png\|ic_maskable.png'; then
     unzip -qo "$APK_OUT" 'res/mipmap*/ic_maskable.png' 'res/mipmap*/ic_launcher.png' -d "$VERIFY_DIR" 2>/dev/null || true
   fi
-  python3 - "$VERIFY_DIR" <<'PY' || true
+  rustore_py - "$VERIFY_DIR" <<'PY' || true
 import sys
 from pathlib import Path
 try:
