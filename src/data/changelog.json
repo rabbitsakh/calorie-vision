@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.9",
+    "date": "2026-09-11",
+    "summary": "fix(rustore): Windows Python for APK build",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Сборка APK больше не зависает на Microsoft Store stub python3"
+      },
+      {
+        "kind": "improvement",
+        "text": "WINDOWS.md: Python 3.9+ и Pillow для иконки"
+      },
+      {
+        "kind": "fix",
+        "text": "TWA appVersionCode 4 / 1.12.9 — для загрузки в RuStore"
+      }
+    ]
+  },
+  {
     "version": "1.12.8",
     "date": "2026-09-10",
     "summary": "feat(ui): weight quick log in center +",
