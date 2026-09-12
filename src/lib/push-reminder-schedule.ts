@@ -73,9 +73,11 @@ export const QUIET_FIRST_RUN_KINDS: ReminderKind[] = [
   "dinner",
   "streak",
   "weekly",
+  "reactivation",
+  "checkin",
 ];
 
-/** Explicit prefs object when DB value is null — meals + streak/weekly only. */
+/** Explicit prefs object when DB value is null — meals + streak/weekly + soft return. */
 export function quietFirstRunPrefs(): PushReminderPrefs {
   const prefs: PushReminderPrefs = {};
   for (const slot of REMINDER_SCHEDULE) {

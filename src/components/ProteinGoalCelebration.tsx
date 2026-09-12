@@ -6,6 +6,7 @@ import { SoftCelebration } from "@/components/SoftCelebration";
 import { isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -58,6 +59,9 @@ export function ProteinGoalCelebration({
         !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("protein-goal", today)
       ) {
+        if (isSoftCelebrationQuietBlocked()) {
+          return;
+        }
         markSoftCelebrationSeen("protein-goal", today);
         setSubtitle(`${actual} / ${target} г белка — цель по макросам близко.`);
         setOpen(true);

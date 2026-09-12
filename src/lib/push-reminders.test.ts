@@ -57,6 +57,15 @@ test("quiet first-run defaults skip breakfast", () => {
   assert.deepEqual(remindersForLocalTime(8, 1), []);
   assert.deepEqual(remindersForLocalTime(8, 1, quietFirstRunPrefs()), []);
   assert.ok(QUIET_FIRST_RUN_KINDS.includes("lunch"));
+  assert.ok(QUIET_FIRST_RUN_KINDS.includes("reactivation"));
+  assert.ok(QUIET_FIRST_RUN_KINDS.includes("checkin"));
+  assert.ok(!QUIET_FIRST_RUN_KINDS.includes("breakfast"));
+  assert.ok(!QUIET_FIRST_RUN_KINDS.includes("water_midday"));
+});
+
+test("quiet first-run enables reactivation and checkin slots", () => {
+  assert.deepEqual(remindersForLocalTime(11, 2), ["reactivation"]);
+  assert.deepEqual(remindersForLocalTime(21, 5), ["checkin"]);
 });
 
 test("remindersForLocalTime returns weekly only on Monday 9", () => {
@@ -340,5 +349,5 @@ test("reactivation soft nudge after idle days", () => {
 
 test("remindersForLocalTime returns reactivation at 11 when enabled", () => {
   assert.deepEqual(remindersForLocalTime(11, 2, ALL_ON), ["reactivation"]);
-  assert.deepEqual(remindersForLocalTime(11, 2), []);
+  assert.deepEqual(remindersForLocalTime(11, 2), ["reactivation"]);
 });

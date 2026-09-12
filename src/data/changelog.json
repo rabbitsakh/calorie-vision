@@ -1,5 +1,40 @@
 [
   {
+    "version": "1.12.15",
+    "date": "2026-09-11",
+    "summary": "feat(retention): depth — quiet celebrations, push prompts, soft freeze",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Тихие празднования: mark-seen только после показа (не сжигает флаги в quiet)"
+      },
+      {
+        "kind": "improvement",
+        "text": "PWA/push-промпты вне однослотовой MotivationQueue на рационе"
+      },
+      {
+        "kind": "improvement",
+        "text": "Совет дня утром при пустом возвращении; afternoon-gate только при логе сегодня"
+      },
+      {
+        "kind": "improvement",
+        "text": "Quiet first-run push: +reactivation и checkin; завтрак/вода/ккал по желанию"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мягкий CTA заморозки серии в StreakNudge; исправлен canFreezeYesterday"
+      },
+      {
+        "kind": "improvement",
+        "text": "Push-промпт снова через 10 дней после dismiss; silent resync подписки в standalone"
+      },
+      {
+        "kind": "improvement",
+        "text": "Deeplink чек-ина → /ration#checkin"
+      }
+    ]
+  },
+  {
     "version": "1.12.14",
     "date": "2026-09-11",
     "summary": "feat(plan): Weekly OS 2 — Mon–Sun report, week nav, shopping bridge",

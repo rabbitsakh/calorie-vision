@@ -4,12 +4,11 @@ import { useEffect } from "react";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import type { CelebrationVariant } from "@/components/FullscreenCelebration";
 import type { RewardRarity } from "@/lib/rewards";
-import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import { hydrateQuietHoursFromAccount } from "@/lib/quiet-hours-prefs";
 import {
-  areCelebrationsInQuietHours,
-  hydrateQuietHoursFromAccount,
-} from "@/lib/quiet-hours-prefs";
-import { muteSoftCelebrationsToday } from "@/lib/soft-celebration";
+  isSoftCelebrationQuietBlocked,
+  muteSoftCelebrationsToday,
+} from "@/lib/soft-celebration";
 
 type SoftCelebrationProps = {
   open: boolean;
@@ -53,8 +52,7 @@ export function SoftCelebration({
   muteDate,
   onClose,
 }: SoftCelebrationProps) {
-  const suppressed =
-    !open || isGamificationQuiet() || areCelebrationsInQuietHours();
+  const suppressed = !open || isSoftCelebrationQuietBlocked();
 
   useEffect(() => {
     hydrateQuietHoursFromAccount();

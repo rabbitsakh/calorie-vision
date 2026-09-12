@@ -132,7 +132,7 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
   if (!visible) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div id="checkin" className="scroll-mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
       {done ? (
         <p className="text-center text-sm font-medium text-slate-700">Спасибо! До завтра.</p>
       ) : (

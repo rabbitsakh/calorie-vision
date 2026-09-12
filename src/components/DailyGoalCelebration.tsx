@@ -12,6 +12,7 @@ import {
 } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -71,6 +72,9 @@ export function DailyGoalCelebration({
         !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("daily-goal", today)
       ) {
+        if (isSoftCelebrationQuietBlocked()) {
+          return;
+        }
         markSoftCelebrationSeen("daily-goal", today);
         setCopy(dailyGoalCelebrationCopy(goal, actual, target));
         setOpen(true);

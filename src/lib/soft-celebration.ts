@@ -1,5 +1,8 @@
 /** Once-per-day / once-per-week soft celebration flags in localStorage. */
 
+import { isGamificationQuiet } from "@/lib/gamification-quiet";
+import { areCelebrationsInQuietHours } from "@/lib/quiet-hours-prefs";
+
 export type SoftCelebrationKind =
   | "day-opened"
   | "daily-goal"
@@ -47,6 +50,15 @@ export function markSoftCelebrationSeen(kind: SoftCelebrationKind, date: string)
   } catch {
     // ignore
   }
+}
+
+/**
+ * Quiet mode / quiet hours hide soft celebrations.
+ * Call before markSoftCelebrationSeen — otherwise new users with quiet default
+ * burn the once-per-day flag without ever seeing the card.
+ */
+export function isSoftCelebrationQuietBlocked(): boolean {
+  return isGamificationQuiet() || areCelebrationsInQuietHours();
 }
 
 function muteKey(date: string): string {

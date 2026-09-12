@@ -42,6 +42,7 @@ export async function buildStreakPayload(userId: string, today: string) {
 
   const loggedToday = dateSet.has(today);
   const yesterday = shiftDateKeyUtc(today, -1);
+  const dayBeforeYesterday = shiftDateKeyUtc(yesterday, -1);
   const streakBeforeToday = computeStreakFromSet(dateSet, yesterday);
   const streak = loggedToday ? computeStreakFromSet(dateSet, today) : streakBeforeToday;
   const longestStreak = computeLongestStreak([...dateSet]);
@@ -49,10 +50,12 @@ export async function buildStreakPayload(userId: string, today: string) {
   const streakAtRisk = !loggedToday && streakBeforeToday >= 1;
 
   const freezeAvailable = !freezeThisWeek;
+  // Yesterday empty but prior day continues a streak → soft freeze can bridge the gap.
+  const streakThroughDayBeforeYesterday = computeStreakFromSet(dateSet, dayBeforeYesterday);
   const canFreezeYesterday =
     freezeAvailable &&
     !dateSet.has(yesterday) &&
-    streakBeforeToday >= 1 &&
+    streakThroughDayBeforeYesterday >= 1 &&
     yesterday < today;
 
   const last14: Array<{ date: string; logged: boolean; frozen: boolean }> = [];
