@@ -2389,6 +2389,11 @@ textarea {
   margin-top: 1.25rem;
 }
 
+.landing-hero-apk {
+  /* Secondary download CTA in the first viewport — same height as primary. */
+  min-height: 2.75rem;
+}
+
 .landing-cta-row {
   justify-content: flex-start;
 }
