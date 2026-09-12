@@ -123,6 +123,7 @@ test("retry prompts cover all known reasons", () => {
     "missing-macros",
     "package-no-barcode",
     "empty-label",
+    "ready-meal-sticker-empty",
     "low-confidence",
     "vague-name",
     "zero-calorie-meal",

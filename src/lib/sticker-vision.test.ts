@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isBetterStickerResult, shouldRunStickerPass } from "./ai/sticker-vision.ts";
+import {
+  isBetterStickerResult,
+  looksLikeReadyMealSticker,
+  shouldRunStickerPass,
+} from "./ai/sticker-vision.ts";
 
 test("sticker pass runs for empty label nutrition", () => {
   assert.equal(
@@ -14,10 +18,10 @@ test("sticker pass runs for empty label nutrition", () => {
   );
 });
 
-test("sticker pass does not run for factory package photos", () => {
+test("sticker pass does not run for factory package photos without ready-meal cues", () => {
   assert.equal(
     shouldRunStickerPass({
-      dishName: "Оливье",
+      dishName: "Протеин бар",
       calories: 0,
       confidence: 0.55,
       photoKind: "package",
@@ -39,6 +43,56 @@ test("sticker pass skips when macros already present", () => {
       portionGrams: 250,
     }),
     false,
+  );
+});
+
+test("looksLikeReadyMealSticker matches empty cafe package without barcode", () => {
+  assert.equal(
+    looksLikeReadyMealSticker({
+      dishName: "Рис с курицей",
+      calories: 0,
+      confidence: 0.6,
+      photoKind: "package",
+      barcode: "",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRunStickerPass({
+      dishName: "Рис с курицей",
+      calories: 0,
+      confidence: 0.6,
+      photoKind: "package",
+      barcode: "",
+    }),
+    true,
+  );
+});
+
+test("looksLikeReadyMealSticker excludes factory pack with brand+net+barcode", () => {
+  assert.equal(
+    looksLikeReadyMealSticker({
+      dishName: "Салат Цезарь",
+      brand: "Мираторг",
+      calories: 0,
+      confidence: 0.7,
+      photoKind: "package",
+      portionGrams: 250,
+      barcode: "4600605023124",
+    }),
+    false,
+  );
+});
+
+test("looksLikeReadyMealSticker matches empty ready-meal label", () => {
+  assert.equal(
+    looksLikeReadyMealSticker({
+      dishName: "Салат цезарь",
+      calories: 0,
+      confidence: 0.55,
+      photoKind: "label",
+    }),
+    true,
   );
 });
 

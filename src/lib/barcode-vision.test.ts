@@ -69,3 +69,25 @@ test("barcode pass also runs for package without digits", () => {
     false,
   );
 });
+
+test("barcode pass skips ready-meal sticker packages", () => {
+  assert.equal(
+    shouldRunBarcodePass({
+      dishName: "Рис с курицей",
+      calories: 0,
+      confidence: 0.55,
+      photoKind: "package",
+      barcode: "",
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRunBarcodePass({
+      dishName: "Салат Цезарь",
+      calories: 0,
+      confidence: 0.5,
+      photoKind: "label",
+    }),
+    false,
+  );
+});

@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { looksLikePreparedFoodName } from "./ai/sticker-vision";
 import { inferDrinkPackMlFromText, looksLikeDrinkName } from "./portion-unit";
 import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "./nutrition";
 
@@ -438,6 +439,13 @@ export function resolvePer100gForScaling(
   const portionGrams = explicitPortion ?? DEFAULT_PORTION_GRAMS;
   const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories, portionGrams);
 
+  // Ready-meal / cafe stickers often put pack totals in calories (e.g. 95 kcal @ 280 g).
+  // Don't invent fake per-100 from those dense portion totals when per100g is empty.
+  const readyMealPortionTotals =
+    Boolean(result.dishName) &&
+    looksLikePreparedFoodName(result.dishName!) &&
+    !(normalized && normalized.calories > 0);
+
   // Label rows and drinks: models often put kcal/100 ml (or kJ/100 ml) in calories while portionGrams is pack volume.
   const looksPer100Portion =
     portionGrams > 100 ||
@@ -445,6 +453,7 @@ export function resolvePer100gForScaling(
     (explicitPortion === PER100G_REFERENCE_GRAMS && caloriesLookPer100g(topLevelCalories));
 
   if (
+    !readyMealPortionTotals &&
     caloriesLookPer100g(topLevelCalories) &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     looksPer100Portion
@@ -459,12 +468,15 @@ export function resolvePer100gForScaling(
     };
   }
 
-  const inferred = inferPer100gValues(result, topLevelCalories, portionGrams);
+  const inferred = readyMealPortionTotals
+    ? null
+    : inferPer100gValues(result, topLevelCalories, portionGrams);
   if (inferred) {
     return inferred;
   }
 
   if (
+    !readyMealPortionTotals &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     portionGrams > 100 &&
     result.calories > PER100G_MAX_CALORIES
@@ -670,6 +682,28 @@ export function describeNutritionBasis(
   const portion = resolveDisplayPortionGrams(item);
   const drink = looksLikeDrinkName(item.dishName, item.brand);
   const unit = drink ? "мл" : "г";
+  const barcodeSource =
+    item.source === "openfoodfacts-barcode" ||
+    item.source === "gigachat-barcode" ||
+    item.photoKind === "barcode";
+  const stickerLike =
+    looksLikePreparedFoodName(item.dishName, item.brand) &&
+    (item.photoKind === "label" || item.photoKind === "package") &&
+    !(item.per100g && item.per100g.calories > 0);
+
+  if (barcodeSource && per100) {
+    if (portion && portion !== PER100G_REFERENCE_GRAMS) {
+      return `По штрихкоду: ${Math.round(per100.calories)} ккал / 100 ${unit} → на порцию ${portion} ${unit}`;
+    }
+    return `По штрихкоду: ${Math.round(per100.calories)} ккал / 100 ${unit}`;
+  }
+
+  if (stickerLike && item.calories > 0 && !per100) {
+    if (portion && portion > 0) {
+      return `Со стикера: ${Math.round(item.calories)} ккал на порцию ${portion} ${unit}`;
+    }
+    return `Со стикера: ${Math.round(item.calories)} ккал на порцию`;
+  }
 
   if (item.photoKind === "label" && per100) {
     if (portion && portion !== PER100G_REFERENCE_GRAMS) {

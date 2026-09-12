@@ -58,7 +58,7 @@ export async function GET(request: Request) {
         where: { confidence: { not: null } },
       }),
       prisma.mealEntry.groupBy({
-        by: ["originalDish"],
+        by: ["originalDish", "photoKind"],
         where: {
           ...(misreadWindow === "7d" ? { createdAt: { gte: since } } : {}),
           wasCorrected: true,
@@ -195,6 +195,7 @@ export async function GET(request: Request) {
         .map((row) => ({
           dish: decodeHtmlEntities(row.originalDish!),
           count: row._count.id,
+          photoKind: row.photoKind ?? null,
         })),
       missSummary: {
         window: misreadWindow,
@@ -203,6 +204,7 @@ export async function GET(request: Request) {
         topMissDish: topMisrecognized[0]?.originalDish
           ? decodeHtmlEntities(topMisrecognized[0].originalDish)
           : null,
+        topMissPhotoKind: topMisrecognized[0]?.photoKind ?? null,
         correctedInWindow: topMisrecognized.reduce((sum, row) => sum + row._count.id, 0),
       },
       savedCorrections: corrections,
