@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.12.16",
+    "date": "2026-09-12",
+    "summary": "feat(landing): APK download CTA in hero",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Первый экран лендинга: кнопка «Скачать APK» рядом с «Начать бесплатно»"
+      }
+    ]
+  },
+  {
     "version": "1.12.15",
     "date": "2026-09-11",
     "summary": "feat(retention): depth — quiet celebrations, push prompts, soft freeze",

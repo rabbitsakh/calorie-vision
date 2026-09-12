@@ -183,7 +183,7 @@ function DownloadIcon() {
   );
 }
 
-/** Android APK (+ optional RuStore) — outside hero, under #install steps. */
+/** Android APK (+ optional RuStore) — under #install steps (hero also has a compact CTA). */
 function AndroidApkCta() {
   const apkUrl = getApkDownloadUrl();
   const rustoreUrl = getRustoreUrl();
@@ -261,6 +261,13 @@ export function LandingPage() {
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
               Начать бесплатно
             </Link>
+            <a
+              href={apkUrl}
+              className="btn btn-secondary landing-cta-primary landing-hero-apk"
+              download
+            >
+              Скачать APK
+            </a>
             <a href="#how" className="landing-cta-secondary">
               Как это работает
             </a>
