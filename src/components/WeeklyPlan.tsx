@@ -15,6 +15,7 @@ import {
   setHolidayBuffer,
 } from "@/lib/holiday-buffer";
 import { withBasePath } from "@/lib/paths";
+import { buildWeekSummary } from "@/lib/stats-insights";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type DayRow = {
@@ -24,8 +25,12 @@ type DayRow = {
 
 type WeeklyPlanProps = {
   selectedDate: string;
+  /** Today’s date key — used to disable navigating past the current week. */
+  today?: string;
   refreshKey?: number;
   onSelectDate?: (date: string) => void;
+  /** Shift Plan hub week (±7 / jump to this week). Stays on /plan. */
+  onWeekNavigate?: (date: string) => void;
   compact?: boolean;
   /** Show compact holiday buffer switch in the header (today only). */
   showHolidayToggle?: boolean;
@@ -36,8 +41,10 @@ type WeeklyPlanProps = {
 
 export function WeeklyPlan({
   selectedDate,
+  today,
   refreshKey = 0,
   onSelectDate,
+  onWeekNavigate,
   compact = false,
   showHolidayToggle = false,
   onHolidayChange,
@@ -55,6 +62,9 @@ export function WeeklyPlan({
     [weekStart],
   );
   const weekEnd = weekDates[6]!;
+  const thisWeekStart = today ? mondayOfWeek(today) : null;
+  const canGoNext = thisWeekStart == null || weekStart < thisWeekStart;
+  const isThisWeek = thisWeekStart != null && weekStart === thisWeekStart;
 
   const applyWeek = useCallback(
     (weekDays: DayRow[], calorieTarget: number | null | undefined) => {
@@ -120,6 +130,20 @@ export function WeeklyPlan({
     target != null ? applyHolidayBuffer(target, holidayOn) : null;
   const holidayPct = Math.round((HOLIDAY_BUFFER_FACTOR - 1) * 100);
 
+  const weekSummary = useMemo(
+    () => (!compact && days.length > 0 ? buildWeekSummary(days, effectiveTarget ?? target) : null),
+    [compact, days, effectiveTarget, target],
+  );
+
+  const weekHeadline = useMemo(() => {
+    if (!weekSummary) return null;
+    const best =
+      weekSummary.bestDay != null
+        ? ` · лучший ${weekdayShort(weekSummary.bestDay.date)}`
+        : "";
+    return `${weekSummary.headline}${best}`;
+  }, [weekSummary]);
+
   return (
     <section className={compact ? "overflow-hidden" : "card overflow-hidden"}>
       <div className={`flex items-start justify-between gap-2 ${compact ? "pb-1.5" : "px-4 py-3 md:px-5"}`}>
@@ -146,6 +170,8 @@ export function WeeklyPlan({
                 {holidayOn ? " · праздн." : ""}
               </p>
             ) : null
+          ) : weekHeadline ? (
+            <p className="mt-0.5 text-xs leading-snug text-slate-500">{weekHeadline}</p>
           ) : (
             <p className="mt-0.5 text-xs text-slate-500">
               Цель vs факт по дням
@@ -184,6 +210,46 @@ export function WeeklyPlan({
           </label>
         ) : null}
       </div>
+
+      {!compact && onWeekNavigate ? (
+        <div className="flex items-center justify-center gap-1 px-3 pb-2 md:px-4">
+          <button
+            type="button"
+            className="btn-quiet min-h-8 px-2.5 text-xs font-semibold text-slate-600"
+            aria-label="Предыдущая неделя"
+            onClick={() => onWeekNavigate(shiftDateKey(selectedDate, -7))}
+          >
+            ← неделя
+          </button>
+          <button
+            type="button"
+            className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
+              isThisWeek ? "text-teal-800" : "text-slate-600"
+            }`}
+            disabled={isThisWeek || !today}
+            aria-label="Текущая неделя"
+            onClick={() => {
+              if (today) onWeekNavigate(today);
+            }}
+          >
+            эта
+          </button>
+          <button
+            type="button"
+            className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
+              canGoNext ? "text-slate-600" : "cursor-not-allowed text-slate-300"
+            }`}
+            disabled={!canGoNext}
+            aria-label="Следующая неделя"
+            onClick={() => {
+              if (!canGoNext) return;
+              onWeekNavigate(shiftDateKey(selectedDate, 7));
+            }}
+          >
+            →
+          </button>
+        </div>
+      ) : null}
 
       {loading && days.length === 0 ? (
         <p className={`text-sm text-slate-500 ${compact ? "" : "px-4 pb-4 md:px-5"}`}>

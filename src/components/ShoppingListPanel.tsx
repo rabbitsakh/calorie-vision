@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   allergenLabel,
@@ -8,6 +9,7 @@ import {
   parseAllergensJson,
   type AllergenId,
 } from "@/lib/allergens";
+import { formatDateShort, mondayOfWeek, shiftDateKey } from "@/lib/dates";
 import {
   addItemsFromDishNames,
   clearAll,
@@ -20,7 +22,6 @@ import {
   type ShoppingListItem,
 } from "@/lib/shopping-list";
 import { withBasePath } from "@/lib/paths";
-import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import type { MealEntry } from "@/types";
 
 type ShoppingListPanelProps = {
@@ -51,6 +52,8 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const didAutoOpen = useRef(false);
 
   const opts = useCallback(() => ({ userId }), [userId]);
 
@@ -93,13 +96,20 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
 
   useEffect(() => {
     let cancelled = false;
+    setHydrated(false);
     async function hydrate() {
       const local = loadList(opts());
       setItems(local);
-      if (!userId) return;
+      if (!userId) {
+        if (!cancelled) setHydrated(true);
+        return;
+      }
       try {
         const resp = await fetch(withBasePath("/api/shopping-list"), { cache: "no-store" });
-        if (!resp.ok) return;
+        if (!resp.ok) {
+          if (!cancelled) setHydrated(true);
+          return;
+        }
         const data = (await resp.json()) as { items?: ShoppingListItem[] };
         const remote = Array.isArray(data.items) ? data.items : [];
         if (cancelled) return;
@@ -109,6 +119,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items: local }),
           });
+          if (!cancelled) setHydrated(true);
           return;
         }
         if (remote.length > 0) {
@@ -117,6 +128,8 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
         }
       } catch {
         // offline — local list is enough
+      } finally {
+        if (!cancelled) setHydrated(true);
       }
     }
     void hydrate();
@@ -124,6 +137,17 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
       cancelled = true;
     };
   }, [opts, userId]);
+
+  useEffect(() => {
+    if (!hydrated || didAutoOpen.current) return;
+    const hashOpen =
+      typeof window !== "undefined" && window.location.hash === "#shopping";
+    const unchecked = items.some((i) => !i.checked);
+    if (hashOpen || unchecked) {
+      setOpen(true);
+    }
+    didAutoOpen.current = true;
+  }, [hydrated, items]);
 
   async function fetchDishNamesForDate(dateKey: string): Promise<string[]> {
     const resp = await fetch(withBasePath(`/api/meals?date=${dateKey}`), {
@@ -156,36 +180,43 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
     setBusy(true);
     setMessage(null);
     try {
-      let names: string[];
-      let sourceDate = selectedDate;
       if (scope === "week") {
-        const start = weekStartMonday(selectedDate);
-        const dates = Array.from({ length: 7 }, (_, i) => shiftDateKeyUtc(start, i));
-        const batches = await Promise.all(dates.map((d) => fetchDishNamesForDate(d)));
-        names = dedupeNames(batches.flat());
-        sourceDate = start;
-      } else {
-        names = dedupeNames(await fetchDishNamesForDate(selectedDate));
+        // Mon–Sun via mondayOfWeek — same week math as Plan bars; stamp per-day sourceDate
+        const start = mondayOfWeek(selectedDate);
+        const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(start, i));
+        const before = loadList(opts()).length;
+        let next = loadList(opts());
+        let foundAny = false;
+        for (const dayKey of dates) {
+          const dayNames = dedupeNames(await fetchDishNamesForDate(dayKey));
+          if (dayNames.length === 0) continue;
+          foundAny = true;
+          next = addItemsFromDishNames(dayNames, dayKey, opts());
+        }
+        if (!foundAny) {
+          setMessage("В рационе за эту неделю нет блюд");
+          return;
+        }
+        const added = next.length - before;
+        setItems(next);
+        void syncToServer(next);
+        setOpen(true);
+        setMessage(added > 0 ? `Добавлено: ${added}` : "Все блюда уже есть в списке");
+        return;
       }
+
+      const names = dedupeNames(await fetchDishNamesForDate(selectedDate));
       if (names.length === 0) {
-        setMessage(
-          scope === "week"
-            ? "В рационе за эту неделю нет блюд"
-            : "В рационе за этот день нет блюд",
-        );
+        setMessage("В рационе за этот день нет блюд");
         return;
       }
       const before = loadList(opts()).length;
-      const next = addItemsFromDishNames(names, sourceDate, opts());
+      const next = addItemsFromDishNames(names, selectedDate, opts());
       const added = next.length - before;
       setItems(next);
       void syncToServer(next);
       setOpen(true);
-      setMessage(
-        added > 0
-          ? `Добавлено: ${added}`
-          : "Все блюда уже есть в списке",
-      );
+      setMessage(added > 0 ? `Добавлено: ${added}` : "Все блюда уже есть в списке");
     } catch {
       setMessage("Не удалось загрузить рацион");
     } finally {
@@ -241,7 +272,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
         : `${items.length}`;
 
   return (
-    <section className="card overflow-hidden">
+    <section id="shopping" className="card scroll-mt-3 overflow-hidden">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
@@ -351,6 +382,14 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
                         ) : null}
                       </span>
                     </label>
+                    {item.sourceDate ? (
+                      <Link
+                        href={withBasePath(`/ration?date=${encodeURIComponent(item.sourceDate)}`)}
+                        className="mt-0.5 shrink-0 text-[11px] font-medium text-teal-800 underline-offset-2 hover:underline"
+                      >
+                        {formatDateShort(item.sourceDate)}
+                      </Link>
+                    ) : null}
                     <button
                       type="button"
                       className="btn-quiet shrink-0 px-2 text-xs text-slate-400 hover:text-rose-600"

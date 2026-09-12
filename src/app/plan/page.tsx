@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
-import { ShareWeekButton } from "@/components/ShareWeekButton";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
@@ -20,7 +19,7 @@ const ShoppingListPanel = dynamic(
 
 export default function PlanPage() {
   const timezone = useTimezone();
-  const { date } = useSelectedDate(timezone);
+  const { date, setDate } = useSelectedDate(timezone);
   const today = toDateKeyTz(new Date(), timezone);
   const router = useRouter();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -34,15 +33,14 @@ export default function PlanPage() {
     >
       <AuthGate>
         <div className="flex flex-col gap-4">
-          <div className="flex justify-end">
-            <ShareWeekButton endDate={date} className="shrink-0" />
-          </div>
           <WeeklyPlan
             selectedDate={date}
+            today={today}
             refreshKey={refreshKey}
             showPlanLink={false}
             showHolidayToggle={date === today}
             onHolidayChange={() => setRefreshKey((k) => k + 1)}
+            onWeekNavigate={(next) => setDate(next)}
             onSelectDate={(next) => {
               router.push(`/ration?date=${next}`);
             }}

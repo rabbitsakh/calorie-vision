@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ShareWeekButton } from "@/components/ShareWeekButton";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 
@@ -67,22 +68,25 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
   return (
     <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-indigo-600">
             Недельный отчёт
           </p>
           <p className="font-semibold text-indigo-900">{data.weekLabel}</p>
         </div>
-        <button
-          type="button"
-          className="btn-quiet text-xs text-indigo-700 hover:bg-indigo-100"
-          onClick={() => {
-            hidePanelToday(PANEL_ID, endDate);
-            setHidden(true);
-          }}
-        >
-          Скрыть
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+          <ShareWeekButton endDate={endDate} className="[&_button]:min-h-8 [&_button]:px-2.5 [&_button]:text-xs" />
+          <button
+            type="button"
+            className="btn-quiet text-xs text-indigo-700 hover:bg-indigo-100"
+            onClick={() => {
+              hidePanelToday(PANEL_ID, endDate);
+              setHidden(true);
+            }}
+          >
+            Скрыть
+          </button>
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -117,17 +121,6 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
         </p>
       ) : null}
 
-      {data.insights.length > 0 ? (
-        <ul className="mt-3 space-y-1.5 text-sm text-indigo-900">
-          {data.insights.map((line) => (
-            <li key={line} className="flex gap-2">
-              <span className="text-indigo-400">•</span>
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
       {(data.closestToTarget || data.hardestDay) && data.calorieTarget ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {data.closestToTarget ? (
@@ -151,6 +144,17 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {data.insights.length > 0 ? (
+        <ul className="mt-3 space-y-1 text-sm text-indigo-900/90">
+          {data.insights.map((line) => (
+            <li key={line} className="flex gap-2">
+              <span className="text-indigo-300">·</span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </div>
   );

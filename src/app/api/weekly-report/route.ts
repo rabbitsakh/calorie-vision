@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { dateRangeEnding, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
+import { mondayOfWeek, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
+import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
@@ -17,14 +17,6 @@ function formatWeekRange(start: string, end: string): string {
   return `${fmt(start)} — ${fmt(end)}`;
 }
 
-function formatWeekDay(dateKey: string): string {
-  return new Intl.DateTimeFormat("ru-RU", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  }).format(new Date(dateKey + "T12:00:00Z"));
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -37,9 +29,11 @@ export async function GET(request: NextRequest) {
 
     const endParam = request.nextUrl.searchParams.get("end");
     const endDate = endParam ? requireDateKey(endParam) : null;
-    const end = endDate ?? toDateKeyTz(new Date(), user?.timezone);
-    const dates = dateRangeEnding(end, 7);
-    const start = dates[0]!;
+    const anchor = endDate ?? toDateKeyTz(new Date(), user?.timezone);
+    // Mon–Sun week containing `end` — same window as WeeklyPlan bars
+    const start = mondayOfWeek(anchor);
+    const end = shiftDateKey(start, 6);
+    const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(start, i));
 
     const [meals, waterEntries, weight, topFoods] = await Promise.all([
       prisma.mealEntry.findMany({
@@ -89,7 +83,6 @@ export async function GET(request: NextRequest) {
     const totalCalories = meals.reduce((s, m) => s + m.calories, 0);
     const avgCalories = daysWithMeals.length > 0 ? Math.round(totalCalories / daysWithMeals.length) : 0;
 
-    const goal = isWeightGoal(user?.goal) ? user!.goal : null;
     const target = recommendDietForProfile(weight?.weightKg, user);
 
     let bestDay: { date: string; calories: number } | null = null;
@@ -138,38 +131,7 @@ export async function GET(request: NextRequest) {
       insights.push(`Всего ${daysWithMeals.length} ${daysWithMeals.length === 1 ? "день" : "дня"} с записями — начните с ежедневного лога.`);
     }
 
-    if (target && avgCalories > 0) {
-      const diff = avgCalories - target.calories;
-      const abs = Math.round(Math.abs(diff));
-      if (Math.abs(diff) <= target.calories * 0.08) {
-        insights.push(
-          goal === "LOSE"
-            ? `Среднее ${avgCalories} ккал/день — в целевом дефиците (${target.calories}).`
-            : `Среднее ${avgCalories} ккал/день — близко к цели (${target.calories}).`,
-        );
-      } else if (goal === "LOSE") {
-        if (diff > 0) {
-          insights.push(`В среднем +${abs} ккал/день выше цели похудения.`);
-        } else if (avgCalories < target.calories * 0.75) {
-          insights.push(
-            `В среднем на ${abs} ккал/день ниже цели — лучше держать мягкий дефицит, без сильных урезаний.`,
-          );
-        } else {
-          insights.push(
-            `В среднем на ${abs} ккал/день ниже цели — для похудения это нормально.`,
-          );
-        }
-      } else if (diff > 0) {
-        insights.push(`В среднем +${abs} ккал/день выше цели.`);
-      } else {
-        insights.push(
-          goal === "GAIN"
-            ? `В среднем ${abs} ккал/день не хватает до цели набора.`
-            : `В среднем ${abs} ккал/день не хватает до нормы.`,
-        );
-      }
-    }
-
+    // Keep unique lines only (logging / water / top food). Closest & hardest stay as cards.
     if (avgWaterMl >= WATER_HABIT_DAY_ML) {
       insights.push(`Средняя вода ${avgWaterMl} мл/день — хороший результат.`);
     } else if (avgWaterMl > 0) {
@@ -186,20 +148,6 @@ export async function GET(request: NextRequest) {
     );
     if (top[0]) {
       insights.push(`Чаще всего: «${top[0].dishName}» (${top[0].count}×).`);
-    }
-
-    if (closestToTarget) {
-      insights.push(
-        `Ближе всего к цели: ${formatWeekDay(closestToTarget.date)} (${closestToTarget.calories} ккал).`,
-      );
-    }
-    if (hardestDay) {
-      const signed = hardestDay.calories - (target?.calories ?? 0);
-      insights.push(
-        signed > 0
-          ? `Самый тяжёлый день: ${formatWeekDay(hardestDay.date)} (+${Math.round(signed)} ккал) — один день не ломает тренд.`
-          : `Самый лёгкий относительно цели: ${formatWeekDay(hardestDay.date)} (${hardestDay.calories} ккал).`,
-      );
     }
 
     const avgFiber =
