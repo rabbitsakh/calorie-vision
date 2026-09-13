@@ -64,9 +64,9 @@ test("areCelebrationsInQuietHours uses account timezone, not device wall clock",
   assert.equal(quietHoursLocalHour(moscowQuiet), 22);
   assert.equal(areCelebrationsInQuietHours(moscowQuiet), true);
 
-  // Same instant in Asia/Sakhalin is 05:00 → still quiet (22–7 wraps)
+  // Same instant in Asia/Sakhalin is 06:00 → still quiet (22–7 wraps)
   syncQuietHoursTimezone("Asia/Sakhalin");
-  assert.equal(quietHoursLocalHour(moscowQuiet), 5);
+  assert.equal(quietHoursLocalHour(moscowQuiet), 6);
   assert.equal(areCelebrationsInQuietHours(moscowQuiet), true);
 
   // 09:00 UTC = 12:00 Moscow → outside quiet hours
