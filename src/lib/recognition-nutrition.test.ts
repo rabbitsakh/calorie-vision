@@ -653,6 +653,49 @@ test("describeNutritionBasis explains label per-100 vs portion", () => {
   assert.match(hint ?? "", /250/);
 });
 
+test("describeNutritionBasis surfaces barcode nutrition basis", () => {
+  const hint = describeNutritionBasis({
+    dishName: "Молоко",
+    calories: 64,
+    portionGrams: 200,
+    photoKind: "barcode",
+    source: "openfoodfacts-barcode",
+    per100g: { calories: 64, protein: 3, fat: 3.2, carbs: 4.7 },
+  });
+  assert.match(hint ?? "", /штрихкод/i);
+  assert.match(hint ?? "", /100/);
+});
+
+test("describeNutritionBasis uses sticker copy for ready-meal portion totals", () => {
+  const hint = describeNutritionBasis({
+    dishName: "Салат Цезарь",
+    calories: 320,
+    protein: 18,
+    fat: 22,
+    carbs: 12,
+    portionGrams: 220,
+    photoKind: "label",
+    source: "gigachat",
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  });
+  assert.match(hint ?? "", /стикер/i);
+  assert.match(hint ?? "", /220/);
+});
+
+test("resolvePer100gForScaling does not invent per-100 from ready-meal pack totals", () => {
+  const per100 = resolvePer100gForScaling({
+    dishName: "Рис с курицей",
+    calories: 95,
+    protein: 6,
+    fat: 2,
+    carbs: 12,
+    portionGrams: 280,
+    photoKind: "package",
+    source: "gigachat",
+  });
+  assert.equal(per100, null);
+});
+
 test("resolvePer100gForScaling converts top-level kJ on label drinks", () => {
   const item = {
     dishName: "Пиво светлое фильтрованное",

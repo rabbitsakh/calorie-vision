@@ -1,5 +1,32 @@
 [
   {
+    "version": "1.12.17",
+    "date": "2026-09-12",
+    "summary": "feat(recog): depth 2 — ready-meal sticker routing and confirm polish",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Специалист sticker раньше barcode/label для готовых блюд без EAN"
+      },
+      {
+        "kind": "improvement",
+        "text": "Retry ready-meal-sticker-empty: читать ккал и нетто со стикера, не таблицу/EAN"
+      },
+      {
+        "kind": "improvement",
+        "text": "Чипы порции 300/350/400 г и ясная база КБЖУ для стикеров и штрихкода"
+      },
+      {
+        "kind": "fix",
+        "text": "Не выдумывать per-100 из порционных итогов готовых блюд"
+      },
+      {
+        "kind": "improvement",
+        "text": "Админка: правка порции = correction; топ промахов с photoKind"
+      }
+    ]
+  },
+  {
     "version": "1.12.16",
     "date": "2026-09-12",
     "summary": "feat(landing): APK download CTA in hero",

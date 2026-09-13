@@ -75,6 +75,27 @@ test("retries empty nutrition labels", () => {
   );
 });
 
+test("retries ready-meal sticker with empty macros", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Рис с курицей",
+      calories: 0,
+      confidence: 0.6,
+      photoKind: "package",
+    }),
+    "ready-meal-sticker-empty",
+  );
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Салат цезарь",
+      calories: 0,
+      confidence: 0.55,
+      photoKind: "label",
+    }),
+    "ready-meal-sticker-empty",
+  );
+});
+
 test("prefers retry that splits plate items", () => {
   assert.equal(
     isBetterRecognitionResult(

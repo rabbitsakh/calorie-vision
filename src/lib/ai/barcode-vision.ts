@@ -2,6 +2,7 @@ import type { FoodRecognitionResult } from "../food-types";
 import { normalizeBarcode } from "../barcode";
 import { shouldRunDrinkPass } from "./drink-vision";
 import { looksLikeMultiDishName } from "./plate-vision";
+import { looksLikeReadyMealSticker } from "./sticker-vision";
 
 /** Drop invented barcodes on plated meals; normalize elsewhere. */
 export function sanitizeVisionBarcode(result: FoodRecognitionResult): FoodRecognitionResult {
@@ -24,6 +25,11 @@ export function shouldRunBarcodePass(result: FoodRecognitionResult): boolean {
 
   // Mixed plate sometimes misclassified as package — don't waste a barcode pass.
   if (looksLikeMultiDishName(result.dishName)) {
+    return false;
+  }
+
+  // Cafe/ready-meal stickers: don't burn the single specialist slot on dead EAN OCR.
+  if (looksLikeReadyMealSticker(result)) {
     return false;
   }
 

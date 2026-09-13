@@ -2,6 +2,7 @@ import type { RecognitionEvalCase } from "./recognition-eval-fixtures";
 import { parseFoodRecognitionResponse } from "./parse-response";
 import { getRecognitionRetryReason, shouldRetryFoodRecognition } from "./recognition-retry";
 import { normalizeRecognitionNutrition } from "../recognition-nutrition";
+import { pickSpecialistPass } from "./specialist-pass";
 
 export type EvalCaseResult = {
   id: string;
@@ -43,6 +44,12 @@ export function evaluateRecognitionCase(fixture: RecognitionEvalCase): EvalCaseR
       errors.push(
         `shouldRetry ${retry} !== ${expect.shouldRetry} (reason=${getRecognitionRetryReason(parsed) ?? "none"})`,
       );
+    }
+  }
+  if (expect.specialistPass !== undefined) {
+    const pass = pickSpecialistPass(parsed);
+    if (pass !== expect.specialistPass) {
+      errors.push(`specialistPass ${pass} !== ${expect.specialistPass}`);
     }
   }
 

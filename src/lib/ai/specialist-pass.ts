@@ -5,7 +5,7 @@ import { shouldRunLabelPass } from "./label-vision";
 import { isSuspiciousSoupOnPackaged } from "../package-name-guard";
 import { shouldRunPackagePass } from "./package-vision";
 import { shouldRunPlatePass } from "./plate-vision";
-import { shouldRunStickerPass } from "./sticker-vision";
+import { looksLikeReadyMealSticker, shouldRunStickerPass } from "./sticker-vision";
 
 export type SpecialistPass =
   | "barcode"
@@ -20,6 +20,8 @@ export type SpecialistPass =
  * Prevents package+sticker+plate cascades that blow GigaChat rate limits / nginx timeouts.
  */
 export function pickSpecialistPass(result: FoodRecognitionResult): SpecialistPass | null {
+  // Cafe / ready-meal stickers: prefer sticker OCR before barcode/label (single-slot budget).
+  if (looksLikeReadyMealSticker(result) && shouldRunStickerPass(result)) return "sticker";
   // Packaged goods: prefer reading the barcode before guessing the front.
   if (shouldRunBarcodePass(result)) return "barcode";
   // Oats-in-cup misread as soup — re-read front-of-pack text before label OCR.

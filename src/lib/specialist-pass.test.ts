@@ -68,3 +68,40 @@ test("plate list without items picks plate", () => {
     "plate",
   );
 });
+
+test("ready-meal package without barcode prefers sticker over barcode", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Рис с курицей",
+      calories: 0,
+      confidence: 0.55,
+      photoKind: "package",
+      barcode: "",
+    }),
+    "sticker",
+  );
+});
+
+test("empty ready-meal label prefers sticker over label table", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Салат цезарь",
+      calories: 0,
+      confidence: 0.5,
+      photoKind: "label",
+    }),
+    "sticker",
+  );
+});
+
+test("factory package without barcode still prefers barcode", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Батончик",
+      calories: 0,
+      confidence: 0.6,
+      photoKind: "package",
+    }),
+    "barcode",
+  );
+});

@@ -87,13 +87,41 @@ const LIVE_EVAL_EXTRA_NAMES = [
   "cafe-bowl",
 ] as const;
 
+/** Stricter expects for ready-meal / cafe / label live slots (no new binaries). */
+const LIVE_EVAL_TIGHT_EXPECTS: Record<
+  string,
+  LiveRecognitionEvalCase["expect"]
+> = {
+  "label-juice": { photoKind: "label", minCalories: 20 },
+  "label-cheese": { photoKind: "label", minCalories: 80 },
+  "label-bread": { photoKind: "label", minCalories: 40 },
+  "label-cereal": { photoKind: "label", minCalories: 40 },
+  "label-chocolate": { photoKind: "label", minCalories: 80 },
+  "label-cottage": { photoKind: "label", minCalories: 50 },
+  "ready-meal-sticker": {
+    photoKind: "label|package",
+    dishNameIncludes: "рис|куриц|салат|плов|паста|котлет|греч",
+    minCalories: 150,
+  },
+  "cafe-salad": {
+    photoKind: "label|package",
+    dishNameIncludes: "салат|цезарь|греческ",
+    minCalories: 120,
+  },
+  "cafe-bowl": {
+    photoKind: "label|package",
+    dishNameIncludes: "боул|bowl|рис|салат|киноа|поке",
+    minCalories: 150,
+  },
+};
+
 export const LIVE_RECOGNITION_EVAL_CASES: LiveRecognitionEvalCase[] = [
   ...LIVE_EVAL_SEED,
   ...LIVE_EVAL_EXTRA_NAMES.map((name) => ({
     id: `live-${name}`,
     description: `Live fixture ${name}`,
     imageFile: `${name}.jpg`,
-    expect: { minCalories: 10 },
+    expect: LIVE_EVAL_TIGHT_EXPECTS[name] ?? { minCalories: 10 },
   })),
 ];
 
@@ -117,6 +145,14 @@ function dishNameMatches(pattern: string, dishName: string): boolean {
   return new RegExp(pattern, "i").test(dishName);
 }
 
+function photoKindMatches(pattern: string, photoKind: string | undefined): boolean {
+  if (!photoKind) return false;
+  if (pattern.includes("|")) {
+    return new RegExp(`^(?:${pattern})$`, "i").test(photoKind);
+  }
+  return photoKind === pattern;
+}
+
 function evaluateLiveResult(
   fixture: LiveRecognitionEvalCase,
   result: FoodRecognitionResult,
@@ -127,7 +163,7 @@ function evaluateLiveResult(
   if (expect.dishNameIncludes && !dishNameMatches(expect.dishNameIncludes, result.dishName)) {
     errors.push(`dishName "${result.dishName}" missing /${expect.dishNameIncludes}/`);
   }
-  if (expect.photoKind && result.photoKind !== expect.photoKind) {
+  if (expect.photoKind && !photoKindMatches(expect.photoKind, result.photoKind)) {
     errors.push(`photoKind ${result.photoKind} !== ${expect.photoKind}`);
   }
   if (expect.minCalories !== undefined && result.calories < expect.minCalories) {

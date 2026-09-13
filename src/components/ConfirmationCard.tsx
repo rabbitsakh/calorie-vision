@@ -51,6 +51,7 @@ import {
   parseAllergensJson,
   type AllergenId,
 } from "@/lib/allergens";
+import { readyMealPortionChipGrams } from "@/lib/confirm-portion-chips";
 
 type NutritionFields = {
   dishName: string;
@@ -503,6 +504,17 @@ function portionChipOptions(
     });
   }
 
+  // Cafe / ready-meal stickers: offer ~300–400 g bowls when vision grams are weak.
+  if (!drink) {
+    for (const grams of readyMealPortionChipGrams(dish.original)) {
+      if (!grams || base.some((chip) => chip.grams === grams)) continue;
+      base.push({
+        label: `${grams} ${unit}`,
+        grams,
+      });
+    }
+  }
+
   // Cap chip row — photo/½/history first, then defaults.
   return base.slice(0, 8);
 }
@@ -860,6 +872,21 @@ export function ConfirmationCard({
     const parsedFiber = parseOptionalNumber(dish.fiber);
     const parsedSugar = parseOptionalNumber(dish.sugar);
 
+    const origPortion =
+      dish.original.portionGrams && dish.original.portionGrams > 0
+        ? dish.original.portionGrams
+        : null;
+    const parsedPortion = parseOptionalNumber(dish.portionGrams);
+    const displayDefault = resolveDisplayPortionGrams(dish.original);
+    const portionCorrected =
+      parsedPortion !== undefined &&
+      parsedPortion > 0 &&
+      (origPortion !== null
+        ? parsedPortion !== origPortion
+        : displayDefault !== undefined
+          ? parsedPortion !== displayDefault
+          : true);
+
     const wasCorrected =
       dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
       parsedCalories !== dish.original.calories ||
@@ -867,7 +894,8 @@ export function ConfirmationCard({
       parsedFat !== origFat ||
       parsedCarbs !== origCarbs ||
       parsedFiber !== origFiber ||
-      parsedSugar !== origSugar;
+      parsedSugar !== origSugar ||
+      portionCorrected;
 
     const eatenAt = dateKeyAndTimeToIso(selectedDate, eatenTime, timezone);
     if (!eatenAt) {

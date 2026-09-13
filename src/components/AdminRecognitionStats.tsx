@@ -27,12 +27,13 @@ type RecognitionStats = {
       correctionRate: number;
     }>;
   };
-  topMisrecognized: Array<{ dish: string; count: number }>;
+  topMisrecognized: Array<{ dish: string; count: number; photoKind?: string | null }>;
   missSummary?: {
     window: "7d" | "all";
     uniqueDishes: number;
     topMissCount: number;
     topMissDish: string | null;
+    topMissPhotoKind?: string | null;
     correctedInWindow: number;
   };
   misreadWindow?: "7d" | "all";
@@ -416,7 +417,11 @@ export function AdminRecognitionStats() {
                 {stats.missSummary.correctedInWindow} исправлений ·{" "}
                 {stats.missSummary.uniqueDishes} блюд в топе
                 {stats.missSummary.topMissDish
-                  ? ` · лидер «${stats.missSummary.topMissDish}» (${stats.missSummary.topMissCount})`
+                  ? ` · лидер «${stats.missSummary.topMissDish}» (${stats.missSummary.topMissCount}${
+                      stats.missSummary.topMissPhotoKind
+                        ? `, ${stats.missSummary.topMissPhotoKind}`
+                        : ""
+                    })`
                   : ""}
                 . Live-eval слотов: 35 (фото в eval-fixtures/).
               </p>
@@ -428,13 +433,15 @@ export function AdminRecognitionStats() {
                   <thead>
                     <tr>
                       <th>Оригинальное название</th>
+                      <th>photoKind</th>
                       <th>Кол-во исправлений</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.topMisrecognized.map((row) => (
-                      <tr key={row.dish}>
+                      <tr key={`${row.dish}-${row.photoKind ?? "none"}`}>
                         <td className="font-medium">{row.dish}</td>
+                        <td className="text-slate-500">{row.photoKind ?? "—"}</td>
                         <td>{row.count}</td>
                       </tr>
                     ))}

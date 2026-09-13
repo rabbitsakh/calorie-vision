@@ -14,6 +14,8 @@ const RETRY_HINTS: Record<RecognitionRetryReason, string> = {
     "Замени общее название («обед», «еда») на конкретные продукты или блюда.",
   "empty-label":
     "Считай таблицу на этикетке: per100g и/или calories на порцию, portionGrams с упаковки.",
+  "ready-meal-sticker-empty":
+    "Это готовое блюдо со стикером/крышкой: прочитай ккал и вес нетто (г) со стикера на порцию — не ищи EAN и не заполняй таблицу «на 100 г», если её нет.",
   "missing-macros":
     "Добавь protein, fat, carbs на всю порцию — не только calories.",
   "package-no-barcode":

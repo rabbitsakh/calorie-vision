@@ -13,6 +13,13 @@ test("retry prompt falls back when reason is null", () => {
   assert.match(prompt, /валидный JSON/i);
 });
 
+test("retry prompt explains ready-meal sticker empty", () => {
+  const prompt = buildRecognitionRetryPrompt("ready-meal-sticker-empty");
+  assert.match(prompt, /стикер/i);
+  assert.match(prompt, /нетто|ккал/i);
+  assert.match(prompt, /EAN/i);
+});
+
 test("retry prompt explains packaged soup mismatch", () => {
   const prompt = buildRecognitionRetryPrompt("packaged-soup-mismatch");
   assert.match(prompt, /овсянка/i);

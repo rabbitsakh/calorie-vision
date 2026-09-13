@@ -1,6 +1,7 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "../package-name-guard";
 import { getRecognitionLowConfidenceThreshold } from "./recognition-thresholds";
+import { looksLikePreparedFoodName } from "./sticker-vision";
 
 export type RecognitionRetryReason =
   | "failed-name"
@@ -8,6 +9,7 @@ export type RecognitionRetryReason =
   | "zero-calorie-meal"
   | "vague-name"
   | "empty-label"
+  | "ready-meal-sticker-empty"
   | "low-confidence"
   | "missing-macros"
   | "package-no-barcode"
@@ -30,6 +32,10 @@ function hasAnyDefinedMacro(result: FoodRecognitionResult): boolean {
   return [result.protein, result.fat, result.carbs].some(
     (value) => value !== undefined && Number.isFinite(value),
   );
+}
+
+function hasEmptyMacros(result: FoodRecognitionResult): boolean {
+  return result.calories <= 0 && (result.per100g?.calories ?? 0) <= 0;
 }
 
 /** Why a second vision pass is warranted — null when the first result is fine. */
@@ -84,6 +90,15 @@ export function getRecognitionRetryReason(
     itemCount === 0
   ) {
     return "missing-macros";
+  }
+
+  // Prepared-food name + empty macros on label/package → read lid/sticker, not EAN/table.
+  if (
+    (result.photoKind === "label" || result.photoKind === "package") &&
+    hasEmptyMacros(result) &&
+    looksLikePreparedFoodName(result.dishName, result.brand)
+  ) {
+    return "ready-meal-sticker-empty";
   }
 
   if (
