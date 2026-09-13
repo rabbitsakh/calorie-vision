@@ -1,13 +1,19 @@
 /**
  * Client mirror of account quiet hours — used so celebrations (not only push)
  * can respect the same window without an extra network round-trip each time.
+ *
+ * Hours are evaluated in the account timezone (same as push cron), falling back
+ * to the device IANA zone when the account TZ has not been hydrated yet.
  */
 
-import { clampHour, isInQuietHours } from "./quiet-hours";
+import { detectDeviceTimezone } from "./device-timezone";
 import { withBasePath } from "./paths";
+import { localHour, resolvePushTimezone } from "./push-reminders";
+import { clampHour, isInQuietHours } from "./quiet-hours";
 
 export const QUIET_HOURS_START_KEY = "cv-quiet-hours-start";
 export const QUIET_HOURS_END_KEY = "cv-quiet-hours-end";
+export const QUIET_HOURS_TZ_KEY = "cv-quiet-hours-tz";
 
 function getLocalStorage(): Storage | null {
   try {
@@ -51,6 +57,22 @@ export function syncQuietHoursPrefs(
   }
 }
 
+/** Mirror account timezone so celebration quiet hours match push cron. */
+export function syncQuietHoursTimezone(timezone: string | null | undefined): void {
+  const storage = getLocalStorage();
+  if (!storage) return;
+  try {
+    const trimmed = timezone?.trim();
+    if (!trimmed) {
+      storage.removeItem(QUIET_HOURS_TZ_KEY);
+      return;
+    }
+    storage.setItem(QUIET_HOURS_TZ_KEY, resolvePushTimezone(trimmed));
+  } catch {
+    // ignore
+  }
+}
+
 export function getQuietHoursPrefs(): {
   start: number | null;
   end: number | null;
@@ -61,10 +83,31 @@ export function getQuietHoursPrefs(): {
   };
 }
 
-/** True when local clock falls inside the user's quiet-hours window. */
+export function getQuietHoursTimezone(): string | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(QUIET_HOURS_TZ_KEY)?.trim();
+    return raw ? resolvePushTimezone(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Local hour for quiet-hours checks: account TZ → device IANA → wall clock.
+ * Matches push cron's resolvePushTimezone + localHour path.
+ */
+export function quietHoursLocalHour(now = new Date()): number {
+  const cached = getQuietHoursTimezone();
+  const tz = resolvePushTimezone(cached ?? detectDeviceTimezone());
+  return localHour(tz, now);
+}
+
+/** True when the account-local clock falls inside the user's quiet-hours window. */
 export function areCelebrationsInQuietHours(now = new Date()): boolean {
   const { start, end } = getQuietHoursPrefs();
-  return isInQuietHours(now.getHours(), start, end);
+  return isInQuietHours(quietHoursLocalHour(now), start, end);
 }
 
 let hydrateStarted = false;
@@ -83,8 +126,10 @@ export function hydrateQuietHoursFromAccount(): void {
       const data = (await resp.json()) as {
         quietHoursStart?: number | null;
         quietHoursEnd?: number | null;
+        timezone?: string | null;
       };
       syncQuietHoursPrefs(data.quietHoursStart ?? null, data.quietHoursEnd ?? null);
+      syncQuietHoursTimezone(data.timezone ?? null);
     } catch {
       // non-critical — celebrations stay unmuted until prefs sync
     }

@@ -325,11 +325,13 @@ function RationBody({
             onAddFood={openFoodPicker}
             quietHide
           />
-          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
           {date === today ? <DailySummaryCard today={today} /> : null}
           <MotivationTip today={today} selectedDate={date} quietHide />
           <ReferralNudge today={today} selectedDate={date} quietHide />
         </MotivationQueue>
+
+        {/* Outside single-slot queue so 20–21 check-in is not blocked by streak/tip. */}
+        <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
 
         <div className="flex flex-col gap-4">
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />

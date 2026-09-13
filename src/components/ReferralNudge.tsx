@@ -66,7 +66,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
   }, [selectedDate, today, seenWeek]);
 
   if (selectedDate !== today || seenWeek || !code || !shareUrl) return null;
-  if (isFirstWeekQuiet(3)) return null;
+  if (isFirstWeekQuiet()) return null;
 
   if (hidden) {
     if (quietHide) return null;

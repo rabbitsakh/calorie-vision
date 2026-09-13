@@ -57,6 +57,7 @@ test("open camera after onboarding is one-shot", () => {
 
 test("first share nudge needs a meal and is once", () => {
   withStorage(() => {
+    cacheLoggedDaysTotal(7);
     assert.equal(shouldShowFirstShareNudge(0), false);
     assert.equal(shouldShowFirstShareNudge(1), true);
     markFirstShareNudgeSeen();
@@ -64,14 +65,25 @@ test("first share nudge needs a meal and is once", () => {
   });
 });
 
+test("first share nudge stays quiet during first week", () => {
+  withStorage(() => {
+    cacheLoggedDaysTotal(2);
+    assert.equal(shouldShowFirstShareNudge(2), false);
+  });
+});
+
 test("first week quiet uses cached logged days", () => {
   withStorage(() => {
-    assert.equal(isFirstWeekQuiet(3), true);
+    assert.equal(isFirstWeekQuiet(), true);
     cacheLoggedDaysTotal(2);
     assert.equal(getCachedLoggedDaysTotal(), 2);
+    assert.equal(isFirstWeekQuiet(), true);
     assert.equal(isFirstWeekQuiet(3), true);
     cacheLoggedDaysTotal(5);
     assert.equal(isFirstWeekQuiet(3), false);
+    assert.equal(isFirstWeekQuiet(), true);
+    cacheLoggedDaysTotal(7);
+    assert.equal(isFirstWeekQuiet(), false);
   });
 });
 

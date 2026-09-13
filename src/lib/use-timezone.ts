@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { withBasePath } from "@/lib/paths";
+import { syncQuietHoursTimezone } from "@/lib/quiet-hours-prefs";
 
 type AccountSummary = { timezone?: string | null };
 
@@ -52,6 +53,7 @@ export function useTimezone(): string | null {
             }
           }
           cache = tz;
+          syncQuietHoursTimezone(tz);
           return tz;
         } catch {
           cache = null;
@@ -71,4 +73,7 @@ export function useTimezone(): string | null {
 /** Clear cached timezone (e.g. after profile save). */
 export function clearTimezoneCache(next?: string | null) {
   cache = next === undefined ? undefined : next;
+  if (next !== undefined) {
+    syncQuietHoursTimezone(next);
+  }
 }

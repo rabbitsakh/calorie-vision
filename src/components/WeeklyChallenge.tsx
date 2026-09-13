@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -137,6 +138,10 @@ export function WeeklyChallenge({
         !isSoftCelebrationSeen("challenge-done", doneKey) &&
         !isSoftCelebrationsMutedToday(todayKey)
       ) {
+        if (isSoftCelebrationQuietBlocked()) {
+          // Leave prevCompleted unchanged so we can celebrate once quiet lifts.
+          return;
+        }
         markSoftCelebrationSeen("challenge-done", doneKey);
         void openChallengeChest(active.weekStart, active.challengeKey, active.title);
       }
