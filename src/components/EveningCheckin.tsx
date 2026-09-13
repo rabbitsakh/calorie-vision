@@ -56,7 +56,8 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
     const hour = timezone
       ? localHour(resolvePushTimezone(timezone))
       : new Date().getHours();
-    if (hour < 18) {
+    // Align with streak (20) / check-in push (21) — dinner hour stays free for logging.
+    if (hour < 20) {
       setVisible(false);
       return;
     }

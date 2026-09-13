@@ -21,7 +21,7 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { clampHour, formatQuietHoursLabel } from "@/lib/quiet-hours";
-import { syncQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
+import { syncQuietHoursPrefs, syncQuietHoursTimezone } from "@/lib/quiet-hours-prefs";
 import {
   pushActionLabel,
   pushUxMatrixSteps,
@@ -151,6 +151,7 @@ export function PushRemindersSettings() {
         const account = (await accountResp.json()) as {
           quietHoursStart?: number | null;
           quietHoursEnd?: number | null;
+          timezone?: string | null;
           pushReminderPrefs?: PushReminderPrefs | null;
         };
         setQuietStart(
@@ -158,6 +159,7 @@ export function PushRemindersSettings() {
         );
         setQuietEnd(account.quietHoursEnd == null ? "" : String(account.quietHoursEnd));
         syncQuietHoursPrefs(account.quietHoursStart ?? null, account.quietHoursEnd ?? null);
+        syncQuietHoursTimezone(account.timezone ?? null);
         setReminderPrefs(prefsFromServer(account.pushReminderPrefs));
       }
     } catch {
@@ -346,10 +348,10 @@ export function PushRemindersSettings() {
         <div className="min-w-0 flex-1">
           <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
           <p className="mt-1 text-sm text-slate-500">
-            По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний чек-ин — по часовому поясу из профиля.
-            Завтрак, воду, сводку калорий и вечерний чек-ин можно включить отдельно. Для каждого
-            типа можно выбрать час. По понедельникам — итог прошлой недели. На iPhone — только из
-            приложения с экрана «Домой» (iOS 16.4+).
+            По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний
+            чек-ин — в часовом поясе профиля (как cron). Завтрак, воду и сводку калорий можно
+            включить отдельно. Для каждого типа можно выбрать час. По понедельникам — итог
+            прошлой недели. На iPhone — только из приложения с экрана «Домой» (iOS 16.4+).
           </p>
         </div>
       </div>
@@ -440,7 +442,7 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
         <p className="text-sm font-semibold text-slate-900">Какие напоминания слать</p>
         <p className="mt-1 text-sm text-slate-600">
-          Основные включены по умолчанию. Остальные — по желанию.
+          По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. Остальные — по желанию.
         </p>
         <ul className="mt-3 space-y-2">
           {REMINDER_SCHEDULE.filter((slot) => QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {

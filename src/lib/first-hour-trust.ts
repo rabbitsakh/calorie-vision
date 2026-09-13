@@ -34,6 +34,8 @@ export function claimOpenCameraAfterOnboarding(): boolean {
 /** Soft share-day nudge after first complete day — once per device. */
 export function shouldShowFirstShareNudge(mealCountToday: number): boolean {
   if (mealCountToday < 1) return false;
+  // Keep ShareMenu available during first-week quiet (nudge itself stays hidden).
+  if (isFirstWeekQuiet(7)) return false;
   const s = store();
   if (!s || s.getItem(FIRST_SHARE_NUDGE_KEY) === "1") return false;
   return true;
@@ -55,8 +57,8 @@ export function getCachedLoggedDaysTotal(): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
-/** Hide referral / chest noise until user has a few real days. */
-export function isFirstWeekQuiet(minDays = 3): boolean {
+/** Hide referral / chest noise until user has a real first week. */
+export function isFirstWeekQuiet(minDays = 7): boolean {
   return getCachedLoggedDaysTotal() < minDays;
 }
 

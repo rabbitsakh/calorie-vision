@@ -5,6 +5,7 @@ import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { unlockPendingBadges } from "@/lib/badge-unlock-client";
 import type { BadgeDef } from "@/lib/badges";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -31,7 +32,7 @@ export function BadgeUnlockHost({ refreshKey }: BadgeUnlockHostProps) {
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void (async () => {
-        if (isSoftCelebrationsMutedToday(todayKey)) {
+        if (isSoftCelebrationsMutedToday(todayKey) || isSoftCelebrationQuietBlocked()) {
           await unlockPendingBadges();
           return;
         }

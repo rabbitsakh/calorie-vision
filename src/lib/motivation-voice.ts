@@ -52,6 +52,15 @@ export function freezeBannerCopy(): string {
   return "Вчера не было записей — можно мягко сохранить серию заморозкой (1 раз в неделю).";
 }
 
+/** Soft return after a miss when freeze is already used / unavailable. */
+export function softRecoveryTitle(): string {
+  return "Спокойный новый старт";
+}
+
+export function softRecoveryBody(): string {
+  return "Вчера был пропуск — одна запись сегодня снова откроет день, без давления.";
+}
+
 /** Monday splash / server tip from last-week logging stats. */
 export function mondayWeekWrapTip(daysLogged: number, daysInWeek = 7): string {
   const logged = Math.max(0, Math.min(daysInWeek, Math.round(daysLogged)));

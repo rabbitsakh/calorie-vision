@@ -5,6 +5,7 @@ import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
+import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
 import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
 
 const MILESTONE_COPY: Record<number, string> = {
@@ -67,6 +68,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   useEffect(() => {
     const next = findUnseenMilestone(streak);
     if (next == null) return;
+    if (isSoftCelebrationQuietBlocked()) return;
     setMilestone(next);
     markMilestoneSeen(next);
     void (async () => {

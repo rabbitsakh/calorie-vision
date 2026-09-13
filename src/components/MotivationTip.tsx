@@ -6,6 +6,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { cheerPhrase } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { quietHoursLocalHour } from "@/lib/quiet-hours-prefs";
 
 const PANEL_ID = "motivation-tip";
 const CACHE_PREFIX = "motivation-tip-";
@@ -41,11 +42,13 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
   const day = useOptionalRationDay();
   const [tip, setTip] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
-  const [hour, setHour] = useState(() => (typeof window === "undefined" ? 12 : new Date().getHours()));
+  const [hour, setHour] = useState(() =>
+    typeof window === "undefined" ? 12 : quietHoursLocalHour(),
+  );
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
-    setHour(new Date().getHours());
+    setHour(quietHoursLocalHour());
   }, [selectedDate]);
 
   const loggedToday =

@@ -5,6 +5,8 @@ import {
   breakfastStreakBody,
   emptyMealSlotTitle,
   freezeBannerCopy,
+  softRecoveryBody,
+  softRecoveryTitle,
   mondayWeekWrapTip,
   streakAtRiskBody,
   streakAtRiskPushTitle,
@@ -36,5 +38,7 @@ describe("motivation-voice", () => {
     assert.match(mondayWeekWrapTip(6), /6 из 7/);
     assert.match(mondayWeekWrapTip(0), /Новая неделя/);
     assert.match(freezeBannerCopy(), /заморозк/i);
+    assert.match(softRecoveryTitle(), /старт/i);
+    assert.match(softRecoveryBody(), /пропуск/i);
   });
 });

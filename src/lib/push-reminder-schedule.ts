@@ -114,7 +114,7 @@ export function effectiveReminderSchedule(
 
 export function reminderKindLabel(kind: ReminderKind, hour?: number): string {
   const h = hour ?? REMINDER_SCHEDULE.find((slot) => slot.kind === kind)?.hour ?? 12;
-  const time = `${String(h).padStart(2, "0")}:00 местного`;
+  const time = `${String(h).padStart(2, "0")}:00 (профиль)`;
   const labels: Record<ReminderKind, string> = {
     breakfast: `Завтрак (${time})`,
     lunch: `Обед (${time})`,

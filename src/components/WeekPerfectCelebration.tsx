@@ -8,6 +8,7 @@ import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -61,6 +62,9 @@ export function WeekPerfectCelebration({
         !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("week-perfect", weekStart)
       ) {
+        if (isSoftCelebrationQuietBlocked()) {
+          return;
+        }
         markSoftCelebrationSeen("week-perfect", weekStart);
         const result = await openChest({ source: "week", weekStart });
         const loot = result?.reward;

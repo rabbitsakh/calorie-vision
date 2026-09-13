@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.12.20",
+    "date": "2026-09-13",
+    "summary": "feat(retention): depth 2 — quiet hours TZ, return loops, celebration hosts",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Тихие часы празднований считаются в TZ профиля (как push cron), не по wall-clock устройства"
+      },
+      {
+        "kind": "fix",
+        "text": "Fullscreen celebration hosts: mark-seen только если не quiet (week/badge/quest/milestone/challenge)"
+      },
+      {
+        "kind": "improvement",
+        "text": "Первая неделя тишины: share/referral/профиль до 7 дней; ShareMenu не прячется вместе с nudge"
+      },
+      {
+        "kind": "improvement",
+        "text": "Вечерний чек-ин с 20:00 вне MotivationQueue — не перекрывается streak/tip около 20–21"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мягкий recovery после пропуска, когда заморозка уже недоступна"
+      },
+      {
+        "kind": "improvement",
+        "text": "Копирайт настроек push совпадает с quiet defaults; часы помечены как TZ профиля"
+      }
+    ]
+  },
+  {
     "version": "1.12.19",
     "date": "2026-09-13",
     "summary": "chore(platform): confirm/DailyLog extracts, dead-code cleanup, guest e2e",

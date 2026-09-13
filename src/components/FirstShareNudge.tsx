@@ -25,7 +25,7 @@ export function FirstShareNudge({
       setVisible(false);
       return;
     }
-    if (isFirstWeekQuiet(3)) {
+    if (isFirstWeekQuiet()) {
       setVisible(false);
       return;
     }

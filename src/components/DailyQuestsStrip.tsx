@@ -8,6 +8,7 @@ import type { RewardRarity } from "@/lib/rewards";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import {
+  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -52,6 +53,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     if (!progress?.allDone) return;
     if (claimedRef.current === today) return;
     if (isSoftCelebrationsMutedToday(todayKey)) return;
+    if (isSoftCelebrationQuietBlocked()) return;
     if (isSoftCelebrationSeen("quest-chest", today)) return;
 
     claimedRef.current = today;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { mondayOfWeek, toDateKey } from "@/lib/dates";
+import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
 
 const WEEK_KEY = "cv-profile-banner-week";
@@ -65,7 +66,8 @@ export function ProfileCompletionBanner() {
   const countedRef = useRef(false);
 
   useEffect(() => {
-    if (shownThisWeek() || showCount() >= MAX_SHOWS) {
+    // First-week quiet: don't burn weekly show quota before the user has real days.
+    if (isFirstWeekQuiet() || shownThisWeek() || showCount() >= MAX_SHOWS) {
       setVisible(false);
       return;
     }
