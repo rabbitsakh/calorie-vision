@@ -11,9 +11,16 @@ import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
-import { looksLikeDrinkName, looksLikeSnackBarName } from "@/lib/portion-unit";
-import { flattenRecognitionItems } from "@/lib/recognition-items";
+import { looksLikeDrinkName } from "@/lib/portion-unit";
 import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
+import {
+  draftFromRecognition,
+  draftsFromRecognition,
+  mergeDishesFromRecognition,
+  type ConfirmDishDraft,
+} from "@/lib/confirm-dish-merge";
+import { portionChipOptions } from "@/lib/confirm-portion-chips";
+import { resolveConfirmHeroSrc } from "@/lib/confirm-hero";
 import {
   confidenceActionHint,
   confidenceReshootHint,
@@ -52,7 +59,6 @@ import {
   type AllergenId,
 } from "@/lib/allergens";
 import { wasRecognitionCorrected } from "@/lib/confirm-correction";
-import { DRINK_PORTION_CHIPS, readyMealPortionChipGrams } from "@/lib/confirm-portion-chips";
 
 type NutritionFields = {
   dishName: string;
@@ -66,19 +72,7 @@ type NutritionFields = {
   source?: string;
 };
 
-type DishDraft = {
-  id: string;
-  original: FoodRecognitionResult;
-  dishName: string;
-  calories: string;
-  protein: string;
-  fat: string;
-  carbs: string;
-  fiber: string;
-  sugar: string;
-  portionGrams: string;
-  baseline: NutritionValues | null;
-};
+type DishDraft = ConfirmDishDraft;
 
 type ConfirmationCardProps = {
   result: RecognitionResponse;
@@ -110,32 +104,6 @@ function parseOptionalNumber(value: string): number | undefined {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function draftFromRecognition(item: FoodRecognitionResult, id: string): DishDraft {
-  const baseline = nutritionBaselineFromRecognition(item);
-  const portionGrams = resolveDisplayPortionGrams(item);
-  const scaled = portionGrams ? scaleRecognitionToDisplayPortion(item, portionGrams) : null;
-
-  return {
-    id,
-    original: item,
-    dishName: decodeHtmlEntities(item.dishName),
-    calories: String((scaled?.calories ?? item.calories) || ""),
-    protein: (scaled?.protein ?? item.protein) !== undefined ? String(scaled?.protein ?? item.protein) : "",
-    fat: (scaled?.fat ?? item.fat) !== undefined ? String(scaled?.fat ?? item.fat) : "",
-    carbs: (scaled?.carbs ?? item.carbs) !== undefined ? String(scaled?.carbs ?? item.carbs) : "",
-    fiber: (scaled?.fiber ?? item.fiber) !== undefined ? String(scaled?.fiber ?? item.fiber) : "",
-    sugar: (scaled?.sugar ?? item.sugar) !== undefined ? String(scaled?.sugar ?? item.sugar) : "",
-    portionGrams: portionGrams !== undefined ? String(portionGrams) : "",
-    baseline,
-  };
-}
-
-function draftsFromRecognition(recognition: FoodRecognitionResult): DishDraft[] {
-  return flattenRecognitionItems(recognition).map((item, index) =>
-    draftFromRecognition(item, `${item.dishName}-${index}`),
-  );
 }
 
 function serializeDishUi(dish: DishDraft): PendingConfirmDishUi {
@@ -185,105 +153,6 @@ function resolveInitialMealType(
     return initialMealType;
   }
   return inferMealTypeFromHour(new Date().getHours());
-}
-
-/** Keep user-selected portion when SSE enrichment updates recognition. */
-function userEditedDishName(dish: DishDraft): boolean {
-  return dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName).trim();
-}
-
-function preserveUserEdits(previous: DishDraft, draft: DishDraft): DishDraft {
-  if (!userEditedDishName(previous)) {
-    return draft;
-  }
-  return { ...draft, dishName: previous.dishName };
-}
-
-function mergeOneDishDraft(previous: DishDraft, draft: DishDraft): DishDraft {
-  const preservedPortion = Number(previous.portionGrams);
-  const incomingPortion = Number(draft.portionGrams);
-  const activePortion =
-    Number.isFinite(preservedPortion) && preservedPortion > 0 ? preservedPortion : incomingPortion;
-
-  const needsRescale =
-    Number.isFinite(activePortion) &&
-    activePortion > 0 &&
-    recognitionNeedsPortionRescale(draft.original, Number(draft.calories));
-
-  const baseline = nutritionBaselineFromRecognition(draft.original) ?? draft.baseline;
-
-  if (needsRescale) {
-    const scaled = scaleRecognitionToDisplayPortion(draft.original, activePortion);
-    return preserveUserEdits(previous, {
-      ...draft,
-      portionGrams: String(activePortion),
-      baseline,
-      calories: String(scaled.calories),
-      protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
-      fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
-      carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
-      fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
-      sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-    });
-  }
-
-  if (
-    !Number.isFinite(preservedPortion) ||
-    preservedPortion <= 0 ||
-    preservedPortion === incomingPortion
-  ) {
-    return preserveUserEdits(previous, draft);
-  }
-
-  if (!baseline) {
-    return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams });
-  }
-
-  const scaled = scaleNutritionByPortion(baseline, preservedPortion);
-  if (!scaled) {
-    return preserveUserEdits(previous, { ...draft, portionGrams: previous.portionGrams, baseline });
-  }
-
-  return preserveUserEdits(previous, {
-    ...draft,
-    portionGrams: previous.portionGrams,
-    baseline,
-    calories: String(scaled.calories),
-    protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : draft.protein,
-    fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : draft.fat,
-    carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : draft.carbs,
-    fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : draft.fiber,
-    sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : draft.sugar,
-  });
-}
-
-function mergeDishesFromRecognition(
-  current: DishDraft[],
-  recognition: FoodRecognitionResult,
-): DishDraft[] {
-  const incoming = draftsFromRecognition(recognition);
-  if (current.length === 0) {
-    return incoming;
-  }
-
-  if (current.length !== incoming.length) {
-    const maxLen = Math.max(current.length, incoming.length);
-    const merged: DishDraft[] = [];
-    for (let i = 0; i < maxLen; i++) {
-      const previous = current[i];
-      const draft = incoming[i];
-      if (previous && draft) {
-        merged.push(mergeOneDishDraft(previous, draft));
-      } else if (draft) {
-        merged.push(draft);
-      } else if (previous) {
-        merged.push(previous);
-      }
-    }
-    return merged;
-  }
-
-  return incoming.map((draft, index) => mergeOneDishDraft(current[index]!, draft));
 }
 
 function dishFormDisabled(saving: boolean, searchingId: string | null): boolean {
@@ -377,146 +246,8 @@ function ConfidenceBadge({
   );
 }
 
-/**
- * Prefer saved upload URL — blob previews often fail on iOS PWA.
- * When an upload path exists it always wins (including on iOS).
- */
-export function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): string {
-  const persisted = imagePath.trim();
-  if (persisted) {
-    // Upload URL first — never let a blob preview override on iOS or elsewhere.
-    return getImageUrl(persisted);
-  }
-  const preview = previewUrl?.trim() ?? "";
-  if (!preview) return "";
-  // Blob is only an interim fallback until the upload path arrives.
-  return preview;
-}
-
-const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
-
 function looksLikeDrink(dish: DishDraft): boolean {
   return looksLikeDrinkName(dish.dishName, dish.original.dishName, dish.original.brand);
-}
-
-function portionChipOptions(
-  dish: DishDraft,
-  historyPortions: number[] = [],
-): Array<{ label: string; grams: number }> {
-  const drink = looksLikeDrink(dish);
-  const unit = drink ? "мл" : "г";
-  const base: Array<{ label: string; grams: number }> = (
-    drink ? DRINK_PORTION_CHIPS : MEAL_PORTION_CHIPS
-  ).map((grams) => ({
-    label: `${grams} ${unit}`,
-    grams,
-  }));
-
-  const recognizedGrams =
-    dish.original.portionGrams && dish.original.portionGrams > 0
-      ? dish.original.portionGrams
-      : undefined;
-  const displayGrams = resolveDisplayPortionGrams(dish.original);
-  const packaged =
-    dish.original.photoKind === "package" ||
-    dish.original.photoKind === "barcode" ||
-    dish.original.photoKind === "label";
-
-  // Vision often leaves 100 ml/g while display already resolved to bottle volume (e.g. 1500).
-  const skipPhotoAsPer100 = Boolean(
-    recognizedGrams &&
-      displayGrams &&
-      displayGrams > recognizedGrams &&
-      recognizedGrams <= 100,
-  );
-  const photoGrams = skipPhotoAsPer100 ? undefined : recognizedGrams;
-  const packGrams =
-    packaged && displayGrams && displayGrams > 0 && displayGrams !== photoGrams
-      ? displayGrams
-      : undefined;
-
-  const prependUnique = (chip: { label: string; grams: number }) => {
-    if (!chip.grams || chip.grams <= 0) return;
-    const existing = base.findIndex((item) => item.grams === chip.grams);
-    if (existing >= 0) {
-      base.splice(existing, 1);
-    }
-    base.unshift(chip);
-  };
-
-  const prependPhotoFamily = (grams: number) => {
-    prependUnique({
-      label: `Как на фото (${grams} ${unit})`,
-      grams,
-    });
-    const half = Math.round(grams / 2);
-    if (half >= 10) {
-      prependUnique({
-        label: `½ (${half} ${unit})`,
-        grams: half,
-      });
-      // keep photo chip first: re-prepend after half
-      prependUnique({
-        label: `Как на фото (${grams} ${unit})`,
-        grams,
-      });
-    }
-  };
-
-  if (photoGrams) {
-    prependPhotoFamily(photoGrams);
-  }
-
-  if (packGrams) {
-    const bar = looksLikeSnackBarName(dish.dishName, dish.original.dishName, dish.original.brand);
-    prependUnique({
-      label: bar
-        ? `1 шт (${packGrams} г)`
-        : drink
-          ? `Вся упаковка (${packGrams} мл)`
-          : `Вся упаковка (${packGrams} г)`,
-      grams: packGrams,
-    });
-    if (!photoGrams) {
-      const half = Math.round(packGrams / 2);
-      if (half >= 10) {
-        prependUnique({
-          label: `½ (${half} ${unit})`,
-          grams: half,
-        });
-        prependUnique({
-          label: bar
-            ? `1 шт (${packGrams} г)`
-            : drink
-              ? `Вся упаковка (${packGrams} мл)`
-              : `Вся упаковка (${packGrams} г)`,
-          grams: packGrams,
-        });
-      }
-    }
-  }
-
-  for (const grams of historyPortions) {
-    if (!grams || grams <= 0 || base.some((chip) => chip.grams === grams)) continue;
-    base.push({
-      label: `${grams} ${unit}`,
-      grams,
-    });
-  }
-
-  // Cafe / ready-meal stickers: offer ~300–400 g bowls when vision grams are weak.
-  if (!drink) {
-    for (const grams of readyMealPortionChipGrams(dish.original)) {
-      if (!grams || base.some((chip) => chip.grams === grams)) continue;
-      base.push({
-        label: `${grams} ${unit}`,
-        grams,
-      });
-    }
-  }
-
-  // Cap chip row — photo/½/history first, then defaults.
-  return base.slice(0, 8);
 }
 
 export function ConfirmationCard({

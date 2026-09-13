@@ -17,11 +17,6 @@ export type OpenFoodAddDetail = {
 };
 
 export const OPEN_FOOD_ADD_EVENT = "cv-open-food-add";
-/** @deprecated Prefer OPEN_FOOD_ADD_EVENT — kept for stable tests / legacy listeners. */
-export const OPEN_FOOD_CAMERA_EVENT = "cv-open-food-camera";
-/** @deprecated Prefer OPEN_FOOD_ADD_EVENT */
-export const OPEN_FOOD_TEXT_EVENT = "cv-open-food-text";
-export const OPEN_FOOD_BARCODE_EVENT = "cv-open-food-barcode";
 /** Fired after a meal is saved from the add sheet — ration refreshes. */
 export const FOOD_SAVED_EVENT = "cv-food-saved";
 
@@ -58,9 +53,4 @@ export function requestOpenPendingConfirm(): void {
 export function notifyFoodSaved(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(FOOD_SAVED_EVENT));
-}
-
-/** @deprecated Panel is in a sheet; no-op kept for callers. */
-export function scrollToFoodAdd(): void {
-  // no-op: add UI lives in FoodAddHost sheet
 }
