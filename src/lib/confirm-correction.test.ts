@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  classifyCorrectionKinds,
+  correctionKindsFromMealFields,
   displayScaledCorrectionBaseline,
   nearlyEqualNutrition,
   wasRecognitionCorrected,
@@ -130,5 +132,48 @@ test("portion change away from display volume counts as correction", () => {
       original,
     ),
     true,
+  );
+});
+
+test("classifyCorrectionKinds separates name vs nutrition vs portion", () => {
+  const original = {
+    dishName: "Борщ",
+    calories: 200,
+    confidence: 0.8,
+    photoKind: "meal" as const,
+    portionGrams: 300,
+  };
+  assert.deepEqual(
+    classifyCorrectionKinds(
+      { dishName: "Щи", calories: 200, portionGrams: 300 },
+      original,
+    ),
+    { name: true, portion: false, nutrition: false },
+  );
+  assert.deepEqual(
+    classifyCorrectionKinds(
+      { dishName: "Борщ", calories: 250, portionGrams: 300 },
+      original,
+    ),
+    { name: false, portion: false, nutrition: true },
+  );
+  assert.deepEqual(
+    classifyCorrectionKinds(
+      { dishName: "Борщ", calories: 200, portionGrams: 400 },
+      original,
+    ),
+    { name: false, portion: true, nutrition: false },
+  );
+});
+
+test("correctionKindsFromMealFields uses originalDish/originalCalories", () => {
+  assert.deepEqual(
+    correctionKindsFromMealFields({
+      dishName: "Щи",
+      originalDish: "Борщ",
+      calories: 210,
+      originalCalories: 200,
+    }),
+    { name: true, portion: false, nutrition: true },
   );
 });

@@ -21,3 +21,12 @@ test("liveEvalEnabled requires env flag and credentials", () => {
   process.env.RECOGNITION_LIVE_EVAL = prevLive;
   process.env.GIGACHAT_CREDENTIALS = prevCreds;
 });
+
+test("canteen-tray and multi-plate live cases require minItems", () => {
+  const tray = LIVE_RECOGNITION_EVAL_CASES.find((c) => c.id === "live-canteen-tray");
+  const multi2 = LIVE_RECOGNITION_EVAL_CASES.find((c) => c.id === "live-multi-plate-2");
+  const multi3 = LIVE_RECOGNITION_EVAL_CASES.find((c) => c.id === "live-multi-plate-3");
+  assert.ok(tray?.expect.minItems && tray.expect.minItems >= 2);
+  assert.equal(multi2?.expect.minItems, 2);
+  assert.equal(multi3?.expect.minItems, 3);
+});

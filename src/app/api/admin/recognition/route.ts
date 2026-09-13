@@ -9,6 +9,7 @@ import { summarizeLatencyMs } from "@/lib/ai/recognition-percentiles";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { prisma } from "@/lib/prisma";
+import { correctionKindsFromMealFields } from "@/lib/confirm-correction";
 import {
   loadLowConfidenceThresholdFromDb,
   saveLowConfidenceThresholdToDb,
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
       correctedByPhotoKind,
       telemetryRows,
       confidenceRows,
+      correctedMealRows,
     ] = await Promise.all([
       prisma.mealEntry.count({ where: { confidence: { not: null } } }),
       prisma.mealEntry.count({ where: { wasCorrected: true } }),
@@ -109,6 +111,19 @@ export async function GET(request: Request) {
         select: {
           confidence: true,
           wasCorrected: true,
+        },
+        take: 5000,
+      }),
+      prisma.mealEntry.findMany({
+        where: {
+          wasCorrected: true,
+          ...(misreadWindow === "7d" ? { createdAt: { gte: since } } : {}),
+        },
+        select: {
+          dishName: true,
+          originalDish: true,
+          calories: true,
+          originalCalories: true,
         },
         take: 5000,
       }),
@@ -177,6 +192,18 @@ export async function GET(request: Request) {
       correctionRate,
     );
 
+
+    const correctionKindTotals = { name: 0, portion: 0, nutrition: 0, any: 0 };
+    for (const row of correctedMealRows) {
+      const flags = correctionKindsFromMealFields(row);
+      if (flags.name || flags.portion || flags.nutrition) {
+        correctionKindTotals.any += 1;
+      }
+      if (flags.name) correctionKindTotals.name += 1;
+      if (flags.portion) correctionKindTotals.portion += 1;
+      if (flags.nutrition) correctionKindTotals.nutrition += 1;
+    }
+
     return NextResponse.json({
       totalRecognitions,
       correctedCount,
@@ -216,6 +243,12 @@ export async function GET(request: Request) {
           "Неизвестно",
         count: row._count.id,
       })),
+      byCorrectionKind: [
+        { kind: "name", label: "Название", count: correctionKindTotals.name },
+        { kind: "nutrition", label: "Ккал / БЖУ", count: correctionKindTotals.nutrition },
+        { kind: "portion", label: "Порция", count: correctionKindTotals.portion },
+      ],
+      correctionKindSampleSize: correctionKindTotals.any,
       byPhotoKind: byPhotoKind.map((row) => {
         const count = row._count.id;
         const correctedCount =

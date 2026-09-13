@@ -20,11 +20,21 @@ Missing files skip without failing the suite.
 | `plate-oatmeal.jpg` | ~овсян/каша, min kcal 80 |
 | `package-bar.jpg` | bar/snack name, min kcal 40 |
 
-## Extra slots (min kcal 10)
+## Extra slots
 
 Drop `{name}.jpg` for any of:
 
 `plate-salad`, `plate-pasta`, `plate-soup`, `plate-steak`, `plate-sushi`, `plate-pizza`, `plate-rice-chicken`, `plate-pelmeni`, `plate-blini`, `label-juice`, `label-cheese`, `label-bread`, `label-cereal`, `label-chocolate`, `label-cottage`, `package-chips`, `package-cookies`, `barcode-milk`, `barcode-kefir`, `canteen-tray`, `canteen-soup`, `drink-smoothie`, `drink-coffee`, `snack-apple`, `snack-banana`, `multi-plate-2`, `multi-plate-3`, `ready-meal-sticker`, `cafe-salad`, `cafe-bowl`
+
+Stricter expects (depth 4):
+
+| File | Extra expect |
+|------|----------------|
+| `canteen-tray.jpg` | `minItems: 2`, meal, min kcal 250 |
+| `multi-plate-2.jpg` | `minItems: 2` |
+| `multi-plate-3.jpg` | `minItems: 3` |
+| `plate-soup.jpg` / `canteen-soup.jpg` | soup-like name, meal |
+| `plate-salad.jpg` / `plate-pasta.jpg` | dish-like name, meal |
 
 Total catalog slots: **35** (5 seed + 30 extra).
 

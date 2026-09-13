@@ -69,6 +69,53 @@ export function displayScaledCorrectionBaseline(
   };
 }
 
+export type CorrectionKind = "name" | "portion" | "nutrition";
+
+export type CorrectionKindFlags = {
+  name: boolean;
+  portion: boolean;
+  nutrition: boolean;
+};
+
+/** Which fields the user changed vs the display-scaled recognition baseline. */
+export function classifyCorrectionKinds(
+  saved: ConfirmCorrectionSaved,
+  original: FoodRecognitionResult,
+): CorrectionKindFlags {
+  const baseline = displayScaledCorrectionBaseline(original);
+
+  const name = saved.dishName.trim() !== baseline.dishName.trim();
+
+  const nutrition =
+    !nearlyEqualNutrition(saved.calories, baseline.calories, 1) ||
+    !nearlyEqualNutrition(saved.protein, baseline.protein, 0.15) ||
+    !nearlyEqualNutrition(saved.fat, baseline.fat, 0.15) ||
+    !nearlyEqualNutrition(saved.carbs, baseline.carbs, 0.15) ||
+    !nearlyEqualNutrition(saved.fiber, baseline.fiber, 0.15) ||
+    !nearlyEqualNutrition(saved.sugar, baseline.sugar, 0.15);
+
+  let portion = false;
+  const savedPortion = saved.portionGrams;
+  const basePortion = baseline.portionGrams;
+  if (savedPortion !== undefined && savedPortion > 0) {
+    if (basePortion !== undefined && basePortion > 0) {
+      portion = savedPortion !== basePortion;
+    } else {
+      portion = true;
+    }
+  }
+
+  return { name, portion, nutrition };
+}
+
+export function correctionKindList(flags: CorrectionKindFlags): CorrectionKind[] {
+  const kinds: CorrectionKind[] = [];
+  if (flags.name) kinds.push("name");
+  if (flags.portion) kinds.push("portion");
+  if (flags.nutrition) kinds.push("nutrition");
+  return kinds;
+}
+
 /**
  * True when the user changed name / nutrition / portion vs the display-scaled
  * recognition baseline (with rounding tolerance).
@@ -77,41 +124,26 @@ export function wasRecognitionCorrected(
   saved: ConfirmCorrectionSaved,
   original: FoodRecognitionResult,
 ): boolean {
-  const baseline = displayScaledCorrectionBaseline(original);
+  const flags = classifyCorrectionKinds(saved, original);
+  return flags.name || flags.portion || flags.nutrition;
+}
 
-  if (saved.dishName.trim() !== baseline.dishName.trim()) {
-    return true;
-  }
-
-  if (!nearlyEqualNutrition(saved.calories, baseline.calories, 1)) {
-    return true;
-  }
-
-  if (!nearlyEqualNutrition(saved.protein, baseline.protein, 0.15)) {
-    return true;
-  }
-  if (!nearlyEqualNutrition(saved.fat, baseline.fat, 0.15)) {
-    return true;
-  }
-  if (!nearlyEqualNutrition(saved.carbs, baseline.carbs, 0.15)) {
-    return true;
-  }
-  if (!nearlyEqualNutrition(saved.fiber, baseline.fiber, 0.15)) {
-    return true;
-  }
-  if (!nearlyEqualNutrition(saved.sugar, baseline.sugar, 0.15)) {
-    return true;
-  }
-
-  const savedPortion = saved.portionGrams;
-  const basePortion = baseline.portionGrams;
-  if (savedPortion !== undefined && savedPortion > 0) {
-    if (basePortion !== undefined && basePortion > 0) {
-      if (savedPortion !== basePortion) return true;
-    } else {
-      return true;
-    }
-  }
-
-  return false;
+/**
+ * Admin aggregate from persisted meal fields (no original portion column).
+ * name ← dishName vs originalDish; nutrition ← calories vs originalCalories.
+ */
+export function correctionKindsFromMealFields(entry: {
+  dishName: string;
+  originalDish?: string | null;
+  calories: number;
+  originalCalories?: number | null;
+}): CorrectionKindFlags {
+  const name =
+    Boolean(entry.originalDish?.trim()) &&
+    entry.dishName.trim() !== entry.originalDish!.trim();
+  const nutrition =
+    entry.originalCalories !== null &&
+    entry.originalCalories !== undefined &&
+    !nearlyEqualNutrition(entry.calories, entry.originalCalories, 1);
+  return { name, portion: false, nutrition };
 }

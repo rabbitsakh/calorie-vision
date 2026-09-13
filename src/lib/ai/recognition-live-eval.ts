@@ -16,6 +16,8 @@ export type LiveRecognitionEvalCase = {
     dishNameIncludes?: string;
     photoKind?: string;
     minCalories?: number;
+    /** Multi-item / canteen trays must return at least this many items. */
+    minItems?: number;
   };
 };
 
@@ -115,9 +117,37 @@ const LIVE_EVAL_TIGHT_EXPECTS: Record<
   "multi-plate-2": {
     dishNameIncludes: ",| и |/|\\+",
     minCalories: 150,
+    minItems: 2,
   },
   "multi-plate-3": {
     dishNameIncludes: ",| и |/|\\+",
+    minCalories: 200,
+    minItems: 3,
+  },
+  "canteen-tray": {
+    dishNameIncludes: ",| и |/|\\+|поднос|комплекс|обед",
+    photoKind: "meal",
+    minCalories: 250,
+    minItems: 2,
+  },
+  "canteen-soup": {
+    dishNameIncludes: "суп|борщ|щи|солянка|харчо|рассольник",
+    photoKind: "meal",
+    minCalories: 80,
+  },
+  "plate-soup": {
+    dishNameIncludes: "суп|борщ|щи|солянка|харчо|рассольник|крем-суп",
+    photoKind: "meal",
+    minCalories: 80,
+  },
+  "plate-salad": {
+    dishNameIncludes: "салат",
+    photoKind: "meal",
+    minCalories: 80,
+  },
+  "plate-pasta": {
+    dishNameIncludes: "паста|макарон|спагет|пенне|фарфалле|лапш",
+    photoKind: "meal",
     minCalories: 200,
   },
   "ready-meal-sticker": {
@@ -190,6 +220,12 @@ function evaluateLiveResult(
   }
   if (expect.minCalories !== undefined && result.calories < expect.minCalories) {
     errors.push(`calories ${result.calories} < ${expect.minCalories}`);
+  }
+  if (expect.minItems !== undefined) {
+    const itemCount = result.items?.length ?? 0;
+    if (itemCount < expect.minItems) {
+      errors.push(`items ${itemCount} < ${expect.minItems}`);
+    }
   }
 
   return errors;
