@@ -93,3 +93,29 @@ test("prefers candidate with typical bottle volume", () => {
     true,
   );
 });
+
+test("prefers scaled bottle totals over per-100 stuck on volume", () => {
+  assert.equal(
+    isBetterDrinkResult(
+      {
+        dishName: "Пиво светлое",
+        calories: 42,
+        carbs: 4,
+        confidence: 0.9,
+        photoKind: "label",
+        portionGrams: 500,
+        per100g: { calories: 42, protein: 0.4, fat: 0, carbs: 4 },
+      },
+      {
+        dishName: "Пиво светлое",
+        calories: 210,
+        carbs: 20,
+        confidence: 0.9,
+        photoKind: "label",
+        portionGrams: 500,
+        per100g: { calories: 42, protein: 0.4, fat: 0, carbs: 4 },
+      },
+    ),
+    true,
+  );
+});

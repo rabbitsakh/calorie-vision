@@ -123,7 +123,7 @@ test("prefers retry that splits plate items", () => {
 test("retries low-confidence meals", () => {
   assert.equal(
     getRecognitionRetryReason({
-      dishName: "Котлета с гарниром",
+      dishName: "Котлета по-киевски",
       calories: 420,
       confidence: 0.42,
       photoKind: "meal",
@@ -189,6 +189,56 @@ test("retries packaged soup mismatch on instant cup", () => {
       portionGrams: 40,
     }),
     "packaged-soup-mismatch",
+  );
+});
+
+test("retries multi-dish when any item has zero calories or portion", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Стейк, картофель",
+      calories: 300,
+      confidence: 0.7,
+      photoKind: "meal",
+      items: [
+        { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+        { dishName: "Картофель", calories: 0, portionGrams: 200, confidence: 0.6 },
+      ],
+    }),
+    "multi-dish-incomplete",
+  );
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Стейк / салат",
+      calories: 400,
+      confidence: 0.7,
+      photoKind: "meal",
+      items: [
+        { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+        { dishName: "Салат", calories: 100, portionGrams: 0, confidence: 0.6 },
+      ],
+    }),
+    "multi-dish-incomplete",
+  );
+});
+
+test("retries slash and X-с-Y multi names without items", () => {
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Стейк / картофель",
+      calories: 500,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    "plate-list-without-items",
+  );
+  assert.equal(
+    getRecognitionRetryReason({
+      dishName: "Котлета с пюре",
+      calories: 450,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    "plate-list-without-items",
   );
 });
 

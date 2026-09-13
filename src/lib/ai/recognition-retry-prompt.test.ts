@@ -20,6 +20,12 @@ test("retry prompt explains ready-meal sticker empty", () => {
   assert.match(prompt, /EAN/i);
 });
 
+test("retry prompt explains multi-dish incomplete items", () => {
+  const prompt = buildRecognitionRetryPrompt("multi-dish-incomplete");
+  assert.match(prompt, /items/i);
+  assert.match(prompt, /portionGrams/i);
+});
+
 test("retry prompt explains packaged soup mismatch", () => {
   const prompt = buildRecognitionRetryPrompt("packaged-soup-mismatch");
   assert.match(prompt, /овсянка/i);

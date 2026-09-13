@@ -82,6 +82,21 @@ test("ready-meal package without barcode prefers sticker over barcode", () => {
   );
 });
 
+test("drink stuck at 100ml prefers drink over label", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Пиво светлое",
+      calories: 42,
+      carbs: 4,
+      confidence: 0.8,
+      photoKind: "label",
+      portionGrams: 100,
+      per100g: { calories: 42, protein: 0.4, fat: 0, carbs: 4 },
+    }),
+    "drink",
+  );
+});
+
 test("empty ready-meal label prefers sticker over label table", () => {
   assert.equal(
     pickSpecialistPass({

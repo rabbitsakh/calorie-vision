@@ -6,6 +6,8 @@ const RETRY_HINTS: Record<RecognitionRetryReason, string> = {
     "На фото еда — укажи конкретное блюдо или продукт на русском, не «Не удалось распознать».",
   "plate-list-without-items":
     "В dishName перечислено несколько блюд — обязательно заполни items (2–8) с calories, portionGrams и КБЖУ для каждого.",
+  "multi-dish-incomplete":
+    "В items уже несколько блюд, но у части calories≤0 или portionGrams≤0 — заполни ненулевые calories и portionGrams для КАЖДОГО пункта.",
   "zero-calorie-meal":
     "Укажи ненулевые calories и portionGrams для видимой порции (типично 150–350 г).",
   "low-confidence":

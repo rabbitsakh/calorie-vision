@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.18",
+    "date": "2026-09-13",
+    "summary": "feat(recog): depth 3 — confirm baseline, multi-dish retry, drink priority",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "wasCorrected сравнивает с display-scaled ккал/порцией, не с сырыми 100 мл/100 г"
+      },
+      {
+        "kind": "improvement",
+        "text": "Retry multi-dish-incomplete: ≥2 items с нулевыми ккал или порцией"
+      },
+      {
+        "kind": "improvement",
+        "text": "Напитки: drink specialist раньше label; чипы 150/330/350 мл; предпочтение итогов бутылки"
+      },
+      {
+        "kind": "improvement",
+        "text": "Эвристика multi-dish: /, +, тире, «X с гарниром»; plate предпочитает заполнять нули"
+      }
+    ]
+  },
+  {
     "version": "1.12.17",
     "date": "2026-09-12",
     "summary": "feat(recog): depth 2 — ready-meal sticker routing and confirm polish",
