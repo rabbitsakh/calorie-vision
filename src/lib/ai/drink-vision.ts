@@ -2,7 +2,7 @@ import type { FoodRecognitionResult } from "../food-types";
 import { looksLikeDrinkName } from "../portion-unit";
 import { recognitionNeedsPortionRescale } from "../recognition-nutrition";
 
-const TYPICAL_BOTTLE_ML = new Set([200, 250, 330, 350, 450, 500, 750, 1000]);
+const TYPICAL_BOTTLE_ML = new Set([150, 200, 250, 330, 350, 450, 500, 750, 1000]);
 
 function hasDrinkVolume(result: FoodRecognitionResult): boolean {
   const g = result.portionGrams ?? 0;
@@ -43,6 +43,13 @@ export function isBetterDrinkResult(
     if (TYPICAL_BOTTLE_ML.has(g)) s += 1;
     if (g === 100) s -= 1;
     if (r.calories > 0) s += 2;
+    // Prefer scaled bottle totals over per-100 stuck on a large volume.
+    if (g > 100 && r.calories > 100 && !recognitionNeedsPortionRescale(r, r.calories)) {
+      s += 3;
+    }
+    if (g > 100 && recognitionNeedsPortionRescale(r, r.calories)) {
+      s -= 2;
+    }
     if (r.sugar !== undefined) s += 1;
     if (r.brand?.trim()) s += 1;
     return s;

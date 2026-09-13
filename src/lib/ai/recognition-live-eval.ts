@@ -37,7 +37,11 @@ const LIVE_EVAL_SEED: LiveRecognitionEvalCase[] = [
     id: "live-drink-bottle",
     description: "Drink bottle label",
     imageFile: "drink-bottle.jpg",
-    expect: { dishNameIncludes: "пиво|кола|напиток|молоко", minCalories: 20 },
+    expect: {
+      dishNameIncludes: "пиво|кола|напиток|молоко|сок|квас",
+      minCalories: 40,
+      photoKind: "label|package",
+    },
   },
   {
     id: "live-plate-oatmeal",
@@ -98,6 +102,24 @@ const LIVE_EVAL_TIGHT_EXPECTS: Record<
   "label-cereal": { photoKind: "label", minCalories: 40 },
   "label-chocolate": { photoKind: "label", minCalories: 80 },
   "label-cottage": { photoKind: "label", minCalories: 50 },
+  "drink-smoothie": {
+    dishNameIncludes: "смузи|smoothie|сок|йогурт|напиток",
+    photoKind: "label|package|meal",
+    minCalories: 40,
+  },
+  "drink-coffee": {
+    dishNameIncludes: "кофе|латте|капучино|американо|эспрессо",
+    photoKind: "label|package|meal",
+    minCalories: 5,
+  },
+  "multi-plate-2": {
+    dishNameIncludes: ",| и |/|\\+",
+    minCalories: 150,
+  },
+  "multi-plate-3": {
+    dishNameIncludes: ",| и |/|\\+",
+    minCalories: 200,
+  },
   "ready-meal-sticker": {
     photoKind: "label|package",
     dishNameIncludes: "рис|куриц|салат|плов|паста|котлет|греч",

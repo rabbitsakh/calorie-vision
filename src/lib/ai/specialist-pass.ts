@@ -26,11 +26,11 @@ export function pickSpecialistPass(result: FoodRecognitionResult): SpecialistPas
   if (shouldRunBarcodePass(result)) return "barcode";
   // Oats-in-cup misread as soup — re-read front-of-pack text before label OCR.
   if (isSuspiciousSoupOnPackaged(result)) return "package";
+  // Drink-like + stuck 100ml / per-100 macros: prefer drink before label (single slot).
+  if (shouldRunDrinkPass(result)) return "drink";
   if (shouldRunLabelPass(result)) return "label";
   // Mixed plates are sometimes misclassified as package — split before package front.
   if (shouldRunPlatePass(result)) return "plate";
-  // Bottles/cans before package front — volume matters more than brand artwork.
-  if (shouldRunDrinkPass(result)) return "drink";
   if (shouldRunPackagePass(result)) return "package";
   if (shouldRunStickerPass(result)) return "sticker";
   return null;

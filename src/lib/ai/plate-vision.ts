@@ -1,11 +1,15 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { getRecognitionRetryReason } from "./recognition-retry";
-
-function looksLikeMultiDishName(dishName: string): boolean {
-  return (dishName.match(/,/g) ?? []).length >= 1 || /\s+и\s+/i.test(dishName);
-}
+import { looksLikeMultiDishName } from "./multi-dish-name";
 
 export { looksLikeMultiDishName };
+
+function incompletePlateItemCount(result: FoodRecognitionResult): number {
+  const items = result.items ?? [];
+  return items.filter(
+    (item) => (item.calories ?? 0) <= 0 || !(item.portionGrams && item.portionGrams > 0),
+  ).length;
+}
 
 /** Whether a plate-focused vision pass is worth another GigaChat call. */
 export function shouldRunPlatePass(result: FoodRecognitionResult): boolean {
@@ -37,13 +41,24 @@ export function shouldForcePlateBeforeRetry(result: FoodRecognitionResult): bool
   );
 }
 
-/** Prefer the candidate when it actually splits the plate into items. */
+/**
+ * Prefer the candidate when it actually splits the plate into items,
+ * or fills zero-kcal / missing-portion items (over only adding more items).
+ */
 export function isBetterPlateResult(
   current: FoodRecognitionResult,
   candidate: FoodRecognitionResult,
 ): boolean {
   const curItems = current.items?.length ?? 0;
   const newItems = candidate.items?.length ?? 0;
+  const curIncomplete = incompletePlateItemCount(current);
+  const newIncomplete = incompletePlateItemCount(candidate);
+
+  if (curItems >= 2 && newItems >= 2) {
+    if (newIncomplete < curIncomplete) return true;
+    if (newIncomplete > curIncomplete) return false;
+  }
+
   if (newItems >= 2 && newItems > curItems) return true;
   if (newItems >= 2 && curItems < 2) return true;
   return false;

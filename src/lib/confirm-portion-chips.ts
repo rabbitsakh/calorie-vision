@@ -4,6 +4,9 @@ import { looksLikePreparedFoodName } from "@/lib/ai/sticker-vision";
 /** Typical cafe / ready-meal bowl weights when sticker grams are missing. */
 export const READY_MEAL_PORTION_CHIPS = [300, 350, 400] as const;
 
+/** Drink confirm chips — include small glasses and common can sizes. */
+export const DRINK_PORTION_CHIPS = [150, 200, 250, 330, 350, 500, 1000, 1500] as const;
+
 /**
  * Extra portion chips for packaged / ready-meal sticker drafts.
  * Prefers vision sticker grams when present; otherwise 300/350/400 g.

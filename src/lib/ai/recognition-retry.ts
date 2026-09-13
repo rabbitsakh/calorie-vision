@@ -1,11 +1,13 @@
 import type { FoodRecognitionResult } from "../food-types";
 import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "../package-name-guard";
 import { getRecognitionLowConfidenceThreshold } from "./recognition-thresholds";
+import { looksLikeMultiDishName } from "./multi-dish-name";
 import { looksLikePreparedFoodName } from "./sticker-vision";
 
 export type RecognitionRetryReason =
   | "failed-name"
   | "plate-list-without-items"
+  | "multi-dish-incomplete"
   | "zero-calorie-meal"
   | "vague-name"
   | "empty-label"
@@ -17,10 +19,6 @@ export type RecognitionRetryReason =
 
 const VAGUE_NAME_RE =
   /^(еда|блюдо|ужин|обед|завтрак|перекус|food|meal|snack|продукт|набор)$/i;
-
-function looksLikeMultiDishName(dishName: string): boolean {
-  return (dishName.match(/,/g) ?? []).length >= 1 || /\s+и\s+/i.test(dishName);
-}
 
 function positiveMacroCount(result: FoodRecognitionResult): number {
   return [result.protein, result.fat, result.carbs].filter(
@@ -38,6 +36,14 @@ function hasEmptyMacros(result: FoodRecognitionResult): boolean {
   return result.calories <= 0 && (result.per100g?.calories ?? 0) <= 0;
 }
 
+function hasIncompleteMultiDishItems(result: FoodRecognitionResult): boolean {
+  const items = result.items ?? [];
+  if (items.length < 2) return false;
+  return items.some(
+    (item) => (item.calories ?? 0) <= 0 || !(item.portionGrams && item.portionGrams > 0),
+  );
+}
+
 /** Why a second vision pass is warranted — null when the first result is fine. */
 export function getRecognitionRetryReason(
   result: FoodRecognitionResult,
@@ -52,6 +58,10 @@ export function getRecognitionRetryReason(
 
   if (looksPlatedMeal && looksLikeMultiDishName(result.dishName) && itemCount < 2) {
     return "plate-list-without-items";
+  }
+
+  if (looksPlatedMeal && hasIncompleteMultiDishItems(result)) {
+    return "multi-dish-incomplete";
   }
 
   if (

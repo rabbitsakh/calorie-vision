@@ -51,7 +51,8 @@ import {
   parseAllergensJson,
   type AllergenId,
 } from "@/lib/allergens";
-import { readyMealPortionChipGrams } from "@/lib/confirm-portion-chips";
+import { wasRecognitionCorrected } from "@/lib/confirm-correction";
+import { DRINK_PORTION_CHIPS, readyMealPortionChipGrams } from "@/lib/confirm-portion-chips";
 
 type NutritionFields = {
   dishName: string;
@@ -393,7 +394,6 @@ export function resolveConfirmHeroSrc(imagePath: string, previewUrl?: string): s
 }
 
 const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
-const DRINK_PORTION_CHIPS = [200, 250, 330, 500, 1000, 1500] as const;
 
 function looksLikeDrink(dish: DishDraft): boolean {
   return looksLikeDrinkName(dish.dishName, dish.original.dishName, dish.original.brand);
@@ -861,41 +861,26 @@ export function ConfirmationCard({
       throw new Error("Проверьте название и калорийность каждого блюда");
     }
 
-    const origProtein = dish.original.protein !== undefined ? Number(dish.original.protein) : undefined;
-    const origFat = dish.original.fat !== undefined ? Number(dish.original.fat) : undefined;
-    const origCarbs = dish.original.carbs !== undefined ? Number(dish.original.carbs) : undefined;
-    const origFiber = dish.original.fiber !== undefined ? Number(dish.original.fiber) : undefined;
-    const origSugar = dish.original.sugar !== undefined ? Number(dish.original.sugar) : undefined;
     const parsedProtein = parseOptionalNumber(dish.protein);
     const parsedFat = parseOptionalNumber(dish.fat);
     const parsedCarbs = parseOptionalNumber(dish.carbs);
     const parsedFiber = parseOptionalNumber(dish.fiber);
     const parsedSugar = parseOptionalNumber(dish.sugar);
-
-    const origPortion =
-      dish.original.portionGrams && dish.original.portionGrams > 0
-        ? dish.original.portionGrams
-        : null;
     const parsedPortion = parseOptionalNumber(dish.portionGrams);
-    const displayDefault = resolveDisplayPortionGrams(dish.original);
-    const portionCorrected =
-      parsedPortion !== undefined &&
-      parsedPortion > 0 &&
-      (origPortion !== null
-        ? parsedPortion !== origPortion
-        : displayDefault !== undefined
-          ? parsedPortion !== displayDefault
-          : true);
 
-    const wasCorrected =
-      dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName) ||
-      parsedCalories !== dish.original.calories ||
-      parsedProtein !== origProtein ||
-      parsedFat !== origFat ||
-      parsedCarbs !== origCarbs ||
-      parsedFiber !== origFiber ||
-      parsedSugar !== origSugar ||
-      portionCorrected;
+    const wasCorrected = wasRecognitionCorrected(
+      {
+        dishName: dish.dishName,
+        calories: parsedCalories,
+        protein: parsedProtein,
+        fat: parsedFat,
+        carbs: parsedCarbs,
+        fiber: parsedFiber,
+        sugar: parsedSugar,
+        portionGrams: parsedPortion,
+      },
+      dish.original,
+    );
 
     const eatenAt = dateKeyAndTimeToIso(selectedDate, eatenTime, timezone);
     if (!eatenAt) {
@@ -920,11 +905,12 @@ export function ConfirmationCard({
       wasCorrected,
       originalDish: decodeHtmlEntities(dish.original.dishName),
       originalCalories: dish.original.calories,
-      originalProtein: origProtein,
-      originalFat: origFat,
-      originalCarbs: origCarbs,
-      originalFiber: origFiber,
-      originalSugar: origSugar,
+      originalProtein:
+        dish.original.protein !== undefined ? Number(dish.original.protein) : undefined,
+      originalFat: dish.original.fat !== undefined ? Number(dish.original.fat) : undefined,
+      originalCarbs: dish.original.carbs !== undefined ? Number(dish.original.carbs) : undefined,
+      originalFiber: dish.original.fiber !== undefined ? Number(dish.original.fiber) : undefined,
+      originalSugar: dish.original.sugar !== undefined ? Number(dish.original.sugar) : undefined,
       recognitionSource: dish.original.source,
       photoKind: dish.original.photoKind,
       barcode: dish.original.barcode,

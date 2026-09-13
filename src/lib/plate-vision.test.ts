@@ -111,3 +111,74 @@ test("prefers candidate with more plate items", () => {
     false,
   );
 });
+
+test("prefers filling zero-kcal items over only adding more items", () => {
+  assert.equal(
+    isBetterPlateResult(
+      {
+        dishName: "Стейк, картофель",
+        calories: 300,
+        confidence: 0.6,
+        items: [
+          { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+          { dishName: "Картофель", calories: 0, portionGrams: 200, confidence: 0.5 },
+        ],
+      },
+      {
+        dishName: "Стейк, картофель",
+        calories: 480,
+        confidence: 0.7,
+        items: [
+          { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+          { dishName: "Картофель", calories: 180, portionGrams: 200, confidence: 0.7 },
+        ],
+      },
+    ),
+    true,
+  );
+  assert.equal(
+    isBetterPlateResult(
+      {
+        dishName: "Стейк, картофель",
+        calories: 300,
+        confidence: 0.6,
+        items: [
+          { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+          { dishName: "Картофель", calories: 0, portionGrams: 200, confidence: 0.5 },
+        ],
+      },
+      {
+        dishName: "Стейк, картофель, салат",
+        calories: 300,
+        confidence: 0.65,
+        items: [
+          { dishName: "Стейк", calories: 300, portionGrams: 150, confidence: 0.8 },
+          { dishName: "Картофель", calories: 0, portionGrams: 200, confidence: 0.5 },
+          { dishName: "Салат", calories: 0, portionGrams: 100, confidence: 0.4 },
+        ],
+      },
+    ),
+    false,
+  );
+});
+
+test("plate pass runs for slash and X-с-Y multi names", () => {
+  assert.equal(
+    shouldRunPlatePass({
+      dishName: "Стейк + салат",
+      calories: 400,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRunPlatePass({
+      dishName: "Котлета с пюре",
+      calories: 450,
+      confidence: 0.7,
+      photoKind: "meal",
+    }),
+    true,
+  );
+});
