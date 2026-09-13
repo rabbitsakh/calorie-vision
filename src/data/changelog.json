@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.22",
+    "date": "2026-09-13",
+    "summary": "feat(recog): depth 4 — canteen plate priority, minItems eval, correction kinds",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Столовая/поднос: plate specialist раньше label; tray-name и context=restaurant"
+      },
+      {
+        "kind": "improvement",
+        "text": "Live-eval: minItems для canteen-tray и multi-plate; жёстче plate-soup/salad/pasta"
+      },
+      {
+        "kind": "improvement",
+        "text": "Админка: разбивка исправлений name / nutrition (из originalDish/originalCalories)"
+      },
+      {
+        "kind": "fix",
+        "text": "classifyCorrectionKinds: имя / порция / КБЖУ отдельно от wasRecognitionCorrected"
+      }
+    ]
+  },
+  {
     "version": "1.12.21",
     "date": "2026-09-13",
     "summary": "fix(barcode): drink confirm no longer treats pack quantity 1 as 1 g",

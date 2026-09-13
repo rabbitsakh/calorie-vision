@@ -120,3 +120,30 @@ test("factory package without barcode still prefers barcode", () => {
     "barcode",
   );
 });
+
+test("restaurant context prefers plate before label on meal photos", () => {
+  assert.equal(
+    pickSpecialistPass(
+      {
+        dishName: "Котлета",
+        calories: 320,
+        confidence: 0.7,
+        photoKind: "meal",
+      },
+      { context: "restaurant" },
+    ),
+    "plate",
+  );
+});
+
+test("canteen tray name prefers plate before label", () => {
+  assert.equal(
+    pickSpecialistPass({
+      dishName: "Борщ, котлета, пюре",
+      calories: 600,
+      confidence: 0.65,
+      photoKind: "meal",
+    }),
+    "plate",
+  );
+});

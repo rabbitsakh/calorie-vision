@@ -45,6 +45,8 @@ type RecognitionStats = {
     correctedCount?: number;
     correctionRate?: number;
   }>;
+  byCorrectionKind?: Array<{ kind: string; label: string; count: number }>;
+  correctionKindSampleSize?: number;
   telemetry?: {
     windowDays: number;
     eventCount: number;
@@ -353,6 +355,38 @@ export function AdminRecognitionStats() {
                   <tbody>
                     {stats.bySource.map((row) => (
                       <tr key={row.source}>
+                        <td className="font-medium">{row.label}</td>
+                        <td>{row.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+
+          {stats.byCorrectionKind && stats.byCorrectionKind.some((row) => row.count > 0) ? (
+            <div>
+              <p className="mb-3 text-sm font-semibold text-slate-700">
+                По типу правки
+                {stats.correctionKindSampleSize ? (
+                  <span className="ml-2 font-normal text-slate-500">
+                    ({stats.correctionKindSampleSize} испр.)
+                  </span>
+                ) : null}
+              </p>
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Что меняли</th>
+                      <th>Записей</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.byCorrectionKind.map((row) => (
+                      <tr key={row.kind}>
                         <td className="font-medium">{row.label}</td>
                         <td>{row.count}</td>
                       </tr>

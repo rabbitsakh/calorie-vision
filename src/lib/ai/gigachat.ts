@@ -727,7 +727,7 @@ export async function recognizeWithGigaChat(
     }
   }
 
-  const specialist = pickSpecialistPass(result);
+  const specialist = pickSpecialistPass(result, { context: options?.hints?.context });
   const effectiveSpecialist =
     specialist && specialist === "plate" && plateForced ? null : specialist;
   if (effectiveSpecialist && chatCalls < MAX_CHAT_CALLS) {
