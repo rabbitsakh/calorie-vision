@@ -3,9 +3,6 @@ import { afterEach, test } from "node:test";
 import {
   FOOD_SAVED_EVENT,
   OPEN_FOOD_ADD_EVENT,
-  OPEN_FOOD_BARCODE_EVENT,
-  OPEN_FOOD_CAMERA_EVENT,
-  OPEN_FOOD_TEXT_EVENT,
   openFoodAdd,
   requestOpenFoodAddPicker,
   requestOpenFoodBarcode,
@@ -14,17 +11,8 @@ import {
   requestOpenPendingConfirm,
 } from "./open-food-camera.ts";
 
-test("open food camera event name is stable", () => {
-  assert.equal(OPEN_FOOD_CAMERA_EVENT, "cv-open-food-camera");
-});
-
-test("open food text event name is stable", () => {
-  assert.equal(OPEN_FOOD_TEXT_EVENT, "cv-open-food-text");
-});
-
-test("open food add / barcode / saved event names are stable", () => {
+test("open food add / saved event names are stable", () => {
   assert.equal(OPEN_FOOD_ADD_EVENT, "cv-open-food-add");
-  assert.equal(OPEN_FOOD_BARCODE_EVENT, "cv-open-food-barcode");
   assert.equal(FOOD_SAVED_EVENT, "cv-food-saved");
 });
 

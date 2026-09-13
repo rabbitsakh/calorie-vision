@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.19",
+    "date": "2026-09-13",
+    "summary": "chore(platform): confirm/DailyLog extracts, dead-code cleanup, guest e2e",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Confirm: portion chips, dish merge и hero src вынесены в lib + тесты"
+      },
+      {
+        "kind": "improvement",
+        "text": "DailyLog: InlineEdit и MealCards в отдельные компоненты (move-only)"
+      },
+      {
+        "kind": "fix",
+        "text": "Удалены неиспользуемые OPEN_FOOD_* события, scrollToFoodAdd и syncCelebrationPortalToVisualViewport"
+      },
+      {
+        "kind": "improvement",
+        "text": "E2E critical-path: AuthGate /plan /stats, /diary→/ration, login email toggle; npm run test:e2e"
+      }
+    ]
+  },
+  {
     "version": "1.12.18",
     "date": "2026-09-13",
     "summary": "feat(recog): depth 3 — confirm baseline, multi-dish retry, drink priority",

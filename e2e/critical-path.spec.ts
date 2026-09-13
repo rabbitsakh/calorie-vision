@@ -10,11 +10,15 @@ test.describe("guest critical path", () => {
     await expect(page.getByRole("link", { name: /Начать бесплатно|Войти/i }).first()).toBeVisible();
   });
 
-  test("login page opens", async ({ page }) => {
+  test("login page heading and email toggle", async ({ page }) => {
     await page.goto("/login");
     await expect(page).toHaveURL(/login/);
     await expect(page.getByRole("heading", { name: /Вход/i })).toBeVisible();
     await expect(page.getByText("Calorie Vision").first()).toBeVisible();
+    // Email toggle is present when social providers are configured; otherwise email form shows.
+    const emailToggle = page.getByRole("button", { name: /Войти по email|Скрыть вход по email/i });
+    const emailHeading = page.getByText("Вход по email");
+    await expect(emailToggle.or(emailHeading).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test("unknown route shows not-found", async ({ page }) => {
@@ -34,5 +38,22 @@ test.describe("guest critical path", () => {
     await page.goto("/ration");
     await expect(page.getByText(/Войдите, чтобы начать/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.locator("section.card").getByRole("link", { name: /^Войти$/i })).toBeVisible();
+  });
+
+  test("plan requires auth when guest", async ({ page }) => {
+    await page.goto("/plan");
+    await expect(page.getByText(/Войдите, чтобы начать/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("section.card").getByRole("link", { name: /^Войти$/i })).toBeVisible();
+  });
+
+  test("stats requires auth when guest", async ({ page }) => {
+    await page.goto("/stats");
+    await expect(page.getByText(/Войдите, чтобы начать/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator("section.card").getByRole("link", { name: /^Войти$/i })).toBeVisible();
+  });
+
+  test("diary redirects to ration", async ({ page }) => {
+    await page.goto("/diary");
+    await expect(page).toHaveURL(/\/ration\/?/);
   });
 });

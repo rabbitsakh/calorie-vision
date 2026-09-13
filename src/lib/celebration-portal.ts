@@ -55,11 +55,6 @@ export function closeCelebrationPortal(host?: HTMLElement | null) {
   el.removeAttribute("data-cv-celeb-open");
 }
 
-/** @deprecated Prefer openCelebrationPortal — kept for tests / callers. */
-export function syncCelebrationPortalToVisualViewport(host?: HTMLElement | null) {
-  openCelebrationPortal(host);
-}
-
 /** Keep host pinned while open (orientation / URL bar). */
 export function bindCelebrationPortalViewport(host: HTMLElement): () => void {
   openCelebrationPortal(host);
