@@ -38,6 +38,7 @@ import {
   resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   describeNutritionBasis,
+  isMissingCaloriesForReview,
   scaleRecognitionToPortion,
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
@@ -178,10 +179,12 @@ function dishNeedsReview(
   dish: DishDraft,
   lowConfidenceThreshold: number,
 ): { lowConfidence: boolean; missingCalories: boolean } {
-  const calories = Number(dish.calories);
   return {
     lowConfidence: dish.original.confidence < lowConfidenceThreshold,
-    missingCalories: !Number.isFinite(calories) || calories <= 0,
+    missingCalories: isMissingCaloriesForReview(
+      Number(dish.calories),
+      dish.original.per100g,
+    ),
   };
 }
 

@@ -9,6 +9,14 @@ export const READY_MEAL_PORTION_CHIPS = [300, 350, 400] as const;
 /** Drink confirm chips — include small glasses and common can sizes. */
 export const DRINK_PORTION_CHIPS = [150, 200, 250, 330, 350, 500, 1000, 1500] as const;
 
+
+/** Skip "Как на фото (1 г)" — vision/OFF noise, not a real serving. */
+export function isCrediblePhotoPortionGrams(grams: number, drink: boolean): boolean {
+  if (!Number.isFinite(grams) || grams <= 0) return false;
+  if (drink) return grams >= 50;
+  return grams >= 10;
+}
+
 /** Default solid-food portion chips on confirm. */
 export const MEAL_PORTION_CHIPS = [100, 150, 200, 250] as const;
 
@@ -55,7 +63,11 @@ export function portionChipOptions(
       displayGrams > recognizedGrams &&
       recognizedGrams <= 100,
   );
-  const photoGrams = skipPhotoAsPer100 ? undefined : recognizedGrams;
+  const rawPhotoGrams = skipPhotoAsPer100 ? undefined : recognizedGrams;
+  const photoGrams =
+    rawPhotoGrams && isCrediblePhotoPortionGrams(rawPhotoGrams, drink)
+      ? rawPhotoGrams
+      : undefined;
   const packGrams =
     packaged && displayGrams && displayGrams > 0 && displayGrams !== photoGrams
       ? displayGrams

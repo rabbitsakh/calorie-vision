@@ -24,6 +24,8 @@ import {
   scaleRecognitionToDisplayPortion,
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
+  isMissingCaloriesForReview,
+  DEFAULT_DRINK_SERVING_ML,
 } from "./recognition-nutrition.ts";
 import { inferDrinkPackMlFromText } from "./portion-unit.ts";
 import { scaleNutritionByPortion } from "./nutrition.ts";
@@ -638,6 +640,40 @@ test("resolveDisplayPortionGrams uses label volume text for per-100 drinks", () 
   });
   assert.equal(normalized.portionGrams, 1500);
   assert.equal(normalized.calories, 570);
+});
+
+test("resolveDisplayPortionGrams defaults absurd barcode drink 1g to serving", () => {
+  assert.equal(
+    resolveDisplayPortionGrams({
+      dishName: "Индийский тоник",
+      calories: 0,
+      portionGrams: 1,
+      photoKind: "barcode",
+      source: "openfoodfacts-barcode",
+      per100g: { calories: 20, carbs: 5 },
+    }),
+    DEFAULT_DRINK_SERVING_ML,
+  );
+
+  const normalized = normalizeRecognitionNutrition({
+    dishName: "Индийский тоник",
+    calories: 0,
+    carbs: 0,
+    portionGrams: 1,
+    confidence: 0.9,
+    photoKind: "barcode",
+    source: "openfoodfacts-barcode",
+    per100g: { calories: 20, carbs: 5 },
+  });
+  assert.equal(normalized.portionGrams, DEFAULT_DRINK_SERVING_ML);
+  assert.equal(normalized.calories, Math.round((20 * DEFAULT_DRINK_SERVING_ML) / 100));
+});
+
+test("isMissingCaloriesForReview ignores zero portion when per100g is present", () => {
+  assert.equal(isMissingCaloriesForReview(0, { calories: 20 }), false);
+  assert.equal(isMissingCaloriesForReview(0, { calories: 0 }), true);
+  assert.equal(isMissingCaloriesForReview(0, null), true);
+  assert.equal(isMissingCaloriesForReview(50, undefined), false);
 });
 
 test("describeNutritionBasis explains label per-100 vs portion", () => {

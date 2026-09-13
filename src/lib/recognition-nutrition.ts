@@ -5,6 +5,9 @@ import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
 const DEFAULT_PORTION_GRAMS = 100;
+/** Default glass/can when drink or barcode+per100 portion is absurdly small (e.g. 1 g). */
+export const DEFAULT_DRINK_SERVING_ML = 250;
+const MIN_CREDIBLE_DRINK_PORTION_ML = 50;
 const PER100G_REFERENCE_GRAMS = 100;
 const PER100G_MAX_CALORIES = 120;
 const LOW_DENSITY_KCAL_PER_GRAM = 0.25;
@@ -646,6 +649,18 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
   });
 }
 
+/** True when confirm should warn about missing calories (per-100 density recovers totals). */
+export function isMissingCaloriesForReview(
+  calories: number,
+  per100g?: { calories?: number } | null,
+): boolean {
+  const per100 = Number(per100g?.calories);
+  if (Number.isFinite(per100) && per100 > 0) {
+    return false;
+  }
+  return !Number.isFinite(calories) || calories <= 0;
+}
+
 /** Resolve portion shown on confirm card (bottle ml from label text when vision omits volume). */
 export function resolveDisplayPortionGrams(
   item: Pick<
@@ -653,8 +668,23 @@ export function resolveDisplayPortionGrams(
     "dishName" | "brand" | "portionGrams" | "calories" | "photoKind" | "source" | "per100g"
   >,
 ): number | undefined {
+  const drink = looksLikeDrinkName(item.dishName, item.brand);
+  const barcodeSource =
+    item.source === "openfoodfacts-barcode" ||
+    item.source === "gigachat-barcode" ||
+    item.photoKind === "barcode";
+  const hasPer100 = Boolean(item.per100g && item.per100g.calories > 0);
   const explicit = item.portionGrams && item.portionGrams > 0 ? item.portionGrams : undefined;
   const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
+
+  const absurdTiny = explicit !== undefined && explicit <= 1;
+  const absurdDrink = drink && explicit !== undefined && explicit < MIN_CREDIBLE_DRINK_PORTION_ML;
+  if ((drink || (barcodeSource && hasPer100)) && (absurdTiny || absurdDrink)) {
+    if (fromText && fromText >= MIN_CREDIBLE_DRINK_PORTION_ML) {
+      return fromText;
+    }
+    return DEFAULT_DRINK_SERVING_ML;
+  }
 
   if (fromText && explicit) {
     return Math.max(explicit, fromText);

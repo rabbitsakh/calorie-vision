@@ -2,6 +2,46 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseFoodRecognitionResponse } from "./ai/parse-response.ts";
 import { nutritionFromPer100g } from "./open-food-facts.ts";
+import { pickPortionGrams } from "./food-recognition.ts";
+
+test("pickPortionGrams ignores vision 1g for drinks and prefers OFF pack", () => {
+  const preferred = pickPortionGrams(
+    {
+      dishName: "Индийский тоник",
+      calories: 0,
+      portionGrams: 1,
+      confidence: 0.8,
+      photoKind: "barcode",
+    },
+    {
+      dishName: "Schweppes Indian Tonic",
+      calories: 66,
+      portionGrams: 330,
+      packGrams: 330,
+      explicitPackGrams: true,
+      per100g: { calories: 20 },
+    },
+  );
+  assert.equal(preferred, 330);
+
+  const withoutExplicit = pickPortionGrams(
+    {
+      dishName: "Индийский тоник",
+      calories: 0,
+      portionGrams: 1,
+      confidence: 0.8,
+      photoKind: "barcode",
+    },
+    {
+      dishName: "Tonic",
+      calories: 20,
+      portionGrams: 100,
+      packGrams: 100,
+      explicitPackGrams: false,
+    },
+  );
+  assert.equal(withoutExplicit, 100);
+});
 
 test("parses a nutrition-label vision response and scales from 100g", () => {
   const vision = parseFoodRecognitionResponse(`{
