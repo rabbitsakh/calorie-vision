@@ -143,8 +143,15 @@ function pickOffImageUrl(product: OffProduct): string | undefined {
   return undefined;
 }
 
+/** Unitless OFF fields below this are usually counts (e.g. product_quantity: 1), not grams. */
+const MIN_UNITLESS_PACK_GRAMS = 10;
+
 export function parsePackGrams(value: string | number | null | undefined): number | undefined {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    // Bare numbers have no unit — reject tiny values so product_quantity:1 is not 1 g.
+    if (value < MIN_UNITLESS_PACK_GRAMS) {
+      return undefined;
+    }
     return Math.round(value);
   }
   if (typeof value !== "string") {
@@ -178,7 +185,11 @@ export function parsePackGrams(value: string | number | null | undefined): numbe
 
   const plain = normalized.match(/^(\d+(?:\.\d+)?)$/);
   if (plain) {
-    return Math.round(Number(plain[1]));
+    const n = Number(plain[1]);
+    if (n < MIN_UNITLESS_PACK_GRAMS) {
+      return undefined;
+    }
+    return Math.round(n);
   }
   return undefined;
 }
@@ -188,7 +199,10 @@ export function resolvePackGrams(
   product: OffProduct,
   preferredGrams?: number,
 ): { grams: number; explicit: boolean } {
-  if (preferredGrams !== undefined && preferredGrams > 0) {
+  if (
+    preferredGrams !== undefined &&
+    preferredGrams >= MIN_UNITLESS_PACK_GRAMS
+  ) {
     return { grams: preferredGrams, explicit: true };
   }
 

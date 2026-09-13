@@ -42,6 +42,7 @@ import {
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { looksLikeDrinkName } from "@/lib/portion-unit";
 import {
   lookupOpenFoodFactsByBarcodeWithRepair,
   nutritionFromPer100g,
@@ -126,7 +127,12 @@ export function nutritionFromLabel(vision: FoodRecognitionResult): FoodRecogniti
   };
 }
 
-function pickPortionGrams(
+/** Vision portions below this are noise (e.g. 1 g from product_quantity / bad OCR). */
+const MIN_VISION_FOOD_PORTION_G = 20;
+const MIN_VISION_DRINK_PORTION_ML = 50;
+
+/** Prefer OFF pack / drink defaults over absurdly small vision portions. */
+export function pickPortionGrams(
   vision: FoodRecognitionResult,
   off: PackNutrition,
 ): number {
@@ -137,10 +143,12 @@ function pickPortionGrams(
     }
   }
 
+  const drink = looksLikeDrinkName(vision.dishName, vision.brand, off.dishName, off.brand);
+  const minVision = drink ? MIN_VISION_DRINK_PORTION_ML : MIN_VISION_FOOD_PORTION_G;
   const visionGrams = vision.portionGrams;
   if (
     visionGrams !== undefined &&
-    visionGrams > 0 &&
+    visionGrams >= minVision &&
     visionGrams <= 500 &&
     visionGrams !== 100
   ) {

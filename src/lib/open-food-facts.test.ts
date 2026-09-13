@@ -21,6 +21,32 @@ test("parses net weight from package quantity text", () => {
   assert.equal(parsePackGrams(180), 180);
 });
 
+test("rejects unitless tiny pack quantities (not grams)", () => {
+  assert.equal(parsePackGrams(1), undefined);
+  assert.equal(parsePackGrams("1"), undefined);
+  assert.equal(parsePackGrams(5), undefined);
+  assert.equal(parsePackGrams("9"), undefined);
+  // Explicit units still parse even when small / liter-scale.
+  assert.equal(parsePackGrams("1 г"), 1);
+  assert.equal(parsePackGrams("1 л"), 1000);
+});
+
+test("resolvePackGrams ignores product_quantity:1 and preferred 1g", () => {
+  const fromQty = resolvePackGrams({
+    product_quantity: 1,
+    quantity: "",
+  });
+  assert.equal(fromQty.grams, 100);
+  assert.equal(fromQty.explicit, false);
+
+  const preferredTiny = resolvePackGrams(
+    { product_quantity: 1, quantity: "330 ml" },
+    1,
+  );
+  assert.equal(preferredTiny.grams, 330);
+  assert.equal(preferredTiny.explicit, true);
+});
+
 test("uses serving size when net quantity is missing", () => {
   const { grams, explicit } = resolvePackGrams({
     quantity: "",

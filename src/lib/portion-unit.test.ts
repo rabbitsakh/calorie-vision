@@ -23,6 +23,8 @@ describe("looksLikeDrinkName", () => {
     assert.equal(looksLikeDrinkName("Чай холодный", "Lipton"), true);
     assert.equal(looksLikeDrinkName("Тоник", "Schweppes"), true);
     assert.equal(looksLikeDrinkName("Швеппс Индиан Тоник"), true);
+    assert.equal(looksLikeDrinkName("Индийский тоник"), true);
+    assert.equal(looksLikeDrinkName("Indian tonic water"), true);
   });
 
   it("detects drinkable yogurt patterns", () => {

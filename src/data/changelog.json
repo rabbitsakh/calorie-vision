@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.21",
+    "date": "2026-09-13",
+    "summary": "fix(barcode): drink confirm no longer treats pack quantity 1 as 1 g",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "OFF: unitless product_quantity <10 (в т.ч. 1) не считается граммами"
+      },
+      {
+        "kind": "fix",
+        "text": "Напитки/штрихкод: порция 1 г → дефолт 250 мл и пересчёт с per100g"
+      },
+      {
+        "kind": "fix",
+        "text": "Confirm: нет «Не хватает калорий» при per100g>0; без чипа «Как на фото (1 г)»"
+      },
+      {
+        "kind": "improvement",
+        "text": "looksLikeDrinkName: тоник/tonic; vision-порции ниже пола игнорируются"
+      }
+    ]
+  },
+  {
     "version": "1.12.20",
     "date": "2026-09-13",
     "summary": "feat(retention): depth 2 — quiet hours TZ, return loops, celebration hosts",
