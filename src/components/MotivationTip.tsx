@@ -6,6 +6,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { cheerPhrase } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { shouldShowMotivationTip } from "@/lib/motivation-tip-gate";
 import { quietHoursLocalHour } from "@/lib/quiet-hours-prefs";
 
 const PANEL_ID = "motivation-tip";
@@ -61,14 +62,15 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
   const yesterdayEmpty = Boolean(
     yesterdayEntry && !yesterdayEntry.logged && !yesterdayEntry.frozen,
   );
-  /** Soft return: empty morning after a gap — tip API already coaches re-entry. */
-  const softReturnMorning =
-    !loggedToday &&
-    (yesterdayEmpty || Boolean(day?.data?.streak?.canFreezeYesterday));
-
-  /** DayHero covers empty active mornings; tip waits until after lunch once logging. */
-  const tipAllowed =
-    selectedDate === today && (softReturnMorning || (loggedToday && hour >= 13));
+  /** DayHero / StreakNudge cover empty & recovery mornings; tip after lunch once logging. */
+  const tipAllowed = shouldShowMotivationTip({
+    selectedIsToday: selectedDate === today,
+    loggedToday,
+    yesterdayEmpty,
+    canFreezeYesterday: Boolean(day?.data?.streak?.canFreezeYesterday),
+    streakAtRisk: Boolean(day?.data?.streak?.streakAtRisk),
+    hour,
+  });
 
   useEffect(() => {
     if (!tipAllowed) {

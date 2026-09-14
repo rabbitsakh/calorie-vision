@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
+import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
@@ -27,11 +28,16 @@ type ReferralNudgeProps = {
 
 /** Soft once-per-week invite nudge after the user has logged something today. */
 export function ReferralNudge({ today, selectedDate, quietHide = false }: ReferralNudgeProps) {
+  const day = useOptionalRationDay();
   const [code, setCode] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const [seenWeek, setSeenWeek] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  const loggedToday =
+    Boolean(day?.data?.streak?.loggedToday) ||
+    (day?.data?.meals.entries.length ?? 0) > 0;
 
   useEffect(() => {
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
@@ -66,6 +72,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
   }, [selectedDate, today, seenWeek]);
 
   if (selectedDate !== today || seenWeek || !code || !shareUrl) return null;
+  if (!loggedToday) return null;
   if (isFirstWeekQuiet()) return null;
 
   if (hidden) {
