@@ -18,7 +18,7 @@ export function BrandMark({ size = 56, className = "", decorative = true }: Bran
       width={size}
       height={size}
       alt={decorative ? "" : "Calorie Vision"}
-      className={`shrink-0 object-contain ${className}`.trim()}
+      className={`block shrink-0 object-contain ${className}`.trim()}
       aria-hidden={decorative ? true : undefined}
       draggable={false}
       decoding="async"
