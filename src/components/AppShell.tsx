@@ -108,10 +108,13 @@ export function AppShell({
           <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <Link href={homeHref} className="inline-flex items-center gap-2 md:gap-3">
+                <Link
+                  href={homeHref}
+                  className="inline-flex min-w-0 max-w-full items-center gap-2 md:gap-3"
+                >
                   <BrandMark size={compact ? 44 : 56} className="md:hidden" />
                   <BrandMark size={compact ? 56 : 72} className="hidden md:block" />
-                  <span className="font-display hidden text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent)] md:inline md:text-sm md:tracking-[0.2em]">
+                  <span className="font-display truncate text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent)] md:text-sm md:tracking-[0.2em]">
                     Calorie Vision
                   </span>
                 </Link>
