@@ -397,6 +397,11 @@ function RationBody({
                     </div>
                     <div className="flex flex-col gap-3 overflow-y-auto p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:gap-4 md:p-4">
                       <StreakWidget selectedDate={date} refreshKey={refreshKey} compact />
+                      <WeeklyChallenge
+                        selectedDate={date}
+                        refreshKey={refreshKey}
+                        onStarted={bump}
+                      />
                       <ProgressHintsRow refreshKey={refreshKey} />
                       <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
                       <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700">

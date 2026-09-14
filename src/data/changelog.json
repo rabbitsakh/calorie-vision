@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.12.26",
+    "date": "2026-09-14",
+    "summary": "fix(habits): вернуть выбор челленджа в sheet «Привычки»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«Челлендж · Выбрать цель» снова открывает список целей недели в привычках"
+      }
+    ]
+  },
+  {
     "version": "1.12.25",
     "date": "2026-09-14",
     "summary": "feat(chests/mascot): wave 3 — soft yields FS, DayHero ambient + pet",
