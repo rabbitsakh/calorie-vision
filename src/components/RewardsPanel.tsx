@@ -5,8 +5,11 @@ import {
   REWARD_GROUP_LABELS,
   RARITY_LABELS,
   frameAvatarClass,
+  isCheerReward,
   isFrameReward,
   isStickerReward,
+  cheerPhrase,
+  lootGlyph,
   nextMetaProgress,
   stickerGlyph,
   type RewardGroup,
@@ -24,6 +27,12 @@ import {
   persistEquippedStickerKey,
   subscribeEquippedSticker,
 } from "@/lib/equipped-sticker";
+import {
+  getEquippedCheerKey,
+  hydrateEquippedCheerFromAccount,
+  persistEquippedCheerKey,
+  subscribeEquippedCheer,
+} from "@/lib/equipped-cheer";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 
@@ -71,23 +80,29 @@ export function RewardsPanel() {
   const [filter, setFilter] = useState<FilterId>("all");
   const [equipped, setEquipped] = useState<string | null>(null);
   const [equippedSticker, setEquippedSticker] = useState<string | null>(null);
+  const [equippedCheer, setEquippedCheer] = useState<string | null>(null);
 
   useEffect(() => {
     setEquipped(getEquippedFrameKey());
     setEquippedSticker(getEquippedStickerKey());
+    setEquippedCheer(getEquippedCheerKey());
     void (async () => {
-      const [frame, sticker] = await Promise.all([
+      const [frame, sticker, cheer] = await Promise.all([
         hydrateEquippedFrameFromAccount(),
         hydrateEquippedStickerFromAccount(),
+        hydrateEquippedCheerFromAccount(),
       ]);
       setEquipped(frame);
       setEquippedSticker(sticker);
+      setEquippedCheer(cheer);
     })();
     const unsubFrame = subscribeEquippedFrame(setEquipped);
     const unsubSticker = subscribeEquippedSticker(setEquippedSticker);
+    const unsubCheer = subscribeEquippedCheer(setEquippedCheer);
     return () => {
       unsubFrame();
       unsubSticker();
+      unsubCheer();
     };
   }, []);
 
@@ -144,6 +159,12 @@ export function RewardsPanel() {
       const next = equippedSticker === key ? null : key;
       void persistEquippedStickerKey(next);
       setEquippedSticker(next);
+      return;
+    }
+    if (isCheerReward(key)) {
+      const next = equippedCheer === key ? null : key;
+      void persistEquippedCheerKey(next);
+      setEquippedCheer(next);
     }
   }
 
@@ -202,9 +223,11 @@ export function RewardsPanel() {
                 {group.items.map((reward) => {
                   const isFrame = reward.group === "frame";
                   const isSticker = reward.group === "sticker";
+                  const isCheer = reward.group === "cheer";
                   const isEquipped =
                     (isFrame && equipped === reward.key) ||
-                    (isSticker && equippedSticker === reward.key);
+                    (isSticker && equippedSticker === reward.key) ||
+                    (isCheer && equippedCheer === reward.key);
                   return (
                     <div
                       key={reward.key}
@@ -228,6 +251,15 @@ export function RewardsPanel() {
                           {stickerGlyph(reward.key)}
                         </div>
                       ) : null}
+                      {isCheer && reward.unlocked ? (
+                        <div
+                          className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm"
+                          aria-hidden
+                          title={cheerPhrase(reward.key) ?? undefined}
+                        >
+                          {lootGlyph(reward.key)}
+                        </div>
+                      ) : null}
                       <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
                         {reward.rarityLabel}
                         {reward.metaOnly ? " · мета" : ""}
@@ -238,7 +270,7 @@ export function RewardsPanel() {
                       <p className="mt-0.5 text-xs opacity-80">
                         {reward.unlocked ? reward.description : "Откроется из сундука"}
                       </p>
-                      {(isFrame || isSticker) && reward.unlocked ? (
+                      {(isFrame || isSticker || isCheer) && reward.unlocked ? (
                         <button
                           type="button"
                           className={`mt-2 w-full rounded-lg px-2 py-1 text-xs font-semibold ${
@@ -249,12 +281,16 @@ export function RewardsPanel() {
                           onClick={() => toggleEquip(reward.key)}
                         >
                           {isEquipped
-                            ? isSticker
-                              ? "В дневнике"
-                              : "Надета"
-                            : isSticker
-                              ? "В дневник"
-                              : "Надеть"}
+                            ? isCheer
+                              ? "В репликах"
+                              : isSticker
+                                ? "В дневнике"
+                                : "Надета"
+                            : isCheer
+                              ? "В реплики"
+                              : isSticker
+                                ? "В дневник"
+                                : "Надеть"}
                         </button>
                       ) : null}
                     </div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MascotCompanionCard } from "@/components/MascotCompanionCard";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { getEquippedCheerKey, hydrateEquippedCheerFromAccount } from "@/lib/equipped-cheer";
 import { cheerPhrase } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
@@ -14,6 +15,12 @@ const CHEER_DAY_KEY = "cv-cheer-day";
 
 async function pickOwnedCheerPhrase(): Promise<string | null> {
   try {
+    await hydrateEquippedCheerFromAccount();
+    const equipped = getEquippedCheerKey();
+    if (equipped) {
+      const phrase = cheerPhrase(equipped);
+      if (phrase) return phrase;
+    }
     const resp = await fetch(withBasePath("/api/rewards"));
     if (!resp.ok) return null;
     const data = (await resp.json()) as {

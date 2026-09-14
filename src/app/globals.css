@@ -4015,6 +4015,31 @@ textarea {
   animation-delay: 1s;
 }
 
+
+.fs-chest-loot-reveal {
+  animation: fs-chest-loot-pop 0.45s ease-out both;
+}
+
+.fs-chest-loot-glyph {
+  font-size: 4.25rem;
+  line-height: 1;
+  filter: drop-shadow(0 8px 24px rgba(251, 191, 36, 0.45));
+}
+
+.fs-chest-loot-quote {
+  text-shadow: 0 1px 8px rgba(15, 23, 42, 0.35);
+}
+
+.fs-chest-loot-frame {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.55), 0 12px 28px rgba(15, 23, 42, 0.25);
+}
+
+@keyframes fs-chest-loot-pop {
+  0% { opacity: 0; transform: scale(0.72) translateY(12px); }
+  70% { opacity: 1; transform: scale(1.06) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 .fs-chest-rarity-pill {
   animation: fs-celeb-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
 }

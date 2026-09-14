@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 import {
   challengeChestSourceKey,
   cheerPhrase,
+  lootGlyph,
   isCheerReward,
   isStickerReward,
   META_OWNED_THRESHOLDS,
@@ -94,4 +95,12 @@ describe("rewards", () => {
     const phrase = cheerPhrase("cheer_steady");
     assert.ok(phrase && phrase.length > 0);
   });
+});
+
+
+test("lootGlyph covers sticker cheer frame", () => {
+  assert.equal(lootGlyph("sticker_sprout"), "🌱");
+  assert.equal(lootGlyph("cheer_steady"), "💬");
+  assert.equal(lootGlyph("frame_teal"), "🖼️");
+  assert.equal(lootGlyph("nope"), "✦");
 });

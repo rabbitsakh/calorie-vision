@@ -41,6 +41,7 @@ export function WeekPerfectCelebration({
     title: "",
     subtitle: "",
     badge: "",
+    lootKey: undefined as string | undefined,
     rarity: undefined as RewardRarity | undefined,
     rarityLabel: undefined as string | undefined,
   });
@@ -74,6 +75,7 @@ export function WeekPerfectCelebration({
             ? loot.description
             : `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`,
           badge: loot ? "✦" : String(logged),
+          lootKey: loot?.key,
           rarity: loot?.rarity,
           rarityLabel: loot?.rarityLabel,
         });
@@ -112,6 +114,7 @@ export function WeekPerfectCelebration({
       subtitle={copy.subtitle}
       pose="cheer"
       badge={copy.badge || undefined}
+      lootKey={copy.lootKey}
       lootRarity={copy.rarity}
       lootRarityLabel={copy.rarityLabel}
       ctaLabel="Круто!"

@@ -14,6 +14,8 @@ import {
   SAVE_TOAST_DELAY_MS,
 } from "@/lib/save-cheer-coordination";
 import { withBasePath } from "@/lib/paths";
+import { getEquippedCheerKey, hydrateEquippedCheerFromAccount } from "@/lib/equipped-cheer";
+import { cheerPhrase } from "@/lib/rewards";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
 const TOAST_MS = 2600;
@@ -80,11 +82,14 @@ export function MascotSaveReaction() {
         window.clearTimeout(showTimerRef.current);
       }
       const mealsBefore = day?.data?.meals.entries.length ?? 0;
+      void hydrateEquippedCheerFromAccount();
+      const equippedPhrase = cheerPhrase(getEquippedCheerKey() ?? "");
       setLine(
-        pickSaveReactionLine({
-          firstMealToday: mealsBefore <= 1,
-          seed: Date.now(),
-        }),
+        equippedPhrase ||
+          pickSaveReactionLine({
+            firstMealToday: mealsBefore <= 1,
+            seed: Date.now(),
+          }),
       );
       setToastKey((value) => value + 1);
       setOpen(false);

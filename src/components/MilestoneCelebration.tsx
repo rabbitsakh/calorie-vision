@@ -59,6 +59,7 @@ type MilestoneCelebrationProps = {
 export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   const [milestone, setMilestone] = useState<number | null>(null);
   const [loot, setLoot] = useState<{
+    key?: string;
     title: string;
     description: string;
     rarity?: RewardRarity;
@@ -75,6 +76,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
       const result = await openChest({ source: "streak", milestone: next });
       if (result?.reward) {
         setLoot({
+          key: result.reward.key,
           title: result.reward.title,
           description: result.reward.description,
           rarity: result.reward.rarity,
@@ -98,6 +100,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
       badge={String(milestone)}
       title={loot?.title ?? `${milestone} ${pluralDays(milestone)} — сундук!`}
       subtitle={subtitle}
+      lootKey={loot?.key}
       lootRarity={loot?.rarity}
       lootRarityLabel={loot?.rarityLabel}
       durationMs={0}

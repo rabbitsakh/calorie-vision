@@ -5,6 +5,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { FoodAddHost, useFoodAddUi } from "@/components/FoodAddHost";
 import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
+import { ReferralChestToast } from "@/components/ReferralChestToast";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { WeightQuickSheet } from "@/components/WeightQuickSheet";
@@ -174,6 +175,7 @@ export function AppShell({
 
         <MobileTabBar date={date} showAdd={foodAddEnabled} />
         <MetaChestCelebration />
+        <ReferralChestToast />
         <WeightQuickSheet />
       </div>
     </FoodAddHost>

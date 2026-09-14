@@ -75,6 +75,7 @@ export function WeeklyChallenge({
   const [switching, setSwitching] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [chestReward, setChestReward] = useState<{
+    key?: string;
     title: string;
     description: string;
     rarity?: RewardRarity;
@@ -93,6 +94,7 @@ export function WeeklyChallenge({
       const result = await openChest({ source: "challenge", weekStart, challengeKey });
       if (result?.reward) {
         setChestReward({
+          key: result.reward.key,
           title: result.reward.title,
           description: result.reward.description || `${challengeTitle} — неделя в копилку.`,
           rarity: result.reward.rarity,
@@ -209,6 +211,7 @@ export function WeeklyChallenge({
             ? `${data.active.title} — неделя в копилку.`
             : "Отличная работа на этой неделе."
       }
+      lootKey={chestReward?.key}
       lootRarity={chestReward?.rarity}
       lootRarityLabel={chestReward?.rarityLabel}
       badge="✦"
