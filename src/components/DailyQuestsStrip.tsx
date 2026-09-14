@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { openChest } from "@/lib/chest-client";
+import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
@@ -75,6 +75,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
       return;
     }
 
+    flushPendingMetaChests();
     const nextIn = result.nextChestIn ?? QUEST_DAYS_PER_CHEST;
     setHint(
       nextIn <= 0
@@ -145,6 +146,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         onClose={() => {
           setCelebrate(false);
           setLoot(null);
+          flushPendingMetaChests();
         }}
       />
     </>

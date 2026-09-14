@@ -7,6 +7,7 @@ import { ChestOpenStage } from "@/components/ChestOpenStage";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
+import { StickerArt } from "@/components/StickerArt";
 import {
   bindCelebrationPortalViewport,
   closeCelebrationPortal,
@@ -54,6 +55,8 @@ type FullscreenCelebrationProps = {
   /** Optional mute-for-today control (#33). */
   muteTodayLabel?: string;
   onMuteToday?: () => void;
+  /** Meta chests: do not consume the daily fullscreen slot. */
+  skipDailyCap?: boolean;
   onClose: () => void;
 };
 
@@ -134,6 +137,7 @@ export function FullscreenCelebration({
   lootKey,
   muteTodayLabel = "Не показывать сегодня",
   onMuteToday,
+  skipDailyCap = false,
   onClose,
 }: FullscreenCelebrationProps) {
   const [mounted, setMounted] = useState(false);
@@ -206,7 +210,7 @@ export function FullscreenCelebration({
   useEffect(() => {
     if (!requestCelebration || !releaseCelebration) return;
     if (open && !quiet) {
-      const accepted = requestCelebration(celebrationId);
+      const accepted = requestCelebration(celebrationId, { skipDailyCap });
       if (!accepted) {
         onClose();
         return;
@@ -215,7 +219,7 @@ export function FullscreenCelebration({
       releaseCelebration(celebrationId);
     }
     return () => releaseCelebration(celebrationId);
-  }, [open, quiet, celebrationId, requestCelebration, releaseCelebration, onClose]);
+  }, [open, quiet, celebrationId, requestCelebration, releaseCelebration, onClose, skipDailyCap]);
 
   useEffect(() => {
     if (!show || !autoClose) return;
@@ -271,6 +275,14 @@ export function FullscreenCelebration({
                     className={`fs-chest-loot-frame mb-3 h-20 w-20 rounded-full bg-white/25 ${frameAvatarClass(lootKey)}`}
                     aria-hidden
                   />
+                ) : rewardDef(lootKey)?.group === "sticker" ? (
+                  <div className="fs-chest-loot-glyph mb-2 flex items-center justify-center">
+                    <StickerArt
+                      stickerKey={lootKey}
+                      size={72}
+                      title={rewardDef(lootKey)?.title}
+                    />
+                  </div>
                 ) : (
                   <div className="fs-chest-loot-glyph mb-2" aria-hidden>
                     {lootGlyph(lootKey)}

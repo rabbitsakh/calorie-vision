@@ -44,6 +44,7 @@ export function MetaChestCelebration() {
       badge="★"
       durationMs={0}
       ctaLabel="Круто!"
+      skipDailyCap
       onClose={close}
     />
   );

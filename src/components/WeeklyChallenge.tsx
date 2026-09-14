@@ -9,7 +9,7 @@ import {
   markSoftCelebrationSeen,
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
-import { openChest } from "@/lib/chest-client";
+import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -87,6 +87,7 @@ export function WeeklyChallenge({
   const closeCelebrate = useCallback(() => {
     setCelebrate(false);
     setChestReward(null);
+    flushPendingMetaChests();
   }, []);
 
   const openChallengeChest = useCallback(
