@@ -970,7 +970,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Macros */}
           <section className="card p-4 md:p-6">
             <StatsSectionHeader
-              title="БЖУ, клетчатка и сахар"
+              title="БЖУ по дням"
               meta={
                 data.waterTarget != null && (data.avgWaterMl ?? 0) > 0 ? (
                   <span>
