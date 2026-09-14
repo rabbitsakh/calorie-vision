@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
+  isSoftCelebrationSuppressed,
   markSoftCelebrationSeen,
 } from "./soft-celebration.ts";
 import { GAMIFICATION_QUIET_KEY } from "./gamification-quiet.ts";
@@ -52,4 +53,23 @@ test("quiet blocked when gamification quiet is on", () => {
   assert.equal(isSoftCelebrationQuietBlocked(), true);
 
   delete (globalThis as { window?: unknown }).window;
+});
+
+test("soft celebration yields to fullscreen gate", () => {
+  assert.equal(
+    isSoftCelebrationSuppressed({ open: true, quietBlocked: false, fullscreenActiveId: null }),
+    false,
+  );
+  assert.equal(
+    isSoftCelebrationSuppressed({ open: true, quietBlocked: false, fullscreenActiveId: "fs-1" }),
+    true,
+  );
+  assert.equal(
+    isSoftCelebrationSuppressed({ open: false, quietBlocked: false, fullscreenActiveId: null }),
+    true,
+  );
+  assert.equal(
+    isSoftCelebrationSuppressed({ open: true, quietBlocked: true, fullscreenActiveId: null }),
+    true,
+  );
 });

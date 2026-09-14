@@ -314,9 +314,10 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             size="sm"
             title={copy.headline}
             entrance
-            interactive={false}
+            idleReel
+            interactive
           />
-          <DiarySticker className="absolute -bottom-1 -right-1" />
+          <DiarySticker className="pointer-events-none absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-teal-800/70">
