@@ -14,7 +14,7 @@ import {
   parsePushReminderPrefs,
   type PushReminderPrefs,
 } from "@/lib/push-reminder-schedule";
-import { isFrameReward, isStickerReward } from "@/lib/rewards";
+import { isCheerReward, isFrameReward, isStickerReward } from "@/lib/rewards";
 import { saveUploadedImage } from "@/lib/upload";
 import { isValidWaterTargetMl } from "@/lib/water-target";
 import { Prisma } from "@prisma/client";
@@ -32,6 +32,15 @@ function splitName(fullName: string | null | undefined): { firstName: string; la
     firstName: parts[0] ?? "",
     lastName: parts.slice(1).join(" "),
   };
+}
+
+
+async function userOwnsReward(userId: string, rewardKey: string): Promise<boolean> {
+  const row = await prisma.userReward.findFirst({
+    where: { userId, rewardKey },
+    select: { id: true },
+  });
+  return Boolean(row);
 }
 
 export async function GET() {
@@ -69,6 +78,7 @@ export async function GET() {
           referredByUserId: true,
           equippedFrameKey: true,
           equippedStickerKey: true,
+equippedCheerKey: true,
         },
       }),
       prisma.account.findMany({
@@ -115,6 +125,7 @@ export async function GET() {
       referredByUserId: user.referredByUserId ?? null,
       equippedFrameKey: user.equippedFrameKey ?? null,
       equippedStickerKey: user.equippedStickerKey ?? null,
+equippedCheerKey: user.equippedCheerKey ?? null,
       linkedProviders,
       emailLocked: linkedProviders.includes("google") || linkedProviders.includes("vk"),
       referralCode: code,
@@ -155,6 +166,7 @@ export async function PUT(request: NextRequest) {
       allergens?: string[] | null;
       equippedFrameKey?: string | null;
       equippedStickerKey?: string | null;
+equippedCheerKey?: string | null;
     };
 
     const [currentUser, accounts] = await Promise.all([
@@ -197,6 +209,7 @@ export async function PUT(request: NextRequest) {
       allergensJson?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
       equippedFrameKey?: string | null;
       equippedStickerKey?: string | null;
+equippedCheerKey?: string | null;
     } = {};
 
     if (body.firstName !== undefined || body.lastName !== undefined) {
@@ -294,6 +307,8 @@ export async function PUT(request: NextRequest) {
         data.equippedFrameKey = null;
       } else if (!isFrameReward(raw)) {
         return NextResponse.json({ error: "Неизвестная рамка" }, { status: 400 });
+      } else if (!(await userOwnsReward(session.user.id, raw))) {
+        return NextResponse.json({ error: "Рамка ещё не открыта" }, { status: 400 });
       } else {
         data.equippedFrameKey = raw;
       }
@@ -305,8 +320,23 @@ export async function PUT(request: NextRequest) {
         data.equippedStickerKey = null;
       } else if (!isStickerReward(raw)) {
         return NextResponse.json({ error: "Неизвестная наклейка" }, { status: 400 });
+      } else if (!(await userOwnsReward(session.user.id, raw))) {
+        return NextResponse.json({ error: "Наклейка ещё не открыта" }, { status: 400 });
       } else {
         data.equippedStickerKey = raw;
+      }
+    }
+
+    if (body.equippedCheerKey !== undefined) {
+      const raw = typeof body.equippedCheerKey === "string" ? body.equippedCheerKey.trim() : "";
+      if (!raw) {
+        data.equippedCheerKey = null;
+      } else if (!isCheerReward(raw)) {
+        return NextResponse.json({ error: "Неизвестная фраза" }, { status: 400 });
+      } else if (!(await userOwnsReward(session.user.id, raw))) {
+        return NextResponse.json({ error: "Фраза ещё не открыта" }, { status: 400 });
+      } else {
+        data.equippedCheerKey = raw;
       }
     }
 
@@ -459,6 +489,7 @@ export async function PUT(request: NextRequest) {
         allergensJson: true,
         equippedFrameKey: true,
         equippedStickerKey: true,
+equippedCheerKey: true,
       },
     });
 
@@ -486,6 +517,7 @@ export async function PUT(request: NextRequest) {
       allergens: parseAllergensJson(user.allergensJson),
       equippedFrameKey: user.equippedFrameKey ?? null,
       equippedStickerKey: user.equippedStickerKey ?? null,
+equippedCheerKey: user.equippedCheerKey ?? null,
       linkedProviders,
       emailLocked,
     });

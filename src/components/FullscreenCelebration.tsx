@@ -18,7 +18,13 @@ import {
   areCelebrationsInQuietHours,
   hydrateQuietHoursFromAccount,
 } from "@/lib/quiet-hours-prefs";
-import type { RewardRarity } from "@/lib/rewards";
+import {
+  cheerPhrase,
+  frameAvatarClass,
+  lootGlyph,
+  rewardDef,
+  type RewardRarity,
+} from "@/lib/rewards";
 import { claimSaveCheerForFullscreen } from "@/lib/save-cheer-coordination";
 
 export type CelebrationVariant =
@@ -43,6 +49,8 @@ type FullscreenCelebrationProps = {
   /** Chest loot rarity (wave 5). */
   lootRarity?: RewardRarity;
   lootRarityLabel?: string;
+  /** Reward catalog key — shows glyph after chest lid opens. */
+  lootKey?: string;
   /** Optional mute-for-today control (#33). */
   muteTodayLabel?: string;
   onMuteToday?: () => void;
@@ -123,6 +131,7 @@ export function FullscreenCelebration({
   ctaLabel = "Продолжить",
   lootRarity,
   lootRarityLabel,
+  lootKey,
   muteTodayLabel = "Не показывать сегодня",
   onMuteToday,
   onClose,
@@ -255,19 +264,46 @@ export function FullscreenCelebration({
           />
         ) : (
           <>
-            <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
-              <div className="fs-celeb-halo" aria-hidden />
-              <MascotRenderer pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
-              {badge ? (
-                <span
-                  className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}
-                >
-                  {badge}
-                </span>
-              ) : null}
-            </div>
+            {isChest && lootKey ? (
+              <div className="fs-chest-loot-reveal mb-6 flex flex-col items-center">
+                {rewardDef(lootKey)?.group === "frame" ? (
+                  <div
+                    className={`fs-chest-loot-frame mb-3 h-20 w-20 rounded-full bg-white/25 ${frameAvatarClass(lootKey)}`}
+                    aria-hidden
+                  />
+                ) : (
+                  <div className="fs-chest-loot-glyph mb-2" aria-hidden>
+                    {lootGlyph(lootKey)}
+                  </div>
+                )}
+                {rewardDef(lootKey)?.group === "cheer" && cheerPhrase(lootKey) ? (
+                  <p className="fs-chest-loot-quote mb-3 max-w-xs text-lg font-semibold text-amber-50">
+                    «{cheerPhrase(lootKey)}»
+                  </p>
+                ) : null}
+                {lootRarityLabel ? (
+                  <span
+                    className={`fs-chest-rarity-pill fs-chest-rarity-${lootRarity ?? "common"} mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide`}
+                  >
+                    {lootRarityLabel}
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
+                <div className="fs-celeb-halo" aria-hidden />
+                <MascotRenderer pose={resolvedPose} size="xl" className="fs-celeb-mascot" entrance />
+                {badge ? (
+                  <span
+                    className={`fs-celeb-badge absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-sm font-bold text-white shadow-lg ${theme.badgeClass}`}
+                  >
+                    {badge}
+                  </span>
+                ) : null}
+              </div>
+            )}
 
-            {isChest && lootRarityLabel ? (
+            {isChest && lootRarityLabel && !lootKey ? (
               <span
                 className={`fs-chest-rarity-pill fs-chest-rarity-${lootRarity ?? "common"} mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide`}
               >

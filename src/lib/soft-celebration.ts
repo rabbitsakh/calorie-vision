@@ -14,7 +14,8 @@ export type SoftCelebrationKind =
   | "checkin-done"
   | "protein-goal"
   | "weight-target"
-  | "quest-chest";
+  | "quest-chest"
+  | "referral-chest";
 
 function storageKey(kind: SoftCelebrationKind, date: string): string {
   return `soft-celeb-${kind}-${date}`;

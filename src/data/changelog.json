@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.23",
+    "date": "2026-09-14",
+    "summary": "feat(chests/mascot): wave 1 — loot reveal, cheer equip, ownership, referral toast",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "После открытия сундука — глиф и название награды до CTA"
+      },
+      {
+        "kind": "improvement",
+        "text": "Фразы маскота можно экипировать: совет дня и тост сохранения"
+      },
+      {
+        "kind": "fix",
+        "text": "Экипировка рамки/наклейки/фразы только из открытой коллекции"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мягкий тост пригласившему, когда друг забрал реферальный сундук"
+      }
+    ]
+  },
+  {
     "version": "1.12.22",
     "date": "2026-09-13",
     "summary": "feat(recog): depth 4 — canteen plate priority, minItems eval, correction kinds",

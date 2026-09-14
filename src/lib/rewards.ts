@@ -285,6 +285,18 @@ export function stickerGlyph(key: string | null | undefined): string {
   return map[key] ?? "🏷️";
 }
 
+/** Visual glyph for chest loot reveal / collection cards. */
+export function lootGlyph(key: string | null | undefined): string {
+  if (!key) return "✦";
+  const def = rewardDef(key);
+  if (!def) return "✦";
+  if (def.group === "sticker") return stickerGlyph(key) || "🏷️";
+  if (def.group === "cheer") return "💬";
+  if (def.group === "frame") return "🖼️";
+  return "✦";
+}
+
+
 export function challengeChestSourceKey(weekStart: string, challengeKey: string): string {
   return `challenge:${weekStart}:${challengeKey}`;
 }

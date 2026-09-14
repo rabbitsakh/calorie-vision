@@ -38,6 +38,7 @@ export function MetaChestCelebration() {
       pose="cheer"
       title={current.title}
       subtitle={current.description || "Мета-сундук коллекции"}
+      lootKey={current.key}
       lootRarity={current.rarity as RewardRarity | undefined}
       lootRarityLabel={current.rarityLabel}
       badge="★"

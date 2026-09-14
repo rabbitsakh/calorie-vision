@@ -29,6 +29,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
   const day = useOptionalRationDay();
   const [celebrate, setCelebrate] = useState(false);
   const [loot, setLoot] = useState<{
+    key?: string;
     title: string;
     description: string;
     rarity?: RewardRarity;
@@ -63,6 +64,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     if (result.reward) {
       markSoftCelebrationSeen("quest-chest", today);
       setLoot({
+        key: result.reward.key,
         title: result.reward.title,
         description: result.reward.description,
         rarity: result.reward.rarity,
@@ -133,6 +135,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         subtitle={
           loot ? loot.description : "Несколько спокойных дней — и вот награда."
         }
+        lootKey={loot?.key}
         lootRarity={loot?.rarity}
         lootRarityLabel={loot?.rarityLabel}
         badge="✦"

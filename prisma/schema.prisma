@@ -78,6 +78,8 @@ model User {
   equippedFrameKey   String? @db.VarChar(64)
   /** Equipped diary sticker key (synced across devices). */
   equippedStickerKey String? @db.VarChar(64)
+  /** Equipped mascot cheer phrase key (synced across devices). */
+  equippedCheerKey   String? @db.VarChar(64)
   accounts      Account[]
   sessions      Session[]
   mealEntries   MealEntry[]
