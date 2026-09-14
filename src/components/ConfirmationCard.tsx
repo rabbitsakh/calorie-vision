@@ -35,7 +35,6 @@ import {
   applyFoodLookupToPortion,
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
-  resolveDisplayPortionGrams,
   resolvePer100gForScaling,
   describeNutritionBasis,
   isMissingCaloriesForReview,
