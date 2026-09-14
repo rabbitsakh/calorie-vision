@@ -3522,7 +3522,7 @@ textarea {
     display: grid;
     align-items: stretch;
     gap: 0;
-    min-height: calc(100svh - 4.5rem);
+    min-height: calc(100svh - var(--landing-logo-size, 48px));
     padding-bottom: 2.5rem;
   }
 
