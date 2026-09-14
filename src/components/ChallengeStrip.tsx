@@ -20,7 +20,7 @@ type ChallengeStripProps = {
 
 /**
  * Compact challenge progress under DayHero — only when a challenge is active.
- * Empty / pick lives in «Привычки» (1.10.3 declutter).
+ * Empty / pick lives in «Привычки» sheet (full WeeklyChallenge).
  */
 export function ChallengeStrip({ selectedDate, refreshKey, onOpenHabits }: ChallengeStripProps) {
   const day = useOptionalRationDay();
