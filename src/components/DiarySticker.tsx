@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { StickerArt } from "@/components/StickerArt";
 import {
   getEquippedStickerKey,
   hydrateEquippedStickerFromAccount,
@@ -23,11 +24,10 @@ export function DiarySticker({ className = "" }: { className?: string }) {
 
   return (
     <span
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-sm shadow-sm ring-1 ring-teal-900/5 ${className}`.trim()}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 shadow-sm ring-1 ring-teal-900/5 ${className}`.trim()}
       title="Наклейка из коллекции"
-      aria-hidden
     >
-      {glyph}
+      <StickerArt stickerKey={key} size={20} title="Наклейка из коллекции" />
     </span>
   );
 }

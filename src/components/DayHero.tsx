@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Mascot } from "@/components/Mascot";
+import { LiveMascot } from "@/components/LiveMascot";
 import { DiarySticker } from "@/components/DiarySticker";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
@@ -309,7 +309,13 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       <div className="day-hero-glow" aria-hidden />
       <div className="relative flex items-center gap-3">
         <div className="day-hero-mascot relative shrink-0">
-          <Mascot pose={copy.pose} size="sm" title={copy.headline} entrance animate />
+          <LiveMascot
+            pose={copy.pose}
+            size="sm"
+            title={copy.headline}
+            entrance
+            interactive={false}
+          />
           <DiarySticker className="absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">

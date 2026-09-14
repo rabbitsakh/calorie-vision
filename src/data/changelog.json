@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.12.24",
+    "date": "2026-09-14",
+    "summary": "feat(chests/mascot): wave 2 — grant checks, meta queue, sticker art, DayHero liveness",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Выдача сундука на сервере только при реальной вехе (челлендж, серия, неделя, квесты)"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мета-сундук после закрытия основного; не сжигает дневной лимит fullscreen"
+      },
+      {
+        "kind": "improvement",
+        "text": "Наклейки коллекции — SVG вместо эмодзи в дневнике, панели и лут-ревеале"
+      },
+      {
+        "kind": "improvement",
+        "text": "DayHero: живой маскот (idle reel) без тапа"
+      }
+    ]
+  },
+  {
     "version": "1.12.23",
     "date": "2026-09-14",
     "summary": "feat(chests/mascot): wave 1 — loot reveal, cheer equip, ownership, referral toast",

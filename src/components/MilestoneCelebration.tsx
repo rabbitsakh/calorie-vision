@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import { openChest } from "@/lib/chest-client";
+import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
 import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
@@ -108,6 +108,7 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
       onClose={() => {
         setMilestone(null);
         setLoot(null);
+        flushPendingMetaChests();
       }}
     />
   );

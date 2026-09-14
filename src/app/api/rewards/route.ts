@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
+import {
+  assertChallengeChestEligible,
+  assertQuestDayEligible,
+  assertStreakChestEligible,
+  assertWeekChestEligible,
+} from "@/lib/chest-eligibility";
 import { grantChestReward, markQuestDayComplete } from "@/lib/reward-grant";
 import {
   challengeChestSourceKey,
@@ -14,7 +20,6 @@ import {
   weekChestSourceKey,
   type ChestSource,
 } from "@/lib/rewards";
-import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +72,6 @@ type GrantBody = {
   challengeKey?: string;
   milestone?: number;
   date?: string;
-  sourceKey?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -80,32 +84,23 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
 
     if (source === "challenge") {
-      const weekStart = body.weekStart?.trim();
-      const challengeKey = body.challengeKey?.trim();
-      if (!weekStart || !challengeKey) {
-        return NextResponse.json({ error: "Нужны weekStart и challengeKey" }, { status: 400 });
+      const weekStart = body.weekStart?.trim() ?? "";
+      const challengeKey = body.challengeKey?.trim() ?? "";
+      const eligible = await assertChallengeChestEligible(userId, weekStart, challengeKey);
+      if (!eligible.ok) {
+        return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
-      const challenge = await prisma.userChallenge.findFirst({
-        where: {
-          userId,
-          weekStart,
-          challengeKey,
-          completedAt: { not: null },
-        },
-      });
-      if (!challenge) {
-        return NextResponse.json({ error: "Челлендж ещё не закрыт" }, { status: 400 });
-      }
-      const sourceKey =
-        body.sourceKey?.trim() || challengeChestSourceKey(weekStart, challengeKey);
+      // Always derive sourceKey server-side — never trust client-supplied keys.
+      const sourceKey = challengeChestSourceKey(weekStart, challengeKey);
       const result = await grantChestReward(userId, "challenge", sourceKey, sourceKey);
       return NextResponse.json(result);
     }
 
     if (source === "streak") {
       const milestone = Number(body.milestone);
-      if (!Number.isFinite(milestone) || !CELEBRATION_STREAK_MILESTONES.includes(milestone)) {
-        return NextResponse.json({ error: "Неверная веха серии" }, { status: 400 });
+      const eligible = await assertStreakChestEligible(userId, milestone);
+      if (!eligible.ok) {
+        return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
       const sourceKey = streakChestSourceKey(milestone);
       const result = await grantChestReward(userId, "streak", sourceKey, sourceKey);
@@ -113,9 +108,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (source === "week") {
-      const weekStart = body.weekStart?.trim();
-      if (!weekStart) {
-        return NextResponse.json({ error: "Нужен weekStart" }, { status: 400 });
+      const weekStart = body.weekStart?.trim() ?? "";
+      const eligible = await assertWeekChestEligible(userId, weekStart);
+      if (!eligible.ok) {
+        return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
       const sourceKey = weekChestSourceKey(weekStart);
       const result = await grantChestReward(userId, "week", sourceKey, sourceKey);
@@ -123,9 +119,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (source === "quest") {
-      const date = body.date?.trim();
-      if (!date) {
-        return NextResponse.json({ error: "Нужна date" }, { status: 400 });
+      const date = body.date?.trim() ?? "";
+      const eligible = await assertQuestDayEligible(userId, date);
+      if (!eligible.ok) {
+        return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
       const dayKey = questDaySourceKey(date);
       const { questDayCount } = await markQuestDayComplete(userId, date, dayKey);

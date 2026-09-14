@@ -11,10 +11,10 @@ import {
   cheerPhrase,
   lootGlyph,
   nextMetaProgress,
-  stickerGlyph,
   type RewardGroup,
   type RewardRarity,
 } from "@/lib/rewards";
+import { StickerArt } from "@/components/StickerArt";
 import {
   getEquippedFrameKey,
   hydrateEquippedFrameFromAccount,
@@ -244,11 +244,8 @@ export function RewardsPanel() {
                         />
                       ) : null}
                       {isSticker && reward.unlocked ? (
-                        <div
-                          className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm"
-                          aria-hidden
-                        >
-                          {stickerGlyph(reward.key)}
+                        <div className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
+                          <StickerArt stickerKey={reward.key} size={28} title={reward.title} />
                         </div>
                       ) : null}
                       {isCheer && reward.unlocked ? (

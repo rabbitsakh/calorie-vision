@@ -16,10 +16,15 @@ import {
   isFullscreenCelebrationCapReached,
 } from "@/lib/celebration-daily-cap";
 
+type RequestCelebrationOptions = {
+  /** Meta follow-ups should not burn the primary daily fullscreen budget. */
+  skipDailyCap?: boolean;
+};
+
 type CelebrationGateValue = {
   activeId: string | null;
   /** Queue this celebration; becomes active immediately if none is showing. False = daily cap. */
-  requestCelebration: (id: string) => boolean;
+  requestCelebration: (id: string, opts?: RequestCelebrationOptions) => boolean;
   /** Release when closed or unmounted; promotes the next queued id. */
   releaseCelebration: (id: string) => void;
 };
@@ -36,9 +41,14 @@ export function CelebrationOrchestrator({ children }: { children: ReactNode }) {
   const activeIdRef = useRef<string | null>(null);
   const queueRef = useRef<string[]>([]);
   const countedRef = useRef<Set<string>>(new Set());
+  const skipCapRef = useRef<Set<string>>(new Set());
 
-  const admit = useCallback((id: string): boolean => {
+  const admit = useCallback((id: string, skipDailyCap = false): boolean => {
     if (countedRef.current.has(id)) return true;
+    if (skipDailyCap) {
+      countedRef.current.add(id);
+      return true;
+    }
     if (isFullscreenCelebrationCapReached()) return false;
     if (!consumeFullscreenCelebrationSlot()) return false;
     countedRef.current.add(id);
@@ -46,19 +56,23 @@ export function CelebrationOrchestrator({ children }: { children: ReactNode }) {
   }, []);
 
   const requestCelebration = useCallback(
-    (id: string): boolean => {
+    (id: string, opts?: RequestCelebrationOptions): boolean => {
+      const skipDailyCap = Boolean(opts?.skipDailyCap);
+      if (skipDailyCap) skipCapRef.current.add(id);
       if (activeIdRef.current === id) return true;
 
       if (activeIdRef.current == null) {
-        if (!admit(id)) return false;
+        if (!admit(id, skipDailyCap)) return false;
         activeIdRef.current = id;
         setActiveId(id);
         return true;
       }
 
       if (!queueRef.current.includes(id)) {
-        const remaining = FS_CELEB_DAILY_CAP - getFullscreenCelebrationCount();
-        if (remaining <= queueRef.current.length) return false;
+        if (!skipDailyCap) {
+          const remaining = FS_CELEB_DAILY_CAP - getFullscreenCelebrationCount();
+          if (remaining <= queueRef.current.length) return false;
+        }
         queueRef.current.push(id);
       }
       return true;
@@ -74,7 +88,8 @@ export function CelebrationOrchestrator({ children }: { children: ReactNode }) {
       let next: string | null = null;
       while (queueRef.current.length > 0) {
         const candidate = queueRef.current.shift()!;
-        if (admit(candidate)) {
+        const skip = skipCapRef.current.has(candidate);
+        if (admit(candidate, skip)) {
           next = candidate;
           break;
         }

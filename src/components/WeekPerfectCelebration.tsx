@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import { openChest } from "@/lib/chest-client";
+import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
@@ -46,7 +46,10 @@ export function WeekPerfectCelebration({
     rarityLabel: undefined as string | undefined,
   });
   const prevPerfect = useRef<boolean | null>(null);
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    flushPendingMetaChests();
+  }, []);
 
   useEffect(() => {
     if (selectedDate !== today) return;
