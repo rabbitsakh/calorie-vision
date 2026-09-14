@@ -147,3 +147,68 @@ export function correctionKindsFromMealFields(entry: {
     !nearlyEqualNutrition(entry.calories, entry.originalCalories, 1);
   return { name, portion: false, nutrition };
 }
+
+/**
+ * Skip correction memory when the save is within display-rounding noise of the
+ * recognition baseline (name unchanged and nutrition/portion near-equal).
+ */
+export function shouldRememberFoodCorrection(
+  saved: ConfirmCorrectionSaved,
+  original: FoodRecognitionResult,
+): boolean {
+  return wasRecognitionCorrected(saved, original);
+}
+
+/** Gate memory when only originalCalories/originalDish were persisted (no full vision object). */
+export function shouldRememberFoodCorrectionFromFields(input: {
+  dishName: string;
+  calories: number;
+  protein?: number | null;
+  fat?: number | null;
+  carbs?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
+  portionGrams?: number | null;
+  originalDish?: string | null;
+  originalCalories?: number | null;
+  originalProtein?: number | null;
+  originalFat?: number | null;
+  originalCarbs?: number | null;
+  originalFiber?: number | null;
+  originalSugar?: number | null;
+}): boolean {
+  const originalDish = input.originalDish?.trim();
+  if (!originalDish) return false;
+
+  const nameChanged = input.dishName.trim() !== originalDish;
+  if (nameChanged) return true;
+
+  if (
+    input.originalCalories !== null &&
+    input.originalCalories !== undefined &&
+    !nearlyEqualNutrition(input.calories, input.originalCalories, 1)
+  ) {
+    return true;
+  }
+
+  for (const [saved, original] of [
+    [input.protein, input.originalProtein],
+    [input.fat, input.originalFat],
+    [input.carbs, input.originalCarbs],
+    [input.fiber, input.originalFiber],
+    [input.sugar, input.originalSugar],
+  ] as Array<[number | null | undefined, number | null | undefined]>) {
+    if (
+      original !== null &&
+      original !== undefined &&
+      saved !== null &&
+      saved !== undefined &&
+      !nearlyEqualNutrition(saved, original, 0.15)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+

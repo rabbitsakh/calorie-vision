@@ -1,4 +1,9 @@
 import type { FoodRecognitionResult } from "../food-types";
+import {
+  countIncompleteMultiDishItems,
+  mergeMultiDishRecognition,
+  reconcileMultiDishFromItems,
+} from "../recognition-items";
 import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "../package-name-guard";
 import { getRecognitionLowConfidenceThreshold } from "./recognition-thresholds";
 import { looksLikeMultiDishName } from "./multi-dish-name";
@@ -154,6 +159,11 @@ export function isBetterRecognitionResult(
   const newItems = candidate.items?.length ?? 0;
   if (newItems > curItems) return true;
 
+
+  const curIncomplete = countIncompleteMultiDishItems(current);
+  const newIncomplete = countIncompleteMultiDishItems(candidate);
+  if (curItems >= 2 && newItems >= 2 && newIncomplete < curIncomplete) return true;
+
   if (candidate.calories > current.calories && current.calories <= 0) return true;
 
   if (
@@ -201,4 +211,23 @@ export function isBetterRecognitionResult(
   }
 
   return false;
+}
+
+/**
+ * Prefer item-wise merge when both plates have ≥2 items (fills incomplete slots
+ * without dropping already-good dishes), then reconcile parent totals.
+ */
+export function acceptMultiDishRetry(
+  current: FoodRecognitionResult,
+  candidate: FoodRecognitionResult,
+): FoodRecognitionResult {
+  const curItems = current.items?.length ?? 0;
+  const newItems = candidate.items?.length ?? 0;
+  if (curItems >= 2 && newItems >= 2) {
+    return mergeMultiDishRecognition(current, candidate);
+  }
+  if (newItems >= 2) {
+    return reconcileMultiDishFromItems(candidate);
+  }
+  return candidate;
 }
