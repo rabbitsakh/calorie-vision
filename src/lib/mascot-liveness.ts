@@ -32,6 +32,11 @@ export function nextIdleGestureDelayMs(): number {
   return 7000 + Math.floor(Math.random() * 12000);
 }
 
+/** Whether ambient reel should schedule gestures (pose-agnostic; DayHero uses cheer/tip/…). */
+export function shouldRunAmbientReel(idleReel: boolean, reducedMotion = false): boolean {
+  return idleReel && !reducedMotion;
+}
+
 export function pickIdleGesture(exclude?: MascotGesture): MascotGesture {
   const pool = exclude ? IDLE_GESTURES.filter((g) => g !== exclude) : IDLE_GESTURES;
   return pool[Math.floor(Math.random() * pool.length)] ?? "look";

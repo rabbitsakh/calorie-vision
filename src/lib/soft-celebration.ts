@@ -62,6 +62,16 @@ export function isSoftCelebrationQuietBlocked(): boolean {
   return isGamificationQuiet() || areCelebrationsInQuietHours();
 }
 
+/** Soft cards yield while a fullscreen celebration owns the gate (wave 3). */
+export function isSoftCelebrationSuppressed(opts: {
+  open: boolean;
+  quietBlocked?: boolean;
+  fullscreenActiveId?: string | null;
+}): boolean {
+  const quiet = opts.quietBlocked ?? isSoftCelebrationQuietBlocked();
+  return !opts.open || quiet || Boolean(opts.fullscreenActiveId);
+}
+
 function muteKey(date: string): string {
   return `soft-celeb-muted-${date}`;
 }

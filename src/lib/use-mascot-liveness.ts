@@ -24,7 +24,7 @@ type UseMascotLivenessOptions = {
  * Returns gesture class and pointer handler to spread onto <Mascot />.
  */
 export function useMascotLiveness(options: UseMascotLivenessOptions = {}) {
-  const { pose = "idle", idleReel = true, interactive = false } = options;
+  const { idleReel = true, interactive = false } = options;
   const [gesture, setGesture] = useState<MascotGesture>("none");
   const timerRef = useRef<number | null>(null);
   const clearRef = useRef<number | null>(null);
@@ -52,7 +52,8 @@ export function useMascotLiveness(options: UseMascotLivenessOptions = {}) {
 
   useEffect(() => {
     clearTimers();
-    if (!idleReel || pose !== "idle" || prefersReducedMascotMotion()) {
+    // Ambient reel runs on any pose when enabled (DayHero rarely stays on "idle").
+    if (!idleReel || prefersReducedMascotMotion()) {
       setGesture("none");
       return;
     }
@@ -67,7 +68,7 @@ export function useMascotLiveness(options: UseMascotLivenessOptions = {}) {
     };
     schedule();
     return clearTimers;
-  }, [idleReel, pose, playGesture, clearTimers]);
+  }, [idleReel, playGesture, clearTimers]);
 
   const onPet = useCallback(() => {
     if (!interactive || prefersReducedMascotMotion()) return;

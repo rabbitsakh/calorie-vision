@@ -4,6 +4,7 @@ import {
   gestureDurationMs,
   mascotGestureClass,
   pickIdleGesture,
+  shouldRunAmbientReel,
   IDLE_GESTURES,
 } from "./mascot-liveness.ts";
 import { mascotMotionClass } from "@/components/Mascot";
@@ -30,4 +31,10 @@ test("gestureDurationMs positive for one-shots", () => {
   assert.ok(gestureDurationMs("pet") > 0);
   assert.ok(gestureDurationMs("react") > 0);
   assert.equal(gestureDurationMs("none"), 0);
+});
+
+test("shouldRunAmbientReel is pose-agnostic", () => {
+  assert.equal(shouldRunAmbientReel(true, false), true);
+  assert.equal(shouldRunAmbientReel(true, true), false);
+  assert.equal(shouldRunAmbientReel(false, false), false);
 });

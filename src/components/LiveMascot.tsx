@@ -13,9 +13,9 @@ type LiveMascotProps = {
   skin?: MascotSkinId;
   /** Force art / svg / rive; omit to use provider / env / auto. */
   renderer?: MascotRendererMode;
-  /** Random idle gestures when pose is idle. Default true for idle. */
+  /** Ambient gestures (look / yawn / stretch / wave). Default true for idle pose. */
   idleReel?: boolean;
-  /** Tap to pet. Default true for md+ sizes. */
+  /** Tap to pet. Default true for md+ sizes; pass true for DayHero sm. */
   interactive?: boolean;
   entrance?: boolean;
 };

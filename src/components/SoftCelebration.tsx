@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import type { CelebrationVariant } from "@/components/FullscreenCelebration";
 import type { RewardRarity } from "@/lib/rewards";
 import { hydrateQuietHoursFromAccount } from "@/lib/quiet-hours-prefs";
 import {
   isSoftCelebrationQuietBlocked,
+  isSoftCelebrationSuppressed,
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 
@@ -52,7 +54,12 @@ export function SoftCelebration({
   muteDate,
   onClose,
 }: SoftCelebrationProps) {
-  const suppressed = !open || isSoftCelebrationQuietBlocked();
+  const gate = useCelebrationGate();
+  const suppressed = isSoftCelebrationSuppressed({
+    open,
+    quietBlocked: isSoftCelebrationQuietBlocked(),
+    fullscreenActiveId: gate?.activeId ?? null,
+  });
 
   useEffect(() => {
     hydrateQuietHoursFromAccount();

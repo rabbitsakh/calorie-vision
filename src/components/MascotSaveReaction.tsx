@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { mascotArtUrl } from "@/lib/mascot-art";
@@ -64,11 +65,13 @@ function preloadCheerArt() {
  */
 export function MascotSaveReaction() {
   const day = useOptionalRationDay();
+  const gate = useCelebrationGate();
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState("Записано!");
   const [toastKey, setToastKey] = useState(0);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const showTimerRef = useRef<number | null>(null);
+  const fullscreenActive = Boolean(gate?.activeId);
 
   useEffect(() => {
     setHost(getSaveToastHost());
@@ -96,7 +99,7 @@ export function MascotSaveReaction() {
 
       showTimerRef.current = window.setTimeout(() => {
         showTimerRef.current = null;
-        if (isSaveCheerClaimedByFullscreen()) {
+        if (isSaveCheerClaimedByFullscreen() || Boolean(gate?.activeId)) {
           clearSaveCheerPending();
           return;
         }
@@ -107,7 +110,11 @@ export function MascotSaveReaction() {
         }
       }, SAVE_TOAST_DELAY_MS);
     });
-  }, [day?.data?.meals.entries.length]);
+  }, [day?.data?.meals.entries.length, gate?.activeId]);
+
+  useEffect(() => {
+    if (fullscreenActive && open) setOpen(false);
+  }, [fullscreenActive, open]);
 
   useEffect(() => {
     return () => {
