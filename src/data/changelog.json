@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.27",
+    "date": "2026-09-14",
+    "summary": "fix(ui): align header brand/avatar + unify stats section headers",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Логотип и фото профиля на одной высоте в шапке"
+      },
+      {
+        "kind": "improvement",
+        "text": "Шапка блоков статистики: единый паттерн title + meta (цель / вода / подпись)"
+      }
+    ]
+  },
+  {
     "version": "1.12.25",
     "date": "2026-09-14",
     "summary": "feat(chests/mascot): wave 3 — soft yields FS, DayHero ambient + pet",

@@ -107,44 +107,43 @@ export function AppShell({
       <div className="cv-app-frame">
         <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2.5 md:gap-6 md:px-4 md:py-8">
           <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <Link
-                  href={homeHref}
-                  className="inline-flex min-w-0 max-w-full items-center gap-2 md:gap-3"
-                >
-                  <BrandMark size={compact ? 44 : 56} className="md:hidden" />
-                  <BrandMark size={compact ? 56 : 72} className="hidden md:block" />
-                  <span className="font-display truncate text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent)] md:text-sm md:tracking-[0.2em]">
-                    Calorie Vision
-                  </span>
-                </Link>
-                <h1
-                  className={`font-display font-bold tracking-tight text-slate-900 ${
-                    hideTitleOnMobile
-                      ? "mt-0 hidden md:mt-1.5 md:block md:text-2xl"
-                      : compact
-                        ? "mt-1.5 text-xl md:text-2xl"
-                        : "mt-2 text-2xl md:text-3xl"
-                  }`}
-                >
-                  {title}
-                </h1>
-                {description ? (
-                  <p
-                    className={`max-w-2xl text-sm text-slate-600 ${
-                      compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
-                    }`}
-                  >
-                    {description}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
+            {/* Brand + avatar share one fixed-height row so they sit on the same axis. */}
+            <div className="flex h-10 items-center justify-between gap-3 md:h-11">
+              <Link
+                href={homeHref}
+                className="inline-flex h-full min-w-0 max-w-full items-center gap-2 md:gap-3"
+              >
+                <BrandMark size={compact ? 36 : 40} className="md:hidden" />
+                <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
+                <span className="font-display truncate text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent)] md:text-sm md:tracking-[0.2em]">
+                  Calorie Vision
+                </span>
+              </Link>
+              <div className="flex h-full shrink-0 items-center gap-2">
                 {foodAddEnabled ? <DesktopAddButton /> : null}
-                <AuthPanel />
+                <AuthPanel compactTrigger />
               </div>
             </div>
+            <h1
+              className={`font-display font-bold tracking-tight text-slate-900 ${
+                hideTitleOnMobile
+                  ? "mt-0 hidden md:mt-2 md:block md:text-2xl"
+                  : compact
+                    ? "mt-2 text-xl md:text-2xl"
+                    : "mt-2.5 text-2xl md:text-3xl"
+              }`}
+            >
+              {title}
+            </h1>
+            {description ? (
+              <p
+                className={`max-w-2xl text-sm text-slate-600 ${
+                  compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
+                }`}
+              >
+                {description}
+              </p>
+            ) : null}
 
             {headerExtra ? <div className={compact ? "mt-2" : "mt-4"}>{headerExtra}</div> : null}
 

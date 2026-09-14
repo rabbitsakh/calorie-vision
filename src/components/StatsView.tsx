@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
@@ -76,6 +76,29 @@ function chartRange(values: number[], paddingRatio = 0.1): { min: number; max: n
   const span = rawMax - rawMin;
   const pad = span * paddingRatio;
   return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
+}
+
+/** Shared chrome for stats chart cards: title + optional right meta + optional under-line. */
+function StatsSectionHeader({
+  title,
+  meta,
+  under,
+}: {
+  title: string;
+  meta?: ReactNode;
+  under?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 className="font-display text-lg font-bold text-slate-900">{title}</h2>
+        {meta ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">{meta}</div>
+        ) : null}
+      </div>
+      {under ? <div className="text-xs text-slate-500">{under}</div> : null}
+    </div>
+  );
 }
 
 /** Day number for dense axes; full short date only when there is room. */
@@ -463,21 +486,9 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 function MacroChart({
   days,
   period,
-  fiberTarget,
-  sugarTarget,
-  avgFiber,
-  avgSugar,
-  waterTarget,
-  avgWaterMl,
 }: {
   days: StatsDay[];
   period: "week" | "month" | "quarter";
-  fiberTarget?: number | null;
-  sugarTarget?: number | null;
-  avgFiber?: number;
-  avgSugar?: number;
-  waterTarget?: number | null;
-  avgWaterMl?: number;
 }) {
   const hasData = days.some((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
   if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
@@ -485,30 +496,9 @@ function MacroChart({
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
   const xLabels = axisLabelIndices(days.length, period);
   const compactAxis = days.length > 5;
-  const showPulse =
-    fiberTarget != null ||
-    sugarTarget != null ||
-    (waterTarget != null && (avgWaterMl ?? 0) > 0);
 
   return (
     <div className="flex flex-col gap-2">
-      {showPulse ? (
-        <p className="text-xs text-slate-600">
-          {[
-            fiberTarget != null
-              ? `клетчатка ср. ${Math.round(avgFiber ?? 0)} / ${Math.round(fiberTarget)} г`
-              : null,
-            sugarTarget != null
-              ? `сахар ср. ${Math.round(avgSugar ?? 0)} / ${Math.round(sugarTarget)} г`
-              : null,
-            waterTarget != null && (avgWaterMl ?? 0) > 0
-              ? `вода ср. ${Math.round(avgWaterMl ?? 0)} / ${Math.round(waterTarget)} мл`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      ) : null}
       <div className="flex gap-3 text-xs text-slate-600">
         {[{ label: "Белки", color: "bg-teal-500" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-violet-400" }].map((m) => (
           <span key={m.label} className="flex items-center gap-1">
@@ -608,10 +598,10 @@ function MonthHeatmap({
 
   return (
     <section className="card p-4 md:p-6">
-      <h2 className="font-display text-lg font-bold">Календарь калорий</h2>
-      <p className="mt-1 text-xs text-slate-500">
-        Дни относительно цели{calorieTarget ? ` (${calorieTarget} ккал)` : ""}. Нажмите день, чтобы открыть рацион.
-      </p>
+      <StatsSectionHeader
+        title="Календарь калорий"
+        under={`Дни относительно цели${calorieTarget ? ` (${calorieTarget} ккал)` : ""}. Нажмите день, чтобы открыть рацион.`}
+      />
       <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
         {weekdays.map((d) => (
           <div key={d}>{d}</div>
@@ -893,15 +883,17 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Calories */}
           <section className="card p-4 md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-display text-lg font-bold">Калории по дням</h2>
-              {data.calorieTarget ? (
-                <div className="flex items-center gap-1.5 text-xs text-amber-600">
-                  <span className="inline-block h-0 w-6 border-t-2 border-dashed border-amber-400" />
-                  цель {data.calorieTarget} ккал
-                </div>
-              ) : null}
-            </div>
+            <StatsSectionHeader
+              title="Калории по дням"
+              meta={
+                data.calorieTarget ? (
+                  <span className="flex items-center gap-1.5 text-amber-600">
+                    <span className="inline-block h-0 w-6 border-t-2 border-dashed border-amber-400" aria-hidden />
+                    цель {data.calorieTarget} ккал
+                  </span>
+                ) : null
+              }
+            />
             <div className="mt-4">
               <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
             </div>
@@ -909,10 +901,10 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {showWowSection && wow ? (
             <section className="card p-4 md:p-6">
-              <h2 className="font-display text-lg font-bold">Спокойное сравнение недель</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Средние ккал в дни с записями — без оценок «хорошо/плохо», просто ориентир.
-              </p>
+              <StatsSectionHeader
+                title="Спокойное сравнение недель"
+                under="Средние ккал в дни с записями — без оценок «хорошо/плохо», просто ориентир."
+              />
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-teal-50 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
@@ -977,24 +969,36 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Macros */}
           <section className="card p-4 md:p-6">
-            <h2 className="font-display text-lg font-bold">БЖУ, клетчатка и сахар</h2>
+            <StatsSectionHeader
+              title="БЖУ, клетчатка и сахар"
+              meta={
+                data.waterTarget != null && (data.avgWaterMl ?? 0) > 0 ? (
+                  <span>
+                    вода ср. {Math.round(data.avgWaterMl ?? 0)} / {Math.round(data.waterTarget)} мл
+                  </span>
+                ) : null
+              }
+              under={
+                [
+                  data.fiberTarget != null
+                    ? `клетчатка ср. ${Math.round(data.avgFiber ?? 0)} / ${Math.round(data.fiberTarget)} г`
+                    : null,
+                  data.sugarTarget != null
+                    ? `сахар ср. ${Math.round(data.avgSugar ?? 0)} / ${Math.round(data.sugarTarget)} г`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || null
+              }
+            />
             <div className="mt-4">
-              <MacroChart
-                days={data.days}
-                period={period}
-                fiberTarget={data.fiberTarget}
-                sugarTarget={data.sugarTarget}
-                avgFiber={data.avgFiber}
-                avgSugar={data.avgSugar}
-                waterTarget={data.waterTarget}
-                avgWaterMl={data.avgWaterMl}
-              />
+              <MacroChart days={data.days} period={period} />
             </div>
           </section>
 
           {/* Weight */}
           <section className="card p-4 md:p-6">
-            <h2 className="text-lg font-bold">Вес по дням</h2>
+            <StatsSectionHeader title="Вес по дням" />
             <div className="mt-4">
               <WeightLineChart days={data.days} period={period} />
             </div>
@@ -1003,17 +1007,19 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Top foods */}
           {data.topFoods.length > 0 ? (
             <section className="card p-4 md:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-lg font-bold">Что вы часто едите</h2>
-                <button
-                  type="button"
-                  className="btn-quiet text-sm text-teal-800"
-                  disabled={photoBackfillBusy}
-                  onClick={() => void backfillTopFoodPhotos()}
-                >
-                  {photoBackfillBusy ? "Подбираем…" : "Подобрать фото"}
-                </button>
-              </div>
+              <StatsSectionHeader
+                title="Что вы часто едите"
+                meta={
+                  <button
+                    type="button"
+                    className="btn-quiet text-sm text-teal-800"
+                    disabled={photoBackfillBusy}
+                    onClick={() => void backfillTopFoodPhotos()}
+                  >
+                    {photoBackfillBusy ? "Подбираем…" : "Подобрать фото"}
+                  </button>
+                }
+              />
               {photoBackfillMsg ? (
                 <p className="mt-1 text-xs text-slate-500">{photoBackfillMsg}</p>
               ) : null}
@@ -1036,8 +1042,10 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Timing */}
           {data.hourlyCalories.some((v) => v > 0) ? (
             <section className="card p-4 md:p-6">
-              <h2 className="text-lg font-bold">Когда вы едите</h2>
-              <p className="mt-1 text-xs text-slate-500">Калории по часам суток за период</p>
+              <StatsSectionHeader
+                title="Когда вы едите"
+                under="Калории по часам суток за период"
+              />
               <div className="mt-4">
                 <TimingChart hourlyCalories={data.hourlyCalories} />
               </div>
