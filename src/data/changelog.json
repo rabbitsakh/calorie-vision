@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.27",
+    "date": "2026-09-14",
+    "summary": "fix(ui): align header brand/avatar + unify stats section headers",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Логотип и фото профиля на одной высоте в шапке"
+      },
+      {
+        "kind": "improvement",
+        "text": "Шапка блоков статистики: единый паттерн title + meta (цель / вода / подпись)"
+      },
+      {
+        "kind": "fix",
+        "text": "Заголовок графика макросов: «БЖУ по дням» (без клетчатки/сахара в названии)"
+      }
+    ]
+  },
+  {
     "version": "1.12.26",
     "date": "2026-09-14",
     "summary": "fix(habits): вернуть выбор челленджа в sheet «Привычки»",

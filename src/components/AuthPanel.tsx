@@ -7,7 +7,7 @@ import { AvatarFrame } from "@/components/AvatarFrame";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
-export function AuthPanel() {
+export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean } = {}) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -29,8 +29,12 @@ export function AuthPanel() {
 
   if (status === "loading") {
     return (
-      <div className="flex items-center gap-3 text-sm text-slate-500">
-        <span className="inline-block h-9 w-9 animate-pulse rounded-full bg-slate-200" />
+      <div className={`flex items-center text-sm text-slate-500 ${compactTrigger ? "h-full" : "gap-3"}`}>
+        <span
+          className={`inline-block animate-pulse rounded-full bg-slate-200 ${
+            compactTrigger ? "h-9 w-9 md:h-10 md:w-10" : "h-9 w-9"
+          }`}
+        />
       </div>
     );
   }
@@ -49,31 +53,47 @@ export function AuthPanel() {
     : session.user.email ?? null;
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative flex h-full items-center">
       <button
         type="button"
-        className="flex max-w-[12rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
+        className={
+          compactTrigger
+            ? "flex h-9 max-w-[12rem] items-center gap-2 overflow-hidden rounded-full border border-slate-200 bg-white py-0 pl-0 pr-2 text-left hover:border-teal-300 md:h-10 md:max-w-none md:gap-2.5 md:pr-2.5"
+            : "flex max-w-[12rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
+        }
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
       >
-        <AvatarFrame>
+        <AvatarFrame className={compactTrigger ? "h-9 w-9 shrink-0 md:h-10 md:w-10" : undefined}>
           {session.user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={getImageUrl(session.user.image)}
               alt=""
-              className="h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
+              className={
+                compactTrigger
+                  ? "h-full w-full rounded-full object-cover"
+                  : "h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
+              }
             />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800">
+            <div
+              className={
+                compactTrigger
+                  ? "flex h-full w-full items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
+                  : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
+              }
+            >
               {(session.user.name ?? session.user.email ?? session.user.phone ?? "?").charAt(0).toUpperCase()}
             </div>
           )}
         </AvatarFrame>
         <div className="min-w-0 hidden sm:block">
-          <p className="truncate text-sm font-medium text-slate-900">{label}</p>
-          {subtitle ? <p className="truncate text-xs text-slate-500">{subtitle}</p> : null}
+          <p className="truncate text-sm font-medium leading-tight text-slate-900">{label}</p>
+          {!compactTrigger && subtitle ? (
+            <p className="truncate text-xs text-slate-500">{subtitle}</p>
+          ) : null}
         </div>
       </button>
 
