@@ -23,7 +23,9 @@ if [[ ! -f "$KEYSTORE" ]]; then
 fi
 
 mkdir -p "$DIST"
-npx --yes cap sync android
+
+echo "==> cap sync android"
+rustore_cap_cli "$ROOT" sync android
 
 rustore_prepare_android_sdk "$ANDROID"
 

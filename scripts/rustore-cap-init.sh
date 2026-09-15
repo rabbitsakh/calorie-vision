@@ -3,6 +3,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=lib/rustore-sdk.sh
+source "$ROOT/scripts/lib/rustore-sdk.sh"
 cd "$ROOT"
 
 if [[ ! -f "$ROOT/capacitor.config.ts" ]]; then
@@ -12,11 +14,14 @@ fi
 
 mkdir -p "$ROOT/rustore/cap-www"
 
-echo "==> npx cap add android (idempotent)"
+# Use local @capacitor/cli via node — `npx cap` on Windows resolves a wrong package.
+echo "==> Capacitor $(rustore_cap_cli "$ROOT" --version)"
+
+echo "==> cap add/sync android"
 if [[ -d "$ROOT/android" ]]; then
-  npx --yes cap sync android
+  rustore_cap_cli "$ROOT" sync android
 else
-  npx --yes cap add android
+  rustore_cap_cli "$ROOT" add android
 fi
 
 # Prefer same applicationId as legacy TWA for RuStore updates.

@@ -344,3 +344,16 @@ pathlib.Path(sys.argv[2]).write_text(digest)
 print(f"  manifest-checksum.txt = {digest}")
 PY
 }
+
+# Resolve Capacitor CLI without `npx cap` (on Windows that fetches a random "cap" package).
+# Usage: rustore_cap_cli "$ROOT" --version | sync android | add android
+rustore_cap_cli() {
+  local root="${1:?root}"
+  shift
+  local bin="$root/node_modules/@capacitor/cli/bin/capacitor"
+  if [[ ! -f "$bin" ]]; then
+    echo "Нет @capacitor/cli. Запустите: npm install" >&2
+    return 1
+  fi
+  node "$bin" "$@"
+}
