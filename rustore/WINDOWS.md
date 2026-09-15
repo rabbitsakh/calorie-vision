@@ -120,9 +120,21 @@ npm run rustore:cap:init    # один раз — создаёт android/
 npm run rustore:cap:build   # → rustore/dist/app-release.apk
 ```
 
-Успех: в логе `==> JAVA_HOME=... (JDK 21)`, `keystore.properties`, `APK signing OK`, `BUILD SUCCESSFUL`, файл `rustore/dist/app-release.apk`.
+Успех: в логе `BUILD SUCCESSFUL`, затем `apksigner sign`, `APK signing OK`, файл `rustore/dist/app-release.apk`.
 
-Если установка пишет «пакет недействителен» — пересоберите **с** `RUSTORE_KEYSTORE_PASSWORD` (тот же keystore/alias, что для TWA).
+### «Пакет недействителен / повреждён»
+
+1. Пересоберите **с** `RUSTORE_KEYSTORE_PASSWORD` (после `git pull` скрипт сам подписывает через `apksigner`).
+2. В логе должны быть строки `apksigner sign` и `APK signing OK`. Если их нет — APK не ставить.
+3. Не пересылайте APK через Telegram/WhatsApp — файл портится. Копируйте по USB или:
+   ```bash
+   adb install -r rustore/dist/app-release.apk
+   ```
+4. Удалите старое приложение Calorie Vision (TWA) перед установкой.
+5. Проверка подписи:
+   ```bash
+   "$ANDROID_HOME/build-tools/35.0.0/apksigner.bat" verify -v --print-certs rustore/dist/app-release.apk
+   ```
 
 ## 6. Ошибка «licences have not been accepted»
 

@@ -594,40 +594,150 @@ else:
 PY2
 }
 
-# Fail if APK looks unsigned (Android: «пакет недействителен»).
+# Locate build-tools binary (apksigner / zipalign), Windows .bat aware.
+rustore_find_build_tools_bin() {
+  local name="${1:?name}"
+  local sdk bt
+  sdk="$(rustore_resolve_android_sdk_root 2>/dev/null || true)"
+  [[ -n "$sdk" ]] || return 1
+  bt="$(ls -d "$sdk"/build-tools/*/ 2>/dev/null | sort -V | tail -1 || true)"
+  [[ -n "$bt" ]] || return 1
+  if [[ -f "${bt}${name}" ]]; then
+    printf '%s\n' "${bt}${name}"
+    return 0
+  fi
+  if [[ -f "${bt}${name}.bat" ]]; then
+    printf '%s\n' "${bt}${name}.bat"
+    return 0
+  fi
+  return 1
+}
+
+# Run apksigner/zipalign; on Windows Git Bash use cmd //c for .bat.
+rustore_run_build_tools() {
+  local bin="${1:?bin}"
+  shift
+  if [[ "$bin" == *.bat ]]; then
+    local win
+    if command -v cygpath >/dev/null 2>&1; then
+      win="$(cygpath -w "$bin")"
+    else
+      win="$bin"
+    fi
+    cmd.exe //c "$win" "$@"
+  else
+    "$bin" "$@"
+  fi
+}
+
+# Strict verify — unsigned APK must not be shipped.
 rustore_assert_apk_signed() {
   local apk="${1:?apk}"
+  local apksigner
   if [[ ! -f "$apk" ]]; then
     echo "APK не найден: $apk" >&2
     return 1
   fi
   case "$(basename "$apk")" in
     *unsigned*)
-      echo "Собран unsigned APK — подпись не применилась. Проверьте RUSTORE_KEYSTORE_PASSWORD / alias." >&2
+      echo "Собран unsigned APK — подпись не применилась." >&2
       return 1
       ;;
   esac
-  if command -v unzip >/dev/null 2>&1; then
-    if unzip -l "$apk" 2>/dev/null | grep -qE 'META-INF/.*\.(RSA|DSA|EC)$'; then
-      echo "==> APK signing OK (v1): $(basename "$apk")"
+  if apksigner="$(rustore_find_build_tools_bin apksigner)"; then
+    if rustore_run_build_tools "$apksigner" verify "$apk" >/dev/null 2>&1; then
+      echo "==> APK signing OK: $(basename "$apk")"
+      rustore_run_build_tools "$apksigner" verify -v --print-certs "$apk" 2>&1 | head -n 20 || true
       return 0
     fi
-  fi
-  local apksigner="" sdk
-  sdk="$(rustore_resolve_android_sdk_root 2>/dev/null || true)"
-  if [[ -n "$sdk" ]]; then
-    apksigner="$(ls "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)"
-    [[ -z "$apksigner" ]] && apksigner="$(ls "$sdk"/build-tools/*/apksigner.bat 2>/dev/null | sort -V | tail -1 || true)"
-  fi
-  if [[ -n "$apksigner" && -f "$apksigner" ]]; then
-    if "$apksigner" verify "$apk" >/dev/null 2>&1; then
-      echo "==> APK signing OK (apksigner): $(basename "$apk")"
-      return 0
-    fi
-    echo "APK не проходит apksigner verify — скорее всего не подписан." >&2
+    echo "APK не проходит apksigner verify — не подписан или повреждён." >&2
     return 1
   fi
-  # No verifier available — reject unsigned-looking names only; warn otherwise.
-  echo "Предупреждение: не удалось проверить подпись (нет apksigner)." >&2
-  return 0
+  # Fallback: require v1 META-INF cert (weak, but better than shipping blind).
+  if command -v unzip >/dev/null 2>&1; then
+    if unzip -l "$apk" 2>/dev/null | grep -qE 'META-INF/.*\.(RSA|DSA|EC)$'; then
+      echo "==> APK signing OK (v1 META-INF): $(basename "$apk")"
+      return 0
+    fi
+  fi
+  echo "Не удалось проверить подпись (нет apksigner в Android SDK build-tools)." >&2
+  echo "Установите build-tools и повторите. Без проверки APK не отдаём." >&2
+  return 1
+}
+
+# Always sign (and zipalign) after Gradle — Gradle signingConfig often silently yields unsigned APK.
+# Usage: rustore_sign_apk "$apk_in" "$apk_out" "$keystore"
+rustore_sign_apk() {
+  local apk_in="${1:?apk_in}"
+  local apk_out="${2:?apk_out}"
+  local keystore="${3:?keystore}"
+  local password alias key_password
+  local apksigner zipalign aligned tmp_dir
+
+  if [[ ! -f "$apk_in" ]]; then
+    echo "Нет входного APK: $apk_in" >&2
+    return 1
+  fi
+  if [[ ! -f "$keystore" ]]; then
+    echo "Нет keystore: $keystore" >&2
+    return 1
+  fi
+
+  password="${RUSTORE_KEYSTORE_PASSWORD:-}"
+  if [[ -z "$password" ]]; then
+    if [[ -t 0 ]]; then
+      read -r -s -p "Пароль rustore/android.keystore: " password
+      echo
+    fi
+  fi
+  if [[ -z "$password" ]]; then
+    echo "Нужен RUSTORE_KEYSTORE_PASSWORD для подписи APK." >&2
+    return 1
+  fi
+  alias="${RUSTORE_KEY_ALIAS:-calorievision}"
+  key_password="${RUSTORE_KEY_PASSWORD:-$password}"
+
+  apksigner="$(rustore_find_build_tools_bin apksigner)" || {
+    echo "Нет apksigner в Android SDK build-tools. Установите build-tools;35.0.0 (или новее)." >&2
+    return 1
+  }
+  zipalign="$(rustore_find_build_tools_bin zipalign || true)"
+
+  tmp_dir="$(mktemp -d)"
+  aligned="$tmp_dir/aligned.apk"
+  # shellcheck disable=SC2064
+  trap "rm -rf '$tmp_dir'" RETURN
+
+  # apksigner.bat / zipalign.bat need Windows paths under Git Bash.
+  _rustore_winpath() {
+    local p="$1"
+    if command -v cygpath >/dev/null 2>&1; then
+      cygpath -w "$p"
+    else
+      printf '%s\n' "$p"
+    fi
+  }
+
+  if [[ -n "$zipalign" ]]; then
+    echo "==> zipalign"
+    rustore_run_build_tools "$zipalign" -f -p 4 \
+      "$(_rustore_winpath "$apk_in")" \
+      "$(_rustore_winpath "$aligned")"
+  else
+    cp -f "$apk_in" "$aligned"
+  fi
+
+  echo "==> apksigner sign (alias=$alias)"
+  mkdir -p "$(dirname "$apk_out")"
+  rustore_run_build_tools "$apksigner" sign \
+    --ks "$(_rustore_winpath "$keystore")" \
+    --ks-key-alias "$alias" \
+    --ks-pass "pass:$password" \
+    --key-pass "pass:$key_password" \
+    --v1-signing-enabled true \
+    --v2-signing-enabled true \
+    --out "$(_rustore_winpath "$apk_out")" \
+    "$(_rustore_winpath "$aligned")"
+
+  rustore_assert_apk_signed "$apk_out"
 }

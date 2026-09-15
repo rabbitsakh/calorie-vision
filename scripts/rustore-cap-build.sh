@@ -22,6 +22,22 @@ if [[ ! -f "$KEYSTORE" ]]; then
   exit 1
 fi
 
+# Password required up front (Gradle patch + apksigner).
+if [[ -z "${RUSTORE_KEYSTORE_PASSWORD:-}" ]]; then
+  if [[ -t 0 ]]; then
+    read -r -s -p "Пароль rustore/android.keystore: " RUSTORE_KEYSTORE_PASSWORD
+    echo
+    export RUSTORE_KEYSTORE_PASSWORD
+  fi
+fi
+if [[ -z "${RUSTORE_KEYSTORE_PASSWORD:-}" ]]; then
+  echo "Задайте пароль keystore:" >&2
+  echo '  export RUSTORE_KEYSTORE_PASSWORD="ваш-пароль"' >&2
+  echo '  export RUSTORE_KEY_ALIAS="calorievision"   # если alias другой' >&2
+  echo "Без подписи Android: «пакет недействителен / повреждён»." >&2
+  exit 1
+fi
+
 mkdir -p "$DIST"
 
 echo "==> cap sync android"
@@ -30,8 +46,8 @@ rustore_cap_cli "$ROOT" sync android
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
 
-# Required: unsigned release APK installs as «пакет недействителен / повреждён».
-rustore_configure_capacitor_signing "$ROOT" "$ANDROID" "$KEYSTORE"
+# Best-effort Gradle signing (may still yield unsigned on some AGP/Windows setups).
+rustore_configure_capacitor_signing "$ROOT" "$ANDROID" "$KEYSTORE" || true
 
 cd "$ANDROID"
 chmod +x ./gradlew 2>/dev/null || true
@@ -39,23 +55,26 @@ chmod +x ./gradlew 2>/dev/null || true
 echo "==> Gradle assembleRelease"
 ./gradlew assembleRelease --no-daemon
 
-# Prefer signed app-release.apk; never ship *-unsigned*.
-APK_SRC="$(find "$ANDROID/app/build/outputs/apk" -name 'app-release.apk' | head -1 || true)"
-if [[ -z "${APK_SRC:-}" ]]; then
-  APK_SRC="$(find "$ANDROID/app/build/outputs/apk" -name '*release*.apk' ! -name '*unsigned*' | head -1 || true)"
+# Take any release APK (including unsigned) — we re-sign below.
+APK_RAW="$(find "$ANDROID/app/build/outputs/apk" -name 'app-release.apk' | head -1 || true)"
+if [[ -z "${APK_RAW:-}" ]]; then
+  APK_RAW="$(find "$ANDROID/app/build/outputs/apk" -name '*release*.apk' | head -1 || true)"
 fi
-if [[ -z "${APK_SRC:-}" ]]; then
+if [[ -z "${APK_RAW:-}" ]]; then
   echo "APK не найден в outputs/apk" >&2
   find "$ANDROID/app/build/outputs/apk" -name '*.apk' 2>/dev/null || true
   exit 1
 fi
+echo "==> raw APK: $APK_RAW"
 
-rustore_assert_apk_signed "$APK_SRC"
+# Always zipalign + apksigner — this is what makes the package installable.
+rustore_sign_apk "$APK_RAW" "$DIST/app-release.apk" "$KEYSTORE"
 
-cp -f "$APK_SRC" "$DIST/app-release.apk"
 mkdir -p "$ROOT/public/downloads"
-cp -f "$APK_SRC" "$ROOT/public/downloads/calorie-vision.apk"
+cp -f "$DIST/app-release.apk" "$ROOT/public/downloads/calorie-vision.apk"
 
 echo "==> APK: $DIST/app-release.apk"
-echo "Перед модерацией: установите APK, убедитесь что нет адресной строки Chrome."
+echo "Установка: скопируйте файл по USB/adb (не через Telegram — он портит APK)."
+echo "  adb install -r rustore/dist/app-release.apk"
+echo "Если уже стоит старый TWA: сначала удалите «Calorie Vision»."
 echo "См. rustore/MODERATION.md"
