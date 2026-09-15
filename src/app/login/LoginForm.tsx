@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
 type LoginOptions = {
@@ -69,6 +70,11 @@ export default function LoginForm() {
     }
   }, [authError]);
 
+  // Capacitor: hook App Link return from Chrome Custom Tabs (Google/VK OAuth).
+  useEffect(() => {
+    void ensureCapacitorOAuthDeepLink();
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -118,10 +124,16 @@ export default function LoginForm() {
     setMessage("Ссылка для входа отправлена на ваш email");
   }
 
-  function handleOauthLogin(provider: "google" | "vk") {
+  async function handleOauthLogin(provider: "google" | "vk") {
     setLoading(true);
     setError(null);
-    void signIn(provider, { callbackUrl: withBasePath("/") });
+    try {
+      // Capacitor WebView: Google returns 400 (disallowed_useragent) — use Custom Tabs.
+      await startCapacitorOAuth(provider, withBasePath("/ration/"));
+    } catch {
+      setLoading(false);
+      setError(AUTH_ERRORS.OAuthSignin);
+    }
   }
 
   return (

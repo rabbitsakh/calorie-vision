@@ -51,6 +51,9 @@ ICON_SRC="$ROOT/rustore/icon-512-store.png"
 [[ -f "$ICON_SRC" ]] || ICON_SRC="$ROOT/public/icon-512.png"
 rustore_sync_capacitor_icons "$ANDROID" "$ICON_SRC"
 
+# Keep App Links for OAuth return (cap sync may reset manifest extras).
+rustore_patch_capacitor_app_links "$ANDROID"
+
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
 

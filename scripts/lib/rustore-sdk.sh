@@ -466,6 +466,60 @@ print(f"  обновлено файлов: {written}")
 PY
 }
 
+# App Links: https://calorievision.ru/api/auth/callback/* → MainActivity (OAuth Custom Tabs return).
+# Needs Digital Asset Links (same keystore SHA-256 as /.well-known/assetlinks.json).
+rustore_patch_capacitor_app_links() {
+  local android_dir="${1:?android}"
+  local manifest="$android_dir/app/src/main/AndroidManifest.xml"
+
+  if [[ ! -f "$manifest" ]]; then
+    echo "Нет AndroidManifest.xml — пропуск App Links" >&2
+    return 0
+  fi
+
+  if grep -q 'android:pathPrefix="/api/auth/callback"' "$manifest" 2>/dev/null; then
+    echo "==> App Links for /api/auth/callback already present"
+    return 0
+  fi
+
+  echo "==> Patching AndroidManifest App Links (OAuth callback)"
+  python3 - "$manifest" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+marker = "<!-- RUSTORE_AUTH_APP_LINKS -->"
+if marker in text:
+    print("App Links marker already present")
+    raise SystemExit(0)
+
+intent = """
+            <!-- RUSTORE_AUTH_APP_LINKS -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="calorievision.ru" android:pathPrefix="/api/auth/callback" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.calorievision.ru" android:pathPrefix="/api/auth/callback" />
+            </intent-filter>
+"""
+
+needle = "</activity>"
+idx = text.find(needle)
+if idx < 0:
+    raise SystemExit("MainActivity </activity> not found")
+text = text[:idx] + intent + "\n        " + text[idx:]
+path.write_text(text)
+print("App Links intent-filters added for /api/auth/callback")
+PY
+}
+
 # Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).
 rustore_lock_manifest_checksum() {
   local android_dir="$1"

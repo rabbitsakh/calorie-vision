@@ -124,6 +124,16 @@ npm run rustore:cap:build   # → rustore/dist/app-release.apk
 
 Приложение открывает **`/login`** (не маркетинговый сайт). После входа — `/ration`.
 
+### Google 400 / disallowed_useragent
+
+Google запрещает OAuth внутри Android WebView. В приложении вход через Google/VK
+открывается в Chrome Custom Tabs; callback возвращается по App Links.
+
+1. Задеплойте сайт (нужен новый `LoginForm` + `@capacitor/browser`).
+2. Пересоберите APK (`git pull` → `rustore:cap:build`).
+3. В логе сборки: `App Links for /api/auth/callback`.
+4. `assetlinks.json` должен содержать SHA-256 **этого** keystore (как для TWA).
+
 ### Нет иконки / «робот Android»
 
 Пересоберите после `git pull`: `rustore:cap:build` заново пишет `ic_launcher*` из `rustore/icon-512-store.png`. Удалите старое приложение с телефона перед установкой (лаунчер кэширует ярлык).

@@ -81,5 +81,8 @@ ICON_SRC="$ROOT/rustore/icon-512-store.png"
 [[ -f "$ICON_SRC" ]] || ICON_SRC="$ROOT/public/icon-512.png"
 rustore_sync_capacitor_icons "$ROOT/android" "$ICON_SRC"
 
+# App Links so Google/VK OAuth Custom Tabs can return into the WebView.
+rustore_patch_capacitor_app_links "$ROOT/android"
+
 echo "==> Capacitor Android готов: $ROOT/android"
 echo "Дальше: bash scripts/rustore-cap-build.sh"
