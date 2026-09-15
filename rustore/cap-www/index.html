@@ -27,16 +27,16 @@
     </style>
     <script>
       // Fallback shell if server.url is unavailable at build/sync time.
-      // In production Capacitor loads https://calorievision.ru via capacitor.config.ts.
+      // Production Capacitor loads https://calorievision.ru/login via capacitor.config.ts.
       if (typeof window !== "undefined" && !window.Capacitor) {
-        location.replace("https://calorievision.ru/ration");
+        location.replace("https://calorievision.ru/login");
       }
     </script>
   </head>
   <body>
     <div class="box">
       <strong>Calorie Vision</strong>
-      <p>Открываем дневник…</p>
+      <p>Открываем вход…</p>
     </div>
   </body>
 </html>

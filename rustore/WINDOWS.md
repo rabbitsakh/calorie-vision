@@ -116,11 +116,17 @@ npm install
 export RUSTORE_KEYSTORE_PASSWORD="пароль-от-android.keystore"
 # export RUSTORE_KEY_ALIAS="calorievision"   # если alias другой
 
-npm run rustore:cap:init    # один раз — создаёт android/
+npm run rustore:cap:init    # один раз — создаёт android/ + иконки A2
 npm run rustore:cap:build   # → rustore/dist/app-release.apk
 ```
 
-Успех: в логе `BUILD SUCCESSFUL`, затем `apksigner sign`, `APK signing OK`, файл `rustore/dist/app-release.apk`.
+Успех: в логе `Capacitor launcher icons`, `BUILD SUCCESSFUL`, `apksigner sign`, `APK signing OK`, файл `rustore/dist/app-release.apk`.
+
+Приложение открывает **`/login`** (не маркетинговый сайт). После входа — `/ration`.
+
+### Нет иконки / «робот Android»
+
+Пересоберите после `git pull`: `rustore:cap:build` заново пишет `ic_launcher*` из `rustore/icon-512-store.png`. Удалите старое приложение с телефона перед установкой (лаунчер кэширует ярлык).
 
 ### «Пакет недействителен / повреждён»
 

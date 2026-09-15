@@ -10,8 +10,8 @@ const config: CapacitorConfig = {
   appName: "Calorie Vision",
   webDir: "rustore/cap-www",
   server: {
-    // Production product UI. Deep links stay on our host.
-    url: "https://calorievision.ru",
+    // Product entry — login (or /ration after session). Never marketing landing.
+    url: "https://calorievision.ru/login",
     cleartext: false,
     allowNavigation: [
       "calorievision.ru",

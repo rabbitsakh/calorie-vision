@@ -76,5 +76,10 @@ print("CAMERA permission added")
 PY
 fi
 
+# Brand launcher icon (Capacitor defaults to generic Android robot otherwise).
+ICON_SRC="$ROOT/rustore/icon-512-store.png"
+[[ -f "$ICON_SRC" ]] || ICON_SRC="$ROOT/public/icon-512.png"
+rustore_sync_capacitor_icons "$ROOT/android" "$ICON_SRC"
+
 echo "==> Capacitor Android готов: $ROOT/android"
 echo "Дальше: bash scripts/rustore-cap-build.sh"

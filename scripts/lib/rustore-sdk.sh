@@ -325,6 +325,147 @@ print(f"  обновлено файлов: {written}")
 PY
 }
 
+# Capacitor Android adaptive icons (mipmap-*/ic_launcher*.png + teal background).
+# Call after `cap add` / `cap sync`, before Gradle.
+rustore_sync_capacitor_icons() {
+  local android_dir="$1"
+  local icon_src="${2:-}"
+  local res_dir="$android_dir/app/src/main/res"
+
+  if [[ -z "$icon_src" ]]; then
+    if [[ -f "$ROOT/rustore/icon-512-store.png" ]]; then
+      icon_src="$ROOT/rustore/icon-512-store.png"
+    elif [[ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/rustore/icon-512-store.png" ]]; then
+      icon_src="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/rustore/icon-512-store.png"
+    elif [[ -f "$android_dir/../rustore/icon-512-store.png" ]]; then
+      icon_src="$android_dir/../rustore/icon-512-store.png"
+    fi
+  fi
+  # Resolve relative to repo when called as rustore_sync_capacitor_icons "$ANDROID"
+  if [[ -z "$icon_src" || ! -f "$icon_src" ]]; then
+    local repo
+    repo="$(cd "$android_dir/.." && pwd)"
+    if [[ -f "$repo/rustore/icon-512-store.png" ]]; then
+      icon_src="$repo/rustore/icon-512-store.png"
+    elif [[ -f "$repo/public/icon-512.png" ]]; then
+      icon_src="$repo/public/icon-512.png"
+    fi
+  fi
+
+  if [[ ! -f "$icon_src" ]]; then
+    echo "Нет иконки (rustore/icon-512-store.png)" >&2
+    return 1
+  fi
+  if [[ ! -d "$res_dir" ]]; then
+    echo "Нет $res_dir — сначала cap add android" >&2
+    return 1
+  fi
+
+  echo "==> Capacitor launcher icons ← $(basename "$icon_src")"
+  rustore_py - "$icon_src" "$android_dir" <<'PY'
+import sys
+from pathlib import Path
+from PIL import Image
+
+src = Image.open(sys.argv[1]).convert("RGBA")
+android = Path(sys.argv[2])
+res = android / "app/src/main/res"
+# Brand teal plate (A2)
+TEAL = (30, 115, 108)
+plate = Image.new("RGB", src.size, TEAL)
+plate.paste(src, mask=src.split()[-1])
+
+# Legacy launcher + round (API < 26)
+legacy = {
+    "mipmap-mdpi": 48,
+    "mipmap-hdpi": 72,
+    "mipmap-xhdpi": 96,
+    "mipmap-xxhdpi": 144,
+    "mipmap-xxxhdpi": 192,
+}
+# Adaptive foreground canvas (108dp family)
+foreground = {
+    "mipmap-mdpi": 108,
+    "mipmap-hdpi": 162,
+    "mipmap-xhdpi": 216,
+    "mipmap-xxhdpi": 324,
+    "mipmap-xxxhdpi": 432,
+}
+
+written = 0
+for folder, size in legacy.items():
+    d = res / folder
+    d.mkdir(parents=True, exist_ok=True)
+    img = plate.resize((size, size), Image.Resampling.LANCZOS)
+    for name in ("ic_launcher.png", "ic_launcher_round.png"):
+        img.save(d / name, optimize=True)
+        written += 1
+        print(f"  wrote {folder}/{name} ({size}px)")
+
+for folder, size in foreground.items():
+    d = res / folder
+    d.mkdir(parents=True, exist_ok=True)
+    # Full-bleed teal plate with logo; adaptive safe zone crops ~1/3
+    img = plate.resize((size, size), Image.Resampling.LANCZOS)
+    img.save(d / "ic_launcher_foreground.png", optimize=True)
+    written += 1
+    print(f"  wrote {folder}/ic_launcher_foreground.png ({size}px)")
+
+# Solid teal adaptive background (color resource + simple drawable)
+values = res / "values"
+values.mkdir(parents=True, exist_ok=True)
+(values / "ic_launcher_background.xml").write_text(
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    "<resources>\n"
+    '    <color name="ic_launcher_background">#1E736C</color>\n'
+    "</resources>\n",
+    encoding="utf-8",
+)
+print("  wrote values/ic_launcher_background.xml (#1E736C)")
+
+drawable = res / "drawable"
+drawable.mkdir(parents=True, exist_ok=True)
+(drawable / "ic_launcher_background.xml").write_text(
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    '<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">\n'
+    '    <solid android:color="@color/ic_launcher_background" />\n'
+    "</shape>\n",
+    encoding="utf-8",
+)
+print("  wrote drawable/ic_launcher_background.xml")
+
+# Point adaptive icons at our mipmap foreground + color background
+anydpi = res / "mipmap-anydpi-v26"
+anydpi.mkdir(parents=True, exist_ok=True)
+adaptive = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+"""
+for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    (anydpi / name).write_text(adaptive, encoding="utf-8")
+    print(f"  wrote mipmap-anydpi-v26/{name}")
+
+# Drop Cap vector foreground if present (would override look on some devices)
+for obsolete in (
+    res / "drawable-v24" / "ic_launcher_foreground.xml",
+    res / "drawable" / "ic_launcher_foreground.xml",
+):
+    if obsolete.exists():
+        obsolete.unlink()
+        print(f"  removed {obsolete.relative_to(res)}")
+
+probe = res / "mipmap-xxxhdpi" / "ic_launcher_foreground.png"
+c = Image.open(probe).convert("RGB").getpixel((12, 12))
+if c[1] < 80 or c[2] < 70:
+    print(f"ERROR: foreground corner={c} — не A2 teal", file=sys.stderr)
+    sys.exit(1)
+print(f"  OK probe foreground xxxhdpi corner={c}")
+print(f"  обновлено файлов: {written}")
+PY
+}
+
 # Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).
 rustore_lock_manifest_checksum() {
   local android_dir="$1"

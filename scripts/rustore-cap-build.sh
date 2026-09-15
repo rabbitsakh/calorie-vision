@@ -46,6 +46,11 @@ rm -f "$DIST"/*.apk "$DIST"/*.aab "$DIST"/*.idsig 2>/dev/null || true
 echo "==> cap sync android"
 rustore_cap_cli "$ROOT" sync android
 
+# Re-apply A2 icons after sync (cap sync can restore Cap defaults).
+ICON_SRC="$ROOT/rustore/icon-512-store.png"
+[[ -f "$ICON_SRC" ]] || ICON_SRC="$ROOT/public/icon-512.png"
+rustore_sync_capacitor_icons "$ANDROID" "$ICON_SRC"
+
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
 
@@ -71,13 +76,22 @@ fi
 echo "==> raw APK: $APK_RAW"
 
 # Always zipalign + apksigner — this is what makes the package installable.
-rustore_sign_apk "$APK_RAW" "$DIST/app-release.apk" "$KEYSTORE"
+OUT_APK="$DIST/app-release.apk"
+rustore_sign_apk "$APK_RAW" "$OUT_APK" "$KEYSTORE"
 
 mkdir -p "$ROOT/public/downloads"
-cp -f "$DIST/app-release.apk" "$ROOT/public/downloads/calorie-vision.apk"
+cp -f "$OUT_APK" "$ROOT/public/downloads/calorie-vision.apk"
 
-echo "==> APK: $DIST/app-release.apk"
-echo "Установка: скопируйте файл по USB/adb (не через Telegram — он портит APK)."
+echo "==> APK: $OUT_APK"
+if command -v stat >/dev/null 2>&1; then
+  # Git Bash / Linux: show size + mtime so you can confirm it's fresh
+  stat -c '%n  %s bytes  %y' "$OUT_APK" 2>/dev/null \
+    || stat -f '%N  %z bytes  %Sm' "$OUT_APK" 2>/dev/null \
+    || ls -lh "$OUT_APK"
+else
+  ls -lh "$OUT_APK"
+fi
+echo "Установка: скопируйте ЭТОТ файл по USB/adb (не через Telegram — он портит APK)."
 echo "  adb install -r rustore/dist/app-release.apk"
 echo "Если уже стоит старый TWA: сначала удалите «Calorie Vision»."
 echo "См. rustore/MODERATION.md"
