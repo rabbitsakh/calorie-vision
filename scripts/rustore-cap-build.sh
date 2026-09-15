@@ -28,6 +28,7 @@ echo "==> cap sync android"
 rustore_cap_cli "$ROOT" sync android
 
 rustore_prepare_android_sdk "$ANDROID"
+rustore_prepare_java21 "$ANDROID"
 
 cd "$ANDROID"
 chmod +x ./gradlew 2>/dev/null || true

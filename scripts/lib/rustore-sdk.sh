@@ -357,3 +357,107 @@ rustore_cap_cli() {
   fi
   node "$bin" "$@"
 }
+
+# Major version from `java -version` (stderr). Empty if unreadable.
+rustore_java_major() {
+  local java_bin="$1"
+  local line major
+  [[ -x "$java_bin" || -f "$java_bin" ]] || return 1
+  line="$("$java_bin" -version 2>&1 | head -n 1)" || return 1
+  if [[ "$line" =~ version\ \"([0-9]+) ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
+
+# Capacitor 8 / AGP needs JDK 21. Sets JAVA_HOME + PATH; optional write org.gradle.java.home.
+# Override: export JAVA_HOME=/path/to/jdk-21
+rustore_prepare_java21() {
+  local android_dir="${1:-}"
+  local home java_bin major win_home
+  local -a candidates=()
+
+  _rustore_add_jdk_candidate() {
+    local h="$1"
+    [[ -n "$h" && -d "$h" ]] || return 0
+    candidates+=("$h")
+  }
+
+  _rustore_add_jdk_candidate "${JAVA_HOME:-}"
+
+  shopt -s nullglob
+  local p
+  for p in \
+    "/c/Program Files/Eclipse Adoptium"/jdk-21* \
+    "/c/Program Files/Java"/jdk-21* \
+    "/c/Program Files/Microsoft"/jdk-21* \
+    "/c/Program Files/Android/Android Studio/jbr" \
+    "/c/Program Files/Android/Android Studio/jre" \
+    "${LOCALAPPDATA:-}/Programs/Android/Android Studio/jbr" \
+    "${ProgramFiles:-}/Android/Android Studio/jbr" \
+    "${HOME}/.jdks"/jdk-21* \
+    /usr/lib/jvm/java-21-openjdk \
+    /usr/lib/jvm/java-21-openjdk-amd64 \
+    /usr/lib/jvm/temurin-21-jdk \
+    /Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home \
+    /Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home; do
+    _rustore_add_jdk_candidate "$p"
+  done
+  shopt -u nullglob
+
+  # PATH java — last resort (may be 17/25).
+  if command -v java >/dev/null 2>&1; then
+    java_bin="$(command -v java)"
+    home="$(cd "$(dirname "$java_bin")/.." && pwd 2>/dev/null || true)"
+    _rustore_add_jdk_candidate "$home"
+  fi
+
+  for home in "${candidates[@]}"; do
+    if [[ -f "$home/bin/java.exe" ]]; then
+      java_bin="$home/bin/java.exe"
+    elif [[ -f "$home/bin/java" ]]; then
+      java_bin="$home/bin/java"
+    else
+      continue
+    fi
+    major="$(rustore_java_major "$java_bin" || true)"
+    if [[ "$major" == "21" ]]; then
+      export JAVA_HOME="$home"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      echo "==> JAVA_HOME=$JAVA_HOME (JDK 21)"
+      if [[ -n "$android_dir" && -d "$android_dir" ]]; then
+        win_home="$JAVA_HOME"
+        if command -v cygpath >/dev/null 2>&1; then
+          win_home="$(cygpath -w "$JAVA_HOME")"
+        fi
+        win_home="$(node -e "process.stdout.write(process.argv[1].replace(/\\\\/g,'\\\\\\\\'))" "$win_home")"
+        if [[ -f "$android_dir/gradle.properties" ]]; then
+          if grep -q '^org.gradle.java.home=' "$android_dir/gradle.properties" 2>/dev/null; then
+            grep -v '^org.gradle.java.home=' "$android_dir/gradle.properties" >"$android_dir/gradle.properties.tmp"
+            mv "$android_dir/gradle.properties.tmp" "$android_dir/gradle.properties"
+          fi
+          printf '\norg.gradle.java.home=%s\n' "$win_home" >>"$android_dir/gradle.properties"
+        else
+          printf 'org.gradle.java.home=%s\n' "$win_home" >"$android_dir/gradle.properties"
+        fi
+        echo "==> gradle.properties org.gradle.java.home set"
+      fi
+      return 0
+    fi
+  done
+
+  echo "Нет JDK 21 — Capacitor 8 / Android Gradle Plugin его требуют." >&2
+  echo "Сейчас JAVA_HOME=${JAVA_HOME:-не задан}; java=$(command -v java 2>/dev/null || echo нет)" >&2
+  if command -v java >/dev/null 2>&1; then
+    java -version 2>&1 | head -n 1 >&2 || true
+  fi
+  echo "" >&2
+  echo "Установите Temurin 21: https://adoptium.net/temurin/releases/?version=21" >&2
+  echo "Затем в Git Bash (подставьте свой путь):" >&2
+  echo '  export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-21.0.x-hotspot"' >&2
+  echo '  export PATH="$JAVA_HOME/bin:$PATH"' >&2
+  echo '  java -version   # должно быть 21.x' >&2
+  echo "См. rustore/WINDOWS.md" >&2
+  return 1
+}

@@ -26,7 +26,7 @@ Package: `ru.calorievision.app`
 ## Сборка Capacitor (рекомендуется)
 
 ```bash
-# JDK 17, ANDROID_HOME = корень Sdk, rustore/android.keystore на месте
+# JDK 21, ANDROID_HOME = корень Sdk, rustore/android.keystore на месте
 npm run rustore:cap:init
 npm run rustore:cap:build
 # → rustore/dist/app-release.apk
@@ -41,12 +41,12 @@ bash scripts/rustore-build.sh
 
 ## Требования на машине сборки
 
-- **JDK 17** (не Java 21/25 из Android Studio — Gradle падает)
+- **JDK 21** для Capacitor (Temurin 21 или Android Studio `jbr` 21). JDK 17 — только legacy TWA; Java 25 часто ломает toolchain.
 - Android SDK (cmdline-tools) или Android Studio
-- Node.js 24+ (как у проекта)
-- `@bubblewrap/cli` (ставится скриптом)
+- Node.js 22+ (Capacitor 8; в проекте обычно 24+)
+- `@bubblewrap/cli` — только для legacy TWA
 
-**Windows:** пошагово в [`rustore/WINDOWS.md`](WINDOWS.md) — типичная ошибка: `ANDROID_HOME` указывает на `cmdline-tools\latest` вместо корня `...\Android\Sdk`.
+**Windows:** пошагово в [`rustore/WINDOWS.md`](WINDOWS.md). Частые ошибки: нет JDK 21; `ANDROID_HOME` = `cmdline-tools\latest` вместо корня `...\Android\Sdk`.
 
 ```bash
 # один раз

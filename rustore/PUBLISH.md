@@ -86,7 +86,7 @@ TWA_SHA256_FINGERPRINTS="AB:CD:..."
 ### 2.3. Сборка (Windows: см. `WINDOWS.md`)
 
 ```bash
-# JDK 17, ANDROID_HOME = корень Sdk
+# JDK 21, ANDROID_HOME = корень Sdk
 bash scripts/rustore-init.sh   # один раз
 bash scripts/rustore-build.sh  # → rustore/dist/app-release.apk
 ```
