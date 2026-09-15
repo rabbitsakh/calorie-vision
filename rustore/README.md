@@ -1,6 +1,10 @@
 # Calorie Vision → RuStore (только RuStore, без Google Play)
 
-Цель: бесплатное Android-приложение в [RuStore](https://www.rustore.ru/) как **TWA** (Trusted Web Activity) вокруг `https://calorievision.ru`.
+Цель: бесплатное Android-приложение в [RuStore](https://www.rustore.ru/).
+
+> **Модерация 2026-09:** чистый Bubblewrap TWA отклонили как WebView-обёртку сайта.
+> Актуальный путь: **Capacitor** (`npm run rustore:cap:init` → `npm run rustore:cap:build`).
+> Ответ модератору и чеклист: [`MODERATION.md`](MODERATION.md).
 
 Package: `ru.calorievision.app`
 
@@ -8,17 +12,32 @@ Package: `ru.calorievision.app`
 
 | Путь | Назначение |
 |------|------------|
-| `rustore/twa-manifest.json` | Конфиг Bubblewrap / TWA |
-| `rustore/listing.ru.md` | Тексты карточки витрины (готово к вставке) |
-| `rustore/PUBLISH.md` | Пошаговая публикация: что куда в Консоли |
-| `rustore/CHECKLIST.md` | Чеклист аккаунта и модерации |
-| `rustore/icon-512-store.png` | Иконка 512×512 без прозрачности |
-| `rustore/screenshots/submit/` | Стартовый набор скриншотов 1080×1920 |
-| `scripts/rustore-init.sh` | Первичная генерация Android-проекта |
-| `scripts/rustore-build.sh` | Сборка signed APK/AAB |
-| `src/app/.well-known/assetlinks.json/route.ts` | Digital Asset Links (после fingerprint) |
+| `capacitor.config.ts` | Capacitor appId / server / splash |
+| `scripts/rustore-cap-init.sh` | `cap add android` + packageId |
+| `scripts/rustore-cap-build.sh` | signed APK → `rustore/dist/` |
+| `rustore/MODERATION.md` | ответ модерации RuStore |
+| `rustore/twa-manifest.json` | **legacy** Bubblewrap TWA (не для повторной подачи) |
+| `rustore/listing.ru.md` | тексты карточки витрины |
+| `rustore/PUBLISH.md` | пошаговая публикация в Консоли |
+| `src/lib/capacitor-bridge.ts` | native camera bridge |
 
-Каталог `rustore/android/` **не коммитится** — генерируется локально/на CI (см. `.gitignore`).
+Каталог `android/` **не коммитится** — генерируется локально (`rustore:cap:init`).
+
+## Сборка Capacitor (рекомендуется)
+
+```bash
+# JDK 17, ANDROID_HOME = корень Sdk, rustore/android.keystore на месте
+npm run rustore:cap:init
+npm run rustore:cap:build
+# → rustore/dist/app-release.apk
+```
+
+## Legacy TWA (не использовать после отказа)
+
+```bash
+bash scripts/rustore-init.sh
+bash scripts/rustore-build.sh
+```
 
 ## Требования на машине сборки
 
