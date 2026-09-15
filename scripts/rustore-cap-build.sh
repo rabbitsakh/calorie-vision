@@ -39,6 +39,9 @@ if [[ -z "${RUSTORE_KEYSTORE_PASSWORD:-}" ]]; then
 fi
 
 mkdir -p "$DIST"
+# Drop stale APKs so the phone never gets an old unsigned build.
+echo "==> cleaning $DIST"
+rm -f "$DIST"/*.apk "$DIST"/*.aab "$DIST"/*.idsig 2>/dev/null || true
 
 echo "==> cap sync android"
 rustore_cap_cli "$ROOT" sync android
