@@ -461,3 +461,173 @@ rustore_prepare_java21() {
   echo "См. rustore/WINDOWS.md" >&2
   return 1
 }
+
+# Write keystore.properties + patch android/app/build.gradle so assembleRelease is signed.
+# Requires RUSTORE_KEYSTORE_PASSWORD (or interactive prompt). Alias default: calorievision.
+rustore_configure_capacitor_signing() {
+  local root="${1:?root}"
+  local android_dir="${2:?android}"
+  local keystore="${3:?keystore}"
+  local app_gradle="$android_dir/app/build.gradle"
+  local props="$android_dir/keystore.properties"
+  local store_file alias password key_password
+
+  if [[ ! -f "$keystore" ]]; then
+    echo "Нет keystore: $keystore" >&2
+    return 1
+  fi
+  if [[ ! -f "$app_gradle" ]]; then
+    echo "Нет $app_gradle — сначала npm run rustore:cap:init" >&2
+    return 1
+  fi
+
+  password="${RUSTORE_KEYSTORE_PASSWORD:-}"
+  if [[ -z "$password" ]]; then
+    if [[ -t 0 ]]; then
+      read -r -s -p "Пароль rustore/android.keystore: " password
+      echo
+    fi
+  fi
+  if [[ -z "$password" ]]; then
+    echo "Нужен пароль keystore. В Git Bash:" >&2
+    echo '  export RUSTORE_KEYSTORE_PASSWORD="ваш-пароль"' >&2
+    echo '  export RUSTORE_KEY_ALIAS="calorievision"   # если другой alias' >&2
+    echo "Без подписи Android ставит APK как «пакет недействителен / повреждён»." >&2
+    return 1
+  fi
+
+  alias="${RUSTORE_KEY_ALIAS:-calorievision}"
+  key_password="${RUSTORE_KEY_PASSWORD:-$password}"
+
+  store_file="$keystore"
+  if command -v cygpath >/dev/null 2>&1; then
+    store_file="$(cygpath -w "$keystore")"
+  fi
+  store_file="$(node -e "process.stdout.write(process.argv[1].replace(/\\\\/g,'\\\\\\\\'))" "$store_file")"
+
+  cat >"$props" <<EOF
+storeFile=$store_file
+storePassword=$password
+keyAlias=$alias
+keyPassword=$key_password
+EOF
+  echo "==> keystore.properties (alias=$alias)"
+
+  python3 - "$app_gradle" <<'PY2'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+marker = "// RUSTORE_RELEASE_SIGNING"
+
+header = """
+// RUSTORE_RELEASE_SIGNING
+def _rustoreKs = new Properties()
+def _rustoreKsFile = rootProject.file("keystore.properties")
+if (_rustoreKsFile.exists()) {
+    _rustoreKs.load(new FileInputStream(_rustoreKsFile))
+}
+""".lstrip("\n")
+
+signing_block = """
+    signingConfigs {
+        release {
+            if (_rustoreKsFile.exists()) {
+                storeFile file(_rustoreKs["storeFile"])
+                storePassword _rustoreKs["storePassword"]
+                keyAlias _rustoreKs["keyAlias"]
+                keyPassword _rustoreKs["keyPassword"]
+            }
+        }
+    }
+"""
+
+if marker in text:
+    print("signing patch already present")
+else:
+    lines = text.splitlines(keepends=True)
+    out = []
+    inserted_header = False
+    for line in lines:
+        out.append(line)
+        if not inserted_header and line.startswith("apply plugin:"):
+            out.append("\n")
+            out.append(header)
+            if not header.endswith("\n"):
+                out.append("\n")
+            inserted_header = True
+    text = "".join(out)
+    if not inserted_header:
+        text = header + "\n" + text
+
+    if "signingConfigs" not in text:
+        text = text.replace(
+            "    buildTypes {",
+            signing_block + "    buildTypes {",
+            1,
+        )
+
+    if "signingConfig signingConfigs.release" not in text:
+        for needle in (
+            "        release {\n            minifyEnabled false",
+            "        release {\n            minifyEnabled false",
+        ):
+            repl = needle.replace(
+                "        release {\n",
+                "        release {\n            signingConfig signingConfigs.release\n",
+                1,
+            )
+            if needle in text:
+                text = text.replace(needle, repl, 1)
+                break
+        if "signingConfig signingConfigs.release" not in text:
+            # Last resort: inject after "release {"
+            text = text.replace(
+                "        release {",
+                "        release {\n            signingConfig signingConfigs.release",
+                1,
+            )
+
+    path.write_text(text)
+    print("app/build.gradle: release signingConfig wired")
+PY2
+}
+
+# Fail if APK looks unsigned (Android: «пакет недействителен»).
+rustore_assert_apk_signed() {
+  local apk="${1:?apk}"
+  if [[ ! -f "$apk" ]]; then
+    echo "APK не найден: $apk" >&2
+    return 1
+  fi
+  case "$(basename "$apk")" in
+    *unsigned*)
+      echo "Собран unsigned APK — подпись не применилась. Проверьте RUSTORE_KEYSTORE_PASSWORD / alias." >&2
+      return 1
+      ;;
+  esac
+  if command -v unzip >/dev/null 2>&1; then
+    if unzip -l "$apk" 2>/dev/null | grep -qE 'META-INF/.*\.(RSA|DSA|EC)$'; then
+      echo "==> APK signing OK (v1): $(basename "$apk")"
+      return 0
+    fi
+  fi
+  local apksigner="" sdk
+  sdk="$(rustore_resolve_android_sdk_root 2>/dev/null || true)"
+  if [[ -n "$sdk" ]]; then
+    apksigner="$(ls "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)"
+    [[ -z "$apksigner" ]] && apksigner="$(ls "$sdk"/build-tools/*/apksigner.bat 2>/dev/null | sort -V | tail -1 || true)"
+  fi
+  if [[ -n "$apksigner" && -f "$apksigner" ]]; then
+    if "$apksigner" verify "$apk" >/dev/null 2>&1; then
+      echo "==> APK signing OK (apksigner): $(basename "$apk")"
+      return 0
+    fi
+    echo "APK не проходит apksigner verify — скорее всего не подписан." >&2
+    return 1
+  fi
+  # No verifier available — reject unsigned-looking names only; warn otherwise.
+  echo "Предупреждение: не удалось проверить подпись (нет apksigner)." >&2
+  return 0
+}

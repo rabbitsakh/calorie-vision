@@ -30,27 +30,27 @@ rustore_cap_cli "$ROOT" sync android
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
 
+# Required: unsigned release APK installs as «пакет недействителен / повреждён».
+rustore_configure_capacitor_signing "$ROOT" "$ANDROID" "$KEYSTORE"
+
 cd "$ANDROID"
 chmod +x ./gradlew 2>/dev/null || true
-
-# Optional signing via env (RUSTORE_KEYSTORE_PASSWORD / RUSTORE_KEY_ALIAS / RUSTORE_KEY_PASSWORD)
-if [[ -n "${RUSTORE_KEYSTORE_PASSWORD:-}" ]]; then
-  cat >"$ANDROID/keystore.properties" <<EOF
-storeFile=$KEYSTORE
-storePassword=$RUSTORE_KEYSTORE_PASSWORD
-keyAlias=${RUSTORE_KEY_ALIAS:-calorievision}
-keyPassword=${RUSTORE_KEY_PASSWORD:-$RUSTORE_KEYSTORE_PASSWORD}
-EOF
-fi
 
 echo "==> Gradle assembleRelease"
 ./gradlew assembleRelease --no-daemon
 
-APK_SRC="$(find "$ANDROID/app/build/outputs/apk" -name '*release*.apk' | head -1 || true)"
+# Prefer signed app-release.apk; never ship *-unsigned*.
+APK_SRC="$(find "$ANDROID/app/build/outputs/apk" -name 'app-release.apk' | head -1 || true)"
+if [[ -z "${APK_SRC:-}" ]]; then
+  APK_SRC="$(find "$ANDROID/app/build/outputs/apk" -name '*release*.apk' ! -name '*unsigned*' | head -1 || true)"
+fi
 if [[ -z "${APK_SRC:-}" ]]; then
   echo "APK не найден в outputs/apk" >&2
+  find "$ANDROID/app/build/outputs/apk" -name '*.apk' 2>/dev/null || true
   exit 1
 fi
+
+rustore_assert_apk_signed "$APK_SRC"
 
 cp -f "$APK_SRC" "$DIST/app-release.apk"
 mkdir -p "$ROOT/public/downloads"

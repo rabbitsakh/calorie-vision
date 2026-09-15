@@ -111,11 +111,18 @@ cd /c/Users/User/calorie-vision
 git checkout cursor/rustore-standalone-app-d07a   # или main после merge
 git pull
 npm install
+
+# Подпись обязательна — без неё Android: «пакет недействителен / повреждён»
+export RUSTORE_KEYSTORE_PASSWORD="пароль-от-android.keystore"
+# export RUSTORE_KEY_ALIAS="calorievision"   # если alias другой
+
 npm run rustore:cap:init    # один раз — создаёт android/
 npm run rustore:cap:build   # → rustore/dist/app-release.apk
 ```
 
-Успех: в логе `==> JAVA_HOME=... (JDK 21)`, затем `BUILD SUCCESSFUL`, файл `rustore/dist/app-release.apk`.
+Успех: в логе `==> JAVA_HOME=... (JDK 21)`, `keystore.properties`, `APK signing OK`, `BUILD SUCCESSFUL`, файл `rustore/dist/app-release.apk`.
+
+Если установка пишет «пакет недействителен» — пересоберите **с** `RUSTORE_KEYSTORE_PASSWORD` (тот же keystore/alias, что для TWA).
 
 ## 6. Ошибка «licences have not been accepted»
 
