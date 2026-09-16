@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppWelcomeSlider } from "@/components/AppWelcomeSlider";
 import { isCapacitorNative, waitForCapacitorNative } from "@/lib/capacitor-bridge";
-import { hasSeenAppWelcome } from "@/lib/capacitor-welcome";
+import { hasSeenAppWelcome, hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
 /**
@@ -46,14 +46,12 @@ export default function WelcomePage() {
 
       document.documentElement.classList.add("capacitor-native");
 
-      // Do not block the slider on a hung session fetch.
-      // (If status becomes authenticated, this effect re-runs via deps.)
-      const seen = await hasSeenAppWelcome();
-      if (cancelled) return;
-      if (seen) {
+      if (hasSeenAppWelcomeSync() || (await hasSeenAppWelcome())) {
+        if (cancelled) return;
         router.replace(withBasePath("/login"));
         return;
       }
+      if (cancelled) return;
       setShowSlider(true);
       setReady(true);
     }
@@ -65,6 +63,10 @@ export default function WelcomePage() {
       if (cancelled) return;
       if (isCapacitorNative()) {
         document.documentElement.classList.add("capacitor-native");
+        if (hasSeenAppWelcomeSync()) {
+          router.replace(withBasePath("/login"));
+          return;
+        }
         setShowSlider(true);
         setReady(true);
         return;

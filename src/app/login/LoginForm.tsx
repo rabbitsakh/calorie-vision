@@ -8,7 +8,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
-import { hasSeenAppWelcome } from "@/lib/capacitor-welcome";
+import { hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
 type LoginOptions = {
@@ -84,16 +84,11 @@ export default function LoginForm() {
   }, []);
 
   // First-run: show welcome slider before login in the APK.
-  useEffect(() => {
+  // Sync localStorage only — async Preferences raced and looped welcome ↔ login.
+  useLayoutEffect(() => {
     if (!isCapacitorNative()) return;
-    let cancelled = false;
-    void hasSeenAppWelcome().then((seen) => {
-      if (cancelled || seen) return;
-      router.replace(withBasePath("/welcome"));
-    });
-    return () => {
-      cancelled = true;
-    };
+    if (hasSeenAppWelcomeSync()) return;
+    router.replace(withBasePath("/welcome"));
   }, [router]);
 
   useEffect(() => {

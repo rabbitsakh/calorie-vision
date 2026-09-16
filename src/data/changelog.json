@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.33",
+    "date": "2026-09-16",
+    "summary": "fix(capacitor): welcome не зацикливается после «Войти»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Флаг welcome в localStorage (sync) — логин больше не возвращает на слайдер"
+      },
+      {
+        "kind": "fix",
+        "text": "LoginForm проверяет welcome синхронно, без гонки Preferences"
+      }
+    ]
+  },
+  {
     "version": "1.12.32",
     "date": "2026-09-16",
     "summary": "fix(build): welcome TypeScript narrow on session status",
