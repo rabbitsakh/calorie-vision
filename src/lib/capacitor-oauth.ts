@@ -5,8 +5,8 @@
  *
  * Flow:
  * 1) Open /auth/native-oauth?provider=… in Custom Tabs (CSRF + Google/VK entirely there)
- * 2) Callback → /auth/native-bridge (still in Chrome) → calorievision://native-bridge?token=
- * 3) App Link / custom scheme → WebView consumes token and sets session cookie
+ * 2) Callback → /auth/native-bridge → intent:// / calorievision://native-bridge?token=
+ * 3) App opens → WebView consumes token and sets session cookie
  */
 
 import { signIn } from "next-auth/react";
@@ -20,6 +20,26 @@ import { withBasePath } from "@/lib/paths";
 
 let deepLinkHooked = false;
 
+function adoptNativeBridgeUrl(url: string): void {
+  try {
+    if (!isNativeBridgeUrl(url) && !url.includes("/api/auth/callback")) {
+      return;
+    }
+
+    const token = tokenFromNativeBridgeUrl(url);
+    if (token) {
+      window.location.assign(nativeBridgeConsumeUrl(window.location.origin, token));
+      return;
+    }
+
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      window.location.assign(url);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 /** Listen once for OAuth handoff deep links. */
 export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
   if (!isCapacitorNative() || deepLinkHooked || typeof window === "undefined") return;
@@ -30,34 +50,37 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
     const { Browser } = await import("@capacitor/browser");
 
     const adopt = (url: string) => {
-      try {
-        if (!isNativeBridgeUrl(url) && !url.includes("/api/auth/callback")) {
-          return;
-        }
-        void Browser.close().catch(() => undefined);
-
-        const token = tokenFromNativeBridgeUrl(url);
-        if (token) {
-          window.location.assign(nativeBridgeConsumeUrl(window.location.origin, token));
-          return;
-        }
-
-        // Legacy App Link: https callback into WebView (best-effort).
-        if (url.startsWith("http://") || url.startsWith("https://")) {
-          window.location.assign(url);
-        }
-      } catch {
-        // ignore
-      }
+      void Browser.close().catch(() => undefined);
+      adoptNativeBridgeUrl(url);
     };
 
     await App.addListener("appUrlOpen", ({ url }) => {
       adopt(url);
     });
 
-    // User closed Custom Tabs without completing OAuth — LoginForm listens too.
+    await App.addListener("appStateChange", ({ isActive }) => {
+      if (!isActive) return;
+      void App.getLaunchUrl()
+        .then((launch) => {
+          if (launch?.url) adopt(launch.url);
+        })
+        .catch(() => undefined);
+    });
+
+    // Cold start / already-open with pending intent
+    void App.getLaunchUrl()
+      .then((launch) => {
+        if (launch?.url) adopt(launch.url);
+      })
+      .catch(() => undefined);
+
     await Browser.addListener("browserFinished", () => {
       window.dispatchEvent(new CustomEvent("cv-oauth-browser-finished"));
+      void App.getLaunchUrl()
+        .then((launch) => {
+          if (launch?.url) adopt(launch.url);
+        })
+        .catch(() => undefined);
     });
   } catch {
     // Plugins missing in plain browser

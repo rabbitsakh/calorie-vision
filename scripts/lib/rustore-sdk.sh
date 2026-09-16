@@ -539,6 +539,18 @@ scheme_intent = """
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="calorievision" android:host="native-bridge" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="calorievision.ru" android:pathPrefix="/api/auth/native-bridge" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.calorievision.ru" android:pathPrefix="/api/auth/native-bridge" />
+            </intent-filter>
 """
 
 insert = ""
@@ -547,8 +559,24 @@ if https_marker not in text and 'android:pathPrefix="/api/auth/callback"' not in
     changed.append("https App Links callback")
 if scheme_marker not in text and 'android:scheme="calorievision"' not in text:
     insert += scheme_intent
-    changed.append("calorievision://native-bridge")
-
+    changed.append("calorievision://native-bridge + consume App Links")
+elif 'android:pathPrefix="/api/auth/native-bridge"' not in text and 'android:scheme="calorievision"' in text:
+    # Older APK patch had scheme only — add https consume App Links before </activity>
+    insert += """
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="calorievision.ru" android:pathPrefix="/api/auth/native-bridge" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.calorievision.ru" android:pathPrefix="/api/auth/native-bridge" />
+            </intent-filter>
+"""
+    changed.append("https consume App Links")
 if insert:
     needle = "</activity>"
     idx = text.find(needle)

@@ -1,18 +1,43 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { withBasePath } from "@/lib/paths";
 
+type BridgeLinks = {
+  deepLink: string;
+  intentUrl: string;
+  consumeUrl: string;
+};
+
 /**
  * Runs inside Chrome Custom Tabs after Google/VK OAuth.
- * Creates a one-time token and opens calorievision:// so the APK WebView can adopt the session.
+ * Opens the APK via Android intent:// (custom schemes alone often fail in Custom Tabs).
  */
 export default function NativeBridgePage() {
   const { status } = useSession();
-  const [deepLink, setDeepLink] = useState<string | null>(null);
+  const [links, setLinks] = useState<BridgeLinks | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
+
+  const openApp = useCallback((next: BridgeLinks) => {
+    // Intent URL is the reliable path from Chrome Custom Tabs.
+    window.location.href = next.intentUrl;
+
+    // Hidden iframe custom-scheme kick for some WebViews / older Chrome.
+    window.setTimeout(() => {
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = next.deepLink;
+        document.body.appendChild(iframe);
+        window.setTimeout(() => iframe.remove(), 1500);
+      } catch {
+        // ignore
+      }
+    }, 300);
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -31,13 +56,25 @@ export default function NativeBridgePage() {
         if (!res.ok) {
           throw new Error("bridge_create_failed");
         }
-        const data = (await res.json()) as { deepLink?: string };
+        const data = (await res.json()) as Partial<BridgeLinks>;
         if (cancelled) return;
-        if (!data.deepLink) {
+        if (!data.deepLink || !data.intentUrl || !data.consumeUrl) {
           throw new Error("bridge_missing_link");
         }
-        setDeepLink(data.deepLink);
-        window.location.href = data.deepLink;
+        const next = {
+          deepLink: data.deepLink,
+          intentUrl: data.intentUrl,
+          consumeUrl: data.consumeUrl,
+        };
+        setLinks(next);
+        openApp(next);
+        window.setTimeout(() => {
+          if (!cancelled) {
+            setHint(
+              "Если приложение не открылось — нажмите «Открыть приложение». Нужен APK после сборки rustore:cap:build (схема calorievision://).",
+            );
+          }
+        }, 2000);
       } catch {
         if (!cancelled) {
           setError("Не удалось вернуться в приложение. Нажмите кнопку ниже или закройте вкладку.");
@@ -48,7 +85,7 @@ export default function NativeBridgePage() {
     return () => {
       cancelled = true;
     };
-  }, [status]);
+  }, [status, openApp]);
 
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
@@ -61,13 +98,26 @@ export default function NativeBridgePage() {
       ) : (
         <p className="mt-4 text-sm text-slate-600">Возвращаем в приложение…</p>
       )}
-      {deepLink ? (
-        <a
-          href={deepLink}
-          className="btn btn-primary mt-6 inline-flex min-h-12 items-center justify-center px-6"
-        >
-          Открыть приложение
-        </a>
+      {hint ? <p className="mt-3 text-xs leading-snug text-slate-500">{hint}</p> : null}
+      {links ? (
+        <div className="mt-6 flex w-full flex-col gap-3">
+          <a
+            href={links.intentUrl}
+            className="btn btn-primary inline-flex min-h-12 items-center justify-center px-6"
+            onClick={(e) => {
+              e.preventDefault();
+              openApp(links);
+            }}
+          >
+            Открыть приложение
+          </a>
+          <a
+            href={links.consumeUrl}
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+          >
+            Открыть через ссылку сайта
+          </a>
+        </div>
       ) : null}
     </main>
   );

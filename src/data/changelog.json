@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.35",
+    "date": "2026-09-16",
+    "summary": "fix(capacitor): bridge открывает APK через intent://",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Короткий HMAC-токен вместо длинного JWT в deep link"
+      },
+      {
+        "kind": "fix",
+        "text": "Возврат из Custom Tabs через Android intent:// + package"
+      },
+      {
+        "kind": "improvement",
+        "text": "App Links на /api/auth/native-bridge + getLaunchUrl"
+      }
+    ]
+  },
+  {
     "version": "1.12.34",
     "date": "2026-09-16",
     "summary": "fix(capacitor): Google/VK вход через Custom Tabs + deep link",
