@@ -263,3 +263,32 @@ test("prefers non-soup name over packaged soup mismatch", () => {
     true,
   );
 });
+
+
+test("isBetterRecognitionResult accepts fewer incomplete multi-dish items", () => {
+  assert.equal(
+    isBetterRecognitionResult(
+      {
+        dishName: "Стейк, картофель",
+        calories: 400,
+        confidence: 0.6,
+        photoKind: "meal",
+        items: [
+          { dishName: "Стейк", calories: 400, portionGrams: 180, confidence: 0.8 },
+          { dishName: "Картофель", calories: 0, portionGrams: 0, confidence: 0.4 },
+        ],
+      },
+      {
+        dishName: "Стейк, картофель",
+        calories: 620,
+        confidence: 0.7,
+        photoKind: "meal",
+        items: [
+          { dishName: "Стейк", calories: 400, portionGrams: 180, confidence: 0.8 },
+          { dishName: "Картофель", calories: 220, portionGrams: 200, confidence: 0.75 },
+        ],
+      },
+    ),
+    true,
+  );
+});

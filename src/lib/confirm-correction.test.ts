@@ -5,6 +5,7 @@ import {
   correctionKindsFromMealFields,
   displayScaledCorrectionBaseline,
   nearlyEqualNutrition,
+  shouldRememberFoodCorrectionFromFields,
   wasRecognitionCorrected,
 } from "./confirm-correction.ts";
 
@@ -175,5 +176,39 @@ test("correctionKindsFromMealFields uses originalDish/originalCalories", () => {
       originalCalories: 200,
     }),
     { name: true, portion: false, nutrition: true },
+  );
+});
+
+
+test("shouldRememberFoodCorrectionFromFields skips ±1 kcal noise", () => {
+  assert.equal(
+    shouldRememberFoodCorrectionFromFields({
+      dishName: "Борщ",
+      calories: 201,
+      originalDish: "Борщ",
+      originalCalories: 200,
+    }),
+    false,
+  );
+});
+
+test("shouldRememberFoodCorrectionFromFields remembers real kcal or name edits", () => {
+  assert.equal(
+    shouldRememberFoodCorrectionFromFields({
+      dishName: "Борщ",
+      calories: 280,
+      originalDish: "Борщ",
+      originalCalories: 200,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRememberFoodCorrectionFromFields({
+      dishName: "Щи",
+      calories: 200,
+      originalDish: "Борщ",
+      originalCalories: 200,
+    }),
+    true,
   );
 });

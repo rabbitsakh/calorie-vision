@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { parseEatenAt } from "@/lib/eaten-at";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { rememberFoodCorrection } from "@/lib/food-corrections-store";
+import { shouldRememberFoodCorrectionFromFields } from "@/lib/confirm-correction";
 import { requireDateKey } from "@/lib/dates";
 
 export type SaveMealInput = {
@@ -87,6 +88,28 @@ export async function rememberMealCorrectionIfNeeded(
   body: SaveMealInput,
 ): Promise<void> {
   if (!body.wasCorrected || !body.originalDish?.trim()) {
+    return;
+  }
+
+  if (
+    !shouldRememberFoodCorrectionFromFields({
+      dishName: body.dishName,
+      calories: body.calories,
+      protein: body.protein,
+      fat: body.fat,
+      carbs: body.carbs,
+      fiber: body.fiber,
+      sugar: body.sugar,
+      portionGrams: body.portionGrams,
+      originalDish: body.originalDish,
+      originalCalories: body.originalCalories,
+      originalProtein: body.originalProtein,
+      originalFat: body.originalFat,
+      originalCarbs: body.originalCarbs,
+      originalFiber: body.originalFiber,
+      originalSugar: body.originalSugar,
+    })
+  ) {
     return;
   }
 
