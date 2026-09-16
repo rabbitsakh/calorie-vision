@@ -122,6 +122,15 @@ function main(): void {
         status = "weak";
       }
     }
+    if (key === "NEXTAUTH_URL" && status === "ok") {
+      const raw = (process.env[key] ?? "").trim();
+      if (/localhost|127\.0\.0\.1/i.test(raw)) {
+        status = "weak";
+        printRow(key, status, "на проде должно быть https://calorievision.ru (не localhost)");
+        weakRequired += 1;
+        continue;
+      }
+    }
     if (status === "missing" || status === "empty") missingRequired += 1;
     if (status === "weak") weakRequired += 1;
     printRow(key, status, status === "weak" ? "похоже на placeholder / слишком коротко" : undefined);
