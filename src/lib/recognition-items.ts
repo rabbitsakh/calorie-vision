@@ -29,6 +29,91 @@ export function flattenRecognitionItems(result: FoodRecognitionResult): FoodReco
   }));
 }
 
+
+function incompleteMultiDishItemCount(result: FoodRecognitionResult): number {
+  const items = result.items ?? [];
+  if (items.length < 2) return 0;
+  return items.filter(
+    (item) => (item.calories ?? 0) <= 0 || !(item.portionGrams && item.portionGrams > 0),
+  ).length;
+}
+
+export function countIncompleteMultiDishItems(result: FoodRecognitionResult): number {
+  return incompleteMultiDishItemCount(result);
+}
+
+/**
+ * Force parent calories/macros/portion from item sums when the plate has ≥2 items
+ * and any item was incomplete or parent totals still look stale vs the items.
+ */
+export function reconcileMultiDishFromItems(
+  result: FoodRecognitionResult,
+): FoodRecognitionResult {
+  const items = result.items ?? [];
+  if (items.length < 2) return result;
+
+  const itemCalories = items.reduce((sum, item) => sum + Math.max(0, item.calories || 0), 0);
+  if (itemCalories <= 0) return result;
+
+  // Always rebuild parent from item sums once we have a usable multi-dish plate.
+  // (Incomplete slots still contribute 0 — caller should merge/retry first.)
+  return combineRecognitionItems(items, { ...result, calories: 0 });
+}
+
+/**
+ * Item-wise merge for multi-dish incomplete retries: fill zero/missing fields from
+ * the candidate while keeping good items from the current plate.
+ */
+export function mergeMultiDishRecognition(
+  current: FoodRecognitionResult,
+  candidate: FoodRecognitionResult,
+): FoodRecognitionResult {
+  const curItems = current.items ?? [];
+  const newItems = candidate.items ?? [];
+  if (curItems.length < 2 || newItems.length < 2) {
+    return candidate;
+  }
+
+  const merged = curItems.map((item, index) => {
+    const other = newItems[index];
+    if (!other) return item;
+
+    const caloriesBroken = (item.calories ?? 0) <= 0;
+    const portionBroken = !(item.portionGrams && item.portionGrams > 0);
+
+    return {
+      ...item,
+      dishName:
+        !item.dishName?.trim() || /^еда|блюдо$/i.test(item.dishName.trim())
+          ? other.dishName || item.dishName
+          : item.dishName,
+      calories: caloriesBroken && (other.calories ?? 0) > 0 ? other.calories : item.calories,
+      protein: caloriesBroken ? other.protein ?? item.protein : item.protein,
+      fat: caloriesBroken ? other.fat ?? item.fat : item.fat,
+      carbs: caloriesBroken ? other.carbs ?? item.carbs : item.carbs,
+      fiber: caloriesBroken ? other.fiber ?? item.fiber : item.fiber,
+      sugar: caloriesBroken ? other.sugar ?? item.sugar : item.sugar,
+      portionGrams:
+        portionBroken && other.portionGrams && other.portionGrams > 0
+          ? other.portionGrams
+          : item.portionGrams,
+      confidence: Math.max(item.confidence ?? 0, other.confidence ?? 0),
+    };
+  });
+
+  // Append extra candidate items beyond current length.
+  if (newItems.length > curItems.length) {
+    merged.push(...newItems.slice(curItems.length));
+  }
+
+  return reconcileMultiDishFromItems({
+    ...current,
+    ...candidate,
+    items: merged,
+    dishName: current.dishName || candidate.dishName,
+  });
+}
+
 export function combineRecognitionItems(
   items: FoodRecognitionResult[],
   base: FoodRecognitionResult,

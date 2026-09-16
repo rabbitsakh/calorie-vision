@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { withBasePath } from "@/lib/paths";
-import { localHour, resolvePushTimezone } from "@/lib/push-reminders";
+import { quietHoursLocalHour, syncQuietHoursTimezone } from "@/lib/quiet-hours-prefs";
 
 const SEEN_PREFIX = "evening-checkin-";
 
@@ -53,9 +53,11 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
       setVisible(false);
       return;
     }
-    const hour = timezone
-      ? localHour(resolvePushTimezone(timezone))
-      : new Date().getHours();
+    if (timezone) {
+      syncQuietHoursTimezone(timezone);
+    }
+    // Account quiet-hours TZ (same as celebrations / MotivationTip), not device wall clock alone.
+    const hour = quietHoursLocalHour();
     // Align with streak (20) / check-in push (21) — dinner hour stays free for logging.
     if (hour < 20) {
       setVisible(false);

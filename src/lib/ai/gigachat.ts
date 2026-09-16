@@ -17,6 +17,7 @@ import { parseFoodRecognitionResponse } from "@/lib/ai/parse-response";
 import { buildRecognitionRetryPrompt } from "@/lib/ai/recognition-retry-prompt";
 import {
   getRecognitionRetryReason,
+  acceptMultiDishRetry,
   isBetterRecognitionResult,
   shouldRetryFoodRecognition,
   type RecognitionRetryReason,
@@ -720,7 +721,7 @@ export async function recognizeWithGigaChat(
         ...telemetryBase(),
       });
       if (isBetterRecognitionResult(result, retried)) {
-        result = retried;
+        result = acceptMultiDishRetry(result, retried);
       }
     } catch (error) {
       console.warn("Recognition quality retry failed", error);
@@ -789,7 +790,7 @@ export async function recognizeWithGigaChat(
         ...telemetryBase(),
       });
       if (isBetterRecognitionResult(result, retried)) {
-        result = retried;
+        result = acceptMultiDishRetry(result, retried);
       }
     } catch (error) {
       console.warn("Post-specialist recognition retry failed", error);

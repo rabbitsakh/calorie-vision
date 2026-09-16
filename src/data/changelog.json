@@ -1,5 +1,43 @@
 [
   {
+    "version": "1.12.30",
+    "date": "2026-09-16",
+    "summary": "feat(retention): depth 3 — tip/streak dedup, referral gate, evening TZ",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "MotivationTip не дублирует soft recovery / freeze / at-risk из StreakNudge"
+      },
+      {
+        "kind": "fix",
+        "text": "ReferralNudge только после записи еды сегодня (как в комментарии)"
+      },
+      {
+        "kind": "improvement",
+        "text": "EveningCheckin считает час в TZ quiet-hours аккаунта"
+      }
+    ]
+  },
+  {
+    "version": "1.12.29",
+    "date": "2026-09-16",
+    "summary": "feat(recog): depth 5 — multi-dish reconcile + correction memory gate",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Multi-dish incomplete retry: item-wise merge + parent totals из суммы items"
+      },
+      {
+        "kind": "fix",
+        "text": "Память правок не пишется при ±1 ккал / без смены имени (шум округления)"
+      },
+      {
+        "kind": "improvement",
+        "text": "isBetterRecognitionResult принимает меньше incomplete items при том же count"
+      }
+    ]
+  },
+  {
     "version": "1.12.28",
     "date": "2026-09-14",
     "summary": "fix(rustore): Capacitor standalone shell for RuStore moderation",
