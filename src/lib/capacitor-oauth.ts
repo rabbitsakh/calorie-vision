@@ -10,6 +10,7 @@
  */
 
 import { signIn } from "next-auth/react";
+import { publicBrowserOrigin } from "@/lib/auth-url";
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import {
   isNativeBridgeUrl,
@@ -28,7 +29,8 @@ function adoptNativeBridgeUrl(url: string): void {
 
     const token = tokenFromNativeBridgeUrl(url);
     if (token) {
-      window.location.assign(nativeBridgeConsumeUrl(window.location.origin, token));
+      const origin = publicBrowserOrigin(window.location.origin);
+      window.location.assign(nativeBridgeConsumeUrl(origin, token));
       return;
     }
 
@@ -101,7 +103,8 @@ export async function startCapacitorOAuth(
 
   await ensureCapacitorOAuthDeepLink();
 
-  const startUrl = `${window.location.origin}${withBasePath(`/auth/native-oauth?provider=${provider}`)}`;
+  const origin = publicBrowserOrigin(window.location.origin);
+  const startUrl = `${origin}${withBasePath(`/auth/native-oauth?provider=${provider}`)}`;
   const { Browser } = await import("@capacitor/browser");
   await Browser.open({ url: startUrl });
 }

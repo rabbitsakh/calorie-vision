@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { publicBrowserOrigin } from "@/lib/auth-url";
 import { withBasePath } from "@/lib/paths";
 
 /**
@@ -28,10 +29,11 @@ function NativeOauthStartInner() {
         const csrfToken = csrfJson.csrfToken;
         if (!csrfToken) throw new Error("csrf_token");
 
-        const callbackUrl = `${window.location.origin}${withBasePath("/auth/native-bridge")}`;
+        const origin = publicBrowserOrigin(window.location.origin);
+        const callbackUrl = `${origin}${withBasePath("/auth/native-bridge")}`;
         const form = document.createElement("form");
         form.method = "POST";
-        form.action = withBasePath(`/api/auth/signin/${provider}`);
+        form.action = `${origin}${withBasePath(`/api/auth/signin/${provider}`)}`;
         form.style.display = "none";
 
         const add = (name: string, value: string) => {

@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.37",
+    "date": "2026-09-16",
+    "summary": "fix(auth): OAuth больше не уводит на localhost:3000",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "В production канонический URL — calorievision.ru, не localhost"
+      },
+      {
+        "kind": "fix",
+        "text": "Capacitor Google/VK bootstrap игнорирует localhost origin"
+      }
+    ]
+  },
+  {
     "version": "1.12.36",
     "date": "2026-09-16",
     "summary": "fix(build): native-bridge crypto только на сервере",
