@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.31",
+    "date": "2026-09-16",
+    "summary": "fix(capacitor): welcome не зависает на «Открываем…»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Welcome не ждёт вечно SessionProvider loading в APK"
+      },
+      {
+        "kind": "fix",
+        "text": "Таймаут Preferences + failsafe 2.5с до слайдера/логина"
+      },
+      {
+        "kind": "improvement",
+        "text": "Ожидание инъекции Capacitor bridge в remote WebView"
+      }
+    ]
+  },
+  {
     "version": "1.12.30",
     "date": "2026-09-16",
     "summary": "feat(retention): depth 3 — tip/streak dedup, referral gate, evening TZ",

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { waitForCapacitorNative } from "@/lib/capacitor-bridge";
 import { resolveNativeAuthEntry } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -15,19 +15,26 @@ export function CapacitorSkipLanding() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!isCapacitorNative()) return;
-    setBusy(true);
-    document.documentElement.classList.add("capacitor-native");
-    void resolveNativeAuthEntry().then((path) => {
+    let cancelled = false;
+    void (async () => {
+      const native = await waitForCapacitorNative(1200);
+      if (cancelled || !native) return;
+      setBusy(true);
+      document.documentElement.classList.add("capacitor-native");
+      const path = await resolveNativeAuthEntry();
+      if (cancelled) return;
       router.replace(withBasePath(path));
-    });
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
-  if (!isCapacitorNative()) return null;
+  if (!busy) return null;
 
   return (
     <main className="mx-auto flex min-h-[40vh] max-w-md items-center justify-center px-4 py-16 text-center text-sm text-slate-600">
-      {busy ? "Открываем приложение…" : null}
+      Открываем приложение…
     </main>
   );
 }

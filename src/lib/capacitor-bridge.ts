@@ -3,10 +3,38 @@
  * Safe no-op on web / TWA / PWA.
  */
 
+type CapWindow = Window & {
+  Capacitor?: {
+    isNativePlatform?: () => boolean;
+    getPlatform?: () => string;
+  };
+};
+
 export function isCapacitorNative(): boolean {
   if (typeof window === "undefined") return false;
-  const cap = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
-  return Boolean(cap?.isNativePlatform?.());
+  const cap = (window as CapWindow).Capacitor;
+  if (!cap) return false;
+  if (typeof cap.isNativePlatform === "function") {
+    try {
+      return Boolean(cap.isNativePlatform());
+    } catch {
+      // fall through
+    }
+  }
+  const platform = cap.getPlatform?.();
+  return platform === "android" || platform === "ios";
+}
+
+/** Remote server.url WebViews sometimes inject the bridge a tick late. */
+export async function waitForCapacitorNative(timeoutMs = 1200): Promise<boolean> {
+  if (isCapacitorNative()) return true;
+  if (typeof window === "undefined") return false;
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 50));
+    if (isCapacitorNative()) return true;
+  }
+  return isCapacitorNative();
 }
 
 /** Take a photo via Capacitor Camera plugin; returns data URL or null if unavailable. */
