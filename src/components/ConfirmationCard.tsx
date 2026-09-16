@@ -338,7 +338,11 @@ export function ConfirmationCard({
   }, [initialImagePath, previewUrl]);
 
   useEffect(() => {
-    setDishes((current) => mergeDishesFromRecognition(current, recognition));
+    setDishes((current) =>
+      mergeDishesFromRecognition(current, recognition, {
+        preserveListLength: dishesListTouchedRef.current,
+      }),
+    );
   }, [recognition]);
 
   // Persist confirm edits into pending-confirm so reload / PWA kill keeps them (1.11.1).
@@ -650,13 +654,20 @@ export function ConfirmationCard({
     };
   }
 
-  async function handleLookupAll() {
-    const targets = dishes.filter((dish) => {
-      const review = dishNeedsReview(dish, lowConfidenceThreshold);
-      return review.lowConfidence || review.missingCalories;
-    });
+  async function handleLookupAll(opts?: { forceAll?: boolean }) {
+    const forceAll = Boolean(opts?.forceAll);
+    const targets = forceAll
+      ? dishes.filter((dish) => dish.dishName.trim().length > 0)
+      : dishes.filter((dish) => {
+          const review = dishNeedsReview(dish, lowConfidenceThreshold);
+          return review.lowConfidence || review.missingCalories;
+        });
     if (targets.length === 0) {
-      setLookupMessage("Все позиции уже выглядят достаточно точными");
+      setLookupMessage(
+        forceAll
+          ? "Нет позиций для уточнения — укажите название"
+          : "Все позиции уже выглядят достаточно точными",
+      );
       return;
     }
 
@@ -919,7 +930,9 @@ export function ConfirmationCard({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-semibold leading-snug">
                 {enriching
-                  ? "Уточняем по базе — можно сохранить сейчас"
+                  ? totalCalories > 0
+                    ? `Черновик: ${totalCalories} ккал — можно сохранить сейчас`
+                    : "Уточняем по базе — можно сохранить сейчас"
                   : recognition.enrichmentTimedOut
                     ? "Уточнение не завершилось — проверьте калории"
                     : anyMissingCalories
@@ -930,7 +943,7 @@ export function ConfirmationCard({
                           ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
                           : "Низкая уверенность — проверьте блюдо"}
               </p>
-              {needsReview && multi ? (
+              {needsReview && multi && !recognition.enrichmentTimedOut ? (
                 <button
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
@@ -940,7 +953,7 @@ export function ConfirmationCard({
                   {bulkLookupRunning ? "Уточняем…" : "Уточнить все"}
                 </button>
               ) : null}
-              {needsReview && !multi && dishes[0] ? (
+              {needsReview && !multi && dishes[0] && !recognition.enrichmentTimedOut ? (
                 <button
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
@@ -955,12 +968,17 @@ export function ConfirmationCard({
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
                   disabled={formDisabled || bulkLookupRunning}
-                  onClick={() => void handleLookupAll()}
+                  onClick={() => void handleLookupAll({ forceAll: true })}
                 >
                   {bulkLookupRunning ? "Считаем…" : "Досчитать"}
                 </button>
               ) : null}
             </div>
+            {enriching && totalCalories > 0 ? (
+              <p className="mt-1.5 text-xs opacity-90">
+                Клетчатка и сахар могут ещё подтянуться — поля уже можно править.
+              </p>
+            ) : null}
             {anyLowConfidence ? (
               <p className="mt-1.5 text-xs opacity-90">
                 Оценка по фото, не лабораторный анализ — при сомнении сверьте этикетку или вес порции.
