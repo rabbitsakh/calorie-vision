@@ -483,7 +483,8 @@ rustore_patch_capacitor_app_links() {
   fi
 
   echo "==> Patching AndroidManifest App Links (OAuth callback)"
-  python3 - "$manifest" <<'PY'
+  # Use rustore_py — bare python3 hangs on Windows Store stub in Git Bash.
+  rustore_py - "$manifest" <<'PY'
 from pathlib import Path
 import sys
 
@@ -708,7 +709,8 @@ keyPassword=$key_password
 EOF
   echo "==> keystore.properties (alias=$alias)"
 
-  python3 - "$app_gradle" <<'PY2'
+  # Use rustore_py — bare python3 hangs on Windows Store stub in Git Bash.
+  rustore_py - "$app_gradle" <<'PY2'
 from pathlib import Path
 import sys
 
