@@ -126,9 +126,19 @@ fi
 
 echo "==> Restart app"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
-  pm2 restart calorie-vision
+  pm2 restart calorie-vision --update-env
 else
   pm2 start deploy/ecosystem.config.cjs
+fi
+
+# Sanity: public auth URL must not be localhost (Custom Tabs would fail on the phone).
+AUTH_URL_CHECK="$(grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+if [[ -z "$AUTH_URL_CHECK" ]]; then
+  echo "   WARNING: NEXTAUTH_URL missing in .env"
+elif echo "$AUTH_URL_CHECK" | grep -qiE 'localhost|127\.0\.0\.1'; then
+  echo "   WARNING: NEXTAUTH_URL looks like localhost ($AUTH_URL_CHECK) — set https://calorievision.ru"
+else
+  echo "   NEXTAUTH_URL=$AUTH_URL_CHECK"
 fi
 
 pm2 save
