@@ -466,8 +466,8 @@ print(f"  обновлено файлов: {written}")
 PY
 }
 
-# App Links: https://calorievision.ru/api/auth/callback/* → MainActivity (OAuth Custom Tabs return).
-# Needs Digital Asset Links (same keystore SHA-256 as /.well-known/assetlinks.json).
+# App Links + custom scheme for OAuth return into Capacitor WebView.
+# Custom scheme does not need Digital Asset Links (unlike https callbacks).
 rustore_patch_capacitor_app_links() {
   local android_dir="${1:?android}"
   local manifest="$android_dir/app/src/main/AndroidManifest.xml"
@@ -477,25 +477,45 @@ rustore_patch_capacitor_app_links() {
     return 0
   fi
 
-  if grep -q 'android:pathPrefix="/api/auth/callback"' "$manifest" 2>/dev/null; then
-    echo "==> App Links for /api/auth/callback already present"
-    return 0
-  fi
-
-  echo "==> Patching AndroidManifest App Links (OAuth callback)"
+  echo "==> Patching AndroidManifest App Links / OAuth deep links"
   # Use rustore_py — bare python3 hangs on Windows Store stub in Git Bash.
   rustore_py - "$manifest" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text()
-marker = "<!-- RUSTORE_AUTH_APP_LINKS -->"
-if marker in text:
-    print("App Links marker already present")
-    raise SystemExit(0)
+changed = []
 
-intent = """
+# Capacitor deep links require singleTask (or singleTop) so appUrlOpen fires.
+if 'android:name=".MainActivity"' in text or 'android:name="MainActivity"' in text:
+    def ensure_launch_mode(match: re.Match[str]) -> str:
+        tag = match.group(0)
+        if 'android:launchMode=' in tag:
+            return re.sub(
+                r'android:launchMode="[^"]*"',
+                'android:launchMode="singleTask"',
+                tag,
+                count=1,
+            )
+        return tag[:-1] + ' android:launchMode="singleTask">'
+
+    new_text, n = re.subn(
+        r'<activity\b[^>]*android:name="\.?MainActivity"[^>]*>',
+        ensure_launch_mode,
+        text,
+        count=1,
+        flags=re.S,
+    )
+    if n:
+        text = new_text
+        changed.append("launchMode=singleTask")
+
+https_marker = "<!-- RUSTORE_AUTH_APP_LINKS -->"
+scheme_marker = "<!-- RUSTORE_NATIVE_BRIDGE_SCHEME -->"
+
+https_intent = """
             <!-- RUSTORE_AUTH_APP_LINKS -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -511,13 +531,36 @@ intent = """
             </intent-filter>
 """
 
-needle = "</activity>"
-idx = text.find(needle)
-if idx < 0:
-    raise SystemExit("MainActivity </activity> not found")
-text = text[:idx] + intent + "\n        " + text[idx:]
+scheme_intent = """
+            <!-- RUSTORE_NATIVE_BRIDGE_SCHEME -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="calorievision" android:host="native-bridge" />
+            </intent-filter>
+"""
+
+insert = ""
+if https_marker not in text and 'android:pathPrefix="/api/auth/callback"' not in text:
+    insert += https_intent
+    changed.append("https App Links callback")
+if scheme_marker not in text and 'android:scheme="calorievision"' not in text:
+    insert += scheme_intent
+    changed.append("calorievision://native-bridge")
+
+if insert:
+    needle = "</activity>"
+    idx = text.find(needle)
+    if idx < 0:
+        raise SystemExit("MainActivity </activity> not found")
+    text = text[:idx] + insert + "\n        " + text[idx:]
+
 path.write_text(text)
-print("App Links intent-filters added for /api/auth/callback")
+if changed:
+    print("AndroidManifest OAuth patches:", ", ".join(changed))
+else:
+    print("AndroidManifest OAuth patches already present")
 PY
 }
 

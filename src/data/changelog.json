@@ -1,5 +1,24 @@
 [
   {
+    "version": "1.12.34",
+    "date": "2026-09-16",
+    "summary": "fix(capacitor): Google/VK вход через Custom Tabs + deep link",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "OAuth целиком в Chrome Custom Tabs — без CSRF-разрыва с WebView"
+      },
+      {
+        "kind": "fix",
+        "text": "Возврат сессии в APK через calorievision://native-bridge"
+      },
+      {
+        "kind": "improvement",
+        "text": "AndroidManifest: custom scheme + launchMode singleTask"
+      }
+    ]
+  },
+  {
     "version": "1.12.33",
     "date": "2026-09-16",
     "summary": "fix(capacitor): welcome не зацикливается после «Войти»",

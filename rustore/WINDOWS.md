@@ -132,12 +132,14 @@ npm run rustore:cap:build   # → rustore/dist/app-release.apk
 ### Google 400 / disallowed_useragent
 
 Google запрещает OAuth внутри Android WebView. В приложении вход через Google/VK
-открывается в Chrome Custom Tabs; callback возвращается по App Links.
+открывается в Chrome Custom Tabs целиком (CSRF там же), затем `calorievision://native-bridge`
+возвращает сессию в WebView.
 
-1. Задеплойте сайт (нужен новый `LoginForm` + `@capacitor/browser`).
-2. Пересоберите APK (`git pull` → `rustore:cap:build`).
-3. В логе сборки: `App Links for /api/auth/callback`.
-4. `assetlinks.json` должен содержать SHA-256 **этого** keystore (как для TWA).
+1. Задеплойте сайт (`deploy/deploy.sh`) — нужны `/auth/native-oauth` и `/auth/native-bridge`.
+2. Пересоберите APK (`git pull` → `rustore:cap:build`) — в манифесте должен быть
+   `calorievision` scheme и `launchMode="singleTask"`.
+3. В логе сборки: `AndroidManifest OAuth patches` / `calorievision://native-bridge`.
+4. `assetlinks.json` по-прежнему нужен для https App Links (опциональный запасной путь).
 
 ### Нет иконки / «робот Android»
 

@@ -75,6 +75,9 @@ export default function LoginForm() {
   // Capacitor: hook App Link return from Chrome Custom Tabs (Google/VK OAuth).
   useEffect(() => {
     void ensureCapacitorOAuthDeepLink();
+    const onFinished = () => setLoading(false);
+    window.addEventListener("cv-oauth-browser-finished", onFinished);
+    return () => window.removeEventListener("cv-oauth-browser-finished", onFinished);
   }, []);
 
   // Mark document for CSS that hides web-only chrome («На главную», etc.).
