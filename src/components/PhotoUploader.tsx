@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { RecognitionResponse } from "@/types";
+import { takeNativeFoodPhoto } from "@/lib/capacitor-bridge";
 import { enqueuePendingRecognition } from "@/lib/meal-draft-queue";
 import {
   describeRecognizeError,
@@ -77,6 +78,16 @@ function ThinkingAnimation({ preview, stage }: { preview: string | null; stage: 
   );
 }
 
+function dataUrlToImageFile(dataUrl: string, name = "camera.jpg"): File | null {
+  const match = /^data:([^;]+);base64,(.+)$/i.exec(dataUrl);
+  if (!match) return null;
+  const mime = match[1] || "image/jpeg";
+  const binary = atob(match[2]!);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new File([bytes], name, { type: mime });
+}
+
 function isLikelyImageFile(file: File): boolean {
   if (file.type.startsWith("image/")) {
     return true;
@@ -98,6 +109,19 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
   const [dragOver, setDragOver] = useState(false);
   const [offlineQueued, setOfflineQueued] = useState(false);
 
+  async function openDeviceCamera() {
+    if (disabled) return;
+    const dataUrl = await takeNativeFoodPhoto();
+    if (dataUrl) {
+      const file = dataUrlToImageFile(dataUrl);
+      if (file) {
+        await processFile(file);
+        return;
+      }
+    }
+    cameraInputRef.current?.click();
+  }
+
   useImperativeHandle(ref, () => ({
     abort: () => {
       abortRef.current?.abort();
@@ -106,7 +130,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       setPreview(null);
     },
     openCamera: () => {
-      cameraInputRef.current?.click();
+      void openDeviceCamera();
     },
   }));
 
@@ -283,7 +307,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
               type="button"
               className="btn btn-on-tint text-teal-800"
               disabled={disabled}
-              onClick={() => cameraInputRef.current?.click()}
+              onClick={() => void openDeviceCamera()}
             >
               Снять на камеру
             </button>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { CapacitorSkipLanding } from "@/components/CapacitorSkipLanding";
 import { LandingPage } from "@/components/LandingPage";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { authOptions } from "@/lib/auth-options";
@@ -20,7 +21,11 @@ export default async function HomePage({ searchParams }: HomeProps) {
   return (
     <>
       <ReferralCapture />
-      <LandingPage />
+      {/* Capacitor shell: skip marketing site → /login */}
+      <CapacitorSkipLanding />
+      <div className="capacitor-web-only">
+        <LandingPage />
+      </div>
     </>
   );
 }

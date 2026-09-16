@@ -35,6 +35,11 @@
   box-sizing: border-box;
 }
 
+/* Capacitor Android shell: hide marketing chrome when native class is set */
+html.capacitor-native .capacitor-web-only {
+  display: none !important;
+}
+
 /* overflow-x must NOT be on html: on iOS it becomes a fixed containing block
    and clips fullscreen portals (celebration shows only on the left half). */
 html {

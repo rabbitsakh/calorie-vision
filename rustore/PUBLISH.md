@@ -1,6 +1,10 @@
 # Публикация Calorie Vision в RuStore — пошагово
 
-Цель: **бесплатное** Android-приложение (TWA) вокруг `https://calorievision.ru`, package `ru.calorievision.app`.
+Цель: **бесплатное** самостоятельное Android-приложение, package `ru.calorievision.app`.
+
+> После отказа модерации за WebView/TWA: собирайте **Capacitor** APK  
+> (`npm run rustore:cap:init` → `npm run rustore:cap:build`).  
+> Текст ответа: [`MODERATION.md`](MODERATION.md). Legacy Bubblewrap TWA — только архив.
 
 Официальная справка: [Публикация приложений](https://www.rustore.ru/help/developers/publishing-and-verifying-apps/app-publication).
 
@@ -10,7 +14,7 @@
 
 | Что | Где в Консоли | Откуда берём |
 |-----|----------------|--------------|
-| APK (или AAB) | Приложения → версия → файл | `bash scripts/rustore-build.sh` → `rustore/dist/app-release.apk` |
+| APK (или AAB) | Приложения → версия → файл | `npm run rustore:cap:build` → `rustore/dist/app-release.apk` |
 | Название | Информация о приложении | `Calorie Vision` (≤30 символов) |
 | Краткое описание | до **80** символов | `listing.ru.md` |
 | Полное описание | до **4000** (свёрнуто ~2000) | `listing.ru.md` |
@@ -36,9 +40,19 @@
 
 ---
 
-## 2. Техника: TWA без Chrome-бара
+## 2. Техника: Capacitor APK (актуально)
 
-Без Digital Asset Links модераторы и пользователи увидят **адресную строку Chrome** — часто режут или плохо смотрится.
+```bash
+npm run rustore:cap:init   # один раз на машине
+npm run rustore:cap:build  # → rustore/dist/app-release.apk
+```
+
+На телефоне: ярлык → splash → дневник/логин, **без** адресной строки Chrome.  
+Камера еды идёт через Capacitor Camera.
+
+### 2.0. Legacy: TWA без Chrome-бара (не подавать повторно как есть)
+
+Без Digital Asset Links модераторы увидят **адресную строку Chrome** — типичный отказ «WebView».
 
 ### 2.1. Keystore (хранить вне git)
 
@@ -72,7 +86,7 @@ TWA_SHA256_FINGERPRINTS="AB:CD:..."
 ### 2.3. Сборка (Windows: см. `WINDOWS.md`)
 
 ```bash
-# JDK 17, ANDROID_HOME = корень Sdk
+# JDK 21, ANDROID_HOME = корень Sdk
 bash scripts/rustore-init.sh   # один раз
 bash scripts/rustore-build.sh  # → rustore/dist/app-release.apk
 ```

@@ -1,6 +1,6 @@
 {
   "name": "calorie-vision",
-  "version": "1.12.27",
+  "version": "1.12.28",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,7 +19,10 @@
     "db:generate": "prisma generate",
     "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
     "db:push": "prisma db push --skip-generate",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "rustore:cap:init": "bash scripts/rustore-cap-init.sh",
+    "rustore:cap:build": "bash scripts/rustore-cap-build.sh",
+    "cap:sync": "npx cap sync android"
   },
   "engines": {
     "node": ">=24"
@@ -35,6 +38,15 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@prisma/client": "6.19.3",
     "@rive-app/react-canvas": "^4.32.1",
     "@sentry/nextjs": "^10.73.0",

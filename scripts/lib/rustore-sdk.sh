@@ -325,6 +325,201 @@ print(f"  обновлено файлов: {written}")
 PY
 }
 
+# Capacitor Android adaptive icons (mipmap-*/ic_launcher*.png + teal background).
+# Call after `cap add` / `cap sync`, before Gradle.
+rustore_sync_capacitor_icons() {
+  local android_dir="$1"
+  local icon_src="${2:-}"
+  local res_dir="$android_dir/app/src/main/res"
+
+  if [[ -z "$icon_src" ]]; then
+    if [[ -f "$ROOT/rustore/icon-512-store.png" ]]; then
+      icon_src="$ROOT/rustore/icon-512-store.png"
+    elif [[ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/rustore/icon-512-store.png" ]]; then
+      icon_src="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/rustore/icon-512-store.png"
+    elif [[ -f "$android_dir/../rustore/icon-512-store.png" ]]; then
+      icon_src="$android_dir/../rustore/icon-512-store.png"
+    fi
+  fi
+  # Resolve relative to repo when called as rustore_sync_capacitor_icons "$ANDROID"
+  if [[ -z "$icon_src" || ! -f "$icon_src" ]]; then
+    local repo
+    repo="$(cd "$android_dir/.." && pwd)"
+    if [[ -f "$repo/rustore/icon-512-store.png" ]]; then
+      icon_src="$repo/rustore/icon-512-store.png"
+    elif [[ -f "$repo/public/icon-512.png" ]]; then
+      icon_src="$repo/public/icon-512.png"
+    fi
+  fi
+
+  if [[ ! -f "$icon_src" ]]; then
+    echo "Нет иконки (rustore/icon-512-store.png)" >&2
+    return 1
+  fi
+  if [[ ! -d "$res_dir" ]]; then
+    echo "Нет $res_dir — сначала cap add android" >&2
+    return 1
+  fi
+
+  echo "==> Capacitor launcher icons ← $(basename "$icon_src")"
+  rustore_py - "$icon_src" "$android_dir" <<'PY'
+import sys
+from pathlib import Path
+from PIL import Image
+
+src = Image.open(sys.argv[1]).convert("RGBA")
+android = Path(sys.argv[2])
+res = android / "app/src/main/res"
+# Brand teal plate (A2)
+TEAL = (30, 115, 108)
+plate = Image.new("RGB", src.size, TEAL)
+plate.paste(src, mask=src.split()[-1])
+
+# Legacy launcher + round (API < 26)
+legacy = {
+    "mipmap-mdpi": 48,
+    "mipmap-hdpi": 72,
+    "mipmap-xhdpi": 96,
+    "mipmap-xxhdpi": 144,
+    "mipmap-xxxhdpi": 192,
+}
+# Adaptive foreground canvas (108dp family)
+foreground = {
+    "mipmap-mdpi": 108,
+    "mipmap-hdpi": 162,
+    "mipmap-xhdpi": 216,
+    "mipmap-xxhdpi": 324,
+    "mipmap-xxxhdpi": 432,
+}
+
+written = 0
+for folder, size in legacy.items():
+    d = res / folder
+    d.mkdir(parents=True, exist_ok=True)
+    img = plate.resize((size, size), Image.Resampling.LANCZOS)
+    for name in ("ic_launcher.png", "ic_launcher_round.png"):
+        img.save(d / name, optimize=True)
+        written += 1
+        print(f"  wrote {folder}/{name} ({size}px)")
+
+for folder, size in foreground.items():
+    d = res / folder
+    d.mkdir(parents=True, exist_ok=True)
+    # Full-bleed teal plate with logo; adaptive safe zone crops ~1/3
+    img = plate.resize((size, size), Image.Resampling.LANCZOS)
+    img.save(d / "ic_launcher_foreground.png", optimize=True)
+    written += 1
+    print(f"  wrote {folder}/ic_launcher_foreground.png ({size}px)")
+
+# Solid teal adaptive background (color resource + simple drawable)
+values = res / "values"
+values.mkdir(parents=True, exist_ok=True)
+(values / "ic_launcher_background.xml").write_text(
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    "<resources>\n"
+    '    <color name="ic_launcher_background">#1E736C</color>\n'
+    "</resources>\n",
+    encoding="utf-8",
+)
+print("  wrote values/ic_launcher_background.xml (#1E736C)")
+
+drawable = res / "drawable"
+drawable.mkdir(parents=True, exist_ok=True)
+(drawable / "ic_launcher_background.xml").write_text(
+    '<?xml version="1.0" encoding="utf-8"?>\n'
+    '<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">\n'
+    '    <solid android:color="@color/ic_launcher_background" />\n'
+    "</shape>\n",
+    encoding="utf-8",
+)
+print("  wrote drawable/ic_launcher_background.xml")
+
+# Point adaptive icons at our mipmap foreground + color background
+anydpi = res / "mipmap-anydpi-v26"
+anydpi.mkdir(parents=True, exist_ok=True)
+adaptive = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+"""
+for name in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    (anydpi / name).write_text(adaptive, encoding="utf-8")
+    print(f"  wrote mipmap-anydpi-v26/{name}")
+
+# Drop Cap vector foreground if present (would override look on some devices)
+for obsolete in (
+    res / "drawable-v24" / "ic_launcher_foreground.xml",
+    res / "drawable" / "ic_launcher_foreground.xml",
+):
+    if obsolete.exists():
+        obsolete.unlink()
+        print(f"  removed {obsolete.relative_to(res)}")
+
+probe = res / "mipmap-xxxhdpi" / "ic_launcher_foreground.png"
+c = Image.open(probe).convert("RGB").getpixel((12, 12))
+if c[1] < 80 or c[2] < 70:
+    print(f"ERROR: foreground corner={c} — не A2 teal", file=sys.stderr)
+    sys.exit(1)
+print(f"  OK probe foreground xxxhdpi corner={c}")
+print(f"  обновлено файлов: {written}")
+PY
+}
+
+# App Links: https://calorievision.ru/api/auth/callback/* → MainActivity (OAuth Custom Tabs return).
+# Needs Digital Asset Links (same keystore SHA-256 as /.well-known/assetlinks.json).
+rustore_patch_capacitor_app_links() {
+  local android_dir="${1:?android}"
+  local manifest="$android_dir/app/src/main/AndroidManifest.xml"
+
+  if [[ ! -f "$manifest" ]]; then
+    echo "Нет AndroidManifest.xml — пропуск App Links" >&2
+    return 0
+  fi
+
+  if grep -q 'android:pathPrefix="/api/auth/callback"' "$manifest" 2>/dev/null; then
+    echo "==> App Links for /api/auth/callback already present"
+    return 0
+  fi
+
+  echo "==> Patching AndroidManifest App Links (OAuth callback)"
+  python3 - "$manifest" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+marker = "<!-- RUSTORE_AUTH_APP_LINKS -->"
+if marker in text:
+    print("App Links marker already present")
+    raise SystemExit(0)
+
+intent = """
+            <!-- RUSTORE_AUTH_APP_LINKS -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="calorievision.ru" android:pathPrefix="/api/auth/callback" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="www.calorievision.ru" android:pathPrefix="/api/auth/callback" />
+            </intent-filter>
+"""
+
+needle = "</activity>"
+idx = text.find(needle)
+if idx < 0:
+    raise SystemExit("MainActivity </activity> not found")
+text = text[:idx] + intent + "\n        " + text[idx:]
+path.write_text(text)
+print("App Links intent-filters added for /api/auth/callback")
+PY
+}
+
 # Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).
 rustore_lock_manifest_checksum() {
   local android_dir="$1"
@@ -343,4 +538,401 @@ digest = hashlib.sha1(data).hexdigest()
 pathlib.Path(sys.argv[2]).write_text(digest)
 print(f"  manifest-checksum.txt = {digest}")
 PY
+}
+
+# Resolve Capacitor CLI without `npx cap` (on Windows that fetches a random "cap" package).
+# Usage: rustore_cap_cli "$ROOT" --version | sync android | add android
+rustore_cap_cli() {
+  local root="${1:?root}"
+  shift
+  local bin="$root/node_modules/@capacitor/cli/bin/capacitor"
+  if [[ ! -f "$bin" ]]; then
+    echo "Нет @capacitor/cli. Запустите: npm install" >&2
+    return 1
+  fi
+  node "$bin" "$@"
+}
+
+# Major version from `java -version` (stderr). Empty if unreadable.
+rustore_java_major() {
+  local java_bin="$1"
+  local line major
+  [[ -x "$java_bin" || -f "$java_bin" ]] || return 1
+  line="$("$java_bin" -version 2>&1 | head -n 1)" || return 1
+  if [[ "$line" =~ version\ \"([0-9]+) ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
+
+# Capacitor 8 / AGP needs JDK 21. Sets JAVA_HOME + PATH; optional write org.gradle.java.home.
+# Override: export JAVA_HOME=/path/to/jdk-21
+rustore_prepare_java21() {
+  local android_dir="${1:-}"
+  local home java_bin major win_home
+  local -a candidates=()
+
+  _rustore_add_jdk_candidate() {
+    local h="$1"
+    [[ -n "$h" && -d "$h" ]] || return 0
+    candidates+=("$h")
+  }
+
+  _rustore_add_jdk_candidate "${JAVA_HOME:-}"
+
+  shopt -s nullglob
+  local p
+  for p in \
+    "/c/Program Files/Eclipse Adoptium"/jdk-21* \
+    "/c/Program Files/Java"/jdk-21* \
+    "/c/Program Files/Microsoft"/jdk-21* \
+    "/c/Program Files/Android/Android Studio/jbr" \
+    "/c/Program Files/Android/Android Studio/jre" \
+    "${LOCALAPPDATA:-}/Programs/Android/Android Studio/jbr" \
+    "${ProgramFiles:-}/Android/Android Studio/jbr" \
+    "${HOME}/.jdks"/jdk-21* \
+    /usr/lib/jvm/java-21-openjdk \
+    /usr/lib/jvm/java-21-openjdk-amd64 \
+    /usr/lib/jvm/temurin-21-jdk \
+    /Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home \
+    /Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home; do
+    _rustore_add_jdk_candidate "$p"
+  done
+  shopt -u nullglob
+
+  # PATH java — last resort (may be 17/25).
+  if command -v java >/dev/null 2>&1; then
+    java_bin="$(command -v java)"
+    home="$(cd "$(dirname "$java_bin")/.." && pwd 2>/dev/null || true)"
+    _rustore_add_jdk_candidate "$home"
+  fi
+
+  for home in "${candidates[@]}"; do
+    if [[ -f "$home/bin/java.exe" ]]; then
+      java_bin="$home/bin/java.exe"
+    elif [[ -f "$home/bin/java" ]]; then
+      java_bin="$home/bin/java"
+    else
+      continue
+    fi
+    major="$(rustore_java_major "$java_bin" || true)"
+    if [[ "$major" == "21" ]]; then
+      export JAVA_HOME="$home"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      echo "==> JAVA_HOME=$JAVA_HOME (JDK 21)"
+      if [[ -n "$android_dir" && -d "$android_dir" ]]; then
+        win_home="$JAVA_HOME"
+        if command -v cygpath >/dev/null 2>&1; then
+          win_home="$(cygpath -w "$JAVA_HOME")"
+        fi
+        win_home="$(node -e "process.stdout.write(process.argv[1].replace(/\\\\/g,'\\\\\\\\'))" "$win_home")"
+        if [[ -f "$android_dir/gradle.properties" ]]; then
+          if grep -q '^org.gradle.java.home=' "$android_dir/gradle.properties" 2>/dev/null; then
+            grep -v '^org.gradle.java.home=' "$android_dir/gradle.properties" >"$android_dir/gradle.properties.tmp"
+            mv "$android_dir/gradle.properties.tmp" "$android_dir/gradle.properties"
+          fi
+          printf '\norg.gradle.java.home=%s\n' "$win_home" >>"$android_dir/gradle.properties"
+        else
+          printf 'org.gradle.java.home=%s\n' "$win_home" >"$android_dir/gradle.properties"
+        fi
+        echo "==> gradle.properties org.gradle.java.home set"
+      fi
+      return 0
+    fi
+  done
+
+  echo "Нет JDK 21 — Capacitor 8 / Android Gradle Plugin его требуют." >&2
+  echo "Сейчас JAVA_HOME=${JAVA_HOME:-не задан}; java=$(command -v java 2>/dev/null || echo нет)" >&2
+  if command -v java >/dev/null 2>&1; then
+    java -version 2>&1 | head -n 1 >&2 || true
+  fi
+  echo "" >&2
+  echo "Установите Temurin 21: https://adoptium.net/temurin/releases/?version=21" >&2
+  echo "Затем в Git Bash (подставьте свой путь):" >&2
+  echo '  export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-21.0.x-hotspot"' >&2
+  echo '  export PATH="$JAVA_HOME/bin:$PATH"' >&2
+  echo '  java -version   # должно быть 21.x' >&2
+  echo "См. rustore/WINDOWS.md" >&2
+  return 1
+}
+
+# Write keystore.properties + patch android/app/build.gradle so assembleRelease is signed.
+# Requires RUSTORE_KEYSTORE_PASSWORD (or interactive prompt). Alias default: calorievision.
+rustore_configure_capacitor_signing() {
+  local root="${1:?root}"
+  local android_dir="${2:?android}"
+  local keystore="${3:?keystore}"
+  local app_gradle="$android_dir/app/build.gradle"
+  local props="$android_dir/keystore.properties"
+  local store_file alias password key_password
+
+  if [[ ! -f "$keystore" ]]; then
+    echo "Нет keystore: $keystore" >&2
+    return 1
+  fi
+  if [[ ! -f "$app_gradle" ]]; then
+    echo "Нет $app_gradle — сначала npm run rustore:cap:init" >&2
+    return 1
+  fi
+
+  password="${RUSTORE_KEYSTORE_PASSWORD:-}"
+  if [[ -z "$password" ]]; then
+    if [[ -t 0 ]]; then
+      read -r -s -p "Пароль rustore/android.keystore: " password
+      echo
+    fi
+  fi
+  if [[ -z "$password" ]]; then
+    echo "Нужен пароль keystore. В Git Bash:" >&2
+    echo '  export RUSTORE_KEYSTORE_PASSWORD="ваш-пароль"' >&2
+    echo '  export RUSTORE_KEY_ALIAS="calorievision"   # если другой alias' >&2
+    echo "Без подписи Android ставит APK как «пакет недействителен / повреждён»." >&2
+    return 1
+  fi
+
+  alias="${RUSTORE_KEY_ALIAS:-calorievision}"
+  key_password="${RUSTORE_KEY_PASSWORD:-$password}"
+
+  store_file="$keystore"
+  if command -v cygpath >/dev/null 2>&1; then
+    store_file="$(cygpath -w "$keystore")"
+  fi
+  store_file="$(node -e "process.stdout.write(process.argv[1].replace(/\\\\/g,'\\\\\\\\'))" "$store_file")"
+
+  cat >"$props" <<EOF
+storeFile=$store_file
+storePassword=$password
+keyAlias=$alias
+keyPassword=$key_password
+EOF
+  echo "==> keystore.properties (alias=$alias)"
+
+  python3 - "$app_gradle" <<'PY2'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+marker = "// RUSTORE_RELEASE_SIGNING"
+
+header = """
+// RUSTORE_RELEASE_SIGNING
+def _rustoreKs = new Properties()
+def _rustoreKsFile = rootProject.file("keystore.properties")
+if (_rustoreKsFile.exists()) {
+    _rustoreKs.load(new FileInputStream(_rustoreKsFile))
+}
+""".lstrip("\n")
+
+signing_block = """
+    signingConfigs {
+        release {
+            if (_rustoreKsFile.exists()) {
+                storeFile file(_rustoreKs["storeFile"])
+                storePassword _rustoreKs["storePassword"]
+                keyAlias _rustoreKs["keyAlias"]
+                keyPassword _rustoreKs["keyPassword"]
+            }
+        }
+    }
+"""
+
+if marker in text:
+    print("signing patch already present")
+else:
+    lines = text.splitlines(keepends=True)
+    out = []
+    inserted_header = False
+    for line in lines:
+        out.append(line)
+        if not inserted_header and line.startswith("apply plugin:"):
+            out.append("\n")
+            out.append(header)
+            if not header.endswith("\n"):
+                out.append("\n")
+            inserted_header = True
+    text = "".join(out)
+    if not inserted_header:
+        text = header + "\n" + text
+
+    if "signingConfigs" not in text:
+        text = text.replace(
+            "    buildTypes {",
+            signing_block + "    buildTypes {",
+            1,
+        )
+
+    if "signingConfig signingConfigs.release" not in text:
+        for needle in (
+            "        release {\n            minifyEnabled false",
+            "        release {\n            minifyEnabled false",
+        ):
+            repl = needle.replace(
+                "        release {\n",
+                "        release {\n            signingConfig signingConfigs.release\n",
+                1,
+            )
+            if needle in text:
+                text = text.replace(needle, repl, 1)
+                break
+        if "signingConfig signingConfigs.release" not in text:
+            # Last resort: inject after "release {"
+            text = text.replace(
+                "        release {",
+                "        release {\n            signingConfig signingConfigs.release",
+                1,
+            )
+
+    path.write_text(text)
+    print("app/build.gradle: release signingConfig wired")
+PY2
+}
+
+# Locate build-tools binary (apksigner / zipalign), Windows .bat aware.
+rustore_find_build_tools_bin() {
+  local name="${1:?name}"
+  local sdk bt
+  sdk="$(rustore_resolve_android_sdk_root 2>/dev/null || true)"
+  [[ -n "$sdk" ]] || return 1
+  bt="$(ls -d "$sdk"/build-tools/*/ 2>/dev/null | sort -V | tail -1 || true)"
+  [[ -n "$bt" ]] || return 1
+  if [[ -f "${bt}${name}" ]]; then
+    printf '%s\n' "${bt}${name}"
+    return 0
+  fi
+  if [[ -f "${bt}${name}.bat" ]]; then
+    printf '%s\n' "${bt}${name}.bat"
+    return 0
+  fi
+  return 1
+}
+
+# Run apksigner/zipalign; on Windows Git Bash use cmd //c for .bat.
+rustore_run_build_tools() {
+  local bin="${1:?bin}"
+  shift
+  if [[ "$bin" == *.bat ]]; then
+    local win
+    if command -v cygpath >/dev/null 2>&1; then
+      win="$(cygpath -w "$bin")"
+    else
+      win="$bin"
+    fi
+    cmd.exe //c "$win" "$@"
+  else
+    "$bin" "$@"
+  fi
+}
+
+# Strict verify — unsigned APK must not be shipped.
+rustore_assert_apk_signed() {
+  local apk="${1:?apk}"
+  local apksigner
+  if [[ ! -f "$apk" ]]; then
+    echo "APK не найден: $apk" >&2
+    return 1
+  fi
+  case "$(basename "$apk")" in
+    *unsigned*)
+      echo "Собран unsigned APK — подпись не применилась." >&2
+      return 1
+      ;;
+  esac
+  if apksigner="$(rustore_find_build_tools_bin apksigner)"; then
+    if rustore_run_build_tools "$apksigner" verify "$apk" >/dev/null 2>&1; then
+      echo "==> APK signing OK: $(basename "$apk")"
+      rustore_run_build_tools "$apksigner" verify -v --print-certs "$apk" 2>&1 | head -n 20 || true
+      return 0
+    fi
+    echo "APK не проходит apksigner verify — не подписан или повреждён." >&2
+    return 1
+  fi
+  # Fallback: require v1 META-INF cert (weak, but better than shipping blind).
+  if command -v unzip >/dev/null 2>&1; then
+    if unzip -l "$apk" 2>/dev/null | grep -qE 'META-INF/.*\.(RSA|DSA|EC)$'; then
+      echo "==> APK signing OK (v1 META-INF): $(basename "$apk")"
+      return 0
+    fi
+  fi
+  echo "Не удалось проверить подпись (нет apksigner в Android SDK build-tools)." >&2
+  echo "Установите build-tools и повторите. Без проверки APK не отдаём." >&2
+  return 1
+}
+
+# Always sign (and zipalign) after Gradle — Gradle signingConfig often silently yields unsigned APK.
+# Usage: rustore_sign_apk "$apk_in" "$apk_out" "$keystore"
+rustore_sign_apk() {
+  local apk_in="${1:?apk_in}"
+  local apk_out="${2:?apk_out}"
+  local keystore="${3:?keystore}"
+  local password alias key_password
+  local apksigner zipalign aligned tmp_dir
+
+  if [[ ! -f "$apk_in" ]]; then
+    echo "Нет входного APK: $apk_in" >&2
+    return 1
+  fi
+  if [[ ! -f "$keystore" ]]; then
+    echo "Нет keystore: $keystore" >&2
+    return 1
+  fi
+
+  password="${RUSTORE_KEYSTORE_PASSWORD:-}"
+  if [[ -z "$password" ]]; then
+    if [[ -t 0 ]]; then
+      read -r -s -p "Пароль rustore/android.keystore: " password
+      echo
+    fi
+  fi
+  if [[ -z "$password" ]]; then
+    echo "Нужен RUSTORE_KEYSTORE_PASSWORD для подписи APK." >&2
+    return 1
+  fi
+  alias="${RUSTORE_KEY_ALIAS:-calorievision}"
+  key_password="${RUSTORE_KEY_PASSWORD:-$password}"
+
+  apksigner="$(rustore_find_build_tools_bin apksigner)" || {
+    echo "Нет apksigner в Android SDK build-tools. Установите build-tools;35.0.0 (или новее)." >&2
+    return 1
+  }
+  zipalign="$(rustore_find_build_tools_bin zipalign || true)"
+
+  tmp_dir="$(mktemp -d)"
+  aligned="$tmp_dir/aligned.apk"
+  # shellcheck disable=SC2064
+  trap "rm -rf '$tmp_dir'" RETURN
+
+  # apksigner.bat / zipalign.bat need Windows paths under Git Bash.
+  _rustore_winpath() {
+    local p="$1"
+    if command -v cygpath >/dev/null 2>&1; then
+      cygpath -w "$p"
+    else
+      printf '%s\n' "$p"
+    fi
+  }
+
+  if [[ -n "$zipalign" ]]; then
+    echo "==> zipalign"
+    rustore_run_build_tools "$zipalign" -f -p 4 \
+      "$(_rustore_winpath "$apk_in")" \
+      "$(_rustore_winpath "$aligned")"
+  else
+    cp -f "$apk_in" "$aligned"
+  fi
+
+  echo "==> apksigner sign (alias=$alias)"
+  mkdir -p "$(dirname "$apk_out")"
+  rustore_run_build_tools "$apksigner" sign \
+    --ks "$(_rustore_winpath "$keystore")" \
+    --ks-key-alias "$alias" \
+    --ks-pass "pass:$password" \
+    --key-pass "pass:$key_password" \
+    --v1-signing-enabled true \
+    --v2-signing-enabled true \
+    --out "$(_rustore_winpath "$apk_out")" \
+    "$(_rustore_winpath "$aligned")"
+
+  rustore_assert_apk_signed "$apk_out"
 }

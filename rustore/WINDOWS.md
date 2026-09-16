@@ -1,18 +1,32 @@
-# RuStore TWA на Windows
+# RuStore APK на Windows (Capacitor)
 
-Сборка APK делается **на вашем ПК** (не на VPS). Типичные ошибки — неверный путь к SDK и Java 25.
+Сборка APK делается **на вашем ПК** (не на VPS). Типичные ошибки — нет JDK 21, неверный путь к SDK, Java 25.
 
-## 1. JDK 17 (обязательно)
+## 1. JDK 21 (обязательно для Capacitor)
 
-Gradle/Android **не** работают с Java 25 из Android Studio. Установите [Eclipse Temurin 17](https://adoptium.net/temurin/releases/?version=17).
+Capacitor 8 / Android Gradle Plugin требуют **Java 21**.  
+JDK 17 подходит только для legacy Bubblewrap TWA; Java 25 из свежей Studio часто ломает toolchain.
+
+Установите [Eclipse Temurin 21](https://adoptium.net/temurin/releases/?version=21) (или используйте `jbr` из Android Studio, если это уже 21).
 
 PowerShell (на время сессии):
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.6+7-hotspot"
 $env:Path = "$env:JAVA_HOME\bin;$env:Path"
-java -version   # должно быть 17.x
+java -version   # должно быть 21.x
 ```
+
+Git Bash:
+
+```bash
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-21.0.6+7-hotspot"
+export PATH="$JAVA_HOME/bin:$PATH"
+java -version
+```
+
+Ошибка `Cannot find a Java installation … languageVersion=21` = JDK 21 не найден.  
+`npm run rustore:cap:build` сам ищет Temurin/Microsoft/Android Studio `jbr` и пишет `org.gradle.java.home`.
 
 ## 2. Android SDK — два разных пути
 
@@ -25,10 +39,12 @@ java -version   # должно быть 17.x
 
 ```json
 {
-  "jdkPath": "C:\\Program Files\\Eclipse Adoptium\\jdk-17.0.20.101-hotspot",
+  "jdkPath": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.6+7-hotspot",
   "androidSdkPath": "C:\\Users\\User\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest"
 }
 ```
+
+(Для legacy Bubblewrap можно оставить JDK 17 в `jdkPath`; для Capacitor нужен 21.)
 
 Gradle **не** должен видеть `cmdline-tools\latest` как SDK root — иначе ошибка «licences have not been accepted».
 
@@ -40,7 +56,7 @@ Gradle **не** должен видеть `cmdline-tools\latest` как SDK root
 
 ```powershell
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Eclipse Adoptium\jdk-21.0.6+7-hotspot"
 
 # Новый CLI (если установлен через Android Studio):
 android sdk install build-tools/35.0.0 platforms/android-36
@@ -84,23 +100,57 @@ export RUSTORE_PYTHON="/c/Users/User/AppData/Local/Programs/Python/Python312/pyt
 "$RUSTORE_PYTHON" -m pip install pillow
 ```
 
-## 5. Сборка (Git Bash)
+## 5. Сборка Capacitor (Git Bash)
 
 ```bash
-export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.20.101-hotspot"
+export JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-21.0.6+7-hotspot"
 export ANDROID_HOME="/c/Users/User/AppData/Local/Android/Sdk"
 export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
 cd /c/Users/User/calorie-vision
-git pull origin main
-bash scripts/rustore-init.sh    # если ещё не делали
-bash scripts/rustore-build.sh   # пароль keystore → rustore/dist/app-release.apk
+git checkout cursor/rustore-standalone-app-d07a   # или main после merge
+git pull
+npm install
+
+# Подпись обязательна — без неё Android: «пакет недействителен / повреждён»
+export RUSTORE_KEYSTORE_PASSWORD="пароль-от-android.keystore"
+# export RUSTORE_KEY_ALIAS="calorievision"   # если alias другой
+
+npm run rustore:cap:init    # один раз — создаёт android/ + иконки A2
+npm run rustore:cap:build   # → rustore/dist/app-release.apk
 ```
 
-Успешная сборка печатает `==> Python: ...`, затем `bubblewrap build`, и в конце
-меняет дату у `rustore/dist/app-release.apk`. Если дата 02.09 — сборка не дошла до конца.
+Успех: в логе `Capacitor launcher icons`, `BUILD SUCCESSFUL`, `apksigner sign`, `APK signing OK`, файл `rustore/dist/app-release.apk`.
 
-Скрипт `rustore-build.sh` сам пишет `rustore/android/local.properties` с правильным `sdk.dir`.
+Приложение открывает **`/login`** (не маркетинговый сайт). После входа — `/ration`.
+
+### Google 400 / disallowed_useragent
+
+Google запрещает OAuth внутри Android WebView. В приложении вход через Google/VK
+открывается в Chrome Custom Tabs; callback возвращается по App Links.
+
+1. Задеплойте сайт (нужен новый `LoginForm` + `@capacitor/browser`).
+2. Пересоберите APK (`git pull` → `rustore:cap:build`).
+3. В логе сборки: `App Links for /api/auth/callback`.
+4. `assetlinks.json` должен содержать SHA-256 **этого** keystore (как для TWA).
+
+### Нет иконки / «робот Android»
+
+Пересоберите после `git pull`: `rustore:cap:build` заново пишет `ic_launcher*` из `rustore/icon-512-store.png`. Удалите старое приложение с телефона перед установкой (лаунчер кэширует ярлык).
+
+### «Пакет недействителен / повреждён»
+
+1. Пересоберите **с** `RUSTORE_KEYSTORE_PASSWORD` (после `git pull` скрипт сам подписывает через `apksigner`).
+2. В логе должны быть строки `apksigner sign` и `APK signing OK`. Если их нет — APK не ставить.
+3. Не пересылайте APK через Telegram/WhatsApp — файл портится. Копируйте по USB или:
+   ```bash
+   adb install -r rustore/dist/app-release.apk
+   ```
+4. Удалите старое приложение Calorie Vision (TWA) перед установкой.
+5. Проверка подписи:
+   ```bash
+   "$ANDROID_HOME/build-tools/35.0.0/apksigner.bat" verify -v --print-certs rustore/dist/app-release.apk
+   ```
 
 ## 6. Ошибка «licences have not been accepted»
 
