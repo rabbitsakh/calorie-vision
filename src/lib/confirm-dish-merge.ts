@@ -53,12 +53,81 @@ function userEditedDishName(dish: ConfirmDishDraft): boolean {
   return dish.dishName.trim() !== decodeHtmlEntities(dish.original.dishName).trim();
 }
 
-/** Keep user-edited dish name when SSE enrichment updates recognition. */
-export function preserveUserEdits(previous: ConfirmDishDraft, draft: ConfirmDishDraft): ConfirmDishDraft {
-  if (!userEditedDishName(previous)) {
-    return draft;
+/** Expected on-screen nutrition for the previous recognition + portion (not hand-edits). */
+function expectedNutritionFromDraft(dish: ConfirmDishDraft): Pick<
+  ConfirmDishDraft,
+  "calories" | "protein" | "fat" | "carbs" | "fiber" | "sugar"
+> {
+  const portion = Number(dish.portionGrams);
+  if (Number.isFinite(portion) && portion > 0) {
+    const baseline = nutritionBaselineFromRecognition(dish.original) ?? dish.baseline;
+    if (baseline) {
+      const scaled = scaleNutritionByPortion(baseline, portion);
+      if (scaled) {
+        return {
+          calories: String(scaled.calories),
+          protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : "",
+          fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : "",
+          carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : "",
+          fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : "",
+          sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : "",
+        };
+      }
+    }
+    if (recognitionNeedsPortionRescale(dish.original, dish.original.calories)) {
+      const scaled = scaleRecognitionToDisplayPortion(dish.original, portion);
+      return {
+        calories: String(scaled.calories),
+        protein: scaled.protein !== undefined ? formatMacro(scaled.protein) : "",
+        fat: scaled.fat !== undefined ? formatMacro(scaled.fat) : "",
+        carbs: scaled.carbs !== undefined ? formatMacro(scaled.carbs) : "",
+        fiber: scaled.fiber !== undefined ? formatMacro(scaled.fiber) : "",
+        sugar: scaled.sugar !== undefined ? formatMacro(scaled.sugar) : "",
+      };
+    }
   }
-  return { ...draft, dishName: previous.dishName };
+  const baselineDraft = draftFromRecognition(dish.original, dish.id);
+  return {
+    calories: baselineDraft.calories,
+    protein: baselineDraft.protein,
+    fat: baselineDraft.fat,
+    carbs: baselineDraft.carbs,
+    fiber: baselineDraft.fiber,
+    sugar: baselineDraft.sugar,
+  };
+}
+
+/**
+ * Keep user-edited dish name and hand-edited КБЖУ when SSE enrichment updates recognition.
+ * Portion-driven rescale is handled by mergeOneDishDraft; this only keeps true manual edits.
+ */
+export function preserveUserEdits(previous: ConfirmDishDraft, draft: ConfirmDishDraft): ConfirmDishDraft {
+  const expected = expectedNutritionFromDraft(previous);
+  const next: ConfirmDishDraft = { ...draft };
+
+  if (userEditedDishName(previous)) {
+    next.dishName = previous.dishName;
+  }
+  if (previous.calories !== expected.calories) {
+    next.calories = previous.calories;
+  }
+  if (previous.protein !== expected.protein) {
+    next.protein = previous.protein;
+  }
+  if (previous.fat !== expected.fat) {
+    next.fat = previous.fat;
+  }
+  if (previous.carbs !== expected.carbs) {
+    next.carbs = previous.carbs;
+  }
+  if (previous.fiber !== expected.fiber) {
+    next.fiber = previous.fiber;
+  }
+  if (previous.sugar !== expected.sugar) {
+    next.sugar = previous.sugar;
+  }
+
+  return next;
 }
 
 /** Keep user-selected portion when SSE enrichment updates recognition. */
@@ -123,10 +192,19 @@ export function mergeOneDishDraft(previous: ConfirmDishDraft, draft: ConfirmDish
 export function mergeDishesFromRecognition(
   current: ConfirmDishDraft[],
   recognition: FoodRecognitionResult,
+  options?: { preserveListLength?: boolean },
 ): ConfirmDishDraft[] {
   const incoming = draftsFromRecognition(recognition);
   if (current.length === 0) {
     return incoming;
+  }
+
+  // User added/removed dishes — merge nutrition by index only, never resurrect removed rows.
+  if (options?.preserveListLength) {
+    return current.map((previous, index) => {
+      const draft = incoming[index];
+      return draft ? mergeOneDishDraft(previous, draft) : previous;
+    });
   }
 
   if (current.length !== incoming.length) {
