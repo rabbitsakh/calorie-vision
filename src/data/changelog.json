@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.12.32",
+    "date": "2026-09-16",
+    "summary": "fix(build): welcome TypeScript narrow on session status",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Убран мёртвый status === authenticated после сужения типов — сборка Next снова проходит"
+      }
+    ]
+  },
+  {
     "version": "1.12.31",
     "date": "2026-09-16",
     "summary": "fix(capacitor): welcome не зависает на «Открываем…»",

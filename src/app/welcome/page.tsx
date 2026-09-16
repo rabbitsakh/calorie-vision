@@ -46,13 +46,8 @@ export default function WelcomePage() {
 
       document.documentElement.classList.add("capacitor-native");
 
-      // Authenticated may flip after bridge wait.
-      if (status === "authenticated") {
-        router.replace(withBasePath("/ration/"));
-        return;
-      }
-
       // Do not block the slider on a hung session fetch.
+      // (If status becomes authenticated, this effect re-runs via deps.)
       const seen = await hasSeenAppWelcome();
       if (cancelled) return;
       if (seen) {
