@@ -40,6 +40,195 @@ html.capacitor-native .capacitor-web-only {
   display: none !important;
 }
 
+html:not(.capacitor-native) .capacitor-native-only {
+  display: none !important;
+}
+
+/* —— App welcome slider (Capacitor first run) —— */
+.app-welcome {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  color: #0f172a;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(45, 212, 191, 0.35), transparent 55%),
+    linear-gradient(165deg, #ecfdf5 0%, #f4f7fb 42%, #e0f2fe 100%);
+  overflow: hidden;
+}
+
+.app-welcome--boot {
+  align-items: center;
+  justify-content: center;
+}
+
+.app-welcome-boot-copy {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #0f766e;
+}
+
+.app-welcome-atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 55%;
+  background:
+    radial-gradient(circle at 20% 40%, rgba(15, 118, 110, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 30%, rgba(2, 132, 199, 0.14), transparent 45%);
+  animation: app-welcome-drift 12s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.app-welcome-brand,
+.app-welcome-stage,
+.app-welcome-dots,
+.app-welcome-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.app-welcome-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.app-welcome-brand-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f766e;
+}
+
+.app-welcome-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.85rem;
+  padding: 1rem 0 1.5rem;
+  animation: app-welcome-in 0.45s ease-out both;
+}
+
+.app-welcome-mascot {
+  margin-bottom: 0.35rem;
+  animation: app-welcome-float 3.6s ease-in-out infinite;
+}
+
+.app-welcome-title {
+  margin: 0;
+  max-width: 18rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 5vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.app-welcome-body {
+  margin: 0;
+  max-width: 20rem;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.app-welcome-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-bottom: 1.25rem;
+}
+
+.app-welcome-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.25);
+  cursor: pointer;
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.app-welcome-dot.is-active {
+  width: 1.35rem;
+  background: #0f766e;
+}
+
+.app-welcome-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.app-welcome-cta {
+  width: 100%;
+  min-height: 3rem;
+}
+
+.app-welcome-skip {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.app-welcome-skip:hover {
+  color: #0f766e;
+}
+
+@keyframes app-welcome-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-welcome-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes app-welcome-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 3%, 0) scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-welcome-atmosphere,
+  .app-welcome-mascot,
+  .app-welcome-stage {
+    animation: none;
+  }
+}
+
 /* overflow-x must NOT be on html: on iOS it becomes a fixed containing block
    and clips fullscreen portals (celebration shows only on the left half). */
 html {
