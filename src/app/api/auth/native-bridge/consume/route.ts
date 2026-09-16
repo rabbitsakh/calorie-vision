@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyNativeBridgeToken } from "@/lib/native-auth-bridge";
+import { verifyNativeBridgeToken } from "@/lib/native-auth-bridge-server";
 import { withBasePath } from "@/lib/paths";
 import { setNextAuthSessionCookie } from "@/lib/telegram-oidc-session";
 

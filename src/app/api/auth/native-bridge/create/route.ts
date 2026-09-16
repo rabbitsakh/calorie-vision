@@ -1,13 +1,13 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth-options";
+import { getCanonicalSiteUrl } from "@/lib/auth-url";
 import {
-  createNativeBridgeToken,
   nativeBridgeConsumeUrl,
   nativeBridgeDeepLink,
   nativeBridgeIntentUrl,
 } from "@/lib/native-auth-bridge";
-import { getCanonicalSiteUrl } from "@/lib/auth-url";
+import { createNativeBridgeToken } from "@/lib/native-auth-bridge-server";
 
 export const runtime = "nodejs";
 
