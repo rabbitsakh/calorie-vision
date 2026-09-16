@@ -1,31 +1,26 @@
 /**
  * Google blocks OAuth inside Android WebViews (HTTP 400 / disallowed_useragent).
- * On Capacitor: start NextAuth in the WebView (sets CSRF cookies), then open the
- * provider URL in Chrome Custom Tabs. App Links return the callback into the WebView.
+ * Custom Tabs do not share cookies with the WebView, so CSRF from a WebView signIn
+ * cannot validate a callback that lands in Chrome.
+ *
+ * Flow:
+ * 1) Open /auth/native-oauth?provider=… in Custom Tabs (CSRF + Google/VK entirely there)
+ * 2) Callback → /auth/native-bridge (still in Chrome) → calorievision://native-bridge?token=
+ * 3) App Link / custom scheme → WebView consumes token and sets session cookie
  */
 
 import { signIn } from "next-auth/react";
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import {
+  isNativeBridgeUrl,
+  nativeBridgeConsumeUrl,
+  tokenFromNativeBridgeUrl,
+} from "@/lib/native-auth-bridge";
 import { withBasePath } from "@/lib/paths";
 
 let deepLinkHooked = false;
 
-function isExternalOAuthUrl(url: string): boolean {
-  try {
-    const host = new URL(url).hostname;
-    return (
-      host === "accounts.google.com" ||
-      host.endsWith(".google.com") ||
-      host === "id.vk.com" ||
-      host.endsWith(".vk.com") ||
-      host.includes("oauth")
-    );
-  } catch {
-    return false;
-  }
-}
-
-/** Listen once for OAuth callback App Links. */
+/** Listen once for OAuth handoff deep links. */
 export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
   if (!isCapacitorNative() || deepLinkHooked || typeof window === "undefined") return;
   deepLinkHooked = true;
@@ -34,20 +29,35 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
     const { App } = await import("@capacitor/app");
     const { Browser } = await import("@capacitor/browser");
 
-    await App.addListener("appUrlOpen", ({ url }) => {
+    const adopt = (url: string) => {
       try {
-        const parsed = new URL(url);
-        const path = parsed.pathname;
-        const isAuthCallback =
-          path.includes("/api/auth/callback") ||
-          path.includes("/api/auth/signin") ||
-          parsed.searchParams.has("code");
-        if (!isAuthCallback) return;
+        if (!isNativeBridgeUrl(url) && !url.includes("/api/auth/callback")) {
+          return;
+        }
         void Browser.close().catch(() => undefined);
-        window.location.assign(url);
+
+        const token = tokenFromNativeBridgeUrl(url);
+        if (token) {
+          window.location.assign(nativeBridgeConsumeUrl(window.location.origin, token));
+          return;
+        }
+
+        // Legacy App Link: https callback into WebView (best-effort).
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+          window.location.assign(url);
+        }
       } catch {
         // ignore
       }
+    };
+
+    await App.addListener("appUrlOpen", ({ url }) => {
+      adopt(url);
+    });
+
+    // User closed Custom Tabs without completing OAuth — LoginForm listens too.
+    await Browser.addListener("browserFinished", () => {
+      window.dispatchEvent(new CustomEvent("cv-oauth-browser-finished"));
     });
   } catch {
     // Plugins missing in plain browser
@@ -55,7 +65,7 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
 }
 
 /**
- * Start Google/VK OAuth. Capacitor → Custom Tabs; web → normal redirect.
+ * Start Google/VK OAuth. Capacitor → Custom Tabs bootstrap; web → normal redirect.
  */
 export async function startCapacitorOAuth(
   provider: "google" | "vk",
@@ -68,26 +78,7 @@ export async function startCapacitorOAuth(
 
   await ensureCapacitorOAuthDeepLink();
 
-  const result = await signIn(provider, {
-    callbackUrl,
-    redirect: false,
-  });
-
-  if (result?.error) {
-    throw new Error(result.error);
-  }
-
-  const target = result?.url;
-  if (!target) {
-    throw new Error("OAuthSignin");
-  }
-
-  // Finished without leaving our origin (already signed in, etc.)
-  if (!isExternalOAuthUrl(target)) {
-    window.location.assign(target);
-    return;
-  }
-
+  const startUrl = `${window.location.origin}${withBasePath(`/auth/native-oauth?provider=${provider}`)}`;
   const { Browser } = await import("@capacitor/browser");
-  await Browser.open({ url: target });
+  await Browser.open({ url: startUrl });
 }
