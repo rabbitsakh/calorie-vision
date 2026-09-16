@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.12.38",
+    "date": "2026-09-16",
+    "summary": "fix(auth): OAuth pages без CDN-кэша + pm2 --update-env",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "/auth/* force-dynamic — не кэшировать native-oauth/bridge"
+      },
+      {
+        "kind": "improvement",
+        "text": "deploy.sh: pm2 --update-env и проверка NEXTAUTH_URL"
+      }
+    ]
+  },
+  {
     "version": "1.12.37",
     "date": "2026-09-16",
     "summary": "fix(auth): OAuth больше не уводит на localhost:3000",
