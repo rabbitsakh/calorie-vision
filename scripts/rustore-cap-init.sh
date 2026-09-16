@@ -27,7 +27,8 @@ fi
 # Prefer same applicationId as legacy TWA for RuStore updates.
 APP_BUILD="$ROOT/android/app/build.gradle"
 if [[ -f "$APP_BUILD" ]]; then
-  python3 - "$APP_BUILD" <<'PY'
+  # Use rustore_py — bare python3 hangs on Windows Store stub in Git Bash.
+  rustore_py - "$APP_BUILD" <<'PY'
 from pathlib import Path
 import re, sys
 path = Path(sys.argv[1])
@@ -58,7 +59,7 @@ fi
 # Camera permission in manifest if missing
 MANIFEST="$ROOT/android/app/src/main/AndroidManifest.xml"
 if [[ -f "$MANIFEST" ]] && ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-  python3 - "$MANIFEST" <<'PY'
+  rustore_py - "$MANIFEST" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])

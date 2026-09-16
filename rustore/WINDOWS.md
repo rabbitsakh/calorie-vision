@@ -76,9 +76,9 @@ Test-Path "$env:ANDROID_HOME\licenses"
 
 ## 4. Python 3.9+ и Pillow (обязательно для иконки APK)
 
-Скрипт сборки вызывает Python после проверки SDK. Если в консоли после
-`Android SDK OK` появляется только `Python` и всё зависает — это
-**псевдоним Microsoft Store**, а не настоящий Python.
+Скрипт сборки вызывает Python через `rustore_py` (не голый `python3`).
+Если в консоли после `Android SDK OK` или `Patching AndroidManifest App Links`
+сборка зависает без вывода — это **псевдоним Microsoft Store**, а не настоящий Python.
 
 В Git Bash проверьте:
 
