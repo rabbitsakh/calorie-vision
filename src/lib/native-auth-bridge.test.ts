@@ -4,13 +4,12 @@ import {
   NATIVE_BRIDGE_HOST,
   NATIVE_BRIDGE_PACKAGE,
   NATIVE_BRIDGE_SCHEME,
-  createNativeBridgeToken,
   isNativeBridgeUrl,
   nativeBridgeDeepLink,
   nativeBridgeIntentUrl,
   tokenFromNativeBridgeUrl,
-  verifyNativeBridgeToken,
 } from "./native-auth-bridge.ts";
+import { createNativeBridgeToken, verifyNativeBridgeToken } from "./native-auth-bridge-server.ts";
 
 test("deep link format", () => {
   const link = nativeBridgeDeepLink("abc");
