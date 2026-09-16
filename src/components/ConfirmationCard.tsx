@@ -943,7 +943,7 @@ export function ConfirmationCard({
                           ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
                           : "Низкая уверенность — проверьте блюдо"}
               </p>
-              {needsReview && multi ? (
+              {needsReview && multi && !recognition.enrichmentTimedOut ? (
                 <button
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
@@ -953,7 +953,7 @@ export function ConfirmationCard({
                   {bulkLookupRunning ? "Уточняем…" : "Уточнить все"}
                 </button>
               ) : null}
-              {needsReview && !multi && dishes[0] ? (
+              {needsReview && !multi && dishes[0] && !recognition.enrichmentTimedOut ? (
                 <button
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
