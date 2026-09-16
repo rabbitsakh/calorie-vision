@@ -122,7 +122,12 @@ npm run rustore:cap:build   # → rustore/dist/app-release.apk
 
 Успех: в логе `Capacitor launcher icons`, `BUILD SUCCESSFUL`, `apksigner sign`, `APK signing OK`, файл `rustore/dist/app-release.apk`.
 
-Приложение открывает **`/login`** (не маркетинговый сайт). После входа — `/ration`.
+Приложение открывает **welcome → `/login`** (не маркетинговый сайт). После входа — `/ration`.
+
+### Welcome / «как сайт»
+
+В APK первый запуск — слайдер функций, затем форма входа. Нет ссылки «На главную».
+Сброс welcome: очистить данные приложения или Preferences `cv_welcome_seen_v1`.
 
 ### Google 400 / disallowed_useragent
 

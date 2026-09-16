@@ -3,10 +3,12 @@
 import { signIn, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
+import { hasSeenAppWelcome } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
 type LoginOptions = {
@@ -74,6 +76,25 @@ export default function LoginForm() {
   useEffect(() => {
     void ensureCapacitorOAuthDeepLink();
   }, []);
+
+  // Mark document for CSS that hides web-only chrome («На главную», etc.).
+  useLayoutEffect(() => {
+    if (!isCapacitorNative()) return;
+    document.documentElement.classList.add("capacitor-native");
+  }, []);
+
+  // First-run: show welcome slider before login in the APK.
+  useEffect(() => {
+    if (!isCapacitorNative()) return;
+    let cancelled = false;
+    void hasSeenAppWelcome().then((seen) => {
+      if (cancelled || seen) return;
+      router.replace(withBasePath("/welcome"));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,8 +167,11 @@ export default function LoginForm() {
           </p>
         </div>
         <h1 className="font-display mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-slate-600 capacitor-web-only">
           Войдите через Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
+        </p>
+        <p className="mt-2 text-slate-600 capacitor-native-only">
+          Дневник питания — войдите, чтобы продолжить.
         </p>
 
         {verifyRequest ? (
@@ -278,7 +302,8 @@ export default function LoginForm() {
         {message ? <p className="mt-4 text-sm text-teal-700">{message}</p> : null}
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
-        <p className="mt-6 text-center text-sm text-slate-500">
+        {/* Web only — Capacitor APK must not look like a site with «На главную». */}
+        <p className="capacitor-web-only mt-6 text-center text-sm text-slate-500">
           <Link href="/" className="text-teal-700 hover:underline">
             На главную
           </Link>

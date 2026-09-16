@@ -13,8 +13,8 @@ const config: CapacitorConfig = {
   appName: "Calorie Vision",
   webDir: "rustore/cap-www",
   server: {
-    // Product entry — login (or /ration after session). Never marketing landing.
-    url: "https://calorievision.ru/login",
+    // First-run welcome slider, then /login. Never marketing landing.
+    url: "https://calorievision.ru/welcome",
     cleartext: false,
     // Keep only our origin in-WebView. Do NOT list accounts.google.com —
     // OAuth goes through @capacitor/browser (Custom Tabs).

@@ -21,7 +21,7 @@ export default async function HomePage({ searchParams }: HomeProps) {
   return (
     <>
       <ReferralCapture />
-      {/* Capacitor shell: skip marketing site → /login */}
+      {/* Capacitor shell: skip marketing → welcome or login */}
       <CapacitorSkipLanding />
       <div className="capacitor-web-only">
         <LandingPage />
