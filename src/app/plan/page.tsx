@@ -17,6 +17,11 @@ const ShoppingListPanel = dynamic(
   { ssr: false },
 );
 
+const WeeklyChallenge = dynamic(
+  () => import("@/components/WeeklyChallenge").then((m) => m.WeeklyChallenge),
+  { ssr: false },
+);
+
 export default function PlanPage() {
   const timezone = useTimezone();
   const { date, setDate } = useSelectedDate(timezone);
@@ -28,7 +33,7 @@ export default function PlanPage() {
     <AppShell
       title="План"
       compact
-      description="Неделя, цель по весу, покупки."
+      description="Неделя, челлендж, цель по весу, покупки."
       date={date}
     >
       <AuthGate>
@@ -44,6 +49,11 @@ export default function PlanPage() {
             onSelectDate={(next) => {
               router.push(`/ration?date=${next}`);
             }}
+          />
+          <WeeklyChallenge
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onStarted={() => setRefreshKey((k) => k + 1)}
           />
           <WeeklyReportCard endDate={date} />
           <WeightGoalCard
