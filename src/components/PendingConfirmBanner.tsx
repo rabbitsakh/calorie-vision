@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatPendingConfirmHint } from "@/lib/confirm-review-cta";
 import {
   clearPendingConfirmDraft,
   getPendingConfirmDraft,
@@ -19,6 +20,28 @@ function draftDishName(draft: PendingConfirmDraft): string | null {
   return fromDish || null;
 }
 
+function draftCalories(draft: PendingConfirmDraft): number | null {
+  const uiDishes = draft.ui?.dishes;
+  if (uiDishes && uiDishes.length > 0) {
+    const sum = uiDishes.reduce((acc, d) => acc + (Number(d.calories) || 0), 0);
+    if (sum > 0) return sum;
+  }
+  const recognition = draft.result.recognition;
+  if (recognition.items && recognition.items.length > 0) {
+    const sum = recognition.items.reduce((acc, item) => acc + (Number(item.calories) || 0), 0);
+    if (sum > 0) return sum;
+  }
+  const cal = Number(recognition.calories);
+  return Number.isFinite(cal) && cal > 0 ? cal : null;
+}
+
+function draftMultiCount(draft: PendingConfirmDraft): number {
+  const uiCount = draft.ui?.dishes?.length ?? 0;
+  if (uiCount > 1) return uiCount;
+  const items = draft.result.recognition.items?.length ?? 0;
+  return items > 1 ? items : 1;
+}
+
 /** Soft resume CTA when a confirm draft sits on device (1.11.0 — no auto-hijack). */
 export function PendingConfirmBanner({ selectedDate }: { selectedDate: string }) {
   const [draft, setDraft] = useState<PendingConfirmDraft | null>(null);
@@ -35,6 +58,14 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
   if (!draft?.result) return null;
 
   const dishName = draftDishName(draft);
+  const calories = draftCalories(draft);
+  const multiCount = draftMultiCount(draft);
+  const hint = formatPendingConfirmHint({
+    dishName,
+    calories,
+    photoKind: draft.result.recognition.photoKind,
+    multiCount,
+  });
 
   return (
     <div
@@ -43,11 +74,7 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
     >
       <div className="min-w-0 flex-1">
         <p className="font-semibold">Есть незавершённая проверка</p>
-        <p className="mt-0.5 text-xs text-teal-900/85">
-          {dishName
-            ? `«${dishName}» — продолжите порцию и сохранение.`
-            : "Черновик на устройстве — продолжите порцию и сохранение."}
-        </p>
+        <p className="mt-0.5 text-xs text-teal-900/85">{hint}</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <button

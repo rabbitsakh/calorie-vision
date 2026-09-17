@@ -196,7 +196,8 @@ export function buildReminderPayload(
   options?: BuildReminderOptions,
 ): PushPayload | null {
   const rationUrl = reminderDeepLink(kind === "calories" ? "streak" : kind);
-  const statsUrl = reminderDeepLink("weekly");
+  const planUrl = reminderDeepLink("weekly");
+  const statsUrl = reminderDeepLink("calories");
   const breakfastUrl = rationMealLink("BREAKFAST");
   const lunchUrl = rationMealLink("LUNCH");
   const dinnerUrl = rationMealLink("DINNER");
@@ -395,7 +396,7 @@ export function buildReminderPayload(
         body: isB
           ? `Записей: ${ctx.daysLoggedLastWeek} из ${ctx.daysInLastWeek} дней. Новая неделя — свежий старт.`
           : `${ctx.daysLoggedLastWeek} из ${ctx.daysInLastWeek} дней с записями. Новая неделя — хороший момент начать с чистого листа.`,
-        url: statsUrl,
+        url: planUrl,
         tag: "cv-weekly",
       };
 

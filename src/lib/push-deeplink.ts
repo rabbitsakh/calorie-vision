@@ -26,7 +26,10 @@ export function rationMealLink(meal?: MealType | null): string {
 
 /** Build client path for a push notification tap. */
 export function reminderDeepLink(kind: ReminderKind): string {
-  if (kind === "weekly" || kind === "calories") {
+  if (kind === "weekly") {
+    return withBasePath("/plan");
+  }
+  if (kind === "calories") {
     return withBasePath("/stats");
   }
   if (kind === "checkin") {
