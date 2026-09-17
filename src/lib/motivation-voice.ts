@@ -72,3 +72,37 @@ export function mondayWeekWrapTip(daysLogged: number, daysInWeek = 7): string {
   }
   return "Новая неделя — достаточно одного приёма, чтобы войти в ритм.";
 }
+
+/** Soft week ritual on Plan: Sunday evening or Monday morning (local weekday 0=Sun). */
+export type WeekRitualWindow = "sunday-evening" | "monday-morning";
+
+export function resolveWeekRitualWindow(weekday: number, hour: number): WeekRitualWindow | null {
+  const h = Number.isFinite(hour) ? ((Math.floor(hour) % 24) + 24) % 24 : 12;
+  const d = Number.isFinite(weekday) ? Math.trunc(weekday) : -1;
+  if (d === 0 && h >= 17) return "sunday-evening";
+  if (d === 1 && h < 12) return "monday-morning";
+  return null;
+}
+
+export function weekRitualCopy(
+  window: WeekRitualWindow,
+  daysLogged: number,
+): { title: string; body: string } {
+  const n = Math.max(0, Math.min(7, Math.round(daysLogged)));
+  if (window === "sunday-evening") {
+    if (n >= 5) {
+      return {
+        title: "Неделя почти дома",
+        body: `Уже ${n} дней с записями — можно спокойно закрыть день и не торопить себя.`,
+      };
+    }
+    return {
+      title: "Неделя почти дома",
+      body: "Сколько успели — уже ритм. Вечер без оценок: одна запись или просто отдых.",
+    };
+  }
+  return {
+    title: "Мягкий старт недели",
+    body: mondayWeekWrapTip(n),
+  };
+}

@@ -50,12 +50,14 @@ export default function PlanPage() {
               router.push(`/ration?date=${next}`);
             }}
           />
-          <WeeklyChallenge
-            selectedDate={date}
-            refreshKey={refreshKey}
-            onStarted={() => setRefreshKey((k) => k + 1)}
-          />
-          <WeeklyReportCard endDate={date} />
+          <div id="challenge">
+            <WeeklyChallenge
+              selectedDate={date}
+              refreshKey={refreshKey}
+              onStarted={() => setRefreshKey((k) => k + 1)}
+            />
+          </div>
+          <WeeklyReportCard endDate={date} today={today} />
           <WeightGoalCard
             selectedDate={date === today ? today : date}
             refreshKey={refreshKey}
