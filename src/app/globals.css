@@ -758,8 +758,9 @@ textarea {
 .meal-type-chips {
   display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   gap: 0.25rem;
-  margin-top: 0.35rem;
+  margin-top: 0;
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -799,13 +800,13 @@ textarea {
 }
 
 .meal-type-badge {
-  align-self: flex-start;
+  align-self: center;
   border: none;
   border-radius: 999px;
   font-size: 0.65rem;
   font-weight: 650;
   line-height: 1;
-  margin-top: 0.35rem;
+  margin-top: 0;
   padding: 0.28rem 0.55rem;
   transition: opacity 0.12s ease;
 }
