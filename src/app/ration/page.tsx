@@ -30,6 +30,7 @@ import { PendingConfirmBanner } from "@/components/PendingConfirmBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
+import { QuickLogStrip } from "@/components/QuickLogStrip";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
@@ -256,6 +257,13 @@ function RationBody({
         <NextStepBar selectedDate={date} today={today} />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
+
+        <QuickLogStrip
+          selectedDate={date}
+          refreshKey={refreshKey}
+          mealCount={mealCount}
+          onSaved={bump}
+        />
 
         <DailyLog
           selectedDate={date}
