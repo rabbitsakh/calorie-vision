@@ -822,8 +822,8 @@ export function StatsView({ endDate }: StatsViewProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Sticky under the notch — scrollport is `.cv-app-main`, so top:0 sticks to its top edge */}
-      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)] px-2.5 py-0 md:static md:mx-0 md:bg-transparent md:p-0">
-        <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:max-w-md">
+      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)] px-2.5 py-1.5 md:static md:mx-0 md:bg-transparent md:p-0">
+        <div className="stats-period-tabs sm:max-w-md" role="tablist" aria-label="Период статистики">
           {([
             ["week", "7 дней"],
             ["month", "30 дней"],
@@ -832,7 +832,9 @@ export function StatsView({ endDate }: StatsViewProps) {
             <button
               key={p}
               type="button"
-              className={`chip min-h-9 w-full justify-center ${period === p ? "chip-active" : ""}`}
+              role="tab"
+              aria-selected={period === p}
+              className={`chip min-h-9 ${period === p ? "chip-active" : ""}`}
               onClick={() => setPeriod(p)}
             >
               {label}
