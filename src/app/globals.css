@@ -606,6 +606,10 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.stats-period-tabs .chip:not(.chip-active) {
+  background: transparent;
+}
+
 @media (min-width: 380px) {
   .stats-period-tabs .chip {
     font-size: 0.8125rem;
