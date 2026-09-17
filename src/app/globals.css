@@ -583,6 +583,37 @@ textarea {
   width: 100%;
 }
 
+/* Stats 7/30/90 — equal segments; chips must shrink (min-width:auto overflows). */
+.stats-period-tabs {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-radius: 0.75rem;
+  background: #f1f5f9;
+  padding: 0.25rem;
+  width: 100%;
+}
+
+.stats-period-tabs .chip {
+  min-width: 0;
+  width: 100%;
+  justify-content: center;
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 380px) {
+  .stats-period-tabs .chip {
+    font-size: 0.8125rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+}
+
 .fab-add {
   align-items: center;
   background: var(--accent);
