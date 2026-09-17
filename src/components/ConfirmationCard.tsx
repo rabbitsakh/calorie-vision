@@ -44,6 +44,10 @@ import {
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { trackFirstMealSaveGoal, trackMealSavedGoal, trackFirstConfirmSaveGoal } from "@/lib/metrika-funnel";
 import {
+  confirmReviewPrimaryCta,
+  worstReviewDishIndex,
+} from "@/lib/confirm-review-cta";
+import {
   enqueueFailedSave,
   upsertPendingConfirmDraft,
   type PendingConfirmDishUi,
@@ -280,11 +284,26 @@ export function ConfirmationCard({
   const [error, setError] = useState<string | null>(null);
   const [heroSrc, setHeroSrc] = useState(() => resolveConfirmHeroSrc(initialImagePath, previewUrl));
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [activeDish, setActiveDish] = useState(() =>
-    typeof initialUi?.activeDish === "number" && initialUi.activeDish >= 0
-      ? initialUi.activeDish
-      : 0,
-  );
+  const [activeDish, setActiveDish] = useState(() => {
+    if (typeof initialUi?.activeDish === "number" && initialUi.activeDish >= 0) {
+      return initialUi.activeDish;
+    }
+    // Multi-dish: open on the weakest item so «Уточнить» matches what the user sees.
+    const initialDishes = applyUiToDishes(draftsFromRecognition(recognition), initialUi);
+    if (initialDishes.length > 1) {
+      return worstReviewDishIndex(
+        initialDishes.map((dish) => {
+          const review = dishNeedsReview(dish, DEFAULT_LOW_CONFIDENCE);
+          return {
+            confidence: dish.original.confidence,
+            calories: Number(dish.calories) || 0,
+            ...review,
+          };
+        }),
+      );
+    }
+    return 0;
+  });
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
   const [allergenAck, setAllergenAck] = useState(() => Boolean(initialUi?.allergenAck));
@@ -807,6 +826,29 @@ export function ConfirmationCard({
           dish.original.confidence < worst.original.confidence ? dish : worst,
         )
       : null;
+  const reviewTargetDish = (() => {
+    if (!needsReview || dishes.length === 0) return null;
+    const active = dishes[Math.min(activeDish, dishes.length - 1)];
+    if (active) {
+      const flag = dishNeedsReview(active, lowConfidenceThreshold);
+      if (flag.lowConfidence || flag.missingCalories) return active;
+    }
+    if (lowestConfidenceDish) return lowestConfidenceDish;
+    return dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingCalories) ?? null;
+  })();
+  const reviewCta = confirmReviewPrimaryCta({
+    enriching,
+    enrichmentTimedOut: Boolean(recognition.enrichmentTimedOut),
+    needsReview,
+    multi,
+  });
+  const reviewTargetCount = reviewFlags.filter((f) => f.lowConfidence || f.missingCalories).length;
+  const showLookupAllSecondary =
+    Boolean(reviewCta) &&
+    reviewCta?.mode === "lookup-one" &&
+    multi &&
+    reviewTargetCount > 1 &&
+    !recognition.enrichmentTimedOut;
   const allergenHits = Array.from(
     new Set(
       dishes.flatMap((dish) => {
@@ -943,37 +985,53 @@ export function ConfirmationCard({
                           ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
                           : "Низкая уверенность — проверьте блюдо"}
               </p>
-              {needsReview && multi && !recognition.enrichmentTimedOut ? (
+              {reviewCta ? (
                 <button
                   type="button"
                   className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={formDisabled || enriching}
-                  onClick={() => void handleLookupAll()}
+                  disabled={
+                    formDisabled ||
+                    (reviewCta.mode === "lookup-one"
+                      ? !reviewTargetDish || searchingId === reviewTargetDish.id
+                      : bulkLookupRunning)
+                  }
+                  onClick={() => {
+                    if (reviewCta.mode === "force-all") {
+                      void handleLookupAll({ forceAll: true });
+                      return;
+                    }
+                    if (reviewCta.mode === "lookup-all") {
+                      void handleLookupAll();
+                      return;
+                    }
+                    if (!reviewTargetDish) return;
+                    const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
+                    if (idx >= 0) setActiveDish(idx);
+                    void handleLookup(reviewTargetDish);
+                  }}
                 >
-                  {bulkLookupRunning ? "Уточняем…" : "Уточнить все"}
-                </button>
-              ) : null}
-              {needsReview && !multi && dishes[0] && !recognition.enrichmentTimedOut ? (
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={formDisabled || enriching || searchingId === dishes[0].id}
-                  onClick={() => void handleLookup(dishes[0]!)}
-                >
-                  {searchingId === dishes[0].id ? "Уточняем…" : "Уточнить по названию"}
-                </button>
-              ) : null}
-              {recognition.enrichmentTimedOut && !enriching ? (
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={formDisabled || bulkLookupRunning}
-                  onClick={() => void handleLookupAll({ forceAll: true })}
-                >
-                  {bulkLookupRunning ? "Считаем…" : "Досчитать"}
+                  {reviewCta.mode === "force-all"
+                    ? bulkLookupRunning
+                      ? reviewCta.busyLabel
+                      : reviewCta.label
+                    : searchingId === reviewTargetDish?.id || bulkLookupRunning
+                      ? reviewCta.busyLabel
+                      : reviewCta.label}
                 </button>
               ) : null}
             </div>
+            {showLookupAllSecondary ? (
+              <p className="mt-1.5 text-xs opacity-90">
+                <button
+                  type="button"
+                  className="font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={formDisabled || bulkLookupRunning}
+                  onClick={() => void handleLookupAll()}
+                >
+                  {bulkLookupRunning ? "Уточняем все…" : "Уточнить все позиции"}
+                </button>
+              </p>
+            ) : null}
             {enriching && totalCalories > 0 ? (
               <p className="mt-1.5 text-xs opacity-90">
                 Клетчатка и сахар могут ещё подтянуться — поля уже можно править.
@@ -1005,12 +1063,13 @@ export function ConfirmationCard({
                       hasAllergen
                         ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
                         : reviewFlags[index]?.lowConfidence
-                          ? "Выберите позицию и нажмите «Уточнить»"
+                          ? "Слабая уверенность — откройте и нажмите «Уточнить»"
                           : undefined
                     }
                     onClick={() => setActiveDish(index)}
                   >
                     {index + 1}. {dish.dishName || "Блюдо"}
+                    {Number(dish.calories) > 0 ? ` · ${Math.round(Number(dish.calories))}` : ""}
                     {hasAllergen ? " ⚠" : ""}
                     {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
                   </Chip>
