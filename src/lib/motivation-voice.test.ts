@@ -8,6 +8,8 @@ import {
   softRecoveryBody,
   softRecoveryTitle,
   mondayWeekWrapTip,
+  resolveWeekRitualWindow,
+  weekRitualCopy,
   streakAtRiskBody,
   streakAtRiskPushTitle,
   streakAtRiskTitle,
@@ -38,7 +40,21 @@ describe("motivation-voice", () => {
     assert.match(mondayWeekWrapTip(6), /6 из 7/);
     assert.match(mondayWeekWrapTip(0), /Новая неделя/);
     assert.match(freezeBannerCopy(), /заморозк/i);
-    assert.match(softRecoveryTitle(), /старт/i);
-    assert.match(softRecoveryBody(), /пропуск/i);
+    assert.match(softRecoveryTitle(), /Спокойный/);
+    assert.match(softRecoveryBody(), /без давления/i);
+  });
+
+  test("week ritual windows and soft copy", () => {
+    assert.equal(resolveWeekRitualWindow(0, 18), "sunday-evening");
+    assert.equal(resolveWeekRitualWindow(0, 12), null);
+    assert.equal(resolveWeekRitualWindow(1, 9), "monday-morning");
+    assert.equal(resolveWeekRitualWindow(1, 14), null);
+    assert.equal(resolveWeekRitualWindow(3, 20), null);
+    const sun = weekRitualCopy("sunday-evening", 6);
+    assert.match(sun.title, /почти дома/);
+    assert.doesNotMatch(sun.body, /стыд|провал|опять/i);
+    const mon = weekRitualCopy("monday-morning", 3);
+    assert.match(mon.title, /Мягкий старт/);
+    assert.match(mon.body, /3 из 7/);
   });
 });

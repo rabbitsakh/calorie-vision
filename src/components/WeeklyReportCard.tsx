@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { ShareWeekButton } from "@/components/ShareWeekButton";
+import { resolveWeekRitualWindow, weekRitualCopy } from "@/lib/motivation-voice";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { localHour, localWeekday } from "@/lib/push-reminders";
+import { useTimezone } from "@/lib/use-timezone";
 
 const PANEL_ID = "weekly-report";
 
@@ -25,9 +29,12 @@ type WeeklyReportData = {
 
 type WeeklyReportCardProps = {
   endDate: string;
+  /** Calendar today — ritual only when viewing the current week day. */
+  today?: string;
 };
 
-export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
+export function WeeklyReportCard({ endDate, today }: WeeklyReportCardProps) {
+  const timezone = useTimezone();
   const [data, setData] = useState<WeeklyReportData | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -46,6 +53,16 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
       }
     })();
   }, [endDate]);
+
+  const ritual = useMemo(() => {
+    if (!data || data.daysLogged === 0) return null;
+    // Only when the selected endDate is "today" so browsing old weeks stays neutral.
+    if (today && endDate !== today) return null;
+    const tz = timezone || "Europe/Moscow";
+    const window = resolveWeekRitualWindow(localWeekday(tz), localHour(tz));
+    if (!window) return null;
+    return weekRitualCopy(window, data.daysLogged);
+  }, [data, endDate, today, timezone]);
 
   if (!data || data.daysLogged === 0) return null;
 
@@ -70,9 +87,12 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-indigo-600">
-            Недельный отчёт
+            {ritual ? ritual.title : "Недельный отчёт"}
           </p>
           <p className="font-semibold text-indigo-900">{data.weekLabel}</p>
+          {ritual ? (
+            <p className="mt-1 text-sm leading-snug text-indigo-900/85">{ritual.body}</p>
+          ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
           <ShareWeekButton endDate={endDate} className="[&_button]:min-h-8 [&_button]:px-2.5 [&_button]:text-xs" />
@@ -88,6 +108,30 @@ export function WeeklyReportCard({ endDate }: WeeklyReportCardProps) {
           </button>
         </div>
       </div>
+
+      {ritual ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={withBasePath(`/ration?date=${endDate}`)}
+            className="chip min-h-9 bg-indigo-100 font-semibold text-indigo-950"
+          >
+            Открыть дневник
+          </Link>
+          <a
+            href="#challenge"
+            className="chip min-h-9 font-semibold text-indigo-900"
+            onClick={(e) => {
+              const el = document.getElementById("challenge");
+              if (el) {
+                e.preventDefault();
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+              }
+            }}
+          >
+            К челленджу
+          </a>
+        </div>
+      ) : null}
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
