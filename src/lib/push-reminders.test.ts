@@ -235,6 +235,16 @@ test("weekly skipped when last week was strong", () => {
   );
 });
 
+test("weekly deep link opens Plan tab", () => {
+  const payload = buildReminderPayload("weekly", {
+    ...baseCtx,
+    daysLoggedLastWeek: 2,
+    daysInLastWeek: 7,
+  });
+  assert.ok(payload);
+  assert.equal(payload.url, "/plan");
+});
+
 test("computeStreakStats respects freezes", () => {
   const stats = computeStreakStats(["2026-08-21"], ["2026-08-20"], "2026-08-22");
   assert.equal(stats.loggedToday, false);
