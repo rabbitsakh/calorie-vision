@@ -98,3 +98,29 @@ export function worstReviewDishIndex(
   }
   return worst >= 0 ? worst : 0;
 }
+
+/** Low confidence with usable kcal — allow completing the log without forcing lookup. */
+export function canSaveAsIs(input: {
+  anyLowConfidence: boolean;
+  anyMissingCalories: boolean;
+  totalCalories: number;
+}): boolean {
+  return input.anyLowConfidence && !input.anyMissingCalories && input.totalCalories > 0;
+}
+
+export function confirmSaveButtonLabel(input: {
+  saving: boolean;
+  enriching: boolean;
+  multi: boolean;
+  saveAsIs: boolean;
+}): string {
+  if (input.saving) return "Сохраняем...";
+  if (input.saveAsIs) return "Сохранить как есть";
+  if (input.enriching) return "Да, сохранить";
+  if (input.multi) return "Сохранить все блюда";
+  return "Да, сохранить";
+}
+
+export function saveAsIsHint(): string {
+  return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
+}

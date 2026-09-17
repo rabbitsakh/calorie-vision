@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  canSaveAsIs,
   confirmReviewPrimaryCta,
+  confirmSaveButtonLabel,
   formatPendingConfirmHint,
   photoKindShortLabel,
+  saveAsIsHint,
   worstReviewDishIndex,
 } from "./confirm-review-cta.ts";
 
@@ -77,4 +80,37 @@ test("worstReviewDishIndex picks lowest confidence among review-needed", () => {
     { confidence: 0.5, calories: 0, missingCalories: true, lowConfidence: true },
   ]);
   assert.equal(idx, 1);
+});
+
+test("canSaveAsIs requires low confidence with calories", () => {
+  assert.equal(
+    canSaveAsIs({ anyLowConfidence: true, anyMissingCalories: false, totalCalories: 400 }),
+    true,
+  );
+  assert.equal(
+    canSaveAsIs({ anyLowConfidence: true, anyMissingCalories: true, totalCalories: 400 }),
+    false,
+  );
+  assert.equal(
+    canSaveAsIs({ anyLowConfidence: false, anyMissingCalories: false, totalCalories: 400 }),
+    false,
+  );
+  assert.equal(
+    canSaveAsIs({ anyLowConfidence: true, anyMissingCalories: false, totalCalories: 0 }),
+    false,
+  );
+});
+
+test("confirmSaveButtonLabel uses save-as-is wording", () => {
+  assert.equal(
+    confirmSaveButtonLabel({ saving: false, enriching: false, multi: false, saveAsIs: true }),
+    "Сохранить как есть",
+  );
+  assert.equal(
+    confirmSaveButtonLabel({ saving: false, enriching: true, multi: false, saveAsIs: false }),
+    "Да, сохранить",
+  );
+  assert.match(saveAsIsHint(), /поправить порцию позже/i);
+  assert.equal(photoKindShortLabel("label"), "этикетка");
+  assert.match(formatPendingConfirmHint({ dishName: "Чай", calories: 1, photoKind: "meal" }), /Чай/);
 });

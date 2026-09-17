@@ -44,7 +44,10 @@ import {
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import { trackFirstMealSaveGoal, trackMealSavedGoal, trackFirstConfirmSaveGoal } from "@/lib/metrika-funnel";
 import {
+  canSaveAsIs,
   confirmReviewPrimaryCta,
+  confirmSaveButtonLabel,
+  saveAsIsHint,
   worstReviewDishIndex,
 } from "@/lib/confirm-review-cta";
 import {
@@ -849,6 +852,17 @@ export function ConfirmationCard({
     multi &&
     reviewTargetCount > 1 &&
     !recognition.enrichmentTimedOut;
+  const saveAsIs = canSaveAsIs({
+    anyLowConfidence,
+    anyMissingCalories,
+    totalCalories,
+  });
+  const saveLabel = confirmSaveButtonLabel({
+    saving,
+    enriching,
+    multi,
+    saveAsIs,
+  });
   const allergenHits = Array.from(
     new Set(
       dishes.flatMap((dish) => {
@@ -1040,7 +1054,20 @@ export function ConfirmationCard({
             {anyLowConfidence ? (
               <p className="mt-1.5 text-xs opacity-90">
                 Оценка по фото, не лабораторный анализ — при сомнении сверьте этикетку или вес порции.
-                Проверьте чипы порции ниже перед сохранением.
+                {saveAsIs ? ` ${saveAsIsHint()}` : " Проверьте чипы порции ниже перед сохранением."}
+              </p>
+            ) : null}
+            {saveAsIs ? (
+              <p className="mt-1.5 text-xs opacity-90">
+                <button
+                  type="button"
+                  className="font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                  disabled={saving || searching}
+                  onClick={() => void handleSave()}
+                >
+                  Сохранить как есть
+                </button>
+                {" — правки можно внести в дневнике."}
               </p>
             ) : null}
           </div>
@@ -1215,7 +1242,12 @@ export function ConfirmationCard({
 
         <div className="h-1 shrink-0" aria-hidden />
         <div className="confirm-card-actions">
-          <button type="button" className="btn btn-primary inline-flex items-center justify-center gap-2" disabled={saving || searching} onClick={() => void handleSave()}>
+          <button
+            type="button"
+            className="btn btn-primary inline-flex items-center justify-center gap-2"
+            disabled={saving || searching}
+            onClick={() => void handleSave()}
+          >
             {saving ? (
               <>
                 <span className="daisy-loading daisy-loading-sm" aria-hidden>
@@ -1223,18 +1255,19 @@ export function ConfirmationCard({
                 </span>
                 Сохраняем...
               </>
-            ) : enriching ? (
-              "Да, сохранить"
-            ) : multi ? (
-              "Сохранить все блюда"
             ) : (
-              "Да, сохранить"
+              saveLabel
             )}
           </button>
           <button type="button" className="btn btn-secondary" disabled={saving} onClick={onCancel}>
             Отменить
           </button>
         </div>
+        {saveAsIs && !saving ? (
+          <p className="text-center text-xs text-slate-500">
+            Низкая уверенность не блокирует сохранение — потом можно поправить в дневнике.
+          </p>
+        ) : null}
 
         <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">
           <summary className="cursor-pointer select-none font-semibold text-slate-800">
