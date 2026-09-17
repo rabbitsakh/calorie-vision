@@ -114,7 +114,7 @@ calorievision.ru — тот же продукт в браузере, а не з�
 | Файл | Путь |
 |------|------|
 | Иконка 512×512 | `rustore/icon-512-store.png` |
-| Скриншоты (порядок) | `rustore/screenshots/submit/01` … `05` («+» / статистика / рацион / план / CTA) |
+| Скриншоты (порядок) | `rustore/screenshots/submit/01` … `05` (рацион / проверка / статистика / план / «+») |
 
 См. `rustore/screenshots/README.md`.
 
