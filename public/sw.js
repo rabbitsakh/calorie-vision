@@ -18,10 +18,10 @@ function withBase(path) {
 }
 
 /** Shell + static asset cache — bump when strategy or icons change. */
-const CACHE_NAME = "cv-shell-v8";
-const STATIC_CACHE = "cv-static-v8";
+const CACHE_NAME = "cv-shell-v9";
+const STATIC_CACHE = "cv-static-v9";
 /** Bump with logo/icon releases so precache + notifications pick new assets. */
-const ICON_VER = "1.12.1";
+const ICON_VER = "2.2.1";
 
 function iconUrl(path) {
   return `${withBase(path)}?v=${ICON_VER}`;
@@ -46,6 +46,9 @@ function precacheUrls() {
     iconUrl("/icon-192.png"),
     iconUrl("/icon-512.png"),
     iconUrl("/apple-icon.png"),
+    iconUrl("/favicon-120.png"),
+    withBase("/favicon.ico"),
+    withBase("/favicon.svg"),
   ];
 }
 
@@ -74,7 +77,10 @@ function isShellPath(pathname) {
     pathname === withBase("/icon-192.png") ||
     pathname === withBase("/icon-512.png") ||
     pathname === withBase("/apple-icon.png") ||
-    pathname === withBase("/favicon.png")
+    pathname === withBase("/favicon.png") ||
+    pathname === withBase("/favicon-120.png") ||
+    pathname === withBase("/favicon.ico") ||
+    pathname === withBase("/favicon.svg")
   );
 }
 

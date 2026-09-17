@@ -31,6 +31,15 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-120.png", type: "image/png", sizes: "120x120" },
+      { url: "/favicon.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {
@@ -54,8 +63,12 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${body.variable} ${display.variable}`}>
       <head>
-        <link rel="apple-touch-icon" href="/apple-icon.png?v=1.12.1" />
-        <link rel="icon" href="/favicon.png?v=1.12.1" type="image/png" />
+        {/* Yandex / browsers: SVG + 120×120 PNG + classic favicon.ico */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-120.png" type="image/png" sizes="120x120" />
+        <link rel="icon" href="/favicon.png?v=2.2.1" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/apple-icon.png?v=2.2.1" sizes="180x180" />
       </head>
       <body className={body.className}>
         <Providers>
