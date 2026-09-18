@@ -124,12 +124,19 @@ if ! npm run build; then
   exit 1
 fi
 
+echo "==> Prepare standalone layout (same as CI artifact)"
+bash scripts/prepare-standalone.sh
+# Persistent uploads for standalone cwd
+mkdir -p public/uploads
+rm -rf .next/standalone/public/uploads
+ln -sfn "$APP_DIR/public/uploads" .next/standalone/public/uploads
+
 echo "==> Restart app"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
-  pm2 restart calorie-vision --update-env
-else
-  pm2 start deploy/ecosystem.config.cjs
+  # Recreate so ecosystem picks standalone vs npm start
+  pm2 delete calorie-vision || true
 fi
+pm2 start deploy/ecosystem.config.cjs
 
 # Sanity: public auth URL must not be localhost (Custom Tabs would fail on the phone).
 AUTH_URL_CHECK="$(grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"

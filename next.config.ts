@@ -11,10 +11,20 @@ const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "1", 10);
 
 const nextConfig = {
   ...(basePath ? { basePath } : {}),
+  // CI packs `.next/standalone` and ships it to the VPS (no on-server `next build`).
+  output: "standalone" as const,
   trailingSlash: true,
   // NextAuth callbacks and API POSTs break when Next.js 308-redirects them to a trailing slash.
   skipTrailingSlashRedirect: true,
   productionBrowserSourceMaps: false,
+  // Prisma engines + sharp are not always picked up by file tracing.
+  outputFileTracingIncludes: {
+    "/*": [
+      "./node_modules/.prisma/client/**/*",
+      "./node_modules/@prisma/client/**/*",
+      "./node_modules/sharp/**/*",
+    ],
+  },
   experimental: {
     // Lower peak memory during `next build` (slightly slower compile).
     webpackMemoryOptimizations: true,

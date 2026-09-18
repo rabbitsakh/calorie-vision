@@ -15,6 +15,9 @@ eval-fixtures/*
 
 tsconfig.tsbuildinfo
 
+# CI / local standalone deploy packs
+/dist/
+
 # RuStore / TWA local build artifacts (never commit secrets)
 rustore/android/
 rustore/dist/

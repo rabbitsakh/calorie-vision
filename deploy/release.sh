@@ -18,4 +18,13 @@ gh pr merge "$TARGET" \
 
 echo "==> Deploy"
 cd "$APP_DIR"
-bash deploy/deploy.sh
+# Prefer CI artifact path after merge to main (GitHub Actions → Deploy).
+# FORCE_LOCAL_BUILD=1 keeps the classic on-VPS next build.
+if [[ "${FORCE_LOCAL_BUILD:-}" == "1" ]]; then
+  echo "   FORCE_LOCAL_BUILD=1 — bash deploy/deploy.sh"
+  bash deploy/deploy.sh
+else
+  echo "   Merge to main triggers Actions Deploy (standalone artifact)."
+  echo "   Fallback (local build on VPS): FORCE_LOCAL_BUILD=1 bash deploy/release.sh $TARGET"
+  echo "   Or wait for Actions, or: bash deploy/deploy.sh"
+fi

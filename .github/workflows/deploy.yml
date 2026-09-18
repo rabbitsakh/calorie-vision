@@ -1,0 +1,98 @@
+name: Deploy
+
+# Build on GitHub Actions, ship `.next/standalone` tarball, apply on VPS (no on-server next build).
+# Secrets (Settings → Secrets and variables → Actions):
+#   DEPLOY_HOST       — VPS hostname or IP
+#   DEPLOY_USER       — SSH user (e.g. root or deploy)
+#   DEPLOY_SSH_KEY    — private key (PEM) with access to DEPLOY_HOST
+# Optional:
+#   DEPLOY_PORT       — SSH port (default 22)
+#   DEPLOY_PATH       — app dir on VPS (default /var/www/calorie-vision)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+        env:
+          SENTRYCLI_SKIP_DOWNLOAD: "1"
+
+      - name: Production build (standalone)
+        run: npm run build
+        env:
+          NEXTAUTH_SECRET: ci-secret-for-build
+          AUTH_SECRET: ci-secret-for-build
+          DATABASE_URL: "mysql://user:pass@127.0.0.1:3306/ci"
+          SKIP_ENV_VALIDATION: "1"
+          SENTRYCLI_SKIP_DOWNLOAD: "1"
+          NEXT_BUILD_CPUS: "2"
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Pack standalone artifact
+        run: bash scripts/pack-standalone.sh
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+
+      - name: Upload artifact (Actions retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: calorie-vision-standalone
+          path: dist/calorie-vision-standalone.tar.gz
+          retention-days: 14
+
+      - name: Require deploy secrets
+        id: gate
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [[ -z "${DEPLOY_HOST}" || -z "${DEPLOY_USER}" || -z "${DEPLOY_SSH_KEY}" ]]; then
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "::warning::DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY not set — built artifact only (no VPS ship)."
+          else
+            echo "skip=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ship artifact and apply on VPS
+        if: steps.gate.outputs.skip == '0'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          umask 077
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          DEPLOY_PATH="${DEPLOY_PATH:-/var/www/calorie-vision}"
+          KEY_FILE="$(mktemp)"
+          trap 'rm -f "$KEY_FILE"' EXIT
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          SSH=(ssh -i "$KEY_FILE" -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -p "$DEPLOY_PORT")
+          SCP=(scp -i "$KEY_FILE" -o StrictHostKeyChecking=accept-new -o IdentitiesOnly=yes -P "$DEPLOY_PORT")
+          REMOTE_TGZ="/tmp/calorie-vision-standalone-${GITHUB_SHA}.tar.gz"
+          "${SCP[@]}" dist/calorie-vision-standalone.tar.gz \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${REMOTE_TGZ}"
+          "${SSH[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' && git fetch origin main && git checkout main && git pull origin main && bash deploy/deploy-artifact.sh '${REMOTE_TGZ}' && rm -f '${REMOTE_TGZ}'"

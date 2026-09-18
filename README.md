@@ -334,7 +334,25 @@ pm2 status
 
 В `pm2 status` процесс `calorie-vision` должен быть `online`. Проверка Node: `node -v` и `pm2 show calorie-vision` — в `node.js version` тоже 24. Дальше обычный деплой.
 
-### 4. Запуск приложения
+### 4. Деплой: CI-артефакт (рекомендуется) или сборка на VPS
+
+**Рекомендуемый путь** — сборка в GitHub Actions и выкладка `.next/standalone` на VPS (без `next build` на сервере). Workflow: `.github/workflows/deploy.yml` (push в `main` или `workflow_dispatch`).
+
+Секреты репозитория (Settings → Secrets and variables → Actions):
+
+| Secret | Описание |
+|--------|----------|
+| `DEPLOY_HOST` | Хост / IP VPS |
+| `DEPLOY_USER` | SSH-пользователь |
+| `DEPLOY_SSH_KEY` | Приватный ключ (PEM) |
+| `DEPLOY_PORT` | Опционально, порт SSH (по умолчанию `22`) |
+| `DEPLOY_PATH` | Опционально, каталог приложения (по умолчанию `/var/www/calorie-vision`) |
+
+На VPS должен быть доступен `git pull` той же ветки `main` и скрипт `deploy/deploy-artifact.sh` (миграции Prisma + распаковка tarball + pm2). Загрузки пользователей (`public/uploads`) не входят в артефакт и сохраняются на диске.
+
+Пока секреты не заданы, workflow только собирает и кладёт artifact в Actions (14 дней) — на VPS ничего не уходит.
+
+**Fallback — сборка на VPS** (как раньше):
 
 ```bash
 cd /var/www/calorie-vision
@@ -342,9 +360,11 @@ git pull
 bash deploy/deploy.sh
 ```
 
-Если `next build` падает с `SIGKILL` (OOM на маленьком VPS): `deploy.sh` сам останавливает pm2 перед сборкой, ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable`. Принудительно: `NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM полезен swap (`fallocate -l 2G /swapfile …`).
+`deploy.sh` после `next build` готовит тот же standalone-layout и перезапускает pm2 через `deploy/ecosystem.config.cjs` (`node .next/standalone/server.js`, если папка есть).
 
-Если деплой «висит» на `==> Install dependencies`: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` по умолчанию ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (runtime Sentry не нужен в CLI). Для upload source maps задайте `SENTRY_AUTH_TOKEN` в окружении перед деплоем.
+Если `next build` падает с `SIGKILL` (OOM на маленьком VPS): лучше включить CI-деплой выше. Иначе `deploy.sh` сам останавливает pm2 перед сборкой, ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable`. Принудительно: `NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM полезен swap (`fallocate -l 2G /swapfile …`).
+
+Если деплой «висит» на `==> Install dependencies`: обычно это скачивание бинарника `@sentry/cli` с CDN. Скрипты деплоя по умолчанию ставят `SENTRYCLI_SKIP_DOWNLOAD=1`. Для upload source maps задайте `SENTRY_AUTH_TOKEN` в окружении перед деплоем.
 
 ### 5. Nginx
 
