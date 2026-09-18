@@ -2,6 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { dishLooksLikeAlcohol, lookupRuNutritionTable, scaleRuNutritionToGrams } from "./ru-nutrition-lookup.ts";
 
+test("lookupRuNutritionTable matches boiled egg not pouch egg", () => {
+  const boiled = lookupRuNutritionTable("вареное яйцо");
+  assert.equal(boiled?.dishName, "Вареное яйцо");
+  const soft = lookupRuNutritionTable("яйцо в мешочек");
+  assert.equal(soft?.dishName, "Яйцо в мешочек");
+  const fried = lookupRuNutritionTable("яичница");
+  assert.equal(fried?.dishName, "Яичница");
+});
+
 test("lookupRuNutritionTable matches borscht", () => {
   const hit = lookupRuNutritionTable("Домашний борщ");
   assert.ok(hit);

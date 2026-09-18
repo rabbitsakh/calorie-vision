@@ -970,14 +970,29 @@ export async function lookupFoodByName(
     return result;
   }
 
+  // Home staples (борщ, вареное яйцо…) before OFF — pack search often returns a
+  // wrong product that only shares one token («яйцо» → «яйцо в мешочек»).
+  let result: FoodRecognitionResult | null = null;
+  const ruQueries = lookupQueriesForName(
+    dishName,
+    simplifyDishNameForLookup(dishName),
+    3,
+  );
+  for (const query of ruQueries) {
+    const ru = lookupRuNutritionTable(query);
+    if (ru) {
+      result = await packToRecognitionResult(ru, "ru-nutrition-table", "meal", dishName, 0.72);
+      break;
+    }
+  }
+
   const off = await searchOpenFoodFactsBest(
     lookupQueriesForName(dishName, simplifyDishNameForLookup(dishName), 2),
   );
   const offMatch =
     off && offMatchesQuery(dishName, off.dishName, off.brand) ? off : null;
-  let result: FoodRecognitionResult | null = null;
 
-  if (offMatch) {
+  if (!result && offMatch) {
     result = await packToRecognitionResult(
       offMatch,
       "openfoodfacts-search",
@@ -985,21 +1000,6 @@ export async function lookupFoodByName(
       dishName,
       0.8,
     );
-  }
-
-  if (!result) {
-    const ruQueries = lookupQueriesForName(
-      dishName,
-      simplifyDishNameForLookup(dishName),
-      3,
-    );
-    for (const query of ruQueries) {
-      const ru = lookupRuNutritionTable(query);
-      if (ru) {
-        result = await packToRecognitionResult(ru, "ru-nutrition-table", "meal", dishName, 0.72);
-        break;
-      }
-    }
   }
 
   if (!result) {

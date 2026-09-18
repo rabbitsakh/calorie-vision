@@ -179,6 +179,14 @@ test("accepts Open Food Facts hits that share product tokens", () => {
   assert.equal(offMatchesQuery("борщ", "Шоколад Milka"), false);
 });
 
+test("rejects OFF egg hits with a different cooking style", () => {
+  assert.equal(offMatchesQuery("вареное яйцо", "Яйцо в мешочек"), false);
+  assert.equal(offMatchesQuery("варёное яйцо", "Яйцо куриное"), false);
+  assert.equal(offMatchesQuery("вареное яйцо", "Яйцо варёное"), true);
+  assert.equal(offMatchesQuery("яйцо в мешочек", "Яйцо в мешочек"), true);
+  assert.equal(offMatchesQuery("яичница", "Яйцо варёное"), false);
+});
+
 test("rejects branded OFF hits that only share the brand string", () => {
   // dishName is built as `${brand} ${name}` — brand-in-name must not auto-match.
   assert.equal(offMatchesQuery("кофе", "Очаково Квас", "Очаково"), false);
