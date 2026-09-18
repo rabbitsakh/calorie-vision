@@ -108,7 +108,7 @@ export function AppShell({
         <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2.5 md:gap-6 md:px-4 md:py-8">
           <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
             {/* Brand + avatar share one fixed-height row so they sit on the same axis. */}
-            <div className="flex h-10 items-center justify-between gap-3 md:h-11">
+            <div className="flex h-11 items-center justify-between gap-3 md:h-11">
               <Link
                 href={homeHref}
                 className="inline-flex h-full min-w-0 max-w-full items-center gap-2 md:gap-3"

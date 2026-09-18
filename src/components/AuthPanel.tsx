@@ -82,7 +82,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
       <div className={`flex items-center text-sm text-slate-500 ${compactTrigger ? "h-full" : "gap-3"}`}>
         <span
           className={`inline-block animate-pulse rounded-full bg-slate-200 ${
-            compactTrigger ? "h-9 w-9 md:h-10 md:w-10" : "h-9 w-9"
+            compactTrigger ? "h-11 w-11 md:h-10 md:w-10" : "h-9 w-9"
           }`}
         />
       </div>
@@ -170,14 +170,16 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
         type="button"
         className={
           compactTrigger
-            ? "flex h-9 max-w-[12rem] items-center gap-2 overflow-hidden rounded-full border border-slate-200 bg-white py-0 pl-0 pr-2 text-left hover:border-teal-300 md:h-10 md:max-w-none md:gap-2.5 md:pr-2.5"
+            ? // Mobile: larger avatar-only control; sm+: pill with name.
+              "flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white p-0 text-left hover:border-teal-300 sm:h-10 sm:w-auto sm:max-w-none sm:gap-2.5 sm:py-0 sm:pl-0 sm:pr-2.5"
             : "flex max-w-[12rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
         }
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={compactTrigger ? `Аккаунт: ${label}` : undefined}
         onClick={() => setOpen((value) => !value)}
       >
-        <AvatarFrame className={compactTrigger ? "h-9 w-9 shrink-0 md:h-10 md:w-10" : undefined}>
+        <AvatarFrame className={compactTrigger ? "h-11 w-11 shrink-0 sm:h-10 sm:w-10" : undefined}>
           {session.user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
