@@ -1,1609 +1,1134 @@
 [
   {
-    "version": "1.12.43",
+    "version": "2.2.6",
     "date": "2026-09-17",
-    "summary": "fix(ui): выровнять чип приёма пищи с временем в дневнике",
+    "summary": "fix(ui): выровнять «Завтр./Обед» с временем в дневнике (1.12.43)",
     "items": [
       {
         "kind": "fix",
-        "text": "«Завтр./Обед/…» больше не съезжает вниз относительно времени на карточке"
+        "text": "fix(ui): выровнять «Завтр./Обед» с временем в дневнике (1.12.43)"
       }
     ]
   },
   {
-    "version": "1.12.42",
+    "version": "2.2.5",
     "date": "2026-09-17",
-    "summary": "UX: сохранить как есть при низкой уверенности",
+    "summary": "feat(ux): сохранить как есть при низкой уверенности (1.12.42)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "При низкой уверенности кнопка «Сохранить как есть» — лог не блокируется"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкая подсказка: оценку можно поправить позже в дневнике"
+        "kind": "feature",
+        "text": "feat(ux): сохранить как есть при низкой уверенности (1.12.42)"
       }
     ]
   },
   {
-    "version": "1.12.41",
+    "version": "2.2.4",
     "date": "2026-09-17",
-    "summary": "UX: мягкий ритуал недели на Плане",
+    "summary": "feat(ux): мягкий ритуал недели на Плане (1.12.41)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Вс вечером / пн утром на Плане — спокойный итог недели без стыда"
-      },
-      {
-        "kind": "improvement",
-        "text": "Быстрые CTA: открыть дневник и перейти к челленджу"
+        "kind": "feature",
+        "text": "feat(ux): мягкий ритуал недели на Плане (1.12.41)"
       }
     ]
   },
   {
-    "version": "1.12.40",
+    "version": "2.2.3",
     "date": "2026-09-17",
-    "summary": "UX: быстрый лог на рационе + челлендж на Плане",
+    "summary": "feat(ux): быстрый лог + челлендж на Плане (1.12.40)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Полоска «Быстрый лог»: Как вчера и частые блюда над дневником"
-      },
-      {
-        "kind": "improvement",
-        "text": "Челлендж недели на вкладке «План» — выбрать и видеть прогресс"
+        "kind": "feature",
+        "text": "feat(ux): быстрый лог + челлендж на Плане (1.12.40)"
       }
     ]
   },
   {
-    "version": "1.12.39",
+    "version": "2.2.2",
     "date": "2026-09-17",
-    "summary": "UX: доверие к проверке блюда после фото (day-0)",
+    "summary": "feat(ux): доверие к проверке после фото — wave 4 (1.12.39)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): доверие к проверке после фото — wave 4 (1.12.39)"
+      }
+    ]
+  },
+  {
+    "version": "2.2.1",
+    "date": "2026-09-17",
+    "summary": "fix(rustore): починить 7/30/90 на скрине статистики (03)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): починить 7/30/90 на скрине статистики (03)"
+      }
+    ]
+  },
+  {
+    "version": "2.2.0",
+    "date": "2026-09-17",
+    "summary": "fix(confirm): черновик при enriching и рабочий «Досчитать»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(confirm): черновик при enriching и рабочий «Досчитать»"
+      }
+    ]
+  },
+  {
+    "version": "2.1.19",
+    "date": "2026-09-16",
+    "summary": "chore(rustore): скриншоты витрины из реального UI",
     "items": [
       {
         "kind": "improvement",
-        "text": "Один главный CTA на проверке: Уточнить / Досчитать — без каши кнопок"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мульти-блюдо: открываем слабую позицию, в чипах видны ккал"
-      },
-      {
-        "kind": "improvement",
-        "text": "Баннер черновика показывает ~ккал и тип фото"
-      },
-      {
-        "kind": "fix",
-        "text": "Недельный пуш ведёт на «План», а не на статистику"
+        "text": "chore(rustore): скриншоты витрины из реального UI"
       }
     ]
   },
   {
-    "version": "1.12.38",
+    "version": "2.1.18",
     "date": "2026-09-16",
-    "summary": "fix(auth): OAuth pages без CDN-кэша + pm2 --update-env",
+    "summary": "feat(rustore): welcome-слайдер → вход в Capacitor APK",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rustore): welcome-слайдер → вход в Capacitor APK"
+      }
+    ]
+  },
+  {
+    "version": "2.1.17",
+    "date": "2026-09-16",
+    "summary": "fix(rustore): Capacitor вместо TWA после отказа «WebView» (1.12.28)",
     "items": [
       {
         "kind": "fix",
-        "text": "/auth/* force-dynamic — не кэшировать native-oauth/bridge"
-      },
-      {
-        "kind": "improvement",
-        "text": "deploy.sh: pm2 --update-env и проверка NEXTAUTH_URL"
+        "text": "fix(rustore): Capacitor вместо TWA после отказа «WebView» (1.12.28)"
       }
     ]
   },
   {
-    "version": "1.12.37",
-    "date": "2026-09-16",
-    "summary": "fix(auth): OAuth больше не уводит на localhost:3000",
+    "version": "2.1.16",
+    "date": "2026-09-15",
+    "summary": "fix(ui): логотип и аватар на одной высоте + единые шапки статистики (1.12.27)",
     "items": [
       {
         "kind": "fix",
-        "text": "В production канонический URL — calorievision.ru, не localhost"
-      },
-      {
-        "kind": "fix",
-        "text": "Capacitor Google/VK bootstrap игнорирует localhost origin"
+        "text": "fix(ui): логотип и аватар на одной высоте + единые шапки статистики (1.12.27)"
       }
     ]
   },
   {
-    "version": "1.12.36",
-    "date": "2026-09-16",
-    "summary": "fix(build): native-bridge crypto только на сервере",
+    "version": "2.1.15",
+    "date": "2026-09-15",
+    "summary": "fix(habits): вернуть выбор челленджа в «Привычки» (1.12.26)",
     "items": [
       {
         "kind": "fix",
-        "text": "node:crypto вынесен из клиентского бандла — Next build снова проходит"
+        "text": "fix(habits): вернуть выбор челленджа в «Привычки» (1.12.26)"
       }
     ]
   },
   {
-    "version": "1.12.35",
-    "date": "2026-09-16",
-    "summary": "fix(capacitor): bridge открывает APK через intent://",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Короткий HMAC-токен вместо длинного JWT в deep link"
-      },
-      {
-        "kind": "fix",
-        "text": "Возврат из Custom Tabs через Android intent:// + package"
-      },
-      {
-        "kind": "improvement",
-        "text": "App Links на /api/auth/native-bridge + getLaunchUrl"
-      }
-    ]
-  },
-  {
-    "version": "1.12.34",
-    "date": "2026-09-16",
-    "summary": "fix(capacitor): Google/VK вход через Custom Tabs + deep link",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "OAuth целиком в Chrome Custom Tabs — без CSRF-разрыва с WebView"
-      },
-      {
-        "kind": "fix",
-        "text": "Возврат сессии в APK через calorievision://native-bridge"
-      },
-      {
-        "kind": "improvement",
-        "text": "AndroidManifest: custom scheme + launchMode singleTask"
-      }
-    ]
-  },
-  {
-    "version": "1.12.33",
-    "date": "2026-09-16",
-    "summary": "fix(capacitor): welcome не зацикливается после «Войти»",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Флаг welcome в localStorage (sync) — логин больше не возвращает на слайдер"
-      },
-      {
-        "kind": "fix",
-        "text": "LoginForm проверяет welcome синхронно, без гонки Preferences"
-      }
-    ]
-  },
-  {
-    "version": "1.12.32",
-    "date": "2026-09-16",
-    "summary": "fix(build): welcome TypeScript narrow on session status",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Убран мёртвый status === authenticated после сужения типов — сборка Next снова проходит"
-      }
-    ]
-  },
-  {
-    "version": "1.12.31",
-    "date": "2026-09-16",
-    "summary": "fix(capacitor): welcome не зависает на «Открываем…»",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Welcome не ждёт вечно SessionProvider loading в APK"
-      },
-      {
-        "kind": "fix",
-        "text": "Таймаут Preferences + failsafe 2.5с до слайдера/логина"
-      },
-      {
-        "kind": "improvement",
-        "text": "Ожидание инъекции Capacitor bridge в remote WebView"
-      }
-    ]
-  },
-  {
-    "version": "1.12.30",
-    "date": "2026-09-16",
-    "summary": "feat(retention): depth 3 — tip/streak dedup, referral gate, evening TZ",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "MotivationTip не дублирует soft recovery / freeze / at-risk из StreakNudge"
-      },
-      {
-        "kind": "fix",
-        "text": "ReferralNudge только после записи еды сегодня (как в комментарии)"
-      },
-      {
-        "kind": "improvement",
-        "text": "EveningCheckin считает час в TZ quiet-hours аккаунта"
-      }
-    ]
-  },
-  {
-    "version": "1.12.29",
-    "date": "2026-09-16",
-    "summary": "feat(recog): depth 5 — multi-dish reconcile + correction memory gate",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Multi-dish incomplete retry: item-wise merge + parent totals из суммы items"
-      },
-      {
-        "kind": "fix",
-        "text": "Память правок не пишется при ±1 ккал / без смены имени (шум округления)"
-      },
-      {
-        "kind": "improvement",
-        "text": "isBetterRecognitionResult принимает меньше incomplete items при том же count"
-      }
-    ]
-  },
-  {
-    "version": "1.12.28",
+    "version": "2.1.14",
     "date": "2026-09-14",
-    "summary": "fix(rustore): Capacitor standalone shell for RuStore moderation",
+    "summary": "feat(chests/mascot): wave 3 — soft yields FS, DayHero ambient + pet (1.12.25)",
     "items": [
       {
-        "kind": "fix",
-        "text": "RuStore: Capacitor Android вместо чистого TWA-обёртки сайта"
-      },
-      {
-        "kind": "improvement",
-        "text": "Нативная камера в оболочке приложения (Capacitor Camera)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Инструкция ответа модерации: rustore/MODERATION.md"
+        "kind": "feature",
+        "text": "feat(chests/mascot): wave 3 — soft yields FS, DayHero ambient + pet (1.12.25)"
       }
     ]
   },
   {
-    "version": "1.12.27",
+    "version": "2.1.13",
     "date": "2026-09-14",
-    "summary": "fix(ui): align header brand/avatar + unify stats section headers",
+    "summary": "feat(chests/mascot): wave 2 — grant checks, meta queue, sticker art, DayHero (1.12.24)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Логотип и фото профиля на одной высоте в шапке"
-      },
-      {
-        "kind": "improvement",
-        "text": "Шапка блоков статистики: единый паттерн title + meta (цель / вода / подпись)"
-      },
-      {
-        "kind": "fix",
-        "text": "Заголовок графика макросов: «БЖУ по дням» (без клетчатки/сахара в названии)"
+        "kind": "feature",
+        "text": "feat(chests/mascot): wave 2 — grant checks, meta queue, sticker art, DayHero (1.12.24)"
       }
     ]
   },
   {
-    "version": "1.12.26",
-    "date": "2026-09-14",
-    "summary": "fix(habits): вернуть выбор челленджа в sheet «Привычки»",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "«Челлендж · Выбрать цель» снова открывает список целей недели в привычках"
-      }
-    ]
-  },
-  {
-    "version": "1.12.25",
-    "date": "2026-09-14",
-    "summary": "feat(chests/mascot): wave 3 — soft yields FS, DayHero ambient + pet",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Мягкие оверлеи (карточки и тост сохранения) уступают активному fullscreen"
-      },
-      {
-        "kind": "improvement",
-        "text": "DayHero: ambient-жесты на обычных позах, не только idle"
-      },
-      {
-        "kind": "improvement",
-        "text": "DayHero: можно погладить маскота (tap-to-pet на sm)"
-      }
-    ]
-  },
-  {
-    "version": "1.12.24",
-    "date": "2026-09-14",
-    "summary": "feat(chests/mascot): wave 2 — grant checks, meta queue, sticker art, DayHero liveness",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Выдача сундука на сервере только при реальной вехе (челлендж, серия, неделя, квесты)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мета-сундук после закрытия основного; не сжигает дневной лимит fullscreen"
-      },
-      {
-        "kind": "improvement",
-        "text": "Наклейки коллекции — SVG вместо эмодзи в дневнике, панели и лут-ревеале"
-      },
-      {
-        "kind": "improvement",
-        "text": "DayHero: живой маскот (idle reel) без тапа"
-      }
-    ]
-  },
-  {
-    "version": "1.12.23",
+    "version": "2.1.12",
     "date": "2026-09-14",
     "summary": "feat(chests/mascot): wave 1 — loot reveal, cheer equip, ownership, referral toast",
     "items": [
       {
-        "kind": "improvement",
-        "text": "После открытия сундука — глиф и название награды до CTA"
-      },
-      {
-        "kind": "improvement",
-        "text": "Фразы маскота можно экипировать: совет дня и тост сохранения"
-      },
-      {
-        "kind": "fix",
-        "text": "Экипировка рамки/наклейки/фразы только из открытой коллекции"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкий тост пригласившему, когда друг забрал реферальный сундук"
+        "kind": "feature",
+        "text": "feat(chests/mascot): wave 1 — loot reveal, cheer equip, ownership, referral toast"
       }
     ]
   },
   {
-    "version": "1.12.22",
-    "date": "2026-09-13",
-    "summary": "feat(recog): depth 4 — canteen plate priority, minItems eval, correction kinds",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Столовая/поднос: plate specialist раньше label; tray-name и context=restaurant"
-      },
-      {
-        "kind": "improvement",
-        "text": "Live-eval: minItems для canteen-tray и multi-plate; жёстче plate-soup/salad/pasta"
-      },
-      {
-        "kind": "improvement",
-        "text": "Админка: разбивка исправлений name / nutrition (из originalDish/originalCalories)"
-      },
-      {
-        "kind": "fix",
-        "text": "classifyCorrectionKinds: имя / порция / КБЖУ отдельно от wasRecognitionCorrected"
-      }
-    ]
-  },
-  {
-    "version": "1.12.21",
-    "date": "2026-09-13",
-    "summary": "fix(barcode): drink confirm no longer treats pack quantity 1 as 1 g",
+    "version": "2.1.11",
+    "date": "2026-09-14",
+    "summary": "fix(ui): wordmark Calorie Vision рядом с логотипом на мобилке",
     "items": [
       {
         "kind": "fix",
-        "text": "OFF: unitless product_quantity <10 (в т.ч. 1) не считается граммами"
-      },
-      {
-        "kind": "fix",
-        "text": "Напитки/штрихкод: порция 1 г → дефолт 250 мл и пересчёт с per100g"
-      },
-      {
-        "kind": "fix",
-        "text": "Confirm: нет «Не хватает калорий» при per100g>0; без чипа «Как на фото (1 г)»"
-      },
-      {
-        "kind": "improvement",
-        "text": "looksLikeDrinkName: тоник/tonic; vision-порции ниже пола игнорируются"
+        "text": "fix(ui): wordmark Calorie Vision рядом с логотипом на мобилке"
       }
     ]
   },
   {
-    "version": "1.12.20",
-    "date": "2026-09-13",
-    "summary": "feat(retention): depth 2 — quiet hours TZ, return loops, celebration hosts",
+    "version": "2.1.10",
+    "date": "2026-09-14",
+    "summary": "fix(landing): высота строки логотипа = высота BrandMark",
     "items": [
       {
         "kind": "fix",
-        "text": "Тихие часы празднований считаются в TZ профиля (как push cron), не по wall-clock устройства"
-      },
-      {
-        "kind": "fix",
-        "text": "Fullscreen celebration hosts: mark-seen только если не quiet (week/badge/quest/milestone/challenge)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Первая неделя тишины: share/referral/профиль до 7 дней; ShareMenu не прячется вместе с nudge"
-      },
-      {
-        "kind": "improvement",
-        "text": "Вечерний чек-ин с 20:00 вне MotivationQueue — не перекрывается streak/tip около 20–21"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкий recovery после пропуска, когда заморозка уже недоступна"
-      },
-      {
-        "kind": "improvement",
-        "text": "Копирайт настроек push совпадает с quiet defaults; часы помечены как TZ профиля"
+        "text": "fix(landing): высота строки логотипа = высота BrandMark"
       }
     ]
   },
   {
-    "version": "1.12.19",
+    "version": "2.1.9",
     "date": "2026-09-13",
-    "summary": "chore(platform): confirm/DailyLog extracts, dead-code cleanup, guest e2e",
+    "summary": "feat(recog): depth 4 — canteen plate, minItems eval, correction kinds (1.12.22)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Confirm: portion chips, dish merge и hero src вынесены в lib + тесты"
-      },
-      {
-        "kind": "improvement",
-        "text": "DailyLog: InlineEdit и MealCards в отдельные компоненты (move-only)"
-      },
-      {
-        "kind": "fix",
-        "text": "Удалены неиспользуемые OPEN_FOOD_* события, scrollToFoodAdd и syncCelebrationPortalToVisualViewport"
-      },
-      {
-        "kind": "improvement",
-        "text": "E2E critical-path: AuthGate /plan /stats, /diary→/ration, login email toggle; npm run test:e2e"
+        "kind": "feature",
+        "text": "feat(recog): depth 4 — canteen plate, minItems eval, correction kinds (1.12.22)"
       }
     ]
   },
   {
-    "version": "1.12.18",
+    "version": "2.1.8",
     "date": "2026-09-13",
-    "summary": "feat(recog): depth 3 — confirm baseline, multi-dish retry, drink priority",
+    "summary": "fix(barcode): drink pack quantity 1 ≠ 1 g (1.12.21)",
     "items": [
       {
         "kind": "fix",
-        "text": "wasCorrected сравнивает с display-scaled ккал/порцией, не с сырыми 100 мл/100 г"
-      },
-      {
-        "kind": "improvement",
-        "text": "Retry multi-dish-incomplete: ≥2 items с нулевыми ккал или порцией"
-      },
-      {
-        "kind": "improvement",
-        "text": "Напитки: drink specialist раньше label; чипы 150/330/350 мл; предпочтение итогов бутылки"
-      },
-      {
-        "kind": "improvement",
-        "text": "Эвристика multi-dish: /, +, тире, «X с гарниром»; plate предпочитает заполнять нули"
+        "text": "fix(barcode): drink pack quantity 1 ≠ 1 g (1.12.21)"
       }
     ]
   },
   {
-    "version": "1.12.17",
+    "version": "2.1.7",
+    "date": "2026-09-13",
+    "summary": "feat(retention): depth 2 — quiet TZ, return loops (1.12.20)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(retention): depth 2 — quiet TZ, return loops (1.12.20)"
+      }
+    ]
+  },
+  {
+    "version": "2.1.6",
+    "date": "2026-09-13",
+    "summary": "chore(platform): confirm/DailyLog extracts, dead code, guest e2e (1.12.19)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(platform): confirm/DailyLog extracts, dead code, guest e2e (1.12.19)"
+      }
+    ]
+  },
+  {
+    "version": "2.1.5",
+    "date": "2026-09-13",
+    "summary": "feat(recog): depth 3 — confirm baseline, multi-dish, drinks (1.12.18)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(recog): depth 3 — confirm baseline, multi-dish, drinks (1.12.18)"
+      }
+    ]
+  },
+  {
+    "version": "2.1.4",
+    "date": "2026-09-13",
+    "summary": "feat(recog): depth 2 — ready-meal stickers & confirm polish (1.12.17)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(recog): depth 2 — ready-meal stickers & confirm polish (1.12.17)"
+      }
+    ]
+  },
+  {
+    "version": "2.1.3",
+    "date": "2026-09-13",
+    "summary": "feat(landing): APK button on first screen (1.12.16)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(landing): APK button on first screen (1.12.16)"
+      }
+    ]
+  },
+  {
+    "version": "2.1.2",
     "date": "2026-09-12",
-    "summary": "feat(recog): depth 2 — ready-meal sticker routing and confirm polish",
+    "summary": "feat(retention): depth — quiet, push, soft freeze (1.12.15)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Специалист sticker раньше barcode/label для готовых блюд без EAN"
-      },
-      {
-        "kind": "improvement",
-        "text": "Retry ready-meal-sticker-empty: читать ккал и нетто со стикера, не таблицу/EAN"
-      },
-      {
-        "kind": "improvement",
-        "text": "Чипы порции 300/350/400 г и ясная база КБЖУ для стикеров и штрихкода"
-      },
-      {
-        "kind": "fix",
-        "text": "Не выдумывать per-100 из порционных итогов готовых блюд"
-      },
-      {
-        "kind": "improvement",
-        "text": "Админка: правка порции = correction; топ промахов с photoKind"
+        "kind": "feature",
+        "text": "feat(retention): depth — quiet, push, soft freeze (1.12.15)"
       }
     ]
   },
   {
-    "version": "1.12.16",
+    "version": "2.1.1",
     "date": "2026-09-12",
-    "summary": "feat(landing): APK download CTA in hero",
+    "summary": "feat(plan): Weekly OS 2 — week hub depth (1.12.14)",
     "items": [
       {
         "kind": "feature",
-        "text": "Первый экран лендинга: кнопка «Скачать APK» рядом с «Начать бесплатно»"
+        "text": "feat(plan): Weekly OS 2 — week hub depth (1.12.14)"
       }
     ]
   },
   {
-    "version": "1.12.15",
+    "version": "2.1.0",
     "date": "2026-09-11",
-    "summary": "feat(retention): depth — quiet celebrations, push prompts, soft freeze",
+    "summary": "feat(recog): trust depth — chips, drinks, eval, admin (1.12.13)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(recog): trust depth — chips, drinks, eval, admin (1.12.13)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.19",
+    "date": "2026-09-11",
+    "summary": "feat(ui): waves 2–4 — trust, retention, weekly OS (1.12.12)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ui): waves 2–4 — trust, retention, weekly OS (1.12.12)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.18",
+    "date": "2026-09-11",
+    "summary": "feat(landing): Android APK download CTA (1.12.11)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(landing): Android APK download CTA (1.12.11)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.17",
+    "date": "2026-09-11",
+    "summary": "chore(rustore): листинг и порядок скринов для витрины — 1.12.10",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(rustore): листинг и порядок скринов для витрины — 1.12.10"
+      }
+    ]
+  },
+  {
+    "version": "2.0.16",
+    "date": "2026-09-11",
+    "summary": "fix(rustore): Windows Python stub больше не роняет сборку APK — 1.12.9",
     "items": [
       {
         "kind": "fix",
-        "text": "Тихие празднования: mark-seen только после показа (не сжигает флаги в quiet)"
-      },
-      {
-        "kind": "improvement",
-        "text": "PWA/push-промпты вне однослотовой MotivationQueue на рационе"
-      },
-      {
-        "kind": "improvement",
-        "text": "Совет дня утром при пустом возвращении; afternoon-gate только при логе сегодня"
-      },
-      {
-        "kind": "improvement",
-        "text": "Quiet first-run push: +reactivation и checkin; завтрак/вода/ккал по желанию"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкий CTA заморозки серии в StreakNudge; исправлен canFreezeYesterday"
-      },
-      {
-        "kind": "improvement",
-        "text": "Push-промпт снова через 10 дней после dismiss; silent resync подписки в standalone"
-      },
-      {
-        "kind": "improvement",
-        "text": "Deeplink чек-ина → /ration#checkin"
+        "text": "fix(rustore): Windows Python stub больше не роняет сборку APK — 1.12.9"
       }
     ]
   },
   {
-    "version": "1.12.14",
+    "version": "2.0.15",
     "date": "2026-09-11",
-    "summary": "feat(plan): Weekly OS 2 — Mon–Sun report, week nav, shopping bridge",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Недельный отчёт и шаринг: окно пн–вс как у полосок Плана"
-      },
-      {
-        "kind": "feature",
-        "text": "План: навигация «← неделя / эта / →» и одна строка итога недели"
-      },
-      {
-        "kind": "improvement",
-        "text": "Поделиться неделей в шапке отчёта; без отдельной CTA-строки"
-      },
-      {
-        "kind": "feature",
-        "text": "Список покупок: #shopping, авто-открытие, sourceDate по дням → рацион"
-      },
-      {
-        "kind": "feature",
-        "text": "Цель по весу: ритм взвешивания и быстрый лист"
-      },
-      {
-        "kind": "improvement",
-        "text": "Отчёт без дублей closest/hardest в буллетах"
-      }
-    ]
-  },
-  {
-    "version": "1.12.13",
-    "date": "2026-09-11",
-    "summary": "feat(recog): trust depth — portion chips, drink gate, eval, admin",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Чипы порции: pack vs photo из resolveDisplayPortionGrams; без «Как на фото (100 мл)» после rescale бутылки; brand в детекции напитка"
-      },
-      {
-        "kind": "improvement",
-        "text": "Эвристика напитков: нектар, Red Bull/Lipton/Schweppes, питьевой йогурт; виноград≠вино"
-      },
-      {
-        "kind": "fix",
-        "text": "Drink specialist не пропускает бутылку с КБЖУ как на 100 мл"
-      },
-      {
-        "kind": "improvement",
-        "text": "Eval harness: minNormalizedCalories / expectNormalized.portionGrams; жёстче drink/label фикстуры"
-      },
-      {
-        "kind": "feature",
-        "text": "Админ: % исправлений по photoKind; мульти-блюдо — ⚠ на аллергенных чипах"
-      }
-    ]
-  },
-  {
-    "version": "1.12.12",
-    "date": "2026-09-11",
-    "summary": "feat(ui): waves 2–4 trust, retention, weekly OS polish",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Черновик подтверждения только за выбранный день + кнопка «Удалить» и название блюда"
-      },
-      {
-        "kind": "improvement",
-        "text": "Подсказки уверенности для напитков (объём/мл, этикетка бутылки) и базис КБЖУ у бейджа"
-      },
-      {
-        "kind": "improvement",
-        "text": "Первый шаринг и push: тихая первая неделя; копирайт напоминаний под quiet defaults; ссылка на профиль"
-      },
-      {
-        "kind": "improvement",
-        "text": "Статистика недели без отдельного WoW; список покупок «за неделю»; авто-цель веса с CTA"
-      }
-    ]
-  },
-  {
-    "version": "1.12.11",
-    "date": "2026-09-11",
-    "summary": "feat(landing): Android APK download CTA",
+    "summary": "feat(ui): вес в «+» и журнал рядом с кг на Плане — 1.12.8",
     "items": [
       {
         "kind": "feature",
-        "text": "Лендинг #install и /install: кнопка «Скачать APK» (+ RuStore, если задан URL)"
-      },
-      {
-        "kind": "improvement",
-        "text": "rustore:build копирует APK в public/downloads/calorie-vision.apk для сайта"
-      },
-      {
-        "kind": "improvement",
-        "text": "NEXT_PUBLIC_APK_URL в .env.example — можно указать CDN вместо локального файла"
+        "text": "feat(ui): вес в «+» и журнал рядом с кг на Плане — 1.12.8"
       }
     ]
   },
   {
-    "version": "1.12.10",
-    "date": "2026-09-11",
-    "summary": "chore(rustore): listing polish for store submit",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Скриншоты submit: сначала продукт (штрихкод, статистика), маркетинг ниже"
-      },
-      {
-        "kind": "improvement",
-        "text": "listing.ru.md: шпаргалка декларации данных и чеклист Консоли"
-      },
-      {
-        "kind": "improvement",
-        "text": "Сырые кадры убраны в screenshots/archive"
-      }
-    ]
-  },
-  {
-    "version": "1.12.8",
+    "version": "2.0.14",
     "date": "2026-09-10",
-    "summary": "feat(ui): weight quick log in center +",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Вес снова в плюсе посередине — быстрая запись кг без похода в журнал"
-      },
-      {
-        "kind": "improvement",
-        "text": "В пикере «+» и долгом нажатии: Фото / Текст / Штрихкод / Вес"
-      },
-      {
-        "kind": "improvement",
-        "text": "«Журнал веса» перенесён в блок текущего веса на Плане"
-      }
-    ]
-  },
-  {
-    "version": "1.12.6",
-    "date": "2026-09-09",
-    "summary": "fix(rustore): APK adaptive icon (ic_maskable) sync",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "TWA: правильные размеры ic_maskable — ярлык Android 8+ брал старый слой"
-      },
-      {
-        "kind": "fix",
-        "text": "Сборка: локальный icon URL + checksum lock, чтобы bubblewrap build не затирал A2"
-      },
-      {
-        "kind": "fix",
-        "text": "appVersionCode 3 / 1.12.6 — перезалейте APK в RuStore и обновите на телефоне"
-      }
-    ]
-  },
-  {
-    "version": "1.12.5",
-    "date": "2026-09-09",
-    "summary": "fix(ui): onboarding steps above tab bar",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Шаги онбординга больше не залезают под нижнее меню"
-      },
-      {
-        "kind": "fix",
-        "text": "То же для PWA-мастера и листа привычек на Рационе"
-      }
-    ]
-  },
-  {
-    "version": "1.12.3",
-    "date": "2026-09-09",
-    "summary": "fix(rustore): rebuild APK launcher icon for A2",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "TWA: appVersionCode 2 / 1.12.2 — новая сборка с иконкой A2"
-      },
-      {
-        "kind": "fix",
-        "text": "rustore-build.sh перезаписывает mipmap из icon-512-store.png"
-      },
-      {
-        "kind": "improvement",
-        "text": "README: как обновить значок в установленном APK"
-      }
-    ]
-  },
-  {
-    "version": "1.12.2",
-    "date": "2026-09-09",
-    "summary": "fix(brand): transparent BrandMark, larger in-app sizes",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Знак в шапке/splash/логине без teal-рамки — прозрачный фон"
-      },
-      {
-        "kind": "improvement",
-        "text": "BrandMark крупнее: ~44–72px вместо 28–48px"
-      },
-      {
-        "kind": "improvement",
-        "text": "Иконки PWA/RuStore остаются на непрозрачной плашке (требование сторов)"
-      }
-    ]
-  },
-  {
-    "version": "1.12.1",
-    "date": "2026-09-09",
-    "summary": "fix(brand): bust PWA icon cache after A2 logo",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Service Worker cache v8 — подтягивает новый значок A2"
-      },
-      {
-        "kind": "fix",
-        "text": "Manifest / BrandMark / apple-touch с ?v=1.12.1 против кэша"
-      }
-    ]
-  },
-  {
-    "version": "1.12.0",
-    "date": "2026-09-09",
-    "summary": "feat(brand): unified A2 logo across PWA, TWA, RuStore",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Новый логотип A2: маскот + CV — один знак для всех платформ"
-      },
-      {
-        "kind": "fix",
-        "text": "PWA/TWA icon-512 и RuStore store icon больше не расходятся"
-      },
-      {
-        "kind": "improvement",
-        "text": "BrandMark в шапке, splash и логине использует тот же знак"
-      }
-    ]
-  },
-  {
-    "version": "1.11.2",
-    "date": "2026-09-08",
-    "summary": "feat(ux): Stats one clear insight",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Статистика за 7 дней: один инсайт вместо стопки карточек"
-      },
-      {
-        "kind": "fix",
-        "text": "Полный недельный отчёт остаётся на вкладке План — без дубля в Стат"
-      },
-      {
-        "kind": "improvement",
-        "text": "Сравнение недель перенесено ниже графика калорий"
-      },
-      {
-        "kind": "fix",
-        "text": "План: убран лишний intro — описание уже в шапке"
-      }
-    ]
-  },
-  {
-    "version": "1.11.1",
-    "date": "2026-09-08",
-    "summary": "feat(ux): persist confirm edits in pending draft",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Правки на проверке (название, порция, макросы, приём, время) сохраняются в черновик"
-      },
-      {
-        "kind": "improvement",
-        "text": "После перезагрузки / закрытия PWA можно продолжить с теми же правками"
-      },
-      {
-        "kind": "fix",
-        "text": "Повторный upsert того же фото не сбрасывает UI-правки черновика"
-      }
-    ]
-  },
-  {
-    "version": "1.11.0",
-    "date": "2026-09-08",
-    "summary": "feat(ux): confirm trust after FoodAdd sheet",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "Кнопки «Сохранить» липнут внизу sheet — не уезжают при правке порции"
-      },
-      {
-        "kind": "fix",
-        "text": "Аллергены: при сохранении без чекбокса — скролл и фокус на подтверждение"
-      },
-      {
-        "kind": "improvement",
-        "text": "При низкой уверенности варианты блюд сразу под названием"
-      },
-      {
-        "kind": "fix",
-        "text": "Сбой сети при сохранении не закрывает проверку — черновик в очереди"
-      },
-      {
-        "kind": "improvement",
-        "text": "Баннер «Продолжить проверку» вместо автозахвата sheet"
-      },
-      {
-        "kind": "fix",
-        "text": "Чипы порции: без дубля «упаковка» = «как на фото»"
-      }
-    ]
-  },
-  {
-    "version": "1.10.3",
-    "date": "2026-09-08",
-    "summary": "feat(ux): ration declutter after Weekly OS",
-    "items": [
-      {
-        "kind": "improvement",
-        "text": "Быстрое добавление свёрнуто по умолчанию — основной вход «+»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Полоска недели заменена ссылкой на вкладку План"
-      },
-      {
-        "kind": "improvement",
-        "text": "Челлендж под героем только если уже выбран"
-      },
-      {
-        "kind": "improvement",
-        "text": "Один share-блок: nudge или меню, не оба"
-      },
-      {
-        "kind": "improvement",
-        "text": "Дисклеймер убран из рациона (остаётся в профиле); push в MotivationQueue"
-      }
-    ]
-  },
-  {
-    "version": "1.10.2",
-    "date": "2026-09-08",
-    "summary": "fix(lint): unused FoodAddMode import in FoodAddQuickMenu",
-    "items": [
-      {
-        "kind": "fix",
-        "text": "ESLint: убран неиспользуемый type import FoodAddMode"
-      }
-    ]
-  },
-  {
-    "version": "1.10.1",
-    "date": "2026-09-08",
-    "summary": "feat(ux): Weekly OS polish — план как второй дом",
+    "summary": "feat(ui): вес в центральном «+» — быстрая запись кг — 1.12.8",
     "items": [
       {
         "kind": "feature",
-        "text": "На Плане — цель по весу и праздничный запас (не только ссылка)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Компактная неделя в рационе quieter: «открыть план» вместо второго героя"
-      },
-      {
-        "kind": "improvement",
-        "text": "Журнал веса остаётся отдельной страницей из Плана"
+        "text": "feat(ui): вес в центральном «+» — быстрая запись кг — 1.12.8"
       }
     ]
   },
   {
-    "version": "1.10.0",
-    "date": "2026-09-08",
-    "summary": "feat(ux): Weekly OS — План во вкладках",
+    "version": "2.0.13",
+    "date": "2026-09-10",
+    "summary": "fix(rustore): APK adaptive icon A2 (ic_maskable) — 1.12.6",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): APK adaptive icon A2 (ic_maskable) — 1.12.6"
+      }
+    ]
+  },
+  {
+    "version": "2.0.12",
+    "date": "2026-09-10",
+    "summary": "fix(ui): шаги онбординга поверх нижнего меню — 1.12.5",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): шаги онбординга поверх нижнего меню — 1.12.5"
+      }
+    ]
+  },
+  {
+    "version": "2.0.11",
+    "date": "2026-09-09",
+    "summary": "chore(rustore): 1080×1920 barcode and stats screenshots",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(rustore): 1080×1920 barcode and stats screenshots"
+      }
+    ]
+  },
+  {
+    "version": "2.0.10",
+    "date": "2026-09-09",
+    "summary": "fix(rustore): force A2 launcher icon into APK (1.12.3)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): force A2 launcher icon into APK (1.12.3)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.9",
+    "date": "2026-09-09",
+    "summary": "fix(brand): transparent BrandMark, larger in-app (1.12.2)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(brand): transparent BrandMark, larger in-app (1.12.2)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.8",
+    "date": "2026-09-09",
+    "summary": "fix(brand): bust PWA icon cache after A2 (1.12.1)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(brand): bust PWA icon cache after A2 (1.12.1)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.7",
+    "date": "2026-09-09",
+    "summary": "feat(brand): unify A2 logo across PWA, TWA, RuStore (1.12.0)",
     "items": [
       {
         "kind": "feature",
-        "text": "Таббар: Стат · Рацион · + · План · Профиль"
-      },
+        "text": "feat(brand): unify A2 logo across PWA, TWA, RuStore (1.12.0)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.6",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Stats one clear insight (1.11.2)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Stats one clear insight (1.11.2)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.5",
+    "date": "2026-09-08",
+    "summary": "feat(ux): persist confirm edits in pending draft (1.11.1)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): persist confirm edits in pending draft (1.11.1)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.4",
+    "date": "2026-09-08",
+    "summary": "feat(ux): confirm trust after FoodAdd sheet (1.11.0)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): confirm trust after FoodAdd sheet (1.11.0)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.3",
+    "date": "2026-09-08",
+    "summary": "feat(ux): ration declutter after Weekly OS (1.10.3)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): ration declutter after Weekly OS (1.10.3)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.2",
+    "date": "2026-09-08",
+    "summary": "fix(lint): unused FoodAddMode import (1.10.2)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(lint): unused FoodAddMode import (1.10.2)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.1",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Weekly OS polish — план как второй дом (1.10.1)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Weekly OS polish — план как второй дом (1.10.1)"
+      }
+    ]
+  },
+  {
+    "version": "2.0.0",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Weekly OS — План во вкладках (1.10.0)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Weekly OS — План во вкладках (1.10.0)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.19",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Wave C4 — long-press «+» и быстрые режимы (1.9.2)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave C4 — long-press «+» и быстрые режимы (1.9.2)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.18",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Wave C3 — рацион add-first declutter (1.9.1)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave C3 — рацион add-first declutter (1.9.1)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.17",
+    "date": "2026-09-08",
+    "summary": "feat(ux): Wave C0–C1 — «+» в центре и add sheet (1.9.0)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave C0–C1 — «+» в центре и add sheet (1.9.0)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.16",
+    "date": "2026-09-07",
+    "summary": "fix(ui): profile safe-area + field overflow; drop «Недавнее» (1.8.1)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): profile safe-area + field overflow; drop «Недавнее» (1.8.1)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.15",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 14 — Первый час доверия (1.8.0)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 14 — Первый час доверия (1.8.0)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.14",
+    "date": "2026-09-07",
+    "summary": "fix(lint): unused WATER_DAILY_TARGET_ML import in push-reminders",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(lint): unused WATER_DAILY_TARGET_ML import in push-reminders"
+      }
+    ]
+  },
+  {
+    "version": "1.9.13",
+    "date": "2026-09-07",
+    "summary": "fix(deploy): skip sentry-cli download that hangs npm install (1.7.22)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): skip sentry-cli download that hangs npm install (1.7.22)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.12",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 13 — day share, water push target, habits tidy (1.7.21)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 13 — day share, water push target, habits tidy (1.7.21)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.11",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 12 — allergens, week fiber/sugar, weight chip (1.7.20)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 12 — allergens, week fiber/sugar, weight chip (1.7.20)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.10",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 11 — trust & tidy (1.7.19)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 11 — trust & tidy (1.7.19)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.9",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 10 — day clarity, shopping, quieter push (1.7.18)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 10 — day clarity, shopping, quieter push (1.7.18)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.8",
+    "date": "2026-09-07",
+    "summary": "fix(ux): compact share menu for day/week (1.7.17)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ux): compact share menu for day/week (1.7.17)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.7",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 9 — meta, stickers, cheer, share week (1.7.16)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 9 — meta, stickers, cheer, share week (1.7.16)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.6",
+    "date": "2026-09-07",
+    "summary": "feat(images): web packaging search when OFF has no photo (1.7.15)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(images): web packaging search when OFF has no photo (1.7.15)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.5",
+    "date": "2026-09-07",
+    "summary": "chore(deps): allow @sentry/cli install scripts (1.7.14)",
+    "items": [
       {
         "kind": "improvement",
-        "text": "Вес убран из табов — доступен из Плана, героя дня и профиля"
-      },
+        "text": "chore(deps): allow @sentry/cli install scripts (1.7.14)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.4",
+    "date": "2026-09-07",
+    "summary": "fix(images): no Wikipedia portraits for barcode/text lookups (1.7.13)",
+    "items": [
       {
-        "kind": "improvement",
-        "text": "На экране План — ссылка «Вес и цель»"
+        "kind": "fix",
+        "text": "fix(images): no Wikipedia portraits for barcode/text lookups (1.7.13)"
+      }
+    ]
+  },
+  {
+    "version": "1.9.3",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 8 — TZ, share day, referral, allergens, Sentry (1.7.12)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Wave 8 — TZ, share day, referral, allergens, Sentry (1.7.12)"
       }
     ]
   },
   {
     "version": "1.9.2",
-    "date": "2026-09-08",
-    "summary": "feat(ux): Wave C4 — long-press «+» и быстрые режимы",
+    "date": "2026-09-07",
+    "summary": "feat(ux): Wave 7 — diary CTA, habits sheet, recognition trust, /install",
     "items": [
       {
         "kind": "feature",
-        "text": "Удержание «+» — быстрое меню Фото / Текст / Штрихкод"
-      },
-      {
-        "kind": "feature",
-        "text": "На десктопе «Добавить» со стрелкой режимов"
-      },
-      {
-        "kind": "improvement",
-        "text": "Горячая клавиша A (и Ф) открывает выбор режима на десктопе"
+        "text": "feat(ux): Wave 7 — diary CTA, habits sheet, recognition trust, /install"
       }
     ]
   },
   {
     "version": "1.9.1",
-    "date": "2026-09-08",
-    "summary": "feat(ux): Wave C3 — рацион add-first declutter",
+    "date": "2026-09-06",
+    "summary": "fix(lint): exhaustive-deps в AdminRecognitionStats и unused refresh",
     "items": [
       {
-        "kind": "improvement",
-        "text": "NextStepBar только про вес — без второго CTA «Фото» рядом с «+»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Поделиться днём перенесено под дневник"
-      },
-      {
-        "kind": "improvement",
-        "text": "Пустой дневник: одна кнопка «Добавить» → выбор режима"
+        "kind": "fix",
+        "text": "fix(lint): exhaustive-deps в AdminRecognitionStats и unused refresh"
       }
     ]
   },
   {
     "version": "1.9.0",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave C0–C1 — «+» в центре, add sheet",
+    "date": "2026-09-06",
+    "summary": "fix(diary): фильтр «Текстом» снова показывает записи с картинкой продукта",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(diary): фильтр «Текстом» снова показывает записи с картинкой продукта"
+      }
+    ]
+  },
+  {
+    "version": "1.8.19",
+    "date": "2026-09-06",
+    "summary": "fix(ui): процент калорий в кольце DayHero больше не обрезается",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): процент калорий в кольце DayHero больше не обрезается"
+      }
+    ]
+  },
+  {
+    "version": "1.8.18",
+    "date": "2026-09-06",
+    "summary": "feat(ux): Wave 6 — reactivation, shopping sync, offline weight (1.7.8)",
     "items": [
       {
         "kind": "feature",
-        "text": "Центральная кнопка «+» в таббаре открывает выбор: фото / текст / штрихкод"
-      },
-      {
-        "kind": "feature",
-        "text": "Добавление еды в bottom sheet — панель убрана со страницы рациона"
-      },
-      {
-        "kind": "feature",
-        "text": "На десктопе кнопка «Добавить» в шапке — тот же поток"
-      },
-      {
-        "kind": "improvement",
-        "text": "Единый openFoodAdd API; явные CTA «Фото» сразу в камеру"
-      },
+        "text": "feat(ux): Wave 6 — reactivation, shopping sync, offline weight (1.7.8)"
+      }
+    ]
+  },
+  {
+    "version": "1.8.17",
+    "date": "2026-09-06",
+    "summary": "Wave 5: offline favorites/water, quiet default, Cyrillic PDF",
+    "items": [
       {
         "kind": "improvement",
-        "text": "FAB убран — без дубля с центральным «+»"
+        "text": "Wave 5: offline favorites/water, quiet default, Cyrillic PDF"
+      }
+    ]
+  },
+  {
+    "version": "1.8.16",
+    "date": "2026-09-06",
+    "summary": "Wave 4: offline continuity, stats→ration, diary source filters",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Wave 4: offline continuity, stats→ration, diary source filters"
+      }
+    ]
+  },
+  {
+    "version": "1.8.15",
+    "date": "2026-09-06",
+    "summary": "Wave 3: declutter ration, offline quick-add, RU SKU cache",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Wave 3: declutter ration, offline quick-add, RU SKU cache"
+      }
+    ]
+  },
+  {
+    "version": "1.8.14",
+    "date": "2026-09-06",
+    "summary": "Wave 2: quieter celebrations, morning camera, offline shells",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Wave 2: quieter celebrations, morning camera, offline shells"
+      }
+    ]
+  },
+  {
+    "version": "1.8.13",
+    "date": "2026-09-06",
+    "summary": "docs(rustore): тексты витрины, гайд публикации, иконка и скриншоты",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "docs(rustore): тексты витрины, гайд публикации, иконка и скриншоты"
+      }
+    ]
+  },
+  {
+    "version": "1.8.12",
+    "date": "2026-09-05",
+    "summary": "Fix opaque Telegram OIDC [FETCH] error after proxy setup",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix opaque Telegram OIDC [FETCH] error after proxy setup"
+      }
+    ]
+  },
+  {
+    "version": "1.8.11",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram OIDC CURL28 via HTTPS proxy on blocked VPS",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram OIDC CURL28 via HTTPS proxy on blocked VPS"
+      }
+    ]
+  },
+  {
+    "version": "1.8.10",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram OIDC [fetchfailed] on VPS without IPv6",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram OIDC [fetchfailed] on VPS without IPv6"
+      }
+    ]
+  },
+  {
+    "version": "1.8.9",
+    "date": "2026-09-05",
+    "summary": "Fix ESLint false positive blocking Telegram OIDC deploy",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix ESLint false positive blocking Telegram OIDC deploy"
+      }
+    ]
+  },
+  {
+    "version": "1.8.8",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram OIDC login failures on iOS",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram OIDC login failures on iOS"
+      }
+    ]
+  },
+  {
+    "version": "1.8.7",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram OIDC callback login failure",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram OIDC callback login failure"
+      }
+    ]
+  },
+  {
+    "version": "1.8.6",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram OIDC redirect to localhost",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram OIDC redirect to localhost"
+      }
+    ]
+  },
+  {
+    "version": "1.8.5",
+    "date": "2026-09-05",
+    "summary": "Telegram login: link by phone + admin delete for orphan account",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Telegram login: link by phone + admin delete for orphan account"
+      }
+    ]
+  },
+  {
+    "version": "1.8.4",
+    "date": "2026-09-05",
+    "summary": "Wave 1 (п.1–28): доверие к распознаванию и яснее дневник",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Wave 1 (п.1–28): доверие к распознаванию и яснее дневник"
+      }
+    ]
+  },
+  {
+    "version": "1.8.3",
+    "date": "2026-09-05",
+    "summary": "Fix Telegram login: parse tgAuthResult from OAuth redirect",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Fix Telegram login: parse tgAuthResult from OAuth redirect"
+      }
+    ]
+  },
+  {
+    "version": "1.8.2",
+    "date": "2026-09-05",
+    "summary": "Make landing menu a full-screen opaque overlay",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Make landing menu a full-screen opaque overlay"
       }
     ]
   },
   {
     "version": "1.8.1",
-    "date": "2026-09-07",
-    "summary": "fix(ux): profile safe-area, form overflow, remove Недавнее",
+    "date": "2026-09-05",
+    "summary": "Fix landing menu layout on phone landscape",
     "items": [
       {
         "kind": "fix",
-        "text": "Safe-area сверху на рамке приложения — кнопки больше не залезают под статус-бар при скролле"
-      },
-      {
-        "kind": "fix",
-        "text": "Поля профиля (рост, год, селекты) не вылезают за край карточки"
-      },
-      {
-        "kind": "improvement",
-        "text": "Убран блок «Недавнее» из профиля"
+        "text": "Fix landing menu layout on phone landscape"
       }
     ]
   },
   {
     "version": "1.8.0",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 14 — Первый час доверия",
-    "items": [
-      {
-        "kind": "feature",
-        "text": "Онбординг из 4 шагов: цель, аллергены, фото CTA, PWA"
-      },
-      {
-        "kind": "feature",
-        "text": "После онбординга сразу открывается камера для первого фото"
-      },
-      {
-        "kind": "feature",
-        "text": "На подтверждении — чекбокс аллергенов и акцент на порции при низкой уверенности"
-      },
-      {
-        "kind": "improvement",
-        "text": "В дневнике исправления помечены «запомнили»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Первая неделя тише: реферал скрыт, пока меньше 3 дней с записями"
-      },
-      {
-        "kind": "improvement",
-        "text": "Офлайн-баннер ведёт к подтверждению после сети"
-      },
-      {
-        "kind": "feature",
-        "text": "Metrika: onboarding_complete, onboarding_photo_cta, first_confirm_save"
-      },
-      {
-        "kind": "improvement",
-        "text": "Тихий «Поделиться днём» после первой записи"
-      },
-      {
-        "kind": "improvement",
-        "text": "Голосовой ввод заметнее на текстовом добавлении"
-      },
-      {
-        "kind": "feature",
-        "text": "Мягкое aha после 7 дней — ссылка в статистику"
-      }
-    ]
-  },
-  {
-    "version": "1.7.22",
-    "date": "2026-09-07",
-    "summary": "fix(deploy): skip sentry-cli download that hangs npm install on VPS",
+    "date": "2026-09-02",
+    "summary": "Fix TS build: alternatives have no confidence field",
     "items": [
       {
         "kind": "fix",
-        "text": "Деплой: SENTRYCLI_SKIP_DOWNLOAD по умолчанию — npm install больше не зависает на CDN @sentry/cli"
-      },
-      {
-        "kind": "improvement",
-        "text": "Деплой: npm ci по lockfile с fallback на npm install"
-      }
-    ]
-  },
-  {
-    "version": "1.7.21",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 13 — day share parity, water push target, habits tidy",
-    "items": [
-      {
-        "kind": "feature",
-        "text": "Карточка «Поделиться днём» с клетчаткой, сахаром и водой"
-      },
-      {
-        "kind": "fix",
-        "text": "Push по воде считает цель из профиля, а не всегда 2000 мл"
-      },
-      {
-        "kind": "improvement",
-        "text": "Привычки без устаревшего «список покупок» в подзаголовке"
-      },
-      {
-        "kind": "improvement",
-        "text": "Тихий nudge к целям клетчатки/сахара в сводке дня"
-      },
-      {
-        "kind": "feature",
-        "text": "В статистике средний пульс воды рядом с клетчаткой/сахаром"
-      },
-      {
-        "kind": "improvement",
-        "text": "ChallengeStrip снова под сводкой дня, не только в sheet"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкие аллергены на быстром добавлении, избранном и AI"
-      },
-      {
-        "kind": "improvement",
-        "text": "Compact дневник показывает клетчатку и сахар в итоге"
-      },
-      {
-        "kind": "improvement",
-        "text": "Share недели на экране «План»"
-      },
-      {
-        "kind": "improvement",
-        "text": "PDF-экспорт: подписи клетчатка/сахар на русском"
-      }
-    ]
-  },
-  {
-    "version": "1.7.20",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 12 — allergens in diary, week fiber/sugar, weight chip, quick-add more",
-    "items": [
-      {
-        "kind": "feature",
-        "text": "Мягкие подсказки аллергенов на карточках приёмов в дневнике"
-      },
-      {
-        "kind": "feature",
-        "text": "Клетчатка и сахар в недельном отчёте и на карточке «Поделиться»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Блок roadmap переименован в «Недавнее»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Тихая ссылка «Вес сегодня» в сводке дня, если вес не записан"
-      },
-      {
-        "kind": "improvement",
-        "text": "Подсказки прогресса ведут в профиль → награды"
-      },
-      {
-        "kind": "improvement",
-        "text": "Компактная полоска недели со ссылкой на План"
-      },
-      {
-        "kind": "improvement",
-        "text": "Быстрое добавление: рецепт и AI под «Ещё»"
-      },
-      {
-        "kind": "improvement",
-        "text": "В итогах вчера — строка клетчатки и сахара"
+        "text": "Fix TS build: alternatives have no confidence field"
       }
     ]
   },
   {
     "version": "1.7.19",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 11 — stats fiber/sugar, habits tidy, offline confirm, profile accordion",
+    "date": "2026-09-02",
+    "summary": "Fix oatmeal cup misread as Tom Yum soup",
     "items": [
       {
-        "kind": "feature",
-        "text": "В статистике средние клетчатка и сахар рядом с целями из профиля"
-      },
-      {
-        "kind": "improvement",
-        "text": "Sheet «Привычки» разгружен: один челлендж, компактные значок/мета, покупки на Плане"
-      },
-      {
-        "kind": "improvement",
-        "text": "После офлайн-распознавания сразу открывается подтверждение"
-      },
-      {
-        "kind": "improvement",
-        "text": "Профиль свёрнут в секции: цели, напоминания, награды"
-      },
-      {
-        "kind": "improvement",
-        "text": "Push: основные напоминания сверху, остальные под «Ещё»"
-      },
-      {
-        "kind": "improvement",
-        "text": "Экран «План» — хаб недели с отчётом и списком покупок"
-      },
-      {
-        "kind": "improvement",
-        "text": "«Что дальше» показывает понятные пункты из changelog"
-      },
-      {
-        "kind": "improvement",
-        "text": "Claim реферала: меньше нагрузка на legacy-скан"
+        "kind": "fix",
+        "text": "Fix oatmeal cup misread as Tom Yum soup"
       }
     ]
   },
   {
     "version": "1.7.18",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 10 — fiber/sugar pulse, shopping on plan, quieter push, equip sync",
+    "date": "2026-09-01",
+    "summary": "fix(ux): celebration full bleed on Android TWA",
     "items": [
       {
-        "kind": "feature",
-        "text": "В герое дня мягкий пульс клетчатки и сахара, если цели заданы в профиле"
-      },
-      {
-        "kind": "feature",
-        "text": "Список покупок на экране «План» и счётчик в привычках"
-      },
-      {
-        "kind": "feature",
-        "text": "Рамка и наклейка синхронизируются с аккаунтом между устройствами"
-      },
-      {
-        "kind": "improvement",
-        "text": "Тише дефолтные push-напоминания: обед, ужин, серия, неделя"
-      },
-      {
-        "kind": "improvement",
-        "text": "На подтверждении блюда клетчатка и сахар видны одной строкой"
-      },
-      {
-        "kind": "improvement",
-        "text": "Мягкий раз в неделю намёк пригласить друга"
+        "kind": "fix",
+        "text": "fix(ux): celebration full bleed on Android TWA"
       }
     ]
   },
   {
     "version": "1.7.17",
-    "date": "2026-09-07",
-    "summary": "fix(ux): compact share menu for day and week",
+    "date": "2026-09-01",
+    "summary": "fix(rustore): Android SDK root + Windows build guide",
     "items": [
       {
-        "kind": "improvement",
-        "text": "«Поделиться днём» и «неделей» свернуты в одно тихое меню под героем дня"
+        "kind": "fix",
+        "text": "fix(rustore): Android SDK root + Windows build guide"
       }
     ]
   },
   {
     "version": "1.7.16",
-    "date": "2026-09-07",
-    "summary": "feat(ux): Wave 9 — meta progress, stickers, cheer, share week, RuStore, allergens",
+    "date": "2026-08-31",
+    "summary": "feat(rustore): TWA scaffold for RuStore-only Android release",
     "items": [
       {
         "kind": "feature",
-        "text": "Прогресс до мета-сундука: «ещё N» в коллекции и на экране привычек"
-      },
-      {
-        "kind": "feature",
-        "text": "Наклейки из коллекции можно надеть в дневник рядом с маскотом"
-      },
-      {
-        "kind": "feature",
-        "text": "Фразы-cheer из коллекции подхватываются в совет дня маскота"
-      },
-      {
-        "kind": "feature",
-        "text": "Поделиться неделей — картинка со средними ккал и серией"
-      },
-      {
-        "kind": "improvement",
-        "text": "Список покупок мягко подсвечивает возможные аллергены из профиля"
-      },
-      {
-        "kind": "improvement",
-        "text": "Офлайн-очередь: понятнее, что именно ждёт отправки"
-      },
-      {
-        "kind": "improvement",
-        "text": "Страница /install: ссылка RuStore и подсказка по TWA fingerprint"
-      },
-      {
-        "kind": "improvement",
-        "text": "Live-eval: README для fixtures и расширенные seed-кейсы"
-      },
-      {
-        "kind": "improvement",
-        "text": "В выборе фото метка источника «Сеть» рядом с OFF/Wiki"
+        "text": "feat(rustore): TWA scaffold for RuStore-only Android release"
       }
     ]
   },
   {
     "version": "1.7.15",
-    "date": "2026-09-07",
-    "summary": "feat(images): web packaging search when Open Food Facts has no photo",
+    "date": "2026-08-30",
+    "summary": "feat(rewards): сундуки волна 4 — дневные мини-задания",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Если в Open Food Facts нет фото — ищем упаковку в интернете по названию продукта"
-      },
-      {
-        "kind": "improvement",
-        "text": "Запросы с «упаковка/продукт/купить»; портреты и костюмы отсекаются"
-      },
-      {
-        "kind": "improvement",
-        "text": "Картинка скачивается в приложение (не горячая ссылка на чужой CDN)"
+        "kind": "feature",
+        "text": "feat(rewards): сундуки волна 4 — дневные мини-задания"
       }
     ]
   },
   {
     "version": "1.7.14",
-    "date": "2026-09-07",
-    "summary": "chore(deps): allow @sentry/cli install scripts",
+    "date": "2026-08-30",
+    "summary": "feat(rewards): сундуки волна 1 — loot за челлендж",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Разрешён postinstall @sentry/cli — без npm warn allow-scripts при деплое"
+        "kind": "feature",
+        "text": "feat(rewards): сундуки волна 1 — loot за челлендж"
       }
     ]
   },
   {
     "version": "1.7.13",
-    "date": "2026-09-07",
-    "summary": "fix(images): stop attaching unrelated Wikipedia portraits for barcode/text lookups",
+    "date": "2026-08-29",
+    "summary": "Stacks: A celebration, F4 unlock, B strip, F2 badge UX, C+D catalog/history, E ration-day bootstrap.",
     "items": [
       {
-        "kind": "fix",
-        "text": "По штрихкоду и тексту больше не подставляются случайные фото из Wikipedia (маски, портреты)"
-      },
-      {
-        "kind": "fix",
-        "text": "Автофото только из Open Food Facts; без упаковки в базе — лучше без картинки, чем чужая"
-      },
-      {
-        "kind": "fix",
-        "text": "Уже сохранённые неверные картинки у текстовых/штрихкод-записей очищаются или заменяются на OFF"
+        "kind": "improvement",
+        "text": "Stacks: A celebration, F4 unlock, B strip, F2 badge UX, C+D catalog/history, E ration-day bootstrap."
       }
     ]
   },
   {
     "version": "1.7.12",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 8 — timezone sync, share day, referral, allergens, Sentry",
+    "date": "2026-08-29",
+    "summary": "fix(ux): celebration full-bleed — drop dialog host (iOS Profile half-screen)",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Баннер, если пояс устройства не совпадает с профилем — синхронизация в один тап"
-      },
-      {
-        "kind": "improvement",
-        "text": "Время приёма: долгое нажатие даёт ±15 минут"
-      },
-      {
-        "kind": "improvement",
-        "text": "«Поделиться днём» — картинка с ккал, БЖУ и серией"
-      },
-      {
-        "kind": "improvement",
-        "text": "Приглашение ?ref= учитывается; пригласившему — мягкий сундук"
-      },
-      {
-        "kind": "improvement",
-        "text": "Аллергены в профиле и мягкое предупреждение при сохранении блюда"
-      },
-      {
-        "kind": "improvement",
-        "text": "После фото в режиме «Авто» чип подстраивается под photoKind модели"
-      },
-      {
-        "kind": "improvement",
-        "text": "Sentry (клиент + API), release = версия приложения"
-      },
-      {
-        "kind": "improvement",
-        "text": "В профиле блок «Что дальше» из changelog"
-      },
-      {
-        "kind": "improvement",
-        "text": "Live-eval: 35 слотов; в админке краткая сводка промахов распознавания"
+        "kind": "fix",
+        "text": "fix(ux): celebration full-bleed — drop dialog host (iOS Profile half-screen)"
       }
     ]
   },
   {
     "version": "1.7.11",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 7 — diary CTA, habits sheet, date swipe, recognition trust, /install",
+    "date": "2026-08-29",
+    "summary": "feat(badges): новые значки — серии, вода, вес, челленджи",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Главный CTA в рационе — «Сфотографировать»; текст и штрихкод вторичны"
-      },
-      {
-        "kind": "improvement",
-        "text": "Привычки открываются нижним листом, а не длинным аккордеоном"
-      },
-      {
-        "kind": "improvement",
-        "text": "Свайп влево/вправо по датам в шапке рациона"
-      },
-      {
-        "kind": "improvement",
-        "text": "Крупнее блок «Снова» — последние блюда заметнее"
-      },
-      {
-        "kind": "improvement",
-        "text": "Подсказка «тарелка / этикетка / столовая» перед фото"
-      },
-      {
-        "kind": "improvement",
-        "text": "Кнопка «Досчитать» если уточнение КБЖУ оборвалось по таймауту"
-      },
-      {
-        "kind": "improvement",
-        "text": "Дисклеймер оценки — только при низкой уверенности"
-      },
-      {
-        "kind": "improvement",
-        "text": "Спокойное сравнение недель в статистике без оценочных формулировок"
-      },
-      {
-        "kind": "improvement",
-        "text": "Подбор фото к частым блюдам из статистики"
-      },
-      {
-        "kind": "improvement",
-        "text": "Страница /install для установки PWA (и заготовка под RuStore)"
+        "kind": "feature",
+        "text": "feat(badges): новые значки — серии, вода, вес, челленджи"
       }
     ]
   },
   {
     "version": "1.7.10",
-    "date": "2026-09-06",
-    "summary": "fix(diary): show text-logged meals under Текстом even with product images",
+    "date": "2026-08-29",
+    "summary": "fix(ux): celebration на весь экран (iOS Profile half-screen)",
     "items": [
       {
         "kind": "fix",
-        "text": "Фильтр «Текстом» снова показывает записи, добавленные по названию (даже если есть картинка продукта)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Пустой результат фильтра в рационе — понятное сообщение и сброс"
+        "text": "fix(ux): celebration на весь экран (iOS Profile half-screen)"
       }
     ]
   },
   {
     "version": "1.7.9",
-    "date": "2026-09-06",
-    "summary": "fix(ui): DayHero calorie % no longer clipped in the ring",
+    "date": "2026-08-29",
+    "summary": "fix(ux): маскот в тосте сохранения + живее splash",
     "items": [
       {
         "kind": "fix",
-        "text": "Процент калорий в кольце сводки дня больше не обрезается сверху"
+        "text": "fix(ux): маскот в тосте сохранения + живее splash"
       }
     ]
   },
   {
     "version": "1.7.8",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 6 — soft reactivation, shopping sync, offline weight, plan shell",
+    "date": "2026-08-29",
+    "summary": "feat(landing): informative refresh — 20-point plan for waves C–E",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Мягкий push о возвращении, если давно не было записей (с учётом тихих часов)"
-      },
-      {
-        "kind": "improvement",
-        "text": "В админке распознавания — переключатель «7 дней / за всё время» для частых исправлений"
-      },
-      {
-        "kind": "improvement",
-        "text": "Список покупок синхронизируется между устройствами"
-      },
-      {
-        "kind": "improvement",
-        "text": "Расширен офлайн-кэш популярных RU-штрихкодов (~45 SKU)"
-      },
-      {
-        "kind": "improvement",
-        "text": "Запись веса уходит в офлайн-очередь и доезжает при сети"
-      },
-      {
-        "kind": "improvement",
-        "text": "Service Worker заранее кэширует оболочку /plan"
+        "kind": "feature",
+        "text": "feat(landing): informative refresh — 20-point plan for waves C–E"
       }
     ]
   },
   {
     "version": "1.7.7",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 5 — offline favorites/water, quiet default, Cyrillic PDF",
+    "date": "2026-08-29",
+    "summary": "feat(push): Wave E — PWA state matrix and iOS reinstall flow",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Избранные продукты работают офлайн: кэш списка и очередь сохранений"
-      },
-      {
-        "kind": "improvement",
-        "text": "В сводке дня — мини-прогресс по воде рядом с белком"
-      },
-      {
-        "kind": "improvement",
-        "text": "Быстрые +мл воды уходят в офлайн-очередь и доезжают при сети"
-      },
-      {
-        "kind": "improvement",
-        "text": "После онбординга по умолчанию включается тихий режим празднований"
-      },
-      {
-        "kind": "fix",
-        "text": "PDF-экспорт для врача с кириллицей (DejaVu), без транслита"
+        "kind": "feature",
+        "text": "feat(push): Wave E — PWA state matrix and iOS reinstall flow"
       }
     ]
   },
   {
     "version": "1.7.6",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 4 — offline continuity, stats→ration jumps, diary source filters",
+    "date": "2026-08-29",
+    "summary": "feat(recognition): Wave D — confidence badge and barcode error UX",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Бейдж офлайн-очереди на вкладке «Рацион» в нижнем меню"
-      },
-      {
-        "kind": "improvement",
-        "text": "День рациона кэшируется офлайн (сегодня и недавние дни) с мягким баннером"
-      },
-      {
-        "kind": "improvement",
-        "text": "SW кэширует оболочку /weight"
-      },
-      {
-        "kind": "improvement",
-        "text": "Календарь калорий: тап по дню открывает рацион"
-      },
-      {
-        "kind": "improvement",
-        "text": "В дневнике фильтры: с фото, текстом, низкая уверенность"
+        "kind": "feature",
+        "text": "feat(recognition): Wave D — confidence badge and barcode error UX"
       }
     ]
   },
   {
     "version": "1.7.5",
-    "date": "2026-09-06",
-    "summary": "feat(ux): Wave 3 — declutter ration, offline quick-add, richer RU barcode cache",
+    "date": "2026-08-29",
+    "summary": "fix: clear remaining ESLint unused-var and hooks warnings",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Челлендж, квесты и следующий значок свёрнуты в «Привычки» — первый экран рациона чище"
-      },
-      {
-        "kind": "improvement",
-        "text": "Быстрое добавление работает офлайн: кэш предложений и очередь сохранений"
-      },
-      {
-        "kind": "improvement",
-        "text": "Расширен офлайн-кэш популярных российских штрихкодов (~28 SKU)"
-      },
-      {
         "kind": "fix",
-        "text": "Мульти-блюдо: баннер низкой уверенности по всем позициям; тост «Сохранено N блюд»"
-      },
-      {
-        "kind": "fix",
-        "text": "Версия в package.json синхронизирована с changelog"
+        "text": "fix: clear remaining ESLint unused-var and hooks warnings"
       }
     ]
   },
   {
     "version": "1.7.4",
-    "date": "2026-09-06",
-    "summary": "feat(ux): quieter celebrations, morning camera deeplink, offline shells",
+    "date": "2026-08-28",
+    "summary": "fix: eslint unused vars in meals duplicate/copy/quick-add",
     "items": [
       {
-        "kind": "improvement",
-        "text": "Повседневные победы снова мягкой карточкой; fullscreen — только для сундуков, значков и крупных вех"
-      },
-      {
-        "kind": "improvement",
-        "text": "Тихие часы глушат не только push, но и празднования"
-      },
-      {
-        "kind": "improvement",
-        "text": "Утренний пуш с meal=… сразу открывает камеру"
-      },
-      {
-        "kind": "improvement",
-        "text": "Итоги вчера: три числа и один совет"
-      },
-      {
-        "kind": "improvement",
-        "text": "SW кэширует оболочки /stats и /profile"
-      },
-      {
         "kind": "fix",
-        "text": "Защита от двойного сохранения блюда и понятнее ошибки таймаута распознавания"
+        "text": "fix: eslint unused vars in meals duplicate/copy/quick-add"
       }
     ]
   },

@@ -39,6 +39,7 @@ test("maps a VK ID profile to a NextAuth user", () => {
         first_name: "Иван",
         last_name: "Иванов",
         email: "ivan@vk.ru",
+        phone: "89001234567",
         avatar: "https://example.com/a.png",
       },
     }),
@@ -47,6 +48,7 @@ test("maps a VK ID profile to a NextAuth user", () => {
       name: "Иван Иванов",
       email: "ivan@vk.ru",
       image: "https://example.com/a.png",
+      phone: "+79001234567",
     },
   );
 });

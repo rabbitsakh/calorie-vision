@@ -1,5 +1,6 @@
 import type { Profile } from "next-auth";
 import type { OAuthConfig } from "next-auth/providers/oauth";
+import { normalizeAuthPhone } from "@/lib/phone";
 
 const VK_AUTHORIZE_URL = "https://id.vk.ru/authorize";
 const VK_TOKEN_URL = "https://id.vk.ru/oauth2/auth";
@@ -118,18 +119,22 @@ export function vkProfileToUser(profile: VkIdProfile | VkIdUser): {
   name: string;
   email: string | null;
   image: string | null;
+  phone: string | null;
 } {
   const nested = "user" in profile && profile.user ? profile.user : undefined;
   const raw = profile as VkIdUser;
   const user = nested ?? raw;
   const userId = user.user_id ?? raw.user_id;
   const name = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  const emailRaw = user.email || raw.email || null;
+  const phone = normalizeAuthPhone(user.phone || raw.phone || null);
 
   return {
     id: String(userId ?? ""),
     name: name || "Пользователь VK",
-    email: user.email || raw.email || null,
+    email: emailRaw ? emailRaw.trim().toLowerCase() : null,
     image: user.avatar || raw.avatar || null,
+    phone,
   };
 }
 
@@ -289,7 +294,7 @@ export function createVkIdProvider(options: {
       }
       return user;
     },
-    allowDangerousEmailAccountLinking: false,
+    allowDangerousEmailAccountLinking: true,
   };
 }
 

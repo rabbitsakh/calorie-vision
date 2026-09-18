@@ -10,15 +10,23 @@ test.describe("guest critical path", () => {
     await expect(page.getByRole("link", { name: /Начать бесплатно|Войти/i }).first()).toBeVisible();
   });
 
-  test("login page heading and email toggle", async ({ page }) => {
+  test("login page heading and auth options", async ({ page }) => {
     await page.goto("/login");
     await expect(page).toHaveURL(/login/);
     await expect(page.getByRole("heading", { name: /Вход/i })).toBeVisible();
     await expect(page.getByText("Calorie Vision").first()).toBeVisible();
-    // Email toggle is present when social providers are configured; otherwise email form shows.
+
+    // CI often has no EMAIL_SERVER / OAuth secrets — accept any configured method
+    // or the amber empty-state notice.
     const emailToggle = page.getByRole("button", { name: /Войти по email|Скрыть вход по email/i });
     const emailHeading = page.getByText("Вход по email");
-    await expect(emailToggle.or(emailHeading).first()).toBeVisible({ timeout: 15_000 });
+    const oauthButton = page.getByRole("button", {
+      name: /Продолжить с (Яндекс|Google|VK)|Войти через Telegram/i,
+    });
+    const emptyNotice = page.getByText(/Способы входа ещё не настроены/i);
+    await expect(
+      emailToggle.or(emailHeading).or(oauthButton).or(emptyNotice).first(),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("unknown route shows not-found", async ({ page }) => {

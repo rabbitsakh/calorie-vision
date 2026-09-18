@@ -33,7 +33,7 @@ export function LandingFreeHighlight() {
             <li>Этикетки, штрихкоды, текст, клетчатка и сахар</li>
             <li>Офлайн-очередь, быстрый лог и план недели</li>
             <li>Вода, серия, статистика, вес и push с экрана «Домой»</li>
-            <li>Вход через Google, VK, Telegram или email</li>
+            <li>Вход через Яндекс, Google, VK, Telegram или email</li>
           </ul>
           <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen landing-free-cta">
             Создать аккаунт бесплатно

@@ -1,3 +1,5 @@
+import { normalizeAuthPhone } from "@/lib/phone";
+
 const ACCOUNT_FIELDS = [
   "userId",
   "type",
@@ -66,13 +68,22 @@ export function sanitizeAdapterUser(data: Record<string, unknown>): {
   email: string | null;
   image?: string;
   emailVerified: Date | null;
+  phone?: string;
+  phoneVerified?: Date;
 } {
   const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+  const phone = normalizeAuthPhone(typeof data.phone === "string" ? data.phone : null);
 
   return {
     name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : undefined,
     email: email || null,
     image: typeof data.image === "string" && data.image.trim() ? data.image.trim() : undefined,
     emailVerified: data.emailVerified instanceof Date ? data.emailVerified : null,
+    ...(phone
+      ? {
+          phone,
+          phoneVerified: data.phoneVerified instanceof Date ? data.phoneVerified : new Date(),
+        }
+      : {}),
   };
 }

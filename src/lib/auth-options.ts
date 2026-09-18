@@ -14,6 +14,12 @@ import {
 } from "@/lib/auth-account";
 import { resolveAuthRedirect } from "@/lib/auth-url";
 import { isEmailLoginConfigured, resolveEmailServer, sendMagicLinkEmail } from "@/lib/email-auth";
+import {
+  extractOAuthPhone,
+  findUserForOAuthLink,
+  normalizeOAuthEmail,
+  syncOAuthIdentityToUser,
+} from "@/lib/oauth-account-link";
 import { prisma } from "@/lib/prisma";
 import {
   findOrCreateTelegramUser,
@@ -22,6 +28,7 @@ import {
   type TelegramAuthPayload,
 } from "@/lib/telegram-auth";
 import { createVkIdProvider } from "@/lib/vk-auth";
+import { createYandexProvider, isYandexLoginConfigured } from "@/lib/yandex-auth";
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -134,7 +141,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: false,
+      allowDangerousEmailAccountLinking: true,
     }),
   );
 }
@@ -144,6 +151,15 @@ if (process.env.VK_CLIENT_ID) {
     createVkIdProvider({
       clientId: process.env.VK_CLIENT_ID,
       clientSecret: process.env.VK_CLIENT_SECRET,
+    }),
+  );
+}
+
+if (isYandexLoginConfigured()) {
+  providers.push(
+    createYandexProvider({
+      clientId: process.env.YANDEX_CLIENT_ID!.trim(),
+      clientSecret: process.env.YANDEX_CLIENT_SECRET!.trim(),
     }),
   );
 }
@@ -162,8 +178,18 @@ function createAuthAdapter(): Adapter {
       if (id) {
         const existing = await prisma.user.findUnique({ where: { id } });
         if (existing) {
-          return existing;
+          await syncOAuthIdentityToUser(existing.id, data);
+          return (await prisma.user.findUnique({ where: { id: existing.id } })) ?? existing;
         }
+      }
+
+      const linked = await findUserForOAuthLink({
+        email: data.email,
+        phone: typeof data.phone === "string" ? data.phone : null,
+      });
+      if (linked) {
+        await syncOAuthIdentityToUser(linked.id, data);
+        return (await prisma.user.findUnique({ where: { id: linked.id } })) ?? linked;
       }
 
       try {
@@ -175,6 +201,17 @@ function createAuthAdapter(): Adapter {
           const existing = await prisma.user.findUnique({ where: { id } });
           if (existing) {
             return existing;
+          }
+        }
+
+        if (isPrismaUniqueConflict(error)) {
+          const fallback = await findUserForOAuthLink({
+            email: data.email,
+            phone: typeof data.phone === "string" ? data.phone : null,
+          });
+          if (fallback) {
+            await syncOAuthIdentityToUser(fallback.id, data);
+            return (await prisma.user.findUnique({ where: { id: fallback.id } })) ?? fallback;
           }
         }
         throw error;
@@ -229,6 +266,29 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
     verifyRequest: "/login",
+  },
+  events: {
+    async signIn({ user, profile }) {
+      if (!user?.id) {
+        return;
+      }
+
+      const email =
+        normalizeOAuthEmail(user.email) ??
+        normalizeOAuthEmail((profile as { email?: unknown } | null | undefined)?.email) ??
+        normalizeOAuthEmail((profile as { default_email?: unknown } | null | undefined)?.default_email);
+      const phone =
+        extractOAuthPhone(profile) ??
+        extractOAuthPhone(user) ??
+        null;
+
+      await syncOAuthIdentityToUser(user.id, {
+        email,
+        phone,
+        name: user.name,
+        image: typeof user.image === "string" ? user.image : null,
+      });
+    },
   },
   callbacks: {
     async redirect({ url }) {
