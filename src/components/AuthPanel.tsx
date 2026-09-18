@@ -2,29 +2,79 @@
 
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AvatarFrame } from "@/components/AvatarFrame";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
+type MenuCoords = { top: number; right: number };
+
 export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean } = {}) {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState<MenuCoords | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null);
+      return;
+    }
+
+    function updatePosition() {
+      const trigger = triggerRef.current;
+      if (!trigger) {
+        return;
+      }
+      const rect = trigger.getBoundingClientRect();
+      setCoords({
+        top: Math.round(rect.bottom + 8),
+        right: Math.round(window.innerWidth - rect.right),
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    function handleClick(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handlePointer(event: MouseEvent) {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    }
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
         setOpen(false);
       }
     }
 
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
   }, [open]);
 
   if (status === "loading") {
@@ -52,9 +102,71 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
     ? formatPhoneDisplay(session.user.phone)
     : session.user.email ?? null;
 
+  const menu =
+    open && mounted && coords
+      ? createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            style={{ top: coords.top, right: coords.right }}
+          >
+            <Link
+              href="/profile"
+              role="menuitem"
+              className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              onClick={() => setOpen(false)}
+            >
+              Профиль
+            </Link>
+            {session.user.isAdmin ? (
+              <>
+                <Link
+                  href="/admin/users"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Пользователи
+                </Link>
+                <Link
+                  href="/admin/stats"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Статистика
+                </Link>
+                <Link
+                  href="/admin/changelog"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Журнал изменений
+                </Link>
+              </>
+            ) : null}
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+              onClick={() => {
+                setOpen(false);
+                void signOut({ callbackUrl: withBasePath("/login") });
+              }}
+            >
+              Выйти
+            </button>
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div ref={menuRef} className="relative flex h-full items-center">
+    <div ref={rootRef} className="relative flex h-full items-center">
       <button
+        ref={triggerRef}
         type="button"
         className={
           compactTrigger
@@ -96,61 +208,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
           ) : null}
         </div>
       </button>
-
-      {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-        >
-          <Link
-            href="/profile"
-            role="menuitem"
-            className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            onClick={() => setOpen(false)}
-          >
-            Профиль
-          </Link>
-          {session.user.isAdmin ? (
-            <>
-              <Link
-                href="/admin/users"
-                role="menuitem"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                onClick={() => setOpen(false)}
-              >
-                Пользователи
-              </Link>
-              <Link
-                href="/admin/stats"
-                role="menuitem"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                onClick={() => setOpen(false)}
-              >
-                Статистика
-              </Link>
-              <Link
-                href="/admin/changelog"
-                role="menuitem"
-                className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                onClick={() => setOpen(false)}
-              >
-                Журнал изменений
-              </Link>
-            </>
-          ) : null}
-          <button
-            type="button"
-            role="menuitem"
-            className="block w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
-            onClick={() => {
-              setOpen(false);
-              void signOut({ callbackUrl: withBasePath("/login") });
-            }}
-          >
-            Выйти
-          </button>
-        </div>
-      ) : null}
+      {menu}
     </div>
   );
 }
