@@ -4,7 +4,21 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { publicBrowserOrigin } from "@/lib/auth-url";
+import type { CapacitorOAuthProvider } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
+
+const PROVIDER_LABEL: Record<CapacitorOAuthProvider, string> = {
+  google: "Открываем Google…",
+  vk: "Открываем VK…",
+  yandex: "Открываем Яндекс…",
+};
+
+function resolveProvider(raw: string | null): CapacitorOAuthProvider {
+  if (raw === "vk" || raw === "yandex" || raw === "google") {
+    return raw;
+  }
+  return "google";
+}
 
 /**
  * Bootstrap OAuth entirely inside Custom Tabs (CSRF cookies stay in Chrome).
@@ -13,7 +27,7 @@ import { withBasePath } from "@/lib/paths";
  */
 function NativeOauthStartInner() {
   const searchParams = useSearchParams();
-  const provider = searchParams.get("provider") === "vk" ? "vk" : "google";
+  const provider = resolveProvider(searchParams.get("provider"));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,9 +77,7 @@ function NativeOauthStartInner() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
       <BrandMark size={64} />
-      <p className="mt-4 text-sm text-slate-600">
-        {error ?? (provider === "vk" ? "Открываем VK…" : "Открываем Google…")}
-      </p>
+      <p className="mt-4 text-sm text-slate-600">{error ?? PROVIDER_LABEL[provider]}</p>
     </main>
   );
 }

@@ -20,13 +20,15 @@ type LoginOptions = {
   telegramOidc?: boolean;
   google: boolean;
   vk: boolean;
+  yandex: boolean;
 };
 
 const AUTH_ERRORS: Record<string, string> = {
   OAuthSignin: "Не удалось начать вход через соцсеть.",
   OAuthCallback: "Не удалось войти через соцсеть. Попробуйте ещё раз или используйте другой способ входа.",
   OAuthCreateAccount: "Не удалось создать аккаунт.",
-  OAuthAccountNotLinked: "Этот email уже используется другим способом входа.",
+  OAuthAccountNotLinked:
+    "Не удалось связать аккаунт. Войдите тем способом, которым регистрировались, или напишите в поддержку.",
   Callback: "Не удалось сохранить вход через VK. Попробуйте ещё раз.",
   CredentialsSignin: "Не удалось войти. Проверьте данные и попробуйте ещё раз.",
   Configuration: "Вход через соцсеть не настроен на сервере.",
@@ -41,6 +43,7 @@ const EMPTY_OPTIONS: LoginOptions = {
   telegramBotId: null,
   google: false,
   vk: false,
+  yandex: false,
 };
 
 export default function LoginForm() {
@@ -58,7 +61,7 @@ export default function LoginForm() {
   const authError = searchParams.get("error");
   const ready = options ?? EMPTY_OPTIONS;
 
-  const hasSocial = ready.google || ready.vk || ready.telegram;
+  const hasSocial = ready.google || ready.vk || ready.yandex || ready.telegram;
 
   useEffect(() => {
     if (status === "authenticated") {
@@ -102,7 +105,7 @@ export default function LoginForm() {
       .then((data: LoginOptions) => {
         if (cancelled) return;
         setOptions(data);
-        if (!data.google && !data.vk && !data.telegram && data.email) {
+        if (!data.google && !data.vk && !data.yandex && !data.telegram && data.email) {
           setShowEmail(true);
         }
       })
@@ -143,7 +146,7 @@ export default function LoginForm() {
     setMessage("Ссылка для входа отправлена на ваш email");
   }
 
-  async function handleOauthLogin(provider: "google" | "vk") {
+  async function handleOauthLogin(provider: "google" | "vk" | "yandex") {
     setLoading(true);
     setError(null);
     try {
@@ -166,7 +169,7 @@ export default function LoginForm() {
         </div>
         <h1 className="font-display mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
         <p className="mt-2 text-slate-600 capacitor-web-only">
-          Войдите через Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
+          Войдите через Яндекс, Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
         <p className="mt-2 text-slate-600 capacitor-native-only">
           Дневник питания — войдите, чтобы продолжить.
@@ -184,6 +187,19 @@ export default function LoginForm() {
           <>
             {hasSocial ? (
               <div className="mt-6 flex flex-col gap-3">
+                {ready.yandex ? (
+                  <button
+                    type="button"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#FC3F1D] px-4 py-3 font-medium text-white transition hover:bg-[#e53718]"
+                    disabled={loading}
+                    onClick={() => handleOauthLogin("yandex")}
+                  >
+                    <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12.85 3H8.5v18h3.1v-6.2h1.25c3.55 0 5.8-1.95 5.8-5.05C18.65 5.05 16.35 3 12.85 3zm.05 9.15h-1.3V5.65h1.15c2.05 0 3.2.95 3.2 3.15 0 2.3-1.2 3.35-3.05 3.35z" />
+                    </svg>
+                    Продолжить с Яндекс
+                  </button>
+                ) : null}
                 {ready.google ? (
                   <button
                     type="button"
@@ -291,7 +307,7 @@ export default function LoginForm() {
 
             {!hasSocial && !ready.email ? (
               <p className="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                Способы входа ещё не настроены на сервере. Нужны Google, VK, Telegram или SMTP для email.
+                Способы входа ещё не настроены на сервере. Нужны Яндекс, Google, VK, Telegram или SMTP для email.
               </p>
             ) : null}
           </>

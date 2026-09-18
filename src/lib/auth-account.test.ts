@@ -51,7 +51,7 @@ test("keeps the OAuth profile id so the same VK user is not created twice", () =
   assert.equal(oauthUserCreateId({}), undefined);
 });
 
-test("turns a blank OAuth email into null so unique email does not collide", () => {
+test("keeps a verified OAuth phone so accounts can link by phone", () => {
   const user = sanitizeAdapterUser({
     id: "vk-id",
     name: " Иван ",
@@ -60,10 +60,18 @@ test("turns a blank OAuth email into null so unique email does not collide", () 
     phone: "+79991234567",
   });
 
-  assert.deepEqual(user, {
-    name: "Иван",
-    email: null,
-    image: "https://example.com/a.png",
-    emailVerified: null,
+  assert.equal(user.name, "Иван");
+  assert.equal(user.email, null);
+  assert.equal(user.image, "https://example.com/a.png");
+  assert.equal(user.emailVerified, null);
+  assert.equal(user.phone, "+79991234567");
+  assert.ok(user.phoneVerified instanceof Date);
+});
+
+test("normalizes OAuth phone digits without plus", () => {
+  const user = sanitizeAdapterUser({
+    email: "a@b.ru",
+    phone: "89991234567",
   });
+  assert.equal(user.phone, "+79991234567");
 });

@@ -3,6 +3,7 @@ import { isEmailLoginConfigured } from "@/lib/email-auth";
 import { getTelegramBotUsername } from "@/lib/telegram-login-config";
 import { isTelegramLoginConfigured } from "@/lib/telegram-auth";
 import { isTelegramOidcConfigured } from "@/lib/telegram-oidc";
+import { isYandexLoginConfigured } from "@/lib/yandex-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,5 +34,6 @@ export async function GET() {
     telegramOidc: isTelegramOidcConfigured(),
     google: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
     vk: Boolean(process.env.VK_CLIENT_ID),
+    yandex: isYandexLoginConfigured(),
   });
 }

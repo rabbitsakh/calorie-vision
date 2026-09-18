@@ -90,10 +90,12 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
 }
 
 /**
- * Start Google/VK OAuth. Capacitor → Custom Tabs bootstrap; web → normal redirect.
+ * Start Google/VK/Yandex OAuth. Capacitor → Custom Tabs bootstrap; web → normal redirect.
  */
+export type CapacitorOAuthProvider = "google" | "vk" | "yandex";
+
 export async function startCapacitorOAuth(
-  provider: "google" | "vk",
+  provider: CapacitorOAuthProvider,
   callbackUrl = withBasePath("/ration/"),
 ): Promise<void> {
   if (!isCapacitorNative()) {
