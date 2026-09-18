@@ -18,7 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
-  [/^fix\(auth\): Yandex invalid_scope login:default_phone$/i, "Исправление: вход через Яндекс (scope login:default_phone)"],
+  [/^fix\(auth\): Yandex invalid_scope.*$/i, "Исправление: вход через Яндекс (scope без login:phone)"],
   [/^feat\(auth\): Yandex OAuth and email\/phone account linking$/i, "Вход через Яндекс и склейка аккаунтов по email и телефону"],
   [/^Recognition eval telemetry wave.*$/i, "Распознавание: eval harness и telemetry dashboard в админке"],
   [/^Fix label drink scaling.*$/i, "Исправление: масштабирование калорий напитков с этикетки"],
