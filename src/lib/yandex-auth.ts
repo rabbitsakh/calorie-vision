@@ -3,6 +3,14 @@ import YandexProvider from "next-auth/providers/yandex";
 import type { YandexProfile } from "next-auth/providers/yandex";
 import { normalizeAuthPhone } from "@/lib/phone";
 
+/**
+ * Yandex ID scopes. Phone access is `login:default_phone` (not `login:phone`).
+ * Use `+` separators in the authorize URL — Yandex rejects unknown scope names with invalid_scope.
+ */
+export const YANDEX_OAUTH_SCOPE = "login:info+login:email+login:avatar+login:default_phone";
+
+export const YANDEX_AUTHORIZE_URL = `https://oauth.yandex.ru/authorize?scope=${YANDEX_OAUTH_SCOPE}`;
+
 export function yandexProfileToUser(profile: YandexProfile): {
   id: string;
   name: string;
@@ -41,12 +49,7 @@ export function createYandexProvider(options: {
   return YandexProvider({
     clientId: options.clientId,
     clientSecret: options.clientSecret,
-    authorization: {
-      url: "https://oauth.yandex.ru/authorize",
-      params: {
-        scope: "login:info login:email login:avatar login:phone",
-      },
-    },
+    authorization: YANDEX_AUTHORIZE_URL,
     profile(profile) {
       const user = yandexProfileToUser(profile);
       if (!user.id) {
