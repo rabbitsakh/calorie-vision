@@ -23,19 +23,70 @@ type LoginOptions = {
   yandex: boolean;
 };
 
+const PROVIDER_ERROR_LABEL: Record<string, string> = {
+  yandex: "Яндекс",
+  google: "Google",
+  vk: "VK",
+  telegram: "Telegram",
+  email: "email",
+};
+
 const AUTH_ERRORS: Record<string, string> = {
   OAuthSignin: "Не удалось начать вход через соцсеть.",
   OAuthCallback: "Не удалось войти через соцсеть. Попробуйте ещё раз или используйте другой способ входа.",
   OAuthCreateAccount: "Не удалось создать аккаунт.",
   OAuthAccountNotLinked:
     "Не удалось связать аккаунт. Войдите тем способом, которым регистрировались, или напишите в поддержку.",
-  Callback: "Не удалось завершить вход через соцсеть. Попробуйте ещё раз.",
+  /** Generic adapter/callback failure — never blame a specific network. */
+  Callback: "Не удалось завершить вход. Попробуйте ещё раз.",
   CredentialsSignin: "Не удалось войти. Проверьте данные и попробуйте ещё раз.",
   Configuration: "Вход через соцсеть не настроен на сервере.",
   AccessDenied: "Доступ через соцсеть запрещён.",
-  yandex: "Не удалось войти через Яндекс. Проверьте права приложения в oauth.yandex.ru.",
+  yandex: "Не удалось войти через Яндекс. Проверьте права приложения в oauth.yandex.ru (в т.ч. доступ к телефону).",
+  google: "Не удалось войти через Google. Попробуйте ещё раз.",
+  vk: "Не удалось войти через VK. Попробуйте ещё раз.",
   Default: "Не удалось войти. Попробуйте ещё раз.",
 };
+
+const LAST_OAUTH_PROVIDER_KEY = "cv-last-oauth-provider";
+
+function rememberOauthProvider(provider: string): void {
+  try {
+    sessionStorage.setItem(LAST_OAUTH_PROVIDER_KEY, provider);
+  } catch {
+    // ignore
+  }
+}
+
+function readLastOauthProvider(): string | null {
+  try {
+    return sessionStorage.getItem(LAST_OAUTH_PROVIDER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function resolveAuthErrorMessage(errorCode: string | null, providerHint: string | null): string {
+  if (!errorCode) {
+    return AUTH_ERRORS.Default;
+  }
+
+  const known = AUTH_ERRORS[errorCode];
+  if (known && errorCode !== "Callback" && errorCode !== "OAuthCallback" && errorCode !== "OAuthSignin") {
+    return known;
+  }
+
+  const hint = (providerHint ?? readLastOauthProvider() ?? "").toLowerCase();
+  const providerLabel = PROVIDER_ERROR_LABEL[hint] ?? PROVIDER_ERROR_LABEL[errorCode.toLowerCase()];
+  if (providerLabel) {
+    if (errorCode.toLowerCase() === "yandex") {
+      return AUTH_ERRORS.yandex;
+    }
+    return `Не удалось войти через ${providerLabel}. Попробуйте ещё раз.`;
+  }
+
+  return known ?? AUTH_ERRORS.Default;
+}
 
 const EMPTY_OPTIONS: LoginOptions = {
   email: false,
@@ -60,6 +111,7 @@ export default function LoginForm() {
 
   const verifyRequest = searchParams.get("verify") === "1";
   const authError = searchParams.get("error");
+  const providerHint = searchParams.get("provider");
   const ready = options ?? EMPTY_OPTIONS;
 
   const hasSocial = ready.google || ready.vk || ready.yandex || ready.telegram;
@@ -72,9 +124,9 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (authError) {
-      setError(AUTH_ERRORS[authError] ?? AUTH_ERRORS.Default);
+      setError(resolveAuthErrorMessage(authError, providerHint));
     }
-  }, [authError]);
+  }, [authError, providerHint]);
 
   // Capacitor: hook App Link return from Chrome Custom Tabs (Google/VK OAuth).
   useEffect(() => {
@@ -155,7 +207,7 @@ export default function LoginForm() {
       await startCapacitorOAuth(provider, withBasePath("/ration/"));
     } catch {
       setLoading(false);
-      setError(AUTH_ERRORS.OAuthSignin);
+      setError(resolveAuthErrorMessage("OAuthSignin", provider));
     }
   }
 
