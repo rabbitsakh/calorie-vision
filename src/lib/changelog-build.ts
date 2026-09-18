@@ -18,6 +18,8 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^fix\(ui\): avatar menu clipped on desktop$/i, "Исправление: меню по аватару больше не обрезается; крупнее фото на мобилке"],
+  [/^fix\(lookup\): boiled egg not pouch egg$/i, "Исправление: «вареное яйцо» больше не подставляет «яйцо в мешочек»"],
   [/^fix\(auth\): Yandex invalid_scope.*$/i, "Исправление: вход через Яндекс (scope login:default_phone)"],
   [/^feat\(auth\): Yandex OAuth and email\/phone account linking$/i, "Вход через Яндекс и склейка аккаунтов по email и телефону"],
   [/^Recognition eval telemetry wave.*$/i, "Распознавание: eval harness и telemetry dashboard в админке"],
