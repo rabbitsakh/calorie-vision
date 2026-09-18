@@ -202,6 +202,7 @@ export default function LoginForm() {
   async function handleOauthLogin(provider: "google" | "vk" | "yandex") {
     setLoading(true);
     setError(null);
+    rememberOauthProvider(provider);
     try {
       // Capacitor WebView: Google returns 400 (disallowed_useragent) — use Custom Tabs.
       await startCapacitorOAuth(provider, withBasePath("/ration/"));
