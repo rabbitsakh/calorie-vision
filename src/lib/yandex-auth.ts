@@ -4,40 +4,14 @@ import type { YandexProfile } from "next-auth/providers/yandex";
 import { normalizeAuthPhone } from "@/lib/phone";
 
 /**
- * Default Yandex ID scopes (same as next-auth built-in).
- * Do NOT use `login:phone` — Yandex returns invalid_scope.
- * Phone is `login:default_phone`, and only if that right is enabled on the OAuth app.
+ * Yandex ID scopes including phone.
+ * Phone access is `login:default_phone` — `login:phone` causes invalid_scope.
+ * Enable «Доступ к номеру телефона» on the app at oauth.yandex.ru.
  */
-export const YANDEX_OAUTH_SCOPE_DEFAULT = "login:info+login:email+login:avatar";
-
-/** Optional phone claim — enable «Доступ к номеру телефона» in oauth.yandex.ru first. */
-export const YANDEX_OAUTH_SCOPE_WITH_PHONE =
+export const YANDEX_OAUTH_SCOPE =
   "login:info+login:email+login:avatar+login:default_phone";
 
-/**
- * Resolve authorize scope.
- * - YANDEX_OAUTH_SCOPE=… → exact override (plus-separated)
- * - YANDEX_REQUEST_PHONE=1 → include login:default_phone
- * - otherwise → info+email+avatar (safe default)
- */
-export function resolveYandexOAuthScope(
-  env: NodeJS.ProcessEnv = process.env,
-): string {
-  const override = env.YANDEX_OAUTH_SCOPE?.trim();
-  if (override) {
-    return override.replace(/\s+/g, "+");
-  }
-  const wantPhone = /^(1|true|yes)$/i.test(env.YANDEX_REQUEST_PHONE?.trim() ?? "");
-  return wantPhone ? YANDEX_OAUTH_SCOPE_WITH_PHONE : YANDEX_OAUTH_SCOPE_DEFAULT;
-}
-
-export function yandexAuthorizeUrl(scope = resolveYandexOAuthScope()): string {
-  return `https://oauth.yandex.ru/authorize?scope=${scope}`;
-}
-
-/** @deprecated use resolveYandexOAuthScope / yandexAuthorizeUrl */
-export const YANDEX_OAUTH_SCOPE = YANDEX_OAUTH_SCOPE_DEFAULT;
-export const YANDEX_AUTHORIZE_URL = yandexAuthorizeUrl(YANDEX_OAUTH_SCOPE_DEFAULT);
+export const YANDEX_AUTHORIZE_URL = `https://oauth.yandex.ru/authorize?scope=${YANDEX_OAUTH_SCOPE}`;
 
 export function yandexProfileToUser(profile: YandexProfile): {
   id: string;
@@ -77,7 +51,7 @@ export function createYandexProvider(options: {
   return YandexProvider({
     clientId: options.clientId,
     clientSecret: options.clientSecret,
-    authorization: yandexAuthorizeUrl(),
+    authorization: YANDEX_AUTHORIZE_URL,
     profile(profile) {
       const user = yandexProfileToUser(profile);
       if (!user.id) {

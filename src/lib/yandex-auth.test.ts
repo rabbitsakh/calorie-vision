@@ -1,33 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { extractOAuthPhone, normalizeOAuthEmail } from "./oauth-account-link.ts";
-import {
-  resolveYandexOAuthScope,
-  yandexAuthorizeUrl,
-  yandexProfileToUser,
-  YANDEX_OAUTH_SCOPE_DEFAULT,
-  YANDEX_OAUTH_SCOPE_WITH_PHONE,
-} from "./yandex-auth.ts";
+import { YANDEX_AUTHORIZE_URL, YANDEX_OAUTH_SCOPE, yandexProfileToUser } from "./yandex-auth.ts";
 
-test("default Yandex scope has no phone (avoids invalid_scope)", () => {
-  assert.equal(resolveYandexOAuthScope({}), YANDEX_OAUTH_SCOPE_DEFAULT);
-  assert.doesNotMatch(YANDEX_OAUTH_SCOPE_DEFAULT, /phone/);
+test("Yandex scope includes login:default_phone, never login:phone", () => {
+  assert.match(YANDEX_OAUTH_SCOPE, /login:default_phone/);
+  assert.doesNotMatch(YANDEX_OAUTH_SCOPE, /(^|\+)login:phone(\+|$)/);
   assert.equal(
-    yandexAuthorizeUrl(YANDEX_OAUTH_SCOPE_DEFAULT),
-    "https://oauth.yandex.ru/authorize?scope=login:info+login:email+login:avatar",
-  );
-});
-
-test("YANDEX_REQUEST_PHONE adds login:default_phone, never login:phone", () => {
-  assert.equal(resolveYandexOAuthScope({ YANDEX_REQUEST_PHONE: "1" }), YANDEX_OAUTH_SCOPE_WITH_PHONE);
-  assert.match(YANDEX_OAUTH_SCOPE_WITH_PHONE, /login:default_phone/);
-  assert.doesNotMatch(YANDEX_OAUTH_SCOPE_WITH_PHONE, /(^|\+)login:phone(\+|$)/);
-});
-
-test("YANDEX_OAUTH_SCOPE override wins", () => {
-  assert.equal(
-    resolveYandexOAuthScope({ YANDEX_OAUTH_SCOPE: "login:info login:email" }),
-    "login:info+login:email",
+    YANDEX_AUTHORIZE_URL,
+    "https://oauth.yandex.ru/authorize?scope=login:info+login:email+login:avatar+login:default_phone",
   );
 });
 
