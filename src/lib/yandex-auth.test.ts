@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { extractOAuthPhone, normalizeOAuthEmail } from "./oauth-account-link.ts";
-import { yandexProfileToUser } from "./yandex-auth.ts";
+import { YANDEX_AUTHORIZE_URL, YANDEX_OAUTH_SCOPE, yandexProfileToUser } from "./yandex-auth.ts";
+
+test("Yandex scope includes login:default_phone, never login:phone", () => {
+  assert.match(YANDEX_OAUTH_SCOPE, /login:default_phone/);
+  assert.doesNotMatch(YANDEX_OAUTH_SCOPE, /(^|\+)login:phone(\+|$)/);
+  assert.equal(
+    YANDEX_AUTHORIZE_URL,
+    "https://oauth.yandex.ru/authorize?scope=login:info+login:email+login:avatar+login:default_phone",
+  );
+});
 
 test("extracts Yandex default_phone", () => {
   assert.equal(
