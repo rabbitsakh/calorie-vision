@@ -401,6 +401,13 @@ export function offMatchesQuery(query: string, dishName: string, brand?: string)
   if (!q || !n) {
     return false;
   }
+
+  // Cooking-method / style tokens in the query must appear in the product name.
+  // Otherwise «вареное яйцо» accepts «яйцо в мешочек» (only «яйцо» overlaps).
+  if (!offCookingModifiersAgree(q, n)) {
+    return false;
+  }
+
   if (n.includes(q) || q.includes(n)) {
     return true;
   }
@@ -427,6 +434,33 @@ export function offMatchesQuery(query: string, dishName: string, brand?: string)
   }
 
   return false;
+}
+
+/**
+ * When the user names a cooking style, the OFF product must share that style.
+ * Stems are matched after ё→е normalization.
+ */
+export function offCookingModifiersAgree(queryNorm: string, nameNorm: string): boolean {
+  const rules: Array<{ inQuery: RegExp; inName: RegExp }> = [
+    {
+      inQuery: /варен/,
+      inName: /варен|вкрут|всмят|пашот|крутое|крутую/,
+    },
+    { inQuery: /жарен/, inName: /жарен|яичниц/ },
+    { inQuery: /тушен/, inName: /тушен/ },
+    { inQuery: /запеч/, inName: /запеч/ },
+    { inQuery: /мешоч/, inName: /мешоч/ },
+    { inQuery: /пашот|poached/, inName: /пашот|poached/ },
+    { inQuery: /всмят/, inName: /всмят/ },
+    { inQuery: /вкрут|крутое|крутую/, inName: /вкрут|крутое|крутую|варен/ },
+  ];
+
+  for (const rule of rules) {
+    if (rule.inQuery.test(queryNorm) && !rule.inName.test(nameNorm)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /** Parallel OFF search — first matching query wins. Never returns unmatched hits. */

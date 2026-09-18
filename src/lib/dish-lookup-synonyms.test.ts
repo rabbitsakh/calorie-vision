@@ -27,3 +27,8 @@ test("lookupQueriesForName expands typos and brands", () => {
   const alcohol = lookupQueriesForName("пиво", null, 2);
   assert.ok(alcohol.some((q) => q.includes("светлое")));
 });
+
+test("lookupQueriesForName maps egg to boiled egg staple", () => {
+  const queries = lookupQueriesForName("яйцо", null, 3);
+  assert.ok(queries.some((q) => q.includes("вареное") || q.includes("варёное")));
+});
