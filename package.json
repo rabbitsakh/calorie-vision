@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts && next build",
     "sync-version": "node --experimental-strip-types --no-warnings scripts/sync-app-version.ts",
+    "pack:standalone": "bash scripts/pack-standalone.sh",
     "start": "next start",
     "lint": "next lint",
     "check:env": "tsx scripts/check-env.ts",
