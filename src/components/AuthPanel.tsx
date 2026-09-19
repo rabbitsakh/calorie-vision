@@ -122,6 +122,14 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
             {session.user.isAdmin ? (
               <>
                 <Link
+                  href="/workouts"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  Тренировки
+                </Link>
+                <Link
                   href="/admin/users"
                   role="menuitem"
                   className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
