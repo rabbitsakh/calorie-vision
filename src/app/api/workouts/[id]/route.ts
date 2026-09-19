@@ -3,6 +3,10 @@ import { requireAdmin } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import {
+  buildExerciseHistoryByNormName,
+  historyForExerciseName,
+} from "@/lib/workouts/history";
+import {
   buildProgressSummary,
   findPreviousSession,
   parseProgressRate,
@@ -46,7 +50,8 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
     orderBy: [{ date: "desc" }, { createdAt: "desc" }],
     take: 60,
   });
-  const prev = findPreviousSession(toProgressRows(history.map(serializeSessionSummary)), detail.muscleKeys, {
+  const summaries = history.map(serializeSessionSummary);
+  const prev = findPreviousSession(toProgressRows(summaries), detail.muscleKeys, {
     excludeSessionId: detail.id,
   });
   const progress = buildProgressSummary({
@@ -55,7 +60,25 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
     previous: prev,
     progressRate: detail.progressRate,
   });
-  return { session: detail, progress };
+
+  const byNorm = buildExerciseHistoryByNormName(history, { excludeSessionId: detail.id });
+  const exercises = detail.exercises.map((ex) => {
+    const last = historyForExerciseName(byNorm, ex.name);
+    return {
+      ...ex,
+      lastTime: last
+        ? {
+            date: last.date,
+            sets: last.sets,
+          }
+        : null,
+    };
+  });
+
+  return {
+    session: { ...detail, exercises },
+    progress,
+  };
 }
 
 export async function GET(_request: NextRequest, context: Ctx) {
