@@ -29,7 +29,21 @@ pick_node_heap_mb() {
 
 echo "==> Pull latest code"
 restore_generated_version_files
-git pull
+# GitHub HTTPS from some VPS intermittently times out — retry with backoff.
+pull_ok=0
+for attempt in 1 2 3 4; do
+  if git pull; then
+    pull_ok=1
+    break
+  fi
+  echo "   git pull failed (attempt $attempt/4) — retry in $((attempt * 8))s…"
+  sleep $((attempt * 8))
+done
+if (( ! pull_ok )); then
+  echo "   git pull failed after retries." >&2
+  echo "   Check VPS → github.com:443 (timeout/IPv6). Then: cv-release --deploy-only" >&2
+  exit 1
+fi
 
 echo "==> Node $(node -v)"
 if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 24 ? 0 : 1)"; then
