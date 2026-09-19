@@ -17,6 +17,8 @@ export type BackfillMealImagesResult = {
   failed: number;
   /** Cleared or replaced wrong Wikipedia portraits on text/barcode rows. */
   repaired: number;
+  /** Dish names that needed an image but OFF/web lookup returned nothing (or threw). */
+  failedDishNames: string[];
 };
 
 /** Sources that auto-attached product art (wiki fallback used to invent portraits). */
@@ -132,6 +134,7 @@ export async function backfillMealImages(
     skipped: 0,
     failed: 0,
     repaired: 0,
+    failedDishNames: [],
   };
 
   result.repaired = await repairLookupMealImages(options);
@@ -212,6 +215,8 @@ export async function backfillMealImages(
 
       if (!imagePath) {
         result.failed += ids.length;
+        result.failedDishNames.push(dishName);
+        console.warn("No image found for meal", dishName, `(${ids.length} entr${ids.length === 1 ? "y" : "ies"})`);
         continue;
       }
 
@@ -224,6 +229,7 @@ export async function backfillMealImages(
     } catch (error) {
       console.error("Failed to backfill meal image", dishName, error);
       result.failed += ids.length;
+      result.failedDishNames.push(dishName);
     }
 
     await delay(200);
