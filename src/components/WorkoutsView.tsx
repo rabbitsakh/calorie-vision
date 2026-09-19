@@ -67,6 +67,20 @@ type Insights = {
 };
 
 const REST_OPTIONS = [60, 90, 120] as const;
+const RATE_OPTIONS = [
+  { label: "2.5%", value: 0.025 },
+  { label: "5%", value: 0.05 },
+  { label: "7.5%", value: 0.075 },
+  { label: "10%", value: 0.1 },
+] as const;
+
+type TimelinePoint = {
+  date: string;
+  topWeightKg: number;
+  topReps: number;
+  totalLoad: number;
+  setCount: number;
+};
 
 function formatLoad(value: number): string {
   if (!Number.isFinite(value)) return "0";
@@ -112,11 +126,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [newDate, setNewDate] = useState(todayKey);
   const [newGroups, setNewGroups] = useState<MuscleGroupKey[]>([]);
   const [copyExercises, setCopyExercises] = useState(true);
+  const [progressRate, setProgressRate] = useState(DEFAULT_PROGRESS_RATE);
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
   const [setDrafts, setSetDrafts] = useState<Record<string, { kg: string; reps: string }>>({});
   const [pasteText, setPasteText] = useState("");
   const [insights, setInsights] = useState<Insights | null>(null);
+  const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
+  const [historyByName, setHistoryByName] = useState<
+    Record<string, { points: TimelinePoint[]; topWeightDeltaKg: number | null }>
+  >({});
 
   const [restSeconds, setRestSeconds] = useState<number>(90);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
@@ -188,7 +207,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (detail?.muscleKeys?.length) {
       void loadInsights(detail.muscleKeys);
     }
-  }, [detail?.id, loadInsights]);
+  }, [detail?.id, detail?.muscleKeys, loadInsights]);
 
   useEffect(() => {
     if (newGroups.length === 0) {
@@ -201,7 +220,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       try {
         const data = await readJson<{ progress: Progress }>(
           await fetch(
-            withBasePath(`/api/workouts/progress?groups=${encodeURIComponent(q)}&rate=${DEFAULT_PROGRESS_RATE}`),
+            withBasePath(`/api/workouts/progress?groups=${encodeURIComponent(q)}&rate=${progressRate}`),
             { signal: ctrl.signal },
           ),
         );
@@ -211,7 +230,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       }
     })();
     return () => ctrl.abort();
-  }, [newGroups]);
+  }, [newGroups, progressRate]);
 
   useEffect(() => {
     if (!restEndsAt) {
@@ -257,7 +276,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             body: JSON.stringify({
               date: newDate,
               copySets: true,
-              progressRate: DEFAULT_PROGRESS_RATE,
+              progressRate,
             }),
           }),
         );
@@ -275,7 +294,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           body: JSON.stringify({
             date: newDate,
             muscleGroups: newGroups,
-            progressRate: DEFAULT_PROGRESS_RATE,
+            progressRate,
           }),
         }),
       );
@@ -440,6 +459,28 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       ...prev,
       [exerciseId]: { kg: String(set.weightKg), reps: String(set.reps) },
     }));
+  };
+
+  const toggleExerciseHistory = async (name: string) => {
+    const open = !historyOpen[name];
+    setHistoryOpen((prev) => ({ ...prev, [name]: open }));
+    if (!open || historyByName[name]) return;
+    try {
+      const data = await readJson<{
+        points: TimelinePoint[];
+        topWeightDeltaKg: number | null;
+      }>(
+        await fetch(
+          withBasePath(`/api/workouts/exercise-history?name=${encodeURIComponent(name)}`),
+        ),
+      );
+      setHistoryByName((prev) => ({
+        ...prev,
+        [name]: { points: data.points, topWeightDeltaKg: data.topWeightDeltaKg },
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось загрузить историю");
+    }
   };
 
   const deleteSet = async (setId: string) => {
@@ -608,6 +649,13 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       {formatLoad(ex.load)} кг·повт
                     </p>
                     {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
+                    <button
+                      type="button"
+                      className="mt-1 text-xs font-medium text-teal-800"
+                      onClick={() => void toggleExerciseHistory(ex.name)}
+                    >
+                      {historyOpen[ex.name] ? "Скрыть историю" : "История весов"}
+                    </button>
                   </div>
                   <button
                     type="button"
@@ -617,6 +665,36 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     Удалить
                   </button>
                 </div>
+
+                {historyOpen[ex.name] ? (
+                  <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    {!historyByName[ex.name] ? (
+                      <p>Загрузка…</p>
+                    ) : historyByName[ex.name]!.points.length === 0 ? (
+                      <p>Пока нет прошлых записей.</p>
+                    ) : (
+                      <>
+                        <ul className="space-y-1">
+                          {historyByName[ex.name]!.points.map((p) => (
+                            <li key={`${p.date}-${p.topWeightKg}`} className="flex justify-between gap-2 tabular-nums">
+                              <span>{formatDateShort(p.date)}</span>
+                              <span>
+                                {p.topWeightKg}×{p.topReps} · {formatLoad(p.totalLoad)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        {historyByName[ex.name]!.topWeightDeltaKg != null ? (
+                          <p className="mt-1 text-teal-800">
+                            Топ-вес к прошлой:{" "}
+                            {historyByName[ex.name]!.topWeightDeltaKg! > 0 ? "+" : ""}
+                            {historyByName[ex.name]!.topWeightDeltaKg} кг
+                          </p>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                ) : null}
 
                 <ul className="mt-3 space-y-1.5">
                   {ex.sets.map((s, idx) => (
@@ -841,6 +919,25 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 </button>
               );
             })}
+          </div>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Прогрессия к прошлой
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {RATE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setProgressRate(opt.value)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  progressRate === opt.value
+                    ? "bg-teal-700 text-white"
+                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                }`}
+              >
+                +{opt.label}
+              </button>
+            ))}
           </div>
           {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
           {preview?.previousSessionId ? (
