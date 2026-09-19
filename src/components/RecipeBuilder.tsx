@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { scaleNutritionByPortion } from "@/lib/nutrition";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
 import { scaleRuNutritionToGrams } from "@/lib/ru-nutrition-lookup";
@@ -15,6 +16,8 @@ type Ingredient = {
   protein: string;
   fat: string;
   carbs: string;
+  fiber: string;
+  sugar: string;
 };
 
 type RecipeBuilderProps = {
@@ -33,6 +36,8 @@ function emptyIngredient(): Ingredient {
     protein: "",
     fat: "",
     carbs: "",
+    fiber: "",
+    sugar: "",
   };
 }
 
@@ -43,6 +48,10 @@ function num(value: string): number {
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+function optionalMacro(value: number): number | null {
+  return value > 0 ? round1(value) : null;
 }
 
 export function RecipeBuilder({
@@ -58,6 +67,8 @@ export function RecipeBuilder({
   const [logging, setLogging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+  /** Grams to log; empty = whole recipe (totals.grams). */
+  const [logPortionGrams, setLogPortionGrams] = useState("");
 
   const totals = useMemo(() => {
     return ingredients.reduce(
@@ -67,9 +78,11 @@ export function RecipeBuilder({
         acc.protein += num(row.protein);
         acc.fat += num(row.fat);
         acc.carbs += num(row.carbs);
+        acc.fiber += num(row.fiber);
+        acc.sugar += num(row.sugar);
         return acc;
       },
-      { grams: 0, calories: 0, protein: 0, fat: 0, carbs: 0 },
+      { grams: 0, calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 },
     );
   }, [ingredients]);
 
@@ -88,6 +101,8 @@ export function RecipeBuilder({
       protein: String(scaled.protein),
       fat: String(scaled.fat),
       carbs: String(scaled.carbs),
+      fiber: scaled.fiber > 0 ? String(scaled.fiber) : "",
+      sugar: scaled.sugar > 0 ? String(scaled.sugar) : "",
     });
   }
 
@@ -96,6 +111,53 @@ export function RecipeBuilder({
     if (!name) return "Укажите название блюда";
     if (totals.calories <= 0) return "Добавьте ингредиенты с калориями";
     return null;
+  }
+
+  function nutritionPayload(portionOverrideGrams?: number) {
+    const baseGrams = totals.grams > 0 ? Math.round(totals.grams) : null;
+
+    if (
+      portionOverrideGrams != null &&
+      Number.isFinite(portionOverrideGrams) &&
+      portionOverrideGrams > 0 &&
+      baseGrams != null &&
+      baseGrams > 0 &&
+      portionOverrideGrams !== baseGrams
+    ) {
+      const scaled = scaleNutritionByPortion(
+        {
+          calories: Math.round(totals.calories),
+          protein: optionalMacro(totals.protein) ?? undefined,
+          fat: optionalMacro(totals.fat) ?? undefined,
+          carbs: optionalMacro(totals.carbs) ?? undefined,
+          fiber: optionalMacro(totals.fiber) ?? undefined,
+          sugar: optionalMacro(totals.sugar) ?? undefined,
+          portionGrams: baseGrams,
+        },
+        portionOverrideGrams,
+      );
+      if (scaled) {
+        return {
+          calories: scaled.calories,
+          protein: scaled.protein ?? null,
+          fat: scaled.fat ?? null,
+          carbs: scaled.carbs ?? null,
+          fiber: scaled.fiber ?? null,
+          sugar: scaled.sugar ?? null,
+          portionGrams: Math.round(scaled.portionGrams),
+        };
+      }
+    }
+
+    return {
+      calories: Math.round(totals.calories),
+      protein: optionalMacro(totals.protein),
+      fat: optionalMacro(totals.fat),
+      carbs: optionalMacro(totals.carbs),
+      fiber: optionalMacro(totals.fiber),
+      sugar: optionalMacro(totals.sugar),
+      portionGrams: baseGrams,
+    };
   }
 
   async function saveAsCustomFood() {
@@ -110,17 +172,11 @@ export function RecipeBuilder({
     setSaving(true);
     try {
       const name = recipeName.trim();
+      const nutrition = nutritionPayload();
       const resp = await fetch(withBasePath("/api/custom-foods"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          calories: Math.round(totals.calories),
-          protein: totals.protein > 0 ? round1(totals.protein) : null,
-          fat: totals.fat > 0 ? round1(totals.fat) : null,
-          carbs: totals.carbs > 0 ? round1(totals.carbs) : null,
-          portionGrams: totals.grams > 0 ? Math.round(totals.grams) : null,
-        }),
+        body: JSON.stringify({ name, ...nutrition }),
       });
       if (!resp.ok) {
         const data = (await resp.json().catch(() => ({}))) as { error?: string };
@@ -129,6 +185,7 @@ export function RecipeBuilder({
       setOkMsg("Сохранено в «Мои продукты»");
       setRecipeName("");
       setIngredients([emptyIngredient()]);
+      setLogPortionGrams("");
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -146,9 +203,17 @@ export function RecipeBuilder({
       return;
     }
 
+    const portionRaw = logPortionGrams.trim();
+    const portionOverride = portionRaw ? num(portionRaw) : undefined;
+    if (portionRaw && (!(portionOverride! > 0))) {
+      setError("Укажите порцию больше 0 г");
+      return;
+    }
+
     setLogging(true);
     try {
       const name = recipeName.trim();
+      const nutrition = nutritionPayload(portionOverride);
       const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
       const resp = await fetch(withBasePath("/api/meals"), {
         method: "POST",
@@ -156,11 +221,7 @@ export function RecipeBuilder({
         body: JSON.stringify({
           date: selectedDate,
           dishName: name,
-          calories: Math.round(totals.calories),
-          protein: totals.protein > 0 ? round1(totals.protein) : null,
-          fat: totals.fat > 0 ? round1(totals.fat) : null,
-          carbs: totals.carbs > 0 ? round1(totals.carbs) : null,
-          portionGrams: totals.grams > 0 ? Math.round(totals.grams) : null,
+          ...nutrition,
           mealType,
           eatenAt,
         }),
@@ -169,9 +230,14 @@ export function RecipeBuilder({
         const data = (await resp.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "Не удалось добавить в дневник");
       }
-      setOkMsg("Добавлено в дневник");
+      setOkMsg(
+        nutrition.portionGrams
+          ? `Добавлено в дневник (${nutrition.portionGrams} г)`
+          : "Добавлено в дневник",
+      );
       setRecipeName("");
       setIngredients([emptyIngredient()]);
+      setLogPortionGrams("");
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       (onLoggedToDiary ?? onSaved)();
@@ -187,7 +253,7 @@ export function RecipeBuilder({
       <div>
         <h3 className="text-sm font-semibold text-slate-800">Конструктор рецепта</h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          Сложите ингредиенты — подставим КБЖУ из справочника, если найдём. Сохраним сумму как свой продукт.
+          Сложите ингредиенты — подставим КБЖУ и клетчатку/сахар из справочника, если найдём.
         </p>
       </div>
 
@@ -238,26 +304,79 @@ export function RecipeBuilder({
               </div>
               <div className="field">
                 <label className="text-xs">Ккал</label>
-                <input type="number" min="0" inputMode="decimal" value={row.calories} onChange={(e) => updateIngredient(row.id, { calories: e.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="decimal"
+                  value={row.calories}
+                  onChange={(e) => updateIngredient(row.id, { calories: e.target.value })}
+                />
               </div>
               <div className="field">
                 <label className="text-xs">Белки</label>
-                <input type="number" min="0" step="0.1" inputMode="decimal" value={row.protein} onChange={(e) => updateIngredient(row.id, { protein: e.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={row.protein}
+                  onChange={(e) => updateIngredient(row.id, { protein: e.target.value })}
+                />
               </div>
               <div className="field">
                 <label className="text-xs">Жиры</label>
-                <input type="number" min="0" step="0.1" inputMode="decimal" value={row.fat} onChange={(e) => updateIngredient(row.id, { fat: e.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={row.fat}
+                  onChange={(e) => updateIngredient(row.id, { fat: e.target.value })}
+                />
               </div>
               <div className="field">
                 <label className="text-xs">Углеводы</label>
-                <input type="number" min="0" step="0.1" inputMode="decimal" value={row.carbs} onChange={(e) => updateIngredient(row.id, { carbs: e.target.value })} />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={row.carbs}
+                  onChange={(e) => updateIngredient(row.id, { carbs: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label className="text-xs">Клетчатка</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={row.fiber}
+                  onChange={(e) => updateIngredient(row.id, { fiber: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label className="text-xs">Сахар</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  value={row.sugar}
+                  onChange={(e) => updateIngredient(row.id, { sugar: e.target.value })}
+                />
               </div>
             </div>
           </li>
         ))}
       </ul>
 
-      <button type="button" className="btn-quiet mt-2 text-sm text-teal-800" onClick={() => setIngredients((prev) => [...prev, emptyIngredient()])}>
+      <button
+        type="button"
+        className="btn-quiet mt-2 text-sm text-teal-800"
+        onClick={() => setIngredients((prev) => [...prev, emptyIngredient()])}
+      >
         + Ещё ингредиент
       </button>
 
@@ -267,6 +386,25 @@ export function RecipeBuilder({
         {totals.protein > 0 || totals.fat > 0 || totals.carbs > 0
           ? ` · Б ${Math.round(totals.protein)} / Ж ${Math.round(totals.fat)} / У ${Math.round(totals.carbs)}`
           : ""}
+        {totals.fiber > 0 || totals.sugar > 0
+          ? ` · Кл ${round1(totals.fiber)} / Сах ${round1(totals.sugar)}`
+          : ""}
+      </div>
+
+      <div className="mt-3 field max-w-[12rem]">
+        <label className="text-xs">Порция в дневник, г</label>
+        <input
+          type="number"
+          min="1"
+          inputMode="decimal"
+          value={logPortionGrams}
+          onChange={(e) => setLogPortionGrams(e.target.value)}
+          placeholder={totals.grams > 0 ? String(Math.round(totals.grams)) : "вся порция"}
+        />
+        <p className="mt-1 text-[11px] text-slate-500">
+          Пусто = весь рецепт
+          {totals.grams > 0 ? ` (${Math.round(totals.grams)} г)` : ""}.
+        </p>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">

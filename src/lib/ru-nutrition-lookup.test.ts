@@ -118,4 +118,10 @@ test("scaleRuNutritionToGrams scales portion macros", () => {
   const half = scaleRuNutritionToGrams("банан", full!.portionGrams / 2);
   assert.ok(half);
   assert.equal(half!.calories, Math.round(full!.calories / 2));
+  if (full!.fiber != null) {
+    assert.equal(half!.fiber, Math.round((full!.fiber / 2) * 10) / 10);
+  }
+  if (full!.sugar != null) {
+    assert.equal(half!.sugar, Math.round((full!.sugar / 2) * 10) / 10);
+  }
 });
