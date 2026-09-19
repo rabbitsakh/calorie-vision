@@ -50,6 +50,22 @@ type WorkoutsViewProps = {
   todayKey: string;
 };
 
+type InsightSuggestion = {
+  name: string;
+  count: number;
+  lastDate: string;
+  lastSets: HistorySet[];
+};
+
+type Insights = {
+  weekStart: string;
+  weekEnd: string;
+  weeklyTotal: number;
+  weeklyByGroup: Record<string, { load: number; label: string }>;
+  suggestions: InsightSuggestion[];
+  sessionCount: number;
+};
+
 const REST_OPTIONS = [60, 90, 120] as const;
 
 function formatLoad(value: number): string {
@@ -99,6 +115,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
   const [setDrafts, setSetDrafts] = useState<Record<string, { kg: string; reps: string }>>({});
+  const [pasteText, setPasteText] = useState("");
+  const [insights, setInsights] = useState<Insights | null>(null);
 
   const [restSeconds, setRestSeconds] = useState<number>(90);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
@@ -118,6 +136,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setLoading(false);
     }
   }, []);
+
+  const loadInsights = useCallback(
+    async (groups?: string[]) => {
+      try {
+        const q = new URLSearchParams({ weekOf: todayKey });
+        if (groups?.length) q.set("groups", groups.join(","));
+        const data = await readJson<Insights>(
+          await fetch(withBasePath(`/api/workouts/insights?${q}`)),
+        );
+        setInsights(data);
+      } catch {
+        /* non-fatal */
+      }
+    },
+    [todayKey],
+  );
 
   const openSession = useCallback(async (id: string) => {
     setError(null);
@@ -147,7 +181,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+    void loadInsights();
+  }, [loadList, loadInsights]);
+
+  useEffect(() => {
+    if (detail?.muscleKeys?.length) {
+      void loadInsights(detail.muscleKeys);
+    }
+  }, [detail?.id, loadInsights]);
 
   useEffect(() => {
     if (newGroups.length === 0) {
@@ -290,21 +331,81 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     await loadList();
   };
 
-  const addExercise = async () => {
-    if (!detail || !exerciseName.trim()) return;
+  const addExercise = async (nameOverride?: string) => {
+    if (!detail) return;
+    const name = (nameOverride ?? exerciseName).trim();
+    if (!name) return;
     setError(null);
     try {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: exerciseName.trim() }),
+          body: JSON.stringify({ name }),
         }),
       );
       setExerciseName("");
       await refreshDetail(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
+    }
+  };
+
+  const applyPasteLog = async () => {
+    if (!detail || !pasteText.trim()) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const parsed = await readJson<{
+        blocks: Array<{ name: string; sets: HistorySet[] }>;
+      }>(
+        await fetch(withBasePath("/api/workouts/parse"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: pasteText }),
+        }),
+      );
+
+      let lastSession: SessionDetail | null = null;
+      for (const block of parsed.blocks) {
+        const created = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: block.name }),
+          }),
+        );
+        const existingNames = new Set(
+          (lastSession ?? detail).exercises.map((e) => e.id),
+        );
+        const ex =
+          created.session.exercises.find((e) => !existingNames.has(e.id)) ??
+          created.session.exercises.at(-1);
+        if (!ex) {
+          lastSession = created.session;
+          continue;
+        }
+        let sessionAfter = created.session;
+        for (const set of block.sets) {
+          const withSet = await readJson<{ session: SessionDetail }>(
+            await fetch(withBasePath(`/api/workouts/exercises/${ex.id}/sets`), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ weightKg: set.weightKg, reps: set.reps }),
+            }),
+          );
+          sessionAfter = withSet.session;
+        }
+        lastSession = sessionAfter;
+      }
+
+      setPasteText("");
+      if (lastSession) await refreshDetail(lastSession);
+      else await openSession(detail.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось разобрать текст");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -595,6 +696,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           })}
         </div>
 
+        {insights?.suggestions?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {insights.suggestions.slice(0, 8).map((s) => (
+              <button
+                key={s.name}
+                type="button"
+                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-900"
+                onClick={() => void addExercise(s.name)}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-dashed border-slate-300 p-4">
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
             Упражнение
@@ -619,6 +735,30 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             Добавить
           </button>
         </div>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Вставить текстом
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            Пример: «Жим лёжа 80x8, 80x8» — по строке на упражнение. Свободный текст — через AI.
+          </p>
+          <textarea
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+            rows={3}
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={"Жим лёжа 80x8, 82.5x6\nТяга блока 40x12"}
+          />
+          <button
+            type="button"
+            disabled={busy || !pasteText.trim()}
+            className="mt-2 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            onClick={() => void applyPasteLog()}
+          >
+            Разобрать и добавить
+          </button>
+        </section>
       </div>
     );
   }
@@ -640,6 +780,31 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           Новая
         </button>
       </div>
+
+      {insights ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Неделя {formatDateShort(insights.weekStart)}–{formatDateShort(insights.weekEnd)}
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            {formatLoad(insights.weeklyTotal)}{" "}
+            <span className="text-sm font-normal text-slate-500">кг·повт</span>
+          </p>
+          <p className="text-xs text-slate-400">{insights.sessionCount} тренировок</p>
+          {Object.keys(insights.weeklyByGroup).length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {Object.entries(insights.weeklyByGroup).map(([key, g]) => (
+                <span
+                  key={key}
+                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
+                >
+                  {g.label}: {formatLoad(g.load)}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
