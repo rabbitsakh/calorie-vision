@@ -6,6 +6,7 @@ import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
+import { scaleNutritionByPortion } from "@/lib/nutrition";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
@@ -40,6 +41,15 @@ function TrashIcon() {
     <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 6h18" strokeLinecap="round" /><path d="M8 6V4h8v2" />
       <path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" strokeLinecap="round" /><path d="M14 11v6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 20h9" strokeLinecap="round" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -122,6 +132,35 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   const [portionGrams, setPortionGrams] = useState("");
   const [csvStatus, setCsvStatus] = useState<string | null>(null);
   const [recipeOpen, setRecipeOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [portionFoodId, setPortionFoodId] = useState<string | null>(null);
+  const [portionGramsInput, setPortionGramsInput] = useState("");
+
+  const clearForm = () => {
+    setName("");
+    setCalories("");
+    setProtein("");
+    setFat("");
+    setCarbs("");
+    setFiber("");
+    setSugar("");
+    setPortionGrams("");
+    setEditingId(null);
+  };
+
+  const fillForm = (food: CustomFood) => {
+    setName(food.name);
+    setCalories(String(food.calories));
+    setProtein(food.protein != null ? String(food.protein) : "");
+    setFat(food.fat != null ? String(food.fat) : "");
+    setCarbs(food.carbs != null ? String(food.carbs) : "");
+    setFiber(food.fiber != null ? String(food.fiber) : "");
+    setSugar(food.sugar != null ? String(food.sugar) : "");
+    setPortionGrams(food.portionGrams != null ? String(food.portionGrams) : "");
+    setEditingId(food.id);
+    setShowForm(true);
+    setRecipeOpen(false);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -154,22 +193,26 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   async function handleAdd() {
     setAdding(true);
     try {
-      const resp = await fetch(withBasePath("/api/custom-foods"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          calories: Number(calories),
-          protein: protein ? Number(protein) : null,
-          fat: fat ? Number(fat) : null,
-          carbs: carbs ? Number(carbs) : null,
-          fiber: fiber ? Number(fiber) : null,
-          sugar: sugar ? Number(sugar) : null,
-          portionGrams: portionGrams ? Number(portionGrams) : null,
-        }),
-      });
+      const payload = {
+        name,
+        calories: Number(calories),
+        protein: protein ? Number(protein) : null,
+        fat: fat ? Number(fat) : null,
+        carbs: carbs ? Number(carbs) : null,
+        fiber: fiber ? Number(fiber) : null,
+        sugar: sugar ? Number(sugar) : null,
+        portionGrams: portionGrams ? Number(portionGrams) : null,
+      };
+      const resp = await fetch(
+        withBasePath(editingId ? `/api/custom-foods/${editingId}` : "/api/custom-foods"),
+        {
+          method: editingId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
       if (resp.ok) {
-        setName(""); setCalories(""); setProtein(""); setFat(""); setCarbs(""); setFiber(""); setSugar(""); setPortionGrams("");
+        clearForm();
         setShowForm(false);
         await load();
       }
@@ -178,19 +221,68 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
     }
   }
 
-  async function logFavoriteFood(food: CustomFood) {
+  function openPortionPicker(food: CustomFood) {
+    setPortionFoodId(food.id);
+    setPortionGramsInput(
+      food.portionGrams && food.portionGrams > 0 ? String(food.portionGrams) : "100",
+    );
+  }
+
+  async function logFavoriteFood(food: CustomFood, gramsOverride?: number) {
     setLogNotice(null);
     const { mealType, eatenAt } = buildQuickMealLogExtras(selectedDate, timezone);
+
+    let calories = food.calories;
+    let protein = food.protein ?? undefined;
+    let fat = food.fat ?? undefined;
+    let carbs = food.carbs ?? undefined;
+    let fiber = food.fiber ?? undefined;
+    let sugar = food.sugar ?? undefined;
+    let portionGrams = food.portionGrams ?? undefined;
+
+    if (
+      gramsOverride != null &&
+      Number.isFinite(gramsOverride) &&
+      gramsOverride > 0 &&
+      food.portionGrams != null &&
+      food.portionGrams > 0
+    ) {
+      const scaled = scaleNutritionByPortion(
+        {
+          calories: food.calories,
+          protein: food.protein ?? undefined,
+          fat: food.fat ?? undefined,
+          carbs: food.carbs ?? undefined,
+          fiber: food.fiber ?? undefined,
+          sugar: food.sugar ?? undefined,
+          portionGrams: food.portionGrams,
+        },
+        gramsOverride,
+      );
+      if (scaled) {
+        calories = scaled.calories;
+        protein = scaled.protein;
+        fat = scaled.fat;
+        carbs = scaled.carbs;
+        fiber = scaled.fiber;
+        sugar = scaled.sugar;
+        portionGrams = scaled.portionGrams;
+      }
+    } else if (gramsOverride != null && Number.isFinite(gramsOverride) && gramsOverride > 0) {
+      // No baseline portion stored — log requested grams with original macros as-is.
+      portionGrams = Math.round(gramsOverride);
+    }
+
     const body: SaveMealInput = {
       date: selectedDate,
       dishName: food.name,
-      calories: food.calories,
-      protein: food.protein ?? undefined,
-      fat: food.fat ?? undefined,
-      carbs: food.carbs ?? undefined,
-      fiber: food.fiber ?? undefined,
-      sugar: food.sugar ?? undefined,
-      portionGrams: food.portionGrams ?? undefined,
+      calories,
+      protein,
+      fat,
+      carbs,
+      fiber,
+      sugar,
+      portionGrams,
       mealType,
       eatenAt,
     };
@@ -204,18 +296,21 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         void fetch(withBasePath(`/api/custom-foods/${food.id}/use`), { method: "POST" });
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
+        setPortionFoodId(null);
         onSaved();
         return;
       }
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
         enqueueFailedSave(selectedDate, body);
         setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        setPortionFoodId(null);
         onSaved();
       }
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueFailedSave(selectedDate, body);
         setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        setPortionFoodId(null);
         onSaved();
       }
     }
@@ -290,7 +385,15 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         <button
           type="button"
           className="btn btn-secondary text-sm"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              clearForm();
+              setShowForm(false);
+            } else {
+              clearForm();
+              setShowForm(true);
+            }
+          }}
         >
           {showForm ? "Отмена" : "+ Добавить"}
         </button>
@@ -367,7 +470,11 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
               disabled={adding || !name.trim() || !calories}
               onClick={() => void handleAdd()}
             >
-              {adding ? "Сохраняем..." : "Сохранить продукт"}
+              {adding
+                ? "Сохраняем..."
+                : editingId
+                  ? "Сохранить изменения"
+                  : "Сохранить продукт"}
             </button>
           </div>
         </div>
@@ -412,33 +519,93 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
 
       {foods.length > 0 ? (
         <ul className="mt-3 divide-y divide-slate-100">
-          {foods.map((food) => (
-            <li key={food.id} className="flex items-center gap-3 py-2">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{food.name}</p>
-                <AllergenHint text={food.name} allergens={userAllergens} />
-                <p className="text-xs text-slate-500">
-                  {food.calories} ккал
-                  {food.portionGrams ? ` · ${food.portionGrams} г` : ""}
-                  {food.useCount > 1 ? ` · использовано ${food.useCount}×` : ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
-                onClick={() => void logFavoriteFood(food)}
-              >
-                + В дневник
-              </button>
-              <button
-                type="button"
-                className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
-                onClick={() => void deleteFood(food.id)}
-              >
-                <TrashIcon />
-              </button>
-            </li>
-          ))}
+          {foods.map((food) => {
+            const picking = portionFoodId === food.id;
+            return (
+              <li key={food.id} className="py-2">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{food.name}</p>
+                    <AllergenHint text={food.name} allergens={userAllergens} />
+                    <p className="text-xs text-slate-500">
+                      {food.calories} ккал
+                      {food.portionGrams ? ` · ${food.portionGrams} г` : ""}
+                      {food.useCount > 1 ? ` · использовано ${food.useCount}×` : ""}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                    onClick={() => openPortionPicker(food)}
+                  >
+                    + В дневник
+                  </button>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    aria-label="Редактировать"
+                    onClick={() => fillForm(food)}
+                  >
+                    <EditIcon />
+                  </button>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    aria-label="Удалить"
+                    onClick={() => void deleteFood(food.id)}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+                {picking ? (
+                  <div className="mt-2 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      Порция, г
+                      <input
+                        type="number"
+                        min="1"
+                        inputMode="decimal"
+                        className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                        value={portionGramsInput}
+                        onChange={(e) => setPortionGramsInput(e.target.value)}
+                        autoFocus
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                      onClick={() => {
+                        const grams = Number(portionGramsInput.replace(",", "."));
+                        if (!Number.isFinite(grams) || grams <= 0) {
+                          setLogNotice("Укажите порцию больше 0 г");
+                          return;
+                        }
+                        void logFavoriteFood(food, grams);
+                      }}
+                    >
+                      Добавить
+                    </button>
+                    {food.portionGrams && food.portionGrams > 0 ? (
+                      <button
+                        type="button"
+                        className="rounded-lg px-2 py-1.5 text-xs font-medium text-teal-800"
+                        onClick={() => void logFavoriteFood(food, food.portionGrams!)}
+                      >
+                        Вся порция ({food.portionGrams} г)
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="rounded-lg px-2 py-1.5 text-xs text-slate-500"
+                      onClick={() => setPortionFoodId(null)}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       ) : null}
     </section>

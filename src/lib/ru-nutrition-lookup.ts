@@ -537,7 +537,14 @@ export function lookupRuNutritionTable(dishName: string): PackNutrition | null {
 export function scaleRuNutritionToGrams(
   dishName: string,
   grams: number,
-): { calories: number; protein: number; fat: number; carbs: number } | null {
+): {
+  calories: number;
+  protein: number;
+  fat: number;
+  carbs: number;
+  fiber: number;
+  sugar: number;
+} | null {
   if (!dishName.trim() || !(grams > 0)) {
     return null;
   }
@@ -552,6 +559,8 @@ export function scaleRuNutritionToGrams(
     protein: round1((hit.protein ?? 0) * factor),
     fat: round1((hit.fat ?? 0) * factor),
     carbs: round1((hit.carbs ?? 0) * factor),
+    fiber: round1((hit.fiber ?? 0) * factor),
+    sugar: round1((hit.sugar ?? 0) * factor),
   };
 }
 
