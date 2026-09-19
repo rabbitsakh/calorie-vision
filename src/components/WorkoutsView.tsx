@@ -207,7 +207,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (detail?.muscleKeys?.length) {
       void loadInsights(detail.muscleKeys);
     }
-  }, [detail?.id, loadInsights]);
+  }, [detail?.id, detail?.muscleKeys, loadInsights]);
 
   useEffect(() => {
     if (newGroups.length === 0) {
