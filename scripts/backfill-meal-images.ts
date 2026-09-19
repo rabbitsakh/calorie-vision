@@ -5,6 +5,9 @@ async function main() {
   console.info(
     `Meal images: scanned=${result.scanned} updated=${result.updated} skipped=${result.skipped} failed=${result.failed} recompressed=${result.recompressed}`,
   );
+  if (result.failedDishNames.length > 0) {
+    console.info(`Failed dishes: ${result.failedDishNames.join(" · ")}`);
+  }
 }
 
 main().catch((error: unknown) => {
