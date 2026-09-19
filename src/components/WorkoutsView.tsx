@@ -17,6 +17,8 @@ type Progress = {
   deltaPctVsTarget: number | null;
 };
 
+type HistorySet = { weightKg: number; reps: number };
+
 type SessionSummary = {
   id: string;
   date: string;
@@ -30,20 +32,25 @@ type SessionSummary = {
   loadByGroup: Record<string, number>;
 };
 
+type SessionExercise = {
+  id: string;
+  name: string;
+  muscleGroup: string | null;
+  muscleLabel: string | null;
+  load: number;
+  sets: Array<{ id: string; weightKg: number; reps: number; load: number }>;
+  lastTime?: { date: string; sets: HistorySet[] } | null;
+};
+
 type SessionDetail = SessionSummary & {
-  exercises: Array<{
-    id: string;
-    name: string;
-    muscleGroup: string | null;
-    muscleLabel: string | null;
-    load: number;
-    sets: Array<{ id: string; weightKg: number; reps: number; load: number }>;
-  }>;
+  exercises: SessionExercise[];
 };
 
 type WorkoutsViewProps = {
   todayKey: string;
 };
+
+const REST_OPTIONS = [60, 90, 120] as const;
 
 function formatLoad(value: number): string {
   if (!Number.isFinite(value)) return "0";
@@ -56,12 +63,24 @@ function formatPct(value: number | null | undefined): string | null {
   return `${sign}${value}%`;
 }
 
+function formatRest(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 async function readJson<T>(res: Response): Promise<T> {
   const data = (await res.json()) as T & { error?: string };
   if (!res.ok) {
     throw new Error((data as { error?: string }).error || "Ошибка запроса");
   }
   return data;
+}
+
+function lastSetHint(lastTime: SessionExercise["lastTime"]): string | null {
+  if (!lastTime?.sets.length) return null;
+  const parts = lastTime.sets.map((s) => `${s.weightKg}×${s.reps}`);
+  return `Прошлый раз (${formatDateShort(lastTime.date)}): ${parts.join(", ")}`;
 }
 
 export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
@@ -72,12 +91,18 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const [newDate, setNewDate] = useState(todayKey);
   const [newGroups, setNewGroups] = useState<MuscleGroupKey[]>([]);
+  const [copyExercises, setCopyExercises] = useState(true);
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
   const [setDrafts, setSetDrafts] = useState<Record<string, { kg: string; reps: string }>>({});
+
+  const [restSeconds, setRestSeconds] = useState<number>(90);
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
+  const [restLeft, setRestLeft] = useState(0);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -103,6 +128,17 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setSetDrafts((prev) => {
+        const next = { ...prev };
+        for (const ex of data.session.exercises) {
+          if (next[ex.id]?.kg || next[ex.id]?.reps) continue;
+          const last = ex.lastTime?.sets?.at(-1);
+          if (last) {
+            next[ex.id] = { kg: String(last.weightKg), reps: String(last.reps) };
+          }
+        }
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
@@ -130,11 +166,39 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         );
         setPreview(data.progress);
       } catch {
-        /* ignore abort / preview errors */
+        /* ignore */
       }
     })();
     return () => ctrl.abort();
   }, [newGroups]);
+
+  useEffect(() => {
+    if (!restEndsAt) {
+      setRestLeft(0);
+      return;
+    }
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+      setRestLeft(left);
+      if (left <= 0) {
+        setRestEndsAt(null);
+        if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+            navigator.vibrate?.(40);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [restEndsAt]);
+
+  const startRest = useCallback(() => {
+    setRestEndsAt(Date.now() + restSeconds * 1000);
+  }, [restSeconds]);
 
   const toggleGroup = (key: MuscleGroupKey) => {
     setNewGroups((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -142,7 +206,27 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
   const createSession = async () => {
     setError(null);
+    setBusy(true);
     try {
+      if (copyExercises && preview?.previousSessionId) {
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/${preview.previousSessionId}/repeat`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              date: newDate,
+              copySets: true,
+              progressRate: DEFAULT_PROGRESS_RATE,
+            }),
+          }),
+        );
+        setCreating(false);
+        setNewGroups([]);
+        await loadList();
+        await openSession(data.session.id);
+        return;
+      }
+
       const data = await readJson<{ session: SessionSummary; progress: Progress }>(
         await fetch(withBasePath("/api/workouts"), {
           method: "POST",
@@ -160,6 +244,28 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       await openSession(data.session.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось создать");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const repeatSession = async (sourceId: string) => {
+    setError(null);
+    setBusy(true);
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/${sourceId}/repeat`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: todayKey, copySets: true }),
+        }),
+      );
+      await loadList();
+      await openSession(data.session.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось повторить");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -170,6 +276,17 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     );
     setDetail(data.session);
     setProgress(data.progress);
+    setSetDrafts((prev) => {
+      const next = { ...prev };
+      for (const ex of data.session.exercises) {
+        if (next[ex.id]?.kg || next[ex.id]?.reps) continue;
+        const last = ex.lastTime?.sets?.at(-1);
+        if (last) {
+          next[ex.id] = { kg: String(last.weightKg), reps: String(last.reps) };
+        }
+      }
+      return next;
+    });
     await loadList();
   };
 
@@ -210,10 +327,18 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         }),
       );
       setSetDrafts((prev) => ({ ...prev, [exerciseId]: { kg: draft.kg, reps: "" } }));
+      startRest();
       await refreshDetail(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить подход");
     }
+  };
+
+  const applyLastSet = (exerciseId: string, set: HistorySet) => {
+    setSetDrafts((prev) => ({
+      ...prev,
+      [exerciseId]: { kg: String(set.weightKg), reps: String(set.reps) },
+    }));
   };
 
   const deleteSet = async (setId: string) => {
@@ -248,6 +373,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setDetail(null);
       setActiveId(null);
       setProgress(null);
+      setRestEndsAt(null);
       await loadList();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось удалить");
@@ -278,6 +404,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 setActiveId(null);
                 setDetail(null);
                 setProgress(null);
+                setRestEndsAt(null);
                 void loadList();
               }}
             >
@@ -317,11 +444,59 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           </div>
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Отдых между подходами
+            </p>
+            <div className="flex gap-1">
+              {REST_OPTIONS.map((sec) => (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setRestSeconds(sec)}
+                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    restSeconds === sec
+                      ? "bg-teal-700 text-white"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {sec}с
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <p className="text-2xl font-semibold tabular-nums text-slate-900">
+              {restEndsAt ? formatRest(restLeft) : formatRest(restSeconds)}
+            </p>
+            {restEndsAt ? (
+              <button
+                type="button"
+                className="text-sm text-slate-500"
+                onClick={() => setRestEndsAt(null)}
+              >
+                Сброс
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="text-sm font-medium text-teal-800"
+                onClick={startRest}
+              >
+                Старт
+              </button>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-slate-400">Запускается автоматически после «+ Подход».</p>
+        </section>
+
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex flex-col gap-3">
           {detail.exercises.map((ex) => {
             const draft = setDrafts[ex.id] ?? { kg: "", reps: "" };
+            const hint = lastSetHint(ex.lastTime ?? null);
             return (
               <section key={ex.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -331,6 +506,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       {ex.muscleLabel ? `${ex.muscleLabel} · ` : ""}
                       {formatLoad(ex.load)} кг·повт
                     </p>
+                    {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
                   </div>
                   <button
                     type="button"
@@ -361,6 +537,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     </li>
                   ))}
                 </ul>
+
+                {ex.lastTime?.sets?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {ex.lastTime.sets.map((s, i) => (
+                      <button
+                        key={`${ex.id}-last-${i}`}
+                        type="button"
+                        className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900"
+                        onClick={() => applyLastSet(ex.id, s)}
+                      >
+                        было {s.weightKg}×{s.reps}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 <div className="mt-3 flex flex-wrap items-end gap-2">
                   <label className="flex flex-col gap-1 text-xs text-slate-500">
@@ -487,11 +678,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             })}
           </div>
           {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
+          {preview?.previousSessionId ? (
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={copyExercises}
+                onChange={(e) => setCopyExercises(e.target.checked)}
+              />
+              Скопировать упражнения и подходы из прошлой
+            </label>
+          ) : null}
           <div className="mt-4 flex gap-2">
             <button
               type="button"
               className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-              disabled={newGroups.length === 0}
+              disabled={newGroups.length === 0 || busy}
               onClick={() => void createSession()}
             >
               Создать
@@ -517,15 +718,18 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
       <ul className="flex flex-col gap-2">
         {sessions.map((s) => (
-          <li key={s.id}>
+          <li
+            key={s.id}
+            className="flex items-stretch gap-2 rounded-2xl border border-slate-200 bg-white"
+          >
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left hover:border-teal-300"
+              className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
               onClick={() => void openSession(s.id)}
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-slate-900">{formatDateWords(s.date)}</p>
-                <p className="text-sm text-slate-600">{s.muscleLabels.join(" · ")}</p>
+                <p className="truncate text-sm text-slate-600">{s.muscleLabels.join(" · ")}</p>
                 <p className="text-xs text-slate-400">
                   {s.exerciseCount} упр. · {s.setCount} подх.
                 </p>
@@ -533,6 +737,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               <p className="text-lg font-semibold tabular-nums text-slate-900">
                 {formatLoad(s.totalLoad)}
               </p>
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 border-l border-slate-100 px-3 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
+              onClick={() => void repeatSession(s.id)}
+            >
+              Повторить
             </button>
           </li>
         ))}
