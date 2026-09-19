@@ -32,6 +32,7 @@ test("skips admin paths for Metrika hits", () => {
   assert.equal(shouldTrackMetrikaPath("/login"), true);
   assert.equal(shouldTrackMetrikaPath("/admin"), false);
   assert.equal(shouldTrackMetrikaPath("/admin/users"), false);
+  assert.equal(shouldTrackMetrikaPath("/workouts"), false);
 });
 
 test("init snippet interpolates only a numeric id and sends the first hit", () => {
