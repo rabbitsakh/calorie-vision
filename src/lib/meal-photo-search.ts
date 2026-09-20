@@ -1,8 +1,9 @@
 import {
+  findProduceWikiImage,
   searchFoodImageCandidates,
   type FoodImageCandidate,
 } from "@/lib/food-image";
-import { dishImageLookupQueries } from "@/lib/meal-image";
+import { dishImageLookupQueries, looksLikeProduceName } from "@/lib/meal-image";
 import { searchOpenFoodFactsImageCandidates } from "@/lib/open-food-facts";
 import { cacheRemoteImage } from "@/lib/upload";
 
@@ -56,6 +57,17 @@ export async function searchMealPhotoCandidates(
       if (out.length >= limit) {
         break;
       }
+    }
+  }
+
+  // Produce: packaging-biased search often empty → Commons vegetable photos.
+  if (out.length < 3 && looksLikeProduceName(dishName)) {
+    for (const query of queries.slice(0, 3)) {
+      const url = await findProduceWikiImage(query);
+      if (url) {
+        push({ url, source: "commons", label: "Wikimedia Commons" });
+      }
+      if (out.length >= limit) break;
     }
   }
 

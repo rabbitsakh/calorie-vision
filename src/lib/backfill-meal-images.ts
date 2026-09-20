@@ -1,5 +1,11 @@
-import { findFoodImage } from "./food-image";
-import { dishImageLookupQueries, mealNeedsImage, normalizeDishName, shouldSkipDishName } from "./meal-image";
+import { findFoodImage, findProduceWikiImage } from "./food-image";
+import {
+  dishImageLookupQueries,
+  looksLikeProduceName,
+  mealNeedsImage,
+  normalizeDishName,
+  shouldSkipDishName,
+} from "./meal-image";
 import { searchOpenFoodFactsBest } from "./open-food-facts";
 import { prisma } from "./prisma";
 import { cacheRemoteImage, recompressStoredImages } from "./upload";
@@ -56,6 +62,17 @@ async function lookupProductImage(dishName: string): Promise<string | undefined>
     const cached = await cacheRemoteImage(remoteUrl, { allowWebProduct: true });
     if (cached) {
       return cached;
+    }
+  }
+
+  // Raw produce (celery, cucumber, …): packaging search usually misses → Wikipedia / Commons.
+  if (looksLikeProduceName(dishName)) {
+    for (const query of queries.slice(0, 3)) {
+      const remoteUrl = await findProduceWikiImage(query);
+      const cached = await cacheRemoteImage(remoteUrl);
+      if (cached) {
+        return cached;
+      }
     }
   }
 

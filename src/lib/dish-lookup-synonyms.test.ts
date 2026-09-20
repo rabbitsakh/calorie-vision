@@ -32,3 +32,8 @@ test("lookupQueriesForName maps egg to boiled egg staple", () => {
   const queries = lookupQueriesForName("яйцо", null, 3);
   assert.ok(queries.some((q) => q.includes("вареное") || q.includes("варёное")));
 });
+
+test("lookupQueriesForName maps сельдерей to celery", () => {
+  const queries = lookupQueriesForName("сельдерей", null, 3);
+  assert.ok(queries.some((q) => /celery/i.test(q)));
+});
