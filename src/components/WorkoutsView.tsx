@@ -877,7 +877,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
       {!loading && sessions.length === 0 && !creating ? (
         <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
-          Пока нет тренировок. Создайте первую и отметьте группы мышц.
+          Пока нет тренировок. Создайте первую и отметьте вид / группы.
         </p>
       ) : null}
 
