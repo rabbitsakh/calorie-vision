@@ -565,10 +565,9 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                         type="number"
                         min="1"
                         inputMode="decimal"
-                        className="w-24 rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                        className="w-28 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         value={portionGramsInput}
                         onChange={(e) => setPortionGramsInput(e.target.value)}
-                        autoFocus
                       />
                     </label>
                     <button

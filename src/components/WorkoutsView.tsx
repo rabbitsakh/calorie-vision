@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatDateShort,
   formatDateWords,
@@ -428,6 +428,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     tonnage: number;
     cardioDistanceKm: number;
   } | null>(null);
+  const createFormRef = useRef<HTMLElement | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -536,6 +537,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     void loadRoutines();
     void loadCalendar();
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
+
+  useEffect(() => {
+    if (!creating) return;
+    createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [creating]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {
@@ -1341,15 +1347,17 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         ) : null}
 
         {restEndsAt ? (
-          <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4">
-            <div className="rounded-2xl border border-teal-300 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">Отдых</p>
-              <p className="text-3xl font-semibold tabular-nums text-slate-900">
-                {formatRest(restLeft)}
-              </p>
+          <div className="sticky top-0 z-20 -mx-1 rounded-2xl border border-teal-300 bg-teal-50 px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">Отдых</p>
+                <p className="text-3xl font-semibold tabular-nums text-slate-900">
+                  {formatRest(restLeft)}
+                </p>
+              </div>
               <button
                 type="button"
-                className="mt-1 text-sm text-slate-500"
+                className="rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
                 onClick={() => setRestEndsAt(null)}
               >
                 Пропустить
@@ -1404,7 +1412,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           <label className="flex flex-col gap-1 text-xs text-slate-500">
             Заметка к тренировке
             <input
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
               defaultValue={detail.note ?? ""}
               key={`note-${detail.id}-${detail.note ?? ""}`}
               placeholder="Самочувствие, зал…"
@@ -1717,7 +1725,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 <label className="mt-2 flex flex-col gap-1 text-xs text-slate-500">
                   Заметка
                   <input
-                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                    className="rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                     defaultValue={ex.note ?? ""}
                     key={`ex-note-${ex.id}-${ex.note ?? ""}`}
                     placeholder="Хват, амплитуда…"
@@ -1769,7 +1777,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       </button>
                       <button
                         type="button"
-                        title={SET_TYPE_LABELS[s.setType]}
+                        title={`${SET_TYPE_LABELS[s.setType]} — нажмите, чтобы сменить тип`}
                         className="shrink-0 rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
                         onClick={() => void cycleSetType(s)}
                       >
@@ -1822,7 +1830,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       Км
                       <input
                         inputMode="decimal"
-                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         value={draft.km}
                         onChange={(e) =>
                           setSetDrafts((prev) => ({
@@ -1838,7 +1846,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       Мин
                       <input
                         inputMode="decimal"
-                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         placeholder={ex.kind === "duration" ? "1" : "30"}
                         value={draft.time}
                         onChange={(e) =>
@@ -1855,7 +1863,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       {ex.kind === "assisted" ? "Помощь" : ex.kind === "weighted_bw" ? "+Кг" : "Кг"}
                       <input
                         inputMode="decimal"
-                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         value={draft.kg}
                         onChange={(e) =>
                           setSetDrafts((prev) => ({
@@ -1871,7 +1879,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       Повт.
                       <input
                         inputMode="numeric"
-                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         value={draft.reps}
                         onChange={(e) =>
                           setSetDrafts((prev) => ({
@@ -1884,7 +1892,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                   ) : null}
                   <button
                     type="button"
-                    title={SET_TYPE_LABELS[draft.setType]}
+                    title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
                     onClick={() =>
                       setSetDrafts((prev) => ({
@@ -1896,12 +1904,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     {SET_TYPE_SHORT[draft.setType]}
                   </button>
                   {kindUsesRestTimer(ex.kind) ? (
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                    <label
+                      className="flex flex-col gap-1 text-xs text-slate-500"
+                      title="RPE — насколько тяжело было (1 легко … 10 до отказа)"
+                    >
                       RPE
                       <input
                         inputMode="decimal"
-                        className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                         placeholder="8"
+                        aria-label="RPE — ощущаемая тяжесть от 1 до 10"
                         value={draft.rpe}
                         onChange={(e) =>
                           setSetDrafts((prev) => ({
@@ -1961,7 +1973,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
               Упражнение
               <input
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                className="rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
                 placeholder={EXERCISE_KIND_PLACEHOLDERS[newExerciseKind]}
                 value={exerciseName}
                 onChange={(e) => setExerciseName(e.target.value)}
@@ -2013,7 +2025,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             Пример: «Жим лёжа 80x8, 80x8» — по строке на упражнение. Свободный текст — через AI.
           </p>
           <textarea
-            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+            className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
             rows={3}
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
@@ -2043,12 +2055,107 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
           onClick={() => {
             setCreating(true);
-            setNewDate(todayKey);
+            setNewDate(filterDate ?? todayKey);
           }}
         >
           Новая
         </button>
       </div>
+
+      {creating ? (
+        <section
+          ref={createFormRef}
+          className="rounded-2xl border-2 border-teal-300 bg-white p-4 shadow-sm"
+        >
+          <h2 className="font-semibold text-slate-900">Новая тренировка</h2>
+          <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
+            Дата
+            <input
+              type="date"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+            />
+          </label>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Вид / группы
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {MUSCLE_GROUPS.map((g) => {
+              const on = newGroups.includes(g.key);
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => toggleGroup(g.key)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                    on
+                      ? "bg-teal-700 text-white"
+                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              );
+            })}
+          </div>
+          {!(newGroups.length === 1 && newGroups[0] === "cardio") ? (
+            <>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Прогрессия к прошлой
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {RATE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setProgressRate(opt.value)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                      progressRate === opt.value
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    +{opt.label}
+                  </button>
+                ))}
+              </div>
+              {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">
+              Кардио: записывайте км и минуты — темп считается автоматически.
+            </p>
+          )}
+          {preview?.previousSessionId ? (
+            <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={copyExercises}
+                onChange={(e) => setCopyExercises(e.target.checked)}
+              />
+              Скопировать упражнения и подходы из прошлой
+            </label>
+          ) : null}
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              disabled={newGroups.length === 0 || busy}
+              onClick={() => void createSession()}
+            >
+              Создать
+            </button>
+            <button
+              type="button"
+              className="rounded-lg px-3 py-2 text-sm text-slate-600"
+              onClick={() => setCreating(false)}
+            >
+              Отмена
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -2293,98 +2400,6 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
-
-      {creating ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="font-semibold text-slate-900">Новая тренировка</h2>
-          <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
-            Дата
-            <input
-              type="date"
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              value={newDate}
-              onChange={(e) => setNewDate(e.target.value)}
-            />
-          </label>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Вид / группы
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {MUSCLE_GROUPS.map((g) => {
-              const on = newGroups.includes(g.key);
-              return (
-                <button
-                  key={g.key}
-                  type="button"
-                  onClick={() => toggleGroup(g.key)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                    on
-                      ? "bg-teal-700 text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {g.label}
-                </button>
-              );
-            })}
-          </div>
-          {!(newGroups.length === 1 && newGroups[0] === "cardio") ? (
-            <>
-              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Прогрессия к прошлой
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {RATE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setProgressRate(opt.value)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                      progressRate === opt.value
-                        ? "bg-teal-700 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
-                  >
-                    +{opt.label}
-                  </button>
-                ))}
-              </div>
-              {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
-            </>
-          ) : (
-            <p className="mt-3 text-sm text-slate-600">
-              Кардио: записывайте км и минуты — темп считается автоматически.
-            </p>
-          )}
-          {preview?.previousSessionId ? (
-            <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={copyExercises}
-                onChange={(e) => setCopyExercises(e.target.checked)}
-              />
-              Скопировать упражнения и подходы из прошлой
-            </label>
-          ) : null}
-          <div className="mt-4 flex gap-2">
-            <button
-              type="button"
-              className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-              disabled={newGroups.length === 0 || busy}
-              onClick={() => void createSession()}
-            >
-              Создать
-            </button>
-            <button
-              type="button"
-              className="rounded-lg px-3 py-2 text-sm text-slate-600"
-              onClick={() => setCreating(false)}
-            >
-              Отмена
-            </button>
-          </div>
         </section>
       ) : null}
 

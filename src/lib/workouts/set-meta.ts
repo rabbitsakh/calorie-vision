@@ -9,11 +9,12 @@ export const SET_TYPE_LABELS: Record<SetType, string> = {
   failure: "Отказ",
 };
 
+/** Short Russian labels shown on set chips (tap to cycle). */
 export const SET_TYPE_SHORT: Record<SetType, string> = {
-  warmup: "W",
-  working: "R",
-  drop: "D",
-  failure: "F",
+  warmup: "Рзм",
+  working: "Раб",
+  drop: "Дроп",
+  failure: "Отказ",
 };
 
 export function isSetType(value: unknown): value is SetType {
