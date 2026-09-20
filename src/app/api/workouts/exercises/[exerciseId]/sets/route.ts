@@ -8,6 +8,7 @@ import {
   parseStrengthReps,
   parseStrengthWeight,
 } from "@/lib/workouts/set-fields";
+import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,20 @@ export async function POST(request: NextRequest, context: Ctx) {
       reps?: unknown;
       distanceKm?: unknown;
       durationSec?: unknown;
+      setType?: unknown;
+      completed?: unknown;
+      rpe?: unknown;
     };
+
+    const setType = parseSetType(body.setType);
+    const completed = body.completed === false ? false : true;
+    const rpe = parseRpe(body.rpe);
+    if (body.rpe !== undefined && rpe === null && body.rpe !== null && body.rpe !== "") {
+      return NextResponse.json({ error: "RPE от 1 до 10" }, { status: 400 });
+    }
+    if (body.setType !== undefined && !isSetType(body.setType) && body.setType !== "") {
+      return NextResponse.json({ error: "Тип подхода: warmup/working/drop/failure" }, { status: 400 });
+    }
 
     const maxOrder = await prisma.workoutSet.aggregate({
       where: { exerciseId },
@@ -47,14 +61,10 @@ export async function POST(request: NextRequest, context: Ctx) {
       const durationSec = parseCardioDurationSec(body.durationSec);
       if (distanceKm === null || durationSec === null) {
         return NextResponse.json(
-          { error: "Укажите дистанцию (км) и время (сек)" },
+          { error: "Укажите дистанцию (км) и время (мин → сек)" },
           { status: 400 },
         );
       }
-      if (distanceKm === 0 && durationSec === 0) {
-        return NextResponse.json({ error: "Укажите дистанцию или время" }, { status: 400 });
-      }
-      // Require at least duration; distance may be 0 for stationary bike time-only.
       await prisma.workoutSet.create({
         data: {
           exerciseId,
@@ -62,6 +72,9 @@ export async function POST(request: NextRequest, context: Ctx) {
           reps: null,
           distanceKm,
           durationSec,
+          setType,
+          completed,
+          rpe: rpe ?? null,
           sortOrder,
         },
       });
@@ -78,6 +91,9 @@ export async function POST(request: NextRequest, context: Ctx) {
           reps,
           distanceKm: null,
           durationSec: null,
+          setType,
+          completed,
+          rpe: rpe ?? null,
           sortOrder,
         },
       });
