@@ -57,15 +57,51 @@ export async function GET(request: NextRequest) {
 
     const limitParam = request.nextUrl.searchParams.get("limit");
     const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 100) : 40;
+    const from = request.nextUrl.searchParams.get("from");
+    const to = request.nextUrl.searchParams.get("to");
+    const groupsRaw = request.nextUrl.searchParams.get("groups");
+    const groups = groupsRaw
+      ? parseMuscleGroupKeys(groupsRaw.split(",").map((s) => s.trim()).filter(Boolean))
+      : null;
+    const cardioOnly = request.nextUrl.searchParams.get("cardio") === "1";
+    const dateExact = request.nextUrl.searchParams.get("date");
+
+    const dateFilter: { gte?: string; lte?: string; equals?: string } = {};
+    if (dateExact && /^\d{4}-\d{2}-\d{2}$/.test(dateExact)) {
+      dateFilter.equals = dateExact;
+    } else {
+      if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) dateFilter.gte = from;
+      if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) dateFilter.lte = to;
+    }
 
     const rows = await prisma.workoutSession.findMany({
-      where: { userId: session.user.id },
+      where: {
+        userId: session.user.id,
+        ...(dateFilter.equals
+          ? { date: dateFilter.equals }
+          : dateFilter.gte || dateFilter.lte
+            ? {
+                date: {
+                  ...(dateFilter.gte ? { gte: dateFilter.gte } : {}),
+                  ...(dateFilter.lte ? { lte: dateFilter.lte } : {}),
+                },
+              }
+            : {}),
+        ...(groups
+          ? { muscles: { some: { groupKey: { in: groups } } } }
+          : {}),
+      },
       include: sessionInclude,
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       take: limit,
     });
 
-    return NextResponse.json({ sessions: rows.map(serializeSessionSummary) });
+    let sessions = rows.map(serializeSessionSummary);
+    if (cardioOnly) {
+      sessions = sessions.filter((s) => s.cardioOnly || s.muscleKeys.includes("cardio"));
+    }
+
+    return NextResponse.json({ sessions });
   } catch (error) {
     console.error("GET /api/workouts", error);
     return NextResponse.json({ error: "Не удалось загрузить тренировки" }, { status: 500 });
@@ -106,6 +142,7 @@ export async function POST(request: NextRequest) {
         date,
         note,
         progressRate,
+        startedAt: new Date(),
         muscles: {
           create: muscleGroups.map((groupKey) => ({ groupKey })),
         },

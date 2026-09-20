@@ -55,6 +55,7 @@ export async function POST(request: NextRequest, context: Ctx) {
           date,
           progressRate,
           note: source.note,
+          startedAt: new Date(),
           muscles: {
             create: muscleKeys.map((groupKey) => ({ groupKey })),
           },

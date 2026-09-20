@@ -116,12 +116,18 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       note?: string | null;
       muscleGroups?: unknown;
       progressRate?: unknown;
+      /** start | pause | resume | finish — live session clock */
+      clock?: "start" | "pause" | "resume" | "finish";
     };
 
     const data: {
       date?: string;
       note?: string | null;
       progressRate?: number;
+      startedAt?: Date | null;
+      endedAt?: Date | null;
+      pausedAt?: Date | null;
+      pausedMs?: number;
     } = {};
 
     if (body.date !== undefined) {
@@ -139,6 +145,57 @@ export async function PATCH(request: NextRequest, context: Ctx) {
     }
     if (body.progressRate !== undefined) {
       data.progressRate = parseProgressRate(body.progressRate);
+    }
+
+    if (body.clock === "start") {
+      data.startedAt = existing.startedAt ?? new Date();
+      data.endedAt = null;
+      data.pausedAt = null;
+      if (!existing.startedAt) data.pausedMs = 0;
+    } else if (body.clock === "pause") {
+      if (!existing.startedAt || existing.endedAt) {
+        return NextResponse.json({ error: "Нельзя поставить на паузу" }, { status: 400 });
+      }
+      if (!existing.pausedAt) {
+        const { applyPause } = await import("@/lib/workouts/session-clock");
+        const p = applyPause({
+          startedAt: existing.startedAt,
+          endedAt: existing.endedAt,
+          pausedAt: existing.pausedAt,
+          pausedMs: existing.pausedMs,
+        });
+        data.pausedAt = p.pausedAt;
+        data.pausedMs = p.pausedMs;
+      }
+    } else if (body.clock === "resume") {
+      if (!existing.startedAt || existing.endedAt || !existing.pausedAt) {
+        return NextResponse.json({ error: "Нельзя продолжить" }, { status: 400 });
+      }
+      const { applyResume } = await import("@/lib/workouts/session-clock");
+      const r = applyResume({
+        startedAt: existing.startedAt,
+        endedAt: existing.endedAt,
+        pausedAt: existing.pausedAt,
+        pausedMs: existing.pausedMs,
+      });
+      data.pausedAt = r.pausedAt;
+      data.pausedMs = r.pausedMs;
+    } else if (body.clock === "finish") {
+      if (!existing.startedAt) {
+        data.startedAt = new Date();
+      }
+      if (existing.pausedAt) {
+        const { applyResume } = await import("@/lib/workouts/session-clock");
+        const r = applyResume({
+          startedAt: existing.startedAt ?? new Date(),
+          endedAt: null,
+          pausedAt: existing.pausedAt,
+          pausedMs: existing.pausedMs,
+        });
+        data.pausedAt = null;
+        data.pausedMs = r.pausedMs;
+      }
+      data.endedAt = new Date();
     }
 
     const muscleGroups =
