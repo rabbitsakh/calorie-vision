@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDateShort, formatDateWords } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
+import {
+  formatDistanceKm,
+  formatDuration,
+  formatPace,
+  parseDistanceKm,
+  parseDurationToSec,
+} from "@/lib/workouts/cardio";
+import { defaultExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
@@ -17,7 +25,16 @@ type Progress = {
   deltaPctVsTarget: number | null;
 };
 
-type HistorySet = { weightKg: number; reps: number };
+type HistorySet = {
+  weightKg: number | null;
+  reps: number | null;
+  distanceKm: number | null;
+  durationSec: number | null;
+};
+
+type SetDraft = { kg: string; reps: string; km: string; time: string };
+
+const EMPTY_DRAFT: SetDraft = { kg: "", reps: "", km: "", time: "" };
 
 type SessionSummary = {
   id: string;
@@ -30,16 +47,32 @@ type SessionSummary = {
   setCount: number;
   totalLoad: number;
   loadByGroup: Record<string, number>;
+  cardioDistanceKm: number;
+  cardioDurationSec: number;
+  cardioBestPaceSecPerKm: number | null;
+  cardioOnly: boolean;
 };
 
 type SessionExercise = {
   id: string;
   name: string;
+  kind: ExerciseKind;
   muscleGroup: string | null;
   muscleLabel: string | null;
   load: number;
-  sets: Array<{ id: string; weightKg: number; reps: number; load: number }>;
-  lastTime?: { date: string; sets: HistorySet[] } | null;
+  cardioDistanceKm: number;
+  cardioDurationSec: number;
+  cardioBestPaceSecPerKm: number | null;
+  sets: Array<{
+    id: string;
+    weightKg: number | null;
+    reps: number | null;
+    distanceKm: number | null;
+    durationSec: number | null;
+    paceSecPerKm: number | null;
+    load: number;
+  }>;
+  lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
 
 type SessionDetail = SessionSummary & {
@@ -76,10 +109,14 @@ const RATE_OPTIONS = [
 
 type TimelinePoint = {
   date: string;
+  kind?: string;
   topWeightKg: number;
   topReps: number;
   totalLoad: number;
   setCount: number;
+  distanceKm?: number;
+  durationSec?: number;
+  bestPaceSecPerKm?: number | null;
 };
 
 function formatLoad(value: number): string {
@@ -107,10 +144,53 @@ async function readJson<T>(res: Response): Promise<T> {
   return data;
 }
 
-function lastSetHint(lastTime: SessionExercise["lastTime"]): string | null {
+function lastSetHint(lastTime: SessionExercise["lastTime"], kind: ExerciseKind): string | null {
   if (!lastTime?.sets.length) return null;
-  const parts = lastTime.sets.map((s) => `${s.weightKg}×${s.reps}`);
+  const parts =
+    kind === "cardio" || lastTime.kind === "cardio"
+      ? lastTime.sets.map((s) => {
+          const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
+          const t = s.durationSec != null && s.durationSec > 0 ? formatDuration(s.durationSec) : null;
+          return [d, t].filter(Boolean).join(" / ") || "—";
+        })
+      : lastTime.sets.map((s) => `${s.weightKg ?? 0}×${s.reps ?? 0}`);
   return `Прошлый раз (${formatDateShort(lastTime.date)}): ${parts.join(", ")}`;
+}
+
+function draftFromHistorySet(set: HistorySet, kind: ExerciseKind): SetDraft {
+  if (kind === "cardio") {
+    return {
+      ...EMPTY_DRAFT,
+      km: set.distanceKm != null && set.distanceKm > 0 ? String(set.distanceKm) : "",
+      time: set.durationSec != null && set.durationSec > 0 ? formatDuration(set.durationSec) : "",
+    };
+  }
+  return {
+    ...EMPTY_DRAFT,
+    kg: set.weightKg != null ? String(set.weightKg) : "",
+    reps: set.reps != null ? String(set.reps) : "",
+  };
+}
+
+function formatSetLine(
+  s: {
+    weightKg: number | null;
+    reps: number | null;
+    distanceKm: number | null;
+    durationSec: number | null;
+    paceSecPerKm?: number | null;
+    load?: number;
+  },
+  kind: ExerciseKind,
+  idx: number,
+): string {
+  if (kind === "cardio") {
+    const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
+    const t = s.durationSec != null && s.durationSec > 0 ? formatDuration(s.durationSec) : null;
+    const pace = formatPace(s.paceSecPerKm);
+    return `${idx + 1}. ${[d, t, pace].filter(Boolean).join(" · ") || "—"}`;
+  }
+  return `${idx + 1}. ${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
 }
 
 export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
@@ -129,12 +209,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [progressRate, setProgressRate] = useState(DEFAULT_PROGRESS_RATE);
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
-  const [setDrafts, setSetDrafts] = useState<Record<string, { kg: string; reps: string }>>({});
+  const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
+  const [newExerciseKind, setNewExerciseKind] = useState<ExerciseKind>("strength");
   const [pasteText, setPasteText] = useState("");
   const [insights, setInsights] = useState<Insights | null>(null);
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
   const [historyByName, setHistoryByName] = useState<
-    Record<string, { points: TimelinePoint[]; topWeightDeltaKg: number | null }>
+    Record<
+      string,
+      { points: TimelinePoint[]; topWeightDeltaKg: number | null; bestPaceDeltaSec: number | null }
+    >
   >({});
 
   const [restSeconds, setRestSeconds] = useState<number>(90);
@@ -181,13 +265,15 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       );
       setDetail(data.session);
       setProgress(data.progress);
+      setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
       setSetDrafts((prev) => {
         const next = { ...prev };
         for (const ex of data.session.exercises) {
-          if (next[ex.id]?.kg || next[ex.id]?.reps) continue;
+          const cur = next[ex.id];
+          if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
           const last = ex.lastTime?.sets?.at(-1);
           if (last) {
-            next[ex.id] = { kg: String(last.weightKg), reps: String(last.reps) };
+            next[ex.id] = draftFromHistorySet(last, ex.kind);
           }
         }
         return next;
@@ -336,13 +422,15 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     );
     setDetail(data.session);
     setProgress(data.progress);
+    setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
     setSetDrafts((prev) => {
       const next = { ...prev };
       for (const ex of data.session.exercises) {
-        if (next[ex.id]?.kg || next[ex.id]?.reps) continue;
+        const cur = next[ex.id];
+        if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
         const last = ex.lastTime?.sets?.at(-1);
         if (last) {
-          next[ex.id] = { kg: String(last.weightKg), reps: String(last.reps) };
+          next[ex.id] = draftFromHistorySet(last, ex.kind);
         }
       }
       return next;
@@ -350,17 +438,18 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     await loadList();
   };
 
-  const addExercise = async (nameOverride?: string) => {
+  const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
     if (!detail) return;
     const name = (nameOverride ?? exerciseName).trim();
     if (!name) return;
     setError(null);
     try {
+      const kind = kindOverride ?? newExerciseKind;
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, kind }),
         }),
       );
       setExerciseName("");
@@ -430,34 +519,60 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
   const addSet = async (exerciseId: string) => {
     if (!detail) return;
-    const draft = setDrafts[exerciseId] ?? { kg: "", reps: "" };
-    const weightKg = Number(draft.kg.replace(",", "."));
-    const reps = Number(draft.reps);
-    if (!Number.isFinite(weightKg) || !Number.isFinite(reps) || reps <= 0) {
-      setError("Укажите кг и повторения");
-      return;
-    }
+    const ex = detail.exercises.find((e) => e.id === exerciseId);
+    if (!ex) return;
+    const draft = setDrafts[exerciseId] ?? EMPTY_DRAFT;
     setError(null);
     try {
-      const data = await readJson<{ session: SessionDetail }>(
-        await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ weightKg, reps }),
-        }),
-      );
-      setSetDrafts((prev) => ({ ...prev, [exerciseId]: { kg: draft.kg, reps: "" } }));
-      startRest();
-      await refreshDetail(data.session);
+      if (ex.kind === "cardio") {
+        const distanceKm = parseDistanceKm(draft.km || "0");
+        const durationSec = parseDurationToSec(draft.time);
+        if (distanceKm === null || durationSec === null) {
+          setError("Укажите км и время (мм:сс или минуты)");
+          return;
+        }
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ distanceKm, durationSec }),
+          }),
+        );
+        setSetDrafts((prev) => ({
+          ...prev,
+          [exerciseId]: { ...EMPTY_DRAFT, km: draft.km },
+        }));
+        await refreshDetail(data.session);
+      } else {
+        const weightKg = Number(draft.kg.replace(",", "."));
+        const reps = Number(draft.reps);
+        if (!Number.isFinite(weightKg) || !Number.isFinite(reps) || reps <= 0) {
+          setError("Укажите кг и повторения");
+          return;
+        }
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ weightKg, reps }),
+          }),
+        );
+        setSetDrafts((prev) => ({
+          ...prev,
+          [exerciseId]: { ...EMPTY_DRAFT, kg: draft.kg },
+        }));
+        startRest();
+        await refreshDetail(data.session);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить подход");
     }
   };
 
-  const applyLastSet = (exerciseId: string, set: HistorySet) => {
+  const applyLastSet = (exerciseId: string, set: HistorySet, kind: ExerciseKind) => {
     setSetDrafts((prev) => ({
       ...prev,
-      [exerciseId]: { kg: String(set.weightKg), reps: String(set.reps) },
+      [exerciseId]: draftFromHistorySet(set, kind),
     }));
   };
 
@@ -469,6 +584,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       const data = await readJson<{
         points: TimelinePoint[];
         topWeightDeltaKg: number | null;
+        bestPaceDeltaSec: number | null;
       }>(
         await fetch(
           withBasePath(`/api/workouts/exercise-history?name=${encodeURIComponent(name)}`),
@@ -476,7 +592,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       );
       setHistoryByName((prev) => ({
         ...prev,
-        [name]: { points: data.points, topWeightDeltaKg: data.topWeightDeltaKg },
+        [name]: {
+          points: data.points,
+          topWeightDeltaKg: data.topWeightDeltaKg,
+          bestPaceDeltaSec: data.bestPaceDeltaSec,
+        },
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось загрузить историю");
@@ -523,6 +643,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   };
 
   const progressLine = useMemo(() => {
+    if (detail?.cardioOnly) {
+      const line = [
+        detail.cardioDistanceKm > 0 ? `${formatDistanceKm(detail.cardioDistanceKm)} км` : null,
+        detail.cardioDurationSec > 0 ? formatDuration(detail.cardioDurationSec) : null,
+        formatPace(detail.cardioBestPaceSecPerKm),
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      return line || "Запишите дистанцию и время — темп посчитается сам.";
+    }
     const p = progress ?? preview;
     if (!p) return null;
     if (!p.previousLoad) {
@@ -530,7 +660,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }
     const pct = Math.round(p.progressRate * 1000) / 10;
     return `Прошлая (${p.previousDate ? formatDateShort(p.previousDate) : "—"}): ${formatLoad(p.previousLoad)} · цель +${pct}% → ${formatLoad(p.targetLoad)}`;
-  }, [progress, preview]);
+  }, [progress, preview, detail]);
 
   if (activeId && detail) {
     const delta = formatPct(progress?.deltaPctVsPrevious);
@@ -567,86 +697,121 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Нагрузка, кг·повт
-          </p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
-            {formatLoad(detail.totalLoad)}
-          </p>
-          {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
-          <div className="mt-2 flex flex-wrap gap-2 text-sm">
-            {delta ? (
-              <span className={progress && (progress.deltaPctVsPrevious ?? 0) >= 0 ? "text-teal-700" : "text-slate-600"}>
-                к прошлой {delta}
-              </span>
-            ) : null}
-            {vsTarget && progress?.targetLoad ? (
-              <span className="text-slate-500">к цели {vsTarget}</span>
-            ) : null}
-          </div>
+          {detail.cardioOnly ? (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Кардио · км / время
+              </p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+                {detail.cardioDistanceKm > 0
+                  ? `${formatDistanceKm(detail.cardioDistanceKm)} км`
+                  : formatDuration(detail.cardioDurationSec)}
+              </p>
+              {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Нагрузка, кг·повт
+              </p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+                {formatLoad(detail.totalLoad)}
+              </p>
+              {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
+              <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                {delta ? (
+                  <span
+                    className={
+                      progress && (progress.deltaPctVsPrevious ?? 0) >= 0
+                        ? "text-teal-700"
+                        : "text-slate-600"
+                    }
+                  >
+                    к прошлой {delta}
+                  </span>
+                ) : null}
+                {vsTarget && progress?.targetLoad ? (
+                  <span className="text-slate-500">к цели {vsTarget}</span>
+                ) : null}
+              </div>
+            </>
+          )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Отдых между подходами
-            </p>
-            <div className="flex gap-1">
-              {REST_OPTIONS.map((sec) => (
-                <button
-                  key={sec}
-                  type="button"
-                  onClick={() => setRestSeconds(sec)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    restSeconds === sec
-                      ? "bg-teal-700 text-white"
-                      : "bg-slate-100 text-slate-600"
-                  }`}
-                >
-                  {sec}с
-                </button>
-              ))}
+        {!detail.cardioOnly ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Отдых между подходами
+              </p>
+              <div className="flex gap-1">
+                {REST_OPTIONS.map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setRestSeconds(sec)}
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      restSeconds === sec
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {sec}с
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="mt-2 flex items-center gap-3">
-            <p className="text-2xl font-semibold tabular-nums text-slate-900">
-              {restEndsAt ? formatRest(restLeft) : formatRest(restSeconds)}
-            </p>
-            {restEndsAt ? (
-              <button
-                type="button"
-                className="text-sm text-slate-500"
-                onClick={() => setRestEndsAt(null)}
-              >
-                Сброс
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="text-sm font-medium text-teal-800"
-                onClick={startRest}
-              >
-                Старт
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-xs text-slate-400">Запускается автоматически после «+ Подход».</p>
-        </section>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="text-2xl font-semibold tabular-nums text-slate-900">
+                {restEndsAt ? formatRest(restLeft) : formatRest(restSeconds)}
+              </p>
+              {restEndsAt ? (
+                <button
+                  type="button"
+                  className="text-sm text-slate-500"
+                  onClick={() => setRestEndsAt(null)}
+                >
+                  Сброс
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-teal-800"
+                  onClick={startRest}
+                >
+                  Старт
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-slate-400">Запускается автоматически после «+ Подход».</p>
+          </section>
+        ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <div className="flex flex-col gap-3">
           {detail.exercises.map((ex) => {
-            const draft = setDrafts[ex.id] ?? { kg: "", reps: "" };
-            const hint = lastSetHint(ex.lastTime ?? null);
+            const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
+            const hint = lastSetHint(ex.lastTime ?? null, ex.kind);
+            const isCardio = ex.kind === "cardio";
             return (
               <section key={ex.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <h3 className="font-semibold text-slate-900">{ex.name}</h3>
                     <p className="text-xs text-slate-500">
-                      {ex.muscleLabel ? `${ex.muscleLabel} · ` : ""}
-                      {formatLoad(ex.load)} кг·повт
+                      {isCardio
+                        ? [
+                            "Кардио",
+                            ex.cardioDistanceKm > 0
+                              ? `${formatDistanceKm(ex.cardioDistanceKm)} км`
+                              : null,
+                            ex.cardioDurationSec > 0 ? formatDuration(ex.cardioDurationSec) : null,
+                            formatPace(ex.cardioBestPaceSecPerKm),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : `${ex.muscleLabel ? `${ex.muscleLabel} · ` : ""}${formatLoad(ex.load)} кг·повт`}
                     </p>
                     {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
                     <button
@@ -654,7 +819,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       className="mt-1 text-xs font-medium text-teal-800"
                       onClick={() => void toggleExerciseHistory(ex.name)}
                     >
-                      {historyOpen[ex.name] ? "Скрыть историю" : "История весов"}
+                      {historyOpen[ex.name]
+                        ? "Скрыть историю"
+                        : isCardio
+                          ? "История кардио"
+                          : "История весов"}
                     </button>
                   </div>
                   <button
@@ -676,15 +845,39 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       <>
                         <ul className="space-y-1">
                           {historyByName[ex.name]!.points.map((p) => (
-                            <li key={`${p.date}-${p.topWeightKg}`} className="flex justify-between gap-2 tabular-nums">
+                            <li
+                              key={`${p.date}-${p.topWeightKg}-${p.distanceKm ?? 0}`}
+                              className="flex justify-between gap-2 tabular-nums"
+                            >
                               <span>{formatDateShort(p.date)}</span>
                               <span>
-                                {p.topWeightKg}×{p.topReps} · {formatLoad(p.totalLoad)}
+                                {p.kind === "cardio" || isCardio
+                                  ? [
+                                      p.distanceKm && p.distanceKm > 0
+                                        ? `${formatDistanceKm(p.distanceKm)} км`
+                                        : null,
+                                      p.durationSec && p.durationSec > 0
+                                        ? formatDuration(p.durationSec)
+                                        : null,
+                                      formatPace(p.bestPaceSecPerKm),
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ")
+                                  : `${p.topWeightKg}×${p.topReps} · ${formatLoad(p.totalLoad)}`}
                               </span>
                             </li>
                           ))}
                         </ul>
-                        {historyByName[ex.name]!.topWeightDeltaKg != null ? (
+                        {isCardio && historyByName[ex.name]!.bestPaceDeltaSec != null ? (
+                          <p className="mt-1 text-teal-800">
+                            Темп к прошлой:{" "}
+                            {historyByName[ex.name]!.bestPaceDeltaSec! > 0 ? "+" : ""}
+                            {formatDuration(Math.abs(historyByName[ex.name]!.bestPaceDeltaSec!))}
+                            /км
+                            {historyByName[ex.name]!.bestPaceDeltaSec! < 0 ? " (быстрее)" : ""}
+                          </p>
+                        ) : null}
+                        {!isCardio && historyByName[ex.name]!.topWeightDeltaKg != null ? (
                           <p className="mt-1 text-teal-800">
                             Топ-вес к прошлой:{" "}
                             {historyByName[ex.name]!.topWeightDeltaKg! > 0 ? "+" : ""}
@@ -703,8 +896,10 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
                     >
                       <span className="tabular-nums text-slate-800">
-                        {idx + 1}. {s.weightKg} кг × {s.reps}{" "}
-                        <span className="text-slate-400">({formatLoad(s.load)})</span>
+                        {formatSetLine(s, ex.kind, idx)}
+                        {!isCardio ? (
+                          <span className="text-slate-400"> ({formatLoad(s.load)})</span>
+                        ) : null}
                       </span>
                       <button
                         type="button"
@@ -724,50 +919,104 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                         key={`${ex.id}-last-${i}`}
                         type="button"
                         className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900"
-                        onClick={() => applyLastSet(ex.id, s)}
+                        onClick={() => applyLastSet(ex.id, s, ex.kind)}
                       >
-                        было {s.weightKg}×{s.reps}
+                        {isCardio
+                          ? `было ${[
+                              s.distanceKm != null && s.distanceKm > 0
+                                ? `${formatDistanceKm(s.distanceKm)} км`
+                                : null,
+                              s.durationSec != null && s.durationSec > 0
+                                ? formatDuration(s.durationSec)
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" / ")}`
+                          : `было ${s.weightKg}×${s.reps}`}
                       </button>
                     ))}
                   </div>
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap items-end gap-2">
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
-                    Кг
-                    <input
-                      inputMode="decimal"
-                      className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                      value={draft.kg}
-                      onChange={(e) =>
-                        setSetDrafts((prev) => ({
-                          ...prev,
-                          [ex.id]: { ...draft, kg: e.target.value },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
-                    Повт.
-                    <input
-                      inputMode="numeric"
-                      className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                      value={draft.reps}
-                      onChange={(e) =>
-                        setSetDrafts((prev) => ({
-                          ...prev,
-                          [ex.id]: { ...draft, reps: e.target.value },
-                        }))
-                      }
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-                    onClick={() => void addSet(ex.id)}
-                  >
-                    + Подход
-                  </button>
+                  {isCardio ? (
+                    <>
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Км
+                        <input
+                          inputMode="decimal"
+                          className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          value={draft.km}
+                          onChange={(e) =>
+                            setSetDrafts((prev) => ({
+                              ...prev,
+                              [ex.id]: { ...draft, km: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Время
+                        <input
+                          inputMode="decimal"
+                          className="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          placeholder="мм:сс"
+                          value={draft.time}
+                          onChange={(e) =>
+                            setSetDrafts((prev) => ({
+                              ...prev,
+                              [ex.id]: { ...draft, time: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+                        onClick={() => void addSet(ex.id)}
+                      >
+                        + Отрезок
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Кг
+                        <input
+                          inputMode="decimal"
+                          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          value={draft.kg}
+                          onChange={(e) =>
+                            setSetDrafts((prev) => ({
+                              ...prev,
+                              [ex.id]: { ...draft, kg: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Повт.
+                        <input
+                          inputMode="numeric"
+                          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          value={draft.reps}
+                          onChange={(e) =>
+                            setSetDrafts((prev) => ({
+                              ...prev,
+                              [ex.id]: { ...draft, reps: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+                        onClick={() => void addSet(ex.id)}
+                      >
+                        + Подход
+                      </button>
+                    </>
+                  )}
                 </div>
               </section>
             );
@@ -789,29 +1038,50 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-dashed border-slate-300 p-4">
-          <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
-            Упражнение
-            <input
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
-              placeholder="Жим лёжа"
-              value={exerciseName}
-              onChange={(e) => setExerciseName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void addExercise();
-                }
-              }}
-            />
-          </label>
-          <button
-            type="button"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
-            onClick={() => void addExercise()}
-          >
-            Добавить
-          </button>
+        <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-slate-300 p-4">
+          <div className="flex gap-1">
+            {([
+              ["strength", "Силовое"],
+              ["cardio", "Кардио"],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setNewExerciseKind(key)}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  newExerciseKind === key
+                    ? "bg-teal-700 text-white"
+                    : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
+              Упражнение
+              <input
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                placeholder={newExerciseKind === "cardio" ? "Бег / велосипед" : "Жим лёжа"}
+                value={exerciseName}
+                onChange={(e) => setExerciseName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void addExercise();
+                  }
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+              onClick={() => void addExercise()}
+            >
+              Добавить
+            </button>
+          </div>
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -845,7 +1115,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-600">
-          Нагрузка = кг × повторения. Цель — +5% к прошлой сессии тех же групп.
+          Силовые: кг × повт (+5%). Кардио: км и время (темп).
         </p>
         <button
           type="button"
@@ -920,26 +1190,34 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               );
             })}
           </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Прогрессия к прошлой
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {RATE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setProgressRate(opt.value)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                  progressRate === opt.value
-                    ? "bg-teal-700 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                +{opt.label}
-              </button>
-            ))}
-          </div>
-          {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
+          {!(newGroups.length === 1 && newGroups[0] === "cardio") ? (
+            <>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Прогрессия к прошлой
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {RATE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setProgressRate(opt.value)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                      progressRate === opt.value
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    +{opt.label}
+                  </button>
+                ))}
+              </div>
+              {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-slate-600">
+              Кардио: записывайте км и время — темп считается автоматически.
+            </p>
+          )}
           {preview?.previousSessionId ? (
             <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
               <input
@@ -993,11 +1271,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 <p className="font-semibold text-slate-900">{formatDateWords(s.date)}</p>
                 <p className="truncate text-sm text-slate-600">{s.muscleLabels.join(" · ")}</p>
                 <p className="text-xs text-slate-400">
-                  {s.exerciseCount} упр. · {s.setCount} подх.
+                  {s.exerciseCount} упр. · {s.setCount}{" "}
+                  {s.cardioOnly ? "отр." : "подх."}
                 </p>
               </div>
               <p className="text-lg font-semibold tabular-nums text-slate-900">
-                {formatLoad(s.totalLoad)}
+                {s.cardioOnly
+                  ? s.cardioDistanceKm > 0
+                    ? `${formatDistanceKm(s.cardioDistanceKm)} км`
+                    : formatDuration(s.cardioDurationSec)
+                  : formatLoad(s.totalLoad)}
               </p>
             </button>
             <button

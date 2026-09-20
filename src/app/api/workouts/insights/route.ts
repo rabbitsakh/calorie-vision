@@ -53,7 +53,12 @@ export async function GET(request: NextRequest) {
     // Exercise suggestions: names seen with matching muscle groups (or any if no filter).
     const nameStats = new Map<
       string,
-      { name: string; count: number; lastDate: string; lastSets: Array<{ weightKg: number; reps: number }> }
+      { name: string; count: number; lastDate: string; lastSets: Array<{
+        weightKg: number | null;
+        reps: number | null;
+        distanceKm: number | null;
+        durationSec: number | null;
+      }> }
     >();
 
     for (const row of history) {
@@ -76,7 +81,12 @@ export async function GET(request: NextRequest) {
         if (!key) continue;
         const sets = [...ex.sets]
           .sort((a, b) => a.sortOrder - b.sortOrder)
-          .map((s) => ({ weightKg: s.weightKg, reps: s.reps }));
+          .map((s) => ({
+            weightKg: s.weightKg,
+            reps: s.reps,
+            distanceKm: s.distanceKm ?? null,
+            durationSec: s.durationSec ?? null,
+          }));
         const prev = nameStats.get(key);
         if (!prev) {
           nameStats.set(key, {

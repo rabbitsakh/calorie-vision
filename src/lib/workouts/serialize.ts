@@ -1,4 +1,12 @@
 import {
+  cardioSetTotals,
+  formatDistanceKm,
+  formatDuration,
+  formatPace,
+  paceSecPerKm,
+} from "@/lib/workouts/cardio";
+import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import {
   exerciseLoad,
   loadByMuscleGroup,
   roundLoad,
@@ -9,14 +17,17 @@ import { muscleGroupLabel, normalizeGroupKeys } from "@/lib/workouts/muscle-grou
 
 export type DbSet = {
   id: string;
-  weightKg: number;
-  reps: number;
+  weightKg: number | null;
+  reps: number | null;
+  distanceKm?: number | null;
+  durationSec?: number | null;
   sortOrder: number;
 };
 
 export type DbExercise = {
   id: string;
   name: string;
+  kind?: string | null;
   muscleGroup: string | null;
   sortOrder: number;
   sets: DbSet[];
@@ -36,8 +47,16 @@ export type DbSession = {
 function toLoadExercises(exercises: DbExercise[]): LoadExercise[] {
   return exercises.map((ex) => ({
     muscleGroup: ex.muscleGroup,
+    kind: parseExerciseKind(ex.kind),
     sets: ex.sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
   }));
+}
+
+function sessionCardioTotals(exercises: DbExercise[]) {
+  const cardioSets = exercises
+    .filter((ex) => parseExerciseKind(ex.kind) === "cardio")
+    .flatMap((ex) => ex.sets);
+  return cardioSetTotals(cardioSets);
 }
 
 export function serializeSessionSummary(session: DbSession) {
@@ -49,6 +68,9 @@ export function serializeSessionSummary(session: DbSession) {
   for (const [k, v] of Object.entries(byGroup)) {
     loadByGroup[k] = roundLoad(v);
   }
+  const cardio = sessionCardioTotals(session.exercises);
+  const cardioOnly =
+    muscleKeys.length === 1 && muscleKeys[0] === "cardio" && totalLoad === 0;
 
   return {
     id: session.id,
@@ -61,6 +83,10 @@ export function serializeSessionSummary(session: DbSession) {
     setCount: session.exercises.reduce((n, ex) => n + ex.sets.length, 0),
     totalLoad,
     loadByGroup,
+    cardioDistanceKm: cardio.distanceKm,
+    cardioDurationSec: cardio.durationSec,
+    cardioBestPaceSecPerKm: cardio.bestPaceSecPerKm,
+    cardioOnly,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
   };
@@ -71,27 +97,59 @@ export function serializeSessionDetail(session: DbSession) {
   const exercises = [...session.exercises]
     .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))
     .map((ex) => {
+      const kind: ExerciseKind = parseExerciseKind(ex.kind);
       const sets = [...ex.sets]
         .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))
-        .map((s) => ({
-          id: s.id,
-          weightKg: s.weightKg,
-          reps: s.reps,
-          sortOrder: s.sortOrder,
-          load: roundLoad(s.weightKg * s.reps),
-        }));
+        .map((s) => {
+          const weightKg = s.weightKg;
+          const reps = s.reps;
+          const distanceKm = s.distanceKm ?? null;
+          const durationSec = s.durationSec ?? null;
+          const load =
+            kind === "strength" && weightKg != null && reps != null
+              ? roundLoad(weightKg * reps)
+              : 0;
+          return {
+            id: s.id,
+            weightKg,
+            reps,
+            distanceKm,
+            durationSec,
+            paceSecPerKm: paceSecPerKm(distanceKm ?? 0, durationSec ?? 0),
+            sortOrder: s.sortOrder,
+            load,
+          };
+        });
+      const cardio = kind === "cardio" ? cardioSetTotals(sets) : null;
       return {
         id: ex.id,
         name: ex.name,
+        kind,
         muscleGroup: ex.muscleGroup,
         muscleLabel: ex.muscleGroup ? muscleGroupLabel(ex.muscleGroup) : null,
         sortOrder: ex.sortOrder,
-        load: roundLoad(exerciseLoad({ muscleGroup: ex.muscleGroup, sets })),
+        load: roundLoad(exerciseLoad({ muscleGroup: ex.muscleGroup, kind, sets })),
+        cardioDistanceKm: cardio?.distanceKm ?? 0,
+        cardioDurationSec: cardio?.durationSec ?? 0,
+        cardioBestPaceSecPerKm: cardio?.bestPaceSecPerKm ?? null,
         sets,
       };
     });
 
   return { ...summary, exercises };
+}
+
+export function formatCardioSummaryLine(input: {
+  distanceKm: number;
+  durationSec: number;
+  bestPaceSecPerKm?: number | null;
+}): string {
+  const parts: string[] = [];
+  if (input.distanceKm > 0) parts.push(`${formatDistanceKm(input.distanceKm)} км`);
+  if (input.durationSec > 0) parts.push(formatDuration(input.durationSec));
+  const pace = formatPace(input.bestPaceSecPerKm);
+  if (pace) parts.push(pace);
+  return parts.join(" · ") || "—";
 }
 
 export const sessionInclude = {

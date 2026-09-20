@@ -441,6 +441,8 @@ model WorkoutExercise {
   id          String   @id @default(cuid())
   sessionId   String
   name        String   @db.VarChar(120)
+  /** strength | cardio — drives set fields (kg×reps vs km+time). */
+  kind        String   @default("strength") @db.VarChar(16)
   /** Optional primary group; null → inherit session groups for load split. */
   muscleGroup String?  @db.VarChar(32)
   sortOrder   Int      @default(0)
@@ -454,13 +456,17 @@ model WorkoutExercise {
 }
 
 model WorkoutSet {
-  id         String   @id @default(cuid())
-  exerciseId String
-  weightKg   Float
-  reps       Int
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  exerciseId  String
+  /** Strength sets: kg × reps. Null for cardio. */
+  weightKg    Float?
+  reps        Int?
+  /** Cardio segments: distance (km) and duration (seconds). */
+  distanceKm  Float?
+  durationSec Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   exercise WorkoutExercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 

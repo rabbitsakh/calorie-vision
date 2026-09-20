@@ -68,6 +68,7 @@ export async function POST(request: NextRequest, context: Ctx) {
           data: {
             sessionId: row.id,
             name: ex.name,
+            kind: ex.kind ?? "strength",
             muscleGroup: ex.muscleGroup,
             sortOrder: i,
           },
@@ -82,6 +83,8 @@ export async function POST(request: NextRequest, context: Ctx) {
                 exerciseId: createdEx.id,
                 weightKg: s.weightKg,
                 reps: s.reps,
+                distanceKm: s.distanceKm,
+                durationSec: s.durationSec,
                 sortOrder: j,
               })),
             });

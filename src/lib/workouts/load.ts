@@ -7,16 +7,18 @@ import {
 export const DEFAULT_PROGRESS_RATE = 0.05;
 
 export type LoadSet = {
-  weightKg: number;
-  reps: number;
+  weightKg?: number | null;
+  reps?: number | null;
 };
 
 export type LoadExercise = {
   muscleGroup?: string | null;
+  /** Cardio exercises contribute 0 to strength volume. */
+  kind?: string | null;
   sets: LoadSet[];
 };
 
-/** Volume load for one set: kg × reps. */
+/** Volume load for one set: kg × reps. Cardio / empty → 0. */
 export function setLoad(set: LoadSet): number {
   const w = Number(set.weightKg);
   const r = Number(set.reps);
@@ -27,6 +29,7 @@ export function setLoad(set: LoadSet): number {
 }
 
 export function exerciseLoad(exercise: LoadExercise): number {
+  if (exercise.kind === "cardio") return 0;
   return exercise.sets.reduce((sum, s) => sum + setLoad(s), 0);
 }
 

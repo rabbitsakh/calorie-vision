@@ -1,20 +1,31 @@
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 
 export type HistorySet = {
-  weightKg: number;
-  reps: number;
+  weightKg: number | null;
+  reps: number | null;
+  distanceKm: number | null;
+  durationSec: number | null;
 };
 
 export type ExerciseHistoryEntry = {
   date: string;
   sessionId: string;
+  kind: ExerciseKind;
   sets: HistorySet[];
 };
 
 type HistorySourceExercise = {
   id: string;
   name: string;
-  sets: Array<{ weightKg: number; reps: number; sortOrder: number }>;
+  kind?: string | null;
+  sets: Array<{
+    weightKg: number | null;
+    reps: number | null;
+    distanceKm?: number | null;
+    durationSec?: number | null;
+    sortOrder: number;
+  }>;
 };
 
 type HistorySourceSession = {
@@ -49,9 +60,19 @@ export function buildExerciseHistoryByNormName(
       if (!key || out.has(key)) continue;
       const sets = [...ex.sets]
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((s) => ({ weightKg: s.weightKg, reps: s.reps }));
+        .map((s) => ({
+          weightKg: s.weightKg,
+          reps: s.reps,
+          distanceKm: s.distanceKm ?? null,
+          durationSec: s.durationSec ?? null,
+        }));
       if (sets.length === 0) continue;
-      out.set(key, { date: session.date, sessionId: session.id, sets });
+      out.set(key, {
+        date: session.date,
+        sessionId: session.id,
+        kind: parseExerciseKind(ex.kind),
+        sets,
+      });
     }
   }
   return out;
