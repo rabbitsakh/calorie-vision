@@ -3,15 +3,20 @@ import { requireAdmin } from "@/lib/auth-session";
 import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
-import { roundLoad } from "@/lib/workouts/load";
-import { isMuscleGroupKey, muscleGroupLabel, parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
+import { isMuscleGroupKey, parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
+import {
+  aggregatePeriod,
+  monthEndKey,
+  monthStartKey,
+  trendPct,
+} from "@/lib/workouts/trends";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET ?groups=chest,triceps&weekOf=YYYY-MM-DD
- * → exercise name suggestions from history + weekly tonnage by group.
+ * → suggestions + weekly/monthly tonnage (separate from cardio km) + trends.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,49 +30,56 @@ export async function GET(request: NextRequest) {
 
     const weekOf = request.nextUrl.searchParams.get("weekOf");
     const anchor = weekOf && /^\d{4}-\d{2}-\d{2}$/.test(weekOf) ? weekOf : null;
-    // Default: current UTC date is fine for admin tool; UI passes local today.
     const today = anchor ?? new Date().toISOString().slice(0, 10);
     const weekStart = mondayOfWeek(today);
     const weekEnd = shiftDateKey(weekStart, 6);
+    const prevWeekStart = shiftDateKey(weekStart, -7);
+    const prevWeekEnd = shiftDateKey(weekStart, -1);
+    const monthStart = monthStartKey(today);
+    const monthEnd = monthEndKey(today);
+    const prevMonthAnchor = shiftDateKey(monthStart, -1);
+    const prevMonthStart = monthStartKey(prevMonthAnchor);
+    const prevMonthEnd = monthEndKey(prevMonthAnchor);
 
     const history = await prisma.workoutSession.findMany({
       where: { userId: session.user.id },
       include: sessionInclude,
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      take: 80,
+      take: 120,
     });
 
     const summaries = history.map(serializeSessionSummary);
+    const periodSessions = summaries.map((s) => ({
+      date: s.date,
+      totalLoad: s.totalLoad,
+      loadByGroup: s.loadByGroup,
+      cardioDistanceKm: s.cardioDistanceKm,
+      cardioDurationSec: s.cardioDurationSec,
+    }));
 
-    // Weekly volume (all groups in the calendar week).
-    const weekSessions = summaries.filter((s) => s.date >= weekStart && s.date <= weekEnd);
-    const weeklyByGroup: Record<string, number> = {};
-    let weeklyTotal = 0;
-    for (const s of weekSessions) {
-      weeklyTotal += s.totalLoad;
-      for (const [g, load] of Object.entries(s.loadByGroup)) {
-        weeklyByGroup[g] = roundLoad((weeklyByGroup[g] ?? 0) + load);
-      }
-    }
+    const week = aggregatePeriod(periodSessions, weekStart, weekEnd);
+    const prevWeek = aggregatePeriod(periodSessions, prevWeekStart, prevWeekEnd);
+    const month = aggregatePeriod(periodSessions, monthStart, monthEnd);
+    const prevMonth = aggregatePeriod(periodSessions, prevMonthStart, prevMonthEnd);
 
-    // Exercise suggestions: names seen with matching muscle groups (or any if no filter).
     const nameStats = new Map<
       string,
-      { name: string; count: number; lastDate: string; lastSets: Array<{
-        weightKg: number | null;
-        reps: number | null;
-        distanceKm: number | null;
-        durationSec: number | null;
-      }> }
+      {
+        name: string;
+        count: number;
+        lastDate: string;
+        lastSets: Array<{
+          weightKg: number | null;
+          reps: number | null;
+          distanceKm: number | null;
+          durationSec: number | null;
+        }>;
+      }
     >();
 
     for (const row of history) {
       const sessionGroups = new Set(row.muscles.map((m) => m.groupKey));
-      const matchesGroups =
-        !groups || groups.some((g) => sessionGroups.has(g));
-      if (!matchesGroups && groups) {
-        // Still allow exercises explicitly tagged with one of the groups.
-      }
+      const matchesGroups = !groups || groups.some((g) => sessionGroups.has(g));
 
       for (const ex of row.exercises) {
         const tagged = ex.muscleGroup;
@@ -120,12 +132,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       weekStart,
       weekEnd,
-      weeklyTotal: roundLoad(weeklyTotal),
-      weeklyByGroup: Object.fromEntries(
-        Object.entries(weeklyByGroup).map(([k, v]) => [k, { load: v, label: muscleGroupLabel(k) }]),
-      ),
+      weeklyTotal: week.tonnage,
+      weeklyByGroup: week.byGroup,
+      weeklyCardioKm: week.cardioDistanceKm,
+      weeklyCardioSec: week.cardioDurationSec,
+      sessionCount: week.sessionCount,
+      weekTrendPct: trendPct(week.tonnage, prevWeek.tonnage),
+      weekCardioTrendPct: trendPct(week.cardioDistanceKm, prevWeek.cardioDistanceKm),
+      monthStart,
+      monthEnd,
+      monthlyTotal: month.tonnage,
+      monthlyByGroup: month.byGroup,
+      monthlyCardioKm: month.cardioDistanceKm,
+      monthlyCardioSec: month.cardioDurationSec,
+      monthlySessionCount: month.sessionCount,
+      monthTrendPct: trendPct(month.tonnage, prevMonth.tonnage),
+      monthCardioTrendPct: trendPct(month.cardioDistanceKm, prevMonth.cardioDistanceKm),
       suggestions,
-      sessionCount: weekSessions.length,
     });
   } catch (error) {
     console.error("GET /api/workouts/insights", error);
