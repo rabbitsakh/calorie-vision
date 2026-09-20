@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
         date,
         note,
         progressRate,
+        startedAt: new Date(),
         muscles: {
           create: muscleGroups.map((groupKey) => ({ groupKey })),
         },

@@ -15,6 +15,11 @@ import {
 } from "@/lib/workouts/load";
 import { muscleGroupLabel, normalizeGroupKeys } from "@/lib/workouts/muscle-groups";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
+import {
+  formatSessionClock,
+  sessionClockStatus,
+  sessionElapsedSec,
+} from "@/lib/workouts/session-clock";
 
 export type DbSet = {
   id: string;
@@ -43,6 +48,10 @@ export type DbSession = {
   date: string;
   note: string | null;
   progressRate: number;
+  startedAt?: Date | null;
+  endedAt?: Date | null;
+  pausedAt?: Date | null;
+  pausedMs?: number | null;
   createdAt: Date;
   updatedAt: Date;
   muscles: Array<{ groupKey: string }>;
@@ -81,6 +90,14 @@ export function serializeSessionSummary(session: DbSession) {
   const cardio = sessionCardioTotals(session.exercises);
   const cardioOnly =
     muscleKeys.length === 1 && muscleKeys[0] === "cardio" && totalLoad === 0;
+  const clock = {
+    startedAt: session.startedAt ?? null,
+    endedAt: session.endedAt ?? null,
+    pausedAt: session.pausedAt ?? null,
+    pausedMs: session.pausedMs ?? 0,
+  };
+  const elapsedSec = sessionElapsedSec(clock);
+  const clockStatus = sessionClockStatus(clock);
 
   return {
     id: session.id,
@@ -97,6 +114,13 @@ export function serializeSessionSummary(session: DbSession) {
     cardioDurationSec: cardio.durationSec,
     cardioBestPaceSecPerKm: cardio.bestPaceSecPerKm,
     cardioOnly,
+    startedAt: clock.startedAt ? new Date(clock.startedAt).toISOString() : null,
+    endedAt: clock.endedAt ? new Date(clock.endedAt).toISOString() : null,
+    pausedAt: clock.pausedAt ? new Date(clock.pausedAt).toISOString() : null,
+    pausedMs: clock.pausedMs,
+    elapsedSec,
+    elapsedLabel: formatSessionClock(elapsedSec),
+    clockStatus,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
   };
