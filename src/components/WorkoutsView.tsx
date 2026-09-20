@@ -125,6 +125,24 @@ type Insights = {
   sessionCount: number;
 };
 
+type LibraryEntry = {
+  id: string;
+  name: string;
+  kind: ExerciseKind;
+  defaultMuscleGroup: string | null;
+  useCount: number;
+  lastUsedAt: string;
+};
+
+type RoutineSummary = {
+  id: string;
+  name: string;
+  note: string | null;
+  muscleKeys: string[];
+  muscleLabels: string[];
+  exerciseCount: number;
+};
+
 const REST_OPTIONS = [60, 90, 120] as const;
 const RATE_OPTIONS = [
   { label: "2.5%", value: 0.025 },
@@ -244,6 +262,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [newExerciseKind, setNewExerciseKind] = useState<ExerciseKind>("strength");
   const [pasteText, setPasteText] = useState("");
   const [insights, setInsights] = useState<Insights | null>(null);
+  const [routines, setRoutines] = useState<RoutineSummary[]>([]);
+  const [libraryHits, setLibraryHits] = useState<LibraryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
   const [historyByName, setHistoryByName] = useState<
     Record<
@@ -268,6 +288,17 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadRoutines = useCallback(async () => {
+    try {
+      const data = await readJson<{ routines: RoutineSummary[] }>(
+        await fetch(withBasePath("/api/workouts/routines")),
+      );
+      setRoutines(data.routines);
+    } catch {
+      /* non-fatal */
     }
   }, []);
 
@@ -318,7 +349,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   useEffect(() => {
     void loadList();
     void loadInsights();
-  }, [loadList, loadInsights]);
+    void loadRoutines();
+  }, [loadList, loadInsights, loadRoutines]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {
@@ -372,6 +404,34 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
   }, [restEndsAt]);
+
+  useEffect(() => {
+    const q = exerciseName.trim();
+    if (q.length < 1) {
+      setLibraryHits([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const data = await readJson<{ entries: LibraryEntry[] }>(
+            await fetch(
+              withBasePath(`/api/workouts/library?q=${encodeURIComponent(q)}&limit=8`),
+              { signal: ctrl.signal },
+            ),
+          );
+          setLibraryHits(data.entries);
+        } catch {
+          /* ignore */
+        }
+      })();
+    }, 180);
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(t);
+    };
+  }, [exerciseName]);
 
   const startRest = useCallback(() => {
     setRestEndsAt(Date.now() + restSeconds * 1000);
@@ -446,6 +506,67 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }
   };
 
+  const startRoutine = async (routineId: string) => {
+    setError(null);
+    setBusy(true);
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/routines/${routineId}/start`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: todayKey, copySets: true }),
+        }),
+      );
+      await loadList();
+      await openSession(data.session.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось начать шаблон");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAsRoutine = async (sourceId: string, suggestedName?: string) => {
+    const name = window.prompt("Название шаблона", suggestedName ?? "");
+    if (name == null) return;
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Укажите название шаблона");
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      await readJson<{ routine: RoutineSummary }>(
+        await fetch(withBasePath(`/api/workouts/${sourceId}/save-routine`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: trimmed, includeSets: true }),
+        }),
+      );
+      await loadRoutines();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить шаблон");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteRoutine = async (routineId: string) => {
+    if (!window.confirm("Удалить шаблон?")) return;
+    setError(null);
+    try {
+      await readJson<{ ok: boolean }>(
+        await fetch(withBasePath(`/api/workouts/routines/${routineId}`), {
+          method: "DELETE",
+        }),
+      );
+      await loadRoutines();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось удалить");
+    }
+  };
+
   const refreshDetail = async (session: SessionDetail) => {
     setDetail(session);
     const data = await readJson<{ session: SessionDetail; progress: Progress }>(
@@ -484,6 +605,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         }),
       );
       setExerciseName("");
+      setLibraryHits([]);
       await refreshDetail(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
@@ -843,13 +965,28 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             </h2>
             <p className="mt-1 text-sm text-slate-600">{detail.muscleLabels.join(" · ")}</p>
           </div>
-          <button
-            type="button"
-            className="text-sm text-red-600"
-            onClick={() => void deleteSession()}
-          >
-            Удалить
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <button
+              type="button"
+              disabled={busy || detail.exercises.length === 0}
+              className="text-sm font-medium text-teal-800 disabled:opacity-40"
+              onClick={() =>
+                void saveAsRoutine(
+                  detail.id,
+                  detail.note?.trim() || detail.muscleLabels.join(" · "),
+                )
+              }
+            >
+              Как шаблон
+            </button>
+            <button
+              type="button"
+              className="text-sm text-red-600"
+              onClick={() => void deleteSession()}
+            >
+              Удалить
+            </button>
+          </div>
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1336,7 +1473,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="relative flex flex-wrap items-end gap-2">
             <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
               Упражнение
               <input
@@ -1350,6 +1487,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     void addExercise();
                   }
                 }}
+                autoComplete="off"
               />
             </label>
             <button
@@ -1359,6 +1497,27 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             >
               Добавить
             </button>
+            {libraryHits.length > 0 ? (
+              <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-md">
+                {libraryHits.map((hit) => (
+                  <li key={hit.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-teal-50"
+                      onClick={() => {
+                        setNewExerciseKind(hit.kind);
+                        void addExercise(hit.name, hit.kind);
+                      }}
+                    >
+                      <span className="font-medium text-slate-900">{hit.name}</span>
+                      <span className="text-xs text-slate-400">
+                        {hit.kind === "cardio" ? "кардио" : "силовое"} · {hit.useCount}×
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         </div>
 
@@ -1433,6 +1592,45 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       ) : null}
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+      {routines.length > 0 ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Шаблоны
+          </p>
+          <ul className="mt-2 flex flex-col gap-2">
+            {routines.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-stretch gap-2 rounded-xl border border-slate-100 bg-slate-50"
+              >
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white disabled:opacity-40"
+                  onClick={() => void startRoutine(r.id)}
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{r.name}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold text-teal-800">Старт</span>
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 border-l border-slate-100 px-2.5 text-xs text-slate-400 hover:text-red-600"
+                  title="Удалить шаблон"
+                  onClick={() => void deleteRoutine(r.id)}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {creating ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1564,10 +1762,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-slate-100 px-3 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
+              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
               onClick={() => void repeatSession(s.id)}
             >
               Повторить
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              title="Сохранить как шаблон"
+              onClick={() =>
+                void saveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))
+              }
+            >
+              Шаблон
             </button>
           </li>
         ))}
