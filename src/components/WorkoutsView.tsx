@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { formatDateShort, formatDateWords } from "@/lib/dates";
+import {
+  formatDateShort,
+  formatDateWords,
+  formatMonthTitle,
+  getMonthGrid,
+  mondayOfWeek,
+  shiftDateKey,
+  shiftYearMonth,
+} from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 import {
   durationSecToMinutesInput,
@@ -26,6 +34,7 @@ import {
   playRestEndBeep,
   sessionElapsedSec,
 } from "@/lib/workouts/session-clock";
+import { monthEndKey } from "@/lib/workouts/trends";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import {
@@ -407,13 +416,39 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [liveMode, setLiveMode] = useState(true);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [clockTick, setClockTick] = useState(0);
+  const [filterGroups, setFilterGroups] = useState<MuscleGroupKey[]>([]);
+  const [filterCardio, setFilterCardio] = useState(false);
+  const [filterPeriod, setFilterPeriod] = useState<"all" | "week" | "month" | "day">("all");
+  const [filterDate, setFilterDate] = useState<string | null>(null);
+  const [calYear, setCalYear] = useState(() => Number(todayKey.slice(0, 4)));
+  const [calMonth, setCalMonth] = useState(() => Number(todayKey.slice(5, 7)) - 1);
+  const [calMarked, setCalMarked] = useState<Record<string, number>>({});
+  const [monthSummary, setMonthSummary] = useState<{
+    sessionCount: number;
+    tonnage: number;
+    cardioDistanceKm: number;
+  } | null>(null);
 
   const loadList = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const q = new URLSearchParams({ limit: "60" });
+      if (filterGroups.length) q.set("groups", filterGroups.join(","));
+      if (filterCardio) q.set("cardio", "1");
+      if (filterPeriod === "day" && filterDate) {
+        q.set("date", filterDate);
+      } else if (filterPeriod === "week") {
+        const start = mondayOfWeek(todayKey);
+        q.set("from", start);
+        q.set("to", shiftDateKey(start, 6));
+      } else if (filterPeriod === "month") {
+        const ym = `${String(calYear).padStart(4, "0")}-${String(calMonth + 1).padStart(2, "0")}`;
+        q.set("from", `${ym}-01`);
+        q.set("to", monthEndKey(`${ym}-01`));
+      }
       const data = await readJson<{ sessions: SessionSummary[] }>(
-        await fetch(withBasePath("/api/workouts")),
+        await fetch(withBasePath(`/api/workouts?${q}`)),
       );
       setSessions(data.sessions);
     } catch (err) {
@@ -421,7 +456,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterGroups, filterCardio, filterPeriod, filterDate, todayKey, calYear, calMonth]);
+
+  const loadCalendar = useCallback(async () => {
+    const month = `${String(calYear).padStart(4, "0")}-${String(calMonth + 1).padStart(2, "0")}`;
+    try {
+      const data = await readJson<{
+        counts: Record<string, number>;
+        summary: { sessionCount: number; tonnage: number; cardioDistanceKm: number };
+      }>(await fetch(withBasePath(`/api/workouts/calendar?month=${month}`)));
+      setCalMarked(data.counts);
+      setMonthSummary(data.summary);
+    } catch {
+      setCalMarked({});
+      setMonthSummary(null);
+    }
+  }, [calYear, calMonth]);
 
   const loadRoutines = useCallback(async () => {
     try {
@@ -484,7 +534,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     void loadList();
     void loadInsights();
     void loadRoutines();
-  }, [loadList, loadInsights, loadRoutines]);
+    void loadCalendar();
+  }, [loadList, loadInsights, loadRoutines, loadCalendar]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {
@@ -632,6 +683,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         setCreating(false);
         setNewGroups([]);
         await loadList();
+        await loadCalendar();
         await openSession(data.session.id);
         return;
       }
@@ -1998,6 +2050,147 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         </button>
       </div>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            onClick={() => {
+              const n = shiftYearMonth(calYear, calMonth, -1);
+              setCalYear(n.year);
+              setCalMonth(n.monthIndex);
+            }}
+          >
+            ←
+          </button>
+          <p className="text-sm font-semibold text-slate-800">
+            {formatMonthTitle(calYear, calMonth)}
+          </p>
+          <button
+            type="button"
+            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            onClick={() => {
+              const n = shiftYearMonth(calYear, calMonth, 1);
+              setCalYear(n.year);
+              setCalMonth(n.monthIndex);
+            }}
+          >
+            →
+          </button>
+        </div>
+        {monthSummary ? (
+          <p className="mb-2 text-xs text-slate-500">
+            {monthSummary.sessionCount} трен. · {formatLoad(monthSummary.tonnage)} кг·повт
+            {monthSummary.cardioDistanceKm > 0
+              ? ` · ${formatDistanceKm(monthSummary.cardioDistanceKm)} км`
+              : ""}
+          </p>
+        ) : null}
+        <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
+            <div key={d} className="py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0.5">
+          {getMonthGrid(calYear, calMonth).map((day, i) => {
+            if (!day) return <div key={`e-${i}`} />;
+            const count = calMarked[day] ?? 0;
+            const selected = filterPeriod === "day" && filterDate === day;
+            return (
+              <button
+                key={day}
+                type="button"
+                className={`relative rounded-lg py-1.5 text-sm tabular-nums ${
+                  selected
+                    ? "bg-teal-700 font-semibold text-white"
+                    : count > 0
+                      ? "bg-teal-50 font-medium text-teal-900 hover:bg-teal-100"
+                      : "text-slate-600 hover:bg-slate-50"
+                }`}
+                onClick={() => {
+                  setFilterPeriod("day");
+                  setFilterDate(day);
+                  setCreating(false);
+                  setNewDate(day);
+                }}
+              >
+                {Number(day.slice(8, 10))}
+                {count > 0 ? (
+                  <span
+                    className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
+                      selected ? "bg-white" : "bg-teal-600"
+                    }`}
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200 bg-white p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Фильтр списка
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ["all", "Все"],
+              ["week", "Неделя"],
+              ["month", "Месяц"],
+              ["day", "День"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                filterPeriod === key ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+              }`}
+              onClick={() => {
+                setFilterPeriod(key);
+                if (key !== "day") setFilterDate(null);
+                else if (!filterDate) setFilterDate(todayKey);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+              filterCardio ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+            }`}
+            onClick={() => setFilterCardio((v) => !v)}
+          >
+            Кардио
+          </button>
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {MUSCLE_GROUPS.filter((g) => g.key !== "cardio").map((g) => {
+            const on = filterGroups.includes(g.key);
+            return (
+              <button
+                key={g.key}
+                type="button"
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                  on ? "bg-teal-700 text-white" : "bg-slate-50 text-slate-600"
+                }`}
+                onClick={() =>
+                  setFilterGroups((prev) =>
+                    on ? prev.filter((k) => k !== g.key) : [...prev, g.key],
+                  )
+                }
+              >
+                {g.label}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {insights ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -2199,7 +2392,24 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
       {!loading && sessions.length === 0 && !creating ? (
         <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
-          Пока нет тренировок. Создайте первую и отметьте вид / группы.
+          {filterPeriod !== "all" || filterGroups.length || filterCardio
+            ? "Нет тренировок по фильтру."
+            : "Пока нет тренировок. Создайте первую и отметьте вид / группы."}
+          {filterPeriod === "day" && filterDate ? (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="font-semibold text-teal-800"
+                onClick={() => {
+                  setCreating(true);
+                  setNewDate(filterDate);
+                }}
+              >
+                Создать на {formatDateShort(filterDate)}
+              </button>
+            </>
+          ) : null}
         </p>
       ) : null}
 
