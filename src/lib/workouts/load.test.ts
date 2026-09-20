@@ -25,13 +25,22 @@ test("set and exercise load are kg × reps", () => {
   );
 });
 
-test("cardio exercises contribute zero strength load", () => {
+test("non-tonnage kinds contribute zero strength load", () => {
+  for (const kind of ["cardio", "bodyweight", "duration", "assisted"] as const) {
+    assert.equal(
+      exerciseLoad({
+        kind,
+        sets: [{ weightKg: 80, reps: 8 }],
+      }),
+      0,
+    );
+  }
   assert.equal(
     exerciseLoad({
-      kind: "cardio",
-      sets: [{ weightKg: 80, reps: 8 }],
+      kind: "weighted_bw",
+      sets: [{ weightKg: 20, reps: 8 }],
     }),
-    0,
+    160,
   );
   assert.equal(setLoad({ weightKg: null, reps: null }), 0);
 });

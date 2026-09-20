@@ -16,7 +16,7 @@ export type LoadSet = {
 
 export type LoadExercise = {
   muscleGroup?: string | null;
-  /** Cardio exercises contribute 0 to strength volume. */
+  /** Cardio / bodyweight / duration / assisted → 0 strength volume. */
   kind?: string | null;
   sets: LoadSet[];
 };
@@ -33,7 +33,11 @@ export function setLoad(set: LoadSet): number {
 }
 
 export function exerciseLoad(exercise: LoadExercise): number {
-  if (exercise.kind === "cardio") return 0;
+  const kind = exercise.kind ?? "strength";
+  // Only strength + weighted bodyweight count toward kg·reps tonnage.
+  if (kind === "cardio" || kind === "bodyweight" || kind === "duration" || kind === "assisted") {
+    return 0;
+  }
   return exercise.sets.reduce((sum, s) => sum + setLoad(s), 0);
 }
 

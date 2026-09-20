@@ -12,7 +12,15 @@ import {
   parseDistanceKm,
   parseDurationToSec,
 } from "@/lib/workouts/cardio";
-import { defaultExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import {
+  EXERCISE_KINDS,
+  EXERCISE_KIND_LABELS,
+  EXERCISE_KIND_PLACEHOLDERS,
+  defaultExerciseKind,
+  fieldsForKind,
+  kindUsesRestTimer,
+  type ExerciseKind,
+} from "@/lib/workouts/exercise-kind";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import {
@@ -190,29 +198,43 @@ async function readJson<T>(res: Response): Promise<T> {
 
 function lastSetHint(lastTime: SessionExercise["lastTime"], kind: ExerciseKind): string | null {
   if (!lastTime?.sets.length) return null;
-  const parts =
-    kind === "cardio" || lastTime.kind === "cardio"
-      ? lastTime.sets.map((s) => {
-          const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
-          const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : null;
-          return [d, t].filter(Boolean).join(" / ") || "—";
-        })
-      : lastTime.sets.map((s) => `${s.weightKg ?? 0}×${s.reps ?? 0}`);
+  const parts = lastTime.sets.map((s) => formatHistoryChip(s, kind === "cardio" || lastTime.kind === "cardio" ? "cardio" : kind));
   return `Прошлый раз (${formatDateShort(lastTime.date)}): ${parts.join(", ")}`;
 }
 
-function draftFromHistorySet(set: HistorySet, kind: ExerciseKind): SetDraft {
+function formatHistoryChip(set: HistorySet, kind: ExerciseKind): string {
+  const spec = fieldsForKind(kind);
   if (kind === "cardio") {
-    return {
-      ...EMPTY_DRAFT,
-      km: set.distanceKm != null && set.distanceKm > 0 ? String(set.distanceKm) : "",
-      time: set.durationSec != null && set.durationSec > 0 ? durationSecToMinutesInput(set.durationSec) : "",
-    };
+    const d = set.distanceKm != null && set.distanceKm > 0 ? `${formatDistanceKm(set.distanceKm)} км` : null;
+    const t = set.durationSec != null && set.durationSec > 0 ? formatDurationMinutes(set.durationSec) : null;
+    return [d, t].filter(Boolean).join(" / ") || "—";
   }
+  if (kind === "duration") {
+    return set.durationSec != null && set.durationSec > 0
+      ? formatDurationMinutes(set.durationSec)
+      : "—";
+  }
+  if (kind === "bodyweight") {
+    return set.reps != null ? `${set.reps} повт` : "—";
+  }
+  if (spec.usesWeight && spec.usesReps) {
+    const prefix = kind === "assisted" ? "−" : kind === "weighted_bw" ? "+" : "";
+    return `${prefix}${set.weightKg ?? 0}×${set.reps ?? 0}`;
+  }
+  return "—";
+}
+
+function draftFromHistorySet(set: HistorySet, kind: ExerciseKind): SetDraft {
+  const spec = fieldsForKind(kind);
   return {
     ...EMPTY_DRAFT,
-    kg: set.weightKg != null ? String(set.weightKg) : "",
-    reps: set.reps != null ? String(set.reps) : "",
+    kg: spec.usesWeight && set.weightKg != null ? String(set.weightKg) : "",
+    reps: spec.usesReps && set.reps != null ? String(set.reps) : "",
+    km: spec.usesDistance && set.distanceKm != null && set.distanceKm > 0 ? String(set.distanceKm) : "",
+    time:
+      spec.usesDuration && set.durationSec != null && set.durationSec > 0
+        ? durationSecToMinutesInput(set.durationSec)
+        : "",
   };
 }
 
@@ -238,6 +260,19 @@ function formatSetLine(
     const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : null;
     const pace = formatPace(s.paceSecPerKm);
     return `${idx + 1}. ${[d, t, pace].filter(Boolean).join(" · ") || "—"}`;
+  }
+  if (kind === "duration") {
+    const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : "—";
+    return `${idx + 1}. ${t}`;
+  }
+  if (kind === "bodyweight") {
+    return `${idx + 1}. ${s.reps ?? 0} повт`;
+  }
+  if (kind === "assisted") {
+    return `${idx + 1}. −${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
+  }
+  if (kind === "weighted_bw") {
+    return `${idx + 1}. +${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
   }
   return `${idx + 1}. ${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
 }
@@ -675,6 +710,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     const ex = detail.exercises.find((e) => e.id === exerciseId);
     if (!ex) return;
     const draft = setDrafts[exerciseId] ?? EMPTY_DRAFT;
+    const spec = fieldsForKind(ex.kind);
     const rpeRaw = draft.rpe.trim() ? Number(draft.rpe.replace(",", ".")) : null;
     const meta = {
       setType: draft.setType,
@@ -683,46 +719,58 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     };
     setError(null);
     try {
-      if (ex.kind === "cardio") {
+      const body: Record<string, unknown> = { ...meta };
+      if (spec.usesDistance) {
         const distanceKm = parseDistanceKm(draft.km || "0");
-        const durationSec = parseDurationToSec(draft.time);
-        if (distanceKm === null || durationSec === null) {
-          setError("Укажите км и время в минутах");
+        if (distanceKm === null) {
+          setError("Укажите км");
           return;
         }
-        const data = await readJson<{ session: SessionDetail }>(
-          await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ distanceKm, durationSec, ...meta }),
-          }),
-        );
-        setSetDrafts((prev) => ({
-          ...prev,
-          [exerciseId]: { ...EMPTY_DRAFT, km: draft.km, setType: draft.setType },
-        }));
-        await refreshDetail(data.session);
-      } else {
-        const weightKg = Number(draft.kg.replace(",", "."));
-        const reps = Number(draft.reps);
-        if (!Number.isFinite(weightKg) || !Number.isFinite(reps) || reps <= 0) {
-          setError("Укажите кг и повторения");
-          return;
-        }
-        const data = await readJson<{ session: SessionDetail }>(
-          await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ weightKg, reps, ...meta }),
-          }),
-        );
-        setSetDrafts((prev) => ({
-          ...prev,
-          [exerciseId]: { ...EMPTY_DRAFT, kg: draft.kg, setType: draft.setType },
-        }));
-        if (draft.setType !== "warmup") startRest();
-        await refreshDetail(data.session);
+        body.distanceKm = distanceKm;
       }
+      if (spec.usesDuration) {
+        const durationSec = parseDurationToSec(draft.time);
+        if (durationSec === null) {
+          setError(ex.kind === "duration" ? "Укажите время в минутах" : "Укажите время в минутах");
+          return;
+        }
+        body.durationSec = durationSec;
+      }
+      if (spec.usesWeight) {
+        const weightKg = Number(draft.kg.replace(",", "."));
+        if (!Number.isFinite(weightKg) || weightKg < 0) {
+          setError("Укажите кг");
+          return;
+        }
+        body.weightKg = weightKg;
+      }
+      if (spec.usesReps) {
+        const reps = Number(draft.reps);
+        if (!Number.isFinite(reps) || reps <= 0) {
+          setError("Укажите повторения");
+          return;
+        }
+        body.reps = reps;
+      }
+
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+      setSetDrafts((prev) => ({
+        ...prev,
+        [exerciseId]: {
+          ...EMPTY_DRAFT,
+          kg: spec.usesWeight ? draft.kg : "",
+          km: spec.usesDistance ? draft.km : "",
+          setType: draft.setType,
+        },
+      }));
+      if (kindUsesRestTimer(ex.kind) && draft.setType !== "warmup") startRest();
+      await refreshDetail(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить подход");
     }
@@ -756,45 +804,69 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   };
 
   const editSetInline = async (ex: SessionExercise, set: SessionExercise["sets"][number]) => {
-    if (ex.kind === "cardio") {
+    const spec = fieldsForKind(ex.kind);
+    const body: Record<string, unknown> = {};
+
+    if (spec.usesDistance) {
       const km = window.prompt("Дистанция, км", set.distanceKm != null ? String(set.distanceKm) : "");
       if (km == null) return;
+      const distanceKm = parseDistanceKm(km);
+      if (distanceKm == null) {
+        setError("Некорректные км");
+        return;
+      }
+      body.distanceKm = distanceKm;
+    }
+    if (spec.usesDuration) {
       const mins = window.prompt(
         "Время, мин",
         set.durationSec != null ? String(Math.round((set.durationSec / 60) * 10) / 10) : "",
       );
       if (mins == null) return;
-      const distanceKm = parseDistanceKm(km);
       const durationSec = parseDurationToSec(mins);
-      if (distanceKm == null || durationSec == null) {
-        setError("Некорректные км или минуты");
+      if (durationSec == null) {
+        setError("Некорректные минуты");
         return;
       }
-      await patchSet(set.id, { distanceKm, durationSec });
-      return;
+      body.durationSec = durationSec;
     }
-    const kg = window.prompt("Вес, кг", set.weightKg != null ? String(set.weightKg) : "");
-    if (kg == null) return;
-    const reps = window.prompt("Повторения", set.reps != null ? String(set.reps) : "");
-    if (reps == null) return;
-    const weightKg = Number(kg.replace(",", "."));
-    const repsN = Number(reps);
-    if (!Number.isFinite(weightKg) || !Number.isFinite(repsN) || repsN <= 0) {
-      setError("Некорректные кг или повторения");
-      return;
-    }
-    const rpeStr = window.prompt("RPE (1–10, пусто = без)", set.rpe != null ? String(set.rpe) : "");
-    if (rpeStr == null) return;
-    const body: Record<string, unknown> = { weightKg, reps: Math.floor(repsN) };
-    if (rpeStr.trim() === "") body.rpe = null;
-    else {
-      const rpe = Number(rpeStr.replace(",", "."));
-      if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
-        setError("RPE от 1 до 10");
+    if (spec.usesWeight) {
+      const label =
+        ex.kind === "assisted" ? "Помощь, кг" : ex.kind === "weighted_bw" ? "Доп. вес, кг" : "Вес, кг";
+      const kg = window.prompt(label, set.weightKg != null ? String(set.weightKg) : "");
+      if (kg == null) return;
+      const weightKg = Number(kg.replace(",", "."));
+      if (!Number.isFinite(weightKg) || weightKg < 0) {
+        setError("Некорректные кг");
         return;
       }
-      body.rpe = rpe;
+      body.weightKg = weightKg;
     }
+    if (spec.usesReps) {
+      const reps = window.prompt("Повторения", set.reps != null ? String(set.reps) : "");
+      if (reps == null) return;
+      const repsN = Number(reps);
+      if (!Number.isFinite(repsN) || repsN <= 0) {
+        setError("Некорректные повторения");
+        return;
+      }
+      body.reps = Math.floor(repsN);
+    }
+
+    if (kindUsesRestTimer(ex.kind)) {
+      const rpeStr = window.prompt("RPE (1–10, пусто = без)", set.rpe != null ? String(set.rpe) : "");
+      if (rpeStr == null) return;
+      if (rpeStr.trim() === "") body.rpe = null;
+      else {
+        const rpe = Number(rpeStr.replace(",", "."));
+        if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
+          setError("RPE от 1 до 10");
+          return;
+        }
+        body.rpe = rpe;
+      }
+    }
+
     await patchSet(set.id, body);
   };
 
@@ -1104,12 +1176,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
             const hint = lastSetHint(ex.lastTime ?? null, ex.kind);
             const isCardio = ex.kind === "cardio";
+            const spec = fieldsForKind(ex.kind);
             return (
               <section key={ex.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1">
                       <h3 className="font-semibold text-slate-900">{ex.name}</h3>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        {EXERCISE_KIND_LABELS[ex.kind]}
+                      </span>
                       <button
                         type="button"
                         className="rounded px-1.5 text-xs text-slate-400 hover:bg-slate-100"
@@ -1130,7 +1206,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     <p className="text-xs text-slate-500">
                       {isCardio
                         ? [
-                            "Кардио",
+                            EXERCISE_KIND_LABELS.cardio,
                             ex.cardioDistanceKm > 0
                               ? `${formatDistanceKm(ex.cardioDistanceKm)} км`
                               : null,
@@ -1139,7 +1215,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                           ]
                             .filter(Boolean)
                             .join(" · ")
-                        : `${ex.muscleLabel ? `${ex.muscleLabel} · ` : ""}${formatLoad(ex.load)} кг·повт`}
+                        : [
+                            ex.muscleLabel,
+                            spec.countsTowardLoad ? `${formatLoad(ex.load)} кг·повт` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || EXERCISE_KIND_LABELS[ex.kind]}
                     </p>
                     {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
                     <button
@@ -1205,7 +1286,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                             {historyByName[ex.name]!.bestPaceDeltaSec! < 0 ? " (быстрее)" : ""}
                           </p>
                         ) : null}
-                        {!isCardio && historyByName[ex.name]!.topWeightDeltaKg != null ? (
+                        {!isCardio &&
+                        spec.countsTowardLoad &&
+                        historyByName[ex.name]!.topWeightDeltaKg != null ? (
                           <p className="mt-1 text-teal-800">
                             Топ-вес к прошлой:{" "}
                             {historyByName[ex.name]!.topWeightDeltaKg! > 0 ? "+" : ""}
@@ -1268,7 +1351,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                         onClick={() => void editSetInline(ex, s)}
                       >
                         {formatSetLine(s, ex.kind, idx)}
-                        {!isCardio && s.load > 0 ? (
+                        {s.load > 0 ? (
                           <span className="text-slate-400"> ({formatLoad(s.load)})</span>
                         ) : null}
                         {s.rpe != null ? (
@@ -1295,143 +1378,115 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                         className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900"
                         onClick={() => applyLastSet(ex.id, s, ex.kind)}
                       >
-                        {isCardio
-                          ? `было ${[
-                              s.distanceKm != null && s.distanceKm > 0
-                                ? `${formatDistanceKm(s.distanceKm)} км`
-                                : null,
-                              s.durationSec != null && s.durationSec > 0
-                                ? formatDurationMinutes(s.durationSec)
-                                : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" / ")}`
-                          : `было ${s.weightKg}×${s.reps}`}
+                        было {formatHistoryChip(s, ex.lastTime?.kind === "cardio" ? "cardio" : ex.kind)}
                       </button>
                     ))}
                   </div>
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap items-end gap-2">
-                  {isCardio ? (
-                    <>
-                      <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        Км
-                        <input
-                          inputMode="decimal"
-                          className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          value={draft.km}
-                          onChange={(e) =>
-                            setSetDrafts((prev) => ({
-                              ...prev,
-                              [ex.id]: { ...draft, km: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        Мин
-                        <input
-                          inputMode="decimal"
-                          className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          placeholder="30"
-                          value={draft.time}
-                          onChange={(e) =>
-                            setSetDrafts((prev) => ({
-                              ...prev,
-                              [ex.id]: { ...draft, time: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        title={SET_TYPE_LABELS[draft.setType]}
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
-                        onClick={() =>
+                  {spec.usesDistance ? (
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      Км
+                      <input
+                        inputMode="decimal"
+                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        value={draft.km}
+                        onChange={(e) =>
                           setSetDrafts((prev) => ({
                             ...prev,
-                            [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                            [ex.id]: { ...draft, km: e.target.value },
                           }))
                         }
-                      >
-                        {SET_TYPE_SHORT[draft.setType]}
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-                        onClick={() => void addSet(ex.id)}
-                      >
-                        + Отрезок
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        Кг
-                        <input
-                          inputMode="decimal"
-                          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          value={draft.kg}
-                          onChange={(e) =>
-                            setSetDrafts((prev) => ({
-                              ...prev,
-                              [ex.id]: { ...draft, kg: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                      <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        Повт.
-                        <input
-                          inputMode="numeric"
-                          className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          value={draft.reps}
-                          onChange={(e) =>
-                            setSetDrafts((prev) => ({
-                              ...prev,
-                              [ex.id]: { ...draft, reps: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        title={SET_TYPE_LABELS[draft.setType]}
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
-                        onClick={() =>
+                      />
+                    </label>
+                  ) : null}
+                  {spec.usesDuration ? (
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      Мин
+                      <input
+                        inputMode="decimal"
+                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        placeholder={ex.kind === "duration" ? "1" : "30"}
+                        value={draft.time}
+                        onChange={(e) =>
                           setSetDrafts((prev) => ({
                             ...prev,
-                            [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                            [ex.id]: { ...draft, time: e.target.value },
                           }))
                         }
-                      >
-                        {SET_TYPE_SHORT[draft.setType]}
-                      </button>
-                      <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        RPE
-                        <input
-                          inputMode="decimal"
-                          className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          placeholder="8"
-                          value={draft.rpe}
-                          onChange={(e) =>
-                            setSetDrafts((prev) => ({
-                              ...prev,
-                              [ex.id]: { ...draft, rpe: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-                        onClick={() => void addSet(ex.id)}
-                      >
-                        + Подход
-                      </button>
-                    </>
-                  )}
+                      />
+                    </label>
+                  ) : null}
+                  {spec.usesWeight ? (
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      {ex.kind === "assisted" ? "Помощь" : ex.kind === "weighted_bw" ? "+Кг" : "Кг"}
+                      <input
+                        inputMode="decimal"
+                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        value={draft.kg}
+                        onChange={(e) =>
+                          setSetDrafts((prev) => ({
+                            ...prev,
+                            [ex.id]: { ...draft, kg: e.target.value },
+                          }))
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  {spec.usesReps ? (
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      Повт.
+                      <input
+                        inputMode="numeric"
+                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        value={draft.reps}
+                        onChange={(e) =>
+                          setSetDrafts((prev) => ({
+                            ...prev,
+                            [ex.id]: { ...draft, reps: e.target.value },
+                          }))
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  <button
+                    type="button"
+                    title={SET_TYPE_LABELS[draft.setType]}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                    onClick={() =>
+                      setSetDrafts((prev) => ({
+                        ...prev,
+                        [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                      }))
+                    }
+                  >
+                    {SET_TYPE_SHORT[draft.setType]}
+                  </button>
+                  {kindUsesRestTimer(ex.kind) ? (
+                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                      RPE
+                      <input
+                        inputMode="decimal"
+                        className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                        placeholder="8"
+                        value={draft.rpe}
+                        onChange={(e) =>
+                          setSetDrafts((prev) => ({
+                            ...prev,
+                            [ex.id]: { ...draft, rpe: e.target.value },
+                          }))
+                        }
+                      />
+                    </label>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+                    onClick={() => void addSet(ex.id)}
+                  >
+                    {isCardio ? "+ Отрезок" : ex.kind === "duration" ? "+ Раунд" : "+ Подход"}
+                  </button>
                 </div>
               </section>
             );
@@ -1454,11 +1509,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         ) : null}
 
         <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-slate-300 p-4">
-          <div className="flex gap-1">
-            {([
-              ["strength", "Силовое"],
-              ["cardio", "Кардио"],
-            ] as const).map(([key, label]) => (
+          <div className="flex flex-wrap gap-1">
+            {EXERCISE_KINDS.map((key) => (
               <button
                 key={key}
                 type="button"
@@ -1469,7 +1521,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     : "bg-slate-100 text-slate-600"
                 }`}
               >
-                {label}
+                {EXERCISE_KIND_LABELS[key]}
               </button>
             ))}
           </div>
@@ -1478,7 +1530,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               Упражнение
               <input
                 className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
-                placeholder={newExerciseKind === "cardio" ? "Бег / велосипед" : "Жим лёжа"}
+                placeholder={EXERCISE_KIND_PLACEHOLDERS[newExerciseKind]}
                 value={exerciseName}
                 onChange={(e) => setExerciseName(e.target.value)}
                 onKeyDown={(e) => {
@@ -1511,7 +1563,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     >
                       <span className="font-medium text-slate-900">{hit.name}</span>
                       <span className="text-xs text-slate-400">
-                        {hit.kind === "cardio" ? "кардио" : "силовое"} · {hit.useCount}×
+                        {EXERCISE_KIND_LABELS[hit.kind]} · {hit.useCount}×
                       </span>
                     </button>
                   </li>

@@ -1,20 +1,20 @@
 import { cardioSetTotals, paceSecPerKm } from "@/lib/workouts/cardio";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
-import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
+import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { exerciseLoad, roundLoad } from "@/lib/workouts/load";
 
 export type ExerciseHistoryPoint = {
   date: string;
   sessionId: string;
   exerciseId: string;
-  kind: "strength" | "cardio";
-  /** Best (max) weight that day (strength). */
+  kind: ExerciseKind;
+  /** Best (max) weight that day (strength / weighted / assisted). */
   topWeightKg: number;
-  /** Reps at the top-weight set (first if tie). */
+  /** Reps at the top-weight set, or max reps for bodyweight. */
   topReps: number;
   totalLoad: number;
   setCount: number;
-  /** Cardio totals for the day. */
+  /** Cardio / duration totals for the day. */
   distanceKm: number;
   durationSec: number;
   bestPaceSecPerKm: number | null;
@@ -78,6 +78,51 @@ export function buildExerciseTimeline(
       continue;
     }
 
+    if (kind === "duration") {
+      let maxDur = 0;
+      for (const s of sets) {
+        const d = Number(s.durationSec);
+        if (Number.isFinite(d) && d > maxDur) maxDur = d;
+      }
+      points.push({
+        date: session.date,
+        sessionId: session.id,
+        exerciseId: match.id,
+        kind,
+        topWeightKg: 0,
+        topReps: 0,
+        totalLoad: 0,
+        setCount: sets.length,
+        distanceKm: 0,
+        durationSec: maxDur,
+        bestPaceSecPerKm: null,
+      });
+      continue;
+    }
+
+    if (kind === "bodyweight") {
+      let topReps = 0;
+      for (const s of sets) {
+        const r = Number(s.reps);
+        if (Number.isFinite(r) && r > topReps) topReps = r;
+      }
+      points.push({
+        date: session.date,
+        sessionId: session.id,
+        exerciseId: match.id,
+        kind,
+        topWeightKg: 0,
+        topReps,
+        totalLoad: 0,
+        setCount: sets.length,
+        distanceKm: 0,
+        durationSec: 0,
+        bestPaceSecPerKm: null,
+      });
+      continue;
+    }
+
+    // strength | weighted_bw | assisted — track top weight
     let top = sets[0]!;
     for (const s of sets) {
       const w = Number(s.weightKg);
@@ -108,9 +153,11 @@ export function buildExerciseTimeline(
   return points.slice(-limit);
 }
 
-/** Delta of top weight vs previous point in the timeline. */
+/** Delta of top weight vs previous point (strength + weighted_bw). */
 export function topWeightDeltaKg(points: readonly ExerciseHistoryPoint[]): number | null {
-  const strength = points.filter((p) => p.kind === "strength");
+  const strength = points.filter(
+    (p) => p.kind === "strength" || p.kind === "weighted_bw",
+  );
   if (strength.length < 2) return null;
   const prev = strength[strength.length - 2]!;
   const cur = strength[strength.length - 1]!;

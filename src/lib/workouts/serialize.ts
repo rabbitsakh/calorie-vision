@@ -5,7 +5,7 @@ import {
   formatPace,
   paceSecPerKm,
 } from "@/lib/workouts/cardio";
-import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import { parseExerciseKind, fieldsForKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import {
   exerciseLoad,
   loadByMuscleGroup,
@@ -118,15 +118,14 @@ export function serializeSessionDetail(session: DbSession) {
           const setType: SetType = parseSetType(s.setType);
           const completed = s.completed !== false;
           const rpe = s.rpe ?? null;
-          const load =
-            kind === "strength" && weightKg != null && reps != null
-              ? roundLoad(
-                  exerciseLoad({
-                    kind,
-                    sets: [{ weightKg, reps, setType, completed }],
-                  }),
-                )
-              : 0;
+          const load = fieldsForKind(kind).countsTowardLoad
+            ? roundLoad(
+                exerciseLoad({
+                  kind,
+                  sets: [{ weightKg, reps, setType, completed }],
+                }),
+              )
+            : 0;
           return {
             id: s.id,
             weightKg,
