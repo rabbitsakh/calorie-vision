@@ -129,8 +129,21 @@ type Insights = {
   weekEnd: string;
   weeklyTotal: number;
   weeklyByGroup: Record<string, { load: number; label: string }>;
+  weeklyCardioKm?: number;
+  weeklyCardioSec?: number;
   suggestions: InsightSuggestion[];
   sessionCount: number;
+  weekTrendPct?: number | null;
+  weekCardioTrendPct?: number | null;
+  monthStart?: string;
+  monthEnd?: string;
+  monthlyTotal?: number;
+  monthlyByGroup?: Record<string, { load: number; label: string }>;
+  monthlyCardioKm?: number;
+  monthlyCardioSec?: number;
+  monthlySessionCount?: number;
+  monthTrendPct?: number | null;
+  monthCardioTrendPct?: number | null;
 };
 
 type LibraryEntry = {
@@ -170,6 +183,79 @@ type TimelinePoint = {
   durationSec?: number;
   bestPaceSecPerKm?: number | null;
 };
+
+type ChartPoint = {
+  date: string;
+  weight: number;
+  volume: number;
+  pace: number | null;
+  distance: number;
+  duration: number;
+  reps: number;
+};
+
+type HistoryBundle = {
+  points: TimelinePoint[];
+  chart: ChartPoint[];
+  prSummary: string | null;
+  kind: string;
+  topWeightDeltaKg: number | null;
+  bestPaceDeltaSec: number | null;
+  metric: "weight" | "volume" | "pace" | "reps" | "duration";
+};
+
+function formatTrend(pct: number | null | undefined): string | null {
+  if (pct == null || !Number.isFinite(pct)) return null;
+  const sign = pct > 0 ? "+" : "";
+  return `${sign}${pct}%`;
+}
+
+function sparklinePath(
+  values: number[],
+  width: number,
+  height: number,
+): string {
+  if (values.length === 0) return "";
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  return values
+    .map((v, i) => {
+      const x = values.length === 1 ? width / 2 : (i / (values.length - 1)) * width;
+      const y = height - ((v - min) / span) * (height - 4) - 2;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+
+function ExerciseSparkline({
+  points,
+  metric,
+}: {
+  points: ChartPoint[];
+  metric: HistoryBundle["metric"];
+}) {
+  const values = points
+    .map((p) => {
+      if (metric === "weight") return p.weight;
+      if (metric === "volume") return p.volume;
+      if (metric === "pace") return p.pace ?? 0;
+      if (metric === "reps") return p.reps;
+      return p.duration;
+    })
+    .filter((v) => Number.isFinite(v) && (metric === "pace" ? v > 0 : true));
+  if (values.length < 2) {
+    return <p className="mt-2 text-xs text-slate-400">Мало точек для графика</p>;
+  }
+  const w = 240;
+  const h = 56;
+  const d = sparklinePath(values, w, h);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-14 w-full max-w-xs" aria-hidden>
+      <path d={d} fill="none" stroke="var(--accent, #0f766e)" strokeWidth="2" />
+    </svg>
+  );
+}
 
 function formatLoad(value: number): string {
   if (!Number.isFinite(value)) return "0";
@@ -300,12 +386,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [routines, setRoutines] = useState<RoutineSummary[]>([]);
   const [libraryHits, setLibraryHits] = useState<LibraryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
-  const [historyByName, setHistoryByName] = useState<
-    Record<
-      string,
-      { points: TimelinePoint[]; topWeightDeltaKg: number | null; bestPaceDeltaSec: number | null }
-    >
-  >({});
+  const [historyByName, setHistoryByName] = useState<Record<string, HistoryBundle>>({});
 
   const [restSeconds, setRestSeconds] = useState<number>(90);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
@@ -926,13 +1007,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }));
   };
 
-  const toggleExerciseHistory = async (name: string) => {
+  const toggleExerciseHistory = async (name: string, kind: ExerciseKind) => {
     const open = !historyOpen[name];
     setHistoryOpen((prev) => ({ ...prev, [name]: open }));
     if (!open || historyByName[name]) return;
     try {
       const data = await readJson<{
         points: TimelinePoint[];
+        chart: ChartPoint[];
+        prSummary: string | null;
+        kind: string;
         topWeightDeltaKg: number | null;
         bestPaceDeltaSec: number | null;
       }>(
@@ -940,12 +1024,24 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           withBasePath(`/api/workouts/exercise-history?name=${encodeURIComponent(name)}`),
         ),
       );
+      const defaultMetric: HistoryBundle["metric"] =
+        kind === "cardio" || data.kind === "cardio"
+          ? "pace"
+          : kind === "bodyweight"
+            ? "reps"
+            : kind === "duration"
+              ? "duration"
+              : "weight";
       setHistoryByName((prev) => ({
         ...prev,
         [name]: {
           points: data.points,
+          chart: data.chart ?? [],
+          prSummary: data.prSummary,
+          kind: data.kind,
           topWeightDeltaKg: data.topWeightDeltaKg,
           bestPaceDeltaSec: data.bestPaceDeltaSec,
+          metric: defaultMetric,
         },
       }));
     } catch (err) {
@@ -1226,13 +1322,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     <button
                       type="button"
                       className="mt-1 text-xs font-medium text-teal-800"
-                      onClick={() => void toggleExerciseHistory(ex.name)}
+                      onClick={() => void toggleExerciseHistory(ex.name, ex.kind)}
                     >
-                      {historyOpen[ex.name]
-                        ? "Скрыть историю"
-                        : isCardio
-                          ? "История кардио"
-                          : "История весов"}
+                      {historyOpen[ex.name] ? "Скрыть прогресс" : "Прогресс и PR"}
                     </button>
                   </div>
                   <button
@@ -1252,10 +1344,68 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       <p>Пока нет прошлых записей.</p>
                     ) : (
                       <>
-                        <ul className="space-y-1">
+                        {historyByName[ex.name]!.prSummary ? (
+                          <p className="mb-2 font-semibold text-teal-900">
+                            {historyByName[ex.name]!.prSummary}
+                          </p>
+                        ) : null}
+                        <div className="mb-1 flex flex-wrap gap-1">
+                          {(isCardio
+                            ? (["pace", "distance"] as const)
+                            : ex.kind === "bodyweight"
+                              ? (["reps"] as const)
+                              : ex.kind === "duration"
+                                ? (["duration"] as const)
+                                : (["weight", "volume"] as const)
+                          ).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                                historyByName[ex.name]!.metric === m ||
+                                (m === "distance" && historyByName[ex.name]!.metric === "pace")
+                                  ? "bg-teal-700 text-white"
+                                  : "bg-white text-slate-600"
+                              }`}
+                              onClick={() =>
+                                setHistoryByName((prev) => ({
+                                  ...prev,
+                                  [ex.name]: {
+                                    ...prev[ex.name]!,
+                                    metric:
+                                      m === "distance"
+                                        ? "pace"
+                                        : (m as HistoryBundle["metric"]),
+                                  },
+                                }))
+                              }
+                            >
+                              {m === "weight"
+                                ? "Вес"
+                                : m === "volume"
+                                  ? "Объём"
+                                  : m === "pace"
+                                    ? "Темп"
+                                    : m === "distance"
+                                      ? "Км"
+                                      : m === "reps"
+                                        ? "Повт"
+                                        : "Время"}
+                            </button>
+                          ))}
+                        </div>
+                        <ExerciseSparkline
+                          points={historyByName[ex.name]!.chart}
+                          metric={
+                            isCardio && historyByName[ex.name]!.metric === "pace"
+                              ? "pace"
+                              : historyByName[ex.name]!.metric
+                          }
+                        />
+                        <ul className="mt-2 space-y-1">
                           {historyByName[ex.name]!.points.map((p) => (
                             <li
-                              key={`${p.date}-${p.topWeightKg}-${p.distanceKm ?? 0}`}
+                              key={`${p.date}-${p.topWeightKg}-${p.distanceKm ?? 0}-${p.topReps}`}
                               className="flex justify-between gap-2 tabular-nums"
                             >
                               <span>{formatDateShort(p.date)}</span>
@@ -1272,7 +1422,13 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                                     ]
                                       .filter(Boolean)
                                       .join(" · ")
-                                  : `${p.topWeightKg}×${p.topReps} · ${formatLoad(p.totalLoad)}`}
+                                  : p.kind === "bodyweight"
+                                    ? `${p.topReps} повт`
+                                    : p.kind === "duration"
+                                      ? formatDurationMinutes(p.durationSec ?? 0)
+                                      : `${p.topWeightKg}×${p.topReps}${
+                                          p.totalLoad > 0 ? ` · ${formatLoad(p.totalLoad)}` : ""
+                                        }`}
                               </span>
                             </li>
                           ))}
@@ -1626,7 +1782,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
             {formatLoad(insights.weeklyTotal)}{" "}
             <span className="text-sm font-normal text-slate-500">кг·повт</span>
+            {formatTrend(insights.weekTrendPct) ? (
+              <span className="ml-2 text-sm font-medium text-teal-800">
+                {formatTrend(insights.weekTrendPct)} к пред.
+              </span>
+            ) : null}
           </p>
+          {(insights.weeklyCardioKm ?? 0) > 0 ? (
+            <p className="text-sm tabular-nums text-slate-700">
+              Кардио {formatDistanceKm(insights.weeklyCardioKm!)} км
+              {formatTrend(insights.weekCardioTrendPct) ? (
+                <span className="ml-2 text-xs text-teal-800">
+                  {formatTrend(insights.weekCardioTrendPct)}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           <p className="text-xs text-slate-400">{insights.sessionCount} тренировок</p>
           {Object.keys(insights.weeklyByGroup).length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -1638,6 +1809,30 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                   {g.label}: {formatLoad(g.load)}
                 </span>
               ))}
+            </div>
+          ) : null}
+          {insights.monthStart ? (
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Месяц {insights.monthStart.slice(0, 7)}
+              </p>
+              <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+                {formatLoad(insights.monthlyTotal ?? 0)}{" "}
+                <span className="text-sm font-normal text-slate-500">кг·повт</span>
+                {formatTrend(insights.monthTrendPct) ? (
+                  <span className="ml-2 text-sm font-medium text-teal-800">
+                    {formatTrend(insights.monthTrendPct)}
+                  </span>
+                ) : null}
+              </p>
+              {(insights.monthlyCardioKm ?? 0) > 0 ? (
+                <p className="text-sm text-slate-700">
+                  Кардио {formatDistanceKm(insights.monthlyCardioKm!)} км
+                </p>
+              ) : null}
+              <p className="text-xs text-slate-400">
+                {insights.monthlySessionCount ?? 0} тренировок
+              </p>
             </div>
           ) : null}
         </section>
