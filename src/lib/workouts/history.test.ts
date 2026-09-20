@@ -49,6 +49,9 @@ test("buildExerciseHistoryByNormName picks latest prior sets per name", () => {
 
   const bench = historyForExerciseName(byNorm, "Жим лёжа");
   assert.equal(bench?.date, "2026-09-10");
-  assert.deepEqual(bench?.sets, [{ weightKg: 82.5, reps: 8 }]);
+  assert.deepEqual(bench?.sets, [
+    { weightKg: 82.5, reps: 8, distanceKm: null, durationSec: null },
+  ]);
+  assert.equal(bench?.kind, "strength");
   assert.equal(historyForExerciseName(byNorm, "Присед"), null);
 });

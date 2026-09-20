@@ -25,6 +25,17 @@ test("set and exercise load are kg × reps", () => {
   );
 });
 
+test("cardio exercises contribute zero strength load", () => {
+  assert.equal(
+    exerciseLoad({
+      kind: "cardio",
+      sets: [{ weightKg: 80, reps: 8 }],
+    }),
+    0,
+  );
+  assert.equal(setLoad({ weightKg: null, reps: null }), 0);
+});
+
 test("session total and split by group", () => {
   const exercises = [
     { muscleGroup: "chest", sets: [{ weightKg: 100, reps: 5 }] },

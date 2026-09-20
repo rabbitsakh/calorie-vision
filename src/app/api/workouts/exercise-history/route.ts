@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { buildExerciseTimeline, topWeightDeltaKg } from "@/lib/workouts/timeline";
 import { sessionInclude } from "@/lib/workouts/serialize";
+import { bestPaceDeltaSec, buildExerciseTimeline, topWeightDeltaKg } from "@/lib/workouts/timeline";
 
 export const dynamic = "force-dynamic";
 
-/** GET ?name=Жим+лёжа — timeline of top weight / load for one exercise. */
+/** GET ?name=Жим+лёжа — timeline of top weight / load / cardio for one exercise. */
 export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireAdmin();
@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       name,
       points,
       topWeightDeltaKg: topWeightDeltaKg(points),
+      bestPaceDeltaSec: bestPaceDeltaSec(points),
     });
   } catch (error) {
     console.error("GET /api/workouts/exercise-history", error);

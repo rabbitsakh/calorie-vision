@@ -1,20 +1,33 @@
+import { cardioSetTotals, paceSecPerKm } from "@/lib/workouts/cardio";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { exerciseLoad, roundLoad } from "@/lib/workouts/load";
 
 export type ExerciseHistoryPoint = {
   date: string;
   sessionId: string;
   exerciseId: string;
-  /** Best (max) weight that day. */
+  kind: "strength" | "cardio";
+  /** Best (max) weight that day (strength). */
   topWeightKg: number;
   /** Reps at the top-weight set (first if tie). */
   topReps: number;
   totalLoad: number;
   setCount: number;
+  /** Cardio totals for the day. */
+  distanceKm: number;
+  durationSec: number;
+  bestPaceSecPerKm: number | null;
 };
 
-type SourceSet = { weightKg: number; reps: number; sortOrder: number };
-type SourceExercise = { id: string; name: string; sets: SourceSet[] };
+type SourceSet = {
+  weightKg: number | null;
+  reps: number | null;
+  distanceKm?: number | null;
+  durationSec?: number | null;
+  sortOrder: number;
+};
+type SourceExercise = { id: string; name: string; kind?: string | null; sets: SourceSet[] };
 type SourceSession = {
   id: string;
   date: string;
@@ -44,19 +57,50 @@ export function buildExerciseTimeline(
     const match = session.exercises.find((ex) => normalizeExerciseName(ex.name) === key);
     if (!match || match.sets.length === 0) continue;
 
+    const kind = parseExerciseKind(match.kind);
     const sets = [...match.sets].sort((a, b) => a.sortOrder - b.sortOrder);
+
+    if (kind === "cardio") {
+      const totals = cardioSetTotals(sets);
+      points.push({
+        date: session.date,
+        sessionId: session.id,
+        exerciseId: match.id,
+        kind,
+        topWeightKg: 0,
+        topReps: 0,
+        totalLoad: 0,
+        setCount: sets.length,
+        distanceKm: totals.distanceKm,
+        durationSec: totals.durationSec,
+        bestPaceSecPerKm: totals.bestPaceSecPerKm,
+      });
+      continue;
+    }
+
     let top = sets[0]!;
     for (const s of sets) {
-      if (s.weightKg > top.weightKg) top = s;
+      const w = Number(s.weightKg);
+      const topW = Number(top.weightKg);
+      if (Number.isFinite(w) && (!Number.isFinite(topW) || w > topW)) top = s;
     }
     points.push({
       date: session.date,
       sessionId: session.id,
       exerciseId: match.id,
-      topWeightKg: top.weightKg,
-      topReps: top.reps,
-      totalLoad: roundLoad(exerciseLoad({ sets })),
+      kind,
+      topWeightKg: Number(top.weightKg) || 0,
+      topReps: Number(top.reps) || 0,
+      totalLoad: roundLoad(
+        exerciseLoad({
+          kind,
+          sets: sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
+        }),
+      ),
       setCount: sets.length,
+      distanceKm: 0,
+      durationSec: 0,
+      bestPaceSecPerKm: null,
     });
   }
 
@@ -66,8 +110,20 @@ export function buildExerciseTimeline(
 
 /** Delta of top weight vs previous point in the timeline. */
 export function topWeightDeltaKg(points: readonly ExerciseHistoryPoint[]): number | null {
-  if (points.length < 2) return null;
-  const prev = points[points.length - 2]!;
-  const cur = points[points.length - 1]!;
+  const strength = points.filter((p) => p.kind === "strength");
+  if (strength.length < 2) return null;
+  const prev = strength[strength.length - 2]!;
+  const cur = strength[strength.length - 1]!;
   return Math.round((cur.topWeightKg - prev.topWeightKg) * 10) / 10;
 }
+
+/** Delta of best pace (sec/km); negative = faster. */
+export function bestPaceDeltaSec(points: readonly ExerciseHistoryPoint[]): number | null {
+  const cardio = points.filter((p) => p.kind === "cardio" && p.bestPaceSecPerKm != null);
+  if (cardio.length < 2) return null;
+  const prev = cardio[cardio.length - 2]!;
+  const cur = cardio[cardio.length - 1]!;
+  return Math.round((cur.bestPaceSecPerKm! - prev.bestPaceSecPerKm!) * 10) / 10;
+}
+
+export { paceSecPerKm };

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
+import { isExerciseKind, parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
@@ -29,9 +30,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
     const body = (await request.json()) as {
       name?: string;
       muscleGroup?: string | null;
+      kind?: unknown;
     };
 
-    const data: { name?: string; muscleGroup?: string | null } = {};
+    const data: { name?: string; muscleGroup?: string | null; kind?: string } = {};
     if (body.name !== undefined) {
       const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
       if (!name) {
@@ -47,6 +49,12 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       } else {
         data.muscleGroup = body.muscleGroup;
       }
+    }
+    if (body.kind !== undefined) {
+      if (!isExerciseKind(body.kind)) {
+        return NextResponse.json({ error: "Тип: strength или cardio" }, { status: 400 });
+      }
+      data.kind = parseExerciseKind(body.kind);
     }
 
     await prisma.workoutExercise.update({ where: { id: exerciseId }, data });

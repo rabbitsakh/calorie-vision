@@ -69,6 +69,7 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
       lastTime: last
         ? {
             date: last.date,
+            kind: last.kind,
             sets: last.sets,
           }
         : null,
