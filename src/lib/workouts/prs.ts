@@ -1,5 +1,5 @@
 import { paceSecPerKm } from "@/lib/workouts/cardio";
-import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { setCountsTowardLoad, parseSetType } from "@/lib/workouts/set-meta";
 
 export type PrSet = {
