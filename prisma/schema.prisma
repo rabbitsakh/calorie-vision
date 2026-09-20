@@ -480,14 +480,21 @@ model WorkoutRoutineExercise {
 }
 
 model WorkoutSession {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  date         String   @db.VarChar(10)
-  note         String?  @db.VarChar(200)
+  date         String    @db.VarChar(10)
+  note         String?   @db.VarChar(200)
   /** Target overload vs previous matching session (e.g. 0.05 = +5%). */
-  progressRate Float    @default(0.05)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  progressRate Float     @default(0.05)
+  /** Live session clock (null = never started / backfill). */
+  startedAt    DateTime?
+  endedAt      DateTime?
+  /** When non-null, session clock is paused at this instant. */
+  pausedAt     DateTime?
+  /** Accumulated pause duration in milliseconds. */
+  pausedMs     Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   muscles   WorkoutSessionMuscle[]

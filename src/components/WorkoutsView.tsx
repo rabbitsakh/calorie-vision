@@ -21,6 +21,11 @@ import {
   kindUsesRestTimer,
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
+import {
+  formatSessionClock,
+  playRestEndBeep,
+  sessionElapsedSec,
+} from "@/lib/workouts/session-clock";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import {
@@ -81,6 +86,13 @@ type SessionSummary = {
   cardioDurationSec: number;
   cardioBestPaceSecPerKm: number | null;
   cardioOnly: boolean;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  pausedAt?: string | null;
+  pausedMs?: number;
+  elapsedSec?: number;
+  elapsedLabel?: string;
+  clockStatus?: "idle" | "running" | "paused" | "finished";
 };
 
 type SessionExercise = {
@@ -391,6 +403,10 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [restSeconds, setRestSeconds] = useState<number>(90);
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restLeft, setRestLeft] = useState(0);
+  const [restSound, setRestSound] = useState(true);
+  const [liveMode, setLiveMode] = useState(true);
+  const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
+  const [clockTick, setClockTick] = useState(0);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -444,6 +460,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setDetail(data.session);
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
+      setLiveMode(data.session.date === todayKey && data.session.clockStatus !== "finished");
+      setFocusExerciseId(data.session.exercises[0]?.id ?? null);
       setSetDrafts((prev) => {
         const next = { ...prev };
         for (const ex of data.session.exercises) {
@@ -460,7 +478,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
     }
-  }, []);
+  }, [todayKey]);
 
   useEffect(() => {
     void loadList();
@@ -509,17 +527,55 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         setRestEndsAt(null);
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           try {
-            navigator.vibrate?.(40);
+            navigator.vibrate?.([40, 40, 40]);
           } catch {
             /* ignore */
           }
         }
+        if (restSound) playRestEndBeep();
       }
     };
     tick();
     const id = window.setInterval(tick, 250);
     return () => window.clearInterval(id);
-  }, [restEndsAt]);
+  }, [restEndsAt, restSound]);
+
+  useEffect(() => {
+    if (!detail || detail.clockStatus !== "running") return;
+    const id = window.setInterval(() => setClockTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [detail]);
+
+  const liveElapsedLabel = useMemo(() => {
+    if (!detail?.startedAt) return detail?.elapsedLabel ?? "00:00";
+    void clockTick;
+    const sec = sessionElapsedSec({
+      startedAt: detail.startedAt,
+      endedAt: detail.endedAt ?? null,
+      pausedAt: detail.pausedAt ?? null,
+      pausedMs: detail.pausedMs ?? 0,
+    });
+    return formatSessionClock(sec);
+  }, [detail, clockTick]);
+
+  const patchClock = async (clock: "start" | "pause" | "resume" | "finish") => {
+    if (!detail) return;
+    setError(null);
+    try {
+      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        await fetch(withBasePath(`/api/workouts/${detail.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clock }),
+        }),
+      );
+      setDetail(data.session);
+      setProgress(data.progress);
+      if (clock === "finish") setLiveMode(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось обновить таймер");
+    }
+  };
 
   useEffect(() => {
     const q = exerciseName.trim();
@@ -1130,6 +1186,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             </button>
             <h2 className="mt-1 text-xl font-semibold text-slate-900">
               {formatDateWords(detail.date)}
+              {detail.date !== todayKey ? (
+                <span className="ml-2 text-sm font-medium text-amber-700">задним числом</span>
+              ) : null}
             </h2>
             <p className="mt-1 text-sm text-slate-600">{detail.muscleLabels.join(" · ")}</p>
           </div>
@@ -1156,6 +1215,96 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             </button>
           </div>
         </div>
+
+        {detail.date === todayKey || detail.startedAt ? (
+          <section className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
+                  Таймер тренировки
+                </p>
+                <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+                  {liveElapsedLabel}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {detail.clockStatus === "paused"
+                    ? "Пауза"
+                    : detail.clockStatus === "finished"
+                      ? "Завершена"
+                      : detail.clockStatus === "running"
+                        ? "Идёт"
+                        : "Не начата"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {detail.clockStatus === "idle" || !detail.startedAt ? (
+                  <button
+                    type="button"
+                    className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+                    onClick={() => void patchClock("start")}
+                  >
+                    Старт
+                  </button>
+                ) : null}
+                {detail.clockStatus === "running" ? (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+                    onClick={() => void patchClock("pause")}
+                  >
+                    Пауза
+                  </button>
+                ) : null}
+                {detail.clockStatus === "paused" ? (
+                  <button
+                    type="button"
+                    className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+                    onClick={() => void patchClock("resume")}
+                  >
+                    Продолжить
+                  </button>
+                ) : null}
+                {detail.clockStatus === "running" || detail.clockStatus === "paused" ? (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+                    onClick={() => void patchClock("finish")}
+                  >
+                    Финиш
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            {detail.date === todayKey && detail.clockStatus !== "finished" ? (
+              <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={liveMode}
+                  onChange={(e) => setLiveMode(e.target.checked)}
+                />
+                Режим «Сейчас» (фокус на упражнении)
+              </label>
+            ) : null}
+          </section>
+        ) : null}
+
+        {restEndsAt ? (
+          <div className="fixed inset-x-0 bottom-20 z-40 mx-auto max-w-lg px-4">
+            <div className="rounded-2xl border border-teal-300 bg-white/95 px-4 py-3 shadow-lg backdrop-blur">
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">Отдых</p>
+              <p className="text-3xl font-semibold tabular-nums text-slate-900">
+                {formatRest(restLeft)}
+              </p>
+              <button
+                type="button"
+                className="mt-1 text-sm text-slate-500"
+                onClick={() => setRestEndsAt(null)}
+              >
+                Пропустить
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
           {detail.cardioOnly ? (
@@ -1262,19 +1411,76 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               )}
             </div>
             <p className="mt-1 text-xs text-slate-400">После рабочего подхода или галочки ✓.</p>
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={restSound}
+                onChange={(e) => setRestSound(e.target.checked)}
+              />
+              Звук в конце отдыха
+            </label>
           </section>
         ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
+        {liveMode && detail.exercises.length > 0 ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <button
+              type="button"
+              className="text-sm font-medium text-teal-800 disabled:opacity-30"
+              disabled={
+                !focusExerciseId ||
+                detail.exercises.findIndex((e) => e.id === focusExerciseId) <= 0
+              }
+              onClick={() => {
+                const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
+                if (idx > 0) setFocusExerciseId(detail.exercises[idx - 1]!.id);
+              }}
+            >
+              ← Пред
+            </button>
+            <p className="min-w-0 truncate text-center text-sm font-semibold text-slate-900">
+              Сейчас:{" "}
+              {detail.exercises.find((e) => e.id === focusExerciseId)?.name ??
+                detail.exercises[0]?.name}
+            </p>
+            <button
+              type="button"
+              className="text-sm font-medium text-teal-800 disabled:opacity-30"
+              disabled={
+                !focusExerciseId ||
+                detail.exercises.findIndex((e) => e.id === focusExerciseId) >=
+                  detail.exercises.length - 1
+              }
+              onClick={() => {
+                const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
+                if (idx >= 0 && idx < detail.exercises.length - 1) {
+                  setFocusExerciseId(detail.exercises[idx + 1]!.id);
+                }
+              }}
+            >
+              След →
+            </button>
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-3">
           {detail.exercises.map((ex) => {
+            if (liveMode && focusExerciseId && ex.id !== focusExerciseId) return null;
             const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
             const hint = lastSetHint(ex.lastTime ?? null, ex.kind);
             const isCardio = ex.kind === "cardio";
             const spec = fieldsForKind(ex.kind);
             return (
-              <section key={ex.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+              <section
+                key={ex.id}
+                className={`rounded-2xl border bg-white p-4 ${
+                  liveMode && focusExerciseId === ex.id
+                    ? "border-teal-400 shadow-sm"
+                    : "border-slate-200"
+                }`}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1">
@@ -1470,6 +1676,24 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     }}
                   />
                 </label>
+
+                {liveMode && ex.lastTime?.sets?.length ? (
+                  <div className="mt-3 rounded-xl bg-teal-50 px-3 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
+                      Прошлые подходы
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+                      {ex.lastTime.sets
+                        .map((s) =>
+                          formatHistoryChip(
+                            s,
+                            ex.lastTime?.kind === "cardio" ? "cardio" : ex.kind,
+                          ),
+                        )
+                        .join(" · ")}
+                    </p>
+                  </div>
+                ) : null}
 
                 <ul className="mt-3 space-y-1.5">
                   {ex.sets.map((s, idx) => (
