@@ -91,7 +91,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
     }
     if (body.kind !== undefined) {
       if (!isExerciseKind(body.kind)) {
-        return NextResponse.json({ error: "Тип: strength или cardio" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Тип: strength / cardio / bodyweight / duration / weighted_bw / assisted" },
+          { status: 400 },
+        );
       }
       data.kind = parseExerciseKind(body.kind);
     }

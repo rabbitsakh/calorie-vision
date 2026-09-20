@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
-import {
-  parseCardioDistanceKm,
-  parseCardioDurationSec,
-  parseStrengthReps,
-  parseStrengthWeight,
-} from "@/lib/workouts/set-fields";
+import { parseSetPatchForKind } from "@/lib/workouts/set-fields";
 import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
@@ -74,42 +69,18 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       data.rpe = rpe ?? null;
     }
 
-    if (kind === "cardio") {
-      if (body.distanceKm !== undefined) {
-        const distanceKm = parseCardioDistanceKm(body.distanceKm);
-        if (distanceKm === null) {
-          return NextResponse.json({ error: "Некорректная дистанция" }, { status: 400 });
-        }
-        data.distanceKm = distanceKm;
+    const hasMetric =
+      body.weightKg !== undefined ||
+      body.reps !== undefined ||
+      body.distanceKm !== undefined ||
+      body.durationSec !== undefined;
+
+    if (hasMetric) {
+      const parsed = parseSetPatchForKind(kind, body);
+      if (!parsed.ok) {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
-      if (body.durationSec !== undefined) {
-        const durationSec = parseCardioDurationSec(body.durationSec);
-        if (durationSec === null) {
-          return NextResponse.json({ error: "Некорректное время" }, { status: 400 });
-        }
-        data.durationSec = durationSec;
-      }
-      data.weightKg = null;
-      data.reps = null;
-    } else {
-      if (body.weightKg !== undefined) {
-        const weightKg = parseStrengthWeight(body.weightKg);
-        if (weightKg === null) {
-          return NextResponse.json({ error: "Некорректный вес" }, { status: 400 });
-        }
-        data.weightKg = weightKg;
-      }
-      if (body.reps !== undefined) {
-        const reps = parseStrengthReps(body.reps);
-        if (reps === null) {
-          return NextResponse.json({ error: "Некорректные повторения" }, { status: 400 });
-        }
-        data.reps = reps;
-      }
-      if (body.weightKg !== undefined || body.reps !== undefined) {
-        data.distanceKm = null;
-        data.durationSec = null;
-      }
+      Object.assign(data, parsed.fields);
     }
 
     await prisma.workoutSet.update({ where: { id: setId }, data });

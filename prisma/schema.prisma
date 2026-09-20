@@ -416,7 +416,7 @@ model WorkoutExerciseLibrary {
   name               String   @db.VarChar(120)
   /** normalizeExerciseName(name) for unique lookup. */
   nameNorm           String   @db.VarChar(120)
-  /** strength | cardio */
+  /** strength | cardio | bodyweight | duration | weighted_bw | assisted */
   kind               String   @default("strength") @db.VarChar(16)
   defaultMuscleGroup String?  @db.VarChar(32)
   useCount           Int      @default(0)
@@ -464,7 +464,7 @@ model WorkoutRoutineExercise {
   id          String @id @default(cuid())
   routineId   String
   name        String @db.VarChar(120)
-  /** strength | cardio */
+  /** strength | cardio | bodyweight | duration | weighted_bw | assisted */
   kind        String @default("strength") @db.VarChar(16)
   muscleGroup String? @db.VarChar(32)
   sortOrder   Int    @default(0)
@@ -513,7 +513,7 @@ model WorkoutExercise {
   id          String   @id @default(cuid())
   sessionId   String
   name        String   @db.VarChar(120)
-  /** strength | cardio — drives set fields (kg×reps vs km+time). */
+  /** strength | cardio | bodyweight | duration | weighted_bw | assisted — drives set fields. */
   kind        String   @default("strength") @db.VarChar(16)
   /** Optional primary group; null → inherit session groups for load split. */
   muscleGroup String?  @db.VarChar(32)

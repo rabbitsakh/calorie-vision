@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
-import {
-  parseCardioDistanceKm,
-  parseCardioDurationSec,
-  parseStrengthReps,
-  parseStrengthWeight,
-} from "@/lib/workouts/set-fields";
+import { parseSetCreateForKind } from "@/lib/workouts/set-fields";
 import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
@@ -50,54 +45,27 @@ export async function POST(request: NextRequest, context: Ctx) {
       return NextResponse.json({ error: "Тип подхода: warmup/working/drop/failure" }, { status: 400 });
     }
 
+    const parsed = parseSetCreateForKind(kind, body);
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
     const maxOrder = await prisma.workoutSet.aggregate({
       where: { exerciseId },
       _max: { sortOrder: true },
     });
     const sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
 
-    if (kind === "cardio") {
-      const distanceKm = parseCardioDistanceKm(body.distanceKm ?? 0);
-      const durationSec = parseCardioDurationSec(body.durationSec);
-      if (distanceKm === null || durationSec === null) {
-        return NextResponse.json(
-          { error: "Укажите дистанцию (км) и время (мин → сек)" },
-          { status: 400 },
-        );
-      }
-      await prisma.workoutSet.create({
-        data: {
-          exerciseId,
-          weightKg: null,
-          reps: null,
-          distanceKm,
-          durationSec,
-          setType,
-          completed,
-          rpe: rpe ?? null,
-          sortOrder,
-        },
-      });
-    } else {
-      const weightKg = parseStrengthWeight(body.weightKg);
-      const reps = parseStrengthReps(body.reps);
-      if (weightKg === null || reps === null) {
-        return NextResponse.json({ error: "Укажите кг и число повторений" }, { status: 400 });
-      }
-      await prisma.workoutSet.create({
-        data: {
-          exerciseId,
-          weightKg,
-          reps,
-          distanceKm: null,
-          durationSec: null,
-          setType,
-          completed,
-          rpe: rpe ?? null,
-          sortOrder,
-        },
-      });
-    }
+    await prisma.workoutSet.create({
+      data: {
+        exerciseId,
+        ...parsed.fields,
+        setType,
+        completed,
+        rpe: rpe ?? null,
+        sortOrder,
+      },
+    });
 
     const row = await prisma.workoutSession.findFirstOrThrow({
       where: { id: owned.sessionId },
