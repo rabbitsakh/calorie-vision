@@ -22,6 +22,28 @@ export function mealNeedsImage(imagePath: string | null | undefined): boolean {
   return imagePath.startsWith("http://") || imagePath.startsWith("https://");
 }
 
+/** Drop freshness / home-style adjectives that hurt OFF / packaging search. */
+const FRESHNESS_TOKEN =
+  /^(свеж(ий|ая|ее|ие|их|им|ими)?|молод(ой|ая|ое|ые)|сырой|сырая|сырое|сырые|домашн(ий|яя|ее|ие)|нарезанн(ый|ая|ое|ые)|мытый|мытая)$/i;
+
+export function stripFreshnessAdjectives(name: string): string {
+  const tokens = name
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length > 0 && !FRESHNESS_TOKEN.test(t));
+  return tokens.join(" ").trim();
+}
+
+/** Produce / raw vegetable-fruit tokens — prefer Wikipedia Commons over packaging. */
+const PRODUCE_TOKEN =
+  /(сельдере|celery|огурц|cucumber|помидор|томат|tomato|морков|carrot|капуст|cabbage|свекл|beet|чеснок|garlic|кабачк|zucchini|баклажан|eggplant|редис|radish|укроп|dill|петрушк|parsley|шпинат|spinach|брокколи|broccoli|яблок|банан|груш|апельсин|лимон|виноград|клубник|малин|черник|арбуз|дыня|авокадо|гриб|лук\b|onion|перец|pepper|картоф|potato|салат|lettuce|зелень|овощ|фрукт|ягод|vegetable|fruit)/i;
+
+export function looksLikeProduceName(name: string): boolean {
+  const normalized = normalizeDishName(stripFreshnessAdjectives(name) || name);
+  if (!normalized) return false;
+  return normalized.split(" ").some((t) => PRODUCE_TOKEN.test(t));
+}
+
 /**
  * Query variants for product-photo backfill (OFF / Wikipedia).
  * Longer marketing names often miss; shorter cores hit better.
@@ -32,7 +54,8 @@ export function dishImageLookupQueries(dishName: string, limit = 5): string[] {
     return [];
   }
 
-  const simplified = simplifyDishNameForLookup(trimmed);
+  const stripped = stripFreshnessAdjectives(trimmed);
+  const simplified = simplifyDishNameForLookup(stripped || trimmed);
   const out: string[] = [];
   const push = (value: string | null | undefined) => {
     const next = value?.trim() ?? "";
@@ -46,29 +69,42 @@ export function dishImageLookupQueries(dishName: string, limit = 5): string[] {
     out.push(next);
   };
 
-  for (const query of lookupQueriesForName(trimmed, simplified, limit)) {
-    push(query);
+  // Prefer stripped produce core before the full marketing phrase.
+  if (stripped && normalizeDishName(stripped) !== normalizeDishName(trimmed)) {
+    push(stripped);
   }
 
-  const tokens = normalizeDishName(trimmed).split(" ").filter(Boolean);
+  for (const query of lookupQueriesForName(stripped || trimmed, simplified, limit)) {
+    push(query);
+  }
+  // Also try original once (branded packs may need the full string).
+  push(trimmed);
+
+  const tokens = normalizeDishName(stripped || trimmed).split(" ").filter(Boolean);
   if (tokens.length >= 3) {
     push(tokens.slice(1).join(" "));
     push(tokens.slice(-2).join(" "));
   }
   if (tokens.length >= 2) {
     push(tokens.slice(-2).join(" "));
-    // Bare last token only when it looks like food ("подушечки"), never brands ("Маска", "Bombbar").
     const last = tokens[tokens.length - 1]!;
     if (last.length >= 5 && looksLikeFoodToken(last)) {
       push(last);
     }
+    // Bare first produce token ("сельдерей").
+    const first = tokens[0]!;
+    if (first.length >= 4 && PRODUCE_TOKEN.test(first)) {
+      push(first);
+    }
+  } else if (tokens.length === 1 && tokens[0]!.length >= 4) {
+    push(tokens[0]!);
   }
 
   return out.slice(0, limit);
 }
 
 function looksLikeFoodToken(token: string): boolean {
-  return /(каш|суп|борщ|салат|яйц|куриц|индейк|мяс|напит|сок|хлеб|пицц|паст|рис|греч|овсян|творог|йогурт|сыр|конфет|шоколад|батончик|печень|подушечк|варен|тушен|котлет|молоко|кефир|орех|фрукт|ягод|овощ|картоф|макарон|пельмен|блин|вафл|candy|chocolate|yogurt|cheese|bread|soup|salad|chicken|turkey|porridge|pasta|pizza|snack|bar)/i.test(
+  return /(каш|суп|борщ|салат|яйц|куриц|индейк|мяс|напит|сок|хлеб|пицц|паст|рис|греч|овсян|творог|йогурт|сыр|конфет|шоколад|батончик|печень|подушечк|варен|тушен|котлет|молоко|кефир|орех|фрукт|ягод|овощ|картоф|макарон|пельмен|блин|вафл|сельдере|celery|огурц|помидор|морков|капуст|candy|chocolate|yogurt|cheese|bread|soup|salad|chicken|turkey|porridge|pasta|pizza|snack|bar)/i.test(
     token,
   );
 }

@@ -144,6 +144,27 @@ const DISH_SYNONYMS: Record<string, string> = {
   яблоко: "яблоко",
   мороженое: "мороженое",
   пломбир: "мороженое",
+
+  // Овощи / зелень (сырые — wiki/OFF; не перекрываем каши/блюда выше)
+  сельдерей: "celery",
+  celery: "celery",
+  огурец: "cucumber",
+  помидор: "tomato",
+  томат: "tomato",
+  морковь: "carrot",
+  морковка: "carrot",
+  капуста: "cabbage",
+  свёкла: "beetroot",
+  свекла: "beetroot",
+  чеснок: "garlic",
+  кабачок: "zucchini",
+  баклажан: "eggplant",
+  редис: "radish",
+  редиска: "radish",
+  укроп: "dill",
+  петрушка: "parsley",
+  шпинат: "spinach",
+  брокколи: "broccoli",
 };
 
 function normalizeLookupKey(name: string): string {

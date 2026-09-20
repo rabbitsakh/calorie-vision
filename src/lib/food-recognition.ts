@@ -17,7 +17,8 @@ import {
   applyStoredFoodCorrection,
   lookupStoredFoodCorrection,
 } from "@/lib/food-corrections-store";
-import { findFoodImage } from "@/lib/food-image";
+import { findFoodImage, findProduceWikiImage } from "@/lib/food-image";
+import { looksLikeProduceName } from "@/lib/meal-image";
 import { lookupFiberSugarTable } from "@/lib/fiber-sugar-table";
 import { enrichAlternatives } from "@/lib/recognition-alternatives";
 import { lookupQueriesForName } from "@/lib/dish-lookup-synonyms";
@@ -820,11 +821,16 @@ async function withFoodImage(
   result: FoodRecognitionResult,
   query: string,
 ): Promise<FoodRecognitionResult> {
-  const imageUrl = await findFoodImage({
-    query: result.dishName || query,
+  const name = result.dishName || query;
+  let imageUrl = await findFoodImage({
+    query: name,
     brand: result.brand,
     productImageUrl: result.imageUrl,
   });
+
+  if (!imageUrl && looksLikeProduceName(name)) {
+    imageUrl = await findProduceWikiImage(name);
+  }
 
   return imageUrl ? { ...result, imageUrl } : result;
 }

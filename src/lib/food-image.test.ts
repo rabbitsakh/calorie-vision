@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildFoodImageWikiQueries,
+  buildProduceImageWikiQueries,
   findFoodImage,
   isAmbiguousBareImageQuery,
   isAllowedImageUrl,
@@ -107,4 +108,11 @@ test("auto findFoodImage prefers OFF product url when present", async () => {
     mode: "auto",
   });
   assert.equal(off, "https://images.openfoodfacts.org/bombbar.jpg");
+});
+
+test("produce wiki queries prefer bare vegetable name over packaging", () => {
+  const qs = buildProduceImageWikiQueries("сельдерей");
+  assert.ok(qs.includes("сельдерей") || qs.some((q) => /^сельдерей$/i.test(q)));
+  assert.ok(qs.some((q) => /vegetable|овощ/i.test(q)));
+  assert.ok(!qs.some((q) => /упаковка/i.test(q)));
 });

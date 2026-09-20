@@ -405,18 +405,25 @@ async function searchWikipediaImageList(
   return listWikipediaThumbnails(data, limit);
 }
 
-async function searchCommonsImageList(query: string, limit: number): Promise<string[]> {
+async function searchCommonsImageList(
+  query: string,
+  limit: number,
+  options?: { querySuffix?: string },
+): Promise<string[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) {
     return [];
   }
+
+  const suffix = options?.querySuffix ?? "food product";
+  const gsrsearch = suffix ? `${trimmed} ${suffix}`.trim() : trimmed;
 
   const url = `https://commons.wikimedia.org/w/api.php?${new URLSearchParams({
     action: "query",
     format: "json",
     origin: "*",
     generator: "search",
-    gsrsearch: `${trimmed} food product`,
+    gsrsearch,
     gsrlimit: String(Math.max(8, limit)),
     gsrnamespace: "6",
     prop: "imageinfo",
@@ -430,4 +437,49 @@ async function searchCommonsImageList(query: string, limit: number): Promise<str
   }
 
   return listCommonsImages(data, limit);
+}
+
+/** Wiki / Commons queries for raw produce (no packaging bias). */
+export function buildProduceImageWikiQueries(query: string): string[] {
+  const core = query.trim().replace(/\s+/g, " ");
+  if (core.length < 2) return [];
+
+  const out: string[] = [];
+  const push = (value: string) => {
+    const next = value.trim().replace(/\s+/g, " ");
+    if (next.length < 2) return;
+    if (out.some((q) => q.toLowerCase() === next.toLowerCase())) return;
+    out.push(next);
+  };
+
+  push(core);
+  push(`${core} овощ`);
+  push(`${core} vegetable`);
+  push(`${core} plant`);
+  // English produce names often win on Commons.
+  if (/[а-яё]/i.test(core)) {
+    push(`${core} food`);
+  }
+
+  return out.slice(0, 5);
+}
+
+/**
+ * Raw produce photos from Wikipedia / Commons (used when OFF + packaging web miss).
+ */
+export async function findProduceWikiImage(query: string): Promise<string | undefined> {
+  const wikiQueries = buildProduceImageWikiQueries(query);
+  if (wikiQueries.length === 0) return undefined;
+
+  const searchQs = wikiQueries.slice(0, 3);
+  const [wikiRu, wikiEn, commons] = await Promise.all([
+    Promise.all(searchQs.map((q) => searchWikipediaImageList(q, "ru", 3))),
+    Promise.all(searchQs.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
+    searchCommonsImageList(searchQs[0]!, 4, { querySuffix: "vegetable" }),
+  ]);
+
+  for (const urls of [...wikiRu, ...wikiEn]) {
+    if (urls[0]) return urls[0];
+  }
+  return commons[0];
 }

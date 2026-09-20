@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   dishImageLookupQueries,
+  looksLikeProduceName,
   mealNeedsImage,
   normalizeDishName,
   shouldSkipDishName,
+  stripFreshnessAdjectives,
 } from "./meal-image.ts";
 
 test("normalizes dish names so the same meal reuses one photo", () => {
@@ -37,4 +39,21 @@ test("dishImageLookupQueries does not use bare brand tokens like Маска", ()
   const queries = dishImageLookupQueries("конфеты Маска");
   assert.ok(queries.some((q) => /конфеты/i.test(q)));
   assert.ok(!queries.some((q) => normalizeDishName(q) === "маска"));
+});
+
+test("stripFreshnessAdjectives drops свежий", () => {
+  assert.equal(stripFreshnessAdjectives("Сельдерей свежий"), "Сельдерей");
+  assert.equal(stripFreshnessAdjectives("свежие огурцы"), "огурцы");
+});
+
+test("looksLikeProduceName detects celery and vegetables", () => {
+  assert.equal(looksLikeProduceName("Сельдерей свежий"), true);
+  assert.equal(looksLikeProduceName("борщ с мясом"), false);
+});
+
+test("dishImageLookupQueries prefers bare сельдерей and celery synonym", () => {
+  const queries = dishImageLookupQueries("Сельдерей свежий");
+  assert.ok(queries.some((q) => normalizeDishName(q) === "сельдерей"));
+  assert.ok(queries.some((q) => /celery/i.test(q)));
+  assert.ok(!queries.every((q) => /свежий/i.test(q)));
 });
