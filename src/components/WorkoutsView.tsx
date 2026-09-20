@@ -821,7 +821,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             />
           </label>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Группы мышц
+            Вид / группы
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {MUSCLE_GROUPS.map((g) => {

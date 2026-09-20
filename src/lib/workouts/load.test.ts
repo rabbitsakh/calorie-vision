@@ -76,6 +76,8 @@ test("findPreviousSession prefers exact group set", () => {
 
 test("normalize and compare group sets", () => {
   assert.deepEqual(normalizeGroupKeys(["triceps", "chest", "chest"]), ["chest", "triceps"]);
+  assert.deepEqual(normalizeGroupKeys(["other", "cardio", "legs"]), ["legs", "cardio", "other"]);
   assert.equal(sameGroupSet(["triceps", "chest"], ["chest", "triceps"]), true);
   assert.equal(sameGroupSet(["chest"], ["chest", "triceps"]), false);
+  assert.equal(sameGroupSet(["cardio"], ["cardio"]), true);
 });

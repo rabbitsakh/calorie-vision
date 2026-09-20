@@ -6,6 +6,7 @@ export const MUSCLE_GROUP_KEYS = [
   "biceps",
   "triceps",
   "abs",
+  "cardio",
   "other",
 ] as const;
 
@@ -19,6 +20,7 @@ export const MUSCLE_GROUPS: ReadonlyArray<{ key: MuscleGroupKey; label: string }
   { key: "biceps", label: "Бицепс" },
   { key: "triceps", label: "Трицепс" },
   { key: "abs", label: "Пресс" },
+  { key: "cardio", label: "Кардио" },
   { key: "other", label: "Другое" },
 ];
 
