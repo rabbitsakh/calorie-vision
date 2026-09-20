@@ -5,22 +5,36 @@ export function paceSecPerKm(distanceKm: number, durationSec: number): number | 
   return durationSec / distanceKm;
 }
 
-export function formatDuration(totalSec: number): string {
+/** Pace clock m:ss (only used for pace /km, not for logged cardio time). */
+export function formatPaceClock(totalSec: number): string {
   if (!Number.isFinite(totalSec) || totalSec < 0) return "0:00";
   const sec = Math.round(totalSec);
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
+  const m = Math.floor(sec / 60);
   const s = sec % 60;
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
   return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Cardio session/set duration as whole or one-decimal minutes.
+ * e.g. 1800 → "30 мин", 1830 → "30.5 мин"
+ */
+export function formatDurationMinutes(totalSec: number): string {
+  if (!Number.isFinite(totalSec) || totalSec < 0) return "0 мин";
+  const minutes = totalSec / 60;
+  const rounded = Math.round(minutes * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  return `${label} мин`;
+}
+
+/** @deprecated Prefer formatDurationMinutes for cardio logs. Kept for pace clock. */
+export function formatDuration(totalSec: number): string {
+  return formatPaceClock(totalSec);
 }
 
 /** Format pace as m:ss / км. */
 export function formatPace(secPerKm: number | null | undefined): string | null {
   if (secPerKm == null || !Number.isFinite(secPerKm) || secPerKm <= 0) return null;
-  return `${formatDuration(secPerKm)}/км`;
+  return `${formatPaceClock(secPerKm)}/км`;
 }
 
 export function formatDistanceKm(km: number): string {
@@ -29,32 +43,23 @@ export function formatDistanceKm(km: number): string {
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
 }
 
+/** Minutes → draft string (no seconds). */
+export function durationSecToMinutesInput(totalSec: number): string {
+  if (!Number.isFinite(totalSec) || totalSec <= 0) return "";
+  const minutes = totalSec / 60;
+  const rounded = Math.round(minutes * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
 /**
- * Parse user duration input:
- * - "mm:ss" or "h:mm:ss"
- * - plain minutes (e.g. "28" or "28.5")
+ * Parse user cardio duration as minutes only (e.g. "28" or "28.5").
+ * Colon times are rejected — UI is minutes-only.
  */
 export function parseDurationToSec(raw: string): number | null {
   const text = raw.trim().replace(",", ".");
-  if (!text) return null;
-  if (text.includes(":")) {
-    const parts = text.split(":").map((p) => p.trim());
-    if (parts.length === 2 || parts.length === 3) {
-      const nums = parts.map((p) => Number(p));
-      if (nums.some((n) => !Number.isFinite(n) || n < 0)) return null;
-      if (parts.length === 2) {
-        const [m, s] = nums as [number, number];
-        if (s >= 60) return null;
-        return Math.round(m * 60 + s);
-      }
-      const [h, m, s] = nums as [number, number, number];
-      if (m >= 60 || s >= 60) return null;
-      return Math.round(h * 3600 + m * 60 + s);
-    }
-    return null;
-  }
+  if (!text || text.includes(":")) return null;
   const minutes = Number(text);
-  if (!Number.isFinite(minutes) || minutes < 0) return null;
+  if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 24 * 60) return null;
   return Math.round(minutes * 60);
 }
 

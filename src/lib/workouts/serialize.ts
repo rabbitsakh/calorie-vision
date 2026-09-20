@@ -1,7 +1,7 @@
 import {
   cardioSetTotals,
   formatDistanceKm,
-  formatDuration,
+  formatDurationMinutes,
   formatPace,
   paceSecPerKm,
 } from "@/lib/workouts/cardio";
@@ -146,7 +146,7 @@ export function formatCardioSummaryLine(input: {
 }): string {
   const parts: string[] = [];
   if (input.distanceKm > 0) parts.push(`${formatDistanceKm(input.distanceKm)} км`);
-  if (input.durationSec > 0) parts.push(formatDuration(input.durationSec));
+  if (input.durationSec > 0) parts.push(formatDurationMinutes(input.durationSec));
   const pace = formatPace(input.bestPaceSecPerKm);
   if (pace) parts.push(pace);
   return parts.join(" · ") || "—";

@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDateShort, formatDateWords } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 import {
+  durationSecToMinutesInput,
   formatDistanceKm,
-  formatDuration,
+  formatDurationMinutes,
   formatPace,
+  formatPaceClock,
   parseDistanceKm,
   parseDurationToSec,
 } from "@/lib/workouts/cardio";
@@ -150,7 +152,7 @@ function lastSetHint(lastTime: SessionExercise["lastTime"], kind: ExerciseKind):
     kind === "cardio" || lastTime.kind === "cardio"
       ? lastTime.sets.map((s) => {
           const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
-          const t = s.durationSec != null && s.durationSec > 0 ? formatDuration(s.durationSec) : null;
+          const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : null;
           return [d, t].filter(Boolean).join(" / ") || "—";
         })
       : lastTime.sets.map((s) => `${s.weightKg ?? 0}×${s.reps ?? 0}`);
@@ -162,7 +164,7 @@ function draftFromHistorySet(set: HistorySet, kind: ExerciseKind): SetDraft {
     return {
       ...EMPTY_DRAFT,
       km: set.distanceKm != null && set.distanceKm > 0 ? String(set.distanceKm) : "",
-      time: set.durationSec != null && set.durationSec > 0 ? formatDuration(set.durationSec) : "",
+      time: set.durationSec != null && set.durationSec > 0 ? durationSecToMinutesInput(set.durationSec) : "",
     };
   }
   return {
@@ -186,7 +188,7 @@ function formatSetLine(
 ): string {
   if (kind === "cardio") {
     const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
-    const t = s.durationSec != null && s.durationSec > 0 ? formatDuration(s.durationSec) : null;
+    const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : null;
     const pace = formatPace(s.paceSecPerKm);
     return `${idx + 1}. ${[d, t, pace].filter(Boolean).join(" · ") || "—"}`;
   }
@@ -528,7 +530,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         const distanceKm = parseDistanceKm(draft.km || "0");
         const durationSec = parseDurationToSec(draft.time);
         if (distanceKm === null || durationSec === null) {
-          setError("Укажите км и время (мм:сс или минуты)");
+          setError("Укажите км и время в минутах");
           return;
         }
         const data = await readJson<{ session: SessionDetail }>(
@@ -646,7 +648,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (detail?.cardioOnly) {
       const line = [
         detail.cardioDistanceKm > 0 ? `${formatDistanceKm(detail.cardioDistanceKm)} км` : null,
-        detail.cardioDurationSec > 0 ? formatDuration(detail.cardioDurationSec) : null,
+        detail.cardioDurationSec > 0 ? formatDurationMinutes(detail.cardioDurationSec) : null,
         formatPace(detail.cardioBestPaceSecPerKm),
       ]
         .filter(Boolean)
@@ -700,12 +702,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           {detail.cardioOnly ? (
             <>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Кардио · км / время
+                Кардио · км / мин
               </p>
               <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
                 {detail.cardioDistanceKm > 0
                   ? `${formatDistanceKm(detail.cardioDistanceKm)} км`
-                  : formatDuration(detail.cardioDurationSec)}
+                  : formatDurationMinutes(detail.cardioDurationSec)}
               </p>
               {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
             </>
@@ -806,7 +808,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                             ex.cardioDistanceKm > 0
                               ? `${formatDistanceKm(ex.cardioDistanceKm)} км`
                               : null,
-                            ex.cardioDurationSec > 0 ? formatDuration(ex.cardioDurationSec) : null,
+                            ex.cardioDurationSec > 0 ? formatDurationMinutes(ex.cardioDurationSec) : null,
                             formatPace(ex.cardioBestPaceSecPerKm),
                           ]
                             .filter(Boolean)
@@ -857,7 +859,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                                         ? `${formatDistanceKm(p.distanceKm)} км`
                                         : null,
                                       p.durationSec && p.durationSec > 0
-                                        ? formatDuration(p.durationSec)
+                                        ? formatDurationMinutes(p.durationSec)
                                         : null,
                                       formatPace(p.bestPaceSecPerKm),
                                     ]
@@ -872,7 +874,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                           <p className="mt-1 text-teal-800">
                             Темп к прошлой:{" "}
                             {historyByName[ex.name]!.bestPaceDeltaSec! > 0 ? "+" : ""}
-                            {formatDuration(Math.abs(historyByName[ex.name]!.bestPaceDeltaSec!))}
+                            {formatPaceClock(Math.abs(historyByName[ex.name]!.bestPaceDeltaSec!))}
                             /км
                             {historyByName[ex.name]!.bestPaceDeltaSec! < 0 ? " (быстрее)" : ""}
                           </p>
@@ -927,7 +929,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                                 ? `${formatDistanceKm(s.distanceKm)} км`
                                 : null,
                               s.durationSec != null && s.durationSec > 0
-                                ? formatDuration(s.durationSec)
+                                ? formatDurationMinutes(s.durationSec)
                                 : null,
                             ]
                               .filter(Boolean)
@@ -956,11 +958,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-xs text-slate-500">
-                        Время
+                        Мин
                         <input
                           inputMode="decimal"
-                          className="w-28 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
-                          placeholder="мм:сс"
+                          className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          placeholder="30"
                           value={draft.time}
                           onChange={(e) =>
                             setSetDrafts((prev) => ({
@@ -1115,7 +1117,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-600">
-          Силовые: кг × повт (+5%). Кардио: км и время (темп).
+          Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
         </p>
         <button
           type="button"
@@ -1215,7 +1217,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             </>
           ) : (
             <p className="mt-3 text-sm text-slate-600">
-              Кардио: записывайте км и время — темп считается автоматически.
+              Кардио: записывайте км и минуты — темп считается автоматически.
             </p>
           )}
           {preview?.previousSessionId ? (
@@ -1279,7 +1281,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 {s.cardioOnly
                   ? s.cardioDistanceKm > 0
                     ? `${formatDistanceKm(s.cardioDistanceKm)} км`
-                    : formatDuration(s.cardioDurationSec)
+                    : formatDurationMinutes(s.cardioDurationSec)
                   : formatLoad(s.totalLoad)}
               </p>
             </button>
