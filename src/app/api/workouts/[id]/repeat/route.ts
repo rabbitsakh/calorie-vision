@@ -70,6 +70,7 @@ export async function POST(request: NextRequest, context: Ctx) {
             name: ex.name,
             kind: ex.kind ?? "strength",
             muscleGroup: ex.muscleGroup,
+            note: ex.note,
             sortOrder: i,
           },
         });
@@ -85,6 +86,9 @@ export async function POST(request: NextRequest, context: Ctx) {
                 reps: s.reps,
                 distanceKm: s.distanceKm,
                 durationSec: s.durationSec,
+                setType: s.setType ?? "working",
+                completed: s.completed !== false,
+                rpe: s.rpe,
                 sortOrder: j,
               })),
             });

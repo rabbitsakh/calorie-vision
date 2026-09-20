@@ -8,6 +8,7 @@ import {
   parseStrengthReps,
   parseStrengthWeight,
 } from "@/lib/workouts/set-fields";
+import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +42,9 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       reps?: unknown;
       distanceKm?: unknown;
       durationSec?: unknown;
+      setType?: unknown;
+      completed?: unknown;
+      rpe?: unknown;
     };
 
     const data: {
@@ -48,7 +52,27 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       reps?: number | null;
       distanceKm?: number | null;
       durationSec?: number | null;
+      setType?: string;
+      completed?: boolean;
+      rpe?: number | null;
     } = {};
+
+    if (body.setType !== undefined) {
+      if (!isSetType(body.setType)) {
+        return NextResponse.json({ error: "Тип подхода: warmup/working/drop/failure" }, { status: 400 });
+      }
+      data.setType = parseSetType(body.setType);
+    }
+    if (body.completed !== undefined) {
+      data.completed = Boolean(body.completed);
+    }
+    if (body.rpe !== undefined) {
+      const rpe = parseRpe(body.rpe);
+      if (body.rpe !== null && body.rpe !== "" && rpe === null) {
+        return NextResponse.json({ error: "RPE от 1 до 10" }, { status: 400 });
+      }
+      data.rpe = rpe ?? null;
+    }
 
     if (kind === "cardio") {
       if (body.distanceKm !== undefined) {
@@ -82,8 +106,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         }
         data.reps = reps;
       }
-      data.distanceKm = null;
-      data.durationSec = null;
+      if (body.weightKg !== undefined || body.reps !== undefined) {
+        data.distanceKm = null;
+        data.durationSec = null;
+      }
     }
 
     await prisma.workoutSet.update({ where: { id: setId }, data });

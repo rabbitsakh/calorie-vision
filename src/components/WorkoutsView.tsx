@@ -15,6 +15,12 @@ import {
 import { defaultExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import {
+  SET_TYPES,
+  SET_TYPE_LABELS,
+  SET_TYPE_SHORT,
+  type SetType,
+} from "@/lib/workouts/set-meta";
 
 type Progress = {
   previousSessionId: string | null;
@@ -34,9 +40,23 @@ type HistorySet = {
   durationSec: number | null;
 };
 
-type SetDraft = { kg: string; reps: string; km: string; time: string };
+type SetDraft = {
+  kg: string;
+  reps: string;
+  km: string;
+  time: string;
+  setType: SetType;
+  rpe: string;
+};
 
-const EMPTY_DRAFT: SetDraft = { kg: "", reps: "", km: "", time: "" };
+const EMPTY_DRAFT: SetDraft = {
+  kg: "",
+  reps: "",
+  km: "",
+  time: "",
+  setType: "working",
+  rpe: "",
+};
 
 type SessionSummary = {
   id: string;
@@ -59,6 +79,7 @@ type SessionExercise = {
   id: string;
   name: string;
   kind: ExerciseKind;
+  note: string | null;
   muscleGroup: string | null;
   muscleLabel: string | null;
   load: number;
@@ -71,6 +92,9 @@ type SessionExercise = {
     reps: number | null;
     distanceKm: number | null;
     durationSec: number | null;
+    setType: SetType;
+    completed: boolean;
+    rpe: number | null;
     paceSecPerKm: number | null;
     load: number;
   }>;
@@ -172,6 +196,11 @@ function draftFromHistorySet(set: HistorySet, kind: ExerciseKind): SetDraft {
     kg: set.weightKg != null ? String(set.weightKg) : "",
     reps: set.reps != null ? String(set.reps) : "",
   };
+}
+
+function nextSetType(current: SetType): SetType {
+  const idx = SET_TYPES.indexOf(current);
+  return SET_TYPES[(idx + 1) % SET_TYPES.length]!;
 }
 
 function formatSetLine(
@@ -524,6 +553,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     const ex = detail.exercises.find((e) => e.id === exerciseId);
     if (!ex) return;
     const draft = setDrafts[exerciseId] ?? EMPTY_DRAFT;
+    const rpeRaw = draft.rpe.trim() ? Number(draft.rpe.replace(",", ".")) : null;
+    const meta = {
+      setType: draft.setType,
+      completed: true,
+      ...(rpeRaw != null && Number.isFinite(rpeRaw) ? { rpe: rpeRaw } : {}),
+    };
     setError(null);
     try {
       if (ex.kind === "cardio") {
@@ -537,12 +572,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ distanceKm, durationSec }),
+            body: JSON.stringify({ distanceKm, durationSec, ...meta }),
           }),
         );
         setSetDrafts((prev) => ({
           ...prev,
-          [exerciseId]: { ...EMPTY_DRAFT, km: draft.km },
+          [exerciseId]: { ...EMPTY_DRAFT, km: draft.km, setType: draft.setType },
         }));
         await refreshDetail(data.session);
       } else {
@@ -556,18 +591,137 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ weightKg, reps }),
+            body: JSON.stringify({ weightKg, reps, ...meta }),
           }),
         );
         setSetDrafts((prev) => ({
           ...prev,
-          [exerciseId]: { ...EMPTY_DRAFT, kg: draft.kg },
+          [exerciseId]: { ...EMPTY_DRAFT, kg: draft.kg, setType: draft.setType },
         }));
-        startRest();
+        if (draft.setType !== "warmup") startRest();
         await refreshDetail(data.session);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить подход");
+    }
+  };
+
+  const patchSet = async (setId: string, body: Record<string, unknown>, startTimer = false) => {
+    if (!detail) return;
+    setError(null);
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/sets/${setId}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      );
+      if (startTimer) startRest();
+      await refreshDetail(data.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить подход");
+    }
+  };
+
+  const toggleSetCompleted = async (set: SessionExercise["sets"][number]) => {
+    const next = !set.completed;
+    await patchSet(set.id, { completed: next }, next && set.setType !== "warmup");
+  };
+
+  const cycleSetType = async (set: SessionExercise["sets"][number]) => {
+    await patchSet(set.id, { setType: nextSetType(set.setType) });
+  };
+
+  const editSetInline = async (ex: SessionExercise, set: SessionExercise["sets"][number]) => {
+    if (ex.kind === "cardio") {
+      const km = window.prompt("Дистанция, км", set.distanceKm != null ? String(set.distanceKm) : "");
+      if (km == null) return;
+      const mins = window.prompt(
+        "Время, мин",
+        set.durationSec != null ? String(Math.round((set.durationSec / 60) * 10) / 10) : "",
+      );
+      if (mins == null) return;
+      const distanceKm = parseDistanceKm(km);
+      const durationSec = parseDurationToSec(mins);
+      if (distanceKm == null || durationSec == null) {
+        setError("Некорректные км или минуты");
+        return;
+      }
+      await patchSet(set.id, { distanceKm, durationSec });
+      return;
+    }
+    const kg = window.prompt("Вес, кг", set.weightKg != null ? String(set.weightKg) : "");
+    if (kg == null) return;
+    const reps = window.prompt("Повторения", set.reps != null ? String(set.reps) : "");
+    if (reps == null) return;
+    const weightKg = Number(kg.replace(",", "."));
+    const repsN = Number(reps);
+    if (!Number.isFinite(weightKg) || !Number.isFinite(repsN) || repsN <= 0) {
+      setError("Некорректные кг или повторения");
+      return;
+    }
+    const rpeStr = window.prompt("RPE (1–10, пусто = без)", set.rpe != null ? String(set.rpe) : "");
+    if (rpeStr == null) return;
+    const body: Record<string, unknown> = { weightKg, reps: Math.floor(repsN) };
+    if (rpeStr.trim() === "") body.rpe = null;
+    else {
+      const rpe = Number(rpeStr.replace(",", "."));
+      if (!Number.isFinite(rpe) || rpe < 1 || rpe > 10) {
+        setError("RPE от 1 до 10");
+        return;
+      }
+      body.rpe = rpe;
+    }
+    await patchSet(set.id, body);
+  };
+
+  const moveExercise = async (exerciseId: string, move: "up" | "down") => {
+    if (!detail) return;
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ move }),
+        }),
+      );
+      await refreshDetail(data.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось переместить");
+    }
+  };
+
+  const saveExerciseNote = async (exerciseId: string, note: string) => {
+    if (!detail) return;
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: note.trim() || null }),
+        }),
+      );
+      await refreshDetail(data.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить заметку");
+    }
+  };
+
+  const saveSessionNote = async (note: string) => {
+    if (!detail) return;
+    try {
+      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        await fetch(withBasePath(`/api/workouts/${detail.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ note: note.trim() || null }),
+        }),
+      );
+      setDetail(data.session);
+      setProgress(data.progress);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить заметку");
     }
   };
 
@@ -740,6 +894,23 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           )}
         </section>
 
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <label className="flex flex-col gap-1 text-xs text-slate-500">
+            Заметка к тренировке
+            <input
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+              defaultValue={detail.note ?? ""}
+              key={`note-${detail.id}-${detail.note ?? ""}`}
+              placeholder="Самочувствие, зал…"
+              onBlur={(e) => {
+                if ((detail.note ?? "") !== e.target.value.trim()) {
+                  void saveSessionNote(e.target.value);
+                }
+              }}
+            />
+          </label>
+        </section>
+
         {!detail.cardioOnly ? (
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -785,7 +956,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 </button>
               )}
             </div>
-            <p className="mt-1 text-xs text-slate-400">Запускается автоматически после «+ Подход».</p>
+            <p className="mt-1 text-xs text-slate-400">После рабочего подхода или галочки ✓.</p>
           </section>
         ) : null}
 
@@ -799,8 +970,26 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             return (
               <section key={ex.id} className="rounded-2xl border border-slate-200 bg-white p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold text-slate-900">{ex.name}</h3>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1">
+                      <h3 className="font-semibold text-slate-900">{ex.name}</h3>
+                      <button
+                        type="button"
+                        className="rounded px-1.5 text-xs text-slate-400 hover:bg-slate-100"
+                        title="Выше"
+                        onClick={() => void moveExercise(ex.id, "up")}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded px-1.5 text-xs text-slate-400 hover:bg-slate-100"
+                        title="Ниже"
+                        onClick={() => void moveExercise(ex.id, "down")}
+                      >
+                        ↓
+                      </button>
+                    </div>
                     <p className="text-xs text-slate-500">
                       {isCardio
                         ? [
@@ -891,21 +1080,67 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                   </div>
                 ) : null}
 
+                <label className="mt-2 flex flex-col gap-1 text-xs text-slate-500">
+                  Заметка
+                  <input
+                    className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                    defaultValue={ex.note ?? ""}
+                    key={`ex-note-${ex.id}-${ex.note ?? ""}`}
+                    placeholder="Хват, амплитуда…"
+                    onBlur={(e) => {
+                      if ((ex.note ?? "") !== e.target.value.trim()) {
+                        void saveExerciseNote(ex.id, e.target.value);
+                      }
+                    }}
+                  />
+                </label>
+
                 <ul className="mt-3 space-y-1.5">
                   {ex.sets.map((s, idx) => (
                     <li
                       key={s.id}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm"
+                      className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm ${
+                        s.completed ? "bg-slate-50" : "bg-amber-50/80"
+                      }`}
                     >
-                      <span className="tabular-nums text-slate-800">
-                        {formatSetLine(s, ex.kind, idx)}
-                        {!isCardio ? (
-                          <span className="text-slate-400"> ({formatLoad(s.load)})</span>
-                        ) : null}
-                      </span>
                       <button
                         type="button"
-                        className="text-xs text-slate-400 hover:text-red-600"
+                        title={s.completed ? "Снять выполнение" : "Отметить выполненным"}
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-sm font-bold ${
+                          s.completed
+                            ? "border-teal-600 bg-teal-600 text-white"
+                            : "border-slate-300 bg-white text-slate-400"
+                        }`}
+                        onClick={() => void toggleSetCompleted(s)}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        type="button"
+                        title={SET_TYPE_LABELS[s.setType]}
+                        className="shrink-0 rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
+                        onClick={() => void cycleSetType(s)}
+                      >
+                        {SET_TYPE_SHORT[s.setType]}
+                      </button>
+                      <button
+                        type="button"
+                        className={`min-w-0 flex-1 text-left tabular-nums ${
+                          s.completed ? "text-slate-800" : "text-slate-500"
+                        }`}
+                        onClick={() => void editSetInline(ex, s)}
+                      >
+                        {formatSetLine(s, ex.kind, idx)}
+                        {!isCardio && s.load > 0 ? (
+                          <span className="text-slate-400"> ({formatLoad(s.load)})</span>
+                        ) : null}
+                        {s.rpe != null ? (
+                          <span className="ml-1 text-xs text-slate-400">RPE {s.rpe}</span>
+                        ) : null}
+                      </button>
+                      <button
+                        type="button"
+                        className="shrink-0 text-xs text-slate-400 hover:text-red-600"
                         onClick={() => void deleteSet(s.id)}
                       >
                         ✕
@@ -974,6 +1209,19 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       </label>
                       <button
                         type="button"
+                        title={SET_TYPE_LABELS[draft.setType]}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                        onClick={() =>
+                          setSetDrafts((prev) => ({
+                            ...prev,
+                            [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                          }))
+                        }
+                      >
+                        {SET_TYPE_SHORT[draft.setType]}
+                      </button>
+                      <button
+                        type="button"
                         className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
                         onClick={() => void addSet(ex.id)}
                       >
@@ -1006,6 +1254,34 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                             setSetDrafts((prev) => ({
                               ...prev,
                               [ex.id]: { ...draft, reps: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        title={SET_TYPE_LABELS[draft.setType]}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                        onClick={() =>
+                          setSetDrafts((prev) => ({
+                            ...prev,
+                            [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                          }))
+                        }
+                      >
+                        {SET_TYPE_SHORT[draft.setType]}
+                      </button>
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        RPE
+                        <input
+                          inputMode="decimal"
+                          className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-sm text-slate-900"
+                          placeholder="8"
+                          value={draft.rpe}
+                          onChange={(e) =>
+                            setSetDrafts((prev) => ({
+                              ...prev,
+                              [ex.id]: { ...draft, rpe: e.target.value },
                             }))
                           }
                         />

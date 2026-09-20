@@ -445,6 +445,7 @@ model WorkoutExercise {
   kind        String   @default("strength") @db.VarChar(16)
   /** Optional primary group; null → inherit session groups for load split. */
   muscleGroup String?  @db.VarChar(32)
+  note        String?  @db.VarChar(200)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -464,6 +465,12 @@ model WorkoutSet {
   /** Cardio segments: distance (km) and duration (seconds). */
   distanceKm  Float?
   durationSec Int?
+  /** warmup | working | drop | failure */
+  setType     String   @default("working") @db.VarChar(16)
+  /** Marked done in the live log (starts rest timer). */
+  completed   Boolean  @default(true)
+  /** Rate of perceived exertion 1–10. */
+  rpe         Float?
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

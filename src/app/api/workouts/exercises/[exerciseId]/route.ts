@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { isExerciseKind, parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import { parseOptionalNote } from "@/lib/workouts/set-meta";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ type Ctx = { params: Promise<{ exerciseId: string }> };
 async function ownedExercise(userId: string, exerciseId: string) {
   return prisma.workoutExercise.findFirst({
     where: { id: exerciseId, session: { userId } },
-    select: { id: true, sessionId: true },
+    select: { id: true, sessionId: true, sortOrder: true },
   });
 }
 
@@ -31,9 +32,47 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       name?: string;
       muscleGroup?: string | null;
       kind?: unknown;
+      note?: unknown;
+      /** "up" | "down" — swap sortOrder with neighbor */
+      move?: "up" | "down";
     };
 
-    const data: { name?: string; muscleGroup?: string | null; kind?: string } = {};
+    if (body.move === "up" || body.move === "down") {
+      const siblings = await prisma.workoutExercise.findMany({
+        where: { sessionId: owned.sessionId },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: { id: true, sortOrder: true },
+      });
+      const idx = siblings.findIndex((s) => s.id === exerciseId);
+      if (idx < 0) {
+        return NextResponse.json({ error: "Упражнение не найдено" }, { status: 404 });
+      }
+      const swapWith = body.move === "up" ? siblings[idx - 1] : siblings[idx + 1];
+      if (swapWith) {
+        await prisma.$transaction([
+          prisma.workoutExercise.update({
+            where: { id: exerciseId },
+            data: { sortOrder: swapWith.sortOrder },
+          }),
+          prisma.workoutExercise.update({
+            where: { id: swapWith.id },
+            data: { sortOrder: owned.sortOrder },
+          }),
+        ]);
+      }
+      const row = await prisma.workoutSession.findFirstOrThrow({
+        where: { id: owned.sessionId },
+        include: sessionInclude,
+      });
+      return NextResponse.json({ session: serializeSessionDetail(row) });
+    }
+
+    const data: {
+      name?: string;
+      muscleGroup?: string | null;
+      kind?: string;
+      note?: string | null;
+    } = {};
     if (body.name !== undefined) {
       const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
       if (!name) {
@@ -56,8 +95,17 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       }
       data.kind = parseExerciseKind(body.kind);
     }
+    if (body.note !== undefined) {
+      const note = parseOptionalNote(body.note);
+      if (note === undefined) {
+        return NextResponse.json({ error: "Некорректная заметка" }, { status: 400 });
+      }
+      data.note = note;
+    }
 
-    await prisma.workoutExercise.update({ where: { id: exerciseId }, data });
+    if (Object.keys(data).length > 0) {
+      await prisma.workoutExercise.update({ where: { id: exerciseId }, data });
+    }
 
     const row = await prisma.workoutSession.findFirstOrThrow({
       where: { id: owned.sessionId },

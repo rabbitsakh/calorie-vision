@@ -36,6 +36,12 @@ test("cardio exercises contribute zero strength load", () => {
   assert.equal(setLoad({ weightKg: null, reps: null }), 0);
 });
 
+test("warmup and incomplete sets are excluded from load", () => {
+  assert.equal(setLoad({ weightKg: 60, reps: 10, setType: "warmup", completed: true }), 0);
+  assert.equal(setLoad({ weightKg: 100, reps: 5, setType: "working", completed: false }), 0);
+  assert.equal(setLoad({ weightKg: 100, reps: 5, setType: "working", completed: true }), 500);
+});
+
 test("session total and split by group", () => {
   const exercises = [
     { muscleGroup: "chest", sets: [{ weightKg: 100, reps: 5 }] },

@@ -1,3 +1,4 @@
+import { setCountsTowardLoad } from "@/lib/workouts/set-meta";
 import {
   normalizeGroupKeys,
   sameGroupSet,
@@ -9,6 +10,8 @@ export const DEFAULT_PROGRESS_RATE = 0.05;
 export type LoadSet = {
   weightKg?: number | null;
   reps?: number | null;
+  setType?: string | null;
+  completed?: boolean | null;
 };
 
 export type LoadExercise = {
@@ -18,8 +21,9 @@ export type LoadExercise = {
   sets: LoadSet[];
 };
 
-/** Volume load for one set: kg × reps. Cardio / empty → 0. */
+/** Volume load for one set: kg × reps. Cardio / empty / warmup / incomplete → 0. */
 export function setLoad(set: LoadSet): number {
+  if (!setCountsTowardLoad(set)) return 0;
   const w = Number(set.weightKg);
   const r = Number(set.reps);
   if (!Number.isFinite(w) || !Number.isFinite(r) || w < 0 || r < 0) {
