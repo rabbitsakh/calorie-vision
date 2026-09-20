@@ -95,7 +95,9 @@ model User {
   challenges    UserChallenge[]
   userBadges    UserBadge[]
   userRewards   UserReward[]
-  workoutSessions WorkoutSession[]
+  workoutSessions          WorkoutSession[]
+  workoutExerciseLibrary   WorkoutExerciseLibrary[]
+  workoutRoutines          WorkoutRoutine[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -407,6 +409,76 @@ model FoodCorrection {
 }
 
 /** Admin-only strength log (not exposed in public chrome / landing). */
+/** Per-user exercise catalog for autocomplete (name + kind + default group). */
+model WorkoutExerciseLibrary {
+  id                 String   @id @default(cuid())
+  userId             String
+  name               String   @db.VarChar(120)
+  /** normalizeExerciseName(name) for unique lookup. */
+  nameNorm           String   @db.VarChar(120)
+  /** strength | cardio */
+  kind               String   @default("strength") @db.VarChar(16)
+  defaultMuscleGroup String?  @db.VarChar(32)
+  useCount           Int      @default(0)
+  lastUsedAt         DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, nameNorm])
+  @@index([userId, lastUsedAt])
+  @@index([userId, nameNorm])
+}
+
+/** Named routine / template («Push A», «Бег 5к») → start session in one tap. */
+model WorkoutRoutine {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String   @db.VarChar(120)
+  note      String?  @db.VarChar(200)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  muscles   WorkoutRoutineMuscle[]
+  exercises WorkoutRoutineExercise[]
+
+  @@index([userId, sortOrder])
+}
+
+model WorkoutRoutineMuscle {
+  id        String @id @default(cuid())
+  routineId String
+  /** Key from MUSCLE_GROUPS. */
+  groupKey  String @db.VarChar(32)
+
+  routine WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@unique([routineId, groupKey])
+  @@index([groupKey])
+}
+
+model WorkoutRoutineExercise {
+  id          String @id @default(cuid())
+  routineId   String
+  name        String @db.VarChar(120)
+  /** strength | cardio */
+  kind        String @default("strength") @db.VarChar(16)
+  muscleGroup String? @db.VarChar(32)
+  sortOrder   Int    @default(0)
+  /**
+   * Optional planned sets JSON:
+   * [{ weightKg?, reps?, distanceKm?, durationSec?, setType? }]
+   */
+  plannedSets Json?
+
+  routine WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([routineId, sortOrder])
+}
+
 model WorkoutSession {
   id           String   @id @default(cuid())
   userId       String

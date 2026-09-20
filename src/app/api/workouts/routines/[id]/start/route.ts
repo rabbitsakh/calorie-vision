@@ -5,8 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { DEFAULT_PROGRESS_RATE, parseProgressRate } from "@/lib/workouts/load";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
 import {
+  parsePlannedSets,
+  routineInclude,
+  serializeRoutine,
+} from "@/lib/workouts/routines";
+import {
   serializeSessionDetail,
-  serializeSessionSummary,
   sessionInclude,
 } from "@/lib/workouts/serialize";
 
@@ -15,24 +19,32 @@ export const dynamic = "force-dynamic";
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
- * Clone exercises (+ optional sets) from this session into a new session on a date.
- * Body: { date, copySets?: boolean, progressRate? }
+ * Start a new session from a routine.
+ * Body: { date, copySets?: boolean (default true → planned as incomplete), progressRate? }
  */
 export async function POST(request: NextRequest, context: Ctx) {
   try {
     const { session, response } = await requireAdmin();
     if (response) return response;
 
-    const { id: sourceId } = await context.params;
-    const source = await prisma.workoutSession.findFirst({
-      where: { id: sourceId, userId: session.user.id },
-      include: sessionInclude,
+    const { id: routineId } = await context.params;
+    const routine = await prisma.workoutRoutine.findFirst({
+      where: { id: routineId, userId: session.user.id },
+      include: routineInclude,
     });
-    if (!source) {
-      return NextResponse.json({ error: "Исходная тренировка не найдена" }, { status: 404 });
+    if (!routine) {
+      return NextResponse.json({ error: "Шаблон не найден" }, { status: 404 });
     }
 
-    const body = (await request.json()) as {
+    const muscleKeys = routine.muscles.map((m) => m.groupKey);
+    if (muscleKeys.length === 0) {
+      return NextResponse.json({ error: "У шаблона нет групп мышц" }, { status: 400 });
+    }
+    if (routine.exercises.length === 0) {
+      return NextResponse.json({ error: "У шаблона нет упражнений" }, { status: 400 });
+    }
+
+    const body = (await request.json().catch(() => ({}))) as {
       date?: string;
       copySets?: boolean;
       progressRate?: unknown;
@@ -42,11 +54,7 @@ export async function POST(request: NextRequest, context: Ctx) {
       return NextResponse.json({ error: "Укажите дату" }, { status: 400 });
     }
     const copySets = body.copySets !== false;
-    const progressRate = parseProgressRate(body.progressRate ?? source.progressRate ?? DEFAULT_PROGRESS_RATE);
-    const muscleKeys = source.muscles.map((m) => m.groupKey);
-    if (muscleKeys.length === 0) {
-      return NextResponse.json({ error: "У исходной тренировки нет групп мышц" }, { status: 400 });
-    }
+    const progressRate = parseProgressRate(body.progressRate ?? DEFAULT_PROGRESS_RATE);
 
     const created = await prisma.$transaction(async (tx) => {
       const row = await tx.workoutSession.create({
@@ -54,16 +62,17 @@ export async function POST(request: NextRequest, context: Ctx) {
           userId: session.user.id,
           date,
           progressRate,
-          note: source.note,
+          note: routine.note,
           muscles: {
             create: muscleKeys.map((groupKey) => ({ groupKey })),
           },
         },
       });
 
-      const exercises = [...source.exercises].sort(
+      const exercises = [...routine.exercises].sort(
         (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
       );
+
       for (const [i, ex] of exercises.entries()) {
         const createdEx = await tx.workoutExercise.create({
           data: {
@@ -71,25 +80,22 @@ export async function POST(request: NextRequest, context: Ctx) {
             name: ex.name,
             kind: ex.kind ?? "strength",
             muscleGroup: ex.muscleGroup,
-            note: ex.note,
             sortOrder: i,
           },
         });
+
         if (copySets) {
-          const sets = [...ex.sets].sort(
-            (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
-          );
-          if (sets.length > 0) {
+          const planned = parsePlannedSets(ex.plannedSets);
+          if (planned.length > 0) {
             await tx.workoutSet.createMany({
-              data: sets.map((s, j) => ({
+              data: planned.map((s, j) => ({
                 exerciseId: createdEx.id,
                 weightKg: s.weightKg,
                 reps: s.reps,
                 distanceKm: s.distanceKm,
                 durationSec: s.durationSec,
-                setType: s.setType ?? "working",
-                completed: s.completed !== false,
-                rpe: s.rpe,
+                setType: s.setType,
+                completed: false,
                 sortOrder: j,
               })),
             });
@@ -116,12 +122,12 @@ export async function POST(request: NextRequest, context: Ctx) {
     return NextResponse.json(
       {
         session: serializeSessionDetail(created),
-        source: serializeSessionSummary(source),
+        routine: serializeRoutine(routine),
       },
       { status: 201 },
     );
   } catch (error) {
-    console.error("POST /api/workouts/[id]/repeat", error);
-    return NextResponse.json({ error: "Не удалось повторить тренировку" }, { status: 500 });
+    console.error("POST /api/workouts/routines/[id]/start", error);
+    return NextResponse.json({ error: "Не удалось начать тренировку" }, { status: 500 });
   }
 }

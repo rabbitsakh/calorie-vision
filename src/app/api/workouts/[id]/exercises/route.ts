@@ -5,6 +5,7 @@ import {
   defaultExerciseKind,
   parseExerciseKind,
 } from "@/lib/workouts/exercise-kind";
+import { touchExerciseLibrary } from "@/lib/workouts/library";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
@@ -58,19 +59,21 @@ export async function POST(request: NextRequest, context: Ctx) {
       _max: { sortOrder: true },
     });
 
-    await prisma.workoutExercise.create({
-      data: {
-        sessionId,
-        name,
-        kind,
-        muscleGroup,
-        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
-      },
-    });
-
-    const row = await prisma.workoutSession.findFirstOrThrow({
-      where: { id: sessionId },
-      include: sessionInclude,
+    const row = await prisma.$transaction(async (tx) => {
+      await tx.workoutExercise.create({
+        data: {
+          sessionId,
+          name,
+          kind,
+          muscleGroup,
+          sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+        },
+      });
+      await touchExerciseLibrary(tx, session.user.id, { name, kind, muscleGroup });
+      return tx.workoutSession.findFirstOrThrow({
+        where: { id: sessionId },
+        include: sessionInclude,
+      });
     });
 
     return NextResponse.json({ session: serializeSessionDetail(row) }, { status: 201 });
