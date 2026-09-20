@@ -899,7 +899,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             />
           </label>
           <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Группы мышц
+            Вид / группы
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {MUSCLE_GROUPS.map((g) => {
@@ -974,7 +974,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
       {!loading && sessions.length === 0 && !creating ? (
         <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
-          Пока нет тренировок. Создайте первую и отметьте группы мышц.
+          Пока нет тренировок. Создайте первую и отметьте вид / группы.
         </p>
       ) : null}
 
