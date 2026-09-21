@@ -2,14 +2,23 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { detectDeviceTimezone } from "@/lib/device-timezone";
+import {
+  detectDeviceTimezone,
+  timezonesCurrentlyEquivalent,
+} from "@/lib/device-timezone";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 import { withBasePath } from "@/lib/paths";
 
+/** Persist across Android WebView restarts (sessionStorage clears on cold start). */
 const DISMISS_KEY = "cv-tz-mismatch-dismiss";
 
+function dismissToken(profile: string, device: string): string {
+  return `${profile}|${device}`;
+}
+
 /**
- * Soft banner when device IANA zone ≠ profile timezone.
+ * Soft banner when device and profile currently have different UTC offsets.
+ * Same GMT (e.g. Asia/Sakhalin vs Asia/Magadan / Etc/GMT-11) is not a conflict.
  * One-tap sync writes device TZ to the account.
  */
 export function TimezoneConflictBanner() {
@@ -23,14 +32,6 @@ export function TimezoneConflictBanner() {
     setDeviceTz(device);
     if (!device) return;
 
-    try {
-      if (sessionStorage.getItem(DISMISS_KEY) === device) {
-        return;
-      }
-    } catch {
-      // ignore
-    }
-
     let cancelled = false;
     void (async () => {
       try {
@@ -40,9 +41,16 @@ export function TimezoneConflictBanner() {
         const profile = data.timezone?.trim() || null;
         if (cancelled) return;
         setProfileTz(profile);
-        if (profile && profile !== device) {
-          setVisible(true);
+        if (!profile) return;
+        if (timezonesCurrentlyEquivalent(profile, device)) return;
+        try {
+          if (localStorage.getItem(DISMISS_KEY) === dismissToken(profile, device)) {
+            return;
+          }
+        } catch {
+          // ignore
         }
+        setVisible(true);
       } catch {
         // non-critical
       }
@@ -65,6 +73,11 @@ export function TimezoneConflictBanner() {
       clearTimezoneCache(deviceTz);
       setProfileTz(deviceTz);
       setVisible(false);
+      try {
+        localStorage.removeItem(DISMISS_KEY);
+      } catch {
+        // ignore
+      }
     } catch {
       // ignore
     } finally {
@@ -74,12 +87,14 @@ export function TimezoneConflictBanner() {
 
   const dismiss = useCallback(() => {
     try {
-      if (deviceTz) sessionStorage.setItem(DISMISS_KEY, deviceTz);
+      if (profileTz && deviceTz) {
+        localStorage.setItem(DISMISS_KEY, dismissToken(profileTz, deviceTz));
+      }
     } catch {
       // ignore
     }
     setVisible(false);
-  }, [deviceTz]);
+  }, [deviceTz, profileTz]);
 
   if (!visible || !profileTz || !deviceTz) return null;
 
