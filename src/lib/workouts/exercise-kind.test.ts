@@ -4,6 +4,7 @@ import {
   EXERCISE_KINDS,
   fieldsForKind,
   isExerciseKind,
+  kindUsesSetTypes,
   parseExerciseKind,
 } from "./exercise-kind.ts";
 import { parseSetCreateForKind, parseSetPatchForKind } from "./set-fields.ts";
@@ -29,6 +30,12 @@ describe("exercise kinds", () => {
     assert.equal(fieldsForKind("weighted_bw").countsTowardLoad, true);
     assert.equal(fieldsForKind("assisted").countsTowardLoad, false);
     assert.equal(fieldsForKind("duration").usesDuration, true);
+  });
+
+  it("cardio has no set-type chips", () => {
+    assert.equal(kindUsesSetTypes("cardio"), false);
+    assert.equal(kindUsesSetTypes("strength"), true);
+    assert.equal(kindUsesSetTypes("duration"), true);
   });
 });
 

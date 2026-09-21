@@ -175,7 +175,9 @@ export function WorkoutLiveStage({
             <h2 className="truncate text-2xl font-semibold leading-tight">{focus.name}</h2>
             <p className="mt-1 text-sm text-slate-400">
               {doneCount}/{focus.sets.length || "—"} подходов
-              {currentSet ? ` · ${SET_TYPE_SHORT[currentSet.setType]}` : ""}
+              {focus.kind !== "cardio" && currentSet
+                ? ` · ${SET_TYPE_SHORT[currentSet.setType]}`
+                : ""}
             </p>
           </div>
           <button type="button" className="text-slate-400" onClick={onNext} disabled={busy}>
@@ -285,7 +287,8 @@ export function WorkoutLiveStage({
             </button>
           )}
           <div className="flex gap-2">
-            {mode === "rest_pause" || focus.kind === "strength" ? (
+            {focus.kind !== "cardio" &&
+            (mode === "rest_pause" || focus.kind === "strength") ? (
               <button
                 type="button"
                 disabled={busy}

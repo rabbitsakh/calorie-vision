@@ -110,3 +110,8 @@ export function defaultExerciseKind(sessionMuscleKeys: readonly string[]): Exerc
 export function kindUsesRestTimer(kind: ExerciseKind): boolean {
   return kind !== "cardio" && kind !== "duration";
 }
+
+/** Warmup / working / drop / failure chips — not meaningful for cardio. */
+export function kindUsesSetTypes(kind: ExerciseKind): boolean {
+  return kind !== "cardio";
+}
