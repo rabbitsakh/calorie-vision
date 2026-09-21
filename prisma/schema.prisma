@@ -482,6 +482,9 @@ model WorkoutRoutineExercise {
   plannedSets Json?
   /** Shared key (A/B/C…) — exercises with the same key form a superset/circuit. */
   supersetGroup String? @db.VarChar(8)
+  /** normal | circuit | rest_pause */
+  blockMode     String  @default("normal") @db.VarChar(16)
+  circuitRounds Int?
 
   routine WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
@@ -537,6 +540,10 @@ model WorkoutExercise {
   sortOrder   Int      @default(0)
   /** Shared key (A/B/C…) — same key = superset/circuit within the session. */
   supersetGroup String? @db.VarChar(8)
+  /** normal | circuit | rest_pause — live block structure. */
+  blockMode     String  @default("normal") @db.VarChar(16)
+  /** Target rounds when blockMode=circuit (shared across superset group). */
+  circuitRounds Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -555,7 +562,7 @@ model WorkoutSet {
   /** Cardio segments: distance (km) and duration (seconds). */
   distanceKm  Float?
   durationSec Int?
-  /** warmup | working | drop | failure */
+  /** warmup | working | drop | failure | rest_pause */
   setType     String   @default("working") @db.VarChar(16)
   /** Marked done in the live log (starts rest timer). */
   completed   Boolean  @default(true)

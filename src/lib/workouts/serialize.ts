@@ -6,6 +6,7 @@ import {
   paceSecPerKm,
 } from "@/lib/workouts/cardio";
 import { parseExerciseKind, fieldsForKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import { parseBlockMode } from "@/lib/workouts/block-mode";
 import {
   exerciseLoad,
   loadByMuscleGroup,
@@ -41,6 +42,8 @@ export type DbExercise = {
   note?: string | null;
   sortOrder: number;
   supersetGroup?: string | null;
+  blockMode?: string | null;
+  circuitRounds?: number | null;
   sets: DbSet[];
 };
 
@@ -176,6 +179,8 @@ export function serializeSessionDetail(session: DbSession) {
         muscleLabel: ex.muscleGroup ? muscleGroupLabel(ex.muscleGroup) : null,
         sortOrder: ex.sortOrder,
         supersetGroup: ex.supersetGroup?.trim() || null,
+        blockMode: parseBlockMode(ex.blockMode),
+        circuitRounds: ex.circuitRounds ?? null,
         load: roundLoad(
           exerciseLoad({
             muscleGroup: ex.muscleGroup,

@@ -36,7 +36,6 @@ import {
 import { monthEndKey } from "@/lib/workouts/trends";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
-import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
   useWorkoutRestTimer,
@@ -46,12 +45,28 @@ import {
 import { WorkoutWeekPlan } from "@/components/workouts/WorkoutWeekPlan";
 import { WorkoutLibraryPanel } from "@/components/workouts/WorkoutLibraryPanel";
 import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor";
+import { WorkoutLiveStage } from "@/components/workouts/WorkoutLiveStage";
+import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
+import {
+  BLOCK_MODE_LABELS,
+  BLOCK_MODES,
+  CIRCUIT_ROUND_REST_SEC,
+  REST_PAUSE_SEC,
+  type BlockMode,
+  parseBlockMode,
+} from "@/lib/workouts/block-mode";
+import {
+  adviseProgression,
+  autofillNextDraft,
+  bumpKg,
+} from "@/lib/workouts/progression";
 import {
   SET_TYPES,
   SET_TYPE_LABELS,
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
+import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
 
 type Progress = {
   previousSessionId: string | null;
@@ -126,6 +141,8 @@ type SessionExercise = {
   cardioBestPaceSecPerKm: number | null;
   sortOrder?: number;
   supersetGroup?: string | null;
+  blockMode?: BlockMode;
+  circuitRounds?: number | null;
   sets: Array<{
     id: string;
     weightKg: number | null;
@@ -396,6 +413,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   } = useWorkoutRestTimer();
 
   const [liveMode, setLiveMode] = useState(true);
+  const [stageOpen, setStageOpen] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [circuitRound, setCircuitRound] = useState(1);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [clockTick, setClockTick] = useState(0);
   const [hubTab, setHubTab] = useState<HubTab>("today");
@@ -496,12 +516,33 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
       setLiveMode(data.session.date === todayKey && data.session.clockStatus !== "finished");
+      setStageOpen(
+        data.session.date === todayKey &&
+          data.session.clockStatus !== "finished" &&
+          data.session.exercises.length > 0,
+      );
+      setShowSummary(false);
+      setCircuitRound(1);
       setFocusExerciseId(data.session.exercises[0]?.id ?? null);
       setSetDrafts((prev) => {
         const next = { ...prev };
         for (const ex of data.session.exercises) {
           const cur = next[ex.id];
           if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
+          const fill = autofillNextDraft(ex.sets, {
+            progressRate: data.session.progressRate,
+          });
+          if (fill) {
+            next[ex.id] = {
+              ...EMPTY_DRAFT,
+              kg: fill.weightKg != null ? String(fill.weightKg) : "",
+              reps: fill.reps != null ? String(fill.reps) : "",
+              setType: (SET_TYPES.includes(fill.setType as SetType)
+                ? fill.setType
+                : "working") as SetType,
+            };
+            continue;
+          }
           const last = ex.lastTime?.sets?.at(-1);
           if (last) {
             next[ex.id] = draftFromHistorySet(last, ex.kind);
@@ -587,7 +628,15 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       );
       setDetail(data.session);
       setProgress(data.progress);
-      if (clock === "finish") setLiveMode(false);
+      if (clock === "finish") {
+        setLiveMode(false);
+        setStageOpen(false);
+        setShowSummary(true);
+      }
+      if (clock === "start") {
+        setLiveMode(true);
+        setStageOpen(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось обновить таймер");
     }
@@ -704,6 +753,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       );
       await loadList();
       await openSession(data.session.id);
+      setStageOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось начать шаблон");
     } finally {
@@ -940,9 +990,182 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }
   };
 
+  const applyAutofillAfterComplete = (
+    ex: SessionExercise,
+    setsAfter: SessionExercise["sets"],
+    progressRate: number,
+  ) => {
+    const fill = autofillNextDraft(setsAfter, { progressRate });
+    if (!fill) return;
+    setSetDrafts((prev) => ({
+      ...prev,
+      [ex.id]: {
+        ...EMPTY_DRAFT,
+        kg: fill.weightKg != null ? String(fill.weightKg) : "",
+        reps: fill.reps != null ? String(fill.reps) : "",
+        setType: (SET_TYPES.includes(fill.setType as SetType)
+          ? fill.setType
+          : "working") as SetType,
+      },
+    }));
+  };
+
+  const bumpCircuitIfNeeded = (
+    ex: SessionExercise,
+    completedSetId: string,
+    session: SessionDetail,
+  ) => {
+    if (ex.blockMode !== "circuit") return;
+    const group = ex.supersetGroup
+      ? session.exercises.filter((e) => e.supersetGroup === ex.supersetGroup)
+      : [ex];
+    const groupDone = group.every((g) =>
+      g.sets.every((s) => s.id === completedSetId || s.completed),
+    );
+    if (groupDone) {
+      setCircuitRound((r) => r + 1);
+      startRest(CIRCUIT_ROUND_REST_SEC);
+    }
+  };
+
   const toggleSetCompleted = async (set: SessionExercise["sets"][number]) => {
     const next = !set.completed;
-    await patchSet(set.id, { completed: next }, next && set.setType !== "warmup");
+    await patchSet(set.id, { completed: next }, next && set.setType !== "warmup" && set.setType !== "rest_pause");
+    if (next && detail) {
+      const ex = detail.exercises.find((e) => e.sets.some((s) => s.id === set.id));
+      if (ex) {
+        const setsAfter = ex.sets.map((s) =>
+          s.id === set.id ? { ...s, completed: true } : s,
+        );
+        applyAutofillAfterComplete(ex, setsAfter, detail.progressRate);
+        bumpCircuitIfNeeded(ex, set.id, detail);
+      }
+    }
+  };
+
+  const focusExForStage = detail?.exercises.find((e) => e.id === focusExerciseId) ?? detail?.exercises[0];
+  const stageAdvice = useMemo(() => {
+    if (!detail || !focusExForStage) return null;
+    const hist = historyByName[focusExForStage.name];
+    const points =
+      hist?.points.map((p) => ({
+        date: p.date,
+        topWeightKg: p.topWeightKg,
+        topReps: p.topReps,
+        totalLoad: p.totalLoad,
+      })) ?? [];
+    const lastKg = pickLastWorkingWeight([
+      ...(focusExForStage.lastTime?.sets ?? []).map((s) => ({
+        weightKg: s.weightKg,
+        setType: "working" as const,
+        completed: true,
+      })),
+      ...focusExForStage.sets,
+    ]);
+    return adviseProgression(points, detail.progressRate, lastKg);
+  }, [detail, focusExForStage, historyByName]);
+
+  const stageSuggestedKg =
+    stageAdvice?.suggestedKg ??
+    (focusExForStage
+      ? suggestNextWeightKg(
+          pickLastWorkingWeight(focusExForStage.sets),
+          detail?.progressRate ?? 0.05,
+        )
+      : null);
+
+  const stageDraft = focusExForStage
+    ? setDrafts[focusExForStage.id] ?? EMPTY_DRAFT
+    : EMPTY_DRAFT;
+
+  const completeCurrentOnStage = async () => {
+    if (!focusExForStage || !detail) return;
+    const incomplete = focusExForStage.sets.find((s) => !s.completed);
+    if (incomplete) {
+      const kg = Number(stageDraft.kg.replace(",", "."));
+      const reps = Number(stageDraft.reps);
+      const patch: Record<string, unknown> = { completed: true };
+      if (fieldsForKind(focusExForStage.kind).usesWeight && Number.isFinite(kg)) {
+        patch.weightKg = kg;
+      }
+      if (fieldsForKind(focusExForStage.kind).usesReps && Number.isFinite(reps) && reps > 0) {
+        patch.reps = Math.round(reps);
+      }
+      await patchSet(
+        incomplete.id,
+        patch,
+        incomplete.setType !== "warmup" && incomplete.setType !== "rest_pause",
+      );
+      const setsAfter = focusExForStage.sets.map((s) =>
+        s.id === incomplete.id
+          ? {
+              ...s,
+              completed: true,
+              weightKg:
+                typeof patch.weightKg === "number" ? patch.weightKg : s.weightKg,
+              reps: typeof patch.reps === "number" ? patch.reps : s.reps,
+            }
+          : s,
+      );
+      applyAutofillAfterComplete(focusExForStage, setsAfter, detail.progressRate);
+      bumpCircuitIfNeeded(focusExForStage, incomplete.id, detail);
+      return;
+    }
+    await addSet(focusExForStage.id);
+  };
+
+  const addAndCompleteOnStage = async () => {
+    if (!focusExForStage) return;
+    await addSet(focusExForStage.id);
+  };
+
+  const restPauseOnStage = async () => {
+    if (!focusExForStage || !detail) return;
+    const last = [...focusExForStage.sets].reverse().find((s) => s.completed);
+    const kg = last?.weightKg ?? Number(stageDraft.kg.replace(",", ".")) ?? 0;
+    const reps = Math.max(1, Math.round((last?.reps ?? Number(stageDraft.reps) ?? 5) * 0.5));
+    setSetDrafts((prev) => ({
+      ...prev,
+      [focusExForStage.id]: {
+        ...EMPTY_DRAFT,
+        kg: String(kg),
+        reps: String(reps),
+        setType: "rest_pause",
+      },
+    }));
+    startRest(REST_PAUSE_SEC);
+  };
+
+  const setExerciseBlockMode = async (exerciseId: string, mode: BlockMode) => {
+    if (!detail) return;
+    const ex = detail.exercises.find((e) => e.id === exerciseId);
+    const targets =
+      ex?.supersetGroup
+        ? detail.exercises.filter((e) => e.supersetGroup === ex.supersetGroup)
+        : ex
+          ? [ex]
+          : [];
+    const ids = targets.length > 0 ? targets.map((t) => t.id) : [exerciseId];
+    try {
+      let session: SessionDetail | null = null;
+      for (const id of ids) {
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/exercises/${id}`), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              blockMode: mode,
+              circuitRounds: mode === "circuit" ? 3 : null,
+            }),
+          }),
+        );
+        session = data.session;
+      }
+      if (session) await refreshDetail(session);
+      if (mode === "circuit") setCircuitRound(1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сменить режим");
+    }
   };
 
   const cycleSetType = async (set: SessionExercise["sets"][number]) => {
@@ -1154,8 +1377,144 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   if (activeId && detail) {
     const delta = formatPct(progress?.deltaPctVsPrevious);
     const vsTarget = formatPct(progress?.deltaPctVsTarget);
+    const summaryExercises = detail.exercises.map((ex) => {
+      const hist = historyByName[ex.name];
+      return {
+        name: ex.name,
+        load: ex.load,
+        setCount: ex.sets.length,
+        completedCount: ex.sets.filter((s) => s.completed).length,
+        prLine: hist?.prSummary ?? null,
+        progressionKind: hist
+          ? adviseProgression(
+              hist.points.map((p) => ({
+                date: p.date,
+                topWeightKg: p.topWeightKg,
+                topReps: p.topReps,
+                totalLoad: p.totalLoad,
+              })),
+              detail.progressRate,
+              pickLastWorkingWeight(ex.sets),
+            ).kind
+          : null,
+      };
+    });
     return (
       <div className="flex flex-col gap-4">
+        {showSummary ? (
+          <WorkoutSessionSummary
+            date={detail.date}
+            elapsedSec={
+              sessionElapsedSec({
+                startedAt: detail.startedAt ?? null,
+                endedAt: detail.endedAt ?? null,
+                pausedAt: detail.pausedAt ?? null,
+                pausedMs: detail.pausedMs ?? 0,
+              })
+            }
+            totalLoad={detail.totalLoad}
+            cardioDistanceKm={detail.cardioDistanceKm}
+            cardioDurationSec={detail.cardioDurationSec}
+            cardioOnly={detail.cardioOnly}
+            deltaPctVsPrevious={progress?.deltaPctVsPrevious ?? null}
+            deltaPctVsTarget={progress?.deltaPctVsTarget ?? null}
+            previousLoad={progress?.previousLoad ?? 0}
+            targetLoad={progress?.targetLoad ?? 0}
+            exercises={summaryExercises}
+            onClose={() => setShowSummary(false)}
+            onBackToList={() => {
+              setShowSummary(false);
+              setActiveId(null);
+              setDetail(null);
+              setProgress(null);
+              clearRest();
+              void loadList();
+            }}
+          />
+        ) : null}
+
+        {stageOpen && focusExForStage ? (
+          <WorkoutLiveStage
+            elapsedLabel={liveElapsedLabel}
+            clockStatus={detail.clockStatus ?? "idle"}
+            exercises={detail.exercises.map((e) => ({
+              id: e.id,
+              name: e.name,
+              kind: e.kind,
+              supersetGroup: e.supersetGroup,
+              blockMode: parseBlockMode(e.blockMode),
+              circuitRounds: e.circuitRounds,
+              sets: e.sets.map((s) => ({
+                id: s.id,
+                weightKg: s.weightKg,
+                reps: s.reps,
+                setType: s.setType,
+                completed: s.completed,
+                rpe: s.rpe,
+              })),
+            }))}
+            focusExerciseId={focusExerciseId}
+            restEndsAt={restEndsAt}
+            restLeft={restLeft}
+            advice={stageAdvice}
+            suggestedKg={stageSuggestedKg}
+            draftKg={stageDraft.kg}
+            draftReps={stageDraft.reps}
+            circuitRound={circuitRound}
+            onDraftKg={(v) =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: { ...stageDraft, kg: v },
+              }))
+            }
+            onDraftReps={(v) =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: { ...stageDraft, reps: v },
+              }))
+            }
+            onBumpKg={(delta) => {
+              const cur = Number(stageDraft.kg.replace(",", ".")) || 0;
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: {
+                  ...stageDraft,
+                  kg: String(bumpKg(cur, delta)),
+                },
+              }));
+            }}
+            onApplySuggested={() => {
+              if (stageSuggestedKg == null) return;
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: {
+                  ...stageDraft,
+                  kg: formatSuggestedKg(stageSuggestedKg),
+                },
+              }));
+            }}
+            onCompleteCurrent={() => void completeCurrentOnStage()}
+            onAddAndComplete={() => void addAndCompleteOnStage()}
+            onSkipRest={clearRest}
+            onPrev={() => {
+              const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
+              if (idx > 0) setFocusExerciseId(detail.exercises[idx - 1]!.id);
+            }}
+            onNext={() => {
+              const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
+              if (idx >= 0 && idx < detail.exercises.length - 1) {
+                setFocusExerciseId(detail.exercises[idx + 1]!.id);
+              }
+            }}
+            onPause={() => void patchClock("pause")}
+            onResume={() => void patchClock("resume")}
+            onFinish={() => void patchClock("finish")}
+            onExitStage={() => setStageOpen(false)}
+            onRestPause={() => void restPauseOnStage()}
+            busy={busy}
+          />
+        ) : null}
+
         <div className="flex items-start justify-between gap-3">
           <div>
             <button
@@ -1165,6 +1524,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 setActiveId(null);
                 setDetail(null);
                 setProgress(null);
+                setStageOpen(false);
+                setShowSummary(false);
                 clearRest();
                 void loadList();
               }}
@@ -1231,6 +1592,36 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     onClick={() => void patchClock("start")}
                   >
                     Старт
+                  </button>
+                ) : null}
+                {detail.clockStatus !== "finished" && detail.exercises.length > 0 ? (
+                  <button
+                    type="button"
+                    className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                    onClick={() => {
+                      if (!detail.startedAt) void patchClock("start");
+                      else {
+                        setLiveMode(true);
+                        setStageOpen(true);
+                        if (focusExerciseId && !historyByName[focusExForStage?.name ?? ""]) {
+                          void toggleExerciseHistory(
+                            focusExForStage!.name,
+                            focusExForStage!.kind,
+                          );
+                        }
+                      }
+                    }}
+                  >
+                    Зал
+                  </button>
+                ) : null}
+                {detail.clockStatus === "finished" ? (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900"
+                    onClick={() => setShowSummary(true)}
+                  >
+                    Итог
                   </button>
                 ) : null}
                 {detail.clockStatus === "running" ? (
@@ -1422,6 +1813,19 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               ...ex.sets,
             ]);
             const suggestedKg = suggestNextWeightKg(lastKg, detail.progressRate);
+            const hist = historyByName[ex.name];
+            const progression = hist
+              ? adviseProgression(
+                  hist.points.map((p) => ({
+                    date: p.date,
+                    topWeightKg: p.topWeightKg,
+                    topReps: p.topReps,
+                    totalLoad: p.totalLoad,
+                  })),
+                  detail.progressRate,
+                  lastKg,
+                )
+              : null;
             const prevEx = detail.exercises[exIndex - 1];
             return (
               <section
@@ -1485,12 +1889,34 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                     {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
                     {suggestedKg != null && spec.usesWeight ? (
                       <p className="mt-1 text-xs font-medium text-teal-900">
-                        Цель подхода: {formatSuggestedKg(suggestedKg)} кг
-                        {lastKg != null ? ` · было ${formatSuggestedKg(lastKg)}` : ""} (+
-                        {Math.round(detail.progressRate * 1000) / 10}%)
+                        Цель подхода: {formatSuggestedKg(
+                          progression?.suggestedKg ?? suggestedKg,
+                        )}{" "}
+                        кг
+                        {lastKg != null ? ` · было ${formatSuggestedKg(lastKg)}` : ""}
+                        {progression?.kind === "stall"
+                          ? " · deload"
+                          : ` (+${Math.round(detail.progressRate * 1000) / 10}%)`}
                       </p>
                     ) : null}
+                    {progression?.kind === "stall" ? (
+                      <p className="mt-1 text-xs text-amber-800">{progression.detail}</p>
+                    ) : null}
                     <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                      {BLOCK_MODES.map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={`rounded-full px-2 py-0.5 font-semibold ${
+                            parseBlockMode(ex.blockMode) === mode
+                              ? "bg-teal-700 text-white"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                          onClick={() => void setExerciseBlockMode(ex.id, mode)}
+                        >
+                          {BLOCK_MODE_LABELS[mode]}
+                        </button>
+                      ))}
                       {prevEx ? (
                         <button
                           type="button"

@@ -1,4 +1,4 @@
-export const SET_TYPES = ["warmup", "working", "drop", "failure"] as const;
+export const SET_TYPES = ["warmup", "working", "drop", "failure", "rest_pause"] as const;
 
 export type SetType = (typeof SET_TYPES)[number];
 
@@ -7,6 +7,7 @@ export const SET_TYPE_LABELS: Record<SetType, string> = {
   working: "Рабочий",
   drop: "Дроп",
   failure: "Отказ",
+  rest_pause: "R-P",
 };
 
 /** Short Russian labels shown on set chips (tap to cycle). */
@@ -15,6 +16,7 @@ export const SET_TYPE_SHORT: Record<SetType, string> = {
   working: "Раб",
   drop: "Дроп",
   failure: "Отказ",
+  rest_pause: "RP",
 };
 
 export function isSetType(value: unknown): value is SetType {

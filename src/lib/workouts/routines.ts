@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { parseBlockMode, parseCircuitRounds, type BlockMode } from "@/lib/workouts/block-mode";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { muscleGroupLabel } from "@/lib/workouts/muscle-groups";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
@@ -89,6 +90,8 @@ export type SerializedRoutine = {
     sortOrder: number;
     plannedSets: PlannedSet[];
     supersetGroup: string | null;
+    blockMode: BlockMode;
+    circuitRounds: number | null;
   }>;
   updatedAt: string;
 };
@@ -113,6 +116,8 @@ export function serializeRoutine(row: RoutineRow): SerializedRoutine {
       sortOrder: ex.sortOrder,
       plannedSets: parsePlannedSets(ex.plannedSets),
       supersetGroup: ex.supersetGroup?.trim() || null,
+      blockMode: parseBlockMode(ex.blockMode),
+      circuitRounds: ex.circuitRounds ?? null,
     })),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -124,6 +129,8 @@ export type RoutineExerciseInput = {
   muscleGroup?: string | null;
   plannedSets?: unknown;
   supersetGroup?: unknown;
+  blockMode?: unknown;
+  circuitRounds?: unknown;
 };
 
 export function normalizeRoutineExerciseInputs(
@@ -134,6 +141,8 @@ export function normalizeRoutineExerciseInputs(
   muscleGroup: string | null;
   plannedSets: PlannedSet[];
   supersetGroup: string | null;
+  blockMode: BlockMode;
+  circuitRounds: number | null;
 }> | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const out: Array<{
@@ -142,6 +151,8 @@ export function normalizeRoutineExerciseInputs(
     muscleGroup: string | null;
     plannedSets: PlannedSet[];
     supersetGroup: string | null;
+    blockMode: BlockMode;
+    circuitRounds: number | null;
   }> = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
@@ -153,12 +164,15 @@ export function normalizeRoutineExerciseInputs(
         ? row.muscleGroup.trim().slice(0, 32)
         : null;
     const sg = parseSupersetGroup(row.supersetGroup);
+    const mode = parseBlockMode(row.blockMode);
     out.push({
       name,
       kind: parseExerciseKind(row.kind, "strength"),
       muscleGroup,
       plannedSets: parsePlannedSets(row.plannedSets),
       supersetGroup: sg === undefined ? null : sg,
+      blockMode: mode,
+      circuitRounds: mode === "circuit" ? parseCircuitRounds(row.circuitRounds) : null,
     });
   }
   return out.length > 0 ? out : null;

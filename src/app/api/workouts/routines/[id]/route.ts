@@ -103,6 +103,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
             plannedSets:
               ex.plannedSets.length > 0 ? plannedSetsToJson(ex.plannedSets) : undefined,
             ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
+            blockMode: ex.blockMode,
+            ...(ex.circuitRounds != null ? { circuitRounds: ex.circuitRounds } : {}),
           })),
         });
         await touchExerciseLibraryMany(

@@ -83,6 +83,8 @@ export async function POST(request: NextRequest, context: Ctx) {
             muscleGroup: ex.muscleGroup,
             sortOrder: i,
             ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
+            blockMode: ex.blockMode ?? "normal",
+            ...(ex.circuitRounds != null ? { circuitRounds: ex.circuitRounds } : {}),
           },
         });
 
