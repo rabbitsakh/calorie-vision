@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
               sortOrder: i,
               plannedSets:
                 ex.plannedSets.length > 0 ? plannedSetsToJson(ex.plannedSets) : undefined,
+              ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
             })),
           },
         },

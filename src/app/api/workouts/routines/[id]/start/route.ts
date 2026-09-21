@@ -82,6 +82,7 @@ export async function POST(request: NextRequest, context: Ctx) {
             kind: ex.kind ?? "strength",
             muscleGroup: ex.muscleGroup,
             sortOrder: i,
+            ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
           },
         });
 

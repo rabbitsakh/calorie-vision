@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { muscleGroupLabel } from "@/lib/workouts/muscle-groups";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
+import { parseSupersetGroup } from "@/lib/workouts/supersets";
+import { parsePlanLabel, parseWeekdays } from "@/lib/workouts/weekdays";
 
 export type PlannedSet = {
   weightKg: number | null;
@@ -74,6 +76,8 @@ export type SerializedRoutine = {
   name: string;
   note: string | null;
   sortOrder: number;
+  weekdays: number[];
+  planLabel: string | null;
   muscleKeys: string[];
   muscleLabels: string[];
   exerciseCount: number;
@@ -84,6 +88,7 @@ export type SerializedRoutine = {
     muscleGroup: string | null;
     sortOrder: number;
     plannedSets: PlannedSet[];
+    supersetGroup: string | null;
   }>;
   updatedAt: string;
 };
@@ -95,6 +100,8 @@ export function serializeRoutine(row: RoutineRow): SerializedRoutine {
     name: row.name,
     note: row.note,
     sortOrder: row.sortOrder,
+    weekdays: parseWeekdays(row.weekdays),
+    planLabel: row.planLabel?.trim() || null,
     muscleKeys,
     muscleLabels: muscleKeys.map(muscleGroupLabel),
     exerciseCount: row.exercises.length,
@@ -105,6 +112,7 @@ export function serializeRoutine(row: RoutineRow): SerializedRoutine {
       muscleGroup: ex.muscleGroup,
       sortOrder: ex.sortOrder,
       plannedSets: parsePlannedSets(ex.plannedSets),
+      supersetGroup: ex.supersetGroup?.trim() || null,
     })),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -115,6 +123,7 @@ export type RoutineExerciseInput = {
   kind?: unknown;
   muscleGroup?: string | null;
   plannedSets?: unknown;
+  supersetGroup?: unknown;
 };
 
 export function normalizeRoutineExerciseInputs(
@@ -124,6 +133,7 @@ export function normalizeRoutineExerciseInputs(
   kind: ExerciseKind;
   muscleGroup: string | null;
   plannedSets: PlannedSet[];
+  supersetGroup: string | null;
 }> | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
   const out: Array<{
@@ -131,6 +141,7 @@ export function normalizeRoutineExerciseInputs(
     kind: ExerciseKind;
     muscleGroup: string | null;
     plannedSets: PlannedSet[];
+    supersetGroup: string | null;
   }> = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") continue;
@@ -141,12 +152,16 @@ export function normalizeRoutineExerciseInputs(
       typeof row.muscleGroup === "string" && row.muscleGroup.trim()
         ? row.muscleGroup.trim().slice(0, 32)
         : null;
+    const sg = parseSupersetGroup(row.supersetGroup);
     out.push({
       name,
       kind: parseExerciseKind(row.kind, "strength"),
       muscleGroup,
       plannedSets: parsePlannedSets(row.plannedSets),
+      supersetGroup: sg === undefined ? null : sg,
     });
   }
   return out.length > 0 ? out : null;
 }
+
+export { parsePlanLabel, parseWeekdays };

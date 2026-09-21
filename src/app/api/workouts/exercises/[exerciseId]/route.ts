@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { isExerciseKind, parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { parseOptionalNote } from "@/lib/workouts/set-meta";
+import { nextSupersetLetter, parseSupersetGroup } from "@/lib/workouts/supersets";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       note?: unknown;
       /** "up" | "down" — swap sortOrder with neighbor */
       move?: "up" | "down";
+      /** Superset/circuit letter A–Z, or null to clear */
+      supersetGroup?: unknown;
+      /** Link this exercise with another into a new/shared superset */
+      linkSupersetWith?: string;
     };
 
     if (body.move === "up" || body.move === "down") {
@@ -72,6 +77,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       muscleGroup?: string | null;
       kind?: string;
       note?: string | null;
+      supersetGroup?: string | null;
     } = {};
     if (body.name !== undefined) {
       const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
@@ -105,8 +111,39 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       }
       data.note = note;
     }
+    if (body.supersetGroup !== undefined) {
+      const sg = parseSupersetGroup(body.supersetGroup);
+      if (sg === undefined) {
+        return NextResponse.json({ error: "Некорректный суперсет" }, { status: 400 });
+      }
+      data.supersetGroup = sg;
+    }
 
-    if (Object.keys(data).length > 0) {
+    if (typeof body.linkSupersetWith === "string" && body.linkSupersetWith.trim()) {
+      const otherId = body.linkSupersetWith.trim();
+      const siblings = await prisma.workoutExercise.findMany({
+        where: { sessionId: owned.sessionId },
+        select: { id: true, supersetGroup: true },
+      });
+      const other = siblings.find((s) => s.id === otherId);
+      if (!other) {
+        return NextResponse.json({ error: "Второе упражнение не найдено" }, { status: 404 });
+      }
+      const letter =
+        other.supersetGroup?.trim() ||
+        siblings.find((s) => s.id === exerciseId)?.supersetGroup?.trim() ||
+        nextSupersetLetter(siblings.map((s) => s.supersetGroup));
+      await prisma.$transaction([
+        prisma.workoutExercise.update({
+          where: { id: exerciseId },
+          data: { supersetGroup: letter },
+        }),
+        prisma.workoutExercise.update({
+          where: { id: otherId },
+          data: { supersetGroup: letter },
+        }),
+      ]);
+    } else if (Object.keys(data).length > 0) {
       await prisma.workoutExercise.update({ where: { id: exerciseId }, data });
     }
 

@@ -40,6 +40,7 @@ export type DbExercise = {
   muscleGroup: string | null;
   note?: string | null;
   sortOrder: number;
+  supersetGroup?: string | null;
   sets: DbSet[];
 };
 
@@ -174,6 +175,7 @@ export function serializeSessionDetail(session: DbSession) {
         muscleGroup: ex.muscleGroup,
         muscleLabel: ex.muscleGroup ? muscleGroupLabel(ex.muscleGroup) : null,
         sortOrder: ex.sortOrder,
+        supersetGroup: ex.supersetGroup?.trim() || null,
         load: roundLoad(
           exerciseLoad({
             muscleGroup: ex.muscleGroup,
