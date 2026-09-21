@@ -438,6 +438,13 @@ model WorkoutRoutine {
   name      String   @db.VarChar(120)
   note      String?  @db.VarChar(200)
   sortOrder Int      @default(0)
+  /**
+   * Weekday schedule for the plan tab: 0=Mon … 6=Sun (JSON number[]).
+   * Empty / null = not on the weekly plan.
+   */
+  weekdays  Json?
+  /** Optional letter slot on the plan: A / B / C … */
+  planLabel String?  @db.VarChar(8)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -473,6 +480,8 @@ model WorkoutRoutineExercise {
    * [{ weightKg?, reps?, distanceKm?, durationSec?, setType? }]
    */
   plannedSets Json?
+  /** Shared key (A/B/C…) — exercises with the same key form a superset/circuit. */
+  supersetGroup String? @db.VarChar(8)
 
   routine WorkoutRoutine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
@@ -526,6 +535,8 @@ model WorkoutExercise {
   muscleGroup String?  @db.VarChar(32)
   note        String?  @db.VarChar(200)
   sortOrder   Int      @default(0)
+  /** Shared key (A/B/C…) — same key = superset/circuit within the session. */
+  supersetGroup String? @db.VarChar(8)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

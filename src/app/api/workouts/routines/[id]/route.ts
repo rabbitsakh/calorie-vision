@@ -8,6 +8,8 @@ import {
   plannedSetsToJson,
   routineInclude,
   serializeRoutine,
+  parsePlanLabel,
+  parseWeekdays,
 } from "@/lib/workouts/routines";
 import { parseOptionalNote } from "@/lib/workouts/set-meta";
 
@@ -54,6 +56,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       muscleGroups?: unknown;
       exercises?: unknown;
       sortOrder?: number;
+      weekdays?: unknown;
+      planLabel?: unknown;
     };
 
     const name =
@@ -75,6 +79,11 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       return NextResponse.json({ error: "Добавьте хотя бы одно упражнение" }, { status: 400 });
     }
 
+    const weekdays =
+      body.weekdays !== undefined ? parseWeekdays(body.weekdays) : undefined;
+    const planLabel =
+      body.planLabel !== undefined ? parsePlanLabel(body.planLabel) : undefined;
+
     const updated = await prisma.$transaction(async (tx) => {
       if (muscleGroups) {
         await tx.workoutRoutineMuscle.deleteMany({ where: { routineId: id } });
@@ -93,6 +102,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
             sortOrder: i,
             plannedSets:
               ex.plannedSets.length > 0 ? plannedSetsToJson(ex.plannedSets) : undefined,
+            ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
           })),
         });
         await touchExerciseLibraryMany(
@@ -114,6 +124,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
           ...(typeof body.sortOrder === "number" && Number.isFinite(body.sortOrder)
             ? { sortOrder: Math.round(body.sortOrder) }
             : {}),
+          ...(weekdays !== undefined ? { weekdays } : {}),
+          ...(planLabel !== undefined ? { planLabel } : {}),
         },
         include: routineInclude,
       });

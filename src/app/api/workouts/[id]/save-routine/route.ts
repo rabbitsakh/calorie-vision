@@ -99,6 +99,7 @@ export async function POST(request: NextRequest, context: Ctx) {
                 muscleGroup: ex.muscleGroup,
                 sortOrder: i,
                 plannedSets: planned.length > 0 ? plannedSetsToJson(planned) : undefined,
+                ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
               };
             }),
           },
