@@ -350,6 +350,12 @@ function nextSetType(current: SetType): SetType {
   return SET_TYPES[(idx + 1) % SET_TYPES.length]!;
 }
 
+function formatWeightKg(kg: number): string {
+  if (!Number.isFinite(kg)) return "0";
+  const rounded = Math.round(kg * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
 function formatSetLine(
   s: {
     weightKg: number | null;
@@ -362,26 +368,28 @@ function formatSetLine(
   kind: ExerciseKind,
   idx: number,
 ): string {
+  // Avoid "1. 20 кг" — with tabular-nums it reads as "1.20 кг".
+  const n = `№${idx + 1}`;
   if (kind === "cardio") {
     const d = s.distanceKm != null && s.distanceKm > 0 ? `${formatDistanceKm(s.distanceKm)} км` : null;
     const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : null;
     const pace = formatPace(s.paceSecPerKm);
-    return `${idx + 1}. ${[d, t, pace].filter(Boolean).join(" · ") || "—"}`;
+    return `${n} · ${[d, t, pace].filter(Boolean).join(" · ") || "—"}`;
   }
   if (kind === "duration") {
     const t = s.durationSec != null && s.durationSec > 0 ? formatDurationMinutes(s.durationSec) : "—";
-    return `${idx + 1}. ${t}`;
+    return `${n} · ${t}`;
   }
   if (kind === "bodyweight") {
-    return `${idx + 1}. ${s.reps ?? 0} повт`;
+    return `${n} · ${s.reps ?? 0} повт`;
   }
   if (kind === "assisted") {
-    return `${idx + 1}. −${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
+    return `${n} · −${formatWeightKg(s.weightKg ?? 0)} кг × ${s.reps ?? 0}`;
   }
   if (kind === "weighted_bw") {
-    return `${idx + 1}. +${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
+    return `${n} · +${formatWeightKg(s.weightKg ?? 0)} кг × ${s.reps ?? 0}`;
   }
-  return `${idx + 1}. ${s.weightKg ?? 0} кг × ${s.reps ?? 0}`;
+  return `${n} · ${formatWeightKg(s.weightKg ?? 0)} кг × ${s.reps ?? 0}`;
 }
 
 export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
