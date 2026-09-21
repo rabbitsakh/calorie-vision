@@ -164,14 +164,16 @@ export function WorkoutInlineSetRow({
         >
           ✓
         </button>
-        <button
-          type="button"
-          title={`${SET_TYPE_LABELS[set.setType]} — сменить тип`}
-          className="shrink-0 rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
-          onClick={onCycleType}
-        >
-          {SET_TYPE_SHORT[set.setType]}
-        </button>
+        {kind !== "cardio" ? (
+          <button
+            type="button"
+            title={`${SET_TYPE_LABELS[set.setType]} — сменить тип`}
+            className="shrink-0 rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
+            onClick={onCycleType}
+          >
+            {SET_TYPE_SHORT[set.setType]}
+          </button>
+        ) : null}
         <button
           type="button"
           className={`min-w-0 flex-1 text-left tabular-nums ${
@@ -241,16 +243,18 @@ export function WorkoutInlineSetRow({
               />
             </label>
           ) : null}
-          <label className="flex flex-col gap-1 text-xs text-slate-500" title="RPE 1–10">
-            RPE
-            <input
-              inputMode="decimal"
-              className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-              value={rpe}
-              onChange={(e) => setRpe(e.target.value)}
-              placeholder="8"
-            />
-          </label>
+          {kind !== "cardio" ? (
+            <label className="flex flex-col gap-1 text-xs text-slate-500" title="RPE 1–10">
+              RPE
+              <input
+                inputMode="decimal"
+                className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                value={rpe}
+                onChange={(e) => setRpe(e.target.value)}
+                placeholder="8"
+              />
+            </label>
+          ) : null}
           {suggestedKg != null && spec.usesWeight ? (
             <button
               type="button"

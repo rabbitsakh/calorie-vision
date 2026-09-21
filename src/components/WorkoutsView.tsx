@@ -2204,19 +2204,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       />
                     </label>
                   ) : null}
-                  <button
-                    type="button"
-                    title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
-                    onClick={() =>
-                      setSetDrafts((prev) => ({
-                        ...prev,
-                        [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
-                      }))
-                    }
-                  >
-                    {SET_TYPE_SHORT[draft.setType]}
-                  </button>
+                  {ex.kind !== "cardio" ? (
+                    <button
+                      type="button"
+                      title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                      onClick={() =>
+                        setSetDrafts((prev) => ({
+                          ...prev,
+                          [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
+                        }))
+                      }
+                    >
+                      {SET_TYPE_SHORT[draft.setType]}
+                    </button>
+                  ) : null}
                   {kindUsesRestTimer(ex.kind) ? (
                     <label
                       className="flex flex-col gap-1 text-xs text-slate-500"
