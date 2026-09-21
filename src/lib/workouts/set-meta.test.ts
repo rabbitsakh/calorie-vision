@@ -15,6 +15,7 @@ test("parseSetType and load gating", () => {
   assert.equal(setCountsTowardLoad({ setType: "working", completed: false }), false);
   assert.equal(SET_TYPE_SHORT.working, "Раб");
   assert.equal(SET_TYPE_SHORT.drop, "Дроп");
+  assert.equal(SET_TYPE_SHORT.rest_pause, "RP");
 });
 
 test("parseRpe accepts half steps", () => {

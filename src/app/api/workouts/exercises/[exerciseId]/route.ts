@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { isExerciseKind, parseExerciseKind } from "@/lib/workouts/exercise-kind";
+import { isBlockMode, parseBlockMode, parseCircuitRounds } from "@/lib/workouts/block-mode";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { parseOptionalNote } from "@/lib/workouts/set-meta";
 import { nextSupersetLetter, parseSupersetGroup } from "@/lib/workouts/supersets";
@@ -40,6 +41,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       supersetGroup?: unknown;
       /** Link this exercise with another into a new/shared superset */
       linkSupersetWith?: string;
+      blockMode?: unknown;
+      circuitRounds?: unknown;
     };
 
     if (body.move === "up" || body.move === "down") {
@@ -78,6 +81,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       kind?: string;
       note?: string | null;
       supersetGroup?: string | null;
+      blockMode?: string;
+      circuitRounds?: number | null;
     } = {};
     if (body.name !== undefined) {
       const name = typeof body.name === "string" ? body.name.trim().slice(0, 120) : "";
@@ -117,6 +122,22 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         return NextResponse.json({ error: "Некорректный суперсет" }, { status: 400 });
       }
       data.supersetGroup = sg;
+    }
+    if (body.blockMode !== undefined) {
+      if (!isBlockMode(body.blockMode) && body.blockMode !== null) {
+        return NextResponse.json(
+          { error: "Режим: normal / circuit / rest_pause" },
+          { status: 400 },
+        );
+      }
+      data.blockMode = parseBlockMode(body.blockMode);
+      if (data.blockMode !== "circuit") data.circuitRounds = null;
+    }
+    if (body.circuitRounds !== undefined) {
+      data.circuitRounds =
+        body.circuitRounds == null || body.circuitRounds === ""
+          ? null
+          : parseCircuitRounds(body.circuitRounds);
     }
 
     if (typeof body.linkSupersetWith === "string" && body.linkSupersetWith.trim()) {

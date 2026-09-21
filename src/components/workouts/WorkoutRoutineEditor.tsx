@@ -8,6 +8,12 @@ import {
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import {
+  BLOCK_MODE_LABELS,
+  BLOCK_MODES,
+  type BlockMode,
+  parseCircuitRounds,
+} from "@/lib/workouts/block-mode";
 import type { PlannedSet, SerializedRoutine } from "@/lib/workouts/routines";
 import { nextSupersetLetter } from "@/lib/workouts/supersets";
 import { WEEKDAY_LABELS_RU } from "@/lib/workouts/weekdays";
@@ -19,6 +25,8 @@ type DraftEx = {
   muscleGroup: string;
   plannedSets: PlannedSet[];
   supersetGroup: string | null;
+  blockMode: BlockMode;
+  circuitRounds: number | null;
 };
 
 type Props = {
@@ -35,6 +43,8 @@ function emptyEx(): DraftEx {
     muscleGroup: "",
     plannedSets: [{ weightKg: null, reps: 8, distanceKm: null, durationSec: null, setType: "working" }],
     supersetGroup: null,
+    blockMode: "normal",
+    circuitRounds: null,
   };
 }
 
@@ -88,6 +98,8 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
                         },
                       ],
                 supersetGroup: ex.supersetGroup,
+                blockMode: ex.blockMode,
+                circuitRounds: ex.circuitRounds,
               }))
             : [emptyEx()],
         );
@@ -150,6 +162,8 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
             muscleGroup: e.muscleGroup || null,
             plannedSets: e.plannedSets,
             supersetGroup: e.supersetGroup,
+            blockMode: e.blockMode,
+            circuitRounds: e.blockMode === "circuit" ? e.circuitRounds ?? 3 : null,
           })),
       };
       const url = routineId
@@ -303,6 +317,48 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
                   {EXERCISE_KIND_LABELS[k]}
                 </button>
               ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {BLOCK_MODES.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() =>
+                    setExercises((prev) => {
+                      const next = [...prev];
+                      next[idx] = {
+                        ...ex,
+                        blockMode: mode,
+                        circuitRounds: mode === "circuit" ? ex.circuitRounds ?? 3 : null,
+                      };
+                      return next;
+                    })
+                  }
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    ex.blockMode === mode ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {BLOCK_MODE_LABELS[mode]}
+                </button>
+              ))}
+              {ex.blockMode === "circuit" ? (
+                <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                  Кругов
+                  <input
+                    inputMode="numeric"
+                    className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-base"
+                    value={ex.circuitRounds ?? 3}
+                    onChange={(e) => {
+                      const n = parseCircuitRounds(e.target.value);
+                      setExercises((prev) => {
+                        const next = [...prev];
+                        next[idx] = { ...ex, circuitRounds: n };
+                        return next;
+                      });
+                    }}
+                  />
+                </label>
+              ) : null}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
               <label className="flex items-center gap-1 text-slate-500">

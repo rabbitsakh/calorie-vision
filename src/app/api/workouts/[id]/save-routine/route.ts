@@ -100,6 +100,8 @@ export async function POST(request: NextRequest, context: Ctx) {
                 sortOrder: i,
                 plannedSets: planned.length > 0 ? plannedSetsToJson(planned) : undefined,
                 ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
+                blockMode: ex.blockMode ?? "normal",
+                ...(ex.circuitRounds != null ? { circuitRounds: ex.circuitRounds } : {}),
               };
             }),
           },
