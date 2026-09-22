@@ -226,7 +226,8 @@ export default function LoginForm() {
           Войдите через Яндекс, Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
         <p className="mt-2 text-slate-600 capacitor-native-only">
-          Дневник питания — войдите, чтобы продолжить.
+          Соцсети откроют короткое окно входа — после него вернёмся в приложение. Не оставайтесь в
+          браузере.
         </p>
 
         {verifyRequest ? (

@@ -18,12 +18,14 @@ test("deep link format", () => {
   assert.equal(isNativeBridgeUrl(link), true);
 });
 
-test("intent URL targets package and scheme", () => {
+test("intent URL targets package and uses app-return fallback (not consume)", () => {
   const url = nativeBridgeIntentUrl("tok");
   assert.equal(url.includes(`scheme=${NATIVE_BRIDGE_SCHEME}`), true);
   assert.equal(url.includes(`package=${NATIVE_BRIDGE_PACKAGE}`), true);
   assert.equal(tokenFromNativeBridgeUrl(url), "tok");
   assert.equal(isNativeBridgeUrl(url), true);
+  assert.equal(url.includes("/api/auth/native-bridge/consume"), false);
+  assert.equal(decodeURIComponent(url).includes("/auth/native-bridge/return?token=tok"), true);
 });
 
 test("round-trip compact bridge token", async () => {

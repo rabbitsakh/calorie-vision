@@ -11,6 +11,7 @@ import {
 } from "@/lib/telegram-oidc";
 import { setNextAuthSessionCookie } from "@/lib/telegram-oidc-session";
 import {
+  TG_OIDC_NATIVE_COOKIE,
   TG_OIDC_STATE_COOKIE,
   TG_OIDC_VERIFIER_COOKIE,
   telegramOidcAppUrl,
@@ -39,6 +40,7 @@ function clearOidcCookies(response: NextResponse, secure: boolean) {
   const clear = telegramOidcCookieOptions(secure, 0);
   response.cookies.set(TG_OIDC_STATE_COOKIE, "", clear);
   response.cookies.set(TG_OIDC_VERIFIER_COOKIE, "", clear);
+  response.cookies.set(TG_OIDC_NATIVE_COOKIE, "", clear);
 }
 
 function userFacingOidcError(error: unknown): string {
@@ -145,7 +147,10 @@ export async function GET(request: Request) {
       hash: "oidc-session",
     });
 
-    const next = NextResponse.redirect(telegramOidcAppUrl("/ration/", request));
+    const native = cookieStore.get(TG_OIDC_NATIVE_COOKIE)?.value === "1";
+    const next = NextResponse.redirect(
+      telegramOidcAppUrl(native ? "/auth/native-bridge" : "/ration/", request),
+    );
     await setNextAuthSessionCookie(next, {
       id: user.id,
       name: user.name,

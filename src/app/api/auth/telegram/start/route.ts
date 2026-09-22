@@ -6,6 +6,7 @@ import {
   isTelegramOidcConfigured,
 } from "@/lib/telegram-oidc";
 import {
+  TG_OIDC_NATIVE_COOKIE,
   TG_OIDC_STATE_COOKIE,
   TG_OIDC_VERIFIER_COOKIE,
   telegramOidcAppUrl,
@@ -20,6 +21,7 @@ export const dynamic = "force-dynamic";
 /**
  * Starts Telegram OIDC (Authorization Code + PKCE) with the phone scope.
  * Requires TELEGRAM_CLIENT_SECRET from BotFather → Login Widget.
+ * `?native=1` — Capacitor Custom Tabs: after login redirect to /auth/native-bridge.
  */
 export async function GET(request: Request) {
   if (!isTelegramOidcConfigured()) {
@@ -40,6 +42,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(telegramOidcAppUrl("/login?error=TelegramConfig", request));
   }
 
+  const wantNative = new URL(request.url).searchParams.get("native") === "1";
+
   try {
     const { verifier, challenge } = createPkcePair();
     // Embed verifier in `state` so iOS can finish login even if cookies are dropped.
@@ -57,6 +61,11 @@ export async function GET(request: Request) {
     // Keep cookies as a fallback for older clients / non-iOS browsers.
     response.cookies.set(TG_OIDC_STATE_COOKIE, state, telegramOidcCookieOptions(secure));
     response.cookies.set(TG_OIDC_VERIFIER_COOKIE, verifier, telegramOidcCookieOptions(secure));
+    if (wantNative) {
+      response.cookies.set(TG_OIDC_NATIVE_COOKIE, "1", telegramOidcCookieOptions(secure));
+    } else {
+      response.cookies.set(TG_OIDC_NATIVE_COOKIE, "", { ...telegramOidcCookieOptions(secure, 0), maxAge: 0 });
+    }
     return response;
   } catch (error) {
     console.error("[telegram-oidc] start failed:", error);

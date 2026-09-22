@@ -1,5 +1,7 @@
 "use client";
 
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
 type TelegramLoginButtonProps = {
@@ -17,6 +19,7 @@ type TelegramLoginButtonProps = {
 
 /**
  * Styled Telegram login — OIDC (phone linking) when configured, else legacy widget redirect.
+ * Capacitor APK: Custom Tabs + native-bridge (same as Google/VK/Yandex).
  * @see https://core.telegram.org/bots/telegram-login
  */
 export function TelegramLoginButton({
@@ -26,11 +29,27 @@ export function TelegramLoginButton({
   useOidc = false,
   disabled,
 }: TelegramLoginButtonProps) {
-  function handleClick() {
+  async function handleClick() {
     if (disabled || !botId) return;
 
+    const native = isCapacitorNative();
+    if (native) {
+      await ensureCapacitorOAuthDeepLink();
+    }
+
     if (useOidc) {
-      window.location.assign(withBasePath("/api/auth/telegram/start"));
+      const startPath = withBasePath(
+        native ? "/api/auth/telegram/start?native=1" : "/api/auth/telegram/start",
+      );
+      if (native) {
+        const origin = window.location.origin.replace("://www.", "://");
+        const { publicBrowserOrigin } = await import("@/lib/auth-url");
+        const site = publicBrowserOrigin(origin);
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url: `${site}${startPath}` });
+        return;
+      }
+      window.location.assign(startPath);
       return;
     }
 
@@ -41,13 +60,19 @@ export function TelegramLoginButton({
       origin = window.location.origin.replace("://www.", "://");
     }
 
-    const returnTo = `${origin}${withBasePath("/login/telegram")}`;
+    const returnTo = `${origin}${withBasePath(native ? "/login/telegram?native=1" : "/login/telegram")}`;
     const url = new URL("https://oauth.telegram.org/auth");
     url.searchParams.set("bot_id", botId);
     url.searchParams.set("origin", origin);
     url.searchParams.set("request_access", "write");
     url.searchParams.set("return_to", returnTo);
     url.searchParams.set("lang", "ru");
+
+    if (native) {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: url.toString() });
+      return;
+    }
 
     window.location.assign(url.toString());
   }
@@ -57,7 +82,7 @@ export function TelegramLoginButton({
       type="button"
       className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#229ED9] px-4 py-3 font-medium text-white transition hover:bg-[#1b8fc7] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={disabled || !botId}
-      onClick={handleClick}
+      onClick={() => void handleClick()}
       aria-label={`Продолжить с Telegram (@${botUsername.replace(/^@/, "")})`}
     >
       <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">

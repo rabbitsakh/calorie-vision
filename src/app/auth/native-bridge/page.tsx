@@ -12,8 +12,8 @@ type BridgeLinks = {
 };
 
 /**
- * Runs inside Chrome Custom Tabs after Google/VK OAuth.
- * Opens the APK via Android intent:// (custom schemes alone often fail in Custom Tabs).
+ * Runs inside Chrome Custom Tabs after Google/VK/Yandex/Telegram OAuth.
+ * Opens the APK via Android intent:// — never finishes login in the browser.
  */
 export default function NativeBridgePage() {
   const { status } = useSession();
@@ -22,10 +22,8 @@ export default function NativeBridgePage() {
   const [hint, setHint] = useState<string | null>(null);
 
   const openApp = useCallback((next: BridgeLinks) => {
-    // Intent URL is the reliable path from Chrome Custom Tabs.
     window.location.href = next.intentUrl;
 
-    // Hidden iframe custom-scheme kick for some WebViews / older Chrome.
     window.setTimeout(() => {
       try {
         const iframe = document.createElement("iframe");
@@ -71,7 +69,7 @@ export default function NativeBridgePage() {
         window.setTimeout(() => {
           if (!cancelled) {
             setHint(
-              "Если приложение не открылось — нажмите «Открыть приложение». Нужен APK после сборки rustore:cap:build (схема calorievision://).",
+              "Если приложение не открылось — нажмите кнопку ниже, затем закройте вкладку Chrome.",
             );
           }
         }, 2000);
@@ -111,12 +109,9 @@ export default function NativeBridgePage() {
           >
             Открыть приложение
           </a>
-          <a
-            href={links.consumeUrl}
-            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
-          >
-            Открыть через ссылку сайта
-          </a>
+          <p className="text-xs text-slate-500">
+            Не открывайте сайт в браузере — дневник должен быть в приложении.
+          </p>
         </div>
       ) : null}
     </main>
