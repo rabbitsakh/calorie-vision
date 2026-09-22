@@ -135,11 +135,11 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
 
   return (
     <StageScreen
-      eyebrow="Итоги вчера"
+      eyebrow="Итог дня"
       headline={formatDateShort(data.date)}
       subline={data.tip}
       metrics={metrics}
-      primaryAction={{ label: "Понятно, спасибо", onClick: dismiss }}
+      primaryAction={{ label: "К рациону", onClick: dismiss }}
       onDismiss={dismiss}
     >
       {entryCount > 0 && fiberSugar.length > 0 ? (

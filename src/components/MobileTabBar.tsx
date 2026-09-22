@@ -63,7 +63,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
           <LongPressAddButton
             disabled={confirmOpen}
             className="min-w-0 flex-1"
-            aria-label="Добавить еду. Удержание — быстрый выбор режима"
+            aria-label="Добавить. Удержание — фото, текст, штрихкод, вода, вес"
           >
             <span
               className={`flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-md shadow-teal-800/25 transition-transform ${

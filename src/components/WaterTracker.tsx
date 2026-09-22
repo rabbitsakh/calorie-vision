@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
+import { notifyWaterLogged, WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
-import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 
 type WaterResponse = {
   totalMl: number;
@@ -85,6 +86,14 @@ export function WaterTracker({
     void load();
   }, [load, hidden, day, selectedDate]);
 
+  useEffect(() => {
+    function onLogged() {
+      void load();
+    }
+    window.addEventListener(WATER_LOGGED_EVENT, onLogged);
+    return () => window.removeEventListener(WATER_LOGGED_EVENT, onLogged);
+  }, [load]);
+
   function handleHide() {
     hidePanelToday(PANEL_ID, selectedDate);
     setHidden(true);
@@ -103,6 +112,7 @@ export function WaterTracker({
         setTotalMl(data.totalMl);
         setTarget(data.target);
         trackWaterLoggedGoal();
+        notifyWaterLogged();
         onChanged?.();
         return;
       }
@@ -110,6 +120,7 @@ export function WaterTracker({
         enqueueWaterDraft(selectedDate, ml);
         setTotalMl((value) => value + ml);
         trackWaterLoggedGoal();
+        notifyWaterLogged();
         onChanged?.();
       }
     } catch {
@@ -117,12 +128,14 @@ export function WaterTracker({
         enqueueWaterDraft(selectedDate, ml);
         setTotalMl((value) => value + ml);
         trackWaterLoggedGoal();
+        notifyWaterLogged();
         onChanged?.();
       } else {
         // network flake — still queue so taps are not lost
         enqueueWaterDraft(selectedDate, ml);
         setTotalMl((value) => value + ml);
         trackWaterLoggedGoal();
+        notifyWaterLogged();
         onChanged?.();
       }
     } finally {

@@ -1057,19 +1057,6 @@ export function ConfirmationCard({
                 {saveAsIs ? ` ${saveAsIsHint()}` : " Проверьте чипы порции ниже перед сохранением."}
               </p>
             ) : null}
-            {saveAsIs ? (
-              <p className="mt-1.5 text-xs opacity-90">
-                <button
-                  type="button"
-                  className="font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={saving || searching}
-                  onClick={() => void handleSave()}
-                >
-                  Сохранить как есть
-                </button>
-                {" — правки можно внести в дневнике."}
-              </p>
-            ) : null}
           </div>
         ) : null}
 

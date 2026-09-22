@@ -88,7 +88,7 @@ export default function ProfilePage() {
           <ProfileSection
             id="account"
             title="Аккаунт и цели"
-            hint="Профиль, норма, окно еды"
+            hint="Профиль, норма · вес · план · зал"
             defaultOpen={
               hash !== "#rewards" && hash !== "#reminders"
             }
@@ -118,7 +118,7 @@ export default function ProfilePage() {
               <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h2 className="font-display text-base font-semibold text-slate-800">Тренировки</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Силовые и кардио: также во вкладке «Зал».
+                  Силовые и кардио — вкладка «Зал» внизу.
                 </p>
                 <Link href="/workouts" className="btn btn-primary mt-3 inline-flex self-start text-sm">
                   Открыть зал

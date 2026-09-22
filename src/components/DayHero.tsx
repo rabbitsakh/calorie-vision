@@ -352,7 +352,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
                   ? (data.waterMl / data.waterTarget) * 100
                   : 0
               }
-              href={withBasePath(`/water?date=${encodeURIComponent(selectedDate)}`)}
+              href="#water-tracker"
             />
           </div>
           {data.showFiberSugar ? (
@@ -390,6 +390,14 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
               className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
             >
               Вес сегодня
+            </Link>
+          ) : null}
+          {isToday ? (
+            <Link
+              href={withBasePath("/plan")}
+              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+            >
+              Неделя и покупки
             </Link>
           ) : null}
         </div>

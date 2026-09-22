@@ -101,14 +101,18 @@ test("canSaveAsIs requires low confidence with calories", () => {
   );
 });
 
-test("confirmSaveButtonLabel uses save-as-is wording", () => {
+test("confirmSaveButtonLabel uses short Сохранить primary", () => {
   assert.equal(
     confirmSaveButtonLabel({ saving: false, enriching: false, multi: false, saveAsIs: true }),
-    "Сохранить как есть",
+    "Сохранить",
   );
   assert.equal(
     confirmSaveButtonLabel({ saving: false, enriching: true, multi: false, saveAsIs: false }),
-    "Да, сохранить",
+    "Сохранить",
+  );
+  assert.equal(
+    confirmSaveButtonLabel({ saving: false, enriching: false, multi: true, saveAsIs: false }),
+    "Сохранить все",
   );
   assert.match(saveAsIsHint(), /поправить порцию позже/i);
   assert.equal(photoKindShortLabel("label"), "этикетка");
