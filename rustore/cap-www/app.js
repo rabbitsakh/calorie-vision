@@ -188,6 +188,7 @@
   }
 
   async function takePhoto() {
+    // Real recognition needs the product account — send user to login instead of fake 0 kcal.
     var wrap = $("photo-preview-wrap");
     var img = $("photo-preview");
     var cam = await getCameraPlugin();
@@ -204,39 +205,14 @@
           img.src = photo.dataUrl;
           wrap.classList.remove("hidden");
           wrap.hidden = false;
-          writeMeals(
-            state.meals.concat([
-              { name: "Фото с камеры", kcal: 0, p: 0, f: 0, c: 0, photo: true },
-            ]),
-          );
+          $("demo-hint").textContent = "Чтобы распознать фото — войдите в аккаунт.";
           return;
         }
       } catch (e) {
-        /* fall through to file capture */
+        /* fall through */
       }
     }
-    // On-device file/capture fallback — still local, no website.
-    var input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.setAttribute("capture", "environment");
-    input.onchange = function () {
-      var file = input.files && input.files[0];
-      if (!file) return;
-      var reader = new FileReader();
-      reader.onload = function () {
-        img.src = String(reader.result || "");
-        wrap.classList.remove("hidden");
-        wrap.hidden = false;
-        writeMeals(
-          state.meals.concat([
-            { name: "Фото с камеры", kcal: 0, p: 0, f: 0, c: 0, photo: true },
-          ]),
-        );
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
+    openProductLogin();
   }
 
   function addDemoMeal() {

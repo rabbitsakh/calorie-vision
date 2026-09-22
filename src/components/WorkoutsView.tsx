@@ -2384,29 +2384,56 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         {(
           [
             ["today", "Сегодня"],
-            ["history", "История"],
-            ["templates", "Шаблоны"],
-            ["library", "Библиотека"],
+            ["more", "Ещё"],
           ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => {
-              setHubTab(id);
-              if (id === "today") {
-                setFilterPeriod("all");
-                setFilterDate(null);
-              }
-            }}
-            className={`flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${
-              hubTab === id ? "bg-white text-teal-900 shadow-sm" : "text-slate-600"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        ).map(([id, label]) => {
+          const active =
+            id === "today" ? hubTab === "today" : hubTab !== "today";
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => {
+                if (id === "today") {
+                  setHubTab("today");
+                  setFilterPeriod("all");
+                  setFilterDate(null);
+                } else if (hubTab === "today") {
+                  setHubTab("history");
+                }
+              }}
+              className={`flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${
+                active ? "bg-white text-teal-900 shadow-sm" : "text-slate-600"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
+
+      {hubTab !== "today" ? (
+        <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
+          {(
+            [
+              ["history", "История"],
+              ["templates", "Шаблоны"],
+              ["library", "Библиотека"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setHubTab(id)}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${
+                hubTab === id ? "bg-teal-50 text-teal-900" : "text-slate-600"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {creating ? (
         <section

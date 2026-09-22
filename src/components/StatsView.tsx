@@ -730,6 +730,7 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [exportTo, setExportTo] = useState(endDate);
   const [photoBackfillBusy, setPhotoBackfillBusy] = useState(false);
   const [photoBackfillMsg, setPhotoBackfillMsg] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -1006,6 +1007,20 @@ export function StatsView({ endDate }: StatsViewProps) {
             </div>
           </section>
 
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((v) => !v)}
+          >
+            <span>{moreOpen ? "Скрыть детали" : "Ещё: частые блюда, время, экспорт"}</span>
+            <span className={`text-slate-400 transition-transform ${moreOpen ? "rotate-180" : ""}`} aria-hidden>
+              ▾
+            </span>
+          </button>
+
+          {moreOpen ? (
+            <>
           {/* Top foods */}
           {data.topFoods.length > 0 ? (
             <section className="card p-4 md:p-6">
@@ -1128,6 +1143,8 @@ export function StatsView({ endDate }: StatsViewProps) {
               </p>
             ) : null}
           </section>
+            </>
+          ) : null}
         </>
       ) : null}
     </div>

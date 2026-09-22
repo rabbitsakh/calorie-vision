@@ -74,7 +74,6 @@ export default function ProfilePage() {
           : hash === "#nutrient-goals"
             ? "nutrient-goals"
             : "account";
-    // Wait a tick so accordion content (ProfileForm) is mounted when account opens.
     const t = window.setTimeout(() => {
       document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
@@ -82,44 +81,35 @@ export default function ProfilePage() {
   }, [hash]);
 
   return (
-    <AppShell title="Профиль" compact description="Аккаунт, норма, напоминания и награды.">
+    <AppShell title="Профиль" compact description="Цели, напоминания и награды.">
       <AuthGate>
         <div className="flex flex-col gap-4 md:gap-5">
           <ProfileSection
             id="account"
-            title="Аккаунт и цели"
-            hint="Профиль, норма · вес · план · зал"
-            defaultOpen={
-              hash !== "#rewards" && hash !== "#reminders"
-            }
+            title="Цели"
+            hint="Норма, вес, план, зал"
+            defaultOpen={hash !== "#rewards" && hash !== "#reminders"}
             forceOpen={hash === "#account" || hash === "#nutrient-goals"}
           >
             <div className="flex flex-col gap-4">
               <ProfileForm />
-              <FastingWindowSettings />
               <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h2 className="font-display text-base font-semibold text-slate-800">Цель по весу</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Вес и цель ведутся в разделе «Вес».
-                </p>
+                <p className="mt-1 text-sm text-slate-500">Вес и цель — в разделе «Вес».</p>
                 <Link href="/weight" className="btn btn-primary mt-3 inline-flex self-start text-sm">
                   Открыть вес и цель
                 </Link>
               </section>
               <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h2 className="font-display text-base font-semibold text-slate-800">Неделя и покупки</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Пищевой план недели, челлендж и список покупок.
-                </p>
+                <p className="mt-1 text-sm text-slate-500">План недели и список покупок.</p>
                 <Link href="/plan" className="btn btn-primary mt-3 inline-flex self-start text-sm">
                   Открыть план
                 </Link>
               </section>
               <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h2 className="font-display text-base font-semibold text-slate-800">Тренировки</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Силовые и кардио — вкладка «Зал» внизу.
-                </p>
+                <p className="mt-1 text-sm text-slate-500">Вкладка «Зал» внизу.</p>
                 <Link href="/workouts" className="btn btn-primary mt-3 inline-flex self-start text-sm">
                   Открыть зал
                 </Link>
@@ -129,12 +119,13 @@ export default function ProfilePage() {
 
           <ProfileSection
             id="reminders"
-            title="Напоминания"
-            hint="Push, тихие часы, спокойный режим"
+            title="Система"
+            hint="Напоминания, окно еды, спокойный режим"
             forceOpen={hash === "#reminders"}
           >
             <div className="flex flex-col gap-4">
               <PushRemindersSettings />
+              <FastingWindowSettings />
               <GamificationQuietToggle />
             </div>
           </ProfileSection>
