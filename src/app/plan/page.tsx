@@ -33,7 +33,7 @@ export default function PlanPage() {
     <AppShell
       title="План"
       compact
-      description="Неделя, челлендж, цель по весу, покупки."
+      description="Неделя, челлендж, цель по весу, покупки. Открывается из рациона и профиля."
       date={date}
     >
       <AuthGate>

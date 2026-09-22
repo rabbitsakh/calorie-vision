@@ -26,6 +26,18 @@ export function NavIcon({ name, className = "h-6 w-6" }: NavIconProps) {
           <path d="M5 14v2c0 2.2 3.1 4 7 4s7-1.8 7-4v-2" strokeLinecap="round" />
         </svg>
       );
+    case "gym":
+      return (
+        <svg aria-hidden="true" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6.5 9.5v5M17.5 9.5v5" strokeLinecap="round" />
+          <path d="M4 11v2M20 11v2" strokeLinecap="round" />
+          <path d="M8 12h8" strokeLinecap="round" />
+          <rect x="2.5" y="8.5" width="2.5" height="7" rx="1" />
+          <rect x="19" y="8.5" width="2.5" height="7" rx="1" />
+          <rect x="5.5" y="9.5" width="2" height="5" rx="0.5" />
+          <rect x="16.5" y="9.5" width="2" height="5" rx="0.5" />
+        </svg>
+      );
     case "plan":
       return (
         <svg aria-hidden="true" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

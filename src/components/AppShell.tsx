@@ -9,7 +9,7 @@ import { ReferralChestToast } from "@/components/ReferralChestToast";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { WeightQuickSheet } from "@/components/WeightQuickSheet";
-import { APP_NAV, isAppNavPath, navKeepsDate } from "@/lib/navigation";
+import { APP_NAV, isFoodAddPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -100,7 +100,7 @@ export function AppShell({
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
-  const foodAddEnabled = isAppNavPath(pathname);
+  const foodAddEnabled = isFoodAddPath(pathname);
 
   return (
     <FoodAddHost date={date} enabled={foodAddEnabled}>
@@ -149,7 +149,7 @@ export function AppShell({
 
             <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
               {APP_NAV.map((item) => {
-                const active = pathname === item.href;
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const href =
                   date && navKeepsDate(item.href) ? withDateQuery(item.href, date) : item.href;
 
