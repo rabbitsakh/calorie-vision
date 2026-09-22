@@ -412,7 +412,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     REST_OPTIONS,
   } = useWorkoutRestTimer();
 
-  const [liveMode, setLiveMode] = useState(true);
+  const [liveMode, setLiveMode] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [circuitRound, setCircuitRound] = useState(1);
@@ -515,12 +515,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setDetail(data.session);
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-      setLiveMode(data.session.date === todayKey && data.session.clockStatus !== "finished");
-      setStageOpen(
-        data.session.date === todayKey &&
-          data.session.clockStatus !== "finished" &&
-          data.session.exercises.length > 0,
-      );
+      setLiveMode(false);
+      setStageOpen(false);
       setShowSummary(false);
       setCircuitRound(1);
       setFocusExerciseId(data.session.exercises[0]?.id ?? null);
@@ -554,7 +550,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
     }
-  }, [todayKey]);
+  }, []);
 
   useEffect(() => {
     void loadList();
@@ -1400,7 +1396,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       };
     });
     return (
-      <div className="flex flex-col gap-4">
+      <div
+        className={`flex flex-col gap-4 ${
+          restEndsAt && !stageOpen ? "pt-24" : ""
+        }`}
+      >
         {showSummary ? (
           <WorkoutSessionSummary
             date={detail.date}
@@ -1653,24 +1653,30 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 ) : null}
               </div>
             </div>
-            {detail.date === todayKey && detail.clockStatus !== "finished" ? (
-              <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={liveMode}
-                  onChange={(e) => setLiveMode(e.target.checked)}
-                />
-                Режим «Сейчас» (фокус на упражнении)
-              </label>
+            {!detail.cardioOnly && detail.clockStatus !== "finished" ? (
+              <WorkoutRestTimerControls
+                compact
+                restSeconds={restSeconds}
+                setRestSeconds={setRestSeconds}
+                restEndsAt={restEndsAt}
+                restLeft={restLeft}
+                restSound={restSound}
+                setRestSound={setRestSound}
+                startRest={startRest}
+                clearRest={clearRest}
+                options={REST_OPTIONS}
+              />
             ) : null}
           </section>
         ) : null}
 
-        <WorkoutRestTimerBanner
-          restEndsAt={restEndsAt}
-          restLeft={restLeft}
-          onSkip={clearRest}
-        />
+        {!stageOpen ? (
+          <WorkoutRestTimerBanner
+            restEndsAt={restEndsAt}
+            restLeft={restLeft}
+            onSkip={clearRest}
+          />
+        ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
           {detail.cardioOnly ? (
@@ -1730,20 +1736,6 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             />
           </label>
         </section>
-
-        {!detail.cardioOnly ? (
-          <WorkoutRestTimerControls
-            restSeconds={restSeconds}
-            setRestSeconds={setRestSeconds}
-            restEndsAt={restEndsAt}
-            restLeft={restLeft}
-            restSound={restSound}
-            setRestSound={setRestSound}
-            startRest={startRest}
-            clearRest={clearRest}
-            options={REST_OPTIONS}
-          />
-        ) : null}
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
