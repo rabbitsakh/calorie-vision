@@ -22,10 +22,11 @@ export async function POST(request: Request) {
   try {
     const token = await createNativeBridgeToken(userId);
     const origin = new URL(request.url).origin || getCanonicalSiteUrl();
+    const site = getCanonicalSiteUrl() || origin;
     return NextResponse.json({
       token,
       deepLink: nativeBridgeDeepLink(token),
-      intentUrl: nativeBridgeIntentUrl(token),
+      intentUrl: nativeBridgeIntentUrl(token, site),
       consumeUrl: nativeBridgeConsumeUrl(origin, token),
     });
   } catch (error) {

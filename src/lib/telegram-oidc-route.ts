@@ -3,6 +3,8 @@ import { withBasePath } from "@/lib/paths";
 
 export const TG_OIDC_STATE_COOKIE = "tg_oidc_state";
 export const TG_OIDC_VERIFIER_COOKIE = "tg_oidc_verifier";
+/** Set when Capacitor APK starts Telegram OIDC — callback must return via native-bridge. */
+export const TG_OIDC_NATIVE_COOKIE = "tg_oidc_native";
 
 export const TG_OIDC_COOKIE_MAX_AGE = 10 * 60;
 

@@ -33,7 +33,8 @@ function TelegramCallbackInner() {
           setError("Не удалось войти через Telegram. Попробуйте ещё раз.");
           return;
         }
-        router.replace("/ration/");
+        const native = searchParams.get("native") === "1";
+        router.replace(native ? "/auth/native-bridge" : "/ration/");
       })();
       return () => {
         cancelled = true;
@@ -79,7 +80,8 @@ function TelegramCallbackInner() {
         return;
       }
 
-      router.replace("/ration/");
+      const native = searchParams.get("native") === "1";
+      router.replace(native ? "/auth/native-bridge" : "/ration/");
     })();
 
     return () => {
