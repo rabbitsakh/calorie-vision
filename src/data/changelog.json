@@ -1,5 +1,357 @@
 [
   {
+    "version": "2.3.18",
+    "date": "2026-09-22",
+    "summary": "feat: тренировки для всех + RuStore/лендинг/APK (питание и зал)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: тренировки для всех + RuStore/лендинг/APK (питание и зал)"
+      }
+    ]
+  },
+  {
+    "version": "2.3.17",
+    "date": "2026-09-22",
+    "summary": "fix(workouts): понятный экран «Сегодня»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): понятный экран «Сегодня»"
+      }
+    ]
+  },
+  {
+    "version": "2.3.16",
+    "date": "2026-09-22",
+    "summary": "fix(workouts): починить «Старт отдыха» + проще поток сессии",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): починить «Старт отдыха» + проще поток сессии"
+      }
+    ]
+  },
+  {
+    "version": "2.3.15",
+    "date": "2026-09-21",
+    "summary": "chore: убрать deprecated uuid@7 (override для xcode)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore: убрать deprecated uuid@7 (override для xcode)"
+      }
+    ]
+  },
+  {
+    "version": "2.3.14",
+    "date": "2026-09-21",
+    "summary": "fix(workouts): без Рзм/Раб на кардио",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): без Рзм/Раб на кардио"
+      }
+    ]
+  },
+  {
+    "version": "2.3.13",
+    "date": "2026-09-21",
+    "summary": "feat(workouts): Live Depth — fullscreen logger, progression, circuits, summary",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Live Depth — fullscreen logger, progression, circuits, summary"
+      }
+    ]
+  },
+  {
+    "version": "2.3.12",
+    "date": "2026-09-21",
+    "summary": "feat(workouts): Gym Mode — Live Logger, план, суперсеты (волны 1–2)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Gym Mode — Live Logger, план, суперсеты (волны 1–2)"
+      }
+    ]
+  },
+  {
+    "version": "2.3.11",
+    "date": "2026-09-21",
+    "summary": "fix(workouts): №1 · 20 кг × 20 — не путать с 1.20 кг",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): №1 · 20 кг × 20 — не путать с 1.20 кг"
+      }
+    ]
+  },
+  {
+    "version": "2.3.10",
+    "date": "2026-09-21",
+    "summary": "fix(tz): баннер GMT+11 на Android — сравнивать offset, не имя зоны",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(tz): баннер GMT+11 на Android — сравнивать offset, не имя зоны"
+      }
+    ]
+  },
+  {
+    "version": "2.3.9",
+    "date": "2026-09-21",
+    "summary": "fix(workouts): UX — новая тренировка, zoom, таймер, подписи подходов",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): UX — новая тренировка, zoom, таймер, подписи подходов"
+      }
+    ]
+  },
+  {
+    "version": "2.3.8",
+    "date": "2026-09-21",
+    "summary": "feat(workouts): Waves I+J — live session + calendar/filters",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Waves I+J — live session + calendar/filters"
+      }
+    ]
+  },
+  {
+    "version": "2.3.7",
+    "date": "2026-09-21",
+    "summary": "fix(workouts): drop unused ExerciseKind import in prs.ts",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): drop unused ExerciseKind import in prs.ts"
+      }
+    ]
+  },
+  {
+    "version": "2.3.6",
+    "date": "2026-09-21",
+    "summary": "feat(workouts): Wave H — PRs, charts, weekly/monthly trends",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave H — PRs, charts, weekly/monthly trends"
+      }
+    ]
+  },
+  {
+    "version": "2.3.5",
+    "date": "2026-09-21",
+    "summary": "feat(workouts): Wave G — bodyweight, duration, weighted/assisted kinds",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave G — bodyweight, duration, weighted/assisted kinds"
+      }
+    ]
+  },
+  {
+    "version": "2.3.4",
+    "date": "2026-09-20",
+    "summary": "feat(workouts): Wave F — library + routines/templates",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave F — library + routines/templates"
+      }
+    ]
+  },
+  {
+    "version": "2.3.3",
+    "date": "2026-09-20",
+    "summary": "feat(workouts): Wave E — logging UX (complete, types, RPE, notes, reorder)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave E — logging UX (complete, types, RPE, notes, reorder)"
+      }
+    ]
+  },
+  {
+    "version": "2.3.2",
+    "date": "2026-09-20",
+    "summary": "fix(workouts): cardio duration in minutes only",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): cardio duration in minutes only"
+      }
+    ]
+  },
+  {
+    "version": "2.3.1",
+    "date": "2026-09-20",
+    "summary": "fix(images): produce photo lookup for fresh celery/veggies",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(images): produce photo lookup for fresh celery/veggies"
+      }
+    ]
+  },
+  {
+    "version": "2.3.0",
+    "date": "2026-09-20",
+    "summary": "feat(workouts): cardio distance + duration logging",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): cardio distance + duration logging"
+      }
+    ]
+  },
+  {
+    "version": "2.2.19",
+    "date": "2026-09-20",
+    "summary": "feat(workouts): add cardio training type",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): add cardio training type"
+      }
+    ]
+  },
+  {
+    "version": "2.2.18",
+    "date": "2026-09-20",
+    "summary": "feat(workouts): exercise history and progress rate picker",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): exercise history and progress rate picker"
+      }
+    ]
+  },
+  {
+    "version": "2.2.17",
+    "date": "2026-09-20",
+    "summary": "fix(workouts): satisfy exhaustive-deps for muscleKeys effect",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): satisfy exhaustive-deps for muscleKeys effect"
+      }
+    ]
+  },
+  {
+    "version": "2.2.16",
+    "date": "2026-09-20",
+    "summary": "feat(recipes): fiber/sugar, edit favorites, portion on add",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(recipes): fiber/sugar, edit favorites, portion on add"
+      }
+    ]
+  },
+  {
+    "version": "2.2.15",
+    "date": "2026-09-19",
+    "summary": "fix(images): log dish names when backfill fails",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(images): log dish names when backfill fails"
+      }
+    ]
+  },
+  {
+    "version": "2.2.14",
+    "date": "2026-09-19",
+    "summary": "feat(workouts): paste parse, suggestions, weekly volume",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): paste parse, suggestions, weekly volume"
+      }
+    ]
+  },
+  {
+    "version": "2.2.13",
+    "date": "2026-09-19",
+    "summary": "fix(deploy): idempotent cv-release after failed git pull",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): idempotent cv-release after failed git pull"
+      }
+    ]
+  },
+  {
+    "version": "2.2.12",
+    "date": "2026-09-19",
+    "summary": "feat(workouts): previous sets, repeat session, rest timer",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): previous sets, repeat session, rest timer"
+      }
+    ]
+  },
+  {
+    "version": "2.2.11",
+    "date": "2026-09-19",
+    "summary": "feat(workouts): admin-only training load with muscle groups",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): admin-only training load with muscle groups"
+      }
+    ]
+  },
+  {
+    "version": "2.2.10",
+    "date": "2026-09-18",
+    "summary": "fix(eslint): use rememberOauthProvider on OAuth login",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(eslint): use rememberOauthProvider on OAuth login"
+      }
+    ]
+  },
+  {
+    "version": "2.2.9",
+    "date": "2026-09-18",
+    "summary": "fix: меню аватара, крупнее фото, «вареное яйцо»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: меню аватара, крупнее фото, «вареное яйцо»"
+      }
+    ]
+  },
+  {
+    "version": "2.2.8",
+    "date": "2026-09-18",
+    "summary": "fix(auth): Яндекс scope login:default_phone (+ телефон)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(auth): Яндекс scope login:default_phone (+ телефон)"
+      }
+    ]
+  },
+  {
+    "version": "2.2.7",
+    "date": "2026-09-18",
+    "summary": "feat(auth): Яндекс OAuth и склейка аккаунтов по email/телефону",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(auth): Яндекс OAuth и склейка аккаунтов по email/телефону"
+      }
+    ]
+  },
+  {
     "version": "2.2.6",
     "date": "2026-09-17",
     "summary": "fix(ui): выровнять «Завтр./Обед» с временем в дневнике (1.12.43)",
