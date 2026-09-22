@@ -2392,7 +2392,13 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           <button
             key={id}
             type="button"
-            onClick={() => setHubTab(id)}
+            onClick={() => {
+              setHubTab(id);
+              if (id === "today") {
+                setFilterPeriod("all");
+                setFilterDate(null);
+              }
+            }}
             className={`flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${
               hubTab === id ? "bg-white text-teal-900 shadow-sm" : "text-slate-600"
             }`}
@@ -2400,96 +2406,6 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             {label}
           </button>
         ))}
-      </div>
-
-      {hubTab === "today" ? (
-        <WorkoutWeekPlan
-          todayKey={todayKey}
-          busy={busy}
-          onStart={(id) => void startRoutine(id)}
-          onEdit={(id) => setEditingRoutineId(id)}
-        />
-      ) : null}
-
-      {hubTab === "library" ? <WorkoutLibraryPanel /> : null}
-
-      {hubTab === "templates" ? (
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-            onClick={() => setEditingRoutineId("new")}
-          >
-            + Новый шаблон
-          </button>
-          {routines.length === 0 ? (
-            <p className="text-sm text-slate-500">Пока нет шаблонов.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {routines.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-stretch gap-2 rounded-xl border border-slate-100 bg-slate-50"
-                >
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white disabled:opacity-40"
-                    onClick={() => void startRoutine(r.id)}
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
-                        {r.planLabel ? (
-                          <span className="mr-1 rounded bg-teal-700 px-1.5 py-0.5 text-[10px] text-white">
-                            {r.planLabel}
-                          </span>
-                        ) : null}
-                        {r.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs font-semibold text-teal-800">Старт</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600"
-                    onClick={() => setEditingRoutineId(r.id)}
-                  >
-                    ✎
-                  </button>
-                  <button
-                    type="button"
-                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs text-slate-400 hover:text-red-600"
-                    title="Удалить шаблон"
-                    onClick={() => void deleteRoutine(r.id)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
-
-      {hubTab === "history" ? (
-        <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">
-          Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
-        </p>
-        <button
-          type="button"
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-          onClick={() => {
-            setCreating(true);
-            setNewDate(filterDate ?? todayKey);
-          }}
-        >
-          Новая
-        </button>
       </div>
 
       {creating ? (
@@ -2586,6 +2502,122 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           </div>
         </section>
       ) : null}
+
+      {hubTab === "today" ? (
+        <WorkoutWeekPlan
+          todayKey={todayKey}
+          busy={busy}
+          sessions={sessions
+            .filter((s) => s.date === todayKey)
+            .map((s) => ({
+              id: s.id,
+              muscleLabels: s.muscleLabels,
+              exerciseCount: s.exerciseCount,
+              setCount: s.setCount,
+              totalLoad: s.totalLoad,
+              cardioOnly: s.cardioOnly,
+              cardioDistanceKm: s.cardioDistanceKm,
+              cardioDurationSec: s.cardioDurationSec,
+              clockStatus: s.clockStatus,
+              elapsedLabel: s.elapsedLabel,
+            }))}
+          onOpenSession={(id) => {
+            void (async () => {
+              const s = sessions.find((x) => x.id === id);
+              await openSession(id);
+              if (s?.clockStatus === "finished") setShowSummary(true);
+            })();
+          }}
+          onStartBlank={() => {
+            setCreating(true);
+            setNewDate(todayKey);
+          }}
+          onStartRoutine={(id) => void startRoutine(id)}
+          onEditRoutine={(id) => setEditingRoutineId(id)}
+          onGoTemplates={() => setHubTab("templates")}
+        />
+      ) : null}
+
+      {hubTab === "library" ? <WorkoutLibraryPanel /> : null}
+
+      {hubTab === "templates" ? (
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+            onClick={() => setEditingRoutineId("new")}
+          >
+            + Новый шаблон
+          </button>
+          {routines.length === 0 ? (
+            <p className="text-sm text-slate-500">Пока нет шаблонов.</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {routines.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-stretch gap-2 rounded-xl border border-slate-100 bg-slate-50"
+                >
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white disabled:opacity-40"
+                    onClick={() => void startRoutine(r.id)}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">
+                        {r.planLabel ? (
+                          <span className="mr-1 rounded bg-teal-700 px-1.5 py-0.5 text-[10px] text-white">
+                            {r.planLabel}
+                          </span>
+                        ) : null}
+                        {r.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-teal-800">Старт</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600"
+                    onClick={() => setEditingRoutineId(r.id)}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs text-slate-400 hover:text-red-600"
+                    title="Удалить шаблон"
+                    onClick={() => void deleteRoutine(r.id)}
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {hubTab === "history" ? (
+        <>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-600">
+          Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
+        </p>
+        <button
+          type="button"
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+          onClick={() => {
+            setCreating(true);
+            setNewDate(filterDate ?? todayKey);
+          }}
+        >
+          Новая
+        </button>
+      </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
