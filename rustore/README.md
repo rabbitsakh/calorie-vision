@@ -2,9 +2,10 @@
 
 Цель: бесплатное Android-приложение в [RuStore](https://www.rustore.ru/).
 
-> **Модерация 2026-09:** чистый Bubblewrap TWA отклонили как WebView-обёртку сайта.
-> Актуальный путь: **Capacitor** (`npm run rustore:cap:init` → `npm run rustore:cap:build`).
-> Ответ модератору и чеклист: [`MODERATION.md`](MODERATION.md).
+> **Модерация:** чистый TWA и Capacitor с `server.url` отклоняли как WebView-обёртку.
+> Актуальный путь: **локальный Capacitor shell** (`rustore/cap-www`, без `server.url`) →
+> `npm run rustore:cap:init` → `npm run rustore:cap:build`.
+> Ответ модератору: [`MODERATION.md`](MODERATION.md).
 
 Package: `ru.calorievision.app`
 

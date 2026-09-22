@@ -1,35 +1,32 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * RuStore Android shell (Capacitor) — standalone app chrome around the product.
- * Remote origin is the same product as the website (API + UI), not a marketing redirect.
- * Native: splash, status bar, camera, app lifecycle.
+ * RuStore Android shell — **local-first** (webDir), not a remote WebView redirect.
  *
- * Google OAuth must NOT run inside the WebView (HTTP 400 disallowed_useragent).
- * Login opens Chrome Custom Tabs; App Links return /api/auth/callback/* into the app.
+ * Previous Capacitor builds used `server.url → calorievision.ru`, which RuStore
+ * still classified as “WebView / перенаправление на сайт”. The APK now opens
+ * bundled screens (welcome + demo diary + device camera). Account sync may
+ * navigate to the product origin later; cold start never opens the marketing site.
  */
 const config: CapacitorConfig = {
   appId: "ru.calorievision.app",
   appName: "Calorie Vision",
   webDir: "rustore/cap-www",
+  // No server.url — launch from APK assets only.
   server: {
-    // First-run welcome slider, then /login. Never marketing landing.
-    url: "https://calorievision.ru/welcome",
-    cleartext: false,
-    // Keep only our origin in-WebView. Do NOT list accounts.google.com —
-    // OAuth goes through @capacitor/browser (Custom Tabs).
+    androidScheme: "https",
+    // Allow in-app navigation to the product for login / sync after local shell.
     allowNavigation: ["calorievision.ru", "*.calorievision.ru"],
   },
   android: {
     allowMixedContent: false,
     backgroundColor: "#F4F7FB",
-    // Avoid "; wv)" in UA for any accidental in-WebView Google hits.
     overrideUserAgent:
-      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 CalorieVisionApp/2.2.7",
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 400,
+      launchShowDuration: 350,
       launchAutoHide: true,
       backgroundColor: "#0F766E",
       showSpinner: false,
