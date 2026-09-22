@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { routineInclude, serializeRoutine } from "@/lib/workouts/routines";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /** GET ?date=YYYY-MM-DD — routines scheduled for that weekday (+ full week overview). */
 export async function GET(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const dateParam = request.nextUrl.searchParams.get("date");

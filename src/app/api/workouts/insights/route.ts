@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const groupsRaw = request.nextUrl.searchParams.get("groups");

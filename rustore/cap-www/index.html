@@ -2,41 +2,135 @@
 <html lang="ru">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <meta name="theme-color" content="#0F766E" />
+    <meta name="color-scheme" content="light" />
     <title>Calorie Vision</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        min-height: 100%;
-        background: #0f766e;
-        color: #ecfdf5;
-        font-family: system-ui, sans-serif;
-        display: grid;
-        place-items: center;
-      }
-      .box {
-        text-align: center;
-        padding: 2rem;
-      }
-      .box p {
-        opacity: 0.9;
-        font-size: 0.95rem;
-      }
-    </style>
-    <script>
-      // Fallback shell if server.url is unavailable at build/sync time.
-      // Production Capacitor loads https://calorievision.ru/welcome via capacitor.config.ts.
-      if (typeof window !== "undefined" && !window.Capacitor) {
-        location.replace("https://calorievision.ru/welcome");
-      }
-    </script>
+    <link rel="icon" href="./assets/icon-512.png" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="box">
-      <strong>Calorie Vision</strong>
-      <p>Открываем приложение…</p>
+    <div id="app" class="app">
+      <!-- Boot -->
+      <section id="screen-boot" class="screen screen-boot" aria-live="polite">
+        <img class="boot-logo" src="./assets/icon-512.png" alt="" width="88" height="88" />
+        <p class="boot-name">Calorie Vision</p>
+        <p class="boot-sub">Дневник питания на телефоне</p>
+      </section>
+
+      <!-- Welcome -->
+      <section id="screen-welcome" class="screen screen-welcome hidden" hidden>
+        <header class="welcome-brand">
+          <img src="./assets/icon-512.png" alt="" width="40" height="40" />
+          <span>Calorie Vision</span>
+        </header>
+        <div class="welcome-stage">
+          <div id="welcome-emoji" class="welcome-emoji" aria-hidden="true">📷</div>
+          <h1 id="welcome-title" class="welcome-title"></h1>
+          <p id="welcome-body" class="welcome-body"></p>
+        </div>
+        <div id="welcome-dots" class="welcome-dots" role="tablist" aria-label="Слайды"></div>
+        <div class="welcome-actions">
+          <button type="button" id="welcome-next" class="btn btn-primary">Дальше</button>
+          <button type="button" id="welcome-skip" class="btn btn-ghost">Пропустить</button>
+        </div>
+      </section>
+
+      <!-- Local home / demo diary -->
+      <section id="screen-home" class="screen screen-home hidden" hidden>
+        <header class="home-header">
+          <div>
+            <p class="eyebrow">Сегодня</p>
+            <h1 class="home-title">Мой рацион</h1>
+          </div>
+          <button type="button" id="btn-sync" class="btn btn-small">Войти</button>
+        </header>
+
+        <div class="ring-card">
+          <div class="ring" aria-hidden="true">
+            <svg viewBox="0 0 120 120" width="120" height="120">
+              <circle cx="60" cy="60" r="52" class="ring-bg" />
+              <circle cx="60" cy="60" r="52" class="ring-fg" id="kcal-ring" />
+            </svg>
+            <div class="ring-label">
+              <strong id="kcal-eaten">0</strong>
+              <span>из <span id="kcal-goal">2000</span> ккал</span>
+            </div>
+          </div>
+          <p class="ring-hint" id="demo-hint">Демо на устройстве — работает без сайта</p>
+        </div>
+
+        <div class="macros" id="macros">
+          <div><span>Б</span><strong id="m-p">0</strong></div>
+          <div><span>Ж</span><strong id="m-f">0</strong></div>
+          <div><span>У</span><strong id="m-c">0</strong></div>
+        </div>
+
+        <div class="actions-row">
+          <button type="button" id="btn-camera" class="btn btn-primary btn-block">
+            📷 Сфотографировать еду
+          </button>
+          <button type="button" id="btn-demo-meal" class="btn btn-secondary btn-block">
+            + Добавить демо-запись
+          </button>
+          <button type="button" id="btn-demo-workout" class="btn btn-secondary btn-block">
+            🏋️ Демо-тренировка
+          </button>
+        </div>
+
+        <div id="workout-card" class="stats-card hidden" hidden style="margin-top:0.75rem">
+          <p class="stats-label">Зал · демо на устройстве</p>
+          <p class="stats-value" id="workout-sets" style="font-size:1.5rem">0 подходов</p>
+          <p class="stats-note" id="workout-line">
+            Жим · 80×8 · отдых 1:30 — после входа полный журнал тренировок.
+          </p>
+        </div>
+
+        <div id="photo-preview-wrap" class="photo-preview hidden" hidden>
+          <img id="photo-preview" alt="Снимок с камеры" />
+          <p>Фото с камеры устройства (локально). Войдите, чтобы распознать КБЖУ.</p>
+        </div>
+
+        <h2 class="section-title">Записи сегодня</h2>
+        <ul id="meal-list" class="meal-list"></ul>
+        <p id="meal-empty" class="empty">Пока пусто — добавьте фото или демо-запись.</p>
+
+        <nav class="tabbar" aria-label="Разделы">
+          <button type="button" class="tab active" data-tab="diary">Рацион</button>
+          <button type="button" class="tab" data-tab="add" id="tab-add">＋</button>
+          <button type="button" class="tab" data-tab="stats">Статистика</button>
+        </nav>
+      </section>
+
+      <!-- Local stats stub -->
+      <section id="screen-stats" class="screen screen-stats hidden" hidden>
+        <header class="home-header">
+          <div>
+            <p class="eyebrow">На устройстве</p>
+            <h1 class="home-title">Статистика</h1>
+          </div>
+          <button type="button" id="btn-back-home" class="btn btn-small">Назад</button>
+        </header>
+        <div class="stats-card">
+          <p class="stats-label">Записей в демо</p>
+          <p class="stats-value" id="stats-count">0</p>
+          <p class="stats-note">
+            Полная история, серии дней и графики — после входа в ваш дневник.
+          </p>
+          <button type="button" id="btn-sync-stats" class="btn btn-primary btn-block">
+            Войти в дневник
+          </button>
+        </div>
+        <nav class="tabbar" aria-label="Разделы">
+          <button type="button" class="tab" data-tab="diary">Рацион</button>
+          <button type="button" class="tab" data-tab="add" id="tab-add-2">＋</button>
+          <button type="button" class="tab active" data-tab="stats">Статистика</button>
+        </nav>
+      </section>
     </div>
+    <script src="./app.js" defer></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import {
   buildProgressSummary,
@@ -28,7 +28,7 @@ function toProgressRows(
 /** Preview progressive target for selected muscle groups (before / while creating a session). */
 export async function GET(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const groupsRaw = request.nextUrl.searchParams.get("groups");

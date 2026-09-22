@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import {
   defaultExerciseKind,
@@ -15,7 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { id: sessionId } = await context.params;

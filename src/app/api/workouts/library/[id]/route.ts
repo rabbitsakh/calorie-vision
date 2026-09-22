@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
@@ -12,7 +12,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { id } = await context.params;
@@ -77,7 +77,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
 
 export async function DELETE(_request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { id } = await context.params;

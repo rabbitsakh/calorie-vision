@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 /** GET ?q=&limit= — search / list library (seeds from history if empty). */
 export async function GET(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     await seedLibraryFromHistory(prisma, session.user.id);
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 /** POST { name, kind?, muscleGroup? } — create / bump library entry. */
 export async function POST(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const body = (await request.json()) as {
