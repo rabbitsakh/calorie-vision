@@ -102,7 +102,7 @@ function TabLink({
   date?: string;
   queueCount: number;
 }) {
-  const active = pathname === item.href;
+  const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
   const href = date && navKeepsDate(item.href) ? withDateQuery(item.href, date) : item.href;
   const showQueueBadge = queueCount > 0;
 

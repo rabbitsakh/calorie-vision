@@ -107,9 +107,18 @@ export default function ProfilePage() {
                 </Link>
               </section>
               <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
+                <h2 className="font-display text-base font-semibold text-slate-800">Неделя и покупки</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Пищевой план недели, челлендж и список покупок.
+                </p>
+                <Link href="/plan" className="btn btn-primary mt-3 inline-flex self-start text-sm">
+                  Открыть план
+                </Link>
+              </section>
+              <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
                 <h2 className="font-display text-base font-semibold text-slate-800">Тренировки</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Силовые и кардио: подходы, шаблоны, суперсеты и прогрессия.
+                  Силовые и кардио: также во вкладке «Зал».
                 </p>
                 <Link href="/workouts" className="btn btn-primary mt-3 inline-flex self-start text-sm">
                   Открыть зал

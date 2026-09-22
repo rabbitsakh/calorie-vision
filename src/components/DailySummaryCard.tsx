@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import { formatDateShort } from "@/lib/dates";
 import { formatCalorieVsTargetLabel } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
@@ -79,86 +80,71 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
   const entryCount = data.entryCount ?? data.mealCount;
 
   const calorieLabel =
-    data.totalCalories > 0
-      ? `${data.totalCalories} ккал`
-      : "нет записей";
+    data.totalCalories > 0 ? `${data.totalCalories} ккал` : "нет записей";
 
   const vsTarget =
     data.target && data.totalCalories > 0
       ? formatCalorieVsTargetLabel(data.totalCalories, data.target.calories, data.goal)
       : "";
 
+  const macroLine =
+    entryCount > 0 ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г` : "—";
+
+  const waterLabel = data.totalWaterMl > 0 ? `${data.totalWaterMl} мл` : "—";
+
+  const deltaLabel =
+    data.comparison?.calories.kind === "deficit"
+      ? "дефицит"
+      : data.comparison?.calories.kind === "surplus"
+        ? "профицит"
+        : data.comparison?.calories.kind === "even"
+          ? "в норме"
+          : vsTarget || "—";
+
+  const metrics: StageMetric[] = [
+    {
+      key: "kcal",
+      label: "Калории",
+      value: (
+        <>
+          {calorieLabel}
+          {vsTarget ? (
+            <span className="mt-0.5 block text-xs font-normal text-slate-400">{vsTarget}</span>
+          ) : null}
+        </>
+      ),
+    },
+    { key: "macro", label: "БЖУ", value: macroLine },
+    { key: "delta", label: "К цели", value: deltaLabel },
+    {
+      key: "water",
+      label: "Вода",
+      value: waterLabel,
+      accent: data.totalWaterMl > 0,
+    },
+  ];
+
+  const fiberSugar = [
+    data.totalFiber != null && data.totalFiber > 0
+      ? `клетчатка ${Math.round(data.totalFiber)} г`
+      : null,
+    data.totalSugar != null && data.totalSugar > 0
+      ? `сахар ${Math.round(data.totalSugar)} г`
+      : null,
+  ].filter(Boolean);
+
   return (
-    <div className="rounded-2xl border border-teal-100 bg-[var(--accent-summary-soft)] p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
-            Итоги вчера
-          </p>
-          <p className="mt-0.5 font-semibold text-teal-950">
-            {formatDateShort(data.date)}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="btn-quiet shrink-0 text-xs text-teal-700 hover:bg-teal-100"
-          onClick={dismiss}
-          aria-label="Закрыть"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-3">
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xs text-slate-500">Калории</p>
-          <p className="font-semibold text-slate-800">
-            {calorieLabel}
-            <span className="block text-xs font-normal text-slate-500">{vsTarget}</span>
-          </p>
-        </div>
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xs text-slate-500">БЖУ</p>
-          <p className="text-sm font-semibold text-slate-800">
-            {entryCount > 0
-              ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г`
-              : "—"}
-          </p>
-        </div>
-        <div className="rounded-xl bg-white/70 px-3 py-2">
-          <p className="text-xs text-slate-500">Вода</p>
-          <p className="font-semibold text-slate-800">
-            {data.totalWaterMl > 0 ? `${data.totalWaterMl} мл` : "—"}
-          </p>
-        </div>
-      </div>
-
-      {entryCount > 0 &&
-      ((data.totalFiber != null && data.totalFiber > 0) ||
-        (data.totalSugar != null && data.totalSugar > 0)) ? (
-        <p className="mt-2 text-xs text-slate-600">
-          {[
-            data.totalFiber != null && data.totalFiber > 0
-              ? `клетчатка ${Math.round(data.totalFiber)} г`
-              : null,
-            data.totalSugar != null && data.totalSugar > 0
-              ? `сахар ${Math.round(data.totalSugar)} г`
-              : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+    <StageScreen
+      eyebrow="Итоги вчера"
+      headline={formatDateShort(data.date)}
+      subline={data.tip}
+      metrics={metrics}
+      primaryAction={{ label: "Понятно, спасибо", onClick: dismiss }}
+      onDismiss={dismiss}
+    >
+      {entryCount > 0 && fiberSugar.length > 0 ? (
+        <p className="text-sm text-slate-300">{fiberSugar.join(" · ")}</p>
       ) : null}
-
-      <p className="mt-3 text-sm text-teal-900">{data.tip}</p>
-
-      <button
-        type="button"
-        className="mt-3 text-sm font-medium text-teal-800 hover:text-teal-950"
-        onClick={dismiss}
-      >
-        Понятно, спасибо
-      </button>
-    </div>
+    </StageScreen>
   );
 }

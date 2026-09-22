@@ -320,7 +320,7 @@ function RationBody({
             href={`${withDateQuery("/plan", date)}#shopping`}
             className="underline-offset-2 hover:text-teal-800 hover:underline"
           >
-            Неделя и покупки — вкладка «План»
+            Неделя и покупки
           </Link>
           <ShoppingCountChip date={date} />
         </p>
@@ -333,10 +333,12 @@ function RationBody({
             onAddFood={openFoodPicker}
             quietHide
           />
-          {date === today ? <DailySummaryCard today={today} /> : null}
           <MotivationTip today={today} selectedDate={date} quietHide />
           <ReferralNudge today={today} selectedDate={date} quietHide />
         </MotivationQueue>
+
+        {/* Fullscreen stage — outside single-slot queue so it is not blocked by streak/tip. */}
+        {date === today ? <DailySummaryCard today={today} /> : null}
 
         {/* Outside single-slot queue so 20–21 check-in is not blocked by streak/tip. */}
         <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
@@ -417,7 +419,7 @@ function RationBody({
                           href={`${withDateQuery("/plan", date)}#shopping`}
                           className="hover:border-teal-200 hover:text-teal-800"
                         >
-                          Неделя и покупки — вкладка «План»
+                          Неделя и покупки
                         </Link>
                         <ShoppingCountChip date={date} />
                       </p>
