@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { parseWorkoutLog } from "@/lib/workouts/parse-log";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /** Parse free-text workout notes into exercises + sets (regex, then GigaChat). */
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireAdmin();
+    const { response } = await requireSession();
     if (response) return response;
 
     const body = (await request.json()) as { text?: unknown };

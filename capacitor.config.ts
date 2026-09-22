@@ -22,7 +22,7 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     backgroundColor: "#F4F7FB",
     overrideUserAgent:
-      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 CalorieVisionApp/2.2.7",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 CalorieVisionApp/2.2.8",
   },
   plugins: {
     SplashScreen: {

@@ -2,10 +2,9 @@
 
 Цель: бесплатное Android-приложение в [RuStore](https://www.rustore.ru/).
 
-> **Модерация:** чистый TWA и Capacitor с `server.url` отклоняли как WebView-обёртку.
-> Актуальный путь: **локальный Capacitor shell** (`rustore/cap-www`, без `server.url`) →
-> `npm run rustore:cap:init` → `npm run rustore:cap:build`.
-> Ответ модератору: [`MODERATION.md`](MODERATION.md).
+> **Модерация:** без `server.url` на cold start + локальный shell + тренировки для всех.
+> Сборка: `npm run rustore:cap:init` → `npm run rustore:cap:build`.
+> Ответ модератору: [`MODERATION.md`](MODERATION.md). Тексты витрины: [`listing.ru.md`](listing.ru.md).
 
 Package: `ru.calorievision.app`
 

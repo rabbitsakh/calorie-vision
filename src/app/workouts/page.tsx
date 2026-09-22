@@ -1,7 +1,6 @@
 "use client";
 
 import { AppShell } from "@/components/AppShell";
-import { AdminGate } from "@/components/AdminGate";
 import { AuthGate } from "@/components/AuthGate";
 import { BackButton } from "@/components/BackButton";
 import { WorkoutsView } from "@/components/WorkoutsView";
@@ -15,13 +14,11 @@ export default function WorkoutsPage() {
   return (
     <AppShell
       title="Тренировки"
-      description="Нагрузка по группам мышц — только для вас."
+      description="Силовые и кардио: подходы, шаблоны, прогрессия."
       headerExtra={<BackButton />}
     >
       <AuthGate>
-        <AdminGate>
-          <WorkoutsView todayKey={todayKey} />
-        </AdminGate>
+        <WorkoutsView todayKey={todayKey} />
       </AuthGate>
     </AppShell>
   );

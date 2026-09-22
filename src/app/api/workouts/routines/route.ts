@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
 import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const rows = await prisma.workoutRoutine.findMany({
@@ -33,7 +33,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const body = (await request.json()) as {

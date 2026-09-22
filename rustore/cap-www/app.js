@@ -19,14 +19,19 @@
       body: "Рацион, вода, вес и серия дней — цельный продукт, а не вкладка браузера.",
     },
     {
+      emoji: "🏋️",
+      title: "Тренировки в зале",
+      body: "Подходы, шаблоны, суперсеты и прогрессия — журнал тренировок в том же приложении.",
+    },
+    {
       emoji: "📶",
       title: "Не теряется офлайн",
-      body: "Локальный черновик на устройстве. После входа — полный дневник в облаке.",
+      body: "Локальный черновик на устройстве. После входа — полный дневник и зал в облаке.",
     },
     {
       emoji: "✨",
       title: "Полностью бесплатно",
-      body: "Ведите дневник без подписки. Веб-версия — зеркало, не замена приложению.",
+      body: "Ведите дневник и тренировки без подписки. Веб — зеркало, не замена приложению.",
     },
   ];
 
@@ -239,6 +244,17 @@
     writeMeals(state.meals.concat([Object.assign({}, next)]));
   }
 
+  function addDemoWorkout() {
+    var card = $("workout-card");
+    var n = (Number(card.getAttribute("data-sets") || "0") || 0) + 1;
+    card.setAttribute("data-sets", String(n));
+    card.classList.remove("hidden");
+    card.hidden = false;
+    $("workout-sets").textContent = n + " подход" + (n === 1 ? "" : n < 5 ? "а" : "ов");
+    $("workout-line").textContent =
+      "Жим лёжа · " + (80 + (n - 1) * 2.5) + "×8 · отдых 1:30";
+  }
+
   function wire() {
     $("welcome-next").addEventListener("click", function () {
       if (state.slide >= SLIDES.length - 1) {
@@ -253,6 +269,7 @@
       void takePhoto();
     });
     $("btn-demo-meal").addEventListener("click", addDemoMeal);
+    $("btn-demo-workout").addEventListener("click", addDemoWorkout);
     $("btn-sync").addEventListener("click", openProductLogin);
     $("btn-sync-stats").addEventListener("click", openProductLogin);
     $("btn-back-home").addEventListener("click", function () {

@@ -255,7 +255,8 @@ export function LandingPage() {
           <h1 className="landing-headline">Сфотографировали — калории уже в дневнике</h1>
           <p className="landing-lead">
             Тарелка, этикетка, штрихкод или название. ИИ оценивает порцию — вы видите уверенность,
-            правите за секунды и сохраняете.
+            правите за секунды и сохраняете. Плюс тренировки: подходы, шаблоны и прогрессия в одном
+            приложении.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">

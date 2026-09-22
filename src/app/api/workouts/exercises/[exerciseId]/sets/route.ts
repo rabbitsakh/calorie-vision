@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { parseSetCreateForKind } from "@/lib/workouts/set-fields";
@@ -12,7 +12,7 @@ type Ctx = { params: Promise<{ exerciseId: string }> };
 
 export async function POST(request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { exerciseId } = await context.params;

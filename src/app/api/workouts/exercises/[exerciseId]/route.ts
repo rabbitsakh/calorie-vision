@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth-session";
+import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { isExerciseKind, parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { isBlockMode, parseBlockMode, parseCircuitRounds } from "@/lib/workouts/block-mode";
@@ -21,7 +21,7 @@ async function ownedExercise(userId: string, exerciseId: string) {
 
 export async function PATCH(request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { exerciseId } = await context.params;
@@ -181,7 +181,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
 
 export async function DELETE(_request: NextRequest, context: Ctx) {
   try {
-    const { session, response } = await requireAdmin();
+    const { session, response } = await requireSession();
     if (response) return response;
 
     const { exerciseId } = await context.params;
