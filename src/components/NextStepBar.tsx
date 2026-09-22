@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { withBasePath } from "@/lib/paths";
+import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
 type NextStepBarProps = {
   selectedDate: string;
@@ -16,7 +15,6 @@ type NextStepBarProps = {
  */
 export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
   const day = useOptionalRationDay();
-  const router = useRouter();
 
   const step = useMemo(() => {
     if (selectedDate !== today) return null;
@@ -27,13 +25,13 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
     if (logged && meals && meals.target == null) {
       return {
         label: "Укажите вес — появится норма калорий",
-        actionLabel: "К весу",
-        onClick: () => router.push(withBasePath("/weight")),
+        actionLabel: "Вес",
+        onClick: () => requestOpenWeightQuick(),
       };
     }
 
     return null;
-  }, [selectedDate, today, day, router]);
+  }, [selectedDate, today, day]);
 
   if (!step) return null;
 

@@ -41,6 +41,7 @@ import {
   requestOpenFoodAddPicker,
   requestOpenFoodCamera,
 } from "@/lib/open-food-camera";
+import { WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
@@ -209,6 +210,12 @@ function RationBody({
   }, [bump]);
 
   useEffect(() => {
+    const onWater = () => bump();
+    window.addEventListener(WATER_LOGGED_EVENT, onWater);
+    return () => window.removeEventListener(WATER_LOGGED_EVENT, onWater);
+  }, [bump]);
+
+  useEffect(() => {
     const total = day.data?.streak?.daysLoggedTotal;
     if (typeof total === "number") cacheLoggedDaysTotal(total);
   }, [day.data?.streak?.daysLoggedTotal]);
@@ -248,12 +255,6 @@ function RationBody({
         <PendingConfirmBanner selectedDate={date} />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-        <SevenDayAhaCard today={today} selectedDate={date} />
-        <ChallengeStrip
-          selectedDate={date}
-          refreshKey={refreshKey}
-          onOpenHabits={openHabitsPanel}
-        />
         <NextStepBar selectedDate={date} today={today} />
 
         <WaterTracker selectedDate={date} onChanged={bump} compact />
@@ -275,8 +276,22 @@ function RationBody({
           onAddFood={openFoodPicker}
         />
 
-        {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
-        <FirstShareNudge date={date} today={today} mealCount={mealCount} />
+        <p className="flex flex-wrap items-center gap-x-1 px-1 text-sm font-medium text-slate-600">
+          <Link
+            href={`${withDateQuery("/plan", date)}#shopping`}
+            className="underline-offset-2 hover:text-teal-800 hover:underline"
+          >
+            Неделя и покупки
+          </Link>
+          <ShoppingCountChip date={date} />
+        </p>
+
+        <QuickAddAgain
+          selectedDate={date}
+          refreshKey={refreshKey}
+          totalCalories={totalCalories}
+          onSaved={bump}
+        />
 
         {day.error ? (
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
@@ -308,23 +323,6 @@ function RationBody({
           </div>
         ) : null}
 
-        <QuickAddAgain
-          selectedDate={date}
-          refreshKey={refreshKey}
-          totalCalories={totalCalories}
-          onSaved={bump}
-        />
-
-        <p className="flex flex-wrap items-center gap-x-1 px-1 text-sm font-medium text-slate-600">
-          <Link
-            href={`${withDateQuery("/plan", date)}#shopping`}
-            className="underline-offset-2 hover:text-teal-800 hover:underline"
-          >
-            Неделя и покупки
-          </Link>
-          <ShoppingCountChip date={date} />
-        </p>
-
         <MotivationQueue>
           <StreakNudge
             selectedDate={date}
@@ -337,11 +335,21 @@ function RationBody({
           <ReferralNudge today={today} selectedDate={date} quietHide />
         </MotivationQueue>
 
+        <SevenDayAhaCard today={today} selectedDate={date} />
+        <ChallengeStrip
+          selectedDate={date}
+          refreshKey={refreshKey}
+          onOpenHabits={openHabitsPanel}
+        />
+
         {/* Fullscreen stage — outside single-slot queue so it is not blocked by streak/tip. */}
         {date === today ? <DailySummaryCard today={today} /> : null}
 
         {/* Outside single-slot queue so 20–21 check-in is not blocked by streak/tip. */}
         <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+
+        {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
+        <FirstShareNudge date={date} today={today} mealCount={mealCount} />
 
         <div className="flex flex-col gap-4">
           <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />

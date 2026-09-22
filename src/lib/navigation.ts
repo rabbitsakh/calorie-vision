@@ -10,13 +10,14 @@ export type AppNavItem = {
 /**
  * Primary app chrome:
  * Стат · Рацион · [+] · Зал · Профиль
- * Food week plan stays at /plan via Рацион / Профиль — not a tab.
- * Weight stays at /weight via DayHero / Plan / Profile — not a tab.
+ * Food week plan stays at /plan via Рацион / Профиль / DayHero — not a tab.
+ * Weight stays at /weight via DayHero / Plan / Profile / «+» — not a tab.
+ * Water logs via Рацион tracker or center «+».
  */
 export const APP_NAV: AppNavItem[] = [
   { href: "/stats", label: "Статистика", shortLabel: "Стат.", icon: "stats" },
   { href: "/ration", label: "Рацион", shortLabel: "Рацион", icon: "ration" },
-  { href: "/workouts", label: "Тренировки", shortLabel: "Зал", icon: "gym" },
+  { href: "/workouts", label: "Зал", shortLabel: "Зал", icon: "gym" },
   { href: "/profile", label: "Профиль", shortLabel: "Профиль", icon: "profile" },
 ];
 

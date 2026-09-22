@@ -11,7 +11,8 @@ test("APP_NAV is gym tab order without plan or weight", () => {
     APP_NAV.map((i) => i.shortLabel),
     ["Стат.", "Рацион", "Зал", "Профиль"],
   );
-  assert.equal(APP_NAV.find((i) => i.href === "/workouts")?.label, "Тренировки");
+  assert.equal(APP_NAV.find((i) => i.href === "/workouts")?.label, "Зал");
+  assert.equal(APP_NAV.find((i) => i.href === "/workouts")?.shortLabel, "Зал");
 });
 
 test("isAppNavPath covers workouts and not plan/weight", () => {

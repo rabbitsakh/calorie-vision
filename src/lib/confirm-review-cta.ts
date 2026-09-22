@@ -115,10 +115,10 @@ export function confirmSaveButtonLabel(input: {
   saveAsIs: boolean;
 }): string {
   if (input.saving) return "Сохраняем...";
-  if (input.saveAsIs) return "Сохранить как есть";
-  if (input.enriching) return "Да, сохранить";
-  if (input.multi) return "Сохранить все блюда";
-  return "Да, сохранить";
+  if (input.saveAsIs) return "Сохранить";
+  if (input.enriching) return "Сохранить";
+  if (input.multi) return "Сохранить все";
+  return "Сохранить";
 }
 
 export function saveAsIsHint(): string {

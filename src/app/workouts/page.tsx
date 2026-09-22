@@ -12,9 +12,9 @@ export default function WorkoutsPage() {
 
   return (
     <AppShell
-      title="Тренировки"
+      title="Зал"
       compact
-      description="Силовые и кардио: подходы, шаблоны, прогрессия."
+      description="Тренировки: силовые и кардио, шаблоны, прогрессия."
     >
       <AuthGate>
         <WorkoutsView todayKey={todayKey} />

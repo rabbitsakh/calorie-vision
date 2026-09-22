@@ -9,6 +9,7 @@ import { ReferralChestToast } from "@/components/ReferralChestToast";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { WeightQuickSheet } from "@/components/WeightQuickSheet";
+import { WaterQuickSheet } from "@/components/WaterQuickSheet";
 import { APP_NAV, isFoodAddPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -175,6 +176,7 @@ export function AppShell({
         <MobileTabBar date={date} showAdd={foodAddEnabled} />
         <MetaChestCelebration />
         <ReferralChestToast />
+        <WaterQuickSheet />
         <WeightQuickSheet />
       </div>
     </FoodAddHost>

@@ -17,6 +17,7 @@ import {
   type FoodAddMode,
   type OpenFoodAddDetail,
 } from "@/lib/open-food-camera";
+import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -150,10 +151,10 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                 <p id="food-add-sheet-title" className="font-semibold text-slate-900">
-                  {confirmOpen ? "Проверка" : "Добавить еду"}
+                  {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
                 </p>
                 {confirmOpen ? (
-                  <span className="text-xs text-slate-400">Сначала сохраните или отмените</span>
+                  <span className="text-xs text-slate-400">Сохраните или отмените</span>
                 ) : (
                   <button type="button" className="btn-quiet text-sm text-slate-500" onClick={closeAll}>
                     Закрыть
@@ -217,7 +218,7 @@ function FoodAddModePicker({
             <p id="food-add-picker-title" className="font-semibold text-slate-900">
               Добавить
             </p>
-            <p className="text-xs text-slate-500">Еда или вес</p>
+            <p className="text-xs text-slate-500">Еда, вода или вес</p>
           </div>
           <button type="button" className="btn-quiet text-sm text-slate-500" onClick={onClose}>
             Закрыть
@@ -235,6 +236,17 @@ function FoodAddModePicker({
               <span className="text-xs text-slate-500">{opt.hint}</span>
             </button>
           ))}
+          <button
+            type="button"
+            className="flex min-h-14 flex-col items-start rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-left transition-colors hover:border-sky-400 hover:bg-sky-50"
+            onClick={() => {
+              onClose();
+              requestOpenWaterQuick();
+            }}
+          >
+            <span className="text-base font-semibold text-slate-900">Вода</span>
+            <span className="text-xs text-slate-500">+200…500 мл за сегодня</span>
+          </button>
           <button
             type="button"
             className="flex min-h-14 flex-col items-start rounded-2xl border border-teal-200 bg-teal-50/70 px-4 py-3 text-left transition-colors hover:border-teal-400 hover:bg-teal-50"

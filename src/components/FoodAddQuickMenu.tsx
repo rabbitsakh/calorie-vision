@@ -6,6 +6,7 @@ import {
   requestOpenFoodAddPicker,
 } from "@/lib/open-food-camera";
 import { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
+import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
 export { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS };
@@ -73,6 +74,17 @@ export function FoodAddModeMenu({
         </button>
       ))}
       <div className="my-1 border-t border-slate-100" role="separator" />
+      <button
+        type="button"
+        role="menuitem"
+        className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
+        onClick={() => {
+          onClose();
+          requestOpenWaterQuick();
+        }}
+      >
+        Вода
+      </button>
       <button
         type="button"
         role="menuitem"
