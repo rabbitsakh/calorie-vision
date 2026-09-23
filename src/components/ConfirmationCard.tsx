@@ -1313,9 +1313,7 @@ function DishFields({
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
   const showReviewCta = review.lowConfidence || review.missingCalories;
-  const [showAdvanced, setShowAdvanced] = useState(
-    () => review.lowConfidence || review.missingCalories,
-  );
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [wrongDishHint, setWrongDishHint] = useState(false);
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const dishNameRef = useRef<HTMLInputElement>(null);

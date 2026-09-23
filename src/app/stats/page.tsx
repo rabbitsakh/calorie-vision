@@ -15,7 +15,7 @@ export default function StatsPage() {
     <AppShell
       title="Статистика"
       compact
-      description="Один главный вывод за период — графики ниже."
+      description="Один главный вывод — детали по запросу."
       date={date}
       headerExtra={
         <DateNavBar

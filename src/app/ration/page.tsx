@@ -26,15 +26,14 @@ import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
-import { PendingConfirmBanner } from "@/components/PendingConfirmBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { QuickAddAgain } from "@/components/QuickAddAgain";
-import { QuickLogStrip } from "@/components/QuickLogStrip";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding, shouldShowFirstShareNudge } from "@/lib/first-hour-trust";
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import {
   FOOD_SAVED_EVENT,
   openFoodAdd,
@@ -251,20 +250,14 @@ function RationBody({
         <ProfileCompletionBanner />
         <TimezoneConflictBanner />
         <ReferralCapture signedIn />
-        <OfflineMealQueueBanner onFlushed={bump} onRecognitionReady={() => bump()} />
-        <PendingConfirmBanner selectedDate={date} />
+        <OfflineMealQueueBanner
+          selectedDate={date}
+          onFlushed={bump}
+          onRecognitionReady={() => bump()}
+        />
         <FastingWindowBanner isToday={date === today} />
         <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
         <NextStepBar selectedDate={date} today={today} />
-
-        <WaterTracker selectedDate={date} onChanged={bump} compact />
-
-        <QuickLogStrip
-          selectedDate={date}
-          refreshKey={refreshKey}
-          mealCount={mealCount}
-          onSaved={bump}
-        />
 
         <DailyLog
           selectedDate={date}
@@ -275,6 +268,8 @@ function RationBody({
           onTotalsChange={() => {}}
           onAddFood={openFoodPicker}
         />
+
+        <WaterTracker selectedDate={date} onChanged={bump} compact />
 
         <p className="flex flex-wrap items-center gap-x-1 px-1 text-sm font-medium text-slate-600">
           <Link
@@ -352,7 +347,9 @@ function RationBody({
         <FirstShareNudge date={date} today={today} mealCount={mealCount} />
 
         <div className="flex flex-col gap-4">
-          <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+          {!isCapacitorNative() ? (
+            <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+          ) : null}
           <PushNotificationPrompt />
         </div>
 

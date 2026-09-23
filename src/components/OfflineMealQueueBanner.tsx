@@ -1,16 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatPendingConfirmHint } from "@/lib/confirm-review-cta";
 import {
+  clearPendingConfirmDraft,
   countFailedSaves,
   countOfflineQueue,
   countPendingRecognitions,
+  getPendingConfirmDraft,
   listFailedSaves,
   listPendingRecognitions,
   pendingRecognitionToFile,
   removeMealDraft,
   subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
+  type PendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
 import {
   countWaterDrafts,
@@ -25,21 +29,60 @@ import {
   subscribeWeightDraftQueue,
 } from "@/lib/weight-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { requestOpenPendingConfirm } from "@/lib/open-food-camera";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
+  selectedDate?: string;
   onFlushed?: () => void;
   /** Fired when a queued photo was recognized — parent can open confirm card. */
   onRecognitionReady?: (selectedDate: string) => void;
 };
 
-/** Visible on ration when offline meal saves or photo recognition are queued. */
-export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: OfflineMealQueueBannerProps) {
+function pendingHint(draft: PendingConfirmDraft): string {
+  const fromUi = draft.ui?.dishes?.[0]?.dishName?.trim();
+  const recognition = draft.result.recognition;
+  const dishName =
+    fromUi ||
+    recognition.items?.[0]?.dishName?.trim() ||
+    recognition.dishName?.trim() ||
+    null;
+  let calories: number | null = null;
+  if (draft.ui?.dishes?.length) {
+    const sum = draft.ui.dishes.reduce((acc, d) => acc + (Number(d.calories) || 0), 0);
+    if (sum > 0) calories = sum;
+  }
+  if (calories == null && recognition.items?.length) {
+    const sum = recognition.items.reduce((acc, item) => acc + (Number(item.calories) || 0), 0);
+    if (sum > 0) calories = sum;
+  }
+  if (calories == null) {
+    const cal = Number(recognition.calories);
+    calories = Number.isFinite(cal) && cal > 0 ? cal : null;
+  }
+  const uiCount = draft.ui?.dishes?.length ?? 0;
+  const items = recognition.items?.length ?? 0;
+  const multiCount = uiCount > 1 ? uiCount : items > 1 ? items : 1;
+  return formatPendingConfirmHint({
+    dishName,
+    calories,
+    photoKind: recognition.photoKind,
+    multiCount,
+  });
+}
+
+/** One sync surface: offline drafts + unfinished confirm. */
+export function OfflineMealQueueBanner({
+  selectedDate,
+  onFlushed,
+  onRecognitionReady,
+}: OfflineMealQueueBannerProps) {
   const [failedCount, setFailedCount] = useState(0);
   const [recognitionCount, setRecognitionCount] = useState(0);
   const [waterCount, setWaterCount] = useState(0);
   const [weightCount, setWeightCount] = useState(0);
+  const [pendingDraft, setPendingDraft] = useState<PendingConfirmDraft | null>(null);
   const [flushing, setFlushing] = useState(false);
 
   const refreshCounts = useCallback(() => {
@@ -47,7 +90,8 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
     setRecognitionCount(countPendingRecognitions());
     setWaterCount(countWaterDrafts());
     setWeightCount(countWeightDrafts());
-  }, []);
+    setPendingDraft(selectedDate ? getPendingConfirmDraft(selectedDate) : null);
+  }, [selectedDate]);
 
   useEffect(() => {
     refreshCounts();
@@ -167,7 +211,8 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   }, [flush]);
 
   const totalCount = countOfflineQueue() + waterCount + weightCount;
-  if (totalCount <= 0) return null;
+  const hasPending = Boolean(pendingDraft?.result);
+  if (totalCount <= 0 && !hasPending) return null;
 
   const lines: string[] = [];
   if (recognitionCount > 0) {
@@ -196,33 +241,64 @@ export function OfflineMealQueueBanner({ onFlushed, onRecognitionReady }: Offlin
   }
 
   return (
-    <div
-      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
-      role="status"
-    >
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold">
-          {flushing ? "Отправляем офлайн-очередь…" : "Офлайн: черновики на устройстве"}
-        </p>
-        <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
-          {lines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        {!flushing ? (
-          <p className="mt-1 text-[11px] text-amber-800/80">
-            После сети фото уйдут в подтверждение, а блюда — в дневник. Нажмите «Отправить».
-          </p>
-        ) : null}
-      </div>
-      <button
-        type="button"
-        className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
-        disabled={flushing}
-        onClick={() => void flush()}
-      >
-        {flushing ? "Отправка…" : "Отправить"}
-      </button>
+    <div className="flex flex-col gap-2" role="status">
+      {totalCount > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">
+              {flushing ? "Отправляем черновики…" : "Не отправлено — на устройстве"}
+            </p>
+            <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
+              {lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {!flushing ? (
+              <p className="mt-1 text-[11px] text-amber-800/80">
+                При сети нажмите «Отправить» — фото уйдут в проверку, блюда в дневник.
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
+            disabled={flushing}
+            onClick={() => void flush()}
+          >
+            {flushing ? "Отправка…" : "Отправить"}
+          </button>
+        </div>
+      ) : null}
+
+      {hasPending && pendingDraft ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2.5 text-sm text-teal-950">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Досохраните блюдо</p>
+            <p className="mt-0.5 text-xs text-teal-900/85">{pendingHint(pendingDraft)}</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-teal-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-900"
+              onClick={() => requestOpenPendingConfirm()}
+            >
+              Продолжить
+            </button>
+            {selectedDate ? (
+              <button
+                type="button"
+                className="rounded-lg border border-teal-300 bg-white/70 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-white"
+                onClick={() => {
+                  clearPendingConfirmDraft(selectedDate);
+                  refreshCounts();
+                }}
+              >
+                Удалить
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
 import { ALLERGEN_OPTIONS, type AllergenId } from "@/lib/allergens";
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import { markOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
 import { ensureQuietDefaultForNewUsers } from "@/lib/gamification-quiet";
 import { trackOnboardingCompleteGoal, trackOnboardingPhotoCtaGoal } from "@/lib/metrika-funnel";
@@ -15,7 +16,7 @@ const STORAGE_KEY = "cv-onboarding-v1";
 
 type StepId = "goal" | "allergens" | "photo" | "pwa";
 
-const STEP_META: Array<{ id: StepId; title: string; body: string; pose: "tip" | "cheer" | "idle" }> = [
+const ALL_STEPS: Array<{ id: StepId; title: string; body: string; pose: "tip" | "cheer" | "idle" }> = [
   {
     id: "goal",
     title: "Цель рядом",
@@ -70,13 +71,18 @@ async function saveAllergens(ids: AllergenId[]): Promise<void> {
   }
 }
 
-/** First-visit guided run: goal → allergens → photo CTA → optional PWA. */
+/** First-visit guided run: goal → allergens → photo CTA → optional PWA (web only). */
 export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean } = {}) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [allergens, setAllergens] = useState<AllergenId[]>([]);
   const [savingAllergens, setSavingAllergens] = useState(false);
+
+  const steps = useMemo(
+    () => (isCapacitorNative() ? ALL_STEPS.filter((s) => s.id !== "pwa") : ALL_STEPS),
+    [],
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -101,22 +107,22 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
   }, []);
 
   const next = useCallback(async () => {
-    const current = STEP_META[step];
+    const current = steps[step];
     if (current?.id === "allergens") {
       setSavingAllergens(true);
       await saveAllergens(allergens);
       setSavingAllergens(false);
     }
-    if (step >= STEP_META.length - 1) {
+    if (step >= steps.length - 1) {
       finish();
       return;
     }
     setStep((value) => value + 1);
-  }, [allergens, finish, step]);
+  }, [allergens, finish, step, steps]);
 
   if (!open || !mounted || typeof document === "undefined") return null;
 
-  const current = STEP_META[step] ?? STEP_META[0]!;
+  const current = steps[step] ?? steps[0]!;
   const isPhoto = current.id === "photo";
   const isPwa = current.id === "pwa";
 
@@ -124,8 +130,6 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
     setAllergens((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  // Portal to <html>: overlay is mounted inside .cv-app-main, and MobileTabBar is a
-  // sibling with z-index 40 — fixed+z-[80] inside main still paints under the tab bar.
   const overlay = (
     <div
       className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
@@ -138,7 +142,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
-              Шаг {step + 1} из {STEP_META.length}
+              Шаг {step + 1} из {steps.length}
             </p>
             <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-slate-900">
               {current.title}
