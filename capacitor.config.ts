@@ -17,6 +17,8 @@ const config: CapacitorConfig = {
     androidScheme: "https",
     // Allow in-app navigation to the product for login / sync after local shell.
     allowNavigation: ["calorievision.ru", "*.calorievision.ru"],
+    // Branded stub instead of Android WebView “webpage not available”.
+    errorPath: "offline.html",
   },
   android: {
     allowMixedContent: false,

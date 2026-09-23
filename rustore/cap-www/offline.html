@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0F766E" />
+    <meta name="color-scheme" content="light" />
+    <title>Calorie Vision — нет сети</title>
+    <link rel="icon" href="./assets/icon-512.png" />
+    <style>
+      :root {
+        --ink: #0f172a;
+        --muted: #475569;
+        --teal: #0f766e;
+        --teal-dark: #115e59;
+        --cream: #ecfdf5;
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        -webkit-tap-highlight-color: transparent;
+        background:
+          radial-gradient(120% 80% at 10% -10%, rgba(45, 212, 191, 0.35), transparent 55%),
+          radial-gradient(90% 70% at 100% 0%, rgba(15, 118, 110, 0.28), transparent 50%),
+          linear-gradient(165deg, #f0fdfa 0%, #e2e8f0 55%, #f8fafc 100%);
+      }
+
+      .wrap {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: calc(1.5rem + var(--safe-top)) 1.35rem calc(1.75rem + var(--safe-bottom));
+        text-align: center;
+      }
+
+      .mark {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        box-shadow: 0 16px 40px rgba(15, 118, 110, 0.35);
+        margin-bottom: 1.25rem;
+      }
+
+      .brand {
+        margin: 0;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--teal);
+      }
+
+      h1 {
+        margin: 0.55rem 0 0;
+        font-size: 1.75rem;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+
+      .lead {
+        margin: 0.85rem auto 0;
+        max-width: 21rem;
+        font-size: 1.05rem;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      .panel {
+        margin-top: 1.5rem;
+        width: min(100%, 22rem);
+        padding: 1rem 1.1rem;
+        border-radius: 1.1rem;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(15, 118, 110, 0.15);
+        backdrop-filter: blur(8px);
+        text-align: left;
+      }
+
+      .panel p {
+        margin: 0;
+        font-size: 0.92rem;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+
+      .panel strong {
+        color: var(--ink);
+      }
+
+      .actions {
+        margin-top: 1.35rem;
+        width: min(100%, 22rem);
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .btn {
+        appearance: none;
+        border: 0;
+        border-radius: 0.95rem;
+        font: inherit;
+        font-weight: 700;
+        padding: 0.95rem 1rem;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .btn-primary:active {
+        background: var(--teal-dark);
+      }
+
+      .btn-secondary {
+        background: var(--cream);
+        color: var(--teal-dark);
+      }
+
+      .status {
+        margin-top: 1rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--teal-dark);
+        min-height: 1.25rem;
+      }
+
+      .wave {
+        width: min(100%, 16rem);
+        height: 4px;
+        margin: 1.25rem auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, var(--teal), transparent);
+        opacity: 0.45;
+        animation: pulse 2.2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 0.25;
+          transform: scaleX(0.85);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scaleX(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <img class="mark" src="./assets/icon-512.png" alt="" width="88" height="88" />
+      <p class="brand">Calorie Vision</p>
+      <h1>Нет интернета</h1>
+      <p class="lead">
+        Приложение сейчас без сети. Это не страница сайта — облачный дневник
+        и вход недоступны офлайн.
+      </p>
+      <div class="panel">
+        <p>
+          <strong>Что можно сделать:</strong> открыть локальный черновик на
+          устройстве или подождать сеть и повторить вход.
+        </p>
+      </div>
+      <div class="wave" aria-hidden="true"></div>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="btn-retry">
+          Повторить подключение
+        </button>
+        <button type="button" class="btn btn-secondary" id="btn-local">
+          Открыть черновик на устройстве
+        </button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
+    </main>
+    <script>
+      (function () {
+        var status = document.getElementById("status");
+        var PRODUCT = "https://calorievision.ru/login/";
+
+        function online() {
+          return typeof navigator !== "undefined" && navigator.onLine !== false;
+        }
+
+        function setStatus(text) {
+          status.textContent = text || "";
+        }
+
+        function goLocal() {
+          window.location.replace("./index.html");
+        }
+
+        function retry() {
+          setStatus(online() ? "Подключаем…" : "Сети всё ещё нет");
+          if (!online()) return;
+          // Prefer returning to the local shell; if we came from a failed
+          // remote navigation, retrying the product login is fine when online.
+          try {
+            var ref = document.referrer || "";
+            if (ref.indexOf("calorievision.ru") !== -1) {
+              window.location.replace(PRODUCT);
+              return;
+            }
+          } catch (e) {
+            /* ignore */
+          }
+          window.location.replace("./index.html");
+        }
+
+        document.getElementById("btn-retry").addEventListener("click", retry);
+        document.getElementById("btn-local").addEventListener("click", goLocal);
+
+        window.addEventListener("online", function () {
+          setStatus("Сеть появилась — можно повторить");
+        });
+        window.addEventListener("offline", function () {
+          setStatus("Нет сети");
+        });
+
+        if (online()) {
+          setStatus("Сеть есть — нажмите «Повторить»");
+        }
+      })();
+    </script>
+  </body>
+</html>

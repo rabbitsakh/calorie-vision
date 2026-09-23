@@ -15,8 +15,9 @@
 - [ ] `TWA_SHA256_FINGERPRINTS` на проде → `/.well-known/assetlinks.json` отдаёт JSON
 - [ ] `bash scripts/rustore-build.sh` → APK (и опционально AAB)
 - [ ] Windows: JDK 21 + `ANDROID_HOME` = корень SDK (см. `WINDOWS.md`)
-- [ ] Установка APK на телефон: открывается calorievision.ru без адресной строки
-- [ ] Логин (Google / VK / Telegram / email)
+- [ ] Установка APK на телефон: локальный shell (не лендинг сайта)
+- [ ] Авиарежим: welcome + демо-рацион; «Войти» → экран «Нет интернета»
+- [ ] С сетью: логин (Google / VK / Telegram / email)
 - [ ] Фото → распознавание → сохранение
 - [ ] Web Push из TWA (если доступно на устройстве)
 - [ ] Офлайн-очередь фото
