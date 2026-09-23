@@ -61,12 +61,23 @@ import {
   bumpKg,
 } from "@/lib/workouts/progression";
 import {
+  computeExercisePrs,
+  describePrBeat,
+  mergeExercisePrs,
+  type ExercisePrs,
+} from "@/lib/workouts/prs";
+import {
+  resolveRestForSet,
+  setExerciseRestSec,
+} from "@/lib/workouts/rest-timer";
+import {
   SET_TYPES,
   SET_TYPE_LABELS,
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
 import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import { requestScreenWakeLock } from "@/lib/workouts/wake-lock";
 
 type Progress = {
   previousSessionId: string | null;
@@ -253,7 +264,7 @@ type HistoryBundle = {
   kind: string;
   topWeightDeltaKg: number | null;
   bestPaceDeltaSec: number | null;
-  metric: "weight" | "volume" | "pace" | "reps" | "duration";
+  metric: "weight" | "volume" | "pace" | "reps" | "duration" | "distance";
 };
 
 function formatTrend(pct: number | null | undefined): string | null {
@@ -283,9 +294,12 @@ function sparklinePath(
 function ExerciseSparkline({
   points,
   metric,
+  highlightLast,
 }: {
   points: ChartPoint[];
   metric: HistoryBundle["metric"];
+  /** Emphasize the latest session (vs history). */
+  highlightLast?: boolean;
 }) {
   const values = points
     .map((p) => {
@@ -293,6 +307,7 @@ function ExerciseSparkline({
       if (metric === "volume") return p.volume;
       if (metric === "pace") return p.pace ?? 0;
       if (metric === "reps") return p.reps;
+      if (metric === "distance") return p.distance;
       return p.duration;
     })
     .filter((v) => Number.isFinite(v) && (metric === "pace" ? v > 0 : true));
@@ -302,9 +317,18 @@ function ExerciseSparkline({
   const w = 240;
   const h = 56;
   const d = sparklinePath(values, w, h);
+  const last = values[values.length - 1]!;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const lx = ((values.length - 1) / (values.length - 1)) * w;
+  const ly = h - ((last - min) / span) * (h - 4) - 2;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-14 w-full max-w-xs" aria-hidden>
       <path d={d} fill="none" stroke="var(--accent, #0f766e)" strokeWidth="2" />
+      {highlightLast ? (
+        <circle cx={lx} cy={ly} r="3.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="1" />
+      ) : null}
     </svg>
   );
 }
@@ -419,6 +443,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
   const [clockTick, setClockTick] = useState(0);
   const [hubTab, setHubTab] = useState<HubTab>("today");
+  const [prToast, setPrToast] = useState<string | null>(null);
+  const prToastTimer = useRef<number | null>(null);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null | "new">(null);
   const [filterGroups, setFilterGroups] = useState<MuscleGroupKey[]>([]);
   const [filterCardio, setFilterCardio] = useState(false);
@@ -505,7 +531,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     [todayKey],
   );
 
-  const openSession = useCallback(async (id: string) => {
+  const openSession = useCallback(async (id: string, opts?: { enterStage?: boolean }) => {
     setError(null);
     setActiveId(id);
     try {
@@ -515,8 +541,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       setDetail(data.session);
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-      setLiveMode(false);
-      setStageOpen(false);
+      const enterStage = Boolean(opts?.enterStage) && data.session.clockStatus !== "finished";
+      setLiveMode(enterStage);
+      setStageOpen(enterStage);
       setShowSummary(false);
       setCircuitRound(1);
       setFocusExerciseId(data.session.exercises[0]?.id ?? null);
@@ -539,6 +566,26 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             };
             continue;
           }
+          const incomplete = ex.sets.find((s) => !s.completed);
+          if (incomplete) {
+            const spec = fieldsForKind(ex.kind);
+            next[ex.id] = {
+              ...EMPTY_DRAFT,
+              kg: spec.usesWeight && incomplete.weightKg != null ? String(incomplete.weightKg) : "",
+              reps: spec.usesReps && incomplete.reps != null ? String(incomplete.reps) : "",
+              km:
+                spec.usesDistance && incomplete.distanceKm != null && incomplete.distanceKm > 0
+                  ? String(incomplete.distanceKm)
+                  : "",
+              time:
+                spec.usesDuration && incomplete.durationSec != null && incomplete.durationSec > 0
+                  ? durationSecToMinutesInput(incomplete.durationSec)
+                  : "",
+              setType: incomplete.setType,
+              rpe: incomplete.rpe != null ? String(incomplete.rpe) : "",
+            };
+            continue;
+          }
           const last = ex.lastTime?.sets?.at(-1);
           if (last) {
             next[ex.id] = draftFromHistorySet(last, ex.kind);
@@ -546,6 +593,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         }
         return next;
       });
+      if (enterStage && data.session.clockStatus === "idle") {
+        // Clock starts when user taps Зал / Продолжить в зале — keep idle until start.
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
@@ -897,11 +947,78 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }
   };
 
-  const addSet = async (exerciseId: string) => {
+  const showPrToast = useCallback((message: string) => {
+    setPrToast(message);
+    if (prToastTimer.current) window.clearTimeout(prToastTimer.current);
+    prToastTimer.current = window.setTimeout(() => setPrToast(null), 3200);
+  }, []);
+
+  const historicalPrsFor = useCallback(
+    (ex: SessionExercise): ExercisePrs | null => {
+      const hist = historyByName[ex.name];
+      if (!hist?.points.length) return null;
+      const parts = hist.points.map((p) =>
+        computeExercisePrs(hist.kind || ex.kind, [
+          {
+            weightKg: p.topWeightKg,
+            reps: p.topReps,
+            distanceKm: p.distanceKm ?? null,
+            durationSec: p.durationSec ?? null,
+            setType: "working",
+            completed: true,
+          },
+        ]),
+      );
+      return mergeExercisePrs(parts);
+    },
+    [historyByName],
+  );
+
+  const maybeAnnouncePr = useCallback(
+    (ex: SessionExercise, session: SessionDetail) => {
+      const live = session.exercises.find((e) => e.id === ex.id) ?? ex;
+      const after = computeExercisePrs(live.kind, live.sets);
+      const beforeHist = historicalPrsFor(ex);
+      const beforeSession = computeExercisePrs(
+        ex.kind,
+        ex.sets.filter((s) => s.completed),
+      );
+      // Compare against best of history + prior session sets
+      const before = mergeExercisePrs(
+        [beforeHist, beforeSession].filter(Boolean) as ExercisePrs[],
+      );
+      const beat = describePrBeat(before, after);
+      if (beat) showPrToast(beat);
+    },
+    [historicalPrsFor, showPrToast],
+  );
+
+  const advanceSupersetFocus = (ex: SessionExercise, session: SessionDetail) => {
+    if (!ex.supersetGroup) return;
+    const group = session.exercises.filter((e) => e.supersetGroup === ex.supersetGroup);
+    if (group.length < 2) return;
+    const idx = group.findIndex((e) => e.id === ex.id);
+    if (idx < 0) return;
+    const next = group[(idx + 1) % group.length];
+    if (next) setFocusExerciseId(next.id);
+  };
+
+  const startRestForExercise = (ex: SessionExercise, setType: string) => {
+    if (!kindUsesRestTimer(ex.kind)) return;
+    const sec = resolveRestForSet({
+      setType,
+      exerciseName: ex.name,
+      defaultSec: restSeconds,
+      restPauseSec: REST_PAUSE_SEC,
+    });
+    if (sec > 0) startRest(sec);
+  };
+
+  const addSet = async (exerciseId: string, draftOverride?: SetDraft) => {
     if (!detail) return;
     const ex = detail.exercises.find((e) => e.id === exerciseId);
     if (!ex) return;
-    const draft = setDrafts[exerciseId] ?? EMPTY_DRAFT;
+    const draft = draftOverride ?? setDrafts[exerciseId] ?? EMPTY_DRAFT;
     const spec = fieldsForKind(ex.kind);
     const rpeRaw = draft.rpe.trim() ? Number(draft.rpe.replace(",", ".")) : null;
     const meta = {
@@ -958,11 +1075,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           ...EMPTY_DRAFT,
           kg: spec.usesWeight ? draft.kg : "",
           km: spec.usesDistance ? draft.km : "",
-          setType: draft.setType,
+          setType: draft.setType === "rest_pause" ? "working" : draft.setType,
         },
       }));
-      if (kindUsesRestTimer(ex.kind) && draft.setType !== "warmup") startRest();
+      startRestForExercise(ex, draft.setType);
       await refreshDetail(data.session);
+      const updated = data.session.exercises.find((e) => e.id === exerciseId);
+      const newSetId = updated?.sets.at(-1)?.id ?? "";
+      maybeAnnouncePr(ex, data.session);
+      advanceSupersetFocus(ex, data.session);
+      if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось добавить подход");
     }
@@ -1026,14 +1148,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
 
   const toggleSetCompleted = async (set: SessionExercise["sets"][number]) => {
     const next = !set.completed;
-    await patchSet(set.id, { completed: next }, next && set.setType !== "warmup" && set.setType !== "rest_pause");
+    await patchSet(set.id, { completed: next }, false);
     if (next && detail) {
       const ex = detail.exercises.find((e) => e.sets.some((s) => s.id === set.id));
       if (ex) {
+        startRestForExercise(ex, set.setType);
         const setsAfter = ex.sets.map((s) =>
           s.id === set.id ? { ...s, completed: true } : s,
         );
         applyAutofillAfterComplete(ex, setsAfter, detail.progressRate);
+        const sessionAfter: SessionDetail = {
+          ...detail,
+          exercises: detail.exercises.map((e) =>
+            e.id === ex.id ? { ...e, sets: setsAfter } : e,
+          ),
+        };
+        maybeAnnouncePr(ex, sessionAfter);
         bumpCircuitIfNeeded(ex, set.id, detail);
       }
     }
@@ -1074,24 +1204,70 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     ? setDrafts[focusExForStage.id] ?? EMPTY_DRAFT
     : EMPTY_DRAFT;
 
+  useEffect(() => {
+    if (!stageOpen) return;
+    let released = false;
+    let handle: { release: () => Promise<void> } | null = null;
+    void (async () => {
+      handle = await requestScreenWakeLock();
+      if (released && handle) {
+        await handle.release();
+      }
+    })();
+    return () => {
+      released = true;
+      void handle?.release();
+    };
+  }, [stageOpen]);
+
   const completeCurrentOnStage = async () => {
     if (!focusExForStage || !detail) return;
     const incomplete = focusExForStage.sets.find((s) => !s.completed);
     if (incomplete) {
-      const kg = Number(stageDraft.kg.replace(",", "."));
-      const reps = Number(stageDraft.reps);
-      const patch: Record<string, unknown> = { completed: true };
-      if (fieldsForKind(focusExForStage.kind).usesWeight && Number.isFinite(kg)) {
+      const spec = fieldsForKind(focusExForStage.kind);
+      const patch: Record<string, unknown> = {
+        completed: true,
+        setType: stageDraft.setType,
+      };
+      if (stageDraft.rpe.trim()) {
+        const rpe = Number(stageDraft.rpe.replace(",", "."));
+        if (Number.isFinite(rpe)) patch.rpe = rpe;
+      }
+      if (spec.usesWeight) {
+        const kg = Number(stageDraft.kg.replace(",", "."));
+        if (!Number.isFinite(kg) || kg < 0) {
+          setError("Укажите кг");
+          return;
+        }
         patch.weightKg = kg;
       }
-      if (fieldsForKind(focusExForStage.kind).usesReps && Number.isFinite(reps) && reps > 0) {
+      if (spec.usesReps) {
+        const reps = Number(stageDraft.reps);
+        if (!Number.isFinite(reps) || reps <= 0) {
+          setError("Укажите повторения");
+          return;
+        }
         patch.reps = Math.round(reps);
       }
-      await patchSet(
-        incomplete.id,
-        patch,
-        incomplete.setType !== "warmup" && incomplete.setType !== "rest_pause",
-      );
+      if (spec.usesDistance) {
+        const distanceKm = parseDistanceKm(stageDraft.km || "0");
+        if (distanceKm === null) {
+          setError("Укажите км");
+          return;
+        }
+        patch.distanceKm = distanceKm;
+      }
+      if (spec.usesDuration) {
+        const durationSec = parseDurationToSec(stageDraft.time);
+        if (durationSec === null) {
+          setError("Укажите время в минутах");
+          return;
+        }
+        patch.durationSec = durationSec;
+      }
+      // Rest handled here (patchSet startTimer=false) so we can use per-exercise duration.
+      await patchSet(incomplete.id, patch, false);
+      startRestForExercise(focusExForStage, stageDraft.setType);
       const setsAfter = focusExForStage.sets.map((s) =>
         s.id === incomplete.id
           ? {
@@ -1100,11 +1276,24 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               weightKg:
                 typeof patch.weightKg === "number" ? patch.weightKg : s.weightKg,
               reps: typeof patch.reps === "number" ? patch.reps : s.reps,
+              distanceKm:
+                typeof patch.distanceKm === "number" ? patch.distanceKm : s.distanceKm,
+              durationSec:
+                typeof patch.durationSec === "number" ? patch.durationSec : s.durationSec,
+              setType: stageDraft.setType,
             }
           : s,
       );
       applyAutofillAfterComplete(focusExForStage, setsAfter, detail.progressRate);
-      bumpCircuitIfNeeded(focusExForStage, incomplete.id, detail);
+      const sessionAfter: SessionDetail = {
+        ...detail,
+        exercises: detail.exercises.map((e) =>
+          e.id === focusExForStage.id ? { ...e, sets: setsAfter } : e,
+        ),
+      };
+      maybeAnnouncePr(focusExForStage, sessionAfter);
+      advanceSupersetFocus(focusExForStage, sessionAfter);
+      bumpCircuitIfNeeded(focusExForStage, incomplete.id, sessionAfter);
       return;
     }
     await addSet(focusExForStage.id);
@@ -1118,18 +1307,21 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const restPauseOnStage = async () => {
     if (!focusExForStage || !detail) return;
     const last = [...focusExForStage.sets].reverse().find((s) => s.completed);
-    const kg = last?.weightKg ?? Number(stageDraft.kg.replace(",", ".")) ?? 0;
-    const reps = Math.max(1, Math.round((last?.reps ?? Number(stageDraft.reps) ?? 5) * 0.5));
+    const kgRaw = last?.weightKg ?? Number(stageDraft.kg.replace(",", "."));
+    const kg = Number.isFinite(kgRaw) ? kgRaw : 0;
+    const baseReps = last?.reps ?? Number(stageDraft.reps);
+    const reps = Math.max(1, Math.round((Number.isFinite(baseReps) && baseReps > 0 ? baseReps : 5) * 0.5));
+    const draft: SetDraft = {
+      ...EMPTY_DRAFT,
+      kg: String(kg),
+      reps: String(reps),
+      setType: "rest_pause",
+    };
     setSetDrafts((prev) => ({
       ...prev,
-      [focusExForStage.id]: {
-        ...EMPTY_DRAFT,
-        kg: String(kg),
-        reps: String(reps),
-        setType: "rest_pause",
-      },
+      [focusExForStage.id]: draft,
     }));
-    startRest(REST_PAUSE_SEC);
+    await addSet(focusExForStage.id, draft);
   };
 
   const setExerciseBlockMode = async (exerciseId: string, mode: BlockMode) => {
@@ -1448,6 +1640,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 id: s.id,
                 weightKg: s.weightKg,
                 reps: s.reps,
+                distanceKm: s.distanceKm,
+                durationSec: s.durationSec,
                 setType: s.setType,
                 completed: s.completed,
                 rpe: s.rpe,
@@ -1460,7 +1654,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             suggestedKg={stageSuggestedKg}
             draftKg={stageDraft.kg}
             draftReps={stageDraft.reps}
+            draftKm={stageDraft.km}
+            draftTime={stageDraft.time}
+            draftSetType={stageDraft.setType}
+            draftRpe={stageDraft.rpe}
             circuitRound={circuitRound}
+            prToast={prToast}
             onDraftKg={(v) =>
               setSetDrafts((prev) => ({
                 ...prev,
@@ -1471,6 +1670,33 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               setSetDrafts((prev) => ({
                 ...prev,
                 [focusExForStage.id]: { ...stageDraft, reps: v },
+              }))
+            }
+            onDraftKm={(v) =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: { ...stageDraft, km: v },
+              }))
+            }
+            onDraftTime={(v) =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: { ...stageDraft, time: v },
+              }))
+            }
+            onDraftRpe={(v) =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: { ...stageDraft, rpe: v },
+              }))
+            }
+            onCycleSetType={() =>
+              setSetDrafts((prev) => ({
+                ...prev,
+                [focusExForStage.id]: {
+                  ...stageDraft,
+                  setType: nextSetType(stageDraft.setType),
+                },
               }))
             }
             onBumpKg={(delta) => {
@@ -1511,6 +1737,11 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             onFinish={() => void patchClock("finish")}
             onExitStage={() => setStageOpen(false)}
             onRestPause={() => void restPauseOnStage()}
+            onRememberRest={() => {
+              if (!focusExForStage) return;
+              setExerciseRestSec(focusExForStage.name, restSeconds);
+              showPrToast(`Отдых ${restSeconds}с для «${focusExForStage.name}»`);
+            }}
             busy={busy}
           />
         ) : null}
@@ -1676,6 +1907,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             restLeft={restLeft}
             onSkip={clearRest}
           />
+        ) : null}
+
+        {!stageOpen && prToast ? (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-950">
+            {prToast}
+          </div>
         ) : null}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -1971,8 +2208,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                               key={m}
                               type="button"
                               className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                                historyByName[ex.name]!.metric === m ||
-                                (m === "distance" && historyByName[ex.name]!.metric === "pace")
+                                historyByName[ex.name]!.metric === m
                                   ? "bg-teal-700 text-white"
                                   : "bg-white text-slate-600"
                               }`}
@@ -1981,10 +2217,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                                   ...prev,
                                   [ex.name]: {
                                     ...prev[ex.name]!,
-                                    metric:
-                                      m === "distance"
-                                        ? "pace"
-                                        : (m as HistoryBundle["metric"]),
+                                    metric: m as HistoryBundle["metric"],
                                   },
                                 }))
                               }
@@ -2005,11 +2238,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                         </div>
                         <ExerciseSparkline
                           points={historyByName[ex.name]!.chart}
-                          metric={
-                            isCardio && historyByName[ex.name]!.metric === "pace"
-                              ? "pace"
-                              : historyByName[ex.name]!.metric
-                          }
+                          metric={historyByName[ex.name]!.metric}
+                          highlightLast
                         />
                         <ul className="mt-2 space-y-1">
                           {historyByName[ex.name]!.points.map((p) => (
@@ -2554,6 +2784,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               await openSession(id);
               if (s?.clockStatus === "finished") setShowSummary(true);
             })();
+          }}
+          onContinueInGym={(id) => {
+            void openSession(id, { enterStage: true });
           }}
           onStartBlank={() => {
             setCreating(true);

@@ -252,3 +252,56 @@ export function formatPrSummary(prs: ExercisePrs): string | null {
       return null;
   }
 }
+
+/**
+ * If `after` beats `before` on a primary metric, return a short toast label.
+ * `before` null = first recorded PR for this exercise.
+ */
+export function describePrBeat(
+  before: ExercisePrs | null,
+  after: ExercisePrs,
+): string | null {
+  const label = formatPrSummary(after);
+  if (!label) return null;
+  if (!before || before.kind !== after.kind) return label;
+
+  switch (after.kind) {
+    case "strength":
+    case "weighted_bw":
+      if (before.kind !== after.kind) return label;
+      if (
+        after.heaviestKg > before.heaviestKg ||
+        (after.heaviestKg === before.heaviestKg && after.heaviestReps > before.heaviestReps) ||
+        after.estimated1Rm > before.estimated1Rm
+      ) {
+        return label;
+      }
+      return null;
+    case "bodyweight":
+      return before.kind === "bodyweight" && after.bestReps > before.bestReps ? label : null;
+    case "duration":
+      return before.kind === "duration" && after.longestSec > before.longestSec ? label : null;
+    case "assisted":
+      if (before.kind !== "assisted") return label;
+      if (after.bestReps > before.bestReps) return label;
+      if (
+        after.lightestAssistKg != null &&
+        (before.lightestAssistKg == null || after.lightestAssistKg < before.lightestAssistKg)
+      ) {
+        return label;
+      }
+      return null;
+    case "cardio":
+      if (before.kind !== "cardio") return label;
+      if (after.longestDistanceKm > before.longestDistanceKm) return label;
+      if (
+        after.bestPaceSecPerKm != null &&
+        (before.bestPaceSecPerKm == null || after.bestPaceSecPerKm < before.bestPaceSecPerKm)
+      ) {
+        return label;
+      }
+      return null;
+    default:
+      return null;
+  }
+}
