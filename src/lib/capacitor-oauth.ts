@@ -1,12 +1,16 @@
 /**
- * Google blocks OAuth inside Android WebViews (HTTP 400 / disallowed_useragent).
- * Custom Tabs do not share cookies with the WebView, so CSRF from a WebView signIn
- * cannot validate a callback that lands in Chrome.
+ * Capacitor APK OAuth — keep the entire login inside the app WebView.
  *
- * Flow:
- * 1) Open /auth/native-oauth?provider=… in Custom Tabs (CSRF + Google/VK entirely there)
- * 2) Callback → /auth/native-bridge → intent:// / calorievision://native-bridge?token=
- * 3) App opens → WebView consumes token and sets session cookie
+ * Historically we opened Chrome Custom Tabs via @capacitor/browser because
+ * Google blocks the stock WebView user-agent. That looked like “login opens
+ * in an external browser” (RuStore / users).
+ *
+ * Now:
+ * 1) `capacitor.config` allowNavigation covers IdP hosts (Google / Yandex / VK / Telegram)
+ * 2) android.overrideUserAgent spoofs Chrome Mobile
+ * 3) signIn() navigates in the same WebView — session cookies stay in-app
+ *
+ * Deep-link / native-bridge helpers remain for older handoffs and cold starts.
  */
 
 import { signIn } from "next-auth/react";
@@ -42,7 +46,7 @@ function adoptNativeBridgeUrl(url: string): void {
   }
 }
 
-/** Listen once for OAuth handoff deep links. */
+/** Listen once for OAuth handoff deep links (legacy Custom Tabs / cold start). */
 export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
   if (!isCapacitorNative() || deepLinkHooked || typeof window === "undefined") return;
   deepLinkHooked = true;
@@ -69,7 +73,6 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
         .catch(() => undefined);
     });
 
-    // Cold start / already-open with pending intent
     void App.getLaunchUrl()
       .then((launch) => {
         if (launch?.url) adopt(launch.url);
@@ -90,7 +93,7 @@ export async function ensureCapacitorOAuthDeepLink(): Promise<void> {
 }
 
 /**
- * Start Google/VK/Yandex OAuth. Capacitor → Custom Tabs bootstrap; web → normal redirect.
+ * Start Google/VK/Yandex OAuth inside the Capacitor WebView (not Custom Tabs).
  */
 export type CapacitorOAuthProvider = "google" | "vk" | "yandex";
 
@@ -98,15 +101,22 @@ export async function startCapacitorOAuth(
   provider: CapacitorOAuthProvider,
   callbackUrl = withBasePath("/ration/"),
 ): Promise<void> {
-  if (!isCapacitorNative()) {
-    await signIn(provider, { callbackUrl });
-    return;
+  if (isCapacitorNative()) {
+    await ensureCapacitorOAuthDeepLink();
   }
+  // Same-WebView redirect — IdP hosts are allowNavigation allowlisted.
+  await signIn(provider, { callbackUrl });
+}
 
-  await ensureCapacitorOAuthDeepLink();
-
-  const origin = publicBrowserOrigin(window.location.origin);
-  const startUrl = `${origin}${withBasePath(`/auth/native-oauth?provider=${provider}`)}`;
-  const { Browser } = await import("@capacitor/browser");
-  await Browser.open({ url: startUrl });
+/**
+ * Absolute https URL for product paths when the WebView may sit on a local asset origin.
+ * Prefer public site origin so OAuth redirect_uri matches NextAuth config.
+ */
+export function capacitorProductUrl(path: string): string {
+  const origin =
+    typeof window !== "undefined"
+      ? publicBrowserOrigin(window.location.origin)
+      : "https://calorievision.ru";
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${withBasePath(normalized)}`;
 }

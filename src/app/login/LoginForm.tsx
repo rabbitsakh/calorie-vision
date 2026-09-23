@@ -204,7 +204,7 @@ export default function LoginForm() {
     setError(null);
     rememberOauthProvider(provider);
     try {
-      // Capacitor WebView: Google returns 400 (disallowed_useragent) — use Custom Tabs.
+      // Capacitor: stay in the app WebView (IdP hosts allowlisted). Do not open Custom Tabs.
       await startCapacitorOAuth(provider, withBasePath("/ration/"));
     } catch {
       setLoading(false);
@@ -226,8 +226,7 @@ export default function LoginForm() {
           Войдите через Яндекс, Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
         <p className="mt-2 text-slate-600 capacitor-native-only">
-          Соцсети откроют короткое окно входа — после него вернёмся в приложение. Не оставайтесь в
-          браузере.
+          Вход через соцсети остаётся в приложении. После авторизации откроется ваш дневник.
         </p>
 
         {verifyRequest ? (
