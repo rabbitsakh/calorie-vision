@@ -169,8 +169,30 @@
   }
 
   function openProductLogin() {
-    // After local shell, open the same product for account sync (in-app WebView navigation).
+    // Never navigate to the remote product offline — WebView would show a
+    // browser-style error page (RuStore moderation rejects that).
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      window.location.replace("./offline.html");
+      return;
+    }
     window.location.href = PRODUCT_ORIGIN + "/login/";
+  }
+
+  function wireConnectivity() {
+    window.addEventListener("offline", function () {
+      // If we already left the shell for the remote product, Capacitor
+      // errorPath covers failed loads. While still on the local shell, keep UX quiet.
+      var hint = $("demo-hint");
+      if (hint && typeof navigator !== "undefined" && navigator.onLine === false) {
+        hint.textContent = "Нет сети — локальный черновик доступен. Вход и облако — после подключения.";
+      }
+    });
+    window.addEventListener("online", function () {
+      var hint = $("demo-hint");
+      if (hint) {
+        hint.textContent = "Черновик на телефоне. Войдите для полного дневника и зала.";
+      }
+    });
   }
 
   async function getCameraPlugin() {
@@ -273,6 +295,7 @@
 
   async function boot() {
     wire();
+    wireConnectivity();
     state.meals = readMeals();
     renderWelcome();
 
