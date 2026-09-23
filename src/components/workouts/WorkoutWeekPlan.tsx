@@ -31,6 +31,8 @@ type Props = {
   todayKey: string;
   sessions: TodaySessionCard[];
   onOpenSession: (id: string) => void;
+  /** Open session and jump straight into fullscreen gym stage. */
+  onContinueInGym?: (id: string) => void;
   onStartBlank: () => void;
   onStartRoutine: (routineId: string) => void;
   onEditRoutine: (routineId: string) => void;
@@ -66,6 +68,7 @@ export function WorkoutWeekPlan({
   todayKey,
   sessions,
   onOpenSession,
+  onContinueInGym,
   onStartBlank,
   onStartRoutine,
   onEditRoutine,
@@ -141,6 +144,16 @@ export function WorkoutWeekPlan({
           >
             Продолжить
           </button>
+          {onContinueInGym ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="mt-2 w-full rounded-xl border-2 border-teal-700 bg-white py-3 text-base font-bold text-teal-900 disabled:opacity-40"
+              onClick={() => onContinueInGym(active.id)}
+            >
+              Продолжить в зале
+            </button>
+          ) : null}
         </section>
       ) : null}
 

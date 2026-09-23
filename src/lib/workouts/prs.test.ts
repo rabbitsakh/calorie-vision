@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   computeExercisePrs,
+  describePrBeat,
   estimated1Rm,
   formatPrSummary,
   mergeExercisePrs,
@@ -62,5 +63,26 @@ describe("merge + format", () => {
       assert.equal(m.heaviestKg, 90);
       assert.ok(formatPrSummary(m)?.includes("90"));
     }
+  });
+});
+
+describe("describePrBeat", () => {
+  it("fires when heaviest kg improves", () => {
+    const before = computeExercisePrs("strength", [{ weightKg: 80, reps: 5, completed: true }]);
+    const after = computeExercisePrs("strength", [
+      { weightKg: 80, reps: 5, completed: true },
+      { weightKg: 85, reps: 3, completed: true },
+    ]);
+    const beat = describePrBeat(before, after);
+    assert.ok(beat && beat.includes("85"));
+  });
+
+  it("null when no improvement", () => {
+    const before = computeExercisePrs("strength", [{ weightKg: 100, reps: 5, completed: true }]);
+    const after = computeExercisePrs("strength", [
+      { weightKg: 100, reps: 5, completed: true },
+      { weightKg: 90, reps: 8, completed: true },
+    ]);
+    assert.equal(describePrBeat(before, after), null);
   });
 });
