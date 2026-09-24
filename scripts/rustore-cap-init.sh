@@ -77,6 +77,39 @@ print("CAMERA permission added")
 PY
 fi
 
+# Local reminders (Android 13+ notification permission + exact alarms when available)
+if [[ -f "$MANIFEST" ]]; then
+  rustore_py - "$MANIFEST" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+needed = [
+    'android.permission.POST_NOTIFICATIONS',
+    'android.permission.SCHEDULE_EXACT_ALARM',
+    'android.permission.VIBRATE',
+]
+added = []
+for perm in needed:
+    token = f'android:name="{perm}"'
+    if token in text:
+        continue
+    needle = "<manifest"
+    idx = text.find(needle)
+    if idx < 0:
+        raise SystemExit("manifest root not found")
+    end = text.find(">", idx)
+    insert = f'\n    <uses-permission android:name="{perm}" />'
+    text = text[: end + 1] + insert + text[end + 1 :]
+    added.append(perm)
+path.write_text(text)
+if added:
+    print("notification permissions added:", ", ".join(added))
+else:
+    print("notification permissions already present")
+PY
+fi
+
 # Brand launcher icon (Capacitor defaults to generic Android robot otherwise).
 ICON_SRC="$ROOT/rustore/icon-512-store.png"
 [[ -f "$ICON_SRC" ]] || ICON_SRC="$ROOT/public/icon-512.png"
