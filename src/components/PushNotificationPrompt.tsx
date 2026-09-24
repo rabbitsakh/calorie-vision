@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { PwaInstallWizard } from "@/components/PwaInstallWizard";
+import { detectCapacitorShell } from "@/lib/capacitor-bridge";
 import {
   getPushCapability,
   getPushPromptDismissed,
@@ -25,31 +26,41 @@ export function PushNotificationPrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
 
-    const cap = getPushCapability();
+    void (async () => {
+      await detectCapacitorShell(2500);
+      if (cancelled) return;
 
-    if (cap.kind === "ios-browser" && !getPushPromptDismissed()) {
-      setHintOnly(true);
-      setHintText(cap.detail);
-      setVisible(true);
-      return;
-    }
+      const cap = getPushCapability();
 
-    if (cap.channel === "capacitor-local") {
+      if (cap.kind === "ios-browser" && !getPushPromptDismissed()) {
+        setHintOnly(true);
+        setHintText(cap.detail);
+        setVisible(true);
+        return;
+      }
+
+      if (cap.channel === "capacitor-local") {
+        if (getPushPromptDismissed()) return;
+        setCapacitorLocal(true);
+        setHintOnly(false);
+        setHintText(null);
+        setVisible(true);
+        return;
+      }
+
+      if (!cap.canSubscribe || cap.permission !== "default") return;
       if (getPushPromptDismissed()) return;
-      setCapacitorLocal(true);
+
       setHintOnly(false);
       setHintText(null);
       setVisible(true);
-      return;
-    }
+    })();
 
-    if (!cap.canSubscribe || cap.permission !== "default") return;
-    if (getPushPromptDismissed()) return;
-
-    setHintOnly(false);
-    setHintText(null);
-    setVisible(true);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const subscribe = useCallback(async () => {

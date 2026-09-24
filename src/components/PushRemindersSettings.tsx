@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import { PwaInstallWizard } from "@/components/PwaInstallWizard";
-import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { detectCapacitorShell, isCapacitorNative } from "@/lib/capacitor-bridge";
 import {
   checkCapacitorNotificationPermission,
   isCapacitorRemindersEnabled,
@@ -139,6 +139,9 @@ export function PushRemindersSettings() {
   const [wizardMode, setWizardMode] = useState<"install" | "reinstall">("install");
 
   const refresh = useCallback(async () => {
+    // APK: bridge / html.capacitor-native can land a tick after mount — wait first
+    // so we do not freeze the UI on «Уведомления недоступны» (no PushManager).
+    await detectCapacitorShell(2500);
     const base = getPushCapability();
     let nextCap = base;
     let nextServer: ServerPushStatus | null = null;

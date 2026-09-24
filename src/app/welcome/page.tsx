@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { AppWelcomeSlider } from "@/components/AppWelcomeSlider";
-import { isCapacitorNative, waitForCapacitorNative } from "@/lib/capacitor-bridge";
+import { detectCapacitorShell, isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { hasSeenAppWelcome, hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -31,8 +31,8 @@ export default function WelcomePage() {
       // Give the Capacitor bridge a moment to inject into the remote WebView.
       const native =
         status === "loading"
-          ? await waitForCapacitorNative(1200)
-          : isCapacitorNative() || (await waitForCapacitorNative(400));
+          ? await detectCapacitorShell(2500)
+          : isCapacitorNative() || (await detectCapacitorShell(800));
 
       if (cancelled) return;
 
@@ -44,7 +44,7 @@ export default function WelcomePage() {
         return;
       }
 
-      document.documentElement.classList.add("capacitor-native");
+      markCapacitorShell();
 
       if (hasSeenAppWelcomeSync() || (await hasSeenAppWelcome())) {
         if (cancelled) return;
@@ -62,7 +62,7 @@ export default function WelcomePage() {
     const failsafe = window.setTimeout(() => {
       if (cancelled) return;
       if (isCapacitorNative()) {
-        document.documentElement.classList.add("capacitor-native");
+        markCapacitorShell();
         if (hasSeenAppWelcomeSync()) {
           router.replace(withBasePath("/login"));
           return;

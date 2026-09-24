@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { Mascot } from "@/components/Mascot";
+import { markCapacitorShell } from "@/lib/capacitor-bridge";
 import { markAppWelcomeSeen } from "@/lib/capacitor-welcome";
 import type { MascotPose } from "@/lib/mascot-types";
 import { withBasePath } from "@/lib/paths";
@@ -73,7 +74,7 @@ export function AppWelcomeSlider({ onFinished }: AppWelcomeSliderProps) {
   }, [finish, isLast]);
 
   useEffect(() => {
-    document.documentElement.classList.add("capacitor-native");
+    markCapacitorShell();
   }, []);
 
   return (

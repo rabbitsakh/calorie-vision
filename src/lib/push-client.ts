@@ -112,11 +112,9 @@ export function getPushCapability(): PushCapability {
   }
 
   // RuStore / Capacitor APK: no PushManager in WebView — use LocalNotifications.
-  // Also honor html.capacitor-native (set early by welcome/login) if bridge is a tick late.
-  const capacitorMarked =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("capacitor-native");
-  if (isCapacitorNative() || capacitorMarked) {
+  // isCapacitorNative() also honors html.capacitor-native + session/localStorage
+  // marks set by detectCapacitorShell / welcome / Providers.
+  if (isCapacitorNative()) {
     return {
       kind: "capacitor-local",
       canSubscribe: true,
