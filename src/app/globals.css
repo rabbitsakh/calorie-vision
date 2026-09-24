@@ -271,8 +271,23 @@ body {
 
 button,
 input,
-textarea {
-  font: inherit;
+textarea,
+select {
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+/*
+ * iOS Safari / Android WebView auto-zoom focused controls when computed
+ * font-size is below 16px. `font: inherit` pulled text-sm (14px) from parents
+ * (confirm portion, compact workout drafts). Keep entry controls ≥16px;
+ * intentional larger sizes (e.g. live stage) still win via utility classes.
+ */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
+textarea,
+select {
+  font-size: 16px;
 }
 
 .card {
@@ -358,6 +373,7 @@ textarea {
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
   box-sizing: border-box;
+  font-size: 16px;
   max-width: 100%;
   min-height: var(--control-h);
   min-width: 0;
@@ -867,9 +883,11 @@ textarea {
 .meal-time-input {
   border: 1px solid #99f6e4;
   border-radius: 0.5rem;
-  font-size: 0.75rem;
-  max-width: 6.5rem;
-  padding: 0.2rem 0.35rem;
+  /* ≥16px — avoid iOS/Android focus zoom on time edit */
+  font-size: 16px;
+  max-width: 7.5rem;
+  min-height: 2.5rem;
+  padding: 0.35rem 0.5rem;
 }
 
 .meal-card-actions {
