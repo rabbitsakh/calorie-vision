@@ -1526,6 +1526,7 @@ function DishFields({
             type="number"
             inputMode="decimal"
             min="1"
+            className="text-base"
             value={dish.calories}
             onChange={(event) => onBaselineChange({ calories: event.target.value })}
           />
@@ -1540,6 +1541,7 @@ function DishFields({
             type="number"
             inputMode="decimal"
             min="1"
+            className="text-base"
             value={dish.portionGrams}
             onChange={(event) => onPortionChange(event.target.value)}
           />
