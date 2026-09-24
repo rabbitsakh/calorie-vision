@@ -142,6 +142,43 @@ export function resolvePushUxState(input: ResolvePushUxInput): PushUxState {
     };
   }
 
+  // RuStore APK — local notifications (no Web Push subscription on server).
+  if (cap.kind === "capacitor-local" || cap.channel === "capacitor-local") {
+    if (cap.permission === "denied") {
+      return {
+        id: "permission-denied",
+        stepLabel: "Разрешение",
+        title: "Уведомления запрещены",
+        detail:
+          "Разрешите уведомления в Настройки Android → Приложения → Calorie Vision → Уведомления, затем нажмите «Включить напоминания».",
+        primaryAction: "none",
+        secondaryAction: "none",
+        tone: "warn",
+      };
+    }
+    if (serverSubscribed === true) {
+      return {
+        id: "active",
+        stepLabel: "Готово",
+        title: "Напоминания включены",
+        detail:
+          "Локальные уведомления на этом устройстве. Расписание из настроек ниже; можно проверить тестовым сигналом.",
+        primaryAction: "resync",
+        secondaryAction: "none",
+        tone: "ok",
+      };
+    }
+    return {
+      id: "ready-to-enable",
+      stepLabel: "Разрешение",
+      title: cap.title,
+      detail: cap.detail,
+      primaryAction: "enable",
+      secondaryAction: "none",
+      tone: "tip",
+    };
+  }
+
   if (cap.kind === "denied") {
     return {
       id: "permission-denied",
@@ -236,6 +273,8 @@ export function capabilityKindToUxHint(kind: PushStatusKind): PushUxStateId | "u
     case "default":
       return "ready-to-enable";
     case "granted":
+      return "ready-to-enable";
+    case "capacitor-local":
       return "ready-to-enable";
     default:
       return "unknown";

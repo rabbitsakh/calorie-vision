@@ -14,6 +14,7 @@ function cap(partial: Partial<PushCapability> & Pick<PushCapability, "kind">): P
     permission: "default",
     title: "t",
     detail: "d",
+    channel: "web-push",
     ...partial,
   };
 }
@@ -78,6 +79,37 @@ test("default permission → ready-to-enable", () => {
   });
   assert.equal(state.id, "ready-to-enable");
   assert.equal(state.primaryAction, "enable");
+});
+
+test("capacitor-local without enable → ready-to-enable", () => {
+  const state = resolvePushUxState({
+    capability: cap({
+      kind: "capacitor-local",
+      channel: "capacitor-local",
+      canSubscribe: true,
+      permission: "default",
+      isStandalone: true,
+    }),
+    serverSubscribed: false,
+  });
+  assert.equal(state.id, "ready-to-enable");
+  assert.equal(state.primaryAction, "enable");
+  assert.equal(state.secondaryAction, "none");
+});
+
+test("capacitor-local enabled → active", () => {
+  const state = resolvePushUxState({
+    capability: cap({
+      kind: "capacitor-local",
+      channel: "capacitor-local",
+      canSubscribe: true,
+      permission: "granted",
+      isStandalone: true,
+    }),
+    serverSubscribed: true,
+  });
+  assert.equal(state.id, "active");
+  assert.match(state.detail, /локальн/i);
 });
 
 test("matrix steps mark install → permission → subscription", () => {

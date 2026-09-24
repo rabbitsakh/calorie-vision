@@ -3,12 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import { PwaInstallWizard } from "@/components/PwaInstallWizard";
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import {
+  checkCapacitorNotificationPermission,
+  isCapacitorRemindersEnabled,
+  syncCapacitorLocalRemindersIfEnabled,
+} from "@/lib/capacitor-local-reminders";
 import {
   getPushCapability,
   setPushPromptDismissed,
   type PushCapability,
 } from "@/lib/push-client";
-import { subscribeBrowserPush } from "@/lib/push-subscribe";
+import { subscribeBrowserPush, testPushDelivery } from "@/lib/push-subscribe";
 import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -133,18 +139,57 @@ export function PushRemindersSettings() {
   const [wizardMode, setWizardMode] = useState<"install" | "reinstall">("install");
 
   const refresh = useCallback(async () => {
-    setCap(getPushCapability());
-    try {
-      const resp = await fetch(withBasePath("/api/push/subscribe"));
-      if (resp.ok) {
-        const data = (await resp.json()) as ServerPushStatus;
-        setServer(data);
-      } else {
-        setServer(null);
+    const base = getPushCapability();
+    let nextCap = base;
+    let nextServer: ServerPushStatus | null = null;
+
+    if (isCapacitorNative() || base.channel === "capacitor-local") {
+      const [permission, enabled] = await Promise.all([
+        checkCapacitorNotificationPermission(),
+        isCapacitorRemindersEnabled(),
+      ]);
+      const mappedPermission: PushCapability["permission"] =
+        permission === "granted"
+          ? "granted"
+          : permission === "denied"
+            ? "denied"
+            : permission === "prompt"
+              ? "default"
+              : "unknown";
+      nextCap = {
+        ...base,
+        kind: "capacitor-local",
+        channel: "capacitor-local",
+        canSubscribe: permission !== "denied",
+        isStandalone: true,
+        permission: mappedPermission,
+        title:
+          permission === "denied"
+            ? "Уведомления запрещены"
+            : enabled
+              ? "Локальные напоминания"
+              : "Напоминания в приложении",
+        detail:
+          permission === "denied"
+            ? "Разрешите уведомления в настройках Android для Calorie Vision."
+            : "В APK — локальные уведомления на устройстве по расписанию ниже (без Web Push).",
+      };
+      nextServer = { subscribed: enabled, count: enabled ? 1 : 0 };
+    } else {
+      try {
+        const resp = await fetch(withBasePath("/api/push/subscribe"));
+        if (resp.ok) {
+          const data = (await resp.json()) as ServerPushStatus;
+          nextServer = data;
+        }
+      } catch {
+        nextServer = null;
       }
-    } catch {
-      setServer(null);
     }
+
+    setCap(nextCap);
+    setServer(nextServer);
+
     try {
       const accountResp = await fetch(withBasePath("/api/account"));
       if (accountResp.ok) {
@@ -182,6 +227,7 @@ export function PushRemindersSettings() {
           permission: "unknown",
           title: "Проверяем…",
           detail: "",
+          channel: "web-push",
         },
         serverSubscribed: null,
       });
@@ -230,6 +276,19 @@ export function PushRemindersSettings() {
         setMessage(
           `Тихие часы: ${formatQuietHoursLabel(data.quietHoursStart, data.quietHoursEnd)}`,
         );
+        const payload: PushReminderPrefs = {};
+        for (const slot of REMINDER_SCHEDULE) {
+          const row = reminderPrefs[slot.kind];
+          payload[slot.kind] = {
+            enabled: row?.enabled ?? true,
+            hour: row?.hour ?? slot.hour,
+          };
+        }
+        await syncCapacitorLocalRemindersIfEnabled(
+          payload,
+          data.quietHoursStart ?? null,
+          data.quietHoursEnd ?? null,
+        );
       }
     } catch {
       setError("Не удалось сохранить тихие часы");
@@ -263,6 +322,13 @@ export function PushRemindersSettings() {
       } else {
         setReminderPrefs(prefsFromServer(data.pushReminderPrefs));
         setMessage("Настройки напоминаний сохранены");
+        const start = quietStart === "" ? null : clampHour(quietStart);
+        const end = quietEnd === "" ? null : clampHour(quietEnd);
+        await syncCapacitorLocalRemindersIfEnabled(
+          data.pushReminderPrefs ?? payload,
+          start,
+          end,
+        );
       }
     } catch {
       setError("Не удалось сохранить напоминания");
@@ -276,12 +342,29 @@ export function PushRemindersSettings() {
     setMessage(null);
     setPushPromptDismissed(false);
 
-    const result = await subscribeBrowserPush();
+    const payload: PushReminderPrefs = {};
+    for (const slot of REMINDER_SCHEDULE) {
+      const row = reminderPrefs[slot.kind];
+      payload[slot.kind] = {
+        enabled: row?.enabled ?? true,
+        hour: row?.hour ?? slot.hour,
+      };
+    }
+    const start = quietStart === "" ? null : clampHour(quietStart);
+    const end = quietEnd === "" ? null : clampHour(quietEnd);
+
+    const result = await subscribeBrowserPush({
+      prefs: payload,
+      quietHoursStart: start,
+      quietHoursEnd: end,
+    });
     if (result.ok) {
       trackPushEnabledGoal();
       setMessage(
         ux.id === "needs-resync" || ux.id === "active"
-          ? "Подписка обновлена"
+          ? cap?.channel === "capacitor-local"
+            ? "Расписание обновлено"
+            : "Подписка обновлена"
           : "Готово — буду напоминать на этом устройстве",
       );
     } else {
@@ -295,16 +378,15 @@ export function PushRemindersSettings() {
     setTesting(true);
     setError(null);
     setMessage(null);
-    try {
-      const resp = await fetch(withBasePath("/api/push/test"), { method: "POST" });
-      const data = (await resp.json()) as { message?: string; error?: string };
-      if (!resp.ok) {
-        setError(data.error ?? "Не удалось отправить тест");
-      } else {
-        setMessage(data.message ?? "Тестовое уведомление отправлено");
-      }
-    } catch {
-      setError("Не удалось отправить тест");
+    const result = await testPushDelivery();
+    if (result.ok) {
+      setMessage(
+        cap?.channel === "capacitor-local"
+          ? "Тестовое уведомление скоро появится"
+          : "Тестовое уведомление отправлено",
+      );
+    } else {
+      setError(result.error);
     }
     setTesting(false);
   }
@@ -339,7 +421,9 @@ export function PushRemindersSettings() {
 
   const activeOnServer = Boolean(server?.subscribed);
   const pose = poseForUx(ux);
-  const showTest = ux.id === "active" && cap.kind === "granted";
+  const showTest =
+    ux.id === "active" && (cap.kind === "granted" || cap.kind === "capacitor-local");
+  const isCapLocal = cap.channel === "capacitor-local";
 
   return (
     <section className="card p-4 md:p-6">
@@ -349,15 +433,19 @@ export function PushRemindersSettings() {
           <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
           <p className="mt-1 text-sm text-slate-500">
             По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний
-            чек-ин — в часовом поясе профиля (как cron). Завтрак, воду и сводку калорий можно
-            включить отдельно. Для каждого типа можно выбрать час. По понедельникам — итог
-            прошлой недели. На iPhone — только из приложения с экрана «Домой» (iOS 16.4+).
+            чек-ин — в часовом поясе профиля. Завтрак, воду и сводку калорий можно включить
+            отдельно. Для каждого типа можно выбрать час.
+            {isCapLocal
+              ? " В приложении RuStore уведомления локальные на устройстве."
+              : " На iPhone — только из приложения с экрана «Домой» (iOS 16.4+)."}
           </p>
         </div>
       </div>
 
       <div className={`mt-4 rounded-2xl border px-4 py-3 ${toneClasses(ux.tone)}`}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Статус push</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {isCapLocal ? "Статус в приложении" : "Статус push"}
+        </p>
         <ol className="mt-2 flex flex-wrap gap-2" aria-label="Шаги подключения уведомлений">
           {matrixSteps.map((step) => (
             <li
@@ -375,13 +463,17 @@ export function PushRemindersSettings() {
           <div>
             Устройство:{" "}
             <span className="font-medium text-slate-700">
-              {cap.isIos ? "iPhone / iPad" : "другое"}
+              {isCapLocal ? "приложение (APK)" : cap.isIos ? "iPhone / iPad" : "другое"}
             </span>
           </div>
           <div>
             Режим:{" "}
             <span className="font-medium text-slate-700">
-              {cap.isStandalone ? "с экрана «Домой»" : "браузер / вкладка"}
+              {isCapLocal
+                ? "локальные уведомления"
+                : cap.isStandalone
+                  ? "с экрана «Домой»"
+                  : "браузер / вкладка"}
             </span>
           </div>
           <div>
@@ -391,13 +483,17 @@ export function PushRemindersSettings() {
             </span>
           </div>
           <div>
-            На сервере:{" "}
+            {isCapLocal ? "На устройстве: " : "На сервере: "}
             <span className="font-medium text-slate-700">
               {server == null
                 ? "—"
                 : activeOnServer
-                  ? `подписка есть (${server.count})`
-                  : "подписки нет"}
+                  ? isCapLocal
+                    ? "включены"
+                    : `подписка есть (${server.count})`
+                  : isCapLocal
+                    ? "выключены"
+                    : "подписки нет"}
             </span>
           </div>
         </dl>
@@ -414,7 +510,9 @@ export function PushRemindersSettings() {
             >
               {loading && (ux.primaryAction === "enable" || ux.primaryAction === "resync")
                 ? "Подключаем…"
-                : pushActionLabel(ux.primaryAction, ux.id === "active")}
+                : isCapLocal && ux.primaryAction === "resync"
+                  ? "Обновить расписание"
+                  : pushActionLabel(ux.primaryAction, ux.id === "active")}
             </button>
           ) : null}
           {ux.secondaryAction !== "none" ? (

@@ -1,4 +1,6 @@
-/** Client-only helpers for Web Push / iOS PWA diagnostics. */
+/** Client-only helpers for Web Push / iOS PWA / Capacitor APK diagnostics. */
+
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
 
 export const PUSH_PROMPT_DISMISS_KEY = "push-prompt-dismissed";
 /** Soft re-prompt window after dismiss (avoid daily spam). */
@@ -11,7 +13,11 @@ export type PushStatusKind =
   | "ios-old"
   | "denied"
   | "default"
-  | "granted";
+  | "granted"
+  /** RuStore APK — LocalNotifications instead of Web Push. */
+  | "capacitor-local";
+
+export type PushDeliveryChannel = "web-push" | "capacitor-local";
 
 export type PushCapability = {
   kind: PushStatusKind;
@@ -22,6 +28,8 @@ export type PushCapability = {
   permission: NotificationPermission | "unknown";
   title: string;
   detail: string;
+  /** How reminders are delivered on this surface. */
+  channel: PushDeliveryChannel;
 };
 
 function readUa(): string {
@@ -99,6 +107,26 @@ export function getPushCapability(): PushCapability {
       permission: "unknown",
       title: "Проверяем…",
       detail: "",
+      channel: "web-push",
+    };
+  }
+
+  // RuStore / Capacitor APK: no PushManager in WebView — use LocalNotifications.
+  // Also honor html.capacitor-native (set early by welcome/login) if bridge is a tick late.
+  const capacitorMarked =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("capacitor-native");
+  if (isCapacitorNative() || capacitorMarked) {
+    return {
+      kind: "capacitor-local",
+      canSubscribe: true,
+      isIos: false,
+      isStandalone: true,
+      permission: "default",
+      title: "Напоминания в приложении",
+      detail:
+        "В APK уведомления локальные на устройстве (без Web Push). Включите — спросим разрешение Android и поставим расписание.",
+      channel: "capacitor-local",
     };
   }
 
@@ -113,6 +141,7 @@ export function getPushCapability(): PushCapability {
       title: "Нужен ярлык на экран «Домой»",
       detail:
         "На iPhone уведомления работают только если приложение открыто с иконки на экране «Домой», а не из Safari. Добавьте сайт на экран «Домой» и откройте его оттуда.",
+      channel: "web-push",
     };
   }
 
@@ -127,6 +156,7 @@ export function getPushCapability(): PushCapability {
         title: "Нужен iOS 16.4 или новее",
         detail:
           "Web Push для приложений с экрана «Домой» появился в iOS 16.4. Обновите систему или пользуйтесь напоминаниями на Android / компьютере.",
+        channel: "web-push",
       };
     }
     return {
@@ -137,6 +167,7 @@ export function getPushCapability(): PushCapability {
       permission: "unknown",
       title: "Уведомления недоступны",
       detail: "Этот браузер не поддерживает Web Push.",
+      channel: "web-push",
     };
   }
 
@@ -153,6 +184,7 @@ export function getPushCapability(): PushCapability {
       detail: isIos
         ? "Разрешите уведомления в Настройки → [Calorie Vision] → Уведомления, затем вернитесь и нажмите «Включить»."
         : "Разрешите уведомления в настройках браузера для этого сайта, затем нажмите «Включить».",
+      channel: "web-push",
     };
   }
 
@@ -166,6 +198,7 @@ export function getPushCapability(): PushCapability {
       title: "Разрешение выдано",
       detail:
         "Можно подключить или обновить подписку, чтобы получать напоминания о завтраке, воде и серии.",
+      channel: "web-push",
     };
   }
 
@@ -177,6 +210,7 @@ export function getPushCapability(): PushCapability {
     permission,
     title: "Напоминания выключены",
     detail: "Утром — про завтрак, днём — про воду, вечером — про серию записей.",
+    channel: "web-push",
   };
 }
 

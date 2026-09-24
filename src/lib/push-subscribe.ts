@@ -1,21 +1,43 @@
 "use client";
 
 import { detectDeviceTimezone } from "@/lib/device-timezone";
+import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import {
+  enableCapacitorLocalReminders,
+  fireCapacitorTestReminder,
+} from "@/lib/capacitor-local-reminders";
 import { withBasePath } from "@/lib/paths";
 import { urlBase64ToUint8Array } from "@/lib/push-client";
+import type { PushReminderPrefs } from "@/lib/push-reminder-schedule";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 
 export type PushSubscribeResult =
   | { ok: true }
   | { ok: false; error: string };
 
+export type SubscribePushOptions = {
+  prefs?: PushReminderPrefs | null;
+  quietHoursStart?: number | null;
+  quietHoursEnd?: number | null;
+};
+
 /**
  * Register the service worker, request permission if needed, and upsert
- * the push subscription on the server.
+ * the push subscription on the server. On Capacitor APK — LocalNotifications.
  */
-export async function subscribeBrowserPush(): Promise<PushSubscribeResult> {
+export async function subscribeBrowserPush(
+  options: SubscribePushOptions = {},
+): Promise<PushSubscribeResult> {
   if (typeof window === "undefined") {
     return { ok: false, error: "Недоступно на сервере" };
+  }
+
+  if (isCapacitorNative()) {
+    return enableCapacitorLocalReminders(
+      options.prefs,
+      options.quietHoursStart,
+      options.quietHoursEnd,
+    );
   }
 
   if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -83,5 +105,21 @@ export async function subscribeBrowserPush(): Promise<PushSubscribeResult> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ошибка подписки";
     return { ok: false, error: message };
+  }
+}
+
+export async function testPushDelivery(): Promise<PushSubscribeResult> {
+  if (isCapacitorNative()) {
+    return fireCapacitorTestReminder();
+  }
+  try {
+    const resp = await fetch(withBasePath("/api/push/test"), { method: "POST" });
+    const data = (await resp.json()) as { message?: string; error?: string };
+    if (!resp.ok) {
+      return { ok: false, error: data.error ?? "Не удалось отправить тест" };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Не удалось отправить тест" };
   }
 }

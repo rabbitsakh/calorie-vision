@@ -21,6 +21,7 @@ export function PushNotificationPrompt() {
   const [hintText, setHintText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [capacitorLocal, setCapacitorLocal] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -30,6 +31,15 @@ export function PushNotificationPrompt() {
     if (cap.kind === "ios-browser" && !getPushPromptDismissed()) {
       setHintOnly(true);
       setHintText(cap.detail);
+      setVisible(true);
+      return;
+    }
+
+    if (cap.channel === "capacitor-local") {
+      if (getPushPromptDismissed()) return;
+      setCapacitorLocal(true);
+      setHintOnly(false);
+      setHintText(null);
       setVisible(true);
       return;
     }
@@ -109,7 +119,11 @@ export function PushNotificationPrompt() {
               <Mascot pose="idle" size="sm" className="shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-teal-900">{MASCOT_COPY.pushPrompt.title}</p>
-                <p className="mt-1 text-sm text-teal-700">{MASCOT_COPY.pushPrompt.body}</p>
+                <p className="mt-1 text-sm text-teal-700">
+                  {capacitorLocal
+                    ? "В приложении — локальные напоминания на устройстве. Разрешите уведомления Android."
+                    : MASCOT_COPY.pushPrompt.body}
+                </p>
                 {error ? <p className="mt-2 text-sm text-rose-700">{error}</p> : null}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
@@ -120,13 +134,23 @@ export function PushNotificationPrompt() {
                   >
                     {loading ? MASCOT_COPY.pushPrompt.enabling : MASCOT_COPY.pushPrompt.enable}
                   </button>
-                  <button
-                    type="button"
-                    className="btn-quiet text-sm text-teal-700"
-                    onClick={() => setWizardOpen(true)}
-                  >
-                    {MASCOT_COPY.pushPrompt.install}
-                  </button>
+                  {!capacitorLocal ? (
+                    <button
+                      type="button"
+                      className="btn-quiet text-sm text-teal-700"
+                      onClick={() => setWizardOpen(true)}
+                    >
+                      {MASCOT_COPY.pushPrompt.install}
+                    </button>
+                  ) : (
+                    <Link
+                      href={withBasePath("/profile#reminders")}
+                      className="btn-quiet text-sm text-teal-700"
+                      onClick={dismiss}
+                    >
+                      Настройки
+                    </Link>
+                  )}
                   <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
                     {MASCOT_COPY.pushPrompt.later}
                   </button>
