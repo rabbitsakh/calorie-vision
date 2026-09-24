@@ -33,3 +33,24 @@ test("parses intent handoff", () => {
   const url = nativeBridgeIntentUrl("xyz");
   assert.equal(tokenFromNativeBridgeUrl(url), "xyz");
 });
+
+test("capacitor allowNavigation list covers IdP hosts used by login", async () => {
+  // Keep in sync with capacitor.config.ts — HostMask needs equal label depth for wildcards.
+  const { default: config } = await import("../../capacitor.config.ts");
+  const allow = config.server?.allowNavigation ?? [];
+  for (const host of [
+    "calorievision.ru",
+    "*.calorievision.ru",
+    "accounts.google.com",
+    "*.google.com",
+    "oauth.yandex.ru",
+    "*.yandex.ru",
+    "id.vk.ru",
+    "*.vk.ru",
+    "oauth.telegram.org",
+    "*.telegram.org",
+  ]) {
+    assert.ok(allow.includes(host), `missing allowNavigation entry: ${host}`);
+  }
+  assert.equal(config.server?.errorPath, "offline.html");
+});

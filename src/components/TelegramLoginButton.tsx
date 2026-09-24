@@ -1,7 +1,7 @@
 "use client";
 
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
-import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
+import { capacitorProductUrl, ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
 type TelegramLoginButtonProps = {
@@ -19,7 +19,7 @@ type TelegramLoginButtonProps = {
 
 /**
  * Styled Telegram login — OIDC (phone linking) when configured, else legacy widget redirect.
- * Capacitor APK: Custom Tabs + native-bridge (same as Google/VK/Yandex).
+ * Capacitor APK: stay in the app WebView (IdP host is allowNavigation-allowlisted).
  * @see https://core.telegram.org/bots/telegram-login
  */
 export function TelegramLoginButton({
@@ -38,18 +38,9 @@ export function TelegramLoginButton({
     }
 
     if (useOidc) {
-      const startPath = withBasePath(
-        native ? "/api/auth/telegram/start?native=1" : "/api/auth/telegram/start",
-      );
-      if (native) {
-        const origin = window.location.origin.replace("://www.", "://");
-        const { publicBrowserOrigin } = await import("@/lib/auth-url");
-        const site = publicBrowserOrigin(origin);
-        const { Browser } = await import("@capacitor/browser");
-        await Browser.open({ url: `${site}${startPath}` });
-        return;
-      }
-      window.location.assign(startPath);
+      // In-WebView OIDC — no Custom Tabs; callback returns into the same WebView.
+      const startPath = withBasePath("/api/auth/telegram/start");
+      window.location.assign(native ? capacitorProductUrl("/api/auth/telegram/start") : startPath);
       return;
     }
 
@@ -59,8 +50,12 @@ export function TelegramLoginButton({
     } catch {
       origin = window.location.origin.replace("://www.", "://");
     }
+    if (native) {
+      const { publicBrowserOrigin } = await import("@/lib/auth-url");
+      origin = publicBrowserOrigin(origin);
+    }
 
-    const returnTo = `${origin}${withBasePath(native ? "/login/telegram?native=1" : "/login/telegram")}`;
+    const returnTo = `${origin}${withBasePath("/login/telegram")}`;
     const url = new URL("https://oauth.telegram.org/auth");
     url.searchParams.set("bot_id", botId);
     url.searchParams.set("origin", origin);
@@ -68,12 +63,7 @@ export function TelegramLoginButton({
     url.searchParams.set("return_to", returnTo);
     url.searchParams.set("lang", "ru");
 
-    if (native) {
-      const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url: url.toString() });
-      return;
-    }
-
+    // WebView navigation (not Browser.open) so we never leave the APK shell.
     window.location.assign(url.toString());
   }
 

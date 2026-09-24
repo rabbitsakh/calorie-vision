@@ -129,19 +129,17 @@ npm run rustore:cap:build   # → rustore/dist/app-release.apk
 В APK первый запуск — слайдер функций, затем форма входа. Нет ссылки «На главную».
 Сброс welcome: очистить данные приложения или Preferences `cv_welcome_seen_v1`.
 
-### Google 400 / disallowed_useragent
+### Google / OAuth во внешнем браузере
 
-Google запрещает OAuth внутри Android WebView. В приложении вход через Google/VK/Yandex/Telegram
-открывается в Chrome Custom Tabs целиком (CSRF там же), затем `calorievision://native-bridge`
-возвращает сессию в WebView. Fallback Chrome — `/auth/native-bridge/return` (повтор открытия
-приложения), **не** дневник на сайте.
+Вход через Google / Яндекс / VK / Telegram идёт **внутри WebView приложения**:
+IdP-хосты в `capacitor.config.ts` → `server.allowNavigation`, UA как у Chrome Mobile.
 
-1. Задеплойте сайт (`deploy/deploy.sh`) — нужны `/auth/native-oauth`, `/auth/native-bridge`,
-   `/auth/native-bridge/return`.
-2. Пересоберите APK (`git pull` → `rustore:cap:build`) — в манифесте должен быть
-   `calorievision` scheme и `launchMode="singleTask"`.
-3. В логе сборки: `AndroidManifest OAuth patches` / `calorievision://native-bridge`.
-4. `assetlinks.json` по-прежнему нужен для https App Links (опциональный запасной путь).
+Не используем Chrome Custom Tabs для старта входа (выглядело как «открылось в браузере»).
+Legacy deep link `calorievision://native-bridge` остаётся запасным путём.
+
+1. Задеплойте сайт и пересоберите APK (`rustore:cap:init` подхватит новый `allowNavigation`).
+2. В логе сборки: `AndroidManifest OAuth patches` / `calorievision://native-bridge` (запасной путь).
+3. Проверка: «Войти» → Google/Яндекс/VK — адресной строки браузера нет, остаётесь в APK.
 
 ### Нет иконки / «робот Android»
 
