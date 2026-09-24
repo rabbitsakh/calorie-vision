@@ -279,15 +279,24 @@ select {
 }
 
 /*
- * iOS Safari / Android WebView auto-zoom focused controls when computed
- * font-size is below 16px. `font: inherit` pulled text-sm (14px) from parents
- * (confirm portion, compact workout drafts). Keep entry controls ≥16px;
- * intentional larger sizes (e.g. live stage) still win via utility classes.
+ * iOS Safari / Android WebView auto-zoom on focus when computed font-size < 16px.
+ * Tailwind preflight uses `font: inherit`, so compact parents (text-xs/sm) pull
+ * controls below the threshold. Floor at 16px with !important on touch so
+ * utility classes like text-sm cannot reintroduce zoom; large stage fields
+ * (text-2xl+) are exempt and keep their display size.
  */
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]),
 textarea,
 select {
   font-size: 16px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]):not([class*="text-5xl"]):not([class*="text-6xl"]),
+  textarea:not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]),
+  select {
+    font-size: 16px !important;
+  }
 }
 
 .card {
@@ -373,7 +382,8 @@ select {
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
   box-sizing: border-box;
-  font-size: 16px;
+  /* !important: beat Tailwind text-sm/xs on the same node (ration portion, confirm) */
+  font-size: 16px !important;
   max-width: 100%;
   min-height: var(--control-h);
   min-width: 0;
@@ -884,7 +894,7 @@ select {
   border: 1px solid #99f6e4;
   border-radius: 0.5rem;
   /* ≥16px — avoid iOS/Android focus zoom on time edit */
-  font-size: 16px;
+  font-size: 16px !important;
   max-width: 7.5rem;
   min-height: 2.5rem;
   padding: 0.35rem 0.5rem;

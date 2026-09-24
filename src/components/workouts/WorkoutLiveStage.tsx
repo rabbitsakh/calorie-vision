@@ -261,7 +261,7 @@ export function WorkoutLiveStage({
               RPE
               <input
                 inputMode="decimal"
-                className="w-12 rounded-lg border border-white/20 bg-white/5 px-2 py-1 text-center text-sm font-semibold text-white outline-none focus:border-teal-400"
+                className="w-14 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-teal-400"
                 value={draftRpe}
                 onChange={(e) => onDraftRpe(e.target.value)}
                 placeholder="—"

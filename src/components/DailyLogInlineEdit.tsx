@@ -155,15 +155,15 @@ export function InlineEdit({
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="field sm:col-span-2">
           <label className="text-xs">Название</label>
-          <input value={dishName} onChange={(e) => setDishName(e.target.value)} required />
+          <input className="text-base" value={dishName} onChange={(e) => setDishName(e.target.value)} required />
         </div>
         <div className="field">
           <label className="text-xs">Калории, ккал</label>
-          <input type="number" min="1" value={calories} onChange={(e) => setCalories(e.target.value)} required />
+          <input type="number" min="1" inputMode="decimal" className="text-base" value={calories} onChange={(e) => setCalories(e.target.value)} required />
         </div>
         <div className="field">
           <label className="text-xs">Порция, г</label>
-          <input type="number" min="1" value={portionGrams} onChange={(e) => handlePortionChange(e.target.value)} />
+          <input type="number" min="1" inputMode="decimal" className="text-base" value={portionGrams} onChange={(e) => handlePortionChange(e.target.value)} />
           {historyPortions.length > 0 ? (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {historyPortions.map((grams) => (
@@ -190,6 +190,7 @@ export function InlineEdit({
           <label className="text-xs">Время</label>
           <input
             type="time"
+            className="text-base"
             value={eatenTime}
             onChange={(e) => setEatenTime(e.target.value)}
             required
@@ -197,23 +198,23 @@ export function InlineEdit({
         </div>
         <div className="field">
           <label className="text-xs">Белки, г</label>
-          <input type="number" min="0" step="0.1" value={protein} onChange={(e) => setProtein(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={protein} onChange={(e) => setProtein(e.target.value)} />
         </div>
         <div className="field">
           <label className="text-xs">Жиры, г</label>
-          <input type="number" min="0" step="0.1" value={fat} onChange={(e) => setFat(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={fat} onChange={(e) => setFat(e.target.value)} />
         </div>
         <div className="field">
           <label className="text-xs">Углеводы, г</label>
-          <input type="number" min="0" step="0.1" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
         </div>
         <div className="field">
           <label className="text-xs">Клетчатка, г</label>
-          <input type="number" min="0" step="0.1" value={fiber} onChange={(e) => setFiber(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={fiber} onChange={(e) => setFiber(e.target.value)} />
         </div>
         <div className="field">
           <label className="text-xs">Сахар, г</label>
-          <input type="number" min="0" step="0.1" value={sugar} onChange={(e) => setSugar(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={sugar} onChange={(e) => setSugar(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
           <p className="mb-1.5 text-xs font-semibold text-slate-500">Приём пищи</p>

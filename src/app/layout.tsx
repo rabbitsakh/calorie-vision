@@ -45,7 +45,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Zoom enabled for accessibility (pinch / browser zoom).
+  // Keep pinch-zoom for a11y on the web. Capacitor shell locks maximum-scale
+  // at runtime (see CapacitorNativeViewport) so focus on portion/set fields
+  // never auto-zooms inside the APK WebView.
   viewportFit: "cover",
   themeColor: "#0f766e",
 };
