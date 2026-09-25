@@ -3,17 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { verifyNativeBridgeToken } from "@/lib/native-auth-bridge-server";
 import { withBasePath } from "@/lib/paths";
 import { setNextAuthSessionCookie } from "@/lib/telegram-oidc-session";
+import { telegramOidcSiteOrigin } from "@/lib/telegram-oidc-route";
 
 export const runtime = "nodejs";
 
 /**
  * WebView opens this after Custom Tabs returns calorievision://native-bridge?token=…
  * Sets the NextAuth session cookie in the WebView jar and sends the user to /ration.
+ *
+ * Use public origin for redirects — request.url behind nginx is often localhost:3000.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token")?.trim() ?? "";
-  const origin = `${url.protocol}//${url.host}`;
+  const origin = telegramOidcSiteOrigin(request);
   const loginError = new URL(withBasePath("/login?error=OAuthCallback"), origin);
 
   if (!token) {
