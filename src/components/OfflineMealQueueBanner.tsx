@@ -84,6 +84,9 @@ export function OfflineMealQueueBanner({
   const [weightCount, setWeightCount] = useState(0);
   const [pendingDraft, setPendingDraft] = useState<PendingConfirmDraft | null>(null);
   const [flushing, setFlushing] = useState(false);
+  const [online, setOnline] = useState(
+    () => (typeof navigator === "undefined" ? true : navigator.onLine),
+  );
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
@@ -104,6 +107,21 @@ export function OfflineMealQueueBanner({
       unsubWeight();
     };
   }, [refreshCounts]);
+
+  useEffect(() => {
+    function onOnline() {
+      setOnline(true);
+    }
+    function onOffline() {
+      setOnline(false);
+    }
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
 
   const flush = useCallback(async () => {
     const pending = listPendingRecognitions();
@@ -203,11 +221,11 @@ export function OfflineMealQueueBanner({
   }, [onFlushed, onRecognitionReady, refreshCounts]);
 
   useEffect(() => {
-    function onOnline() {
+    function onOnlineFlush() {
       void flush();
     }
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
+    window.addEventListener("online", onOnlineFlush);
+    return () => window.removeEventListener("online", onOnlineFlush);
   }, [flush]);
 
   const totalCount = countOfflineQueue() + waterCount + weightCount;
@@ -240,14 +258,18 @@ export function OfflineMealQueueBanner({
     );
   }
 
+  const queueTitle = flushing
+    ? "Отправляем черновики…"
+    : !online
+      ? `Нет сети · ${totalCount} на устройстве`
+      : `Не отправлено · ${totalCount} на устройстве`;
+
   return (
     <div className="flex flex-col gap-2" role="status">
       {totalCount > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">
-              {flushing ? "Отправляем черновики…" : "Не отправлено — на устройстве"}
-            </p>
+            <p className="font-semibold">{queueTitle}</p>
             <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
               {lines.map((line) => (
                 <li key={line}>{line}</li>
@@ -255,17 +277,19 @@ export function OfflineMealQueueBanner({
             </ul>
             {!flushing ? (
               <p className="mt-1 text-[11px] text-amber-800/80">
-                При сети нажмите «Отправить» — фото уйдут в проверку, блюда в дневник.
+                {online
+                  ? "Нажмите «Отправить» — фото уйдут в проверку, блюда в дневник. Или дождитесь появления сети."
+                  : "Черновики на телефоне. Когда появится сеть — нажмите «Отправить» или откройте рацион снова."}
               </p>
             ) : null}
           </div>
           <button
             type="button"
             className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
-            disabled={flushing}
+            disabled={flushing || !online}
             onClick={() => void flush()}
           >
-            {flushing ? "Отправка…" : "Отправить"}
+            {flushing ? "Отправка…" : online ? "Отправить" : "Ждём сеть"}
           </button>
         </div>
       ) : null}

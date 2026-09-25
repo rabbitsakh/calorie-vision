@@ -79,20 +79,26 @@ export function formatPendingConfirmHint(input: {
   return `${parts.join(" · ")} — продолжите порцию и сохранение.`;
 }
 
-/** Index of the dish that most needs review (lowest confidence, else first missing kcal). */
+/** Index of the dish that most needs review (lowest confidence, else missing kcal/macros). */
 export function worstReviewDishIndex(
-  dishes: Array<{ confidence: number; calories: number; missingCalories: boolean; lowConfidence: boolean }>,
+  dishes: Array<{
+    confidence: number;
+    calories: number;
+    missingCalories: boolean;
+    missingMacros?: boolean;
+    lowConfidence: boolean;
+  }>,
 ): number {
   if (dishes.length === 0) return 0;
   let worst = -1;
   let worstConf = Number.POSITIVE_INFINITY;
   for (let i = 0; i < dishes.length; i++) {
     const d = dishes[i]!;
-    if (!d.lowConfidence && !d.missingCalories) continue;
+    if (!d.lowConfidence && !d.missingCalories && !d.missingMacros) continue;
     if (d.lowConfidence && d.confidence < worstConf) {
       worst = i;
       worstConf = d.confidence;
-    } else if (worst < 0 && d.missingCalories) {
+    } else if (worst < 0 && (d.missingCalories || d.missingMacros)) {
       worst = i;
     }
   }
@@ -103,9 +109,15 @@ export function worstReviewDishIndex(
 export function canSaveAsIs(input: {
   anyLowConfidence: boolean;
   anyMissingCalories: boolean;
+  anyMissingMacros?: boolean;
   totalCalories: number;
 }): boolean {
-  return input.anyLowConfidence && !input.anyMissingCalories && input.totalCalories > 0;
+  return (
+    input.anyLowConfidence &&
+    !input.anyMissingCalories &&
+    !input.anyMissingMacros &&
+    input.totalCalories > 0
+  );
 }
 
 export function confirmSaveButtonLabel(input: {

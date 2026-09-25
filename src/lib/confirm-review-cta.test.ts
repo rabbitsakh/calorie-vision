@@ -92,6 +92,15 @@ test("canSaveAsIs requires low confidence with calories", () => {
     false,
   );
   assert.equal(
+    canSaveAsIs({
+      anyLowConfidence: true,
+      anyMissingCalories: false,
+      anyMissingMacros: true,
+      totalCalories: 400,
+    }),
+    false,
+  );
+  assert.equal(
     canSaveAsIs({ anyLowConfidence: false, anyMissingCalories: false, totalCalories: 400 }),
     false,
   );

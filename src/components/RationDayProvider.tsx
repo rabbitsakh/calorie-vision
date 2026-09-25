@@ -126,6 +126,11 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
       setData(json);
       setFromCache(false);
       writeRationDayCache(json);
+      void import("@/lib/capacitor-local-reminders")
+        .then((m) => m.refreshCapacitorReminderCopyFromDiary(json.today || json.date))
+        .catch(() => {
+          // APK-only; ignore on web
+        });
       if (!readyOnce.current) {
         readyOnce.current = true;
         onReadyRef.current?.();
