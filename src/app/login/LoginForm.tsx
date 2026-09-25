@@ -8,7 +8,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { detectCapacitorShell, isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
-import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
+import { isApkWebView, resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 import { hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -139,12 +139,12 @@ export default function LoginForm() {
     return () => window.removeEventListener("cv-oauth-browser-finished", onFinished);
   }, []);
 
-  // Detect Capacitor (bridge can land a tick late after local shell → calorievision.ru).
+  // Detect Capacitor / CvSession (product origin has no Cap JS — only CvSession).
   // If a resume token is stored, re-mint cookies and leave /login immediately.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const native = await detectCapacitorShell(2500);
+      const native = (await detectCapacitorShell(2500)) || isApkWebView();
       if (cancelled || !native) return;
       markCapacitorShell();
       setCapacitorShell(true);

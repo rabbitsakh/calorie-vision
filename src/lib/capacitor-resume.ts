@@ -1,7 +1,13 @@
 /**
- * Capacitor APK session resume — Preferences holds an HMAC resume token.
- * Cold start opens /api/auth/capacitor-resume?token=… which re-sets NextAuth cookies
- * and redirects to /ration (WebView cookies alone are unreliable across process death).
+ * Capacitor APK session resume.
+ *
+ * Capacitor JS is only injected on the local shell origin (https://localhost).
+ * After login the WebView is on calorievision.ru without window.Capacitor — so
+ * @capacitor/preferences alone never persists. MainActivity exposes
+ * window.CvSession (JavascriptInterface) on every origin; we write there.
+ *
+ * Cold start: MainActivity or local app.js opens
+ * /api/auth/capacitor-resume?token=… → re-sets NextAuth cookies → /ration.
  */
 
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
@@ -11,6 +17,32 @@ import { withBasePath } from "@/lib/paths";
 export const CAP_RESUME_TOKEN_KEY = "cv_cap_resume_token_v1";
 
 const PREFS_TIMEOUT_MS = 1200;
+
+type CvSessionBridge = {
+  get: (key: string) => string | null;
+  set: (key: string, value: string) => void;
+  remove: (key: string) => void;
+};
+
+function cvSession(): CvSessionBridge | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const bridge = (window as Window & { CvSession?: CvSessionBridge }).CvSession;
+    if (bridge && typeof bridge.get === "function" && typeof bridge.set === "function") {
+      return bridge;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/** True inside the RuStore APK WebView (Capacitor local shell OR product origin with CvSession). */
+export function isApkWebView(): boolean {
+  if (typeof window === "undefined") return false;
+  if (cvSession()) return true;
+  return isCapacitorNative();
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
@@ -28,6 +60,16 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 async function prefsGet(key: string): Promise<string | null> {
+  const native = cvSession();
+  if (native) {
+    try {
+      const value = native.get(key);
+      return value == null || value === "" ? null : String(value);
+    } catch {
+      // fall through to Capacitor Preferences
+    }
+  }
+  if (!isCapacitorNative()) return null;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     const { value } = await Preferences.get({ key });
@@ -38,6 +80,15 @@ async function prefsGet(key: string): Promise<string | null> {
 }
 
 async function prefsSet(key: string, value: string): Promise<void> {
+  const native = cvSession();
+  if (native) {
+    try {
+      native.set(key, value);
+    } catch {
+      // continue — also try Preferences when available
+    }
+  }
+  if (!isCapacitorNative()) return;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     await Preferences.set({ key, value });
@@ -47,6 +98,15 @@ async function prefsSet(key: string, value: string): Promise<void> {
 }
 
 async function prefsRemove(key: string): Promise<void> {
+  const native = cvSession();
+  if (native) {
+    try {
+      native.remove(key);
+    } catch {
+      // continue
+    }
+  }
+  if (!isCapacitorNative()) return;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     await Preferences.remove({ key });
@@ -56,13 +116,13 @@ async function prefsRemove(key: string): Promise<void> {
 }
 
 export async function getCapacitorResumeToken(): Promise<string | null> {
-  if (!isCapacitorNative()) return null;
+  if (!isApkWebView()) return null;
   const value = await withTimeout(prefsGet(CAP_RESUME_TOKEN_KEY), PREFS_TIMEOUT_MS, null);
   return value && value.length > 10 ? value : null;
 }
 
 export async function storeCapacitorResumeToken(token: string): Promise<void> {
-  if (!isCapacitorNative()) return;
+  if (!isApkWebView()) return;
   await withTimeout(
     (async () => {
       await prefsSet(CAP_RESUME_TOKEN_KEY, token);
@@ -74,7 +134,7 @@ export async function storeCapacitorResumeToken(token: string): Promise<void> {
 }
 
 export async function clearCapacitorResumeToken(): Promise<void> {
-  if (!isCapacitorNative()) return;
+  if (!isApkWebView()) return;
   await withTimeout(
     (async () => {
       await prefsRemove(CAP_RESUME_TOKEN_KEY);
@@ -87,7 +147,7 @@ export async function clearCapacitorResumeToken(): Promise<void> {
 
 /** Ask the server for a fresh resume token and persist it on-device. */
 export async function refreshCapacitorResumeToken(): Promise<boolean> {
-  if (!isCapacitorNative()) return false;
+  if (!isApkWebView()) return false;
   try {
     const resp = await fetch(withBasePath("/api/auth/capacitor-resume"), {
       method: "POST",

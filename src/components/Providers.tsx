@@ -5,8 +5,8 @@ import { useEffect, type ReactNode } from "react";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { markCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
-import { refreshCapacitorResumeToken } from "@/lib/capacitor-resume";
 import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
+import { isApkWebView, refreshCapacitorResumeToken } from "@/lib/capacitor-resume";
 import { withBasePath } from "@/lib/paths";
 
 function CapacitorOAuthDeepLink() {
@@ -17,14 +17,14 @@ function CapacitorOAuthDeepLink() {
 }
 
 /**
- * Remember login across APK process death.
- * Preferences holds a resume token — cold start re-mints WebView session cookies
- * (cookies alone often vanish when the process is killed).
+ * Persist resume token while authenticated in the APK WebView.
+ * Uses CvSession on calorievision.ru (Capacitor JS is local-shell only).
  */
 function CapacitorSessionPersist() {
   const { status } = useSession();
   useEffect(() => {
     if (status !== "authenticated") return;
+    if (!isApkWebView()) return;
     void (async () => {
       await markCapacitorLoggedIn();
       await refreshCapacitorResumeToken();
@@ -41,9 +41,15 @@ function CapacitorNativeViewport() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
+      if (isApkWebView()) {
+        markCapacitorShell();
+      }
       const native = await detectCapacitorShell(2500);
-      if (cancelled || !native) return;
-      markCapacitorShell();
+      if (cancelled) return;
+      if (native || isApkWebView()) {
+        markCapacitorShell();
+      }
+      if (!native && !isApkWebView()) return;
       const meta =
         document.querySelector('meta[name="viewport"]') ??
         (() => {

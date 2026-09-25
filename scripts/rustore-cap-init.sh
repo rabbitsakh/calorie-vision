@@ -116,7 +116,8 @@ ICON_SRC="$ROOT/rustore/icon-512-store.png"
 rustore_sync_capacitor_icons "$ROOT/android" "$ICON_SRC"
 
 # App Links so Google/VK OAuth Custom Tabs can return into the WebView.
-rustore_patch_capacitor_app_links "$ROOT/android"
+# CvSession bridge so login on calorievision.ru can persist resume token.
+rustore_patch_capacitor_android "$ROOT/android"
 
 echo "==> Capacitor Android готов: $ROOT/android"
 echo "Дальше: bash scripts/rustore-cap-build.sh"

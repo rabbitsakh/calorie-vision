@@ -227,16 +227,41 @@
 
   /**
    * Previously logged-in users: re-mint session cookies via resume token, then /ration.
-   * Fallback: open /ration if only the logged-in flag is set (cookies may still work).
+   * Prefer window.CvSession (works even before Capacitor Preferences is ready).
    */
   async function tryRestoreSession() {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       return false;
     }
+
+    function cvGet(key) {
+      try {
+        if (window.CvSession && typeof window.CvSession.get === "function") {
+          var v = window.CvSession.get(key);
+          return v != null && v !== "" ? String(v) : null;
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      return null;
+    }
+
+    var resume = cvGet(RESUME_TOKEN_KEY);
+    if (resume && resume.length > 10) {
+      window.location.replace(
+        PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),
+      );
+      return true;
+    }
+    if (cvGet(LOGGED_IN_KEY) === "1") {
+      openProductRation();
+      return true;
+    }
+
     var Prefs = await waitForPreferences(2500);
     if (!Prefs) return false;
 
-    var resume = await prefsGet(Prefs, RESUME_TOKEN_KEY);
+    resume = await prefsGet(Prefs, RESUME_TOKEN_KEY);
     if (resume && resume.length > 10) {
       window.location.replace(
         PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),

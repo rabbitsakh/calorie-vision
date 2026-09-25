@@ -5,6 +5,7 @@ import {
   capacitorResumeConsumeUrl,
   clearCapacitorResumeToken,
   getCapacitorResumeToken,
+  isApkWebView,
 } from "./capacitor-resume.ts";
 
 test("resume prefs key is stable", () => {
@@ -17,6 +18,10 @@ test("consume URL encodes token", () => {
     url,
     "https://calorievision.ru/api/auth/capacitor-resume?token=abc%2Fdef",
   );
+});
+
+test("isApkWebView is false on plain node/web", () => {
+  assert.equal(isApkWebView(), false);
 });
 
 test("get/clear are no-ops on web", async () => {

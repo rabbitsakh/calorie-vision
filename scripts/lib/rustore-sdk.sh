@@ -592,6 +592,171 @@ else:
 PY
 }
 
+# MainActivity: JavascriptInterface available on ALL WebView origins (including
+# calorievision.ru). Capacitor's DOCUMENT_START_SCRIPT only injects on localhost,
+# so Preferences writes from the product site never ran — every cold start showed «Войти».
+rustore_patch_capacitor_session_bridge() {
+  local android_dir="${1:?android}"
+  local main=""
+  local candidate
+
+  for candidate in \
+    "$android_dir/app/src/main/java/ru/calorievision/app/MainActivity.java" \
+    "$android_dir/app/src/main/java/com/getcapacitor/myapp/MainActivity.java"; do
+    if [[ -f "$candidate" ]]; then
+      main="$candidate"
+      break
+    fi
+  done
+
+  if [[ -z "$main" ]]; then
+    main="$(find "$android_dir/app/src/main/java" -name 'MainActivity.java' 2>/dev/null | head -1 || true)"
+  fi
+
+  if [[ -z "${main:-}" || ! -f "$main" ]]; then
+    echo "Нет MainActivity.java — пропуск CvSession bridge" >&2
+    return 0
+  fi
+
+  echo "==> Patching MainActivity CvSession bridge ($main)"
+  mkdir -p "$(dirname "$main")"
+  cat >"$main" <<'JAVA'
+package ru.calorievision.app;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
+import android.os.Bundle;
+import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
+import com.getcapacitor.BridgeActivity;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+/**
+ * RuStore APK session bridge.
+ *
+ * Capacitor JS is only injected on the local shell origin. After login the WebView
+ * sits on calorievision.ru without window.Capacitor — so @capacitor/preferences
+ * writes never happen. CvSession is a JavascriptInterface that works on every
+ * origin and shares the CapacitorStorage prefs group used by Preferences.
+ */
+public class MainActivity extends BridgeActivity {
+  private static final String PREFS_GROUP = "CapacitorStorage";
+  private static final String RESUME_KEY = "cv_cap_resume_token_v1";
+  private static final String PRODUCT_RESUME =
+      "https://calorievision.ru/api/auth/capacitor-resume?token=";
+
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    attachSessionBridge();
+    maybeColdStartResume();
+  }
+
+  @Override
+  public void onPause() {
+    try {
+      CookieManager.getInstance().flush();
+    } catch (Exception ignored) {
+      // older WebView
+    }
+    super.onPause();
+  }
+
+  @SuppressLint("SetJavaScriptEnabled")
+  private void attachSessionBridge() {
+    try {
+      if (getBridge() == null || getBridge().getWebView() == null) return;
+      WebView webView = getBridge().getWebView();
+      webView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
+    } catch (Exception ignored) {
+      // Bridge not ready
+    }
+  }
+
+  private void maybeColdStartResume() {
+    try {
+      if (getIntent() != null && getIntent().getData() != null) {
+        // Deep link / OAuth return — let Capacitor handle it.
+        return;
+      }
+      if (!isOnline()) return;
+
+      SharedPreferences prefs = getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
+      String token = prefs.getString(RESUME_KEY, null);
+      if (token == null || token.length() < 12) return;
+
+      if (getBridge() == null || getBridge().getWebView() == null) return;
+      WebView webView = getBridge().getWebView();
+      String encoded = URLEncoder.encode(token, StandardCharsets.UTF_8.name());
+      String url = PRODUCT_RESUME + encoded;
+      webView.post(() -> {
+        try {
+          webView.loadUrl(url);
+        } catch (Exception ignored) {
+          // fall through to local shell
+        }
+      });
+    } catch (Exception ignored) {
+      // keep local shell
+    }
+  }
+
+  private boolean isOnline() {
+    try {
+      ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+      if (cm == null) return true;
+      NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
+      return caps != null
+          && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+              || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+              || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
+  public static final class CvSessionBridge {
+    private final SharedPreferences prefs;
+
+    CvSessionBridge(Context context) {
+      prefs = context.getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
+    }
+
+    @JavascriptInterface
+    public String get(String key) {
+      if (key == null) return null;
+      return prefs.getString(key, null);
+    }
+
+    @JavascriptInterface
+    public void set(String key, String value) {
+      if (key == null || value == null) return;
+      prefs.edit().putString(key, value).apply();
+    }
+
+    @JavascriptInterface
+    public void remove(String key) {
+      if (key == null) return;
+      prefs.edit().remove(key).apply();
+    }
+  }
+}
+JAVA
+  echo "MainActivity CvSession bridge written"
+}
+
+# Keep session bridge after cap sync (same hook point as App Links).
+rustore_patch_capacitor_android() {
+  local android_dir="${1:?android}"
+  rustore_patch_capacitor_app_links "$android_dir"
+  rustore_patch_capacitor_session_bridge "$android_dir"
+}
+
 # Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).
 rustore_lock_manifest_checksum() {
   local android_dir="$1"
