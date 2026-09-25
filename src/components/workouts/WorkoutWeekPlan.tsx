@@ -30,6 +30,8 @@ export type TodaySessionCard = {
 type Props = {
   todayKey: string;
   sessions: TodaySessionCard[];
+  /** No history at all — first-ever gym open. */
+  firstWorkout?: boolean;
   onOpenSession: (id: string) => void;
   /** Open session and jump straight into fullscreen gym stage. */
   onContinueInGym?: (id: string) => void;
@@ -67,6 +69,7 @@ function sessionMetric(s: TodaySessionCard): string {
 export function WorkoutWeekPlan({
   todayKey,
   sessions,
+  firstWorkout = false,
   onOpenSession,
   onContinueInGym,
   onStartBlank,
@@ -107,6 +110,8 @@ export function WorkoutWeekPlan({
   );
   const finished = sessions.filter((s) => s.clockStatus === "finished");
   const planned = data?.today ?? [];
+  const isFirstEmpty =
+    firstWorkout && !active && drafts.length === 0 && finished.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -120,7 +125,9 @@ export function WorkoutWeekPlan({
           ) : null}
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Продолжите тренировку или начните новую.
+          {isFirstEmpty
+            ? "Начните первую тренировку — упражнения добавите по ходу."
+            : "Продолжите тренировку или начните новую."}
         </p>
       </header>
 
@@ -197,9 +204,13 @@ export function WorkoutWeekPlan({
 
       {!active && drafts.length === 0 ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-900">Начать тренировку</p>
+          <p className="text-sm font-semibold text-slate-900">
+            {isFirstEmpty ? "Первая тренировка" : "Начать тренировку"}
+          </p>
           <p className="mt-1 text-sm text-slate-500">
-            Пустая сессия на сегодня — упражнения добавите сами.
+            {isFirstEmpty
+              ? "Один тап — и вы в зале. Подходы и кардио можно добавить сразу."
+              : "Пустая сессия на сегодня — упражнения добавите сами."}
           </p>
           <button
             type="button"
@@ -207,10 +218,10 @@ export function WorkoutWeekPlan({
             className="mt-3 w-full rounded-xl bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
             onClick={onStartBlank}
           >
-            Новая тренировка
+            {isFirstEmpty ? "Начать тренировку" : "Новая тренировка"}
           </button>
 
-          {loading ? (
+          {isFirstEmpty ? null : loading ? (
             <p className="mt-4 text-sm text-slate-400">Загрузка плана…</p>
           ) : error ? (
             <p className="mt-4 text-sm text-red-600">{error}</p>
@@ -302,6 +313,7 @@ export function WorkoutWeekPlan({
         </section>
       ) : null}
 
+      {isFirstEmpty ? null : (
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <button
           type="button"
@@ -356,6 +368,7 @@ export function WorkoutWeekPlan({
           </p>
         )}
       </section>
+      )}
     </div>
   );
 }

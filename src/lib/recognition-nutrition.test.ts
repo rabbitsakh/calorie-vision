@@ -25,6 +25,7 @@ import {
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
   isMissingCaloriesForReview,
+  isMissingMacrosForReview,
   DEFAULT_DRINK_SERVING_ML,
 } from "./recognition-nutrition.ts";
 import { inferDrinkPackMlFromText } from "./portion-unit.ts";
@@ -674,6 +675,49 @@ test("isMissingCaloriesForReview ignores zero portion when per100g is present", 
   assert.equal(isMissingCaloriesForReview(0, { calories: 0 }), true);
   assert.equal(isMissingCaloriesForReview(0, null), true);
   assert.equal(isMissingCaloriesForReview(50, undefined), false);
+});
+
+test("isMissingMacrosForReview flags kcal without BJU, skips drinks", () => {
+  assert.equal(
+    isMissingMacrosForReview({
+      dishName: "Котлета",
+      calories: 320,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+    }),
+    true,
+  );
+  assert.equal(
+    isMissingMacrosForReview({
+      dishName: "Котлета",
+      calories: 320,
+      protein: 20,
+      fat: 0,
+      carbs: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    isMissingMacrosForReview({
+      dishName: "Чай",
+      calories: 5,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+    }),
+    false,
+  );
+  assert.equal(
+    isMissingMacrosForReview({
+      dishName: "Котлета",
+      calories: 0,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+    }),
+    false,
+  );
 });
 
 test("describeNutritionBasis explains label per-100 vs portion", () => {

@@ -17,7 +17,8 @@
 - [ ] Windows: JDK 21 + `ANDROID_HOME` = корень SDK (см. `WINDOWS.md`)
 - [ ] Установка APK на телефон: локальный shell (не лендинг сайта)
 - [ ] Авиарежим: welcome + демо-рацион; «Войти» → экран «Нет интернета»
-- [ ] С сетью: логин (Google / VK / Telegram / email)
+      (реальный offline; не путать с ложным navigator.onLine)
+- [ ] С сетью: логин (Google / VK / Telegram / email); cold start не залипает на «Нет интернета»
 - [ ] Фото → распознавание → сохранение
 - [ ] Локальные напоминания в Capacitor APK (профиль → Напоминания)
 - [ ] Web Push из PWA / TWA (если доступно на устройстве)
@@ -30,9 +31,14 @@
 - [ ] Название: Calorie Vision
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
-- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, порядок 01→05: рацион → проверка → статистика → план → «+»)
+- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, порядок 01→06:
+      рацион → зал → статистика → план → режимы «+» → профиль)
 - [ ] Декларация данных (шпаргалка в `listing.ru.md`)
 - [ ] «Что нового» из `listing.ru.md`
+- [ ] Сборка Capacitor APK: `bash scripts/rustore-cap-init.sh` затем
+      `bash scripts/rustore-cap-build.sh` (не Bubblewrap TWA)
+- [ ] После установки: один вход → полное закрытие → снова открыть → сразу рацион
+      (CvSession / resume-токен)
 - [ ] Категория: Здоровье и фитнес / Еда
 - [ ] Возрастной рейтинг
 - [ ] Ссылка на политику: `https://calorievision.ru/privacy`

@@ -38,6 +38,7 @@ import {
   resolvePer100gForScaling,
   describeNutritionBasis,
   isMissingCaloriesForReview,
+  isMissingMacrosForReview,
   scaleRecognitionToPortion,
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
@@ -184,13 +185,21 @@ const DEFAULT_LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
 function dishNeedsReview(
   dish: DishDraft,
   lowConfidenceThreshold: number,
-): { lowConfidence: boolean; missingCalories: boolean } {
+): { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean } {
   return {
     lowConfidence: dish.original.confidence < lowConfidenceThreshold,
     missingCalories: isMissingCaloriesForReview(
       Number(dish.calories),
       dish.original.per100g,
     ),
+    missingMacros: isMissingMacrosForReview({
+      dishName: dish.dishName,
+      brand: dish.original.brand,
+      calories: Number(dish.calories),
+      protein: Number(dish.protein) || 0,
+      fat: Number(dish.fat) || 0,
+      carbs: Number(dish.carbs) || 0,
+    }),
   };
 }
 
@@ -682,7 +691,7 @@ export function ConfirmationCard({
       ? dishes.filter((dish) => dish.dishName.trim().length > 0)
       : dishes.filter((dish) => {
           const review = dishNeedsReview(dish, lowConfidenceThreshold);
-          return review.lowConfidence || review.missingCalories;
+          return review.lowConfidence || review.missingCalories || review.missingMacros;
         });
     if (targets.length === 0) {
       setLookupMessage(
@@ -818,8 +827,9 @@ export function ConfirmationCard({
   const searching = searchingId !== null;
   const reviewFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));
   const anyMissingCalories = reviewFlags.some((flag) => flag.missingCalories);
+  const anyMissingMacros = reviewFlags.some((flag) => flag.missingMacros);
   const anyLowConfidence = reviewFlags.some((flag) => flag.lowConfidence);
-  const needsReview = anyMissingCalories || anyLowConfidence;
+  const needsReview = anyMissingCalories || anyMissingMacros || anyLowConfidence;
   const lowConfidenceDishes = dishes.filter(
     (dish) => dishNeedsReview(dish, lowConfidenceThreshold).lowConfidence,
   );
@@ -834,10 +844,13 @@ export function ConfirmationCard({
     const active = dishes[Math.min(activeDish, dishes.length - 1)];
     if (active) {
       const flag = dishNeedsReview(active, lowConfidenceThreshold);
-      if (flag.lowConfidence || flag.missingCalories) return active;
+      if (flag.lowConfidence || flag.missingCalories || flag.missingMacros) return active;
     }
     if (lowestConfidenceDish) return lowestConfidenceDish;
-    return dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingCalories) ?? null;
+    const missingCal =
+      dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingCalories) ?? null;
+    if (missingCal) return missingCal;
+    return dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingMacros) ?? null;
   })();
   const reviewCta = confirmReviewPrimaryCta({
     enriching,
@@ -845,7 +858,9 @@ export function ConfirmationCard({
     needsReview,
     multi,
   });
-  const reviewTargetCount = reviewFlags.filter((f) => f.lowConfidence || f.missingCalories).length;
+  const reviewTargetCount = reviewFlags.filter(
+    (f) => f.lowConfidence || f.missingCalories || f.missingMacros,
+  ).length;
   const showLookupAllSecondary =
     Boolean(reviewCta) &&
     reviewCta?.mode === "lookup-one" &&
@@ -855,6 +870,7 @@ export function ConfirmationCard({
   const saveAsIs = canSaveAsIs({
     anyLowConfidence,
     anyMissingCalories,
+    anyMissingMacros,
     totalCalories,
   });
   const saveLabel = confirmSaveButtonLabel({
@@ -993,11 +1009,13 @@ export function ConfirmationCard({
                     ? "Уточнение не завершилось — проверьте калории"
                     : anyMissingCalories
                       ? "Не хватает калорий — уточните название"
-                      : anyLowConfidence && multi && lowestConfidenceDish
-                        ? `Низкая уверенность у ${lowConfidenceDishes.length} из ${dishes.length} (мин. ${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте позиции`
-                        : anyLowConfidence && lowestConfidenceDish
-                          ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
-                          : "Низкая уверенность — проверьте блюдо"}
+                      : anyMissingMacros
+                        ? "Есть ккал, нет БЖУ — уточните название"
+                        : anyLowConfidence && multi && lowestConfidenceDish
+                          ? `Низкая уверенность у ${lowConfidenceDishes.length} из ${dishes.length} (мин. ${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте позиции`
+                          : anyLowConfidence && lowestConfidenceDish
+                            ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
+                            : "Низкая уверенность — проверьте блюдо"}
               </p>
               {reviewCta ? (
                 <button
@@ -1076,16 +1094,22 @@ export function ConfirmationCard({
                     title={
                       hasAllergen
                         ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
-                        : reviewFlags[index]?.lowConfidence
-                          ? "Слабая уверенность — откройте и нажмите «Уточнить»"
-                          : undefined
+                        : reviewFlags[index]?.missingMacros
+                          ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
+                          : reviewFlags[index]?.lowConfidence
+                            ? "Слабая уверенность — откройте и нажмите «Уточнить»"
+                            : undefined
                     }
                     onClick={() => setActiveDish(index)}
                   >
                     {index + 1}. {dish.dishName || "Блюдо"}
                     {Number(dish.calories) > 0 ? ` · ${Math.round(Number(dish.calories))}` : ""}
                     {hasAllergen ? " ⚠" : ""}
-                    {reviewFlags[index]?.lowConfidence ? " · ?" : ""}
+                    {reviewFlags[index]?.missingMacros
+                      ? " · БЖУ?"
+                      : reviewFlags[index]?.lowConfidence
+                        ? " · ?"
+                        : ""}
                   </Chip>
                 );
               })}
@@ -1303,7 +1327,7 @@ function DishFields({
   lookupDisabled: boolean;
   formDisabled: boolean;
   canRemove: boolean;
-  review: { lowConfidence: boolean; missingCalories: boolean };
+  review: { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean };
   onChange: (patch: Partial<DishDraft>) => void;
   onBaselineChange: (patch: Partial<DishDraft>) => void;
   onPortionChange: (value: string) => void;
@@ -1312,7 +1336,8 @@ function DishFields({
   onRemove: () => void;
 }) {
   const fieldId = (name: string) => `${name}-${dish.id}`;
-  const showReviewCta = review.lowConfidence || review.missingCalories;
+  const showReviewCta =
+    review.lowConfidence || review.missingCalories || review.missingMacros;
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [wrongDishHint, setWrongDishHint] = useState(false);
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
@@ -1406,6 +1431,7 @@ function DishFields({
             <p className="text-xs text-slate-500">
               Уверенность: {formatConfidencePercent(dish.original.confidence)}
               {review.missingCalories ? " · нет калорий" : ""}
+              {review.missingMacros ? " · нет БЖУ" : ""}
               {review.lowConfidence ? " · низкая уверенность" : ""}
             </p>
           </div>
@@ -1562,9 +1588,11 @@ function DishFields({
             })}
           </div>
           <p className="text-xs text-slate-500">Калории и БЖУ пересчитываются пропорционально порции</p>
-          {review.lowConfidence || review.missingCalories ? (
+          {review.lowConfidence || review.missingCalories || review.missingMacros ? (
             <p className="mt-1 text-xs font-medium text-amber-800">
-              Стоит сверить порцию — уверенность или калории требуют внимания.
+              {review.missingMacros && !review.missingCalories
+                ? "Есть ккал, но БЖУ пустые — уточните название или заполните белки/жиры/углеводы."
+                : "Стоит сверить порцию — уверенность или калории требуют внимания."}
             </p>
           ) : null}
           {describeNutritionBasis(dish.original) ? (
@@ -1594,6 +1622,13 @@ function DishFields({
 
         {showAdvanced ? (
           <>
+            {review.missingMacros && !review.missingCalories ? (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+                Есть калории, но белки/жиры/углеводы нулевые — нажмите «Уточнить по названию» или
+                заполните БЖУ вручную.
+              </p>
+            ) : null}
+
             {review.lowConfidence ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
                 Низкая уверенность ({formatConfidencePercent(dish.original.confidence)}) — проверьте

@@ -196,7 +196,7 @@ export default function LoginForm() {
     const result = await signIn("email", {
       email,
       redirect: false,
-      callbackUrl: withBasePath("/"),
+      callbackUrl: withBasePath("/ration/"),
     });
 
     setLoading(false);

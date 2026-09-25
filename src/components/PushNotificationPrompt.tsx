@@ -13,6 +13,7 @@ import {
 } from "@/lib/push-client";
 import { subscribeBrowserPush } from "@/lib/push-subscribe";
 import { trackPushEnabledGoal } from "@/lib/metrika-funnel";
+import { getCachedLoggedDaysTotal } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
 
 export function PushNotificationPrompt() {
@@ -43,6 +44,8 @@ export function PushNotificationPrompt() {
 
       if (cap.channel === "capacitor-local") {
         if (getPushPromptDismissed()) return;
+        // First hour: don't compete with empty diary / first meal.
+        if (getCachedLoggedDaysTotal() < 1) return;
         setCapacitorLocal(true);
         setHintOnly(false);
         setHintText(null);
@@ -52,6 +55,8 @@ export function PushNotificationPrompt() {
 
       if (!cap.canSubscribe || cap.permission !== "default") return;
       if (getPushPromptDismissed()) return;
+      // Same quiet gate for web push on a brand-new account.
+      if (getCachedLoggedDaysTotal() < 1) return;
 
       setHintOnly(false);
       setHintText(null);

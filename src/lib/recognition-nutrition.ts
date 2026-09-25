@@ -661,6 +661,22 @@ export function isMissingCaloriesForReview(
   return !Number.isFinite(calories) || calories <= 0;
 }
 
+/**
+ * Kcal present but all macros zero — usually a bad plate pass / incomplete enrichment.
+ * Skip drinks (often legitimately ~0 protein/fat).
+ */
+export function isMissingMacrosForReview(
+  item: Pick<FoodRecognitionResult, "dishName" | "brand" | "calories" | "protein" | "fat" | "carbs">,
+): boolean {
+  if (looksLikeDrinkName(item.dishName, item.brand)) return false;
+  const calories = Number(item.calories);
+  if (!Number.isFinite(calories) || calories <= 0) return false;
+  const protein = Number(item.protein) || 0;
+  const fat = Number(item.fat) || 0;
+  const carbs = Number(item.carbs) || 0;
+  return protein <= 0 && fat <= 0 && carbs <= 0;
+}
+
 /** Resolve portion shown on confirm card (bottle ml from label text when vision omits volume). */
 export function resolveDisplayPortionGrams(
   item: Pick<

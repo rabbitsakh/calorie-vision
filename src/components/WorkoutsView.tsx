@@ -2764,6 +2764,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         <WorkoutWeekPlan
           todayKey={todayKey}
           busy={busy}
+          firstWorkout={sessions.length === 0}
           sessions={sessions
             .filter((s) => s.date === todayKey)
             .map((s) => ({
