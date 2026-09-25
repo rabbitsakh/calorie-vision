@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
-import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
+import { isApkWebView, resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 import { resolveNativeAuthEntry } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -18,7 +18,7 @@ export function CapacitorSkipLanding() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const native = await detectCapacitorShell(2500);
+      const native = (await detectCapacitorShell(2500)) || isApkWebView();
       if (cancelled || !native) return;
       setBusy(true);
       markCapacitorShell();

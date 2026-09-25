@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppSplash } from "@/components/AppSplash";
-import { detectCapacitorShell } from "@/lib/capacitor-bridge";
-import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
+import { isApkWebView, resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
@@ -19,13 +18,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     void (async () => {
-      const native = await detectCapacitorShell(800);
-      if (cancelled || !native) return;
+      if (!isApkWebView()) return;
       setResuming(true);
       const started = await resumeCapacitorSessionInPlace();
       if (cancelled) return;
       if (!started) setResuming(false);
-      // If started, full navigation replaces this page.
     })();
 
     return () => {

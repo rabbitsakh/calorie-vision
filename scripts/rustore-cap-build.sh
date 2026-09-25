@@ -52,7 +52,8 @@ ICON_SRC="$ROOT/rustore/icon-512-store.png"
 rustore_sync_capacitor_icons "$ANDROID" "$ICON_SRC"
 
 # Keep App Links for OAuth return (cap sync may reset manifest extras).
-rustore_patch_capacitor_app_links "$ANDROID"
+# CvSession bridge: write resume token from calorievision.ru (Cap JS is local-only).
+rustore_patch_capacitor_android "$ANDROID"
 
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
