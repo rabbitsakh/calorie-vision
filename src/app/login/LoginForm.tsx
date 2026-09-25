@@ -8,6 +8,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { detectCapacitorShell, isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
+import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 import { hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -139,6 +140,7 @@ export default function LoginForm() {
   }, []);
 
   // Detect Capacitor (bridge can land a tick late after local shell → calorievision.ru).
+  // If a resume token is stored, re-mint cookies and leave /login immediately.
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -146,11 +148,13 @@ export default function LoginForm() {
       if (cancelled || !native) return;
       markCapacitorShell();
       setCapacitorShell(true);
+      if (status === "authenticated") return;
+      await resumeCapacitorSessionInPlace();
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [status]);
 
   // First-run: show welcome slider before login in the APK.
   // Sync localStorage only — async Preferences raced and looped welcome ↔ login.

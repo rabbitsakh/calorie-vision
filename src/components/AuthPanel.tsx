@@ -162,8 +162,8 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
               onClick={() => {
                 setOpen(false);
                 void (async () => {
-                  const { clearCapacitorLoggedIn } = await import("@/lib/capacitor-login-flag");
-                  await clearCapacitorLoggedIn();
+                  const { clearCapacitorResumeToken } = await import("@/lib/capacitor-resume");
+                  await clearCapacitorResumeToken();
                   await signOut({ callbackUrl: withBasePath("/login") });
                 })();
               }}

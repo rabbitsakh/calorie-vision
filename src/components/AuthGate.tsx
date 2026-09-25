@@ -2,21 +2,38 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AppSplash } from "@/components/AppSplash";
-import { clearCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
+import { detectCapacitorShell } from "@/lib/capacitor-bridge";
+import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
+  const [resuming, setResuming] = useState(false);
+  const resumeTried = useRef(false);
 
   useEffect(() => {
-    // Session gone (logout elsewhere / expired cookies) — don't keep restoring to /ration.
-    if (status === "unauthenticated") {
-      void clearCapacitorLoggedIn();
-    }
+    if (status !== "unauthenticated") return;
+    if (resumeTried.current) return;
+    resumeTried.current = true;
+
+    let cancelled = false;
+    void (async () => {
+      const native = await detectCapacitorShell(800);
+      if (cancelled || !native) return;
+      setResuming(true);
+      const started = await resumeCapacitorSessionInPlace();
+      if (cancelled) return;
+      if (!started) setResuming(false);
+      // If started, full navigation replaces this page.
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [status]);
 
-  if (status === "loading") {
+  if (status === "loading" || resuming) {
     return <AppSplash status="Входим…" tipContext={{}} />;
   }
 

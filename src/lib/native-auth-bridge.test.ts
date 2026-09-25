@@ -36,6 +36,18 @@ test("round-trip compact bridge token", async () => {
   assert.equal(await verifyNativeBridgeToken("not-a-token"), null);
 });
 
+test("resume token is not accepted as oauth handoff", async () => {
+  process.env.NEXTAUTH_SECRET = "test-secret-native-bridge";
+  const { createCapacitorResumeToken, verifyCapacitorResumeToken } = await import(
+    "./native-auth-bridge-server.ts"
+  );
+  const resume = await createCapacitorResumeToken("user-99");
+  assert.equal(await verifyCapacitorResumeToken(resume), "user-99");
+  assert.equal(await verifyNativeBridgeToken(resume), null);
+  const oauth = await createNativeBridgeToken("user-99");
+  assert.equal(await verifyCapacitorResumeToken(oauth), null);
+});
+
 test("isNativeBridgeUrl for consume path", () => {
   assert.equal(
     isNativeBridgeUrl("https://calorievision.ru/api/auth/native-bridge/consume?token=x"),
