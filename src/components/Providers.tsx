@@ -5,6 +5,7 @@ import { useEffect, type ReactNode } from "react";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { markCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
+import { refreshCapacitorResumeToken } from "@/lib/capacitor-resume";
 import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
@@ -16,17 +17,18 @@ function CapacitorOAuthDeepLink() {
 }
 
 /**
- * Remember login across APK process death (Preferences survives; local shell does not
- * share cookies/localStorage with calorievision.ru). Cold start in cap-www reads the flag.
+ * Remember login across APK process death.
+ * Preferences holds a resume token — cold start re-mints WebView session cookies
+ * (cookies alone often vanish when the process is killed).
  */
 function CapacitorSessionPersist() {
   const { status } = useSession();
   useEffect(() => {
-    if (status === "authenticated") {
-      void markCapacitorLoggedIn();
-    }
-    // Do not clear on "unauthenticated" — that fires on every cold load of /login
-    // before cookies are checked, and would wipe the restore flag.
+    if (status !== "authenticated") return;
+    void (async () => {
+      await markCapacitorLoggedIn();
+      await refreshCapacitorResumeToken();
+    })();
   }, [status]);
   return null;
 }

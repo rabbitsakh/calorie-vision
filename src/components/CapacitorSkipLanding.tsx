@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
+import { resumeCapacitorSessionInPlace } from "@/lib/capacitor-resume";
 import { resolveNativeAuthEntry } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
 /**
  * In the Capacitor Android shell, never show the marketing landing.
- * Unauthenticated → /welcome (first run) or /login.
+ * Resume token → re-mint cookies → /ration. Else welcome or login.
  */
 export function CapacitorSkipLanding() {
   const router = useRouter();
@@ -21,6 +22,10 @@ export function CapacitorSkipLanding() {
       if (cancelled || !native) return;
       setBusy(true);
       markCapacitorShell();
+
+      const resumed = await resumeCapacitorSessionInPlace();
+      if (cancelled || resumed) return;
+
       const path = await resolveNativeAuthEntry();
       if (cancelled) return;
       router.replace(withBasePath(path));

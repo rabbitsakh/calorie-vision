@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvatarFrame } from "@/components/AvatarFrame";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
-import { clearCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
+import { clearCapacitorResumeToken } from "@/lib/capacitor-resume";
 import {
   ACTIVITY_OPTIONS,
   SEX_OPTIONS,
@@ -293,7 +293,7 @@ export function ProfileForm() {
         throw new Error(data.error ?? "Не удалось удалить аккаунт");
       }
 
-      await clearCapacitorLoggedIn();
+      await clearCapacitorResumeToken();
       await signOut({ callbackUrl: withBasePath("/login") });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка удаления аккаунта");

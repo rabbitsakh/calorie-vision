@@ -5,8 +5,9 @@
   var PRODUCT_ORIGIN = "https://calorievision.ru";
   var WELCOME_KEY = "cv_cap_shell_welcome_v1";
   var MEALS_KEY = "cv_cap_shell_meals_v1";
-  /** Must match src/lib/capacitor-login-flag.ts */
+  /** Must match src/lib/capacitor-login-flag.ts / capacitor-resume.ts */
   var LOGGED_IN_KEY = "cv_cap_logged_in_v1";
+  var RESUME_TOKEN_KEY = "cv_cap_resume_token_v1";
   var KCAL_GOAL = 2000;
 
   var SLIDES = [
@@ -189,14 +190,34 @@
     window.location.replace(PRODUCT_ORIGIN + "/ration/");
   }
 
-  async function prefsGet(key) {
+  function sleep(ms) {
+    return new Promise(function (r) {
+      setTimeout(r, ms);
+    });
+  }
+
+  /** Wait until Capacitor Preferences is injectable (bridge can lag after splash). */
+  async function waitForPreferences(timeoutMs) {
+    var started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      try {
+        var Cap = window.Capacitor;
+        if (Cap) {
+          var Prefs =
+            (Cap.Plugins && Cap.Plugins.Preferences) ||
+            (typeof Cap.registerPlugin === "function" ? Cap.registerPlugin("Preferences") : null);
+          if (Prefs && typeof Prefs.get === "function") return Prefs;
+        }
+      } catch (e) {
+        /* retry */
+      }
+      await sleep(50);
+    }
+    return null;
+  }
+
+  async function prefsGet(Prefs, key) {
     try {
-      var Cap = window.Capacitor;
-      if (!Cap) return null;
-      var Prefs =
-        (Cap.Plugins && Cap.Plugins.Preferences) ||
-        (typeof Cap.registerPlugin === "function" ? Cap.registerPlugin("Preferences") : null);
-      if (!Prefs || typeof Prefs.get !== "function") return null;
       var result = await Prefs.get({ key: key });
       return result && result.value != null ? String(result.value) : null;
     } catch (e) {
@@ -204,15 +225,31 @@
     }
   }
 
-  /** Previously logged-in users skip the local demo and restore the cloud diary. */
+  /**
+   * Previously logged-in users: re-mint session cookies via resume token, then /ration.
+   * Fallback: open /ration if only the logged-in flag is set (cookies may still work).
+   */
   async function tryRestoreSession() {
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       return false;
     }
-    var flagged = await prefsGet(LOGGED_IN_KEY);
-    if (flagged !== "1") return false;
-    openProductRation();
-    return true;
+    var Prefs = await waitForPreferences(2500);
+    if (!Prefs) return false;
+
+    var resume = await prefsGet(Prefs, RESUME_TOKEN_KEY);
+    if (resume && resume.length > 10) {
+      window.location.replace(
+        PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),
+      );
+      return true;
+    }
+
+    var flagged = await prefsGet(Prefs, LOGGED_IN_KEY);
+    if (flagged === "1") {
+      openProductRation();
+      return true;
+    }
+    return false;
   }
 
   function wireConnectivity() {
