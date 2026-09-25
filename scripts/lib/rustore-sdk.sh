@@ -626,15 +626,11 @@ package ru.calorievision.app;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 /**
  * RuStore APK session bridge.
@@ -643,18 +639,18 @@ import java.nio.charset.StandardCharsets;
  * sits on calorievision.ru without window.Capacitor — so @capacitor/preferences
  * writes never happen. CvSession is a JavascriptInterface that works on every
  * origin and shares the CapacitorStorage prefs group used by Preferences.
+ *
+ * Cold-start resume is done by rustore/cap-www/app.js (not loadUrl here): a native
+ * loadUrl raced the local shell, failed into errorPath offline.html, and bounced
+ * offline → shell → product → offline.
  */
 public class MainActivity extends BridgeActivity {
   private static final String PREFS_GROUP = "CapacitorStorage";
-  private static final String RESUME_KEY = "cv_cap_resume_token_v1";
-  private static final String PRODUCT_RESUME =
-      "https://calorievision.ru/api/auth/capacitor-resume?token=";
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     attachSessionBridge();
-    maybeColdStartResume();
   }
 
   @Override
@@ -675,48 +671,6 @@ public class MainActivity extends BridgeActivity {
       webView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
     } catch (Exception ignored) {
       // Bridge not ready
-    }
-  }
-
-  private void maybeColdStartResume() {
-    try {
-      if (getIntent() != null && getIntent().getData() != null) {
-        // Deep link / OAuth return — let Capacitor handle it.
-        return;
-      }
-      if (!isOnline()) return;
-
-      SharedPreferences prefs = getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
-      String token = prefs.getString(RESUME_KEY, null);
-      if (token == null || token.length() < 12) return;
-
-      if (getBridge() == null || getBridge().getWebView() == null) return;
-      WebView webView = getBridge().getWebView();
-      String encoded = URLEncoder.encode(token, StandardCharsets.UTF_8.name());
-      String url = PRODUCT_RESUME + encoded;
-      webView.post(() -> {
-        try {
-          webView.loadUrl(url);
-        } catch (Exception ignored) {
-          // fall through to local shell
-        }
-      });
-    } catch (Exception ignored) {
-      // keep local shell
-    }
-  }
-
-  private boolean isOnline() {
-    try {
-      ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-      if (cm == null) return true;
-      NetworkCapabilities caps = cm.getNetworkCapabilities(cm.getActiveNetwork());
-      return caps != null
-          && (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-              || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-              || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET));
-    } catch (Exception e) {
-      return true;
     }
   }
 

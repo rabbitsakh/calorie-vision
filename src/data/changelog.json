@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.3.21",
+    "date": "2026-09-25",
+    "summary": "fix(apk): петля offline↔shell — без native cold-start resume",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "APK: убран native loadUrl resume (гонка с shell → прыжки на «Нет интернета»)"
+      },
+      {
+        "kind": "fix",
+        "text": "APK: offline stub не авто-редиректит в облако; skip одного auto-restore"
+      }
+    ]
+  },
+  {
     "version": "2.3.20",
     "date": "2026-09-25",
     "summary": "fix(apk): вход + ложный офлайн; RuStore волны R1–R5",

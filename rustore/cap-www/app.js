@@ -8,6 +8,7 @@
   /** Must match src/lib/capacitor-login-flag.ts / capacitor-resume.ts */
   var LOGGED_IN_KEY = "cv_cap_logged_in_v1";
   var RESUME_TOKEN_KEY = "cv_cap_resume_token_v1";
+  var SKIP_AUTO_RESTORE_KEY = "cv_cap_skip_auto_restore";
   var KCAL_GOAL = 2000;
 
   var SLIDES = [
@@ -214,7 +215,24 @@
   }
 
   function goOfflineStub() {
+    try {
+      sessionStorage.setItem(SKIP_AUTO_RESTORE_KEY, "1");
+    } catch (e) {
+      /* ignore */
+    }
     window.location.replace("./offline.html");
+  }
+
+  function consumeSkipAutoRestore() {
+    try {
+      if (sessionStorage.getItem(SKIP_AUTO_RESTORE_KEY) === "1") {
+        sessionStorage.removeItem(SKIP_AUTO_RESTORE_KEY);
+        return true;
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return false;
   }
 
   async function openProductLogin() {
@@ -277,9 +295,18 @@
    * Previously logged-in users: re-mint session cookies via resume token, then /ration.
    * Prefer window.CvSession (works even before Capacitor Preferences is ready).
    * Soft-fail to local shell when the network probe fails — do not dump on offline.html
-   * during boot (false onLine was stranding users on «Нет интернета»).
+   * during boot. After errorPath/offline stub we skip one auto-restore to break the bounce.
    */
   async function tryRestoreSession() {
+    if (consumeSkipAutoRestore()) {
+      var skipHint = $("demo-hint");
+      if (skipHint) {
+        skipHint.textContent =
+          "Облако не открылось — локальный черновик. Нажмите «Войти», когда будете готовы.";
+      }
+      return false;
+    }
+
     function cvGet(key) {
       try {
         if (window.CvSession && typeof window.CvSession.get === "function") {
@@ -320,10 +347,21 @@
     }
 
     if (resume && resume.length > 10) {
+      // Mark skip so a failed navigation → offline → back to shell does not loop.
+      try {
+        sessionStorage.setItem(SKIP_AUTO_RESTORE_KEY, "1");
+      } catch (e) {
+        /* ignore */
+      }
       window.location.replace(
         PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),
       );
       return true;
+    }
+    try {
+      sessionStorage.setItem(SKIP_AUTO_RESTORE_KEY, "1");
+    } catch (e) {
+      /* ignore */
     }
     await openProductRation();
     return true;
