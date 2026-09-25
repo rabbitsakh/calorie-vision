@@ -185,6 +185,11 @@ test("rejects OFF egg hits with a different cooking style", () => {
   assert.equal(offMatchesQuery("вареное яйцо", "Яйцо варёное"), true);
   assert.equal(offMatchesQuery("яйцо в мешочек", "Яйцо в мешочек"), true);
   assert.equal(offMatchesQuery("яичница", "Яйцо варёное"), false);
+  // «вареное в мешочек» must not win over plain boiled egg
+  assert.equal(
+    offMatchesQuery("вареное яйцо", "Яйцо куриное (вареное в мешочек)"),
+    false,
+  );
 });
 
 test("rejects branded OFF hits that only share the brand string", () => {

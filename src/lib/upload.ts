@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { isAllowedImageUrl } from "./food-image";
 import { isDownloadableProductImageUrl } from "./product-web-image";
 import { compressFoodImage, FOOD_IMAGE_MAX_BYTES, FOOD_IMAGE_MAX_EDGE } from "./image-compress";
+import { getImageMimeType, looksLikeImageBuffer } from "./ai/image-utils";
 import { prisma } from "@/lib/prisma";
 import { MAX_UPLOAD_INPUT_BYTES } from "@/lib/upload-limits";
 
@@ -244,17 +245,27 @@ export async function saveRemoteImage(
     }
 
     const contentType = (response.headers.get("content-type") ?? "").split(";")[0].trim();
-    if (!contentType.startsWith("image/") || contentType === "image/svg+xml") {
-      return null;
-    }
-
     const buffer = Buffer.from(await response.arrayBuffer());
     if (buffer.length === 0 || buffer.length > MAX_REMOTE_IMAGE_BYTES) {
       return null;
     }
 
+    // Some product CDNs send PNG/JPEG as application/octet-stream (e.g. ime.by).
+    const mimeOk =
+      (contentType.startsWith("image/") && contentType !== "image/svg+xml") ||
+      ((!contentType || contentType === "application/octet-stream") &&
+        looksLikeImageBuffer(buffer));
+    if (!mimeOk) {
+      return null;
+    }
+
+    const mimeType =
+      contentType.startsWith("image/") && contentType !== "image/svg+xml"
+        ? contentType
+        : getImageMimeType(response.url, buffer);
+
     const compressed = await compressFoodImage(buffer);
-    return saveImageBuffer(compressed.buffer, compressed.mimeType, options);
+    return saveImageBuffer(compressed.buffer, compressed.mimeType || mimeType, options);
   } catch {
     return null;
   } finally {

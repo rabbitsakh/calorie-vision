@@ -1,7 +1,7 @@
 import { findFoodImage, findProduceWikiImage } from "./food-image";
 import {
   dishImageLookupQueries,
-  looksLikeProduceName,
+  looksLikeWikiFoodFallbackName,
   mealNeedsImage,
   normalizeDishName,
   shouldSkipDishName,
@@ -65,8 +65,8 @@ async function lookupProductImage(dishName: string): Promise<string | undefined>
     }
   }
 
-  // Raw produce (celery, cucumber, …): packaging search usually misses → Wikipedia / Commons.
-  if (looksLikeProduceName(dishName)) {
+  // Raw produce / boiled eggs: packaging search usually misses → Wikipedia / Commons.
+  if (looksLikeWikiFoodFallbackName(dishName)) {
     for (const query of queries.slice(0, 3)) {
       const remoteUrl = await findProduceWikiImage(query);
       const cached = await cacheRemoteImage(remoteUrl);

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   dishImageLookupQueries,
+  looksLikeEggDishName,
   looksLikeProduceName,
+  looksLikeWikiFoodFallbackName,
   mealNeedsImage,
   normalizeDishName,
   shouldSkipDishName,
@@ -49,6 +51,15 @@ test("stripFreshnessAdjectives drops свежий", () => {
 test("looksLikeProduceName detects celery and vegetables", () => {
   assert.equal(looksLikeProduceName("Сельдерей свежий"), true);
   assert.equal(looksLikeProduceName("борщ с мясом"), false);
+});
+
+test("looksLikeEggDishName and wiki fallback for boiled egg", () => {
+  assert.equal(looksLikeEggDishName("Вареное яйцо"), true);
+  assert.equal(looksLikeEggDishName("яйцо в мешочек"), false);
+  assert.equal(looksLikeWikiFoodFallbackName("Вареное яйцо"), true);
+  const queries = dishImageLookupQueries("Вареное яйцо");
+  assert.ok(queries.some((q) => /hard-boiled egg/i.test(q)));
+  assert.ok(queries.some((q) => /вареное яйцо/i.test(q)));
 });
 
 test("dishImageLookupQueries prefers bare сельдерей and celery synonym", () => {

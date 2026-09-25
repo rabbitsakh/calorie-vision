@@ -49,6 +49,7 @@ export function isAllowedImageUrl(url: string): boolean {
     const host = parsed.hostname.toLowerCase();
     return (
       host === "upload.wikimedia.org" ||
+      host === "thumb.wikimedia.org" ||
       host === "commons.wikimedia.org" ||
       host === "openfoodfacts.org" ||
       host === "static.openfoodfacts.org" ||
@@ -475,7 +476,7 @@ export async function findProduceWikiImage(query: string): Promise<string | unde
   const [wikiRu, wikiEn, commons] = await Promise.all([
     Promise.all(searchQs.map((q) => searchWikipediaImageList(q, "ru", 3))),
     Promise.all(searchQs.slice(0, 2).map((q) => searchWikipediaImageList(q, "en", 3))),
-    searchCommonsImageList(searchQs[0]!, 4, { querySuffix: "vegetable" }),
+    searchCommonsImageList(searchQs[0]!, 4, { querySuffix: "food" }),
   ]);
 
   for (const urls of [...wikiRu, ...wikiEn]) {
