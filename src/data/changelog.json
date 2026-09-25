@@ -1,9 +1,13 @@
 [
   {
-    "version": "2.3.19",
+    "version": "2.3.20",
     "date": "2026-09-25",
-    "summary": "fix(apk): вход сохраняется; RuStore волны R1–R5 — доверие и витрина",
+    "summary": "fix(apk): вход + ложный офлайн; RuStore волны R1–R5",
     "items": [
+      {
+        "kind": "fix",
+        "text": "APK: не залипать на «Нет интернета» при рабочей сети (probe calorievision.ru)"
+      },
       {
         "kind": "fix",
         "text": "APK: вход сохраняется после перезапуска (CvSession + resume-токен)"

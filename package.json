@@ -1,6 +1,6 @@
 {
   "name": "calorie-vision",
-  "version": "2.3.19",
+  "version": "2.3.20",
   "private": true,
   "scripts": {
     "dev": "next dev",

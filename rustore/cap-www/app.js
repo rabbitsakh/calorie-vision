@@ -171,19 +171,67 @@
     renderMeals();
   }
 
-  function openProductLogin() {
-    // Never navigate to the remote product offline — WebView would show a
-    // browser-style error page (RuStore moderation rejects that).
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      window.location.replace("./offline.html");
+  /**
+   * Android WebView often reports navigator.onLine=false even with working network.
+   * Never gate navigation on onLine alone — probe the product origin.
+   * Prefer mode:no-cors so opaque success still means the host was reached.
+   */
+  function probeOnline(timeoutMs) {
+    var ms = typeof timeoutMs === "number" ? timeoutMs : 4000;
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish(ok) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(ok);
+      }
+      var timer = setTimeout(function () {
+        finish(false);
+      }, ms);
+      var url = PRODUCT_ORIGIN + "/favicon.ico?cv_probe=" + Date.now();
+      // no-cors: opaque 200 still resolves — proves connectivity without CORS headers.
+      fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+        mode: "no-cors",
+      })
+        .then(function () {
+          finish(true);
+        })
+        .catch(function () {
+          var img = new Image();
+          img.onload = function () {
+            finish(true);
+          };
+          img.onerror = function () {
+            finish(false);
+          };
+          img.src = PRODUCT_ORIGIN + "/favicon.ico?cv_img=" + Date.now();
+        });
+    });
+  }
+
+  function goOfflineStub() {
+    window.location.replace("./offline.html");
+  }
+
+  async function openProductLogin() {
+    var hint = $("demo-hint");
+    if (hint) hint.textContent = "Проверяем сеть…";
+    var ok = await probeOnline(4500);
+    if (!ok) {
+      goOfflineStub();
       return;
     }
     window.location.href = PRODUCT_ORIGIN + "/login/";
   }
 
-  function openProductRation() {
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      window.location.replace("./offline.html");
+  async function openProductRation() {
+    var ok = await probeOnline(4500);
+    if (!ok) {
+      goOfflineStub();
       return;
     }
     // Top-level navigation so calorievision.ru session cookies are sent.
@@ -228,12 +276,10 @@
   /**
    * Previously logged-in users: re-mint session cookies via resume token, then /ration.
    * Prefer window.CvSession (works even before Capacitor Preferences is ready).
+   * Soft-fail to local shell when the network probe fails — do not dump on offline.html
+   * during boot (false onLine was stranding users on «Нет интернета»).
    */
   async function tryRestoreSession() {
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      return false;
-    }
-
     function cvGet(key) {
       try {
         if (window.CvSession && typeof window.CvSession.get === "function") {
@@ -247,43 +293,48 @@
     }
 
     var resume = cvGet(RESUME_TOKEN_KEY);
+    var flagged = cvGet(LOGGED_IN_KEY) === "1";
+
+    var Prefs = null;
+    if (!(resume && resume.length > 10) && !flagged) {
+      Prefs = await waitForPreferences(2500);
+      if (Prefs) {
+        resume = await prefsGet(Prefs, RESUME_TOKEN_KEY);
+        flagged = (await prefsGet(Prefs, LOGGED_IN_KEY)) === "1";
+      }
+    }
+
+    if (!(resume && resume.length > 10) && !flagged) {
+      return false;
+    }
+
+    // Have credentials — only leave the shell when the product is reachable.
+    var ok = await probeOnline(5000);
+    if (!ok) {
+      var hint = $("demo-hint");
+      if (hint) {
+        hint.textContent =
+          "Сеть пока недоступна — локальный черновик. Войдите снова, когда появится интернет.";
+      }
+      return false;
+    }
+
     if (resume && resume.length > 10) {
       window.location.replace(
         PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),
       );
       return true;
     }
-    if (cvGet(LOGGED_IN_KEY) === "1") {
-      openProductRation();
-      return true;
-    }
-
-    var Prefs = await waitForPreferences(2500);
-    if (!Prefs) return false;
-
-    resume = await prefsGet(Prefs, RESUME_TOKEN_KEY);
-    if (resume && resume.length > 10) {
-      window.location.replace(
-        PRODUCT_ORIGIN + "/api/auth/capacitor-resume?token=" + encodeURIComponent(resume),
-      );
-      return true;
-    }
-
-    var flagged = await prefsGet(Prefs, LOGGED_IN_KEY);
-    if (flagged === "1") {
-      openProductRation();
-      return true;
-    }
-    return false;
+    await openProductRation();
+    return true;
   }
 
   function wireConnectivity() {
     window.addEventListener("offline", function () {
-      // If we already left the shell for the remote product, Capacitor
-      // errorPath covers failed loads. While still on the local shell, keep UX quiet.
       var hint = $("demo-hint");
-      if (hint && typeof navigator !== "undefined" && navigator.onLine === false) {
-        hint.textContent = "Нет сети — локальный черновик доступен. Вход и облако — после подключения.";
+      if (hint) {
+        hint.textContent =
+          "Похоже, сеть пропала — локальный черновик доступен. Вход и облако — после подключения.";
       }
     });
     window.addEventListener("online", function () {
@@ -333,7 +384,7 @@
         /* fall through */
       }
     }
-    openProductLogin();
+    void openProductLogin();
   }
 
   function addDemoMeal() {
@@ -367,8 +418,12 @@
     });
     $("btn-demo-meal").addEventListener("click", addDemoMeal);
     $("btn-demo-workout").addEventListener("click", addDemoWorkout);
-    $("btn-sync").addEventListener("click", openProductLogin);
-    $("btn-sync-stats").addEventListener("click", openProductLogin);
+    $("btn-sync").addEventListener("click", function () {
+      void openProductLogin();
+    });
+    $("btn-sync-stats").addEventListener("click", function () {
+      void openProductLogin();
+    });
     $("btn-back-home").addEventListener("click", function () {
       show("screen-home");
     });
