@@ -193,10 +193,47 @@
     <script>
       (function () {
         var status = document.getElementById("status");
-        var PRODUCT = "https://calorievision.ru/login/";
+        var PRODUCT = "https://calorievision.ru";
+        var PRODUCT_LOGIN = PRODUCT + "/login/";
+        var probing = false;
 
-        function online() {
-          return typeof navigator !== "undefined" && navigator.onLine !== false;
+        /**
+         * Do not trust navigator.onLine alone — Android WebView often lies.
+         * no-cors opaque success still means the product host was reached.
+         */
+        function probeOnline(timeoutMs) {
+          var ms = typeof timeoutMs === "number" ? timeoutMs : 4500;
+          return new Promise(function (resolve) {
+            var done = false;
+            function finish(ok) {
+              if (done) return;
+              done = true;
+              clearTimeout(timer);
+              resolve(ok);
+            }
+            var timer = setTimeout(function () {
+              finish(false);
+            }, ms);
+            fetch(PRODUCT + "/favicon.ico?cv_probe=" + Date.now(), {
+              method: "GET",
+              cache: "no-store",
+              credentials: "omit",
+              mode: "no-cors",
+            })
+              .then(function () {
+                finish(true);
+              })
+              .catch(function () {
+                var img = new Image();
+                img.onload = function () {
+                  finish(true);
+                };
+                img.onerror = function () {
+                  finish(false);
+                };
+                img.src = PRODUCT + "/favicon.ico?cv_img=" + Date.now();
+              });
+          });
         }
 
         function setStatus(text) {
@@ -207,36 +244,56 @@
           window.location.replace("./index.html");
         }
 
-        function retry() {
-          setStatus(online() ? "Подключаем…" : "Сети всё ещё нет");
-          if (!online()) return;
-          // Prefer returning to the local shell; if we came from a failed
-          // remote navigation, retrying the product login is fine when online.
+        function goProduct() {
           try {
             var ref = document.referrer || "";
             if (ref.indexOf("calorievision.ru") !== -1) {
-              window.location.replace(PRODUCT);
+              window.location.replace(PRODUCT_LOGIN);
               return;
             }
           } catch (e) {
             /* ignore */
           }
+          // Prefer shell — it will resume session / open ration when network works.
           window.location.replace("./index.html");
         }
 
-        document.getElementById("btn-retry").addEventListener("click", retry);
+        async function retry() {
+          if (probing) return;
+          probing = true;
+          setStatus("Проверяем сеть…");
+          var ok = await probeOnline(5000);
+          probing = false;
+          if (!ok) {
+            setStatus("Сети всё ещё нет — можно открыть черновик на устройстве");
+            return;
+          }
+          setStatus("Сеть есть — подключаем…");
+          goProduct();
+        }
+
+        document.getElementById("btn-retry").addEventListener("click", function () {
+          void retry();
+        });
         document.getElementById("btn-local").addEventListener("click", goLocal);
 
         window.addEventListener("online", function () {
-          setStatus("Сеть появилась — можно повторить");
-        });
-        window.addEventListener("offline", function () {
-          setStatus("Нет сети");
+          setStatus("Сеть появилась — проверяем…");
+          void retry();
         });
 
-        if (online()) {
-          setStatus("Сеть есть — нажмите «Повторить»");
-        }
+        // Auto-recover from false offline (errorPath / flaky onLine at boot).
+        void (async function bootProbe() {
+          setStatus("Проверяем сеть…");
+          var ok = await probeOnline(5000);
+          if (ok) {
+            setStatus("Сеть есть — подключаем…");
+            // Small delay so the user sees the status, then leave the stub.
+            setTimeout(goProduct, 350);
+          } else {
+            setStatus("Сети нет — откройте черновик или повторите позже");
+          }
+        })();
       })();
     </script>
   </body>

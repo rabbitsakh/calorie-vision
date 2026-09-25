@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.3.20",
+    "date": "2026-09-25",
+    "summary": "fix(apk): ложный «Нет интернета» — probe вместо navigator.onLine",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "APK: не залипать на «Нет интернета» при рабочей сети (probe calorievision.ru)"
+      }
+    ]
+  },
+  {
     "version": "2.3.18",
     "date": "2026-09-22",
     "summary": "feat: тренировки для всех + RuStore/лендинг/APK (питание и зал)",
