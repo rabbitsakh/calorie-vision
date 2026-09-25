@@ -460,6 +460,18 @@ export function offCookingModifiersAgree(queryNorm: string, nameNorm: string): b
       return false;
     }
   }
+
+  // Product-only styles must not hijack a plainer query
+  // («вареное яйцо» ≠ «яйцо куриное (вареное в мешочек)»).
+  const exclusiveInName: Array<{ inName: RegExp; requiredInQuery: RegExp }> = [
+    { inName: /мешоч/, requiredInQuery: /мешоч/ },
+  ];
+  for (const rule of exclusiveInName) {
+    if (rule.inName.test(nameNorm) && !rule.requiredInQuery.test(queryNorm)) {
+      return false;
+    }
+  }
+
   return true;
 }
 

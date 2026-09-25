@@ -44,6 +44,19 @@ export function looksLikeProduceName(name: string): boolean {
   return normalized.split(" ").some((t) => PRODUCE_TOKEN.test(t));
 }
 
+/** Home staples that rarely have OFF packaging art — use Wiki/Commons (EN aliases help). */
+export function looksLikeEggDishName(name: string): boolean {
+  const normalized = normalizeDishName(name);
+  if (!normalized) return false;
+  if (/мешоч|яичниц|омлет|пашот|poached|глазун/.test(normalized)) return false;
+  return /яйц/.test(normalized);
+}
+
+/** Prefer Wiki/Commons when OFF + packaging web miss (produce + boiled eggs, …). */
+export function looksLikeWikiFoodFallbackName(name: string): boolean {
+  return looksLikeProduceName(name) || looksLikeEggDishName(name);
+}
+
 /**
  * Query variants for product-photo backfill (OFF / Wikipedia).
  * Longer marketing names often miss; shorter cores hit better.
@@ -79,6 +92,12 @@ export function dishImageLookupQueries(dishName: string, limit = 5): string[] {
   }
   // Also try original once (branded packs may need the full string).
   push(trimmed);
+
+  if (looksLikeEggDishName(trimmed)) {
+    push("hard-boiled egg");
+    push("boiled egg");
+    push("варёное яйцо");
+  }
 
   const tokens = normalizeDishName(stripped || trimmed).split(" ").filter(Boolean);
   if (tokens.length >= 3) {

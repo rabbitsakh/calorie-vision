@@ -14,6 +14,7 @@ import {
 test("isAllowedImageUrl accepts OFF and Wikimedia hosts", () => {
   assert.equal(isAllowedImageUrl("https://images.openfoodfacts.org/a.jpg"), true);
   assert.equal(isAllowedImageUrl("https://upload.wikimedia.org/wikipedia/commons/a.jpg"), true);
+  assert.equal(isAllowedImageUrl("https://thumb.wikimedia.org/wikipedia/commons/thumb/a.jpg"), true);
   assert.equal(isAllowedImageUrl("https://evil.example/a.jpg"), false);
   assert.equal(isAllowedImageUrl("http://upload.wikimedia.org/a.jpg"), false);
 });
