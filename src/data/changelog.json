@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.3.22",
+    "date": "2026-09-25",
+    "summary": "fix(apk): resume редиректил на localhost:3000",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "capacitor-resume / native-bridge: Location на calorievision.ru, не localhost:3000"
+      }
+    ]
+  },
+  {
     "version": "2.3.21",
     "date": "2026-09-25",
     "summary": "fix(apk): петля offline↔shell — без native cold-start resume",

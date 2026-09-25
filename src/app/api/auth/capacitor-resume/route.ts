@@ -8,12 +8,17 @@ import {
 import { withBasePath } from "@/lib/paths";
 import { prisma } from "@/lib/prisma";
 import { setNextAuthSessionCookie } from "@/lib/telegram-oidc-session";
+import { telegramOidcSiteOrigin } from "@/lib/telegram-oidc-route";
 
 export const runtime = "nodejs";
 
 /**
  * POST — authenticated WebView issues a long-lived resume token for Preferences.
  * GET  — local shell / AuthGate opens with ?token=… → set session cookie → /ration.
+ *
+ * Redirects must use the public site origin (NEXTAUTH_URL / x-forwarded-host),
+ * never the internal `localhost:3000` request URL behind nginx — that broke the
+ * APK (WebView followed Location to device localhost → errorPath «Нет интернета»).
  */
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -34,7 +39,7 @@ export async function POST() {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const token = url.searchParams.get("token")?.trim() ?? "";
-  const origin = `${url.protocol}//${url.host}`;
+  const origin = telegramOidcSiteOrigin(request);
   const loginError = new URL(withBasePath("/login?error=SessionRequired"), origin);
 
   if (!token) {

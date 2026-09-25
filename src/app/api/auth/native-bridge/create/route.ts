@@ -8,6 +8,7 @@ import {
   nativeBridgeIntentUrl,
 } from "@/lib/native-auth-bridge";
 import { createNativeBridgeToken } from "@/lib/native-auth-bridge-server";
+import { telegramOidcSiteOrigin } from "@/lib/telegram-oidc-route";
 
 export const runtime = "nodejs";
 
@@ -21,8 +22,8 @@ export async function POST(request: Request) {
 
   try {
     const token = await createNativeBridgeToken(userId);
-    const origin = new URL(request.url).origin || getCanonicalSiteUrl();
-    const site = getCanonicalSiteUrl() || origin;
+    const site = getCanonicalSiteUrl() || telegramOidcSiteOrigin(request);
+    const origin = telegramOidcSiteOrigin(request) || site;
     return NextResponse.json({
       token,
       deepLink: nativeBridgeDeepLink(token),
