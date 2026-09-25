@@ -161,7 +161,11 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
               className="block w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
               onClick={() => {
                 setOpen(false);
-                void signOut({ callbackUrl: withBasePath("/login") });
+                void (async () => {
+                  const { clearCapacitorLoggedIn } = await import("@/lib/capacitor-login-flag");
+                  await clearCapacitorLoggedIn();
+                  await signOut({ callbackUrl: withBasePath("/login") });
+                })();
               }}
             >
               Выйти

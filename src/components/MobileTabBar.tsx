@@ -20,7 +20,7 @@ type MobileTabBarProps = {
 
 /**
  * Bottom tab bar — in-flow flex child of `.cv-app-frame` (not position:fixed).
- * Center «+»: tap = picker, long-press = quick modes (C4).
+ * Center «+»: tap opens choice sheet (фото / текст / штрихкод / вода / вес).
  */
 export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const pathname = usePathname();
@@ -63,7 +63,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
           <LongPressAddButton
             disabled={confirmOpen}
             className="min-w-0 flex-1"
-            aria-label="Добавить. Удержание — фото, текст, штрихкод, вода, вес"
+            aria-label="Добавить: фото, текст, штрихкод, вода или вес"
           >
             <span
               className={`flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-md shadow-teal-800/25 transition-transform ${

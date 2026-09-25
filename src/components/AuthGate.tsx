@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { AppSplash } from "@/components/AppSplash";
+import { clearCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { status } = useSession();
+
+  useEffect(() => {
+    // Session gone (logout elsewhere / expired cookies) — don't keep restoring to /ration.
+    if (status === "unauthenticated") {
+      void clearCapacitorLoggedIn();
+    }
+  }, [status]);
 
   if (status === "loading") {
     return <AppSplash status="Входим…" tipContext={{}} />;
