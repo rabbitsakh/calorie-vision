@@ -193,9 +193,48 @@
     <script>
       (function () {
         var status = document.getElementById("status");
+        var title = document.querySelector("h1");
+        var lead = document.querySelector(".lead");
         var PRODUCT = "https://calorievision.ru";
-        var PRODUCT_LOGIN = PRODUCT + "/login/";
+        var SKIP_KEY = "cv_cap_skip_auto_restore";
+        var HITS_KEY = "cv_cap_offline_hits";
         var probing = false;
+
+        function setSkipRestore() {
+          try {
+            sessionStorage.setItem(SKIP_KEY, "1");
+          } catch (e) {
+            /* ignore */
+          }
+        }
+
+        function clearSkipRestore() {
+          try {
+            sessionStorage.removeItem(SKIP_KEY);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+
+        /** Count offline.html visits — break bounce after 2 hits in this tab session. */
+        function bumpHits() {
+          try {
+            var n = Number(sessionStorage.getItem(HITS_KEY) || "0") || 0;
+            n += 1;
+            sessionStorage.setItem(HITS_KEY, String(n));
+            return n;
+          } catch (e) {
+            return 1;
+          }
+        }
+
+        function hits() {
+          try {
+            return Number(sessionStorage.getItem(HITS_KEY) || "0") || 0;
+          } catch (e) {
+            return 0;
+          }
+        }
 
         /**
          * Do not trust navigator.onLine alone — Android WebView often lies.
@@ -241,21 +280,16 @@
         }
 
         function goLocal() {
+          setSkipRestore();
           window.location.replace("./index.html");
         }
 
-        function goProduct() {
-          try {
-            var ref = document.referrer || "";
-            if (ref.indexOf("calorievision.ru") !== -1) {
-              window.location.replace(PRODUCT_LOGIN);
-              return;
-            }
-          } catch (e) {
-            /* ignore */
+        function showReachableCopy() {
+          if (title) title.textContent = "Не удалось открыть дневник";
+          if (lead) {
+            lead.textContent =
+              "Сеть есть, но облачный экран не загрузился. Откройте черновик на устройстве — без прыжков туда-сюда.";
           }
-          // Prefer shell — it will resume session / open ration when network works.
-          window.location.replace("./index.html");
         }
 
         async function retry() {
@@ -265,12 +299,24 @@
           var ok = await probeOnline(5000);
           probing = false;
           if (!ok) {
-            setStatus("Сети всё ещё нет — можно открыть черновик на устройстве");
+            setStatus("Сети всё ещё нет — откройте черновик на устройстве");
             return;
           }
-          setStatus("Сеть есть — подключаем…");
-          goProduct();
+          // One deliberate attempt: clear skip so shell may restore session once.
+          clearSkipRestore();
+          try {
+            sessionStorage.setItem(HITS_KEY, "0");
+          } catch (e) {
+            /* ignore */
+          }
+          setStatus("Подключаем…");
+          window.location.replace("./index.html");
         }
+
+        // Landing on errorPath / offline stub: always suppress the next auto-restore
+        // so we do not loop offline → shell → product → offline.
+        setSkipRestore();
+        var visit = bumpHits();
 
         document.getElementById("btn-retry").addEventListener("click", function () {
           void retry();
@@ -278,18 +324,20 @@
         document.getElementById("btn-local").addEventListener("click", goLocal);
 
         window.addEventListener("online", function () {
-          setStatus("Сеть появилась — проверяем…");
-          void retry();
+          setStatus("Сеть появилась — можно повторить или открыть черновик");
         });
 
-        // Auto-recover from false offline (errorPath / flaky onLine at boot).
         void (async function bootProbe() {
           setStatus("Проверяем сеть…");
           var ok = await probeOnline(5000);
           if (ok) {
-            setStatus("Сеть есть — подключаем…");
-            // Small delay so the user sees the status, then leave the stub.
-            setTimeout(goProduct, 350);
+            showReachableCopy();
+            if (visit >= 2) {
+              setStatus("Слишком много попыток — открываем черновик на устройстве");
+              setTimeout(goLocal, 500);
+              return;
+            }
+            setStatus("Сеть есть — откройте черновик или нажмите «Повторить»");
           } else {
             setStatus("Сети нет — откройте черновик или повторите позже");
           }
