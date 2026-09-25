@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
 import { hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
@@ -139,7 +139,7 @@ export default function LoginForm() {
   // Mark document for CSS that hides web-only chrome («На главную», etc.).
   useLayoutEffect(() => {
     if (!isCapacitorNative()) return;
-    document.documentElement.classList.add("capacitor-native");
+    markCapacitorShell();
   }, []);
 
   // First-run: show welcome slider before login in the APK.

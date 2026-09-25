@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { waitForCapacitorNative } from "@/lib/capacitor-bridge";
+import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { resolveNativeAuthEntry } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
 
@@ -17,10 +17,10 @@ export function CapacitorSkipLanding() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const native = await waitForCapacitorNative(1200);
+      const native = await detectCapacitorShell(2500);
       if (cancelled || !native) return;
       setBusy(true);
-      document.documentElement.classList.add("capacitor-native");
+      markCapacitorShell();
       const path = await resolveNativeAuthEntry();
       if (cancelled) return;
       router.replace(withBasePath(path));

@@ -3,7 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { useEffect, type ReactNode } from "react";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
-import { waitForCapacitorNative } from "@/lib/capacitor-bridge";
+import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
@@ -22,9 +22,9 @@ function CapacitorNativeViewport() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const native = await waitForCapacitorNative(1200);
+      const native = await detectCapacitorShell(2500);
       if (cancelled || !native) return;
-      document.documentElement.classList.add("capacitor-native");
+      markCapacitorShell();
       const meta =
         document.querySelector('meta[name="viewport"]') ??
         (() => {
