@@ -1,9 +1,10 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, type ReactNode } from "react";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
+import { markCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
 import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { withBasePath } from "@/lib/paths";
 
@@ -11,6 +12,22 @@ function CapacitorOAuthDeepLink() {
   useEffect(() => {
     void ensureCapacitorOAuthDeepLink();
   }, []);
+  return null;
+}
+
+/**
+ * Remember login across APK process death (Preferences survives; local shell does not
+ * share cookies/localStorage with calorievision.ru). Cold start in cap-www reads the flag.
+ */
+function CapacitorSessionPersist() {
+  const { status } = useSession();
+  useEffect(() => {
+    if (status === "authenticated") {
+      void markCapacitorLoggedIn();
+    }
+    // Do not clear on "unauthenticated" — that fires on every cold load of /login
+    // before cookies are checked, and would wipe the restore flag.
+  }, [status]);
   return null;
 }
 
@@ -49,6 +66,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider basePath={withBasePath("/api/auth")}>
       <CapacitorOAuthDeepLink />
+      <CapacitorSessionPersist />
       <CapacitorNativeViewport />
       <MetrikaFunnel />
       {children}

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
-import { isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
+import { detectCapacitorShell, isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
 import { hasSeenAppWelcomeSync } from "@/lib/capacitor-welcome";
 import { withBasePath } from "@/lib/paths";
@@ -108,6 +108,8 @@ export default function LoginForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showEmail, setShowEmail] = useState(false);
+  /** APK shell — hide web chrome («На главную»). Sync seed + async confirm. */
+  const [capacitorShell, setCapacitorShell] = useState(() => isCapacitorNative());
 
   const verifyRequest = searchParams.get("verify") === "1";
   const authError = searchParams.get("error");
@@ -136,19 +138,27 @@ export default function LoginForm() {
     return () => window.removeEventListener("cv-oauth-browser-finished", onFinished);
   }, []);
 
-  // Mark document for CSS that hides web-only chrome («На главную», etc.).
-  useLayoutEffect(() => {
-    if (!isCapacitorNative()) return;
-    markCapacitorShell();
+  // Detect Capacitor (bridge can land a tick late after local shell → calorievision.ru).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const native = await detectCapacitorShell(2500);
+      if (cancelled || !native) return;
+      markCapacitorShell();
+      setCapacitorShell(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // First-run: show welcome slider before login in the APK.
   // Sync localStorage only — async Preferences raced and looped welcome ↔ login.
   useLayoutEffect(() => {
-    if (!isCapacitorNative()) return;
+    if (!isCapacitorNative() && !capacitorShell) return;
     if (hasSeenAppWelcomeSync()) return;
     router.replace(withBasePath("/welcome"));
-  }, [router]);
+  }, [router, capacitorShell]);
 
   useEffect(() => {
     let cancelled = false;
@@ -370,12 +380,14 @@ export default function LoginForm() {
         {message ? <p className="mt-4 text-sm text-teal-700">{message}</p> : null}
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
-        {/* Web only — Capacitor APK must not look like a site with «На главную». */}
-        <p className="capacitor-web-only mt-6 text-center text-sm text-slate-500">
-          <Link href="/" className="text-teal-700 hover:underline">
-            На главную
-          </Link>
-        </p>
+        {/* Web only — APK must not look like a site with «На главную». */}
+        {!capacitorShell ? (
+          <p className="capacitor-web-only mt-6 text-center text-sm text-slate-500">
+            <Link href="/" className="text-teal-700 hover:underline">
+              На главную
+            </Link>
+          </p>
+        ) : null}
       </div>
     </main>
   );

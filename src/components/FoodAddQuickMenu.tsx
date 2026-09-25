@@ -1,15 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import {
-  openFoodAdd,
-  requestOpenFoodAddPicker,
-} from "@/lib/open-food-camera";
-import { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
+import { useCallback, useEffect, useId, type ReactNode } from "react";
+import { openFoodAdd, requestOpenFoodAddPicker } from "@/lib/open-food-camera";
+import { FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
-export { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS };
+export { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
 
 type FoodAddModeMenuProps = {
   open: boolean;
@@ -19,7 +16,7 @@ type FoodAddModeMenuProps = {
   className?: string;
 };
 
-/** Compact mode list for long-press / desktop chevron (Wave C4). */
+/** Compact mode list (desktop chevron / optional overflow). */
 export function FoodAddModeMenu({
   open,
   onClose,
@@ -109,7 +106,8 @@ type LongPressAddButtonProps = {
 };
 
 /**
- * Short tap → mode picker sheet. Long-press → compact mode menu (C4).
+ * Center «+»: single tap opens the full choice sheet (фото / текст / штрихкод / вода / вес).
+ * No long-press — Android WebView often ate short taps while the hold timer ran.
  */
 export function LongPressAddButton({
   disabled,
@@ -117,20 +115,10 @@ export function LongPressAddButton({
   children,
   "aria-label": ariaLabel = "Добавить",
 }: LongPressAddButtonProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const timerRef = useRef<number | null>(null);
-  const longFiredRef = useRef(false);
-
-  const clearTimer = useCallback(() => {
-    if (timerRef.current != null) {
-      window.clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
-
-  useEffect(() => () => clearTimer(), [clearTimer]);
+  const openPicker = useCallback(() => {
+    if (disabled) return;
+    requestOpenFoodAddPicker();
+  }, [disabled]);
 
   return (
     <div className={`relative ${className ?? ""}`}>
@@ -138,48 +126,18 @@ export function LongPressAddButton({
         type="button"
         className="tab-add-btn flex min-h-11 w-full min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-0.5"
         aria-label={ariaLabel}
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
+        aria-haspopup="dialog"
         disabled={disabled}
-        onContextMenu={(event) => event.preventDefault()}
-        onPointerDown={(event) => {
-          if (disabled || event.button !== 0) return;
-          longFiredRef.current = false;
-          clearTimer();
-          timerRef.current = window.setTimeout(() => {
-            longFiredRef.current = true;
-            setMenuOpen(true);
-            timerRef.current = null;
-          }, FOOD_ADD_LONG_PRESS_MS);
-        }}
-        onPointerUp={() => {
-          const wasLong = longFiredRef.current;
-          clearTimer();
-          if (disabled) return;
-          if (!wasLong && !menuOpen) {
-            requestOpenFoodAddPicker();
-          }
-        }}
-        onPointerLeave={() => {
-          clearTimer();
-        }}
-        onPointerCancel={() => {
-          clearTimer();
-        }}
+        onClick={openPicker}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            if (!disabled) requestOpenFoodAddPicker();
-          }
-          if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-            event.preventDefault();
-            if (!disabled) setMenuOpen(true);
+            openPicker();
           }
         }}
       >
         {children}
       </button>
-      <FoodAddModeMenu open={menuOpen} onClose={closeMenu} placement="up" />
     </div>
   );
 }

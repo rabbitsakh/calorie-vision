@@ -5,6 +5,8 @@
   var PRODUCT_ORIGIN = "https://calorievision.ru";
   var WELCOME_KEY = "cv_cap_shell_welcome_v1";
   var MEALS_KEY = "cv_cap_shell_meals_v1";
+  /** Must match src/lib/capacitor-login-flag.ts */
+  var LOGGED_IN_KEY = "cv_cap_logged_in_v1";
   var KCAL_GOAL = 2000;
 
   var SLIDES = [
@@ -178,6 +180,41 @@
     window.location.href = PRODUCT_ORIGIN + "/login/";
   }
 
+  function openProductRation() {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      window.location.replace("./offline.html");
+      return;
+    }
+    // Top-level navigation so calorievision.ru session cookies are sent.
+    window.location.replace(PRODUCT_ORIGIN + "/ration/");
+  }
+
+  async function prefsGet(key) {
+    try {
+      var Cap = window.Capacitor;
+      if (!Cap) return null;
+      var Prefs =
+        (Cap.Plugins && Cap.Plugins.Preferences) ||
+        (typeof Cap.registerPlugin === "function" ? Cap.registerPlugin("Preferences") : null);
+      if (!Prefs || typeof Prefs.get !== "function") return null;
+      var result = await Prefs.get({ key: key });
+      return result && result.value != null ? String(result.value) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Previously logged-in users skip the local demo and restore the cloud diary. */
+  async function tryRestoreSession() {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      return false;
+    }
+    var flagged = await prefsGet(LOGGED_IN_KEY);
+    if (flagged !== "1") return false;
+    openProductRation();
+    return true;
+  }
+
   function wireConnectivity() {
     window.addEventListener("offline", function () {
       // If we already left the shell for the remote product, Capacitor
@@ -299,10 +336,14 @@
     state.meals = readMeals();
     renderWelcome();
 
-    // Brief branded splash, then local welcome or home — never bounce to a website first.
+    // Brief branded splash, then restore cloud session or local welcome/home.
     await new Promise(function (r) {
       setTimeout(r, 700);
     });
+
+    if (await tryRestoreSession()) {
+      return;
+    }
 
     if (hasWelcomeSeen()) {
       openHome();
