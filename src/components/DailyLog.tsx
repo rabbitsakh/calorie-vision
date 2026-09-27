@@ -77,6 +77,8 @@ type DailyLogProps = {
   onChanged?: () => void;
   onTotalsChange?: (calories: number) => void;
   compact?: boolean;
+  /** Wave A/D: meal feed without heavy card chrome. */
+  sceneFeed?: boolean;
   timezone?: string | null;
   /** Primary empty-state CTA — open «+» picker; optional mealType from diary filter. */
   onAddFood?: (mealType?: string) => void;
@@ -84,7 +86,16 @@ type DailyLogProps = {
   onAddFoodText?: () => void;
 };
 
-export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, compact, timezone, onAddFood }: DailyLogProps) {
+export function DailyLog({
+  selectedDate,
+  refreshKey,
+  onChanged,
+  onTotalsChange,
+  compact,
+  sceneFeed = false,
+  timezone,
+  onAddFood,
+}: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sugar: 0 });
@@ -610,6 +621,7 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }
 
   const [copying, setCopying] = useState(false);
+  const [showCopyOptions, setShowCopyOptions] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [yesterdayHasMeals, setYesterdayHasMeals] = useState(false);
@@ -755,16 +767,24 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
   }, [pendingDeletes.length]);
 
   return (
-    <section className={`card ${compact ? "p-3 md:p-4" : "p-6"}`}>
-      <div className={`flex flex-col ${compact ? "gap-3" : "gap-5"}`}>
+    <section
+      className={
+        sceneFeed
+          ? "ration-meal-feed"
+          : `card ${compact ? "p-3 md:p-4" : "p-6"}`
+      }
+    >
+      <div className={`flex flex-col ${compact || sceneFeed ? "gap-3" : "gap-5"}`}>
         <div className="flex flex-wrap items-end justify-between gap-2">
-          {!compact ? (
+          {!compact && !sceneFeed ? (
             <div>
               <h2 className="text-xl font-bold">Дневник питания</h2>
               <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
             </div>
           ) : (
-            <h2 className="text-base font-bold">Дневник питания</h2>
+            <h2 className={`font-bold ${sceneFeed ? "text-sm font-semibold uppercase tracking-wide text-slate-500" : "text-base"}`}>
+              {sceneFeed ? "Приёмы" : "Дневник питания"}
+            </h2>
           )}
           {streakDays >= 2 ? (
             <div className="flex items-center gap-1 rounded-xl bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
@@ -902,47 +922,67 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
         ) : null}
 
         {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
-            <Mascot pose="empty" size="md" title={MASCOT_COPY.emptyDiary.title} entrance />
-            <p className="font-medium text-slate-700">{MASCOT_COPY.emptyDiary.headline}</p>
-            <p className="max-w-xs text-sm">Кнопка «+» внизу — фото, текст или штрихкод.</p>
+          <div
+            className={`ration-empty-day flex flex-col items-center gap-3 px-4 py-10 text-center ${
+              sceneFeed ? "" : "rounded-2xl border border-dashed border-slate-200 text-slate-500"
+            }`}
+          >
+            <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
+            <p className="font-display text-lg font-semibold text-slate-900">
+              {MASCOT_COPY.emptyDiary.headline}
+            </p>
+            <p className="max-w-xs text-sm text-slate-600">{MASCOT_COPY.emptyDiary.body}</p>
             {onAddFood ? (
               <button
                 type="button"
-                className="btn btn-primary text-sm"
+                className="btn btn-primary min-h-12 px-6 text-base"
                 onClick={() =>
                   onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)
                 }
               >
-                Добавить
+                Добавить через «+»
               </button>
             ) : null}
-            {yesterdayHasBreakfast ? (
-              <button
-                type="button"
-                className="btn btn-secondary text-sm"
-                disabled={copying}
-                onClick={() => void handleCopyYesterdayBreakfast()}
-              >
-                {copying ? "Копируем..." : "Только вчерашний завтрак"}
-              </button>
-            ) : null}
-            {yesterdayHasMeals ? (
-              <>
+            {yesterdayHasMeals || yesterdayHasBreakfast ? (
+              <div className="flex flex-col items-center gap-2">
                 <button
                   type="button"
-                  className="btn btn-secondary text-sm"
-                  disabled={copying}
-                  onClick={() => void handleCopyYesterday()}
+                  className="text-sm font-semibold text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+                  onClick={() => setShowCopyOptions((v) => !v)}
+                  aria-expanded={showCopyOptions}
                 >
-                  {copying ? "Копируем..." : "Весь вчерашний день"}
+                  {showCopyOptions ? "Скрыть" : "Скопировать вчера"}
                 </button>
-                {copyError ? (
-                  <p className="max-w-xs text-sm text-red-600" role="alert">
-                    {copyError}
-                  </p>
+                {showCopyOptions ? (
+                  <div className="flex flex-col items-center gap-2">
+                    {yesterdayHasBreakfast ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary text-sm"
+                        disabled={copying}
+                        onClick={() => void handleCopyYesterdayBreakfast()}
+                      >
+                        {copying ? "Копируем..." : "Только вчерашний завтрак"}
+                      </button>
+                    ) : null}
+                    {yesterdayHasMeals ? (
+                      <button
+                        type="button"
+                        className="btn btn-secondary text-sm"
+                        disabled={copying}
+                        onClick={() => void handleCopyYesterday()}
+                      >
+                        {copying ? "Копируем..." : "Весь вчерашний день"}
+                      </button>
+                    ) : null}
+                    {copyError ? (
+                      <p className="max-w-xs text-sm text-red-600" role="alert">
+                        {copyError}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
-              </>
+              </div>
             ) : null}
           </div>
         ) : null}

@@ -6,8 +6,8 @@ export const MASCOT_COPY = {
   emptyDiary: {
     /** Accessible / title attribute on the empty-state mascot. */
     title: "Пустой дневник",
-    headline: "Дневник пуст — добавьте первый приём пищи",
-    body: "Сфотографируйте тарелку или введите название — прогресс появится сразу.",
+    headline: "День ещё пустой",
+    body: "Нажмите «+» внизу — фото, текст или штрихкод. Один приём уже запускает день.",
   },
   emptyWeight: {
     title: "Нет измерений веса",

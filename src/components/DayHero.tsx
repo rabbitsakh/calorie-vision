@@ -5,9 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { LiveMascot } from "@/components/LiveMascot";
 import { DiarySticker } from "@/components/DiarySticker";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
 import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
+import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
+import { useTimezone } from "@/lib/use-timezone";
+import { withDateQuery } from "@/lib/use-selected-date";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 type ProgressData = {
@@ -17,11 +21,6 @@ type ProgressData = {
   proteinTarget: number | null;
   waterMl: number;
   waterTarget: number;
-  fiber: number;
-  fiberTarget: number | null;
-  sugar: number;
-  sugarTarget: number | null;
-  showFiberSugar: boolean;
   weightKg: number | null;
 };
 
@@ -36,26 +35,16 @@ function progressFromPayload(
   meals: {
     totalCalories: number;
     totalProtein: number;
-    totalFiber?: number;
-    totalSugar?: number;
     target: {
       calories: number;
       protein: number;
-      fiber?: number;
-      sugar?: number;
     } | null;
   },
   water: { totalMl: number; target: number },
-  account?: {
-    fiberTargetG?: number | null;
-    sugarTargetG?: number | null;
-  } | null,
   weightKg?: number | null,
 ): ProgressData {
   const holiday = isHolidayBufferOn(selectedDate);
   const baseCal = meals.target?.calories ?? null;
-  const fiberOverride = account?.fiberTargetG ?? null;
-  const sugarOverride = account?.sugarTargetG ?? null;
   return {
     calories: meals.totalCalories,
     calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
@@ -63,11 +52,6 @@ function progressFromPayload(
     proteinTarget: meals.target?.protein ?? null,
     waterMl: water.totalMl,
     waterTarget: water.target || WATER_DAILY_TARGET_ML,
-    fiber: meals.totalFiber ?? 0,
-    fiberTarget: fiberOverride != null ? fiberOverride : null,
-    sugar: meals.totalSugar ?? 0,
-    sugarTarget: sugarOverride != null ? sugarOverride : null,
-    showFiberSugar: fiberOverride != null || sugarOverride != null,
     weightKg: weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
   };
 }
@@ -80,7 +64,7 @@ function HeroRing({ pct }: { pct: number }) {
   const over = pct > 105;
 
   return (
-    <div className="day-hero-ring relative h-[4.35rem] w-[4.35rem] shrink-0">
+    <div className="day-hero-ring relative h-[4.75rem] w-[4.75rem] shrink-0">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
         <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(15,118,110,0.15)" strokeWidth="8" />
         <circle
@@ -98,7 +82,7 @@ function HeroRing({ pct }: { pct: number }) {
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`font-display text-[0.8125rem] font-bold leading-none tracking-tight ${over ? "text-amber-700" : "text-teal-800"}`}
+          className={`font-display text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-amber-700" : "text-teal-800"}`}
         >
           {Math.round(clamped)}%
         </span>
@@ -110,81 +94,32 @@ function HeroRing({ pct }: { pct: number }) {
   );
 }
 
-function MiniBar({
-  label,
-  value,
-  detail,
-  pct,
-  warnOver = true,
-  href,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  pct: number;
-  /** When false, over-target is fine (e.g. fiber). */
-  warnOver?: boolean;
-  href?: string;
-}) {
-  const clamped = Math.min(100, Math.max(0, pct));
-  const over = warnOver && pct > 105;
-  const inner = (
-    <>
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="truncate text-xs font-semibold text-slate-700">
-          {value}
-          <span className="ml-1 font-normal text-slate-400">{detail}</span>
-        </p>
-      </div>
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/70">
-        <div
-          className={`h-1 rounded-full transition-all duration-500 ${over ? "bg-amber-400" : "bg-teal-500"}`}
-          style={{ width: `${clamped}%` }}
-        />
-      </div>
-    </>
-  );
-  if (href) {
-    return (
-      <Link href={href} className="min-w-0 flex-1 rounded-lg outline-offset-2 hover:opacity-90">
-        {inner}
-      </Link>
-    );
-  }
-  return <div className="min-w-0 flex-1">{inner}</div>;
-}
-
 function DayHeroSkeleton() {
   return (
-    <section className="day-hero" aria-busy="true" aria-label="Сводка дня">
+    <section className="day-hero day-hero--scene" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="relative flex items-center gap-3">
+      <div className="relative flex items-center gap-3 px-3.5 py-4 md:px-5">
         <div className="skeleton-ring !h-14 !w-14 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="skeleton-line !h-2 w-16" />
           <div className="skeleton-line !h-3.5 w-44 max-w-full" />
           <div className="skeleton-line !h-2.5 w-28" />
         </div>
-        <div className="skeleton-ring !h-[4.35rem] !w-[4.35rem] shrink-0" aria-hidden />
-      </div>
-      <div className="relative mt-2.5 border-t border-teal-900/5 pt-2">
-        <div className="min-w-0 space-y-2">
-          <div className="skeleton-line !h-2 w-12" />
-          <div className="skeleton-line !h-1 w-full" />
-        </div>
+        <div className="skeleton-ring !h-[4.75rem] !w-[4.75rem] shrink-0" aria-hidden />
       </div>
     </section>
   );
 }
 
 /**
- * First-viewport day composition: mascot + one phrase + calorie ring.
- * Replaces the denser «Сводка дня» card on the ration screen.
+ * First-viewport day scene: atmosphere + mascot + one phrase + calorie ring.
+ * Secondary metrics / week door live outside the hero (Wave A / D).
  */
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
+  const timezone = useTimezone();
   const [data, setData] = useState<ProgressData | null>(null);
+  const atmosphere = dayHeroAtmosphereClass(hourInTimezone(new Date(), timezone));
 
   useEffect(() => {
     setData(null);
@@ -200,7 +135,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             totalMl: 0,
             target: WATER_DAILY_TARGET_ML,
           },
-          day.data.account,
           day.data.weightKg,
         ),
       );
@@ -213,34 +147,23 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
 
     void (async () => {
       try {
-        const [mealsResp, waterResp, accountResp, profileResp] = await Promise.all([
+        const [mealsResp, waterResp, profileResp] = await Promise.all([
           fetch(withBasePath(`/api/meals?date=${selectedDate}`)),
           fetch(withBasePath(`/api/water?date=${selectedDate}`)),
-          fetch(withBasePath("/api/account")),
           fetch(withBasePath(`/api/profile?date=${selectedDate}`)),
         ]);
         if (!mealsResp.ok) return;
         const meals = (await mealsResp.json()) as {
           totalCalories: number;
           totalProtein: number;
-          totalFiber?: number;
-          totalSugar?: number;
           target: {
             calories: number;
             protein: number;
-            fiber?: number;
-            sugar?: number;
           } | null;
         };
         const water = waterResp.ok
           ? ((await waterResp.json()) as { totalMl: number; target: number })
           : { totalMl: 0, target: WATER_DAILY_TARGET_ML };
-        const account = accountResp.ok
-          ? ((await accountResp.json()) as {
-              fiberTargetG?: number | null;
-              sugarTargetG?: number | null;
-            })
-          : null;
         const profile = profileResp.ok
           ? ((await profileResp.json()) as { selectedWeightKg?: number | null })
           : null;
@@ -249,7 +172,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             selectedDate,
             meals,
             water,
-            account,
             profile?.selectedWeightKg ?? null,
           ),
         );
@@ -268,10 +190,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const caloriePct =
     data?.calorieTarget && data.calorieTarget > 0
       ? (data.calories / data.calorieTarget) * 100
-      : 0;
-  const proteinPct =
-    data?.proteinTarget && data.proteinTarget > 0
-      ? (data.protein / data.proteinTarget) * 100
       : 0;
 
   const streak = day?.data?.streak?.streak ?? 0;
@@ -299,19 +217,19 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
 
   const calLabel =
     data?.calorieTarget != null
-      ? `${data.calories} / ${data.calorieTarget}`
+      ? `${data.calories} / ${data.calorieTarget} ккал`
       : data
         ? `${data.calories} ккал`
         : "—";
 
   return (
-    <section className="day-hero" aria-label="Сводка дня">
+    <section className={`day-hero day-hero--scene ${atmosphere}`} aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="relative flex items-center gap-3">
+      <div className="day-hero-scene-inner relative flex items-center gap-3 px-3.5 py-4 md:px-5 md:py-5">
         <div className="day-hero-mascot relative shrink-0">
           <LiveMascot
             pose={copy.pose}
-            size="sm"
+            size="md"
             title={copy.headline}
             entrance
             idleReel
@@ -320,88 +238,27 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
           <DiarySticker className="pointer-events-none absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-teal-800/70">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
             {copy.eyebrow}
           </p>
-          <p className="mt-0.5 font-display text-[0.98rem] font-semibold leading-snug text-slate-900 sm:text-base">
+          <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
             {copy.headline}
           </p>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1.5 text-xs font-medium text-slate-600">
             {calLabel}
             {holiday ? " · праздн. запас" : ""}
           </p>
-        </div>
-        <HeroRing pct={data?.calorieTarget ? caloriePct : 0} />
-      </div>
-
-      {data ? (
-        <div className="relative mt-2.5 flex flex-col gap-2 border-t border-teal-900/5 pt-2">
-          <div className="flex gap-3">
-            <MiniBar
-              label="Белок"
-              value={`${Math.round(data.protein)} г`}
-              detail={data.proteinTarget ? `/ ${data.proteinTarget}` : ""}
-              pct={data.proteinTarget ? proteinPct : 0}
-            />
-            <MiniBar
-              label="Вода"
-              value={`${Math.round(data.waterMl)} мл`}
-              detail={data.waterTarget ? `/ ${data.waterTarget}` : ""}
-              pct={
-                data.waterTarget > 0
-                  ? (data.waterMl / data.waterTarget) * 100
-                  : 0
-              }
-              href="#water-tracker"
-            />
-          </div>
-          {data.showFiberSugar ? (
-            <div className="flex gap-3">
-              {data.fiberTarget != null ? (
-                <MiniBar
-                  label="Клетчатка"
-                  value={`${Math.round(data.fiber)} г`}
-                  detail={`/ ${Math.round(data.fiberTarget)}`}
-                  pct={data.fiberTarget > 0 ? (data.fiber / data.fiberTarget) * 100 : 0}
-                  warnOver={false}
-                />
-              ) : null}
-              {data.sugarTarget != null ? (
-                <MiniBar
-                  label="Сахар"
-                  value={`${Math.round(data.sugar)} г`}
-                  detail={`/ ${Math.round(data.sugarTarget)}`}
-                  pct={data.sugarTarget > 0 ? (data.sugar / data.sugarTarget) * 100 : 0}
-                  warnOver
-                />
-              ) : null}
-            </div>
-          ) : isToday ? (
-            <Link
-              href={withBasePath("/profile#nutrient-goals")}
-              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
-            >
-              Цели по клетчатке и сахару
-            </Link>
-          ) : null}
-          {data.weightKg == null && isToday ? (
-            <Link
-              href={withBasePath("/weight")}
-              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
-            >
-              Вес сегодня
-            </Link>
-          ) : null}
           {isToday ? (
             <Link
-              href={withBasePath("/plan")}
-              className="self-start text-[11px] font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+              href={withDateQuery("/plan", selectedDate)}
+              className="mt-2 inline-flex text-[0.7rem] font-semibold text-teal-800/80 underline-offset-2 hover:text-teal-900 hover:underline"
             >
               Неделя и покупки
             </Link>
           ) : null}
         </div>
-      ) : null}
+        <HeroRing pct={data?.calorieTarget ? caloriePct : 0} />
+      </div>
     </section>
   );
 }
