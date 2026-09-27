@@ -21,6 +21,7 @@ import { ShoppingCountChip } from "@/components/ShoppingCountChip";
 import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
+import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
@@ -28,7 +29,6 @@ import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
-import { QuickAddAgain } from "@/components/QuickAddAgain";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
@@ -146,6 +146,7 @@ function RationBody({
   date,
   today,
   timezone,
+  setDate,
   setPwaWizardOpen,
   pwaWizardOpen,
   openFoodPicker,
@@ -153,6 +154,7 @@ function RationBody({
   date: string;
   today: string;
   timezone: string | null | undefined;
+  setDate: (next: string) => void;
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
   openFoodPicker: (mealType?: string) => void;
@@ -189,7 +191,6 @@ function RationBody({
 
   const bump = day.bump;
   const refreshKey = day.refreshKey;
-  const totalCalories = day.data?.meals.totalCalories ?? 0;
   const mealCount = useMemo(() => {
     if (Array.isArray(day.data?.meals.entries)) return day.data.meals.entries.length;
     return day.data?.meals.totalCalories ? 1 : 0;
@@ -243,117 +244,115 @@ function RationBody({
         />
       ) : null}
 
-      <div className={`ration-page flex flex-col gap-2.5 md:gap-3 ${showSplash ? "invisible h-0 overflow-hidden" : ""}`}>
+      <div className={`ration-page flex flex-col gap-0 ${showSplash ? "invisible h-0 overflow-hidden" : ""}`}>
         <OnboardingOverlay />
         <MascotSaveReaction />
         <PushSubscriptionResync />
-        <ProfileCompletionBanner />
-        <TimezoneConflictBanner />
         <ReferralCapture signedIn />
-        <OfflineMealQueueBanner
-          selectedDate={date}
-          onFlushed={bump}
-          onRecognitionReady={() => bump()}
-        />
-        <FastingWindowBanner isToday={date === today} />
-        <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-        <NextStepBar selectedDate={date} today={today} />
 
-        <DailyLog
-          selectedDate={date}
-          refreshKey={refreshKey}
-          compact
-          timezone={timezone}
-          onChanged={bump}
-          onTotalsChange={() => {}}
-          onAddFood={openFoodPicker}
-        />
-
-        <WaterTracker selectedDate={date} onChanged={bump} compact />
-
-        <p className="flex flex-wrap items-center gap-x-1 px-1 text-sm font-medium text-slate-600">
-          <Link
-            href={`${withDateQuery("/plan", date)}#shopping`}
-            className="underline-offset-2 hover:text-teal-800 hover:underline"
-          >
-            Неделя и покупки
-          </Link>
-          <ShoppingCountChip date={date} />
-        </p>
-
-        <QuickAddAgain
-          selectedDate={date}
-          refreshKey={refreshKey}
-          totalCalories={totalCalories}
-          onSaved={bump}
-        />
-
-        {day.error ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
-            <p className="min-w-0 flex-1 font-medium">
-              Не удалось загрузить день. {day.error}
-            </p>
-            <button
-              type="button"
-              className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
-              disabled={day.loading}
-              onClick={() => void day.refresh()}
-            >
-              Обновить
-            </button>
+        {/* Layer 1 — day scene (Wave A/D). Critical status below hero, not in first viewport. */}
+        <DaySwipeRegion
+          date={date}
+          today={today}
+          onDateChange={setDate}
+          className="ration-day-scene flex flex-col gap-2"
+        >
+          <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+          <div className="px-0.5">
+            <NextStepBar selectedDate={date} today={today} />
           </div>
-        ) : day.fromCache ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-            <p className="min-w-0 flex-1 font-medium">
-              Офлайн: показываем сохранённый день с устройства
-            </p>
-            <button
-              type="button"
-              className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
-              disabled={day.loading}
-              onClick={() => void day.refresh()}
-            >
-              Обновить
-            </button>
-          </div>
-        ) : null}
 
-        <MotivationQueue>
-          <StreakNudge
+          {/* Layer 2 — meal feed */}
+          <div className="ration-day-feed px-0.5 pt-1">
+            <DailyLog
+              selectedDate={date}
+              refreshKey={refreshKey}
+              compact
+              sceneFeed
+              timezone={timezone}
+              onChanged={bump}
+              onTotalsChange={() => {}}
+              onAddFood={openFoodPicker}
+            />
+          </div>
+        </DaySwipeRegion>
+
+        {/* Layer 3 — day more (Wave A/B): water, habits, soft motivation — after the feed */}
+        <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1 md:gap-3.5">
+          <ProfileCompletionBanner />
+          <TimezoneConflictBanner />
+          <OfflineMealQueueBanner
             selectedDate={date}
-            today={today}
-            refreshKey={refreshKey}
-            onAddFood={openFoodPicker}
-            quietHide
+            onFlushed={bump}
+            onRecognitionReady={() => bump()}
           />
-          <MotivationTip today={today} selectedDate={date} quietHide />
-          <ReferralNudge today={today} selectedDate={date} quietHide />
-        </MotivationQueue>
+          <FastingWindowBanner isToday={date === today} />
 
-        <SevenDayAhaCard today={today} selectedDate={date} />
-        <ChallengeStrip
-          selectedDate={date}
-          refreshKey={refreshKey}
-          onOpenHabits={openHabitsPanel}
-        />
-
-        {/* Fullscreen stage — outside single-slot queue so it is not blocked by streak/tip. */}
-        {date === today ? <DailySummaryCard today={today} /> : null}
-
-        {/* Outside single-slot queue so 20–21 check-in is not blocked by streak/tip. */}
-        <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
-
-        {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
-        <FirstShareNudge date={date} today={today} mealCount={mealCount} />
-
-        <div className="flex flex-col gap-4">
-          {!isCapacitorNative() ? (
-            <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+          {day.error ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+              <p className="min-w-0 flex-1 font-medium">
+                Не удалось загрузить день. {day.error}
+              </p>
+              <button
+                type="button"
+                className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+                disabled={day.loading}
+                onClick={() => void day.refresh()}
+              >
+                Обновить
+              </button>
+            </div>
+          ) : day.fromCache ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+              <p className="min-w-0 flex-1 font-medium">
+                Офлайн: показываем сохранённый день с устройства
+              </p>
+              <button
+                type="button"
+                className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+                disabled={day.loading}
+                onClick={() => void day.refresh()}
+              >
+                Обновить
+              </button>
+            </div>
           ) : null}
-          <PushNotificationPrompt />
-        </div>
 
-        <CelebrationOrchestrator>
+          <WaterTracker selectedDate={date} onChanged={bump} compact />
+
+          <MotivationQueue>
+            <StreakNudge
+              selectedDate={date}
+              today={today}
+              refreshKey={refreshKey}
+              onAddFood={openFoodPicker}
+              quietHide
+            />
+            <MotivationTip today={today} selectedDate={date} quietHide />
+            <ReferralNudge today={today} selectedDate={date} quietHide />
+          </MotivationQueue>
+
+          <SevenDayAhaCard today={today} selectedDate={date} />
+          <ChallengeStrip
+            selectedDate={date}
+            refreshKey={refreshKey}
+            onOpenHabits={openHabitsPanel}
+          />
+
+          {date === today ? <DailySummaryCard today={today} /> : null}
+          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+
+          {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
+          <FirstShareNudge date={date} today={today} mealCount={mealCount} />
+
+          <div className="flex flex-col gap-3">
+            {!isCapacitorNative() ? (
+              <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+            ) : null}
+            <PushNotificationPrompt />
+          </div>
+
+          <CelebrationOrchestrator>
           <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
             <button
               type="button"
@@ -444,13 +443,14 @@ function RationBody({
           <WeekPerfectCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <CheckinDoneCelebration today={today} selectedDate={date} refreshKey={refreshKey} />
           <BadgeUnlockHost refreshKey={refreshKey} />
-        </CelebrationOrchestrator>
+          </CelebrationOrchestrator>
 
-        <PwaInstallWizard
-          open={pwaWizardOpen}
-          prefer="auto"
-          onClose={() => setPwaWizardOpen(false)}
-        />
+          <PwaInstallWizard
+            open={pwaWizardOpen}
+            prefer="auto"
+            onClose={() => setPwaWizardOpen(false)}
+          />
+        </div>
       </div>
     </>
   );
@@ -492,6 +492,7 @@ function RationShell({
         date={date}
         today={today}
         timezone={timezone}
+        setDate={setDate}
         pwaWizardOpen={pwaWizardOpen}
         setPwaWizardOpen={setPwaWizardOpen}
         openFoodPicker={openFoodPicker}

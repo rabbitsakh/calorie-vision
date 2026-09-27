@@ -1294,9 +1294,10 @@ select {
 
 /* Dense diary meal rows — less scroll, chips stay on one line. */
 .meal-card {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 12px;
   overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .meal-card-body {
@@ -1586,7 +1587,7 @@ select {
   }
 }
 
-/* Day hero — first-viewport composition on ration */
+/* Day hero — first-viewport scene on ration (Wave A/D) */
 .day-hero {
   position: relative;
   overflow: hidden;
@@ -1601,6 +1602,56 @@ select {
   animation: day-hero-in 0.45s ease-out both;
 }
 
+/* Full-bleed scene under the shell padding — one composition, day-part air. */
+.day-hero--scene {
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  margin-left: -0.625rem;
+  margin-right: -0.625rem;
+  padding: 0;
+  box-shadow: none;
+}
+
+@media (min-width: 768px) {
+  .day-hero--scene {
+    border-radius: 1.25rem;
+    border: 1px solid rgba(15, 118, 110, 0.1);
+    margin-left: 0;
+    margin-right: 0;
+    overflow: hidden;
+  }
+}
+
+.day-hero--morning {
+  background:
+    radial-gradient(110% 90% at 8% 0%, rgba(253, 224, 71, 0.22), transparent 52%),
+    radial-gradient(90% 80% at 100% 20%, rgba(45, 212, 191, 0.16), transparent 55%),
+    linear-gradient(168deg, #fffbeb 0%, #ecfeff 48%, #f8fafc 100%);
+}
+
+.day-hero--day {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(45, 212, 191, 0.2), transparent 55%),
+    radial-gradient(90% 80% at 100% 10%, rgba(13, 148, 136, 0.14), transparent 50%),
+    linear-gradient(165deg, #f0fdfa 0%, #ecfeff 42%, #f8fafc 100%);
+}
+
+.day-hero--evening {
+  background:
+    radial-gradient(110% 90% at 0% 0%, rgba(251, 146, 60, 0.18), transparent 50%),
+    radial-gradient(90% 80% at 100% 15%, rgba(15, 118, 110, 0.14), transparent 55%),
+    linear-gradient(168deg, #fff7ed 0%, #f0fdfa 55%, #f8fafc 100%);
+}
+
+.day-hero--night {
+  background:
+    radial-gradient(110% 90% at 10% 0%, rgba(125, 211, 252, 0.2), transparent 50%),
+    radial-gradient(90% 80% at 100% 20%, rgba(15, 118, 110, 0.12), transparent 55%),
+    linear-gradient(168deg, #e0f2fe 0%, #f0fdfa 50%, #f8fafc 100%);
+}
+
 .day-hero-glow {
   pointer-events: none;
   position: absolute;
@@ -1608,6 +1659,45 @@ select {
   height: 70%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.55), transparent 70%);
   opacity: 0.7;
+}
+
+.ration-day-scene {
+  touch-action: pan-y;
+}
+
+.ration-meal-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ration-meal-feed .meal-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ration-meal-feed .meal-card-body {
+  padding-left: 0.15rem;
+  padding-right: 0.15rem;
+}
+
+.ration-empty-day {
+  background:
+    radial-gradient(90% 70% at 50% 0%, rgba(45, 212, 191, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(240, 253, 250, 0.65), transparent 70%);
+  border-radius: 1.25rem;
+}
+
+.ration-day-more {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  padding-top: 0.85rem;
+}
+
+.ration-soft-nudge {
+  animation: day-hero-in 0.35s ease-out both;
 }
 
 .day-hero-mascot {
