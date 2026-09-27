@@ -326,11 +326,20 @@ async function lookupNutritionByProductName(
     return packToRecognitionResult(off, "openfoodfacts-search", "barcode", query, 0.78);
   }
 
-  const ruQueries = lookupQueriesForName(name, simplifyDishNameForLookup(name), 3);
-  for (const q of ruQueries) {
-    const ru = lookupRuNutritionTable(q);
-    if (ru) {
-      return packToRecognitionResult(ru, "ru-nutrition-table", "barcode", name, 0.68);
+  // Branded barcode web-names: do not let bare RU staples («молоко») win first.
+  if (!looksLikeSpecificFoodQuery(query)) {
+    const ruQueries = lookupQueriesForName(name, simplifyDishNameForLookup(name), 3);
+    for (const q of ruQueries) {
+      const ru = lookupRuNutritionTable(q);
+      if (ru) {
+        return packToRecognitionResult(
+          { ...ru, dishName: preferUserDishName(name, ru.dishName) },
+          "ru-nutrition-table",
+          "barcode",
+          name,
+          0.68,
+        );
+      }
     }
   }
 
@@ -959,6 +968,32 @@ export async function lookupFoodByBarcode(
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
+/** Branded / fat-% / multi-word queries — prefer OFF before the RU staple table. */
+function looksLikeSpecificFoodQuery(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  if (/[A-Za-z]{3,}/.test(trimmed)) return true;
+  if (/\d+([.,]\d+)?\s*%/.test(trimmed)) return true;
+  if (/обезжир|маложир|протеин|protein|bobbbar|боббар/i.test(trimmed)) return true;
+  return trimmed.split(/\s+/).filter(Boolean).length >= 3;
+}
+
+function preferUserDishName(userQuery: string, packName: string): string {
+  const user = userQuery.trim();
+  const pack = packName.trim();
+  if (!user) return pack;
+  if (!pack) return user;
+  const norm = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/\s+/g, " ")
+      .trim();
+  if (norm(user) === norm(pack)) return pack;
+  // Keep the typed name when the table only supplied a close staple.
+  return user;
+}
+
 export async function lookupFoodByName(
   dishName: string,
   userId?: string | null,
@@ -976,36 +1011,66 @@ export async function lookupFoodByName(
     return result;
   }
 
-  // Home staples (борщ, вареное яйцо…) before OFF — pack search often returns a
-  // wrong product that only shares one token («яйцо» → «яйцо в мешочек»).
+  const simplified = simplifyDishNameForLookup(dishName);
+  const queries = lookupQueriesForName(dishName, simplified, 3);
+  const specific = looksLikeSpecificFoodQuery(dishName);
+
   let result: FoodRecognitionResult | null = null;
-  const ruQueries = lookupQueriesForName(
-    dishName,
-    simplifyDishNameForLookup(dishName),
-    3,
-  );
-  for (const query of ruQueries) {
-    const ru = lookupRuNutritionTable(query);
-    if (ru) {
-      result = await packToRecognitionResult(ru, "ru-nutrition-table", "meal", dishName, 0.72);
-      break;
+  let offMatch: PackNutrition | null = null;
+
+  const searchOff = async (): Promise<PackNutrition | null> => {
+    const off = await searchOpenFoodFactsBest(queries);
+    if (off && offMatchesQuery(dishName, off.dishName, off.brand)) {
+      return off;
     }
-  }
+    return null;
+  };
 
-  const off = await searchOpenFoodFactsBest(
-    lookupQueriesForName(dishName, simplifyDishNameForLookup(dishName), 2),
-  );
-  const offMatch =
-    off && offMatchesQuery(dishName, off.dishName, off.brand) ? off : null;
+  const searchRu = async (): Promise<FoodRecognitionResult | null> => {
+    // Home staples (борщ, вареное яйцо…) — pack search often returns a wrong product
+    // that only shares one token («яйцо» → «яйцо в мешочек»).
+    for (const query of queries) {
+      const ru = lookupRuNutritionTable(query);
+      if (ru) {
+        return packToRecognitionResult(
+          { ...ru, dishName: preferUserDishName(dishName, ru.dishName) },
+          "ru-nutrition-table",
+          "meal",
+          dishName,
+          0.72,
+        );
+      }
+    }
+    return null;
+  };
 
-  if (!result && offMatch) {
-    result = await packToRecognitionResult(
-      offMatch,
-      "openfoodfacts-search",
-      "package",
-      dishName,
-      0.8,
-    );
+  // Branded / % / long names: OFF first so «молоко Bobbbar» ≠ generic «Молоко 2,5%».
+  // Bare staples: RU first (pack search often mismatches on one shared token).
+  if (specific) {
+    offMatch = await searchOff();
+    if (offMatch) {
+      result = await packToRecognitionResult(
+        offMatch,
+        "openfoodfacts-search",
+        "package",
+        dishName,
+        0.8,
+      );
+    } else {
+      result = await searchRu();
+    }
+  } else {
+    result = await searchRu();
+    offMatch = await searchOff();
+    if (!result && offMatch) {
+      result = await packToRecognitionResult(
+        offMatch,
+        "openfoodfacts-search",
+        "package",
+        dishName,
+        0.8,
+      );
+    }
   }
 
   if (!result) {

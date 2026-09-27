@@ -380,6 +380,29 @@ export async function lookupOpenFoodFactsByBarcodeWithRepair(
   return null;
 }
 
+function extractFatPercents(value: string): string[] {
+  const out: string[] = [];
+  const re = /(\d+[.,]\d+|\d+)\s*%/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(value)) !== null) {
+    out.push(match[1]!.replace(",", "."));
+  }
+  return out;
+}
+
+/** Explicit fat % in the query must not accept a differently labeled pack. */
+export function offFatPercentsAgree(query: string, dishName: string): boolean {
+  const qFats = extractFatPercents(query);
+  if (qFats.length === 0) {
+    return true;
+  }
+  const nFats = extractFatPercents(dishName);
+  if (nFats.length === 0) {
+    return true; // name omitted % — brand token overlap still required elsewhere
+  }
+  return qFats.some((fat) => nFats.includes(fat));
+}
+
 export function offMatchesQuery(query: string, dishName: string, brand?: string): boolean {
   const translit = (value: string) =>
     value
@@ -399,6 +422,11 @@ export function offMatchesQuery(query: string, dishName: string, brand?: string)
   const n = normalize(dishName);
   const b = brand ? normalize(brand) : "";
   if (!q || !n) {
+    return false;
+  }
+
+  // Fat % checked on raw strings — normalize() strips `%`.
+  if (!offFatPercentsAgree(query, dishName)) {
     return false;
   }
 
@@ -453,6 +481,11 @@ export function offCookingModifiersAgree(queryNorm: string, nameNorm: string): b
     { inQuery: /пашот|poached/, inName: /пашот|poached/ },
     { inQuery: /всмят/, inName: /всмят/ },
     { inQuery: /вкрут|крутое|крутую/, inName: /вкрут|крутое|крутую|варен/ },
+    // Fat style: «творог обезжиренный» must not accept «творог 5%/9%».
+    {
+      inQuery: /обезжир|0\s*%|0[.,]\d+\s*%/,
+      inName: /обезжир|0\s*%|0[.,]\d+\s*%|0[%\s]|fat\s*free|skim/i,
+    },
   ];
 
   for (const rule of rules) {

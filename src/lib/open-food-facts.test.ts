@@ -192,6 +192,21 @@ test("rejects OFF egg hits with a different cooking style", () => {
   );
 });
 
+test("rejects OFF dairy with a different fat style", () => {
+  assert.equal(
+    offMatchesQuery("творог обезжиренный", "Творог 5%"),
+    false,
+  );
+  assert.equal(
+    offMatchesQuery("творог обезжиренный", "Творог обезжиренный 0%"),
+    true,
+  );
+  assert.equal(
+    offMatchesQuery("молоко Bobbbar 1,8%", "Молоко 2,5%"),
+    false,
+  );
+});
+
 test("rejects branded OFF hits that only share the brand string", () => {
   // dishName is built as `${brand} ${name}` — brand-in-name must not auto-match.
   assert.equal(offMatchesQuery("кофе", "Очаково Квас", "Очаково"), false);

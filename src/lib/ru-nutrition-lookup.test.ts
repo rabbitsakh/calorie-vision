@@ -74,6 +74,34 @@ test("lookupRuNutritionTable matches new staples", () => {
   assert.match(friedPotato!.dishName, /Картофель жареный/i);
 });
 
+test("soup / cottage / branded milk are not rewritten to wrong staples", () => {
+  assert.match(lookupRuNutritionTable("суп")!.dishName, /Овощной суп/i);
+  assert.doesNotMatch(lookupRuNutritionTable("суп")!.dishName, /Куриный/i);
+
+  const seafood = lookupRuNutritionTable("суп с морепродуктами");
+  assert.ok(seafood);
+  assert.match(seafood!.dishName, /морепродукт/i);
+  assert.doesNotMatch(seafood!.dishName, /Куриный/i);
+
+  const haemul = lookupRuNutritionTable("хемультан");
+  assert.ok(haemul);
+  assert.match(haemul!.dishName, /морепродукт/i);
+
+  assert.match(lookupRuNutritionTable("творог")!.dishName, /Творог 5%/i);
+  assert.match(lookupRuNutritionTable("творог обезжиренный")!.dishName, /обезжирен/i);
+  assert.match(
+    lookupRuNutritionTable("серышевский творог обезжиренный")!.dishName,
+    /обезжирен/i,
+  );
+
+  // High-protein Bombbar (typo Bobbbar) — not generic 2.5%.
+  const bobb = lookupRuNutritionTable("молоко Bobbbar 35г протеина 1,8%");
+  assert.ok(bobb);
+  assert.match(bobb!.dishName, /Bombbar|бомббар/i);
+  assert.ok((bobb!.protein ?? 0) >= 15);
+  assert.doesNotMatch(bobb!.dishName, /2[,.]5/);
+});
+
 test("lookupRuNutritionTable matches expanded staples", () => {
   const okroshka = lookupRuNutritionTable("окрошка");
   assert.ok(okroshka);

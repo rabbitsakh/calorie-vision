@@ -188,3 +188,51 @@ test("ignores unsafe food-to-drink corrections", () => {
   ]);
   assert.equal(picked, null);
 });
+
+test("ignores unsafe seafood/cottage/bombbar remaps", () => {
+  assert.equal(
+    pickFoodCorrection("хемультан", [
+      {
+        originalKey: "хемультан",
+        correctedName: "Куриный суп",
+        calories: 180,
+        protein: null,
+        fat: null,
+        carbs: null,
+        portionGrams: 300,
+        useCount: 3,
+      },
+    ]),
+    null,
+  );
+  assert.equal(
+    pickFoodCorrection("творог обезжиренный", [
+      {
+        originalKey: "творог обезжиренный",
+        correctedName: "Творог 5%",
+        calories: 180,
+        protein: null,
+        fat: null,
+        carbs: null,
+        portionGrams: 150,
+        useCount: 2,
+      },
+    ]),
+    null,
+  );
+  assert.equal(
+    pickFoodCorrection("молоко Bobbbar 1,8%", [
+      {
+        originalKey: "молоко bobbbar",
+        correctedName: "Молоко 2,5%",
+        calories: 120,
+        protein: null,
+        fat: null,
+        carbs: null,
+        portionGrams: 250,
+        useCount: 2,
+      },
+    ]),
+    null,
+  );
+});

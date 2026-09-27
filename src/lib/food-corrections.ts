@@ -62,6 +62,31 @@ export function correctionTokenOverlap(a: string, b: string): number {
   return shared / Math.max(left.length, right.length);
 }
 
+function looksLikeSeafoodSoupName(name: string): boolean {
+  return /морепродукт|хемультан|хэмультан|haemultang|seafood\s*soup/i.test(name);
+}
+
+function looksLikeChickenSoupName(name: string): boolean {
+  // «куриный» (н) vs «курица» (ц) — both mean chicken soup here.
+  return /курин.*суп|куриц.*суп|суп.*курин|суп.*куриц|бульон\s*курин/i.test(name);
+}
+
+function looksLikeFatFreeCottageName(name: string): boolean {
+  return /творог/i.test(name) && /обезжир|0\s*%|0[.,]\d+\s*%/i.test(name);
+}
+
+function looksLikeStandardCottageName(name: string): boolean {
+  return /творог/i.test(name) && /5\s*%|9\s*%/i.test(name) && !/обезжир|0\s*%/i.test(name);
+}
+
+function looksLikeBombbarMilkName(name: string): boolean {
+  return /bombbar|bobbbar|бомббар|боббар/i.test(name);
+}
+
+function looksLikeGenericMilkName(name: string): boolean {
+  return /^молоко(\s*2[.,]5\s*%|\s*3[.,]2\s*%)?$/i.test(name.trim());
+}
+
 /** Block corrections that remap grain cups/packs to soup names (bad memory or mis-save). */
 export function isUnsafeFoodCorrection(
   dishName: string,
@@ -78,6 +103,27 @@ export function isUnsafeFoodCorrection(
   const originalDrink = looksLikeDrinkName(original) || looksLikeDrinkName(dishName);
   const correctedDrink = looksLikeDrinkName(correction.correctedName);
   if (originalDrink !== correctedDrink) {
+    return true;
+  }
+  // Seafood / haemultang must not be remembered as chicken soup.
+  if (
+    (looksLikeSeafoodSoupName(original) || looksLikeSeafoodSoupName(dishName)) &&
+    looksLikeChickenSoupName(correction.correctedName)
+  ) {
+    return true;
+  }
+  // Fat-free cottage must not be remembered as 5%/9%.
+  if (
+    (looksLikeFatFreeCottageName(original) || looksLikeFatFreeCottageName(dishName)) &&
+    looksLikeStandardCottageName(correction.correctedName)
+  ) {
+    return true;
+  }
+  // Bombbar / Bobbbar must not collapse to generic milk.
+  if (
+    (looksLikeBombbarMilkName(original) || looksLikeBombbarMilkName(dishName)) &&
+    looksLikeGenericMilkName(correction.correctedName)
+  ) {
     return true;
   }
   return false;

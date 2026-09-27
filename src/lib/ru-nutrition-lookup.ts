@@ -69,6 +69,24 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["яичница", "яйцо жареное"], dishName: "Яичница", calories: 220, protein: 14, fat: 18, carbs: 2, portionGrams: 120 },
   { keys: ["омлет"], dishName: "Омлет", calories: 260, protein: 16, fat: 20, carbs: 3, portionGrams: 150 },
   { keys: ["творог", "творог 5%", "творог 9%"], dishName: "Творог 5%", calories: 180, protein: 28, fat: 8, carbs: 6, portionGrams: 150 },
+  {
+    keys: [
+      "творог обезжиренный",
+      "обезжиренный творог",
+      "творог 0%",
+      "творог 0.1%",
+      "творог 0,1%",
+      "творог 0.5%",
+      "творог 0,5%",
+      "творог 1%",
+    ],
+    dishName: "Творог обезжиренный",
+    calories: 110,
+    protein: 33,
+    fat: 0.5,
+    carbs: 5,
+    portionGrams: 150,
+  },
   { keys: ["салат", "салат овощной", "овощной салат"], dishName: "Салат овощной", calories: 90, protein: 2, fat: 7, carbs: 4, fiber: 2, portionGrams: 150 },
   { keys: ["цезарь", "салат цезарь"], dishName: "Салат Цезарь", calories: 420, protein: 22, fat: 28, carbs: 18, portionGrams: 250 },
   { keys: ["оливье", "салат оливье"], dishName: "Салат оливье", calories: 380, protein: 8, fat: 28, carbs: 24, portionGrams: 200 },
@@ -128,6 +146,33 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["перловка", "перловая каша"], dishName: "Перловая каша", calories: 180, protein: 5, fat: 2, carbs: 36, fiber: 4, portionGrams: 200 },
   { keys: ["рассольник"], dishName: "Рассольник", calories: 260, protein: 10, fat: 12, carbs: 24, portionGrams: 300 },
   { keys: ["куриный суп", "суп куриный", "бульон куриный"], dishName: "Куриный суп", calories: 180, protein: 14, fat: 6, carbs: 14, portionGrams: 300 },
+  {
+    keys: [
+      "суп с морепродуктами",
+      "суп морепродукты",
+      "хемультан",
+      "хэмультан",
+      "haemultang",
+      "haemul tang",
+      "seafood soup",
+    ],
+    dishName: "Суп с морепродуктами",
+    calories: 220,
+    protein: 18,
+    fat: 8,
+    carbs: 12,
+    portionGrams: 350,
+  },
+  {
+    keys: ["овощной суп", "суп овощной", "суп"],
+    dishName: "Овощной суп",
+    calories: 120,
+    protein: 3,
+    fat: 4,
+    carbs: 16,
+    fiber: 3,
+    portionGrams: 300,
+  },
   { keys: ["сосиски", "сосиска"], dishName: "Сосиски", calories: 260, protein: 12, fat: 22, carbs: 2, portionGrams: 100 },
   { keys: ["драники", "драник"], dishName: "Драники", calories: 320, protein: 6, fat: 14, carbs: 42, portionGrams: 180 },
   { keys: ["капуста тушеная", "тушеная капуста", "капуста тушёная"], dishName: "Капуста тушёная", calories: 140, protein: 3, fat: 8, carbs: 12, fiber: 4, portionGrams: 200 },
@@ -313,6 +358,32 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     brand: "Простоквашино",
   },
   {
+    // High-protein lactose-free milk (BOMBBAR / often typed Bobbbar). OFF usually misses it.
+    // Per 100 ml: 63 kcal / 7P / 1.8F / 4.6C → 250 ml glass.
+    keys: [
+      "bombbar",
+      "bobbbar",
+      "бомббар",
+      "боббар",
+      "молоко bombbar",
+      "молоко bobbbar",
+      "молоко бомббар",
+      "молоко боббар",
+      "bombbar молоко",
+      "bobbbar молоко",
+      "протеиновое молоко bombbar",
+      "протеиновое молоко bobbbar",
+    ],
+    dishName: "Молоко Bombbar 1,8% протеиновое",
+    calories: 158,
+    protein: 17.5,
+    fat: 4.5,
+    carbs: 11.5,
+    sugar: 11.5,
+    portionGrams: 250,
+    brand: "Bombbar",
+  },
+  {
     keys: ["простоквашино творог", "творог простоквашино"],
     dishName: "Творог Простоквашино 5%",
     calories: 170,
@@ -455,6 +526,71 @@ function tokenizeRuLookupKey(name: string): string[] {
   return normalizeRuLookupKey(name).split(" ").filter(Boolean);
 }
 
+const LOOKUP_STOPWORDS = new Set([
+  "с",
+  "и",
+  "на",
+  "из",
+  "по",
+  "для",
+  "без",
+  "the",
+  "a",
+  "of",
+  "with",
+]);
+
+function significantLookupTokens(tokens: string[]): string[] {
+  return tokens.filter((token) => token.length > 1 && !LOOKUP_STOPWORDS.has(token));
+}
+
+function looksLikeMeasureToken(token: string): boolean {
+  return (
+    /^\d+([.,]\d+)?%?$/.test(token) ||
+    /^(г|гр|кг|мл|л|шт|протеина|protein|ккал)$/i.test(token)
+  );
+}
+
+/** «домашний», «свежий» — do not change the staple identity. */
+function isSoftCulinaryExtra(token: string): boolean {
+  return /^(домашн|свеж|обычн|прост|вкусн|классич|русск|горяч|тепл|холодн|вар[её]н|отварн)/.test(
+    token,
+  );
+}
+
+/** Toppings / prep that keep the same staple («гречка с маслом»). */
+function isToppingOrPrepExtra(token: string): boolean {
+  return /^(масл|сахар|сол[ьи]|сметан|лук|чеснок|укроп|петруш|перц|соус)/.test(token);
+}
+
+const DAIRY_STAPLE_KEYS = new Set([
+  "молоко",
+  "творог",
+  "кефир",
+  "сметана",
+  "ряженка",
+  "йогурт",
+  "простокваша",
+]);
+
+/** Brand / fat / protein extras that must not collapse onto bare dairy keys. */
+function isHardDairyExtra(token: string): boolean {
+  return (
+    /[a-z]{3,}/i.test(token) ||
+    /обезжир|маложир|протеин|protein|серышев|bobb|боббар|\d/.test(token)
+  );
+}
+
+function isConflictingFoodExtra(token: string): boolean {
+  return /^(куриц|говяд|свин|рыб|морепродукт|грибн|горохов|томатн|тыквен|лапш|овощн|мясн)/.test(
+    token,
+  );
+}
+
+/**
+ * Score query↔table-key. Keep staples (борщ, творог, молоко) working, but never let
+ * a short key swallow a more specific query (бренд / % / «обезжиренный» / «морепродукты»).
+ */
 function matchScore(query: string, key: string): number {
   const q = normalizeRuLookupKey(query);
   const k = normalizeRuLookupKey(key);
@@ -468,29 +604,63 @@ function matchScore(query: string, key: string): number {
     return 0;
   }
 
-  if (kTokens.length >= qTokens.length && qTokens.every((token, index) => kTokens[index] === token)) {
+  const qSig = significantLookupTokens(qTokens);
+  const kSig = significantLookupTokens(kTokens);
+
+  // Query is a positional prefix of the key («суп» ⊂ «суп куриный»).
+  // Bare category must not pick a more specific dish — use an exact short key instead
+  // (entry keys include bare «борщ», «творог», «молоко», «суп» → овощной).
+  if (
+    kTokens.length >= qTokens.length &&
+    qTokens.every((token, index) => kTokens[index] === token)
+  ) {
+    if (qSig.length === 1 && kSig.length > qSig.length) {
+      return 0;
+    }
     return 95 - (kTokens.length - qTokens.length);
   }
 
+  // All key tokens appear in the query («творог обезжиренный» ⊂ «серышевский творог обезжиренный»).
   if (kTokens.every((token) => qTokens.includes(token))) {
+    const extra = qSig.filter((token) => !kSig.includes(token) && !looksLikeMeasureToken(token));
+    if (extra.length > 0) {
+      if (kSig.length < 2) {
+        const head = kSig[0] ?? "";
+        if (DAIRY_STAPLE_KEYS.has(head) && extra.some(isHardDairyExtra)) {
+          return 0;
+        }
+        if (extra.some(isConflictingFoodExtra)) {
+          return 0;
+        }
+        if (!extra.every((token) => isSoftCulinaryExtra(token) || isToppingOrPrepExtra(token))) {
+          // Unknown extras on a bare staple (brand-like) — reject for dairy; allow mild for others
+          // only when every extra looks soft/topping (already failed) → reject.
+          return 0;
+        }
+      }
+    }
     return 90 - Math.abs(qTokens.length - kTokens.length);
   }
 
+  // All query tokens appear in the key.
   if (qTokens.every((token) => kTokens.includes(token))) {
     if (qTokens.length === 1 && kTokens.length > 1 && kTokens[0] !== qTokens[0]) {
+      return 0;
+    }
+    if (qSig.length === 1 && kSig.length > qSig.length) {
       return 0;
     }
     return 80 - Math.abs(qTokens.length - kTokens.length);
   }
 
-  if (qTokens[0] === kTokens[0]) {
-    return 75;
-  }
+  // No first-token-only match: «суп с морепродуктами» must not hit «суп куриный».
 
-  const overlap = qTokens.filter((token) => kTokens.includes(token)).length;
-  if (overlap > 0) {
-    const coverage = overlap / Math.max(qTokens.length, kTokens.length);
-    return Math.round(30 + coverage * 30);
+  const overlap = qSig.filter((token) => kSig.includes(token)).length;
+  if (overlap >= 2) {
+    const coverage = overlap / Math.max(qSig.length, kSig.length);
+    if (coverage >= 0.5) {
+      return Math.round(30 + coverage * 30);
+    }
   }
 
   return 0;
