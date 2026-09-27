@@ -18,7 +18,7 @@ const DISH_SYNONYMS: Record<string, string> = {
   пшенная: "пшённая каша",
   каша: "каша",
 
-  // Супы
+  // Супы — do NOT map bare «суп» → куриный (too aggressive).
   борщ: "борщ с мясом",
   боршь: "борщ с мясом",
   борщъ: "борщ с мясом",
@@ -28,7 +28,9 @@ const DISH_SYNONYMS: Record<string, string> = {
   харчо: "суп харчо",
   уха: "уха рыбная",
   окрошка: "окрошка на квасе",
-  суп: "суп",
+  хемультан: "суп с морепродуктами",
+  хэмультан: "суп с морепродуктами",
+  haemultang: "суп с морепродуктами",
   бульон: "куриный бульон",
 
   // Салаты
@@ -62,7 +64,7 @@ const DISH_SYNONYMS: Record<string, string> = {
   холодец: "холодец",
   студень: "холодец",
 
-  // Молочка
+  // Молочка — defaults only for bare single-token queries (see lookupQueriesForName).
   молоко: "молоко 2.5%",
   малако: "молоко 2.5%",
   кефир: "кефир 2,5%",
@@ -76,6 +78,12 @@ const DISH_SYNONYMS: Record<string, string> = {
   простокваша: "простокваша",
   сыр: "сыр твёрдый",
   сырок: "глазированный сырок",
+  // Brands / high-protein milk (BOMBBAR; common typo Bobbbar)
+  bobbbar: "молоко bombbar",
+  bombbar: "молоко bombbar",
+  боббар: "молоко bombbar",
+  бомббар: "молоко bombbar",
+  боббары: "молоко bombbar",
 
   // Напитки / alcohol
   кофе: "кофе",
@@ -175,6 +183,29 @@ function normalizeLookupKey(name: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Short RU staples whose first-token default must not apply mid-phrase. */
+const SINGLE_TOKEN_DEFAULT_ONLY = new Set([
+  "творог",
+  "творок",
+  "молоко",
+  "малако",
+  "кефир",
+  "кефер",
+  "сметана",
+  "сыр",
+  "суп",
+  "салат",
+  "рис",
+  "яйцо",
+  "яйца",
+  "бульон",
+  "сок",
+  "пиво",
+  "хлеб",
+  "котлета",
+  "котлеты",
+]);
+
 /** Up to `limit` distinct lookup queries: original, simplified, synonym. */
 export function lookupQueriesForName(name: string, simplified: string | null, limit = 2): string[] {
   const out: string[] = [];
@@ -194,16 +225,33 @@ export function lookupQueriesForName(name: string, simplified: string | null, li
     push(simplified);
   }
 
-  const firstToken = normalizeLookupKey(name).split(" ")[0] ?? "";
-  const synonym = DISH_SYNONYMS[firstToken];
-  if (synonym) {
-    push(synonym);
-  }
-
   const full = normalizeLookupKey(name);
+  const tokens = full.split(" ").filter(Boolean);
+  const firstToken = tokens[0] ?? "";
+
+  // Full-string synonym always (хемультан → суп с морепродуктами).
   const fullSynonym = DISH_SYNONYMS[full];
   if (fullSynonym) {
     push(fullSynonym);
+  }
+
+  // First-token default staples («творог»→«5%», «молоко»→«2.5%») ONLY for bare words.
+  // «творог обезжиренный» / «молоко Bobbbar» must not add a conflicting default query.
+  if (tokens.length === 1) {
+    const synonym = DISH_SYNONYMS[firstToken];
+    if (synonym) {
+      push(synonym);
+    }
+  } else {
+    for (const token of tokens) {
+      if (SINGLE_TOKEN_DEFAULT_ONLY.has(token)) {
+        continue;
+      }
+      const synonym = DISH_SYNONYMS[token];
+      if (synonym) {
+        push(synonym);
+      }
+    }
   }
 
   return out.slice(0, limit);

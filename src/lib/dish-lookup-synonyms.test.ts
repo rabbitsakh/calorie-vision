@@ -37,3 +37,18 @@ test("lookupQueriesForName maps сельдерей to celery", () => {
   const queries = lookupQueriesForName("сельдерей", null, 3);
   assert.ok(queries.some((q) => /celery/i.test(q)));
 });
+
+test("lookupQueriesForName does not force fat defaults on specific dairy", () => {
+  const fatFree = lookupQueriesForName("творог обезжиренный", null, 3);
+  assert.equal(fatFree[0], "творог обезжиренный");
+  assert.ok(!fatFree.some((q) => /5\s*%/.test(q)));
+
+  const brandedMilk = lookupQueriesForName("молоко Bobbbar 35г протеина 1,8%", null, 4);
+  assert.ok(!brandedMilk.some((q) => /2\.5|2,5/.test(q)));
+  assert.ok(brandedMilk.some((q) => /bobbbar|bombbar/i.test(q)));
+});
+
+test("lookupQueriesForName expands haemultang synonym", () => {
+  const queries = lookupQueriesForName("хемультан", null, 3);
+  assert.ok(queries.some((q) => /морепродукт/i.test(q)));
+});
