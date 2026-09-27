@@ -40,9 +40,9 @@ export function requestOpenFoodBarcode(): void {
   openFoodAdd({ mode: "barcode" });
 }
 
-/** Bare «+» / «Добавить» — mode picker. */
-export function requestOpenFoodAddPicker(): void {
-  openFoodAdd({});
+/** Bare «+» / «Добавить» — mode picker. Optional mealType stamps the day-part slot. */
+export function requestOpenFoodAddPicker(detail: Pick<OpenFoodAddDetail, "mealType"> = {}): void {
+  openFoodAdd(detail);
 }
 
 /** Resume unfinished confirm draft (if present). */

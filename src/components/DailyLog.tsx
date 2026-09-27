@@ -78,8 +78,8 @@ type DailyLogProps = {
   onTotalsChange?: (calories: number) => void;
   compact?: boolean;
   timezone?: string | null;
-  /** Primary empty-state CTA — usually open camera. */
-  onAddFood?: () => void;
+  /** Primary empty-state CTA — open «+» picker; optional mealType from diary filter. */
+  onAddFood?: (mealType?: string) => void;
   /** Secondary empty-state CTA — text entry. */
   onAddFoodText?: () => void;
 };
@@ -910,7 +910,9 @@ export function DailyLog({ selectedDate, refreshKey, onChanged, onTotalsChange, 
               <button
                 type="button"
                 className="btn btn-primary text-sm"
-                onClick={() => onAddFood()}
+                onClick={() =>
+                  onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)
+                }
               >
                 Добавить
               </button>

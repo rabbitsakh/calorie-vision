@@ -48,6 +48,7 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   openFoodAdd({});
   openFoodAdd({ mode: "photo", openCamera: true });
   requestOpenFoodAddPicker();
+  requestOpenFoodAddPicker({ mealType: "LUNCH" });
   requestOpenFoodCamera();
   requestOpenFoodText();
   requestOpenFoodBarcode();
@@ -56,8 +57,9 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   assert.deepEqual(captured[0], {});
   assert.deepEqual(captured[1], { mode: "photo", openCamera: true });
   assert.deepEqual(captured[2], {});
-  assert.deepEqual(captured[3], { mode: "photo", openCamera: true });
-  assert.deepEqual(captured[4], { mode: "text" });
-  assert.deepEqual(captured[5], { mode: "barcode" });
-  assert.deepEqual(captured[6], { resumePending: true });
+  assert.deepEqual(captured[3], { mealType: "LUNCH" });
+  assert.deepEqual(captured[4], { mode: "photo", openCamera: true });
+  assert.deepEqual(captured[5], { mode: "text" });
+  assert.deepEqual(captured[6], { mode: "barcode" });
+  assert.deepEqual(captured[7], { resumePending: true });
 });

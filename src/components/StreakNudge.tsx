@@ -28,7 +28,7 @@ type StreakNudgeProps = {
   selectedDate: string;
   today: string;
   refreshKey: number;
-  onAddFood: () => void;
+  onAddFood: (mealType?: string) => void;
   /** When hidden, return null so MotivationQueue can show the next card. */
   quietHide?: boolean;
 };
@@ -199,7 +199,11 @@ export function StreakNudge({
       }}
       actions={
         <>
-          <button type="button" className="btn btn-on-tint text-sm text-orange-800" onClick={onAddFood}>
+          <button
+            type="button"
+            className="btn btn-on-tint text-sm text-orange-800"
+            onClick={() => onAddFood()}
+          >
             Добавить еду
           </button>
           {showFreeze ? (
