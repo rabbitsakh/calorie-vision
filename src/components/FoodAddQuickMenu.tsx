@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useId, type ReactNode } from "react";
+import { FoodAddIcon } from "@/components/FoodAddIcons";
+import {
+  FOOD_ADD_MODE_OPTIONS,
+  FOOD_ADD_UTILITY_OPTIONS,
+} from "@/lib/food-add-modes";
 import { openFoodAdd, requestOpenFoodAddPicker } from "@/lib/open-food-camera";
-import { FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
@@ -16,7 +20,7 @@ type FoodAddModeMenuProps = {
   className?: string;
 };
 
-/** Compact mode list (desktop chevron / optional overflow). */
+/** Compact mode list (desktop chevron). */
 export function FoodAddModeMenu({
   open,
   onClose,
@@ -36,7 +40,6 @@ export function FoodAddModeMenu({
       if (root && target && !root.contains(target)) onClose();
     }
     window.addEventListener("keydown", onKey);
-    // Defer so the opening click/pointer doesn't instantly close.
     const t = window.setTimeout(() => window.addEventListener("mousedown", onPointer), 0);
     return () => {
       window.clearTimeout(t);
@@ -52,7 +55,7 @@ export function FoodAddModeMenu({
       id={listId}
       role="menu"
       aria-label="Что добавить"
-      className={`absolute left-1/2 z-[65] w-44 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg ${
+      className={`absolute left-1/2 z-[65] w-52 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg ${
         placement === "up" ? "bottom-[calc(100%+0.45rem)]" : "top-[calc(100%+0.45rem)]"
       } ${className}`}
     >
@@ -61,38 +64,40 @@ export function FoodAddModeMenu({
           key={opt.id}
           type="button"
           role="menuitem"
-          className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
           onClick={() => {
             onClose();
             openFoodAdd({ mode: opt.id, openCamera: opt.openCamera });
           }}
         >
+          <span className="text-[var(--accent)]" aria-hidden>
+            <FoodAddIcon name={opt.icon} className="h-4 w-4" />
+          </span>
           {opt.label}
         </button>
       ))}
       <div className="my-1 border-t border-slate-100" role="separator" />
-      <button
-        type="button"
-        role="menuitem"
-        className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
-        onClick={() => {
-          onClose();
-          requestOpenWaterQuick();
-        }}
-      >
-        Вода
-      </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
-        onClick={() => {
-          onClose();
-          requestOpenWeightQuick();
-        }}
-      >
-        Вес
-      </button>
+      {FOOD_ADD_UTILITY_OPTIONS.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          role="menuitem"
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
+          onClick={() => {
+            onClose();
+            if (opt.id === "water") requestOpenWaterQuick();
+            else requestOpenWeightQuick();
+          }}
+        >
+          <span
+            className={opt.id === "water" ? "text-[var(--accent-water)]" : "text-[var(--accent)]"}
+            aria-hidden
+          >
+            <FoodAddIcon name={opt.icon} className="h-4 w-4" />
+          </span>
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

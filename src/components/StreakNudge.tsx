@@ -28,7 +28,7 @@ type StreakNudgeProps = {
   selectedDate: string;
   today: string;
   refreshKey: number;
-  onAddFood: () => void;
+  onAddFood: (mealType?: string) => void;
   /** When hidden, return null so MotivationQueue can show the next card. */
   quietHide?: boolean;
 };

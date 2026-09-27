@@ -9,16 +9,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { FoodAddModePicker } from "@/components/FoodAddModePicker";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { toDateKeyTz } from "@/lib/dates";
+import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
 import {
   FOOD_SAVED_EVENT,
   OPEN_FOOD_ADD_EVENT,
   type FoodAddMode,
   type OpenFoodAddDetail,
 } from "@/lib/open-food-camera";
-import { requestOpenWaterQuick } from "@/lib/open-water-quick";
-import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { useTimezone } from "@/lib/use-timezone";
 
 type FoodAddUiValue = {
@@ -47,6 +47,10 @@ type FoodAddHostProps = {
   children: ReactNode;
 };
 
+function inferCurrentMealType(timezone?: string | null): string {
+  return inferMealTypeFromHour(hourInTimezone(new Date(), timezone));
+}
+
 export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps) {
   const timezone = useTimezone();
   const today = toDateKeyTz(new Date(), timezone);
@@ -73,6 +77,13 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
     setPhase("sheet");
   }, []);
 
+  const finishSaved = useCallback(() => {
+    window.dispatchEvent(new Event(FOOD_SAVED_EVENT));
+    setConfirmOpen(false);
+    setPhase("closed");
+    setOpenCameraOnce(false);
+  }, []);
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -80,6 +91,9 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
       const detail = (event as CustomEvent<OpenFoodAddDetail>).detail ?? {};
       if (detail.mealType) {
         setMealType(detail.mealType);
+      } else if (!detail.mode && !detail.resumePending) {
+        // Bare «+» picker — stamp the current day-part slot.
+        setMealType(inferCurrentMealType(timezone));
       }
       if (detail.resumePending) {
         setOpenCameraOnce(false);
@@ -97,7 +111,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
 
     window.addEventListener(OPEN_FOOD_ADD_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_FOOD_ADD_EVENT, onOpen);
-  }, [enabled, openSheet]);
+  }, [enabled, openSheet, timezone]);
 
   // Offline draft / confirm while sheet was closed → reveal sheet.
   useEffect(() => {
@@ -125,8 +139,11 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
         <>
           {phase === "picker" ? (
             <FoodAddModePicker
-              onSelect={(next) => openSheet(next, false)}
+              selectedDate={selectedDate}
+              mealType={mealType}
+              onSelect={(next, camera) => openSheet(next, camera)}
               onClose={closeAll}
+              onQuickLogged={finishSaved}
             />
           ) : null}
 
@@ -171,12 +188,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
                   resumeKey={resumeKey}
                   layout="plain"
                   disabled={!sheetVisible}
-                  onSaved={() => {
-                    window.dispatchEvent(new Event(FOOD_SAVED_EVENT));
-                    setConfirmOpen(false);
-                    setPhase("closed");
-                    setOpenCameraOnce(false);
-                  }}
+                  onSaved={finishSaved}
                   onPendingChange={setConfirmOpen}
                 />
               </div>
@@ -185,81 +197,5 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
         </>
       ) : null}
     </FoodAddUiContext.Provider>
-  );
-}
-
-function FoodAddModePicker({
-  onSelect,
-  onClose,
-}: {
-  onSelect: (mode: FoodAddMode) => void;
-  onClose: () => void;
-}) {
-  const options: Array<{ id: FoodAddMode; label: string; hint: string }> = [
-    { id: "photo", label: "Фото", hint: "Сфотографировать блюдо или этикетку" },
-    { id: "text", label: "Текст", hint: "Название или голос" },
-    { id: "barcode", label: "Штрихкод", hint: "Сканер или ввод EAN" },
-  ];
-
-  return (
-    <div
-      className="food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="food-add-picker-title"
-      onClick={onClose}
-    >
-      <div
-        className="food-add-sheet flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-          <div className="min-w-0">
-            <p id="food-add-picker-title" className="font-semibold text-slate-900">
-              Добавить
-            </p>
-            <p className="text-xs text-slate-500">Еда, вода или вес</p>
-          </div>
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={onClose}>
-            Закрыть
-          </button>
-        </div>
-        <div className="flex flex-col gap-2 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:p-4">
-          {options.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className="flex min-h-14 flex-col items-start rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:border-teal-300 hover:bg-teal-50/60"
-              onClick={() => onSelect(opt.id)}
-            >
-              <span className="text-base font-semibold text-slate-900">{opt.label}</span>
-              <span className="text-xs text-slate-500">{opt.hint}</span>
-            </button>
-          ))}
-          <button
-            type="button"
-            className="flex min-h-14 flex-col items-start rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-3 text-left transition-colors hover:border-sky-400 hover:bg-sky-50"
-            onClick={() => {
-              onClose();
-              requestOpenWaterQuick();
-            }}
-          >
-            <span className="text-base font-semibold text-slate-900">Вода</span>
-            <span className="text-xs text-slate-500">+200…500 мл за сегодня</span>
-          </button>
-          <button
-            type="button"
-            className="flex min-h-14 flex-col items-start rounded-2xl border border-teal-200 bg-teal-50/70 px-4 py-3 text-left transition-colors hover:border-teal-400 hover:bg-teal-50"
-            onClick={() => {
-              onClose();
-              requestOpenWeightQuick();
-            }}
-          >
-            <span className="text-base font-semibold text-slate-900">Вес</span>
-            <span className="text-xs text-slate-500">Записать кг за сегодня</span>
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }

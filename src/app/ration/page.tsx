@@ -155,7 +155,7 @@ function RationBody({
   timezone: string | null | undefined;
   pwaWizardOpen: boolean;
   setPwaWizardOpen: (v: boolean) => void;
-  openFoodPicker: () => void;
+  openFoodPicker: (mealType?: string) => void;
 }) {
   const day = useRationDay();
   const [showHabits, setShowHabits] = useState(false);
@@ -469,7 +469,10 @@ function RationShell({
 }) {
   const day = useRationDay();
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
-  const openFoodPicker = useCallback(() => requestOpenFoodAddPicker(), []);
+  const openFoodPicker = useCallback(
+    (mealType?: string) => requestOpenFoodAddPicker(mealType ? { mealType } : {}),
+    [],
+  );
 
   return (
     <AppShell
