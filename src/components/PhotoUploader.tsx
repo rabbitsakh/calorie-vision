@@ -35,6 +35,8 @@ export type PhotoUploaderHandle = {
   abort: () => void;
   /** Programmatically open the device camera picker. */
   openCamera: () => void;
+  /** Programmatically open the gallery file picker (no capture). */
+  openGallery: () => void;
 };
 
 function ThinkingAnimation({ preview, stage }: { preview: string | null; stage: string }) {
@@ -131,6 +133,10 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     },
     openCamera: () => {
       void openDeviceCamera();
+    },
+    openGallery: () => {
+      if (disabled) return;
+      galleryInputRef.current?.click();
     },
   }));
 

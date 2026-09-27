@@ -10,6 +10,8 @@ export type OpenFoodAddDetail = {
   mode?: FoodAddMode;
   /** When mode is photo, also open the device camera picker. */
   openCamera?: boolean;
+  /** When mode is photo, open the gallery file picker (no capture). */
+  openGallery?: boolean;
   /** Prefill meal type on confirm (push deep link). */
   mealType?: string;
   /** Open sheet and resume pending-confirm draft if any. */

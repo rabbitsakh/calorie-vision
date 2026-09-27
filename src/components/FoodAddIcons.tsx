@@ -24,6 +24,14 @@ export function FoodAddIcon({ name, className = "h-6 w-6" }: IconProps) {
           <circle cx="12" cy="12.5" r="3.25" />
         </svg>
       );
+    case "gallery":
+      return (
+        <svg {...common}>
+          <rect x="3.5" y="5" width="17" height="14" rx="2" />
+          <circle cx="8.5" cy="10" r="1.5" />
+          <path d="M3.5 15.5l4.2-3.5 3.3 2.5 4-4.5 5.5 5.5" strokeLinejoin="round" />
+        </svg>
+      );
     case "text":
       return (
         <svg {...common}>
@@ -50,6 +58,18 @@ export function FoodAddIcon({ name, className = "h-6 w-6" }: IconProps) {
         <svg {...common}>
           <path d="M7 8.5h10l1.5 11H5.5L7 8.5z" strokeLinejoin="round" />
           <path d="M10 8.5a2 2 0 1 1 4 0" strokeLinecap="round" />
+        </svg>
+      );
+    case "workout":
+      return (
+        <svg {...common}>
+          <path d="M6.5 9.5v5M17.5 9.5v5" strokeLinecap="round" />
+          <path d="M4 11v2M20 11v2" strokeLinecap="round" />
+          <path d="M8 12h8" strokeLinecap="round" />
+          <rect x="2.5" y="8.5" width="2.5" height="7" rx="1" />
+          <rect x="19" y="8.5" width="2.5" height="7" rx="1" />
+          <rect x="5.5" y="9.5" width="2" height="5" rx="0.5" />
+          <rect x="16.5" y="9.5" width="2" height="5" rx="0.5" />
         </svg>
       );
     default:

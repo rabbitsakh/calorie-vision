@@ -59,6 +59,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
   const [phase, setPhase] = useState<Phase>("closed");
   const [mode, setMode] = useState<FoodAddMode>("photo");
   const [openCameraOnce, setOpenCameraOnce] = useState(false);
+  const [openGalleryOnce, setOpenGalleryOnce] = useState(false);
   const [mealType, setMealType] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [launchKey, setLaunchKey] = useState(0);
@@ -68,20 +69,26 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
     if (confirmOpen) return;
     setPhase("closed");
     setOpenCameraOnce(false);
+    setOpenGalleryOnce(false);
   }, [confirmOpen]);
 
-  const openSheet = useCallback((nextMode: FoodAddMode, camera: boolean) => {
-    setMode(nextMode);
-    setOpenCameraOnce(camera && nextMode === "photo");
-    setLaunchKey((k) => k + 1);
-    setPhase("sheet");
-  }, []);
+  const openSheet = useCallback(
+    (nextMode: FoodAddMode, opts?: { openCamera?: boolean; openGallery?: boolean }) => {
+      setMode(nextMode);
+      setOpenCameraOnce(Boolean(opts?.openCamera) && nextMode === "photo");
+      setOpenGalleryOnce(Boolean(opts?.openGallery) && nextMode === "photo" && !opts?.openCamera);
+      setLaunchKey((k) => k + 1);
+      setPhase("sheet");
+    },
+    [],
+  );
 
   const finishSaved = useCallback(() => {
     window.dispatchEvent(new Event(FOOD_SAVED_EVENT));
     setConfirmOpen(false);
     setPhase("closed");
     setOpenCameraOnce(false);
+    setOpenGalleryOnce(false);
   }, []);
 
   useEffect(() => {
@@ -97,6 +104,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
       }
       if (detail.resumePending) {
         setOpenCameraOnce(false);
+        setOpenGalleryOnce(false);
         setResumeKey((k) => k + 1);
         setLaunchKey((k) => k + 1);
         setPhase("sheet");
@@ -106,7 +114,10 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
         setPhase("picker");
         return;
       }
-      openSheet(detail.mode, Boolean(detail.openCamera));
+      openSheet(detail.mode, {
+        openCamera: detail.openCamera,
+        openGallery: detail.openGallery,
+      });
     }
 
     window.addEventListener(OPEN_FOOD_ADD_EVENT, onOpen);
@@ -141,7 +152,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
             <FoodAddModePicker
               selectedDate={selectedDate}
               mealType={mealType}
-              onSelect={(next, camera) => openSheet(next, camera)}
+              onSelect={(next, opts) => openSheet(next, opts)}
               onClose={closeAll}
               onQuickLogged={finishSaved}
             />
@@ -184,6 +195,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
                   initialMealType={mealType}
                   initialMode={mode}
                   autoOpenCamera={openCameraOnce}
+                  autoOpenGallery={openGalleryOnce}
                   launchKey={launchKey}
                   resumeKey={resumeKey}
                   layout="plain"
