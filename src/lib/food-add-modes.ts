@@ -21,8 +21,6 @@ export type FoodAddModeOption = {
    * The center «+» sheet instead shows camera vs gallery first (never auto-opens).
    */
   openCamera?: boolean;
-  /** Primary tile (accent) in the picker grid. */
-  primary?: boolean;
 };
 
 export const FOOD_ADD_MODE_OPTIONS: FoodAddModeOption[] = [
@@ -31,7 +29,6 @@ export const FOOD_ADD_MODE_OPTIONS: FoodAddModeOption[] = [
     label: "Фото",
     hint: "Камера или галерея",
     icon: "photo",
-    primary: true,
   },
   {
     id: "text",
@@ -46,6 +43,31 @@ export const FOOD_ADD_MODE_OPTIONS: FoodAddModeOption[] = [
     icon: "barcode",
   },
 ];
+
+/** Soft day-part nudge among photo / water / weight (P3). Never auto-opens camera. */
+export type FoodAddSuggestedAction = "photo" | "water" | "weight";
+
+/**
+ * Morning → вес (взвешивание), день/вечер → фото еды, ночь → вода.
+ * Hour is 0–23 local.
+ */
+export function suggestFoodAddAction(hour: number): FoodAddSuggestedAction {
+  const h = ((Math.trunc(hour) % 24) + 24) % 24;
+  if (h >= 5 && h < 11) return "weight";
+  if (h >= 22 || h < 5) return "water";
+  return "photo";
+}
+
+export function foodAddSuggestedLabel(action: FoodAddSuggestedAction): string {
+  switch (action) {
+    case "weight":
+      return "Сейчас удобнее: вес";
+    case "water":
+      return "Сейчас удобнее: вода";
+    default:
+      return "Сейчас удобнее: фото";
+  }
+}
 
 export type FoodAddUtilityId = "water" | "weight" | "workout";
 

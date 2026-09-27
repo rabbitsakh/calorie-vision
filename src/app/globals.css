@@ -975,6 +975,137 @@ select {
   color: #ea580c;
 }
 
+.food-add-tile--suggested,
+.food-add-utility-tile--suggested {
+  outline: 2px solid rgba(15, 118, 110, 0.45);
+  outline-offset: 1px;
+}
+
+.food-add-utility-tile--suggested.food-add-utility-tile--water {
+  outline-color: rgba(2, 132, 199, 0.5);
+}
+
+.food-add-utility-tile--suggested.food-add-utility-tile--weight {
+  outline-color: rgba(15, 118, 110, 0.5);
+  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.12);
+}
+
+/* Desktop header chevron menu (P4) — matches sheet language */
+.food-add-desktop-menu {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 1.15rem;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem;
+}
+
+.food-add-desktop-menu-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.45rem 0.1rem;
+}
+
+.food-add-desktop-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.food-add-desktop-menu-sep {
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  margin: 0.2rem 0.25rem;
+}
+
+.food-add-desktop-item {
+  align-items: center;
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.85rem;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  gap: 0.7rem;
+  min-height: 3.15rem;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.food-add-desktop-item:hover,
+.food-add-desktop-item:focus-visible {
+  background: linear-gradient(165deg, #f0fdfa 0%, #ecfeff 100%);
+  border-color: rgba(15, 118, 110, 0.35);
+  outline: none;
+}
+
+.food-add-desktop-item--suggested {
+  background: linear-gradient(160deg, var(--accent-soft) 0%, #e6fffa 55%, #f0fdfa 100%);
+  border-color: rgba(15, 118, 110, 0.35);
+  outline: 2px solid rgba(15, 118, 110, 0.4);
+  outline-offset: 0;
+}
+
+.food-add-desktop-item--water.food-add-desktop-item--suggested {
+  background: linear-gradient(135deg, var(--accent-water-soft) 0%, #f0f9ff 100%);
+  border-color: rgba(2, 132, 199, 0.35);
+  outline-color: rgba(2, 132, 199, 0.45);
+}
+
+.food-add-desktop-item--weight.food-add-desktop-item--suggested {
+  background: linear-gradient(135deg, var(--accent-soft) 0%, #f0fdfa 100%);
+}
+
+.food-add-desktop-item-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.7rem;
+  color: #64748b;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 2.15rem;
+  justify-content: center;
+  width: 2.15rem;
+}
+
+.food-add-desktop-item-icon--accent,
+.food-add-desktop-item-icon--weight {
+  color: var(--accent);
+}
+
+.food-add-desktop-item-icon--water {
+  color: var(--accent-water);
+}
+
+.food-add-desktop-item-icon--workout {
+  color: #ea580c;
+}
+
+.food-add-desktop-item-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.food-add-desktop-item-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.food-add-desktop-item-hint {
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
 @media (max-width: 420px) {
   .food-add-utility-row--three {
     grid-template-columns: 1fr;

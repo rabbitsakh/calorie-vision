@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FoodAddIcon } from "@/components/FoodAddIcons";
 import { FoodAddQuickStrip } from "@/components/FoodAddQuickStrip";
+import { listFocusable, trapFocusKeydown } from "@/lib/food-add-focus";
 import {
   FOOD_ADD_MODE_OPTIONS,
   FOOD_ADD_PHOTO_SOURCES,
   FOOD_ADD_UTILITY_OPTIONS,
+  foodAddSuggestedLabel,
+  suggestFoodAddAction,
   type FoodAddModeOption,
   type FoodAddUtilityOption,
 } from "@/lib/food-add-modes";
+import { hourInTimezone } from "@/lib/meal-type";
 import type { FoodAddMode } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { useTimezone } from "@/lib/use-timezone";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
 export type FoodAddSelectOptions = {
@@ -41,6 +46,7 @@ function mealTypeCaption(mealType?: string): string | null {
 /**
  * Center «+» choice sheet — grid of modes + water/weight/workout + quick repeat/favorites.
  * Photo opens a camera vs gallery sub-step (never jumps straight to the camera).
+ * P3: soft day-part highlight among photo / water / weight.
  */
 export function FoodAddModePicker({
   selectedDate,
@@ -50,18 +56,31 @@ export function FoodAddModePicker({
   onQuickLogged,
 }: FoodAddModePickerProps) {
   const titleId = useId();
+  const sheetRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const timezone = useTimezone();
   const [step, setStep] = useState<PickerStep>("root");
   const slotLabel = mealTypeCaption(mealType);
 
+  const suggested = useMemo(
+    () => suggestFoodAddAction(hourInTimezone(new Date(), timezone)),
+    [timezone],
+  );
+  const suggestedHint = foodAddSuggestedLabel(suggested);
+
   useEffect(() => {
-    closeRef.current?.focus();
+    const sheet = sheetRef.current;
+    const focusables = sheet ? listFocusable(sheet) : [];
+    (focusables[0] ?? closeRef.current)?.focus();
+
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
         if (step === "photo") setStep("root");
         else onClose();
+        return;
       }
+      if (sheet) trapFocusKeydown(event, sheet);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -93,8 +112,8 @@ export function FoodAddModePicker({
     step === "photo"
       ? "Камера или уже снятое фото"
       : slotLabel
-        ? `Слот: ${slotLabel}`
-        : "Еда, вода, вес или зал";
+        ? `Слот: ${slotLabel} · ${suggestedHint}`
+        : suggestedHint;
 
   return (
     <div
@@ -105,6 +124,7 @@ export function FoodAddModePicker({
       onClick={onClose}
     >
       <div
+        ref={sheetRef}
         className="food-add-sheet food-add-sheet--picker food-add-sheet--in flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
@@ -119,7 +139,7 @@ export function FoodAddModePicker({
             {step === "photo" ? (
               <button
                 type="button"
-                className="btn-quiet text-sm text-slate-500"
+                className="btn-quiet min-h-10 px-2 text-sm text-slate-500"
                 onClick={() => setStep("root")}
               >
                 Назад
@@ -128,7 +148,7 @@ export function FoodAddModePicker({
             <button
               ref={closeRef}
               type="button"
-              className="btn-quiet text-sm text-slate-500"
+              className="btn-quiet min-h-10 px-2 text-sm text-slate-500"
               onClick={onClose}
             >
               Закрыть
@@ -168,45 +188,55 @@ export function FoodAddModePicker({
           ) : (
             <>
               <div className="food-add-mode-grid" role="list">
-                {FOOD_ADD_MODE_OPTIONS.map((opt, index) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="listitem"
-                    className={`food-add-mode-tile food-add-mode-tile--in ${
-                      opt.primary ? "food-add-mode-tile--primary" : ""
-                    }`}
-                    style={{ animationDelay: `${60 + index * 40}ms` }}
-                    onClick={() => pickMode(opt)}
-                  >
-                    <span className="food-add-mode-tile-icon" aria-hidden>
-                      <FoodAddIcon name={opt.icon} className="h-7 w-7" />
-                    </span>
-                    <span className="food-add-mode-tile-label">{opt.label}</span>
-                    <span className="food-add-mode-tile-hint">{opt.hint}</span>
-                  </button>
-                ))}
+                {FOOD_ADD_MODE_OPTIONS.map((opt, index) => {
+                  const isSuggested = suggested === "photo" && opt.id === "photo";
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="listitem"
+                      className={`food-add-mode-tile food-add-mode-tile--in ${
+                        isSuggested ? "food-add-mode-tile--primary food-add-tile--suggested" : ""
+                      }`}
+                      style={{ animationDelay: `${60 + index * 40}ms` }}
+                      onClick={() => pickMode(opt)}
+                    >
+                      <span className="food-add-mode-tile-icon" aria-hidden>
+                        <FoodAddIcon name={opt.icon} className="h-7 w-7" />
+                      </span>
+                      <span className="food-add-mode-tile-label">{opt.label}</span>
+                      <span className="food-add-mode-tile-hint">{opt.hint}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="food-add-utility-row food-add-utility-row--three" role="list">
-                {FOOD_ADD_UTILITY_OPTIONS.map((opt, index) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    role="listitem"
-                    className={`food-add-utility-tile food-add-utility-tile--${opt.id} food-add-mode-tile--in`}
-                    style={{ animationDelay: `${180 + index * 40}ms` }}
-                    onClick={() => runUtility(opt)}
-                  >
-                    <span className="food-add-utility-icon" aria-hidden>
-                      <FoodAddIcon name={opt.icon} className="h-5 w-5" />
-                    </span>
-                    <span className="food-add-utility-copy">
-                      <span className="food-add-utility-label">{opt.label}</span>
-                      <span className="food-add-utility-hint">{opt.hint}</span>
-                    </span>
-                  </button>
-                ))}
+                {FOOD_ADD_UTILITY_OPTIONS.map((opt, index) => {
+                  const isSuggested =
+                    (suggested === "water" && opt.id === "water") ||
+                    (suggested === "weight" && opt.id === "weight");
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      role="listitem"
+                      className={`food-add-utility-tile food-add-utility-tile--${opt.id} food-add-mode-tile--in ${
+                        isSuggested ? "food-add-utility-tile--suggested" : ""
+                      }`}
+                      style={{ animationDelay: `${180 + index * 40}ms` }}
+                      onClick={() => runUtility(opt)}
+                    >
+                      <span className="food-add-utility-icon" aria-hidden>
+                        <FoodAddIcon name={opt.icon} className="h-5 w-5" />
+                      </span>
+                      <span className="food-add-utility-copy">
+                        <span className="food-add-utility-label">{opt.label}</span>
+                        <span className="food-add-utility-hint">{opt.hint}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               <FoodAddQuickStrip
