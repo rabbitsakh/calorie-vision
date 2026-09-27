@@ -199,7 +199,11 @@ export function StreakNudge({
       }}
       actions={
         <>
-          <button type="button" className="btn btn-on-tint text-sm text-orange-800" onClick={onAddFood}>
+          <button
+            type="button"
+            className="btn btn-on-tint text-sm text-orange-800"
+            onClick={() => onAddFood()}
+          >
             Добавить еду
           </button>
           {showFreeze ? (
