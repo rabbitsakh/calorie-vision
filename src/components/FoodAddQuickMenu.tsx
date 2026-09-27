@@ -1,16 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useId, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { FoodAddIcon } from "@/components/FoodAddIcons";
+import { listFocusable, trapFocusKeydown } from "@/lib/food-add-focus";
 import {
   FOOD_ADD_MODE_OPTIONS,
   FOOD_ADD_UTILITY_OPTIONS,
+  foodAddSuggestedLabel,
+  suggestFoodAddAction,
 } from "@/lib/food-add-modes";
+import { hourInTimezone } from "@/lib/meal-type";
 import { openFoodAdd, requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { useTimezone } from "@/lib/use-timezone";
 
 export { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
 
@@ -22,7 +27,7 @@ type FoodAddModeMenuProps = {
   className?: string;
 };
 
-/** Compact mode list (desktop chevron). */
+/** Desktop header chevron menu — same visual language as the mobile «+» sheet (P4). */
 export function FoodAddModeMenu({
   open,
   onClose,
@@ -30,16 +35,30 @@ export function FoodAddModeMenu({
   className = "",
 }: FoodAddModeMenuProps) {
   const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const timezone = useTimezone();
+  const suggested = useMemo(
+    () => suggestFoodAddAction(hourInTimezone(new Date(), timezone)),
+    [timezone],
+  );
 
   useEffect(() => {
     if (!open) return;
+    const root = rootRef.current;
+    const focusables = root ? listFocusable(root) : [];
+    focusables[0]?.focus();
+
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (root) trapFocusKeydown(event, root);
     }
     function onPointer(event: MouseEvent) {
       const target = event.target as Node | null;
-      const root = document.getElementById(listId);
       if (root && target && !root.contains(target)) onClose();
     }
     window.addEventListener("keydown", onKey);
@@ -49,64 +68,94 @@ export function FoodAddModeMenu({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mousedown", onPointer);
     };
-  }, [open, onClose, listId]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   return (
     <div
+      ref={rootRef}
       id={listId}
       role="menu"
       aria-label="Что добавить"
-      className={`absolute left-1/2 z-[65] w-52 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg ${
-        placement === "up" ? "bottom-[calc(100%+0.45rem)]" : "top-[calc(100%+0.45rem)]"
+      className={`food-add-desktop-menu absolute z-[65] w-64 ${
+        placement === "up"
+          ? "bottom-[calc(100%+0.45rem)] left-1/2 -translate-x-1/2"
+          : "top-[calc(100%+0.45rem)]"
       } ${className}`}
     >
-      {FOOD_ADD_MODE_OPTIONS.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          role="menuitem"
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
-          onClick={() => {
-            onClose();
-            // Photo goes through the sheet so camera vs gallery can be chosen.
-            if (opt.id === "photo") {
-              openFoodAdd({ mode: "photo" });
-              return;
-            }
-            openFoodAdd({ mode: opt.id, openCamera: opt.openCamera });
-          }}
-        >
-          <span className="text-[var(--accent)]" aria-hidden>
-            <FoodAddIcon name={opt.icon} className="h-4 w-4" />
-          </span>
-          {opt.label}
-        </button>
-      ))}
-      <div className="my-1 border-t border-slate-100" role="separator" />
-      {FOOD_ADD_UTILITY_OPTIONS.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          role="menuitem"
-          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
-          onClick={() => {
-            onClose();
-            if (opt.id === "water") requestOpenWaterQuick();
-            else if (opt.id === "weight") requestOpenWeightQuick();
-            else router.push(withBasePath("/workouts?new=1"));
-          }}
-        >
-          <span
-            className={opt.id === "water" ? "text-[var(--accent-water)]" : "text-[var(--accent)]"}
-            aria-hidden
-          >
-            <FoodAddIcon name={opt.icon} className="h-4 w-4" />
-          </span>
-          {opt.label}
-        </button>
-      ))}
+      <p className="food-add-desktop-menu-hint" aria-live="polite">
+        {foodAddSuggestedLabel(suggested)}
+      </p>
+      <div className="food-add-desktop-menu-list" role="none">
+        {FOOD_ADD_MODE_OPTIONS.map((opt) => {
+          const isSuggested = suggested === "photo" && opt.id === "photo";
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="menuitem"
+              className={`food-add-desktop-item ${isSuggested ? "food-add-desktop-item--suggested" : ""}`}
+              onClick={() => {
+                onClose();
+                if (opt.id === "photo") {
+                  openFoodAdd({ mode: "photo" });
+                  return;
+                }
+                openFoodAdd({ mode: opt.id, openCamera: opt.openCamera });
+              }}
+            >
+              <span
+                className={`food-add-desktop-item-icon ${
+                  isSuggested ? "food-add-desktop-item-icon--accent" : ""
+                }`}
+                aria-hidden
+              >
+                <FoodAddIcon name={opt.icon} className="h-5 w-5" />
+              </span>
+              <span className="food-add-desktop-item-copy">
+                <span className="food-add-desktop-item-label">{opt.label}</span>
+                <span className="food-add-desktop-item-hint">{opt.hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="food-add-desktop-menu-sep" role="separator" />
+      <div className="food-add-desktop-menu-list" role="none">
+        {FOOD_ADD_UTILITY_OPTIONS.map((opt) => {
+          const isSuggested =
+            (suggested === "water" && opt.id === "water") ||
+            (suggested === "weight" && opt.id === "weight");
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              role="menuitem"
+              className={`food-add-desktop-item food-add-desktop-item--${opt.id} ${
+                isSuggested ? "food-add-desktop-item--suggested" : ""
+              }`}
+              onClick={() => {
+                onClose();
+                if (opt.id === "water") requestOpenWaterQuick();
+                else if (opt.id === "weight") requestOpenWeightQuick();
+                else router.push(withBasePath("/workouts?new=1"));
+              }}
+            >
+              <span
+                className={`food-add-desktop-item-icon food-add-desktop-item-icon--${opt.id}`}
+                aria-hidden
+              >
+                <FoodAddIcon name={opt.icon} className="h-5 w-5" />
+              </span>
+              <span className="food-add-desktop-item-copy">
+                <span className="food-add-desktop-item-label">{opt.label}</span>
+                <span className="food-add-desktop-item-hint">{opt.hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
