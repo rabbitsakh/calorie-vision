@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   formatDateShort,
   formatDateWords,
@@ -400,6 +401,8 @@ function nextSetType(current: SetType): SetType {
 }
 
 export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -613,6 +616,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (!creating) return;
     createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [creating]);
+
+  // Deep link from «+» → Тренировка (`/workouts?new=1`).
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setCreating(true);
+    setHubTab("today");
+    router.replace(withBasePath("/workouts"), { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {

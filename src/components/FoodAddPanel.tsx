@@ -47,6 +47,8 @@ type FoodAddPanelProps = {
   initialMode?: AddMode;
   /** Open device camera once after mount (photo mode). */
   autoOpenCamera?: boolean;
+  /** Open gallery file picker once after mount/launch (photo mode). */
+  autoOpenGallery?: boolean;
   /** Bumps when host re-opens with a new mode — sync mode without full remount. */
   launchKey?: number;
   /** Bumps to resume pending-confirm draft for selectedDate. */
@@ -90,6 +92,7 @@ export function FoodAddPanel({
   initialMealType,
   initialMode = "photo",
   autoOpenCamera = false,
+  autoOpenGallery = false,
   launchKey = 0,
   resumeKey = 0,
   layout = "card",
@@ -118,7 +121,7 @@ export function FoodAddPanel({
   const speechRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    if (launchKey === 0 && !autoOpenCamera) return;
+    if (launchKey === 0 && !autoOpenCamera && !autoOpenGallery) return;
     setMode(initialMode);
     setError(null);
     setBarcodeFailure(null);
@@ -127,8 +130,12 @@ export function FoodAddPanel({
       const t = window.setTimeout(() => photoAbortRef.current?.openCamera(), 120);
       return () => window.clearTimeout(t);
     }
+    if (initialMode === "photo" && autoOpenGallery) {
+      const t = window.setTimeout(() => photoAbortRef.current?.openGallery(), 120);
+      return () => window.clearTimeout(t);
+    }
     return undefined;
-  }, [launchKey, initialMode, autoOpenCamera]);
+  }, [launchKey, initialMode, autoOpenCamera, autoOpenGallery]);
 
   const refreshQueueCount = useCallback(() => {
     setQueuedCount(countOfflineQueue());

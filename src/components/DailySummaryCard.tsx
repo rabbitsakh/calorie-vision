@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFoodAddUi } from "@/components/FoodAddHost";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import { formatDateShort } from "@/lib/dates";
 import { formatCalorieVsTargetLabel } from "@/lib/diet";
@@ -50,6 +51,7 @@ type DailySummaryCardProps = {
 };
 
 export function DailySummaryCard({ today }: DailySummaryCardProps) {
+  const { sheetOpen } = useFoodAddUi();
   const [data, setData] = useState<DailySummaryData | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -70,7 +72,8 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
     })();
   }, [today]);
 
-  if (!visible || !data) return null;
+  // Don’t cover the «+» sheet / tab interactions while adding food.
+  if (!visible || !data || sheetOpen) return null;
 
   function dismiss() {
     markSummarySeen(today);

@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type StageMetric = {
   key: string;
@@ -29,7 +30,8 @@ type StageScreenProps = {
 
 /**
  * Full-bleed closing stage: teal→slate gradient, eyebrow, headline, metric tiles, CTAs.
- * Shared by workout summary, day wrap-up, and similar “done” surfaces.
+ * Portaled to <html> so iOS TWA / `.cv-app-frame` overflow cannot leave the tab bar
+ * poking through (or sitting above) the day wrap-up.
  */
 export function StageScreen({
   eyebrow,
@@ -42,8 +44,19 @@ export function StageScreen({
   onDismiss,
   dismissLabel = "Закрыть",
 }: StageScreenProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col overflow-auto bg-gradient-to-b from-teal-950 to-slate-950 text-white">
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const stage = (
+    <div
+      className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-teal-950 to-slate-950 text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-label={eyebrow}
+    >
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]">
         {onDismiss ? (
           <div className="mb-2 flex justify-end">
@@ -107,4 +120,7 @@ export function StageScreen({
       </div>
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(stage, document.documentElement);
 }

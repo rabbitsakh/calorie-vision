@@ -839,6 +839,88 @@ select {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.food-add-utility-row--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.food-add-photo-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.food-add-photo-source {
+  align-items: center;
+  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 1.1rem;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  gap: 0.85rem;
+  min-height: 4.25rem;
+  padding: 0.9rem 1rem;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.food-add-photo-source:hover {
+  background: linear-gradient(165deg, #f0fdfa 0%, #ecfeff 100%);
+  border-color: rgba(15, 118, 110, 0.35);
+}
+
+.food-add-photo-source:active {
+  transform: scale(0.98);
+}
+
+.food-add-photo-source--primary {
+  background: linear-gradient(160deg, var(--accent-soft) 0%, #e6fffa 55%, #f0fdfa 100%);
+  border-color: rgba(15, 118, 110, 0.32);
+  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.1);
+}
+
+.food-add-photo-source-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.9rem;
+  color: var(--accent);
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+.food-add-photo-source-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.food-add-photo-source-label {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.food-add-photo-source-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* Portaled day wrap-up / workout summary — above tab bar, below «+» sheet. */
+.stage-screen-root {
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: 100%;
+  width: 100dvw;
+}
+
 .food-add-utility-tile {
   align-items: center;
   border-radius: 1rem;
@@ -877,6 +959,30 @@ select {
 
 .food-add-utility-tile--weight:hover {
   border-color: rgba(15, 118, 110, 0.42);
+}
+
+.food-add-utility-tile--workout {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: rgba(234, 88, 12, 0.22);
+  color: #7c2d12;
+}
+
+.food-add-utility-tile--workout:hover {
+  border-color: rgba(234, 88, 12, 0.42);
+}
+
+.food-add-utility-tile--workout .food-add-utility-icon {
+  color: #ea580c;
+}
+
+@media (max-width: 420px) {
+  .food-add-utility-row--three {
+    grid-template-columns: 1fr;
+  }
+
+  .food-add-utility-row--three .food-add-utility-tile {
+    flex-direction: row;
+  }
 }
 
 .food-add-utility-icon {

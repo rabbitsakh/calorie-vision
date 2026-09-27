@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useId, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { FoodAddIcon } from "@/components/FoodAddIcons";
 import {
   FOOD_ADD_MODE_OPTIONS,
   FOOD_ADD_UTILITY_OPTIONS,
 } from "@/lib/food-add-modes";
 import { openFoodAdd, requestOpenFoodAddPicker } from "@/lib/open-food-camera";
+import { withBasePath } from "@/lib/paths";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
@@ -28,6 +30,7 @@ export function FoodAddModeMenu({
   className = "",
 }: FoodAddModeMenuProps) {
   const listId = useId();
+  const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
@@ -67,6 +70,11 @@ export function FoodAddModeMenu({
           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-slate-800 hover:bg-teal-50 hover:text-teal-900"
           onClick={() => {
             onClose();
+            // Photo goes through the sheet so camera vs gallery can be chosen.
+            if (opt.id === "photo") {
+              openFoodAdd({ mode: "photo" });
+              return;
+            }
             openFoodAdd({ mode: opt.id, openCamera: opt.openCamera });
           }}
         >
@@ -86,7 +94,8 @@ export function FoodAddModeMenu({
           onClick={() => {
             onClose();
             if (opt.id === "water") requestOpenWaterQuick();
-            else requestOpenWeightQuick();
+            else if (opt.id === "weight") requestOpenWeightQuick();
+            else router.push(withBasePath("/workouts?new=1"));
           }}
         >
           <span
