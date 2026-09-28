@@ -1,6 +1,18 @@
 /** Client-only helpers for Web Push / iOS PWA / Capacitor APK diagnostics. */
 
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { isApkWebView } from "@/lib/capacitor-resume";
+
+function hasCvRemindersBridge(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const bridge = (window as Window & { CvReminders?: { checkPermission?: unknown } })
+      .CvReminders;
+    return typeof bridge?.checkPermission === "function";
+  } catch {
+    return false;
+  }
+}
 
 export const PUSH_PROMPT_DISMISS_KEY = "push-prompt-dismissed";
 /** Soft re-prompt window after dismiss (avoid daily spam). */
@@ -111,10 +123,10 @@ export function getPushCapability(): PushCapability {
     };
   }
 
-  // RuStore / Capacitor APK: no PushManager in WebView — use LocalNotifications.
-  // isCapacitorNative() also honors html.capacitor-native + session/localStorage
-  // marks set by detectCapacitorShell / welcome / Providers.
-  if (isCapacitorNative()) {
+  // RuStore / Capacitor APK: no PushManager in WebView — local notifications.
+  // Product origin (calorievision.ru) has no Capacitor JS — detect via CvReminders /
+  // CvSession / persisted shell mark.
+  if (isCapacitorNative() || isApkWebView() || hasCvRemindersBridge()) {
     return {
       kind: "capacitor-local",
       canSubscribe: true,

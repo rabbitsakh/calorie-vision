@@ -18,9 +18,8 @@ import {
   formatDurationMinutes,
   formatPace,
   formatPaceClock,
-  parseDistanceKm,
-  parseDurationToSec,
 } from "@/lib/workouts/cardio";
+import { validateSetDraft } from "@/lib/workouts/set-draft";
 import {
   EXERCISE_KINDS,
   EXERCISE_KIND_LABELS,
@@ -419,6 +418,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
+  /** Per-exercise validation near draft inputs (global `error` is often scrolled away). */
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
   const [newExerciseKind, setNewExerciseKind] = useState<ExerciseKind>("strength");
   const [pasteText, setPasteText] = useState("");
   const [insights, setInsights] = useState<Insights | null>(null);
@@ -1025,6 +1026,36 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (sec > 0) startRest(sec);
   };
 
+  const clearDraftError = (exerciseId: string) => {
+    setDraftErrors((prev) => {
+      if (!prev[exerciseId]) return prev;
+      const next = { ...prev };
+      delete next[exerciseId];
+      return next;
+    });
+  };
+
+  const patchDraft = (exerciseId: string, patch: Partial<SetDraft>) => {
+    setSetDrafts((prev) => {
+      const cur = prev[exerciseId] ?? EMPTY_DRAFT;
+      return { ...prev, [exerciseId]: { ...cur, ...patch } };
+    });
+    clearDraftError(exerciseId);
+  };
+
+  const failDraft = (exerciseId: string, message: string, field: "km" | "time" | "kg" | "reps") => {
+    setDraftErrors((prev) => ({ ...prev, [exerciseId]: message }));
+    // Keep global error for stage/list header, but focus the local field.
+    setError(message);
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLInputElement>(
+        `[data-draft-field="${exerciseId}-${field}"]`,
+      );
+      el?.focus();
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  };
+
   const addSet = async (exerciseId: string, draftOverride?: SetDraft) => {
     if (!detail) return;
     const ex = detail.exercises.find((e) => e.id === exerciseId);
@@ -1038,40 +1069,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       ...(rpeRaw != null && Number.isFinite(rpeRaw) ? { rpe: rpeRaw } : {}),
     };
     setError(null);
+    clearDraftError(exerciseId);
     try {
-      const body: Record<string, unknown> = { ...meta };
-      if (spec.usesDistance) {
-        const distanceKm = parseDistanceKm(draft.km || "0");
-        if (distanceKm === null) {
-          setError("Укажите км");
-          return;
-        }
-        body.distanceKm = distanceKm;
+      const validated = validateSetDraft(ex.kind, draft);
+      if (!validated.ok) {
+        failDraft(exerciseId, validated.message, validated.field);
+        return;
       }
-      if (spec.usesDuration) {
-        const durationSec = parseDurationToSec(draft.time);
-        if (durationSec === null) {
-          setError(ex.kind === "duration" ? "Укажите время в минутах" : "Укажите время в минутах");
-          return;
-        }
-        body.durationSec = durationSec;
-      }
-      if (spec.usesWeight) {
-        const weightKg = Number(draft.kg.replace(",", "."));
-        if (!Number.isFinite(weightKg) || weightKg < 0) {
-          setError("Укажите кг");
-          return;
-        }
-        body.weightKg = weightKg;
-      }
-      if (spec.usesReps) {
-        const reps = Number(draft.reps);
-        if (!Number.isFinite(reps) || reps <= 0) {
-          setError("Укажите повторения");
-          return;
-        }
-        body.reps = reps;
-      }
+      const body: Record<string, unknown> = { ...meta, ...validated.body };
 
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
@@ -1089,6 +1094,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           setType: draft.setType === "rest_pause" ? "working" : draft.setType,
         },
       }));
+      clearDraftError(exerciseId);
       startRestForExercise(ex, draft.setType);
       await refreshDetail(data.session);
       const updated = data.session.exercises.find((e) => e.id === exerciseId);
@@ -1097,7 +1103,9 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось добавить подход");
+      const message = err instanceof Error ? err.message : "Не удалось добавить подход";
+      setDraftErrors((prev) => ({ ...prev, [exerciseId]: message }));
+      setError(message);
     }
   };
 
@@ -1235,7 +1243,6 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (!focusExForStage || !detail) return;
     const incomplete = focusExForStage.sets.find((s) => !s.completed);
     if (incomplete) {
-      const spec = fieldsForKind(focusExForStage.kind);
       const patch: Record<string, unknown> = {
         completed: true,
         setType: stageDraft.setType,
@@ -1244,37 +1251,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         const rpe = Number(stageDraft.rpe.replace(",", "."));
         if (Number.isFinite(rpe)) patch.rpe = rpe;
       }
-      if (spec.usesWeight) {
-        const kg = Number(stageDraft.kg.replace(",", "."));
-        if (!Number.isFinite(kg) || kg < 0) {
-          setError("Укажите кг");
-          return;
-        }
-        patch.weightKg = kg;
+      const validated = validateSetDraft(focusExForStage.kind, stageDraft);
+      if (!validated.ok) {
+        failDraft(focusExForStage.id, validated.message, validated.field);
+        return;
       }
-      if (spec.usesReps) {
-        const reps = Number(stageDraft.reps);
-        if (!Number.isFinite(reps) || reps <= 0) {
-          setError("Укажите повторения");
-          return;
-        }
-        patch.reps = Math.round(reps);
-      }
-      if (spec.usesDistance) {
-        const distanceKm = parseDistanceKm(stageDraft.km || "0");
-        if (distanceKm === null) {
-          setError("Укажите км");
-          return;
-        }
-        patch.distanceKm = distanceKm;
-      }
-      if (spec.usesDuration) {
-        const durationSec = parseDurationToSec(stageDraft.time);
-        if (durationSec === null) {
-          setError("Укажите время в минутах");
-          return;
-        }
-        patch.durationSec = durationSec;
+      Object.assign(patch, validated.body);
+      if (typeof patch.reps === "number") {
+        patch.reps = Math.round(patch.reps);
       }
       // Rest handled here (patchSet startTimer=false) so we can use per-exercise duration.
       await patchSet(incomplete.id, patch, false);
@@ -1470,6 +1454,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       ...prev,
       [exerciseId]: draftFromHistorySet(set, kind),
     }));
+    clearDraftError(exerciseId);
   };
 
   const toggleExerciseHistory = async (name: string, kind: ExerciseKind) => {
@@ -1671,64 +1656,24 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             draftRpe={stageDraft.rpe}
             circuitRound={circuitRound}
             prToast={prToast}
-            onDraftKg={(v) =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: { ...stageDraft, kg: v },
-              }))
-            }
-            onDraftReps={(v) =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: { ...stageDraft, reps: v },
-              }))
-            }
-            onDraftKm={(v) =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: { ...stageDraft, km: v },
-              }))
-            }
-            onDraftTime={(v) =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: { ...stageDraft, time: v },
-              }))
-            }
-            onDraftRpe={(v) =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: { ...stageDraft, rpe: v },
-              }))
-            }
+            draftError={draftErrors[focusExForStage.id] ?? null}
+            onDraftKg={(v) => patchDraft(focusExForStage.id, { kg: v })}
+            onDraftReps={(v) => patchDraft(focusExForStage.id, { reps: v })}
+            onDraftKm={(v) => patchDraft(focusExForStage.id, { km: v })}
+            onDraftTime={(v) => patchDraft(focusExForStage.id, { time: v })}
+            onDraftRpe={(v) => patchDraft(focusExForStage.id, { rpe: v })}
             onCycleSetType={() =>
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: {
-                  ...stageDraft,
-                  setType: nextSetType(stageDraft.setType),
-                },
-              }))
+              patchDraft(focusExForStage.id, { setType: nextSetType(stageDraft.setType) })
             }
             onBumpKg={(delta) => {
               const cur = Number(stageDraft.kg.replace(",", ".")) || 0;
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: {
-                  ...stageDraft,
-                  kg: String(bumpKg(cur, delta)),
-                },
-              }));
+              patchDraft(focusExForStage.id, { kg: String(bumpKg(cur, delta)) });
             }}
             onApplySuggested={() => {
               if (stageSuggestedKg == null) return;
-              setSetDrafts((prev) => ({
-                ...prev,
-                [focusExForStage.id]: {
-                  ...stageDraft,
-                  kg: formatSuggestedKg(stageSuggestedKg),
-                },
-              }));
+              patchDraft(focusExForStage.id, {
+                kg: formatSuggestedKg(stageSuggestedKg),
+              });
             }}
             onCompleteCurrent={() => void completeCurrentOnStage()}
             onAddAndComplete={() => void addAndCompleteOnStage()}
@@ -2371,129 +2316,133 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                   </div>
                 ) : null}
 
-                <div className="mt-3 flex flex-wrap items-end gap-2">
-                  {spec.usesDistance ? (
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
-                      Км
-                      <input
-                        inputMode="decimal"
-                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-                        value={draft.km}
-                        onChange={(e) =>
-                          setSetDrafts((prev) => ({
-                            ...prev,
-                            [ex.id]: { ...draft, km: e.target.value },
-                          }))
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex flex-wrap items-end gap-2">
+                    {spec.usesDistance ? (
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Км
+                        <input
+                          data-draft-field={`${ex.id}-km`}
+                          inputMode="decimal"
+                          className={`w-24 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                            draftErrors[ex.id] && !draft.km.trim()
+                              ? "border-red-400"
+                              : "border-slate-200"
+                          }`}
+                          value={draft.km}
+                          onChange={(e) => patchDraft(ex.id, { km: e.target.value })}
+                        />
+                      </label>
+                    ) : null}
+                    {spec.usesDuration ? (
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Мин
+                        <input
+                          data-draft-field={`${ex.id}-time`}
+                          inputMode="decimal"
+                          className={`w-24 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                            draftErrors[ex.id] && !draft.time.trim()
+                              ? "border-red-400"
+                              : "border-slate-200"
+                          }`}
+                          placeholder={ex.kind === "duration" ? "1" : "30"}
+                          value={draft.time}
+                          onChange={(e) => patchDraft(ex.id, { time: e.target.value })}
+                        />
+                      </label>
+                    ) : null}
+                    {spec.usesWeight ? (
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        {ex.kind === "assisted"
+                          ? "Помощь"
+                          : ex.kind === "weighted_bw"
+                            ? "+Кг"
+                            : "Кг"}
+                        <input
+                          data-draft-field={`${ex.id}-kg`}
+                          inputMode="decimal"
+                          className={`w-20 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                            draftErrors[ex.id] && !draft.kg.trim()
+                              ? "border-red-400"
+                              : "border-slate-200"
+                          }`}
+                          value={draft.kg}
+                          onChange={(e) => patchDraft(ex.id, { kg: e.target.value })}
+                        />
+                      </label>
+                    ) : null}
+                    {spec.usesReps ? (
+                      <label className="flex flex-col gap-1 text-xs text-slate-500">
+                        Повт.
+                        <input
+                          data-draft-field={`${ex.id}-reps`}
+                          inputMode="numeric"
+                          className={`w-20 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                            draftErrors[ex.id] && !draft.reps.trim()
+                              ? "border-red-400"
+                              : "border-slate-200"
+                          }`}
+                          value={draft.reps}
+                          onChange={(e) => patchDraft(ex.id, { reps: e.target.value })}
+                        />
+                      </label>
+                    ) : null}
+                    {ex.kind !== "cardio" ? (
+                      <button
+                        type="button"
+                        title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                        onClick={() =>
+                          patchDraft(ex.id, { setType: nextSetType(draft.setType) })
                         }
-                      />
-                    </label>
-                  ) : null}
-                  {spec.usesDuration ? (
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
-                      Мин
-                      <input
-                        inputMode="decimal"
-                        className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-                        placeholder={ex.kind === "duration" ? "1" : "30"}
-                        value={draft.time}
-                        onChange={(e) =>
-                          setSetDrafts((prev) => ({
-                            ...prev,
-                            [ex.id]: { ...draft, time: e.target.value },
-                          }))
+                      >
+                        {SET_TYPE_SHORT[draft.setType]}
+                      </button>
+                    ) : null}
+                    {kindUsesRestTimer(ex.kind) ? (
+                      <label
+                        className="flex flex-col gap-1 text-xs text-slate-500"
+                        title="RPE — насколько тяжело было (1 легко … 10 до отказа)"
+                      >
+                        RPE
+                        <input
+                          inputMode="decimal"
+                          className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                          placeholder="8"
+                          aria-label="RPE — ощущаемая тяжесть от 1 до 10"
+                          value={draft.rpe}
+                          onChange={(e) => patchDraft(ex.id, { rpe: e.target.value })}
+                        />
+                      </label>
+                    ) : null}
+                    {suggestedKg != null && spec.usesWeight ? (
+                      <button
+                        type="button"
+                        className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-2 text-xs font-semibold text-teal-900"
+                        onClick={() =>
+                          patchDraft(ex.id, { kg: formatSuggestedKg(suggestedKg) })
                         }
-                      />
-                    </label>
-                  ) : null}
-                  {spec.usesWeight ? (
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
-                      {ex.kind === "assisted" ? "Помощь" : ex.kind === "weighted_bw" ? "+Кг" : "Кг"}
-                      <input
-                        inputMode="decimal"
-                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-                        value={draft.kg}
-                        onChange={(e) =>
-                          setSetDrafts((prev) => ({
-                            ...prev,
-                            [ex.id]: { ...draft, kg: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                  ) : null}
-                  {spec.usesReps ? (
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
-                      Повт.
-                      <input
-                        inputMode="numeric"
-                        className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-                        value={draft.reps}
-                        onChange={(e) =>
-                          setSetDrafts((prev) => ({
-                            ...prev,
-                            [ex.id]: { ...draft, reps: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                  ) : null}
-                  {ex.kind !== "cardio" ? (
+                      >
+                        → {formatSuggestedKg(suggestedKg)} кг
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
-                      className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
-                      onClick={() =>
-                        setSetDrafts((prev) => ({
-                          ...prev,
-                          [ex.id]: { ...draft, setType: nextSetType(draft.setType) },
-                        }))
-                      }
+                      className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+                      onClick={() => void addSet(ex.id)}
                     >
-                      {SET_TYPE_SHORT[draft.setType]}
+                      {isCardio
+                        ? "+ Отрезок"
+                        : ex.kind === "duration"
+                          ? "+ Раунд"
+                          : "+ Подход"}
                     </button>
+                  </div>
+                  {draftErrors[ex.id] ? (
+                    <p className="text-sm text-red-600" role="alert">
+                      {draftErrors[ex.id]}
+                    </p>
                   ) : null}
-                  {kindUsesRestTimer(ex.kind) ? (
-                    <label
-                      className="flex flex-col gap-1 text-xs text-slate-500"
-                      title="RPE — насколько тяжело было (1 легко … 10 до отказа)"
-                    >
-                      RPE
-                      <input
-                        inputMode="decimal"
-                        className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
-                        placeholder="8"
-                        aria-label="RPE — ощущаемая тяжесть от 1 до 10"
-                        value={draft.rpe}
-                        onChange={(e) =>
-                          setSetDrafts((prev) => ({
-                            ...prev,
-                            [ex.id]: { ...draft, rpe: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
-                  ) : null}
-                  {suggestedKg != null && spec.usesWeight ? (
-                    <button
-                      type="button"
-                      className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-2 text-xs font-semibold text-teal-900"
-                      onClick={() =>
-                        setSetDrafts((prev) => ({
-                          ...prev,
-                          [ex.id]: { ...draft, kg: formatSuggestedKg(suggestedKg) },
-                        }))
-                      }
-                    >
-                      → {formatSuggestedKg(suggestedKg)} кг
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-                    onClick={() => void addSet(ex.id)}
-                  >
-                    {isCardio ? "+ Отрезок" : ex.kind === "duration" ? "+ Раунд" : "+ Подход"}
-                  </button>
                 </div>
               </section>
             );

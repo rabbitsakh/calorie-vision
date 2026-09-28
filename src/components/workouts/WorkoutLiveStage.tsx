@@ -50,6 +50,8 @@ type Props = {
   draftTime: string;
   draftSetType: SetType;
   draftRpe: string;
+  /** Inline validation near draft fields (e.g. empty cardio minutes). */
+  draftError?: string | null;
   circuitRound: number;
   prToast: string | null;
   onDraftKg: (v: string) => void;
@@ -96,6 +98,7 @@ export function WorkoutLiveStage({
   draftTime,
   draftSetType,
   draftRpe,
+  draftError,
   circuitRound,
   prToast,
   onDraftKg,
@@ -284,8 +287,13 @@ export function WorkoutLiveStage({
                 <label className="flex flex-col items-center gap-1">
                   <span className="text-xs uppercase tracking-wide text-slate-400">кг</span>
                   <input
+                    data-draft-field={`${focus.id}-kg`}
                     inputMode="decimal"
-                    className="w-28 rounded-2xl border border-white/20 bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400"
+                    className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                      draftError && !draftKg.trim()
+                        ? "border-red-400"
+                        : "border-white/20"
+                    }`}
                     value={draftKg}
                     onChange={(e) => onDraftKg(e.target.value)}
                   />
@@ -303,8 +311,13 @@ export function WorkoutLiveStage({
               <label className="flex flex-col items-center gap-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">повт</span>
                 <input
+                  data-draft-field={`${focus.id}-reps`}
                   inputMode="numeric"
-                  className="w-24 rounded-2xl border border-white/20 bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400"
+                  className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                    draftError && !draftReps.trim()
+                      ? "border-red-400"
+                      : "border-white/20"
+                  }`}
                   value={draftReps}
                   onChange={(e) => onDraftReps(e.target.value)}
                 />
@@ -314,8 +327,13 @@ export function WorkoutLiveStage({
               <label className="flex flex-col items-center gap-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">км</span>
                 <input
+                  data-draft-field={`${focus.id}-km`}
                   inputMode="decimal"
-                  className="w-28 rounded-2xl border border-white/20 bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400"
+                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                    draftError && !draftKm.trim()
+                      ? "border-red-400"
+                      : "border-white/20"
+                  }`}
                   value={draftKm}
                   onChange={(e) => onDraftKm(e.target.value)}
                 />
@@ -325,12 +343,22 @@ export function WorkoutLiveStage({
               <label className="flex flex-col items-center gap-1">
                 <span className="text-xs uppercase tracking-wide text-slate-400">мин</span>
                 <input
+                  data-draft-field={`${focus.id}-time`}
                   inputMode="decimal"
-                  className="w-28 rounded-2xl border border-white/20 bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400"
+                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                    draftError && !draftTime.trim()
+                      ? "border-red-400"
+                      : "border-white/20"
+                  }`}
                   value={draftTime}
                   onChange={(e) => onDraftTime(e.target.value)}
                 />
               </label>
+            ) : null}
+            {draftError ? (
+              <p className="text-center text-sm font-medium text-red-300" role="alert">
+                {draftError}
+              </p>
             ) : null}
             {suggestedKg != null && spec.usesWeight ? (
               <button
