@@ -1,9 +1,14 @@
 /**
  * Local (on-device) reminders for the Capacitor RuStore APK.
- * Android WebView has no Web Push / PushManager — schedule via LocalNotifications.
+ * Android WebView has no Web Push / PushManager.
+ *
+ * On the local shell we can use @capacitor/local-notifications. On
+ * calorievision.ru Capacitor JS is not injected — MainActivity exposes
+ * window.CvReminders (and CvSession for prefs) instead.
  */
 
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { isApkWebView } from "@/lib/capacitor-resume";
 import {
   effectiveReminderSchedule,
   type PushReminderPrefs,
@@ -12,6 +17,61 @@ import {
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { getQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import { readRationDayCache } from "@/lib/ration-day-cache";
+
+type CvSessionBridge = {
+  get: (key: string) => string | null;
+  set: (key: string, value: string) => void;
+  remove: (key: string) => void;
+};
+
+type CvRemindersBridge = {
+  checkPermission: () => string;
+  requestPermission: () => void;
+  createChannel: () => void;
+  schedule: (json: string) => string;
+  cancelAll: () => void;
+  fireTest: () => string;
+};
+
+export type CapLocalPermission = "granted" | "denied" | "prompt" | "unknown";
+
+function cvSession(): CvSessionBridge | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const bridge = (window as Window & { CvSession?: CvSessionBridge }).CvSession;
+    if (bridge && typeof bridge.get === "function" && typeof bridge.set === "function") {
+      return bridge;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/** Native reminder bridge — works on calorievision.ru (no Capacitor JS). */
+export function cvReminders(): CvRemindersBridge | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const bridge = (window as Window & { CvReminders?: CvRemindersBridge }).CvReminders;
+    if (
+      bridge &&
+      typeof bridge.checkPermission === "function" &&
+      typeof bridge.requestPermission === "function" &&
+      typeof bridge.schedule === "function"
+    ) {
+      return bridge;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function normalizePermission(raw: string | null | undefined): CapLocalPermission {
+  if (raw === "granted" || raw === "denied" || raw === "prompt") return raw;
+  if (raw === "prompt-with-rationale") return "prompt";
+  return "unknown";
+}
 
 export const CAP_REMINDERS_ENABLED_KEY = "cv-local-reminders-on";
 const CAP_REMINDER_PREFS_KEY = "cv-local-reminder-prefs";
@@ -314,6 +374,16 @@ export function buildCapacitorReminderSchedule(
 }
 
 async function preferencesGet(key: string): Promise<string | null> {
+  const native = cvSession();
+  if (native) {
+    try {
+      const value = native.get(key);
+      return value == null || value === "" ? null : String(value);
+    } catch {
+      // fall through
+    }
+  }
+  if (!isCapacitorNative()) return null;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     const { value } = await Preferences.get({ key });
@@ -324,6 +394,15 @@ async function preferencesGet(key: string): Promise<string | null> {
 }
 
 async function preferencesSet(key: string, value: string): Promise<void> {
+  const native = cvSession();
+  if (native) {
+    try {
+      native.set(key, value);
+    } catch {
+      // continue
+    }
+  }
+  if (!isCapacitorNative()) return;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     await Preferences.set({ key, value });
@@ -333,6 +412,15 @@ async function preferencesSet(key: string, value: string): Promise<void> {
 }
 
 async function preferencesRemove(key: string): Promise<void> {
+  const native = cvSession();
+  if (native) {
+    try {
+      native.remove(key);
+    } catch {
+      // continue
+    }
+  }
+  if (!isCapacitorNative()) return;
   try {
     const { Preferences } = await import("@capacitor/preferences");
     await Preferences.remove({ key });
@@ -353,45 +441,112 @@ async function loadStoredReminderPrefs(): Promise<PushReminderPrefs | null> {
   }
 }
 
+function inApkRemindersContext(): boolean {
+  return Boolean(cvReminders()) || isApkWebView() || isCapacitorNative();
+}
+
+async function hasCapLocalNotificationsPlugin(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  try {
+    const cap = (
+      window as Window & {
+        Capacitor?: {
+          isNativePlatform?: () => boolean;
+          isPluginAvailable?: (name: string) => boolean;
+        };
+      }
+    ).Capacitor;
+    if (!cap?.isNativePlatform?.()) return false;
+    if (typeof cap.isPluginAvailable === "function") {
+      return Boolean(cap.isPluginAvailable("LocalNotifications"));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function isCapacitorRemindersEnabled(): Promise<boolean> {
-  if (!isCapacitorNative()) return false;
+  if (!inApkRemindersContext()) return false;
   const value = await preferencesGet(CAP_REMINDERS_ENABLED_KEY);
   return value === "1";
 }
 
-export type CapLocalPermission = "granted" | "denied" | "prompt" | "unknown";
-
 export async function checkCapacitorNotificationPermission(): Promise<CapLocalPermission> {
-  if (!isCapacitorNative()) return "unknown";
+  const bridge = cvReminders();
+  if (bridge) {
+    try {
+      return normalizePermission(bridge.checkPermission());
+    } catch {
+      return "unknown";
+    }
+  }
+  if (!(await hasCapLocalNotificationsPlugin())) return "unknown";
   try {
     const { LocalNotifications } = await import("@capacitor/local-notifications");
     const status = await LocalNotifications.checkPermissions();
-    const display = status.display;
-    if (display === "granted") return "granted";
-    if (display === "denied") return "denied";
-    if (display === "prompt" || display === "prompt-with-rationale") return "prompt";
-    return "unknown";
+    return normalizePermission(status.display);
   } catch {
     return "unknown";
   }
 }
 
 export async function requestCapacitorNotificationPermission(): Promise<CapLocalPermission> {
-  if (!isCapacitorNative()) return "unknown";
+  const bridge = cvReminders();
+  if (bridge) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (status: CapLocalPermission) => {
+        if (settled) return;
+        settled = true;
+        try {
+          delete (window as Window & { __cvOnNotificationPermission?: unknown })
+            .__cvOnNotificationPermission;
+        } catch {
+          // ignore
+        }
+        resolve(status);
+      };
+      const timer = window.setTimeout(() => {
+        finish(normalizePermission(bridge.checkPermission()));
+      }, 20_000);
+      (
+        window as Window & {
+          __cvOnNotificationPermission?: (status: string) => void;
+        }
+      ).__cvOnNotificationPermission = (status: string) => {
+        window.clearTimeout(timer);
+        finish(normalizePermission(status));
+      };
+      try {
+        bridge.requestPermission();
+      } catch {
+        window.clearTimeout(timer);
+        finish("unknown");
+      }
+    });
+  }
+  if (!(await hasCapLocalNotificationsPlugin())) return "unknown";
   try {
     const { LocalNotifications } = await import("@capacitor/local-notifications");
     const status = await LocalNotifications.requestPermissions();
-    const display = status.display;
-    if (display === "granted") return "granted";
-    if (display === "denied") return "denied";
-    if (display === "prompt" || display === "prompt-with-rationale") return "prompt";
-    return "unknown";
+    return normalizePermission(status.display);
   } catch {
     return "unknown";
   }
 }
 
 async function cancelAllReminderNotifications(): Promise<void> {
+  const bridge = cvReminders();
+  if (bridge) {
+    try {
+      bridge.cancelAll();
+    } catch {
+      // ignore
+    }
+    return;
+  }
+  if (!(await hasCapLocalNotificationsPlugin())) return;
   const { LocalNotifications } = await import("@capacitor/local-notifications");
   await LocalNotifications.cancel({
     notifications: ALL_REMINDER_IDS.map((id) => ({ id })),
@@ -404,11 +559,10 @@ export async function scheduleCapacitorLocalReminders(
   quietEnd?: number | null,
   snapshot?: LocalReminderDiarySnapshot | null,
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  if (!isCapacitorNative()) {
+  if (!inApkRemindersContext()) {
     return { ok: false, error: "Доступно только в приложении" };
   }
   try {
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
     if (prefs != null) {
       await preferencesSet(CAP_REMINDER_PREFS_KEY, JSON.stringify(prefs));
     }
@@ -419,6 +573,35 @@ export async function scheduleCapacitorLocalReminders(
       quietEnd,
       snapshot === undefined ? readLocalReminderDiarySnapshot() : snapshot,
     );
+
+    const bridge = cvReminders();
+    if (bridge) {
+      bridge.createChannel?.();
+      const payload = JSON.stringify(
+        items.map((item) => ({
+          id: item.id,
+          title: item.title,
+          body: item.body,
+          hour: item.hour,
+          minute: 0,
+          ...(item.weekday != null ? { weekday: item.weekday } : {}),
+        })),
+      );
+      const result = bridge.schedule(payload);
+      if (typeof result === "string" && result.startsWith("error:")) {
+        return { ok: false, error: result.slice("error:".length) || "Не удалось запланировать" };
+      }
+      return { ok: true, count: items.length };
+    }
+
+    if (!(await hasCapLocalNotificationsPlugin())) {
+      return {
+        ok: false,
+        error: "Обновите приложение — мост напоминаний недоступен",
+      };
+    }
+
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
     await cancelAllReminderNotifications();
     if (items.length === 0) {
       return { ok: true, count: 0 };
@@ -451,7 +634,17 @@ export async function scheduleCapacitorLocalReminders(
 }
 
 export async function ensureReminderNotificationChannel(): Promise<void> {
-  if (!isCapacitorNative()) return;
+  if (!inApkRemindersContext()) return;
+  const bridge = cvReminders();
+  if (bridge) {
+    try {
+      bridge.createChannel();
+    } catch {
+      // ignore
+    }
+    return;
+  }
+  if (!(await hasCapLocalNotificationsPlugin())) return;
   try {
     const { LocalNotifications } = await import("@capacitor/local-notifications");
     await LocalNotifications.createChannel({
@@ -475,13 +668,23 @@ export async function enableCapacitorLocalReminders(
   quietStart?: number | null,
   quietEnd?: number | null,
 ): Promise<EnableCapRemindersResult> {
-  if (!isCapacitorNative()) {
+  if (!inApkRemindersContext()) {
     return { ok: false, error: "Доступно только в приложении" };
+  }
+  if (!cvReminders() && !(await hasCapLocalNotificationsPlugin())) {
+    return {
+      ok: false,
+      error: "Обновите приложение из RuStore — в этой сборке нет моста уведомлений",
+    };
   }
   await ensureReminderNotificationChannel();
   let permission = await checkCapacitorNotificationPermission();
   if (permission !== "granted") {
     permission = await requestCapacitorNotificationPermission();
+  }
+  // Re-check after dialog — some OEMs report late.
+  if (permission !== "granted") {
+    permission = await checkCapacitorNotificationPermission();
   }
   if (permission === "denied") {
     return {
@@ -490,7 +693,11 @@ export async function enableCapacitorLocalReminders(
     };
   }
   if (permission !== "granted") {
-    return { ok: false, error: "Разрешение на уведомления не получено" };
+    return {
+      ok: false,
+      error:
+        "Разрешение на уведомления не получено. Если диалог не появился — откройте настройки приложения → Уведомления.",
+    };
   }
   const scheduled = await scheduleCapacitorLocalReminders(prefs, quietStart, quietEnd);
   if (!scheduled.ok) return scheduled;
@@ -499,7 +706,7 @@ export async function enableCapacitorLocalReminders(
 }
 
 export async function disableCapacitorLocalReminders(): Promise<void> {
-  if (!isCapacitorNative()) return;
+  if (!inApkRemindersContext()) return;
   try {
     await cancelAllReminderNotifications();
   } catch {
@@ -528,7 +735,7 @@ export async function refreshCapacitorReminderCopyFromDiary(
 }
 
 export async function fireCapacitorTestReminder(): Promise<EnableCapRemindersResult> {
-  if (!isCapacitorNative()) {
+  if (!inApkRemindersContext()) {
     return { ok: false, error: "Доступно только в приложении" };
   }
   try {
@@ -536,6 +743,20 @@ export async function fireCapacitorTestReminder(): Promise<EnableCapRemindersRes
     const permission = await checkCapacitorNotificationPermission();
     if (permission !== "granted") {
       return { ok: false, error: "Сначала включите напоминания" };
+    }
+    const bridge = cvReminders();
+    if (bridge) {
+      const result = bridge.fireTest();
+      if (typeof result === "string" && result.startsWith("error:")) {
+        return {
+          ok: false,
+          error: result === "error:permission" ? "Сначала включите напоминания" : result.slice(6),
+        };
+      }
+      return { ok: true };
+    }
+    if (!(await hasCapLocalNotificationsPlugin())) {
+      return { ok: false, error: "Обновите приложение — мост напоминаний недоступен" };
     }
     const { LocalNotifications } = await import("@capacitor/local-notifications");
     const at = new Date(Date.now() + 1500);

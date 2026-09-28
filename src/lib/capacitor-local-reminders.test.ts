@@ -3,8 +3,12 @@ import { test } from "node:test";
 import {
   buildCapacitorReminderSchedule,
   CAP_REMINDER_IDS,
+  checkCapacitorNotificationPermission,
+  cvReminders,
   diarySnapshotFromRationDay,
+  enableCapacitorLocalReminders,
   localReminderCopy,
+  requestCapacitorNotificationPermission,
   toCapacitorWeekday,
 } from "./capacitor-local-reminders.ts";
 import { quietFirstRunPrefs } from "./push-reminder-schedule.ts";
@@ -77,4 +81,55 @@ test("disabled kinds are omitted", () => {
   );
   assert.ok(!items.some((i) => i.kind === "lunch"));
   assert.ok(items.some((i) => i.kind === "dinner"));
+});
+
+test("cvReminders prefers window.CvReminders over Cap plugin stubs", async () => {
+  const g = globalThis as typeof globalThis & {
+    window?: {
+      CvReminders?: {
+        checkPermission: () => string;
+        requestPermission: () => void;
+        createChannel: () => void;
+        schedule: (json: string) => string;
+        cancelAll: () => void;
+        fireTest: () => string;
+      };
+      __cvOnNotificationPermission?: (status: string) => void;
+      setTimeout: typeof setTimeout;
+      clearTimeout: typeof clearTimeout;
+    };
+  };
+  const prev = g.window;
+  let scheduled = "";
+  g.window = {
+    setTimeout: globalThis.setTimeout.bind(globalThis),
+    clearTimeout: globalThis.clearTimeout.bind(globalThis),
+    CvReminders: {
+      checkPermission: () => "prompt",
+      requestPermission: () => {
+        queueMicrotask(() => g.window!.__cvOnNotificationPermission?.("granted"));
+      },
+      createChannel: () => undefined,
+      schedule: (json: string) => {
+        scheduled = json;
+        return "ok:1";
+      },
+      cancelAll: () => undefined,
+      fireTest: () => "ok",
+    },
+  };
+  try {
+    assert.ok(cvReminders());
+    assert.equal(await checkCapacitorNotificationPermission(), "prompt");
+    assert.equal(await requestCapacitorNotificationPermission(), "granted");
+    const enabled = await enableCapacitorLocalReminders(
+      { lunch: { enabled: true, hour: 13 } },
+      null,
+      null,
+    );
+    assert.equal(enabled.ok, true);
+    assert.ok(scheduled.includes('"hour":13'));
+  } finally {
+    g.window = prev;
+  }
 });

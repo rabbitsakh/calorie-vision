@@ -594,11 +594,12 @@ PY
 
 # MainActivity: JavascriptInterface available on ALL WebView origins (including
 # calorievision.ru). Capacitor's DOCUMENT_START_SCRIPT only injects on localhost,
-# so Preferences writes from the product site never ran — every cold start showed «Войти».
+# so Preferences / LocalNotifications from the product site never ran.
 rustore_patch_capacitor_session_bridge() {
   local android_dir="${1:?android}"
   local main=""
   local candidate
+  local pkg_dir=""
 
   for candidate in \
     "$android_dir/app/src/main/java/ru/calorievision/app/MainActivity.java" \
@@ -618,39 +619,55 @@ rustore_patch_capacitor_session_bridge() {
     return 0
   fi
 
-  echo "==> Patching MainActivity CvSession bridge ($main)"
-  mkdir -p "$(dirname "$main")"
+  pkg_dir="$(dirname "$main")"
+  echo "==> Patching MainActivity CvSession + CvReminders bridge ($main)"
+  mkdir -p "$pkg_dir"
   cat >"$main" <<'JAVA'
 package ru.calorievision.app;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.Calendar;
 
 /**
- * RuStore APK session bridge.
+ * RuStore APK bridges for product origin (calorievision.ru).
  *
- * Capacitor JS is only injected on the local shell origin. After login the WebView
- * sits on calorievision.ru without window.Capacitor — so @capacitor/preferences
- * writes never happen. CvSession is a JavascriptInterface that works on every
- * origin and shares the CapacitorStorage prefs group used by Preferences.
- *
- * Cold-start resume is done by rustore/cap-www/app.js (not loadUrl here): a native
- * loadUrl raced the local shell, failed into errorPath offline.html, and bounced
- * offline → shell → product → offline.
+ * Capacitor JS is only injected on the local shell. After login the WebView
+ * has no window.Capacitor — Preferences and LocalNotifications plugins are
+ * unreachable. CvSession + CvReminders are JavascriptInterfaces on every origin.
  */
 public class MainActivity extends BridgeActivity {
   private static final String PREFS_GROUP = "CapacitorStorage";
+  private static final String REMINDER_CHANNEL = "reminders";
+  private static final String REMINDER_SCHEDULE_KEY = "cv_native_reminder_schedule_v1";
+  private static final int REQ_POST_NOTIFICATIONS = 4711;
+
+  private WebView bridgeWebView;
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    attachSessionBridge();
+    attachBridges();
   }
 
   @Override
@@ -663,15 +680,76 @@ public class MainActivity extends BridgeActivity {
     super.onPause();
   }
 
+  @Override
+  public void onRequestPermissionsResult(
+      int requestCode, String[] permissions, int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if (requestCode != REQ_POST_NOTIFICATIONS) return;
+    String status = "denied";
+    if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      status = NotificationManagerCompat.from(this).areNotificationsEnabled()
+          ? "granted"
+          : "denied";
+    }
+    notifyPermissionJs(status);
+  }
+
   @SuppressLint("SetJavaScriptEnabled")
-  private void attachSessionBridge() {
+  private void attachBridges() {
     try {
       if (getBridge() == null || getBridge().getWebView() == null) return;
-      WebView webView = getBridge().getWebView();
-      webView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
+      bridgeWebView = getBridge().getWebView();
+      bridgeWebView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
+      bridgeWebView.addJavascriptInterface(new CvRemindersBridge(this), "CvReminders");
+      ensureReminderChannel();
     } catch (Exception ignored) {
       // Bridge not ready
     }
+  }
+
+  void notifyPermissionJs(String status) {
+    final String safe = status == null ? "denied" : status.replace("'", "");
+    runOnUiThread(() -> {
+      try {
+        WebView wv = bridgeWebView != null
+            ? bridgeWebView
+            : (getBridge() != null ? getBridge().getWebView() : null);
+        if (wv == null) return;
+        wv.evaluateJavascript(
+            "(function(){try{if(window.__cvOnNotificationPermission){window.__cvOnNotificationPermission('"
+                + safe
+                + "');}}catch(e){}})();",
+            null);
+      } catch (Exception ignored) {
+        // ignore
+      }
+    });
+  }
+
+  void ensureReminderChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+    try {
+      NotificationManager nm = getSystemService(NotificationManager.class);
+      if (nm == null) return;
+      NotificationChannel channel =
+          new NotificationChannel(
+              REMINDER_CHANNEL, "Напоминания", NotificationManager.IMPORTANCE_DEFAULT);
+      channel.setDescription("Мягкие напоминания о еде, воде и серии");
+      channel.enableVibration(true);
+      nm.createNotificationChannel(channel);
+    } catch (Exception ignored) {
+      // ignore
+    }
+  }
+
+  String currentNotificationPermission() {
+    if (Build.VERSION.SDK_INT >= 33) {
+      if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+          != PackageManager.PERMISSION_GRANTED) {
+        return "prompt";
+      }
+    }
+    return NotificationManagerCompat.from(this).areNotificationsEnabled() ? "granted" : "denied";
   }
 
   public static final class CvSessionBridge {
@@ -699,9 +777,402 @@ public class MainActivity extends BridgeActivity {
       prefs.edit().remove(key).apply();
     }
   }
+
+  public final class CvRemindersBridge {
+    private final MainActivity activity;
+
+    CvRemindersBridge(MainActivity activity) {
+      this.activity = activity;
+    }
+
+    @JavascriptInterface
+    public String checkPermission() {
+      return activity.currentNotificationPermission();
+    }
+
+    @JavascriptInterface
+    public void requestPermission() {
+      activity.runOnUiThread(() -> {
+        try {
+          if (Build.VERSION.SDK_INT >= 33) {
+            if (ContextCompat.checkSelfPermission(
+                    activity, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+              activity.notifyPermissionJs(activity.currentNotificationPermission());
+              return;
+            }
+            ActivityCompat.requestPermissions(
+                activity,
+                new String[] {Manifest.permission.POST_NOTIFICATIONS},
+                REQ_POST_NOTIFICATIONS);
+            return;
+          }
+          activity.notifyPermissionJs(activity.currentNotificationPermission());
+        } catch (Exception e) {
+          activity.notifyPermissionJs("denied");
+        }
+      });
+    }
+
+    @JavascriptInterface
+    public void createChannel() {
+      activity.runOnUiThread(activity::ensureReminderChannel);
+    }
+
+    @JavascriptInterface
+    public String schedule(String json) {
+      try {
+        activity.ensureReminderChannel();
+        SharedPreferences prefs =
+            activity.getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
+        prefs.edit().putString(REMINDER_SCHEDULE_KEY, json == null ? "[]" : json).apply();
+        JSONArray items = new JSONArray(json == null ? "[]" : json);
+        AlarmManager am = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
+        cancelAllAlarms(am, prefs);
+        for (int i = 0; i < items.length(); i++) {
+          JSONObject item = items.getJSONObject(i);
+          scheduleOne(am, item);
+        }
+        return "ok:" + items.length();
+      } catch (Exception e) {
+        return "error:" + (e.getMessage() == null ? "schedule failed" : e.getMessage());
+      }
+    }
+
+    @JavascriptInterface
+    public void cancelAll() {
+      try {
+        SharedPreferences prefs =
+            activity.getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
+        AlarmManager am = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
+        cancelAllAlarms(am, prefs);
+        prefs.edit().remove(REMINDER_SCHEDULE_KEY).apply();
+      } catch (Exception ignored) {
+        // ignore
+      }
+    }
+
+    @JavascriptInterface
+    public String fireTest() {
+      try {
+        activity.ensureReminderChannel();
+        if (!"granted".equals(activity.currentNotificationPermission())) {
+          return "error:permission";
+        }
+        NotificationCompat.Builder builder =
+            new NotificationCompat.Builder(activity, REMINDER_CHANNEL)
+                .setSmallIcon(activity.getApplicationInfo().icon)
+                .setContentTitle("Проверка напоминаний")
+                .setContentText("Если видите это — локальные уведомления в APK работают.")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+        NotificationManagerCompat.from(activity).notify(9199, builder.build());
+        return "ok";
+      } catch (Exception e) {
+        return "error:" + (e.getMessage() == null ? "test failed" : e.getMessage());
+      }
+    }
+
+    private void cancelAllAlarms(AlarmManager am, SharedPreferences prefs) {
+      String raw = prefs.getString(REMINDER_SCHEDULE_KEY, null);
+      // Also cancel known id range used by JS (9101–9110 + 9199).
+      for (int id = 9101; id <= 9110; id++) {
+        PendingIntent pi = pendingForId(id);
+        if (pi != null) am.cancel(pi);
+      }
+      PendingIntent testPi = pendingForId(9199);
+      if (testPi != null) am.cancel(testPi);
+      if (raw == null || raw.isEmpty()) return;
+      try {
+        JSONArray items = new JSONArray(raw);
+        for (int i = 0; i < items.length(); i++) {
+          int id = items.getJSONObject(i).optInt("id", -1);
+          if (id > 0) {
+            PendingIntent pi = pendingForId(id);
+            if (pi != null) am.cancel(pi);
+          }
+        }
+      } catch (Exception ignored) {
+        // ignore
+      }
+    }
+
+    private PendingIntent pendingForId(int id) {
+      Intent intent = new Intent(activity, CvReminderPublisher.class);
+      intent.setAction(CvReminderPublisher.ACTION_FIRE);
+      intent.putExtra(CvReminderPublisher.EXTRA_ID, id);
+      int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        flags |= PendingIntent.FLAG_IMMUTABLE;
+      }
+      return PendingIntent.getBroadcast(activity, id, intent, flags);
+    }
+
+    private void scheduleOne(AlarmManager am, JSONObject item) throws Exception {
+      int id = item.getInt("id");
+      String title = item.optString("title", "Calorie Vision");
+      String body = item.optString("body", "");
+      int hour = item.getInt("hour");
+      int minute = item.optInt("minute", 0);
+      Integer weekday = item.has("weekday") && !item.isNull("weekday")
+          ? Integer.valueOf(item.getInt("weekday"))
+          : null;
+
+      Intent intent = new Intent(activity, CvReminderPublisher.class);
+      intent.setAction(CvReminderPublisher.ACTION_FIRE);
+      intent.putExtra(CvReminderPublisher.EXTRA_ID, id);
+      intent.putExtra(CvReminderPublisher.EXTRA_TITLE, title);
+      intent.putExtra(CvReminderPublisher.EXTRA_BODY, body);
+      intent.putExtra(CvReminderPublisher.EXTRA_HOUR, hour);
+      intent.putExtra(CvReminderPublisher.EXTRA_MINUTE, minute);
+      if (weekday != null) {
+        intent.putExtra(CvReminderPublisher.EXTRA_WEEKDAY, weekday.intValue());
+      }
+
+      int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        flags |= PendingIntent.FLAG_IMMUTABLE;
+      }
+      PendingIntent pi = PendingIntent.getBroadcast(activity, id, intent, flags);
+      long triggerAt = nextTriggerMillis(hour, minute, weekday);
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+      } else {
+        am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+      }
+    }
+  }
+
+  /** JS weekday 0=Sunday…6=Saturday → next trigger epoch ms. */
+  static long nextTriggerMillis(int hour, int minute, Integer jsWeekday) {
+    Calendar cal = Calendar.getInstance();
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+    cal.set(Calendar.HOUR_OF_DAY, hour);
+    cal.set(Calendar.MINUTE, minute);
+    if (jsWeekday != null) {
+      int androidDow = ((jsWeekday % 7) + 7) % 7 + 1; // Calendar: 1=Sunday
+      int today = cal.get(Calendar.DAY_OF_WEEK);
+      int days = androidDow - today;
+      if (days < 0 || (days == 0 && cal.getTimeInMillis() <= System.currentTimeMillis())) {
+        days += 7;
+      }
+      cal.add(Calendar.DAY_OF_YEAR, days);
+    } else if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+      cal.add(Calendar.DAY_OF_YEAR, 1);
+    }
+    return cal.getTimeInMillis();
+  }
 }
 JAVA
-  echo "MainActivity CvSession bridge written"
+
+  cat >"$pkg_dir/CvReminderPublisher.java" <<'JAVA'
+package ru.calorievision.app;
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+/**
+ * Shows a local reminder and reschedules the next occurrence.
+ * Also restores alarms after BOOT_COMPLETED from SharedPreferences.
+ */
+public class CvReminderPublisher extends BroadcastReceiver {
+  public static final String ACTION_FIRE = "ru.calorievision.app.CV_REMINDER_FIRE";
+  public static final String EXTRA_ID = "id";
+  public static final String EXTRA_TITLE = "title";
+  public static final String EXTRA_BODY = "body";
+  public static final String EXTRA_HOUR = "hour";
+  public static final String EXTRA_MINUTE = "minute";
+  public static final String EXTRA_WEEKDAY = "weekday";
+
+  private static final String PREFS_GROUP = "CapacitorStorage";
+  private static final String REMINDER_CHANNEL = "reminders";
+  private static final String REMINDER_SCHEDULE_KEY = "cv_native_reminder_schedule_v1";
+
+  @Override
+  public void onReceive(Context context, Intent intent) {
+    if (intent == null) return;
+    String action = intent.getAction();
+    if (Intent.ACTION_BOOT_COMPLETED.equals(action)
+        || Intent.ACTION_LOCKED_BOOT_COMPLETED.equals(action)
+        || "android.intent.action.QUICKBOOT_POWERON".equals(action)) {
+      restoreAll(context);
+      return;
+    }
+    if (!ACTION_FIRE.equals(action)) return;
+
+    int id = intent.getIntExtra(EXTRA_ID, 0);
+    String title = intent.getStringExtra(EXTRA_TITLE);
+    String body = intent.getStringExtra(EXTRA_BODY);
+    int hour = intent.getIntExtra(EXTRA_HOUR, 12);
+    int minute = intent.getIntExtra(EXTRA_MINUTE, 0);
+    Integer weekday =
+        intent.hasExtra(EXTRA_WEEKDAY) ? Integer.valueOf(intent.getIntExtra(EXTRA_WEEKDAY, 0)) : null;
+
+    if (title == null) title = "Calorie Vision";
+    if (body == null) body = "";
+
+    try {
+      NotificationCompat.Builder builder =
+          new NotificationCompat.Builder(context, REMINDER_CHANNEL)
+              .setSmallIcon(context.getApplicationInfo().icon)
+              .setContentTitle(title)
+              .setContentText(body)
+              .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+              .setAutoCancel(true);
+      NotificationManagerCompat.from(context).notify(id, builder.build());
+    } catch (Exception ignored) {
+      // ignore show failures
+    }
+
+    // Reschedule next daily/weekly occurrence.
+    try {
+      Intent next = new Intent(context, CvReminderPublisher.class);
+      next.setAction(ACTION_FIRE);
+      next.putExtra(EXTRA_ID, id);
+      next.putExtra(EXTRA_TITLE, title);
+      next.putExtra(EXTRA_BODY, body);
+      next.putExtra(EXTRA_HOUR, hour);
+      next.putExtra(EXTRA_MINUTE, minute);
+      if (weekday != null) next.putExtra(EXTRA_WEEKDAY, weekday.intValue());
+      int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        flags |= PendingIntent.FLAG_IMMUTABLE;
+      }
+      PendingIntent pi = PendingIntent.getBroadcast(context, id, next, flags);
+      AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+      long triggerAt = MainActivity.nextTriggerMillis(hour, minute, weekday);
+      if (am != null) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+        } else {
+          am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+        }
+      }
+    } catch (Exception ignored) {
+      // ignore
+    }
+  }
+
+  private void restoreAll(Context context) {
+    try {
+      SharedPreferences prefs = context.getSharedPreferences(PREFS_GROUP, Context.MODE_PRIVATE);
+      String raw = prefs.getString(REMINDER_SCHEDULE_KEY, null);
+      if (raw == null || raw.isEmpty()) return;
+      JSONArray items = new JSONArray(raw);
+      AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+      if (am == null) return;
+      for (int i = 0; i < items.length(); i++) {
+        JSONObject item = items.getJSONObject(i);
+        int id = item.getInt("id");
+        String title = item.optString("title", "Calorie Vision");
+        String body = item.optString("body", "");
+        int hour = item.getInt("hour");
+        int minute = item.optInt("minute", 0);
+        Integer weekday =
+            item.has("weekday") && !item.isNull("weekday")
+                ? Integer.valueOf(item.getInt("weekday"))
+                : null;
+        Intent next = new Intent(context, CvReminderPublisher.class);
+        next.setAction(ACTION_FIRE);
+        next.putExtra(EXTRA_ID, id);
+        next.putExtra(EXTRA_TITLE, title);
+        next.putExtra(EXTRA_BODY, body);
+        next.putExtra(EXTRA_HOUR, hour);
+        next.putExtra(EXTRA_MINUTE, minute);
+        if (weekday != null) next.putExtra(EXTRA_WEEKDAY, weekday.intValue());
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent pi = PendingIntent.getBroadcast(context, id, next, flags);
+        long triggerAt = MainActivity.nextTriggerMillis(hour, minute, weekday);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+          am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+        } else {
+          am.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pi);
+        }
+      }
+    } catch (Exception ignored) {
+      // ignore
+    }
+  }
+}
+JAVA
+  echo "MainActivity CvSession + CvReminders bridge written"
+
+  rustore_patch_capacitor_reminder_receiver "$android_dir"
+}
+
+# Register CvReminderPublisher + RECEIVE_BOOT_COMPLETED for restore after reboot.
+rustore_patch_capacitor_reminder_receiver() {
+  local android_dir="${1:?android}"
+  local manifest="$android_dir/app/src/main/AndroidManifest.xml"
+
+  if [[ ! -f "$manifest" ]]; then
+    echo "Нет AndroidManifest.xml — пропуск CvReminderPublisher" >&2
+    return 0
+  fi
+
+  rustore_py - "$manifest" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+changed = []
+
+if "CvReminderPublisher" not in text:
+    receiver = '''
+        <receiver
+            android:name=".CvReminderPublisher"
+            android:exported="false"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="ru.calorievision.app.CV_REMINDER_FIRE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>'''
+    needle = "</application>"
+    idx = text.rfind(needle)
+    if idx < 0:
+        raise SystemExit("manifest </application> not found")
+    text = text[:idx] + receiver + "\n    " + text[idx:]
+    changed.append("CvReminderPublisher")
+
+for perm in (
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.SCHEDULE_EXACT_ALARM",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.VIBRATE",
+):
+    token = f'android:name="{perm}"'
+    if token in text:
+        continue
+    m = text.find("<manifest")
+    if m < 0:
+        raise SystemExit("manifest root not found")
+    end = text.find(">", m)
+    text = text[: end + 1] + f'\n    <uses-permission android:name="{perm}" />' + text[end + 1 :]
+    changed.append(perm)
+
+path.write_text(text)
+if changed:
+    print("reminder manifest patches:", ", ".join(changed))
+else:
+    print("reminder manifest patches already present")
+PY
 }
 
 # Keep session bridge after cap sync (same hook point as App Links).
