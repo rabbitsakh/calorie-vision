@@ -10,7 +10,6 @@ import { formatMacro } from "@/lib/nutrition";
 import { withBasePath } from "@/lib/paths";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
 import { formatConfidencePercent } from "@/lib/recognition-confidence-ui";
-import { describeNutritionBasis } from "@/lib/recognition-nutrition";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 
 type DishDraft = ConfirmDishDraft;
