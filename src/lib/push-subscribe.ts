@@ -2,7 +2,9 @@
 
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
+import { isApkWebView } from "@/lib/capacitor-resume";
 import {
+  cvReminders,
   enableCapacitorLocalReminders,
   fireCapacitorTestReminder,
 } from "@/lib/capacitor-local-reminders";
@@ -10,6 +12,10 @@ import { withBasePath } from "@/lib/paths";
 import { urlBase64ToUint8Array } from "@/lib/push-client";
 import type { PushReminderPrefs } from "@/lib/push-reminder-schedule";
 import { clearTimezoneCache } from "@/lib/use-timezone";
+
+function useApkLocalReminders(): boolean {
+  return Boolean(cvReminders()) || isApkWebView() || isCapacitorNative();
+}
 
 export type PushSubscribeResult =
   | { ok: true }
@@ -32,7 +38,7 @@ export async function subscribeBrowserPush(
     return { ok: false, error: "Недоступно на сервере" };
   }
 
-  if (isCapacitorNative()) {
+  if (useApkLocalReminders()) {
     return enableCapacitorLocalReminders(
       options.prefs,
       options.quietHoursStart,
@@ -109,7 +115,7 @@ export async function subscribeBrowserPush(
 }
 
 export async function testPushDelivery(): Promise<PushSubscribeResult> {
-  if (isCapacitorNative()) {
+  if (useApkLocalReminders()) {
     return fireCapacitorTestReminder();
   }
   try {
