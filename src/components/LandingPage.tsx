@@ -183,7 +183,7 @@ function DownloadIcon() {
   );
 }
 
-/** Android APK (+ optional RuStore) — under #install steps (hero also has a compact CTA). */
+/** Android APK (+ optional RuStore) — under #install steps (hero secondary CTA links here). */
 function AndroidApkCta() {
   const apkUrl = getApkDownloadUrl();
   const rustoreUrl = getRustoreUrl();
