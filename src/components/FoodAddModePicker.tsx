@@ -215,7 +215,8 @@ export function FoodAddModePicker({
                 {FOOD_ADD_UTILITY_OPTIONS.map((opt, index) => {
                   const isSuggested =
                     (suggested === "water" && opt.id === "water") ||
-                    (suggested === "weight" && opt.id === "weight");
+                    (suggested === "weight" && opt.id === "weight") ||
+                    (suggested === "workout" && opt.id === "workout");
                   return (
                     <button
                       key={opt.id}

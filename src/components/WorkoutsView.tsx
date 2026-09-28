@@ -409,6 +409,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [creating, setCreating] = useState(false);
+  /** Opened via «+» → Тренировка (`?new=1`). */
+  const [fromPlusMenu, setFromPlusMenu] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const [newDate, setNewDate] = useState(todayKey);
@@ -622,6 +624,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
     setCreating(true);
+    setFromPlusMenu(true);
     setHubTab("today");
     router.replace(withBasePath("/workouts"), { scroll: false });
   }, [searchParams, router]);
@@ -749,10 +752,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           }),
         );
         setCreating(false);
+        setFromPlusMenu(false);
         setNewGroups([]);
         await loadList();
         await loadCalendar();
-        await openSession(data.session.id);
+        // From «+»: land in live stage (parity with food save → diary).
+        await openSession(data.session.id, { enterStage: true });
         return;
       }
 
@@ -768,9 +773,10 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         }),
       );
       setCreating(false);
+      setFromPlusMenu(false);
       setNewGroups([]);
       await loadList();
-      await openSession(data.session.id);
+      await openSession(data.session.id, { enterStage: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось создать");
     } finally {
@@ -2628,9 +2634,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       {creating ? (
         <section
           ref={createFormRef}
-          className="rounded-2xl border-2 border-teal-300 bg-white p-4 shadow-sm"
+          className="rounded-2xl border-2 border-[var(--accent)] bg-white p-4 shadow-sm"
         >
           <h2 className="font-semibold text-slate-900">Новая тренировка</h2>
+          {fromPlusMenu ? (
+            <p className="mt-1 text-xs font-medium text-teal-800">
+              Из меню «+» · после создания откроется зал
+            </p>
+          ) : null}
           <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
             Дата
             <input
@@ -2700,22 +2711,34 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               Скопировать упражнения и подходы из прошлой
             </label>
           ) : null}
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
               disabled={newGroups.length === 0 || busy}
               onClick={() => void createSession()}
             >
-              Создать
+              Создать и в зал
             </button>
             <button
               type="button"
               className="rounded-lg px-3 py-2 text-sm text-slate-600"
-              onClick={() => setCreating(false)}
+              onClick={() => {
+                setCreating(false);
+                setFromPlusMenu(false);
+              }}
             >
               Отмена
             </button>
+            {fromPlusMenu ? (
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+                onClick={() => router.push(withBasePath("/ration"))}
+              >
+                К рациону
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}

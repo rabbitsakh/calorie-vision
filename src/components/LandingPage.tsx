@@ -254,23 +254,14 @@ export function LandingPage() {
           <p className="landing-brand">Calorie Vision</p>
           <h1 className="landing-headline">Сфотографировали — калории уже в дневнике</h1>
           <p className="landing-lead">
-            Тарелка, этикетка, штрихкод или название. ИИ оценивает порцию — вы видите уверенность,
-            правите за секунды и сохраняете. Плюс тренировки: подходы, шаблоны и прогрессия в одном
-            приложении.
+            Тарелка, этикетка или название — порция и калории в дневнике за секунды.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
               Начать бесплатно
             </Link>
-            <a
-              href={apkUrl}
-              className="btn btn-secondary landing-cta-primary landing-hero-apk"
-              download
-            >
+            <a href="#install" className="btn btn-secondary landing-cta-primary">
               Скачать APK
-            </a>
-            <a href="#how" className="landing-cta-secondary">
-              Как это работает
             </a>
           </div>
         </div>

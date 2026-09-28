@@ -39,6 +39,7 @@ import {
   openFoodAdd,
   requestOpenFoodAddPicker,
   requestOpenFoodCamera,
+  requestOpenFoodText,
 } from "@/lib/open-food-camera";
 import { WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
@@ -273,6 +274,7 @@ function RationBody({
               onChanged={bump}
               onTotalsChange={() => {}}
               onAddFood={openFoodPicker}
+              onAddFoodText={() => requestOpenFoodText()}
             />
           </div>
         </DaySwipeRegion>

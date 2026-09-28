@@ -731,6 +731,8 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [photoBackfillBusy, setPhotoBackfillBusy] = useState(false);
   const [photoBackfillMsg, setPhotoBackfillMsg] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  /** Wave 3: first fold = insight + calories; WoW / macros / weight behind this. */
+  const [chartsOpen, setChartsOpen] = useState(false);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -884,7 +886,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             </div>
           ) : null}
 
-          {/* Calories */}
+          {/* Calories — primary chart in first fold (Wave 3) */}
           <section className="card p-4 md:p-6">
             <StatsSectionHeader
               title="Калории по дням"
@@ -902,6 +904,26 @@ export function StatsView({ endDate }: StatsViewProps) {
             </div>
           </section>
 
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+            aria-expanded={chartsOpen}
+            onClick={() => setChartsOpen((v) => !v)}
+          >
+            <span>
+              {chartsOpen
+                ? "Скрыть графики"
+                : period === "month"
+                  ? "Ещё графики: недели, БЖУ, вес, календарь"
+                  : "Ещё графики: недели, БЖУ, вес"}
+            </span>
+            <span className={`text-slate-400 transition-transform ${chartsOpen ? "rotate-180" : ""}`} aria-hidden>
+              ▾
+            </span>
+          </button>
+
+          {chartsOpen ? (
+            <>
           {showWowSection && wow ? (
             <section className="card p-4 md:p-6">
               <StatsSectionHeader
@@ -1006,10 +1028,12 @@ export function StatsView({ endDate }: StatsViewProps) {
               <WeightLineChart days={data.days} period={period} />
             </div>
           </section>
+            </>
+          ) : null}
 
           <button
             type="button"
-            className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+            className="flex w-full items-center justify-between rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((v) => !v)}
           >
