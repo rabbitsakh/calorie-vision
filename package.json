@@ -22,6 +22,7 @@
     "db:studio": "prisma studio",
     "rustore:cap:init": "bash scripts/rustore-cap-init.sh",
     "rustore:cap:build": "bash scripts/rustore-cap-build.sh",
+    "rustore:publish-apk": "bash scripts/publish-apk-site.sh",
     "cap:sync": "npx cap sync android"
   },
   "engines": {

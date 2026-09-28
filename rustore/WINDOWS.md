@@ -170,3 +170,18 @@ Legacy deep link `calorievision://native-bridge` остаётся запасны
 1. Установите APK на телефон — должен открываться сайт без адресной строки.
 2. Проверьте логин и фото.
 3. Загрузите в [RuStore Консоль](https://console.rustore.ru) — см. `rustore/CHECKLIST.md` и `listing.ru.md`.
+4. **Выложить на сайт** (кнопка «Скачать APK» на лендинге). Файл в `.gitignore`, `git pull` на VPS его не принесёт:
+
+```bash
+# после rustore:cap:build уже есть public/downloads/calorie-vision.apk
+scp public/downloads/calorie-vision.apk \
+  USER@VPS:/var/www/calorie-vision/public/downloads/calorie-vision.apk
+```
+
+Проверка: `curl -sI https://calorievision.ru/downloads/calorie-vision.apk` → `200` и свежий `last-modified`.
+
+Или одной командой (нужны `RUSTORE_KEYSTORE_*` и опционально `DEPLOY_SSH_*`):
+
+```bash
+npm run rustore:publish-apk
+```

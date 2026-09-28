@@ -78,7 +78,15 @@ bash scripts/rustore-build.sh
 - кладёт APK в `public/downloads/` для кнопки «Скачать APK» на сайте (файл в gitignore).
 4. Загрузите новый APK **и** иконку витрины (`icon-512-store.png`) в [RuStore Консоль](https://console.rustore.ru).
 5. На телефоне: обновление из RuStore **или удалите приложение и поставьте снова** — лаунчер часто кэширует старый ярлык.
-6. На проде: задеплойте сайт вместе с `public/downloads/calorie-vision.apk` (или задайте `NEXT_PUBLIC_APK_URL`).
+6. На проде APK **не едет через git** (файл в `.gitignore`). После `rustore:cap:build` скопируйте на VPS:
+
+```bash
+scp public/downloads/calorie-vision.apk \
+  USER@VPS:/var/www/calorie-vision/public/downloads/calorie-vision.apk
+# или: npm run rustore:publish-apk   # + DEPLOY_SSH_HOST/USER/KEY
+```
+
+Либо задайте `NEXT_PUBLIC_APK_URL` на CDN/Release.
 
 ## Быстрый старт
 
