@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calorie Vision — тур для RuStore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --teal: #0f766e;
+      --teal-deep: #115e59;
+      --mint: #ccfbf1;
+      --ink: #0f172a;
+      --foam: #f0fdfa;
+      --amber: #d97706;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #0b1220;
+      color: white;
+      font-family: Manrope, system-ui, sans-serif;
+    }
+    .stage {
+      position: relative;
+      width: min(100vw, calc(100vh * 9 / 16));
+      height: min(100vh, calc(100vw * 16 / 9));
+      margin: 0 auto;
+      overflow: hidden;
+      background: #0b1220;
+    }
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.04);
+      transition: opacity 0.9s ease, transform 1.2s ease;
+    }
+    .scene.is-active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+    .scene.is-leaving {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+    .bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      transform: scale(1.08);
+      animation: ken 8s ease-out forwards;
+    }
+    .scene.is-active .bg { animation-name: ken; }
+    @keyframes ken {
+      from { transform: scale(1.12); }
+      to { transform: scale(1.02); }
+    }
+    .veil {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(11, 18, 32, 0.25) 0%, rgba(11, 18, 32, 0.55) 42%, rgba(11, 18, 32, 0.88) 100%);
+    }
+    .copy {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 8% 8% 12%;
+      z-index: 2;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: clamp(11px, 2.8vw, 14px);
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #5eead4;
+      margin-bottom: 0.75rem;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    .headline {
+      font-family: Fraunces, Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(28px, 8.2vw, 44px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      max-width: 14ch;
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    .support {
+      margin-top: 0.9rem;
+      font-size: clamp(14px, 3.8vw, 17px);
+      line-height: 1.45;
+      color: rgba(240, 253, 250, 0.9);
+      max-width: 28ch;
+      opacity: 0;
+      transform: translateY(22px);
+    }
+    .scene.is-active .eyebrow,
+    .scene.is-active .headline,
+    .scene.is-active .support {
+      animation: rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .scene.is-active .headline { animation-delay: 0.12s; }
+    .scene.is-active .support { animation-delay: 0.24s; }
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Open / close scenes */
+    .brand-hero .copy {
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 10%;
+    }
+    .brand-mark {
+      width: clamp(72px, 18vw, 96px);
+      height: clamp(72px, 18vw, 96px);
+      border-radius: 24%;
+      box-shadow: 0 18px 40px rgba(15, 118, 110, 0.35);
+      opacity: 0;
+      transform: translateY(18px) scale(0.92);
+    }
+    .brand-hero .headline {
+      max-width: none;
+      margin-top: 1.1rem;
+      font-size: clamp(34px, 9vw, 52px);
+    }
+    .brand-hero .support {
+      max-width: 22ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .scene.is-active .brand-mark {
+      animation: rise-scale 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    @keyframes rise-scale {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .pill {
+      margin-top: 1.35rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.95rem;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.92);
+      color: white;
+      font-size: clamp(12px, 3.2vw, 14px);
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    .scene.is-active .pill {
+      animation: rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.36s forwards;
+    }
+
+    .progress {
+      position: absolute;
+      left: 8%;
+      right: 8%;
+      top: max(1.25rem, env(safe-area-inset-top));
+      z-index: 5;
+      display: flex;
+      gap: 0.35rem;
+    }
+    .progress span {
+      flex: 1;
+      height: 3px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.22);
+      overflow: hidden;
+    }
+    .progress span i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #5eead4;
+      border-radius: inherit;
+    }
+    .progress span.is-done i { width: 100%; }
+    .progress span.is-active i {
+      animation: fill var(--dur, 7s) linear forwards;
+    }
+    @keyframes fill {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage" aria-label="Промо-тур Calorie Vision">
+    <div class="progress" id="progress" aria-hidden="true"></div>
+
+    <section class="scene brand-hero is-active" data-dur="6500">
+      <div class="bg" style="background-image:url('promo-scene-open.png')"></div>
+      <div class="veil"></div>
+      <div class="copy">
+        <img class="brand-mark" src="icon.png" alt="" width="96" height="96" />
+        <h1 class="headline">Calorie Vision</h1>
+        <p class="support">Калории по фото и зал — в одном приложении</p>
+        <div class="pill">Полностью бесплатно</div>
+      </div>
+    </section>
+
+    <section class="scene" data-dur="8000">
+      <div class="bg" style="background-image:url('promo-scene-food.png')"></div>
+      <div class="veil"></div>
+      <div class="copy">
+        <p class="eyebrow">Питание</p>
+        <h2 class="headline">Калории по фото тарелки</h2>
+        <p class="support">Снимок, этикетка или штрихкод — ИИ оценит порцию и КБЖУ. Перед сохранением можно поправить граммы.</p>
+      </div>
+    </section>
+
+    <section class="scene" data-dur="8000">
+      <div class="bg" style="background-image:url('promo-scene-gym.png')"></div>
+      <div class="veil"></div>
+      <div class="copy">
+        <p class="eyebrow">Зал</p>
+        <h2 class="headline">Силовые и кардио в журнале</h2>
+        <p class="support">Подходы, RPE, км и минуты, шаблоны, суперсеты, таймер отдыха и экран итога после тренировки.</p>
+      </div>
+    </section>
+
+    <section class="scene" data-dur="7500">
+      <div class="bg" style="background-image:url('promo-scene-habits.png')"></div>
+      <div class="veil"></div>
+      <div class="copy">
+        <p class="eyebrow">Привычки</p>
+        <h2 class="headline">Кольцо дня и мягкий план</h2>
+        <p class="support">Серия записей, вода, вес, недельный план, список покупок и напоминания — только после вашего разрешения.</p>
+      </div>
+    </section>
+
+    <section class="scene brand-hero" data-dur="7000">
+      <div class="bg" style="background-image:url('promo-scene-open.png')"></div>
+      <div class="veil"></div>
+      <div class="copy">
+        <img class="brand-mark" src="icon.png" alt="" width="96" height="96" />
+        <h2 class="headline">Начните сегодня</h2>
+        <p class="support">Без подписки и скрытых платежей. Вход через Google, VK, Яндекс, Telegram или email.</p>
+        <div class="pill">calorievision.ru</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      const scenes = Array.from(document.querySelectorAll(".scene"));
+      const progress = document.getElementById("progress");
+      scenes.forEach(() => {
+        const s = document.createElement("span");
+        s.innerHTML = "<i></i>";
+        progress.appendChild(s);
+      });
+      const bars = Array.from(progress.querySelectorAll("span"));
+      let index = 0;
+      let timer = null;
+
+      function show(i) {
+        scenes.forEach((scene, n) => {
+          scene.classList.toggle("is-active", n === i);
+          scene.classList.remove("is-leaving");
+        });
+        bars.forEach((bar, n) => {
+          bar.classList.remove("is-active", "is-done");
+          const fill = bar.querySelector("i");
+          fill.style.animation = "none";
+          // eslint-disable-next-line no-unused-expressions
+          fill.offsetHeight;
+          fill.style.animation = "";
+          fill.style.width = "";
+          if (n < i) bar.classList.add("is-done");
+          if (n === i) {
+            const dur = Number(scenes[i].dataset.dur || 7000);
+            bar.style.setProperty("--dur", dur + "ms");
+            bar.classList.add("is-active");
+          }
+        });
+        index = i;
+        clearTimeout(timer);
+        const dur = Number(scenes[i].dataset.dur || 7000);
+        timer = setTimeout(() => {
+          const next = (index + 1) % scenes.length;
+          show(next);
+        }, dur);
+      }
+
+      // ?autostart=0 — hold on first frame until recording starts, then call window.__cvPromoStart()
+      const params = new URLSearchParams(location.search);
+      const hold = params.get("autostart") === "0";
+      window.__cvPromoReady = false;
+      window.__cvPromoStart = () => show(0);
+      window.addEventListener("load", () => {
+        setTimeout(() => {
+          window.__cvPromoReady = true;
+          if (!hold) show(0);
+          else {
+            scenes[0].classList.add("is-active");
+            bars[0].classList.add("is-done");
+            bars[0].querySelector("i").style.width = "0";
+          }
+        }, 500);
+      });
+    })();
+  </script>
+</body>
+</html>
