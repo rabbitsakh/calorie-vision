@@ -18,9 +18,8 @@ import {
   formatDurationMinutes,
   formatPace,
   formatPaceClock,
-  parseDistanceKm,
-  parseDurationToSec,
 } from "@/lib/workouts/cardio";
+import { validateSetDraft } from "@/lib/workouts/set-draft";
 import {
   EXERCISE_KINDS,
   EXERCISE_KIND_LABELS,
@@ -1072,39 +1071,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     setError(null);
     clearDraftError(exerciseId);
     try {
-      const body: Record<string, unknown> = { ...meta };
-      if (spec.usesDistance) {
-        const distanceKm = parseDistanceKm(draft.km || "0");
-        if (distanceKm === null) {
-          failDraft(exerciseId, "Укажите км", "km");
-          return;
-        }
-        body.distanceKm = distanceKm;
+      const validated = validateSetDraft(ex.kind, draft);
+      if (!validated.ok) {
+        failDraft(exerciseId, validated.message, validated.field);
+        return;
       }
-      if (spec.usesDuration) {
-        const durationSec = parseDurationToSec(draft.time);
-        if (durationSec === null) {
-          failDraft(exerciseId, "Укажите время в минутах", "time");
-          return;
-        }
-        body.durationSec = durationSec;
-      }
-      if (spec.usesWeight) {
-        const weightKg = Number(draft.kg.replace(",", "."));
-        if (!Number.isFinite(weightKg) || weightKg < 0) {
-          failDraft(exerciseId, "Укажите кг", "kg");
-          return;
-        }
-        body.weightKg = weightKg;
-      }
-      if (spec.usesReps) {
-        const reps = Number(draft.reps);
-        if (!Number.isFinite(reps) || reps <= 0) {
-          failDraft(exerciseId, "Укажите повторения", "reps");
-          return;
-        }
-        body.reps = reps;
-      }
+      const body: Record<string, unknown> = { ...meta, ...validated.body };
 
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
@@ -1271,7 +1243,6 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     if (!focusExForStage || !detail) return;
     const incomplete = focusExForStage.sets.find((s) => !s.completed);
     if (incomplete) {
-      const spec = fieldsForKind(focusExForStage.kind);
       const patch: Record<string, unknown> = {
         completed: true,
         setType: stageDraft.setType,
@@ -1280,37 +1251,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         const rpe = Number(stageDraft.rpe.replace(",", "."));
         if (Number.isFinite(rpe)) patch.rpe = rpe;
       }
-      if (spec.usesWeight) {
-        const kg = Number(stageDraft.kg.replace(",", "."));
-        if (!Number.isFinite(kg) || kg < 0) {
-          failDraft(focusExForStage.id, "Укажите кг", "kg");
-          return;
-        }
-        patch.weightKg = kg;
+      const validated = validateSetDraft(focusExForStage.kind, stageDraft);
+      if (!validated.ok) {
+        failDraft(focusExForStage.id, validated.message, validated.field);
+        return;
       }
-      if (spec.usesReps) {
-        const reps = Number(stageDraft.reps);
-        if (!Number.isFinite(reps) || reps <= 0) {
-          failDraft(focusExForStage.id, "Укажите повторения", "reps");
-          return;
-        }
-        patch.reps = Math.round(reps);
-      }
-      if (spec.usesDistance) {
-        const distanceKm = parseDistanceKm(stageDraft.km || "0");
-        if (distanceKm === null) {
-          failDraft(focusExForStage.id, "Укажите км", "km");
-          return;
-        }
-        patch.distanceKm = distanceKm;
-      }
-      if (spec.usesDuration) {
-        const durationSec = parseDurationToSec(stageDraft.time);
-        if (durationSec === null) {
-          failDraft(focusExForStage.id, "Укажите время в минутах", "time");
-          return;
-        }
-        patch.durationSec = durationSec;
+      Object.assign(patch, validated.body);
+      if (typeof patch.reps === "number") {
+        patch.reps = Math.round(patch.reps);
       }
       // Rest handled here (patchSet startTimer=false) so we can use per-exercise duration.
       await patchSet(incomplete.id, patch, false);
