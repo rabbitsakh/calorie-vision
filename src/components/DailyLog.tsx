@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DailyLogEmpty } from "@/components/DailyLogEmpty";
 import { DietTargets } from "@/components/DietTargets";
-import { Mascot } from "@/components/Mascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FlameIcon } from "@/components/StreakIcon";
 import type { DayMealsResponse, MealEntry } from "@/types";
@@ -10,7 +10,6 @@ import {
   formatDateWords,
   shiftDateKey,
 } from "@/lib/dates";
-import { MASCOT_COPY } from "@/lib/mascot-copy";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -95,6 +94,7 @@ export function DailyLog({
   sceneFeed = false,
   timezone,
   onAddFood,
+  onAddFoodText,
 }: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
@@ -118,6 +118,8 @@ export function DailyLog({
   const [pendingDeletes, setPendingDeletes] = useState<PendingDeleteSlot[]>([]);
   const [streakDays, setStreakDays] = useState<number>(0);
   const [showNormDetails, setShowNormDetails] = useState(() => {
+    // Wave 1: scene feed keeps first fold = meals only; norm stays collapsed.
+    if (sceneFeed) return false;
     if (typeof window === "undefined") return !compact;
     if (!compact) return true;
     try {
@@ -127,6 +129,7 @@ export function DailyLog({
       return true;
     }
   });
+  const [showFeedFilters, setShowFeedFilters] = useState(false);
   const attemptedImageMealIds = useRef(new Set<string>());
   const tombstoneMealIdsRef = useRef(new Set<string>());
   const confirmingDeleteKeysRef = useRef(new Set<string>());
@@ -786,7 +789,7 @@ export function DailyLog({
               {sceneFeed ? "Приёмы" : "Дневник питания"}
             </h2>
           )}
-          {streakDays >= 2 ? (
+          {!sceneFeed && streakDays >= 2 ? (
             <div className="flex items-center gap-1 rounded-xl bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
               <FlameIcon className="h-4 w-4 text-amber-600" />
               <span>{streakDays} {pluralDays(streakDays)}</span>
@@ -818,8 +821,8 @@ export function DailyLog({
         </div>
 
         {daySummary.comparison && daySummary.calorieTone && daySummary.weightKg != null ? (
-          <div className="flex flex-col gap-3">
-            {compact ? (
+          <div className={`flex flex-col gap-3 ${sceneFeed ? "order-last" : ""}`}>
+            {compact || sceneFeed ? (
               <button
                 type="button"
                 className="self-start text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
@@ -828,7 +831,7 @@ export function DailyLog({
                 {showNormDetails ? "Скрыть норму и бюджет" : "Норма и бюджет по приёмам"}
               </button>
             ) : null}
-            {(!compact || showNormDetails) ? (
+            {(!compact && !sceneFeed) || showNormDetails ? (
               <>
                 <DietTargets
                   comparison={daySummary.comparison}
@@ -922,72 +925,39 @@ export function DailyLog({
         ) : null}
 
         {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
-          <div
-            className={`ration-empty-day flex flex-col items-center gap-3 px-4 py-10 text-center ${
-              sceneFeed ? "" : "rounded-2xl border border-dashed border-slate-200 text-slate-500"
-            }`}
-          >
-            <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
-            <p className="font-display text-lg font-semibold text-slate-900">
-              {MASCOT_COPY.emptyDiary.headline}
-            </p>
-            <p className="max-w-xs text-sm text-slate-600">{MASCOT_COPY.emptyDiary.body}</p>
-            {onAddFood ? (
-              <button
-                type="button"
-                className="btn btn-primary min-h-12 px-6 text-base"
-                onClick={() =>
-                  onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)
-                }
-              >
-                Добавить через «+»
-              </button>
-            ) : null}
-            {yesterdayHasMeals || yesterdayHasBreakfast ? (
-              <div className="flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  className="text-sm font-semibold text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
-                  onClick={() => setShowCopyOptions((v) => !v)}
-                  aria-expanded={showCopyOptions}
-                >
-                  {showCopyOptions ? "Скрыть" : "Скопировать вчера"}
-                </button>
-                {showCopyOptions ? (
-                  <div className="flex flex-col items-center gap-2">
-                    {yesterdayHasBreakfast ? (
-                      <button
-                        type="button"
-                        className="btn btn-secondary text-sm"
-                        disabled={copying}
-                        onClick={() => void handleCopyYesterdayBreakfast()}
-                      >
-                        {copying ? "Копируем..." : "Только вчерашний завтрак"}
-                      </button>
-                    ) : null}
-                    {yesterdayHasMeals ? (
-                      <button
-                        type="button"
-                        className="btn btn-secondary text-sm"
-                        disabled={copying}
-                        onClick={() => void handleCopyYesterday()}
-                      >
-                        {copying ? "Копируем..." : "Весь вчерашний день"}
-                      </button>
-                    ) : null}
-                    {copyError ? (
-                      <p className="max-w-xs text-sm text-red-600" role="alert">
-                        {copyError}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <DailyLogEmpty
+            sceneFeed={sceneFeed}
+            mealFilter={mealFilter}
+            onAddFood={onAddFood}
+            onAddFoodText={onAddFoodText}
+            yesterdayHasMeals={yesterdayHasMeals}
+            yesterdayHasBreakfast={yesterdayHasBreakfast}
+            showCopyOptions={showCopyOptions}
+            onToggleCopyOptions={() => setShowCopyOptions((v) => !v)}
+            copying={copying}
+            copyError={copyError}
+            onCopyYesterdayBreakfast={() => void handleCopyYesterdayBreakfast()}
+            onCopyYesterday={() => void handleCopyYesterday()}
+          />
         ) : null}
 
         {!loading && !error && entries.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {sceneFeed ? (
+              <button
+                type="button"
+                className="self-start text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+                onClick={() => setShowFeedFilters((v) => !v)}
+                aria-expanded={showFeedFilters}
+              >
+                {showFeedFilters
+                  ? "Скрыть фильтры"
+                  : mealFilter !== "ALL" || sourceFilter !== "ALL"
+                    ? "Фильтры · активны"
+                    : "Фильтры"}
+              </button>
+            ) : null}
+            {!sceneFeed || showFeedFilters ? (
           <div className="flex flex-wrap gap-1.5" role="toolbar" aria-label="Фильтр приёмов пищи">
             <button
               type="button"
@@ -1041,6 +1011,8 @@ export function DailyLog({
                 {label}
               </button>
             ))}
+          </div>
+            ) : null}
           </div>
         ) : null}
 

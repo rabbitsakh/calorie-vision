@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { LiveMascot } from "@/components/LiveMascot";
 import { DiarySticker } from "@/components/DiarySticker";
@@ -11,7 +10,6 @@ import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
 import { useTimezone } from "@/lib/use-timezone";
-import { withDateQuery } from "@/lib/use-selected-date";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 
 type ProgressData = {
@@ -248,14 +246,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             {calLabel}
             {holiday ? " · праздн. запас" : ""}
           </p>
-          {isToday ? (
-            <Link
-              href={withDateQuery("/plan", selectedDate)}
-              className="mt-2 inline-flex text-[0.7rem] font-semibold text-teal-800/80 underline-offset-2 hover:text-teal-900 hover:underline"
-            >
-              Неделя и покупки
-            </Link>
-          ) : null}
         </div>
         <HeroRing pct={data?.calorieTarget ? caloriePct : 0} />
       </div>

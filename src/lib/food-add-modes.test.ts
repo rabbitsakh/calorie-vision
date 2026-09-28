@@ -46,11 +46,13 @@ test("utility options cover water weight and workout", () => {
   }
 });
 
-test("suggestFoodAddAction maps morning weight, day photo, night water", () => {
+test("suggestFoodAddAction maps morning weight, gym hour, day photo, night water", () => {
   assert.equal(suggestFoodAddAction(7), "weight");
   assert.equal(suggestFoodAddAction(10), "weight");
   assert.equal(suggestFoodAddAction(12), "photo");
-  assert.equal(suggestFoodAddAction(19), "photo");
+  assert.equal(suggestFoodAddAction(16), "workout");
+  assert.equal(suggestFoodAddAction(19), "workout");
+  assert.equal(suggestFoodAddAction(20), "photo");
   assert.equal(suggestFoodAddAction(23), "water");
   assert.equal(suggestFoodAddAction(2), "water");
   assert.equal(suggestFoodAddAction(5), "weight");
@@ -59,7 +61,7 @@ test("suggestFoodAddAction maps morning weight, day photo, night water", () => {
 });
 
 test("foodAddSuggestedLabel is non-empty for each action", () => {
-  for (const action of ["photo", "water", "weight"] as const) {
+  for (const action of ["photo", "water", "weight", "workout"] as const) {
     assert.ok(foodAddSuggestedLabel(action).length > 0);
   }
 });

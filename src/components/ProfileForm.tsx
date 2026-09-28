@@ -50,6 +50,46 @@ type AccountResponse = {
   error?: string;
 };
 
+/** Wave 3: collapse secondary profile blocks so «Цели» is not one long dump. */
+function ProfileCollapse({
+  id,
+  title,
+  hint,
+  open,
+  onToggle,
+  children,
+}: {
+  id?: string;
+  title: string;
+  hint: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="card overflow-hidden scroll-mt-3">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-6 md:py-4"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <div className="min-w-0">
+          <h2 className="font-display text-lg font-semibold text-slate-900">{title}</h2>
+          <p className="mt-0.5 text-sm text-slate-500">{hint}</p>
+        </div>
+        <span
+          className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        >
+          ▾
+        </span>
+      </button>
+      {open ? <div className="border-t border-[var(--border-quiet)] px-4 pb-4 pt-3 md:px-6 md:pb-6">{children}</div> : null}
+    </section>
+  );
+}
+
 const COMMON_TIMEZONES = [
   { label: "Калининград (UTC+2)", value: "Europe/Kaliningrad" },
   { label: "Москва, Санкт-Петербург (UTC+3)", value: "Europe/Moscow" },
@@ -306,6 +346,11 @@ export function ProfileForm() {
     deleteChecklistReady && deleteTyped.trim() === ACCOUNT_DELETE_CONFIRM && !deleting;
 
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
+  const [openNorm, setOpenNorm] = useState(false);
+  const [openNutrients, setOpenNutrients] = useState(false);
+  const [openTimezone, setOpenTimezone] = useState(false);
+  const [openInvite, setOpenInvite] = useState(false);
+  const [openDelete, setOpenDelete] = useState(false);
 
   const knownValues = COMMON_TIMEZONES.map((tz) => tz.value);
   const deviceTz = typeof window !== "undefined" ? detectDeviceTimezone() : null;
@@ -403,12 +448,13 @@ export function ProfileForm() {
             </div>
           </section>
 
-          <section className="card p-4 md:p-6">
-            <h2 className="font-display text-lg font-semibold text-slate-900">Расчёт нормы</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Пол, рост и активность — для калорийной нормы
-            </p>
-            <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
+          <ProfileCollapse
+            title="Расчёт нормы"
+            hint="Пол, рост и активность — для калорийной нормы"
+            open={openNorm}
+            onToggle={() => setOpenNorm((v) => !v)}
+          >
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <div className="field min-w-0 sm:col-span-2">
                 <label htmlFor="sex">Пол</label>
                 <select
@@ -481,14 +527,16 @@ export function ProfileForm() {
                 <MedicalDisclaimerNote />
               </div>
             </div>
-          </section>
+          </ProfileCollapse>
 
-          <section id="nutrient-goals" className="card p-4 md:p-6 scroll-mt-3">
-            <h2 className="font-display text-lg font-semibold text-slate-900">Цели нутриентов</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Вода, клетчатка и мягкий лимит сахара
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <ProfileCollapse
+            id="nutrient-goals"
+            title="Цели нутриентов"
+            hint="Вода, клетчатка и мягкий лимит сахара"
+            open={openNutrients}
+            onToggle={() => setOpenNutrients((v) => !v)}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="field">
                 <label htmlFor="waterTargetMl">Цель по воде, мл/день</label>
                 <input
@@ -534,14 +582,15 @@ export function ProfileForm() {
                 <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
               </div>
             </div>
-          </section>
+          </ProfileCollapse>
 
-          <section className="card p-4 md:p-6">
-            <h2 className="font-display text-lg font-semibold text-slate-900">Часовой пояс и письма</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Напоминания и недельный дайджест
-            </p>
-            <div className="mt-4 grid gap-4">
+          <ProfileCollapse
+            title="Часовой пояс и письма"
+            hint="Напоминания и недельный дайджест"
+            open={openTimezone}
+            onToggle={() => setOpenTimezone((v) => !v)}
+          >
+            <div className="grid gap-4">
               <div className="field">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
@@ -613,7 +662,7 @@ export function ProfileForm() {
                 </div>
               </div>
             </div>
-          </section>
+          </ProfileCollapse>
 
           <section className="card p-4 md:p-6">
             <h2 className="font-display text-lg font-semibold text-slate-900">Данные</h2>
@@ -649,9 +698,13 @@ export function ProfileForm() {
       ) : null}
 
       {!loading && referralCode ? (
-        <section className="card p-4 md:p-6">
-          <h2 className="font-display text-lg font-semibold text-slate-900">Пригласить друзей</h2>
-          <p className="mt-1 text-sm text-slate-500">
+        <ProfileCollapse
+          title="Пригласить друзей"
+          hint="Ссылка и мягкий бонус к сундуку"
+          open={openInvite}
+          onToggle={() => setOpenInvite((v) => !v)}
+        >
+          <p className="text-sm text-slate-500">
             Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения, а вам
             начислится мягкий бонус к сундуку, когда они присоединятся.
           </p>
@@ -680,13 +733,17 @@ export function ProfileForm() {
             </a>
           </div>
           {copyStatus ? <p className="mt-2 text-sm text-teal-700">{copyStatus}</p> : null}
-        </section>
+        </ProfileCollapse>
       ) : null}
 
       {!loading ? (
-        <section className="card border-red-100 p-4 md:p-6">
-          <h2 className="font-display text-lg font-semibold text-red-700">Удаление аккаунта</h2>
-          <p className="mt-1 text-sm text-slate-500">
+        <ProfileCollapse
+          title="Удаление аккаунта"
+          hint="Необратимо — сначала экспорт"
+          open={openDelete}
+          onToggle={() => setOpenDelete((v) => !v)}
+        >
+          <p className="text-sm text-slate-500">
             Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
             Сначала скачайте полную копию данных (CSV и PDF).
           </p>
@@ -807,7 +864,7 @@ export function ProfileForm() {
               </div>
             </div>
           )}
-        </section>
+        </ProfileCollapse>
       ) : null}
 
       {!loading ? (
