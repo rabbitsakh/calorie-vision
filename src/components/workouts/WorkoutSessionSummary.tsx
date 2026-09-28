@@ -21,6 +21,8 @@ type Props = {
   exercises: SummaryExercise[];
   onClose: () => void;
   onBackToList: () => void;
+  /** Primary CTA after finish — default list; ration is preferred post-gym flow. */
+  onGoToRation?: () => void;
 };
 
 export function WorkoutSessionSummary({
@@ -37,6 +39,7 @@ export function WorkoutSessionSummary({
   exercises,
   onClose,
   onBackToList,
+  onGoToRation,
 }: Props) {
   const card = buildSessionSummary({
     date,
@@ -88,8 +91,16 @@ export function WorkoutSessionSummary({
       headline={card.headline}
       subline={`${card.elapsedLabel} · ${date}`}
       metrics={metrics}
-      primaryAction={{ label: "К списку", onClick: onBackToList }}
-      secondaryAction={{ label: "Остаться в тренировке", onClick: onClose }}
+      primaryAction={
+        onGoToRation
+          ? { label: "К рациону", onClick: onGoToRation }
+          : { label: "К списку", onClick: onBackToList }
+      }
+      secondaryAction={
+        onGoToRation
+          ? { label: "К списку", onClick: onBackToList }
+          : { label: "Остаться в тренировке", onClick: onClose }
+      }
     >
       <ul className="space-y-2">
         {card.exercises.map((ex) => (

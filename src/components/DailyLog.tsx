@@ -825,7 +825,7 @@ export function DailyLog({
             {compact || sceneFeed ? (
               <button
                 type="button"
-                className="self-start text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                className="self-start text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
                 onClick={toggleNormDetails}
               >
                 {showNormDetails ? "Скрыть норму и бюджет" : "Норма и бюджет по приёмам"}
@@ -903,7 +903,7 @@ export function DailyLog({
             <p className="text-sm text-red-600">{error}</p>
             <button
               type="button"
-              className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+              className="text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
               disabled={loading}
               onClick={() => {
                 if (dayRefresh) {
@@ -946,7 +946,7 @@ export function DailyLog({
             {sceneFeed ? (
               <button
                 type="button"
-                className="self-start text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+                className="self-start text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
                 onClick={() => setShowFeedFilters((v) => !v)}
                 aria-expanded={showFeedFilters}
               >
@@ -963,7 +963,7 @@ export function DailyLog({
               type="button"
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 mealFilter === "ALL"
-                  ? "bg-teal-700 text-white"
+                  ? "bg-[var(--accent)] text-white"
                   : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
               onClick={() => setMealFilter("ALL")}
@@ -979,7 +979,7 @@ export function DailyLog({
                   type="button"
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     mealFilter === type
-                      ? "bg-teal-700 text-white"
+                      ? "bg-[var(--accent)] text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                   onClick={() => setMealFilter(type)}
@@ -1026,7 +1026,7 @@ export function DailyLog({
               Нет записей по этому фильтру.{" "}
               <button
                 type="button"
-                className="font-semibold text-teal-700 underline-offset-2 hover:underline"
+                className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
                 onClick={() => {
                   setMealFilter("ALL");
                   setSourceFilter("ALL");

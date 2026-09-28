@@ -69,24 +69,24 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2.5 text-sm text-teal-950"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 px-3 py-2.5 text-sm text-slate-900"
       role="status"
     >
       <div className="min-w-0 flex-1">
         <p className="font-semibold">Есть незавершённая проверка</p>
-        <p className="mt-0.5 text-xs text-teal-900/85">{hint}</p>
+        <p className="mt-0.5 text-xs text-slate-600">{hint}</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <button
           type="button"
-          className="rounded-lg bg-teal-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-900"
+          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
           onClick={() => requestOpenPendingConfirm()}
         >
           Продолжить
         </button>
         <button
           type="button"
-          className="rounded-lg border border-teal-300 bg-white/70 px-3 py-1.5 text-xs font-semibold text-teal-900 hover:bg-white"
+          className="rounded-lg border border-[var(--border-quiet)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white"
           onClick={() => clearPendingConfirmDraft(selectedDate)}
         >
           Удалить
