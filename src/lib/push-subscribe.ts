@@ -13,7 +13,7 @@ import { urlBase64ToUint8Array } from "@/lib/push-client";
 import type { PushReminderPrefs } from "@/lib/push-reminder-schedule";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 
-function useApkLocalReminders(): boolean {
+function preferApkLocalReminders(): boolean {
   return Boolean(cvReminders()) || isApkWebView() || isCapacitorNative();
 }
 
@@ -38,7 +38,7 @@ export async function subscribeBrowserPush(
     return { ok: false, error: "Недоступно на сервере" };
   }
 
-  if (useApkLocalReminders()) {
+  if (preferApkLocalReminders()) {
     return enableCapacitorLocalReminders(
       options.prefs,
       options.quietHoursStart,
@@ -115,7 +115,7 @@ export async function subscribeBrowserPush(
 }
 
 export async function testPushDelivery(): Promise<PushSubscribeResult> {
-  if (useApkLocalReminders()) {
+  if (preferApkLocalReminders()) {
     return fireCapacitorTestReminder();
   }
   try {
