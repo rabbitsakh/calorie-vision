@@ -61,7 +61,7 @@ export function DishFields({
   const fieldId = (name: string) => `${name}-${dish.id}`;
   const showReviewCta =
     review.lowConfidence || review.missingCalories || review.missingMacros;
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(showReviewCta);
   const [wrongDishHint, setWrongDishHint] = useState(false);
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const dishNameRef = useRef<HTMLInputElement>(null);

@@ -206,3 +206,15 @@ test("subscribeMealDraftQueue fires on queue writes", () => {
   assert.equal(calls, 1);
   unsub();
 });
+
+test("clearPendingConfirmDraft after save leaves no draft for banner", () => {
+  mockStorage();
+  upsertPendingConfirmDraft("2026-08-24", {
+    imagePath: "/meal.jpg",
+    recognition: { dishName: "Омлет", calories: 250 } as never,
+  });
+  // Simulate ConfirmationCard stopPersistingDraft({ clearDraft: true }) on successful save.
+  clearPendingConfirmDraft("2026-08-24");
+  assert.equal(getPendingConfirmDraft("2026-08-24"), null);
+  assert.equal(countPendingConfirms(), 0);
+});

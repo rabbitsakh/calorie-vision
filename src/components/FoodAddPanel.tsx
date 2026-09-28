@@ -158,7 +158,8 @@ export function FoodAddPanel({
     pendingResultRef.current = result;
     setPendingResult(result);
     setDraftBanner(null);
-    upsertPendingConfirmDraft(selectedDate, result);
+    // Draft persistence is owned by ConfirmationCard after edits / crash recovery effect.
+    // Avoid double-upsert here so a successful save cannot race a fresh write.
     if (photoContext === "auto") {
       const chip = photoKindToContextChip(
         result.recognition.photoKind ?? result.recognition.items?.[0]?.photoKind,
@@ -168,7 +169,7 @@ export function FoodAddPanel({
         setRestaurantMode(false);
       }
     }
-  }, [selectedDate, photoContext]);
+  }, [photoContext]);
 
   const openPendingRef = useRef(openPending);
   useEffect(() => {
@@ -262,6 +263,8 @@ export function FoodAddPanel({
     return () => window.removeEventListener("online", onOnline);
   }, [flushFailedSaves]);
 
+  // Seed pending-confirm once when confirm opens (crash recovery). Edits upsert from ConfirmationCard.
+  // ConfirmationCard clears the draft on save/cancel before unmount — do not re-seed after close.
   useEffect(() => {
     if (!pendingResult) return;
     upsertPendingConfirmDraft(selectedDate, pendingResult);
@@ -406,15 +409,21 @@ export function FoodAddPanel({
           lookupAbortRef.current?.abort();
           clearPendingConfirmDraft(selectedDate);
           setPendingResult(null);
+          setDraftBanner(null);
         }}
         onSaveQueued={() => {
-          // Keep confirm open with edits; only refresh queue badge/toast (1.11.0).
+          // Meal is in failed-save queue — drop pending-confirm so the next «+» is clean.
+          clearPendingConfirmDraft(selectedDate);
+          setPendingResult(null);
+          setDraftBanner(null);
           refreshQueueCount();
           setSavedToast("Сохранение в очереди — отправим при появлении сети");
+          onSaved();
         }}
         onSaved={(meta) => {
           clearPendingConfirmDraft(selectedDate);
           setPendingResult(null);
+          setDraftBanner(null);
           setTextQuery("");
           setBarcodeQuery("");
           setError(null);

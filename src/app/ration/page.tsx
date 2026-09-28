@@ -322,38 +322,7 @@ function RationBody({
 
           <WaterTracker selectedDate={date} onChanged={bump} compact />
 
-          <MotivationQueue>
-            <StreakNudge
-              selectedDate={date}
-              today={today}
-              refreshKey={refreshKey}
-              onAddFood={openFoodPicker}
-              quietHide
-            />
-            <MotivationTip today={today} selectedDate={date} quietHide />
-            <ReferralNudge today={today} selectedDate={date} quietHide />
-          </MotivationQueue>
-
-          <SevenDayAhaCard today={today} selectedDate={date} />
-          <ChallengeStrip
-            selectedDate={date}
-            refreshKey={refreshKey}
-            onOpenHabits={openHabitsPanel}
-          />
-
-          {date === today ? <DailySummaryCard today={today} /> : null}
-          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
-
-          {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
-          <FirstShareNudge date={date} today={today} mealCount={mealCount} />
-
-          <div className="flex flex-col gap-3">
-            {!isCapacitorNative() ? (
-              <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
-            ) : null}
-            <PushNotificationPrompt />
-          </div>
-
+          {/* Wave 2: one habits door + optional soft fold — no motivation wall after meals. */}
           <CelebrationOrchestrator>
           <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
             <button
@@ -382,6 +351,47 @@ function RationBody({
               />
             </div>
           </section>
+
+          <details className="group rounded-2xl border border-[var(--border-quiet)] bg-white/80 open:bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">Ещё за день</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Подсказки, итог, напоминания
+                </p>
+              </div>
+              <span className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden>
+                ▾
+              </span>
+            </summary>
+            <div className="flex flex-col gap-3 border-t border-[var(--border-quiet)] px-3 py-3 md:px-4">
+              <MotivationQueue>
+                <StreakNudge
+                  selectedDate={date}
+                  today={today}
+                  refreshKey={refreshKey}
+                  onAddFood={openFoodPicker}
+                  quietHide
+                />
+                <MotivationTip today={today} selectedDate={date} quietHide />
+                <ReferralNudge today={today} selectedDate={date} quietHide />
+              </MotivationQueue>
+              <SevenDayAhaCard today={today} selectedDate={date} />
+              <ChallengeStrip
+                selectedDate={date}
+                refreshKey={refreshKey}
+                onOpenHabits={openHabitsPanel}
+              />
+              {date === today ? <DailySummaryCard today={today} /> : null}
+              <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+              {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
+              <FirstShareNudge date={date} today={today} mealCount={mealCount} />
+              {!isCapacitorNative() ? (
+                <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+              ) : null}
+              <PushNotificationPrompt />
+            </div>
+          </details>
 
           {showHabits
             ? createPortal(

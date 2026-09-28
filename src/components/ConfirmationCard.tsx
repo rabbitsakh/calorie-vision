@@ -50,6 +50,7 @@ import {
   worstReviewDishIndex,
 } from "@/lib/confirm-review-cta";
 import {
+  clearPendingConfirmDraft,
   enqueueFailedSave,
   upsertPendingConfirmDraft,
   type PendingConfirmDishUi,
@@ -313,6 +314,9 @@ export function ConfirmationCard({
   const heroFallbackTriedRef = useRef(false);
   const allergenBlockRef = useRef<HTMLDivElement>(null);
   const skipUiPersistRef = useRef(true);
+  /** Once save/cancel starts, never write pending-confirm again (avoids post-save draft ghost). */
+  const persistClosedRef = useRef(false);
+  const persistTimerRef = useRef<number | null>(null);
   const isIos = typeof navigator !== "undefined" && isLikelyIos();
 
   useEffect(() => {
@@ -370,7 +374,14 @@ export function ConfirmationCard({
       skipUiPersistRef.current = false;
       return;
     }
-    const timer = window.setTimeout(() => {
+    if (persistClosedRef.current || savingRef.current) return;
+    if (persistTimerRef.current != null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    persistTimerRef.current = window.setTimeout(() => {
+      persistTimerRef.current = null;
+      if (persistClosedRef.current || savingRef.current) return;
       const ui: PendingConfirmUi = {
         mealType,
         eatenTime,
@@ -380,8 +391,25 @@ export function ConfirmationCard({
       };
       upsertPendingConfirmDraft(selectedDate, result, { ui });
     }, 300);
-    return () => window.clearTimeout(timer);
+    return () => {
+      if (persistTimerRef.current != null) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+    };
   }, [allergenAck, activeDish, dishes, eatenTime, mealType, result, selectedDate]);
+
+  function stopPersistingDraft(opts?: { clearDraft?: boolean }) {
+    persistClosedRef.current = true;
+    if (persistTimerRef.current != null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    if (opts?.clearDraft) {
+      // Clear here (not only in parent) so a late timer / remount cannot resurrect the banner.
+      clearPendingConfirmDraft(selectedDate);
+    }
+  }
 
   useEffect(() => {
     setImagePath(initialImagePath);
@@ -745,8 +773,14 @@ export function ConfirmationCard({
       return;
     }
     savingRef.current = true;
+    // Block draft writes for the whole attempt — success/queue clear; soft failure reopens.
+    persistClosedRef.current = true;
     setSaving(true);
     setError(null);
+    if (persistTimerRef.current != null) {
+      window.clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
 
     let queuedBody: SaveMealInput | { entries: SaveMealInput[] } | null = null;
 
@@ -771,6 +805,7 @@ export function ConfirmationCard({
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
         trackFirstConfirmSaveGoal();
+        stopPersistingDraft({ clearDraft: true });
         onSaved({ rememberedCorrection, savedCount: dishes.length });
         return;
       }
@@ -788,17 +823,22 @@ export function ConfirmationCard({
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       trackFirstConfirmSaveGoal();
+      stopPersistingDraft({ clearDraft: true });
       onSaved({ rememberedCorrection, savedCount: 1 });
     } catch (err) {
       if (queuedBody) {
+        // Offline queue owns the meal; drop pending-confirm so the next «+» is clean.
+        stopPersistingDraft({ clearDraft: true });
         enqueueFailedSave(selectedDate, queuedBody);
         onSaveQueued?.();
         setError(
           err instanceof Error
-            ? `${err.message}. Черновик сохранён на устройстве — отправим, когда сеть появится.`
-            : "Не удалось сохранить. Черновик сохранён на устройстве.",
+            ? `${err.message}. Сохранение в очереди — отправим, когда сеть появится.`
+            : "Не удалось сохранить. Сохранение в очереди на устройстве.",
         );
       } else {
+        // Soft failure — keep crash-recovery draft and allow further edits.
+        persistClosedRef.current = false;
         setError(err instanceof Error ? err.message : "Не удалось сохранить");
       }
     } finally {
@@ -846,15 +886,6 @@ export function ConfirmationCard({
     needsReview,
     multi,
   });
-  const reviewTargetCount = reviewFlags.filter(
-    (f) => f.lowConfidence || f.missingCalories || f.missingMacros,
-  ).length;
-  const showLookupAllSecondary =
-    Boolean(reviewCta) &&
-    reviewCta?.mode === "lookup-one" &&
-    multi &&
-    reviewTargetCount > 1 &&
-    !recognition.enrichmentTimedOut;
   const saveAsIs = canSaveAsIs({
     anyLowConfidence,
     anyMissingCalories,
@@ -876,16 +907,6 @@ export function ConfirmationCard({
       }),
     ),
   );
-  const activeDishIndex = multi ? Math.min(activeDish, dishes.length - 1) : 0;
-  const allergenOnOtherDish =
-    multi &&
-    dishes.some((dish, index) => {
-      if (index === activeDishIndex) return false;
-      const brand = dish.original.brand?.trim();
-      const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
-      return matchAllergensInText(text, userAllergens).length > 0;
-    });
-
   return (
     <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
       <div className="flex flex-col gap-5 p-4 md:p-0">
@@ -956,156 +977,103 @@ export function ConfirmationCard({
           </div>
         )}
 
-        {allergenHits.length > 0 ? (
-          <div
-            ref={allergenBlockRef}
-            id="confirm-allergen-ack"
-            className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
-          >
-            <p className="leading-snug">
-              Возможен контакт с:{" "}
-              {allergenHits.map((id) => allergenLabel(id)).join(", ")}. Проверьте состав — это
-              мягкая подсказка, не диагноз.
-            </p>
-            <label className="mt-2 flex items-start gap-2 text-xs font-medium text-amber-950">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={allergenAck}
-                onChange={(e) => setAllergenAck(e.target.checked)}
-              />
-              <span>Проверил(а) — можно сохранить</span>
-            </label>
+        {multi ? (
+          <div className="chip-row" role="tablist" aria-label="Позиции на фото">
+            {dishes.map((dish, index) => {
+              const brand = dish.original.brand?.trim();
+              const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+              const dishAllergenHits = matchAllergensInText(text, userAllergens);
+              const hasAllergen = dishAllergenHits.length > 0;
+              return (
+                <Chip
+                  key={dish.id}
+                  active={index === activeDish}
+                  data-allergen-dish={hasAllergen ? String(index) : undefined}
+                  title={
+                    hasAllergen
+                      ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
+                      : reviewFlags[index]?.missingMacros
+                        ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
+                        : reviewFlags[index]?.lowConfidence
+                          ? "Слабая уверенность — откройте и нажмите «Уточнить»"
+                          : undefined
+                  }
+                  onClick={() => setActiveDish(index)}
+                >
+                  {index + 1}. {dish.dishName || "Блюдо"}
+                  {Number(dish.calories) > 0 ? ` · ${Math.round(Number(dish.calories))}` : ""}
+                  {hasAllergen ? " ⚠" : ""}
+                  {reviewFlags[index]?.missingMacros
+                    ? " · БЖУ?"
+                    : reviewFlags[index]?.lowConfidence
+                      ? " · ?"
+                      : ""}
+                </Chip>
+              );
+            })}
           </div>
         ) : null}
 
+        {/* One primary review strip — no stacked enriching + lookup-all copy. */}
         {enriching || recognition.enrichmentTimedOut || needsReview ? (
           <div
-            className={`rounded-xl border px-3 py-2.5 text-sm ${
+            className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${
               enriching
                 ? "border-teal-200 bg-teal-50 text-teal-950"
                 : "border-amber-200 bg-amber-50 text-amber-950"
             }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-semibold leading-snug">
-                {enriching
-                  ? totalCalories > 0
-                    ? `Черновик: ${totalCalories} ккал — можно сохранить сейчас`
-                    : "Уточняем по базе — можно сохранить сейчас"
-                  : recognition.enrichmentTimedOut
-                    ? "Уточнение не завершилось — проверьте калории"
-                    : anyMissingCalories
-                      ? "Не хватает калорий — уточните название"
-                      : anyMissingMacros
-                        ? "Есть ккал, нет БЖУ — уточните название"
-                        : anyLowConfidence && multi && lowestConfidenceDish
-                          ? `Низкая уверенность у ${lowConfidenceDishes.length} из ${dishes.length} (мин. ${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте позиции`
-                          : anyLowConfidence && lowestConfidenceDish
-                            ? `Низкая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)}) — проверьте блюдо`
-                            : "Низкая уверенность — проверьте блюдо"}
-              </p>
-              {reviewCta ? (
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={
-                    formDisabled ||
-                    (reviewCta.mode === "lookup-one"
-                      ? !reviewTargetDish || searchingId === reviewTargetDish.id
-                      : bulkLookupRunning)
+            <p className="min-w-0 flex-1 font-semibold leading-snug">
+              {enriching
+                ? totalCalories > 0
+                  ? `${totalCalories} ккал — можно сохранить`
+                  : "Уточняем по базе — можно сохранить"
+                : recognition.enrichmentTimedOut
+                  ? "Уточнение не завершилось — проверьте ккал"
+                  : anyMissingCalories
+                    ? "Нет калорий — уточните название"
+                    : anyMissingMacros
+                      ? "Есть ккал, нет БЖУ — уточните"
+                      : anyLowConfidence && multi
+                        ? `Слабая уверенность · ${lowConfidenceDishes.length}/${dishes.length}`
+                        : anyLowConfidence && lowestConfidenceDish
+                          ? `Слабая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)})`
+                          : "Проверьте блюдо"}
+            </p>
+            {reviewCta ? (
+              <button
+                type="button"
+                className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                disabled={
+                  formDisabled ||
+                  (reviewCta.mode === "lookup-one"
+                    ? !reviewTargetDish || searchingId === reviewTargetDish.id
+                    : bulkLookupRunning)
+                }
+                onClick={() => {
+                  if (reviewCta.mode === "force-all") {
+                    void handleLookupAll({ forceAll: true });
+                    return;
                   }
-                  onClick={() => {
-                    if (reviewCta.mode === "force-all") {
-                      void handleLookupAll({ forceAll: true });
-                      return;
-                    }
-                    if (reviewCta.mode === "lookup-all") {
-                      void handleLookupAll();
-                      return;
-                    }
-                    if (!reviewTargetDish) return;
-                    const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
-                    if (idx >= 0) setActiveDish(idx);
-                    void handleLookup(reviewTargetDish);
-                  }}
-                >
-                  {reviewCta.mode === "force-all"
-                    ? bulkLookupRunning
-                      ? reviewCta.busyLabel
-                      : reviewCta.label
-                    : searchingId === reviewTargetDish?.id || bulkLookupRunning
-                      ? reviewCta.busyLabel
-                      : reviewCta.label}
-                </button>
-              ) : null}
-            </div>
-            {showLookupAllSecondary ? (
-              <p className="mt-1.5 text-xs opacity-90">
-                <button
-                  type="button"
-                  className="font-semibold underline-offset-2 hover:underline disabled:opacity-50"
-                  disabled={formDisabled || bulkLookupRunning}
-                  onClick={() => void handleLookupAll()}
-                >
-                  {bulkLookupRunning ? "Уточняем все…" : "Уточнить все позиции"}
-                </button>
-              </p>
+                  if (reviewCta.mode === "lookup-all") {
+                    void handleLookupAll();
+                    return;
+                  }
+                  if (!reviewTargetDish) return;
+                  const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
+                  if (idx >= 0) setActiveDish(idx);
+                  void handleLookup(reviewTargetDish);
+                }}
+              >
+                {reviewCta.mode === "force-all" || reviewCta.mode === "lookup-all"
+                  ? bulkLookupRunning
+                    ? reviewCta.busyLabel
+                    : reviewCta.label
+                  : searchingId === reviewTargetDish?.id || bulkLookupRunning
+                    ? reviewCta.busyLabel
+                    : reviewCta.label}
+              </button>
             ) : null}
-            {anyLowConfidence && saveAsIs ? (
-              <p className="mt-1.5 text-xs opacity-90">{saveAsIsHint()}</p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {multi ? (
-          <div className="flex flex-col gap-2">
-            <div className="chip-row">
-              {dishes.map((dish, index) => {
-                const brand = dish.original.brand?.trim();
-                const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
-                const dishAllergenHits = matchAllergensInText(text, userAllergens);
-                const hasAllergen = dishAllergenHits.length > 0;
-                return (
-                  <Chip
-                    key={dish.id}
-                    active={index === activeDish}
-                    data-allergen-dish={hasAllergen ? String(index) : undefined}
-                    title={
-                      hasAllergen
-                        ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
-                        : reviewFlags[index]?.missingMacros
-                          ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
-                          : reviewFlags[index]?.lowConfidence
-                            ? "Слабая уверенность — откройте и нажмите «Уточнить»"
-                            : undefined
-                    }
-                    onClick={() => setActiveDish(index)}
-                  >
-                    {index + 1}. {dish.dishName || "Блюдо"}
-                    {Number(dish.calories) > 0 ? ` · ${Math.round(Number(dish.calories))}` : ""}
-                    {hasAllergen ? " ⚠" : ""}
-                    {reviewFlags[index]?.missingMacros
-                      ? " · БЖУ?"
-                      : reviewFlags[index]?.lowConfidence
-                        ? " · ?"
-                        : ""}
-                  </Chip>
-                );
-              })}
-            </div>
-            {allergenOnOtherDish ? (
-              <p className="text-xs text-amber-800">
-                Аллерген может быть в другой позиции — переключите чип и проверьте.
-              </p>
-            ) : null}
-            {(() => {
-              const active = dishes[activeDishIndex];
-              if (!active || !shouldSurfaceNutritionBasis(active.original)) return null;
-              const basis = describeNutritionBasis(active.original);
-              if (!basis) return null;
-              return <p className="text-xs font-medium text-teal-800">{basis}</p>;
-            })()}
           </div>
         ) : null}
 
@@ -1198,8 +1166,33 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* Wave 1 skim: save path stays above meal-time / recognition details. */}
+        {allergenHits.length > 0 ? (
+          <div
+            ref={allergenBlockRef}
+            id="confirm-allergen-ack"
+            className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            <label className="flex items-start gap-2 text-xs font-medium text-amber-950">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={allergenAck}
+                onChange={(e) => setAllergenAck(e.target.checked)}
+              />
+              <span>
+                Аллерген: {allergenHits.map((id) => allergenLabel(id)).join(", ")} — проверил(а)
+              </span>
+            </label>
+          </div>
+        ) : null}
+
+        {/* Skim: Save above meal-time / recognition details. */}
         <div className="confirm-card-actions">
+          {multi ? (
+            <p className="w-full text-center text-xs font-medium text-slate-500">
+              {dishes.length} позиций · {totalCalories || "—"} ккал
+            </p>
+          ) : null}
           <button
             type="button"
             className="btn btn-primary inline-flex items-center justify-center gap-2"
@@ -1217,14 +1210,20 @@ export function ConfirmationCard({
               saveLabel
             )}
           </button>
-          <button type="button" className="btn btn-secondary" disabled={saving} onClick={onCancel}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={saving}
+            onClick={() => {
+              stopPersistingDraft({ clearDraft: true });
+              onCancel();
+            }}
+          >
             Отменить
           </button>
         </div>
         {saveAsIs && !saving ? (
-          <p className="text-center text-xs text-slate-500">
-            Низкая уверенность не блокирует сохранение — потом можно поправить в дневнике.
-          </p>
+          <p className="text-center text-xs text-slate-500">{saveAsIsHint()}</p>
         ) : null}
 
         <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">

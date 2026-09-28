@@ -1624,6 +1624,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               clearRest();
               void loadList();
             }}
+            onGoToRation={() => {
+              setShowSummary(false);
+              setActiveId(null);
+              setDetail(null);
+              setProgress(null);
+              clearRest();
+              router.push(withBasePath("/ration"));
+            }}
           />
         ) : null}
 
@@ -1712,7 +1720,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           <div>
             <button
               type="button"
-              className="text-sm font-medium text-teal-800"
+              className="text-sm font-medium text-[var(--accent)]"
               onClick={() => {
                 setActiveId(null);
                 setDetail(null);
@@ -1732,29 +1740,43 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               ) : null}
             </h2>
             <p className="mt-1 text-sm text-slate-600">{detail.muscleLabels.join(" · ")}</p>
+            {detail.clockStatus === "finished" ? (
+              <button
+                type="button"
+                className="mt-2 text-sm font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+                onClick={() => router.push(withBasePath("/ration"))}
+              >
+                К рациону
+              </button>
+            ) : null}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <button
-              type="button"
-              disabled={busy || detail.exercises.length === 0}
-              className="text-sm font-medium text-teal-800 disabled:opacity-40"
-              onClick={() =>
-                void saveAsRoutine(
-                  detail.id,
-                  detail.note?.trim() || detail.muscleLabels.join(" · "),
-                )
-              }
-            >
-              Как шаблон
-            </button>
-            <button
-              type="button"
-              className="text-sm text-red-600"
-              onClick={() => void deleteSession()}
-            >
-              Удалить
-            </button>
-          </div>
+          <details className="relative shrink-0">
+            <summary className="cursor-pointer list-none rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+              Ещё ▾
+            </summary>
+            <div className="absolute right-0 z-20 mt-1 flex min-w-[9rem] flex-col rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-md">
+              <button
+                type="button"
+                disabled={busy || detail.exercises.length === 0}
+                className="px-3 py-2 text-left text-sm font-medium text-[var(--accent)] disabled:opacity-40"
+                onClick={() =>
+                  void saveAsRoutine(
+                    detail.id,
+                    detail.note?.trim() || detail.muscleLabels.join(" · "),
+                  )
+                }
+              >
+                Как шаблон
+              </button>
+              <button
+                type="button"
+                className="px-3 py-2 text-left text-sm text-red-600"
+                onClick={() => void deleteSession()}
+              >
+                Удалить
+              </button>
+            </div>
+          </details>
         </div>
 
         {detail.date === todayKey || detail.startedAt ? (
@@ -1781,7 +1803,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                 {detail.clockStatus === "idle" || !detail.startedAt ? (
                   <button
                     type="button"
-                    className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+                    className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
                     onClick={() => void patchClock("start")}
                   >
                     Старт
@@ -1805,7 +1827,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                       }
                     }}
                   >
-                    Зал
+                    В зал
                   </button>
                 ) : null}
                 {detail.clockStatus === "finished" ? (
@@ -2733,7 +2755,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             {fromPlusMenu ? (
               <button
                 type="button"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--accent)] underline-offset-2 hover:underline"
                 onClick={() => router.push(withBasePath("/ration"))}
               >
                 К рациону
@@ -2765,7 +2787,14 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           onOpenSession={(id) => {
             void (async () => {
               const s = sessions.find((x) => x.id === id);
-              await openSession(id);
+              // Running/paused → live stage by default (Wave 3).
+              if (s?.clockStatus === "running" || s?.clockStatus === "paused") {
+                await openSession(id, { enterStage: true });
+                return;
+              }
+              await openSession(id, {
+                enterStage: s?.clockStatus === "idle" && (s.exerciseCount ?? 0) > 0,
+              });
               if (s?.clockStatus === "finished") setShowSummary(true);
             })();
           }}
