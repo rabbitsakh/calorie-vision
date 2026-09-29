@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AvatarFrame } from "@/components/AvatarFrame";
+import { UserAvatar } from "@/components/UserAvatar";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { getImageUrl, withBasePath } from "@/lib/paths";
+import { withBasePath } from "@/lib/paths";
 
 type MenuCoords = { top: number; right: number };
 
@@ -192,28 +193,20 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
         onClick={() => setOpen((value) => !value)}
       >
         <AvatarFrame className={compactTrigger ? "h-11 w-11 shrink-0 sm:h-10 sm:w-10" : undefined}>
-          {session.user.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={getImageUrl(session.user.image)}
-              alt=""
-              className={
-                compactTrigger
-                  ? "h-full w-full rounded-full object-cover"
-                  : "h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover"
-              }
-            />
-          ) : (
-            <div
-              className={
-                compactTrigger
-                  ? "flex h-full w-full items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
-                  : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
-              }
-            >
-              {(session.user.name ?? session.user.email ?? session.user.phone ?? "?").charAt(0).toUpperCase()}
-            </div>
-          )}
+          <UserAvatar
+            image={session.user.image}
+            label={session.user.name ?? session.user.email ?? session.user.phone ?? "?"}
+            className={
+              compactTrigger
+                ? "h-full w-full rounded-full object-cover bg-slate-100"
+                : "h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover bg-slate-100"
+            }
+            fallbackClassName={
+              compactTrigger
+                ? "flex h-full w-full items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
+                : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
+            }
+          />
         </AvatarFrame>
         <div className="min-w-0 hidden sm:block">
           <p className="truncate text-sm font-medium leading-tight text-slate-900">{label}</p>

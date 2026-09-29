@@ -46,12 +46,12 @@ test("utility options cover water weight and workout", () => {
   }
 });
 
-test("suggestFoodAddAction maps morning weight, gym hour, day photo, night water", () => {
+test("suggestFoodAddAction maps morning weight, day/evening photo, night water — never workout", () => {
   assert.equal(suggestFoodAddAction(7), "weight");
   assert.equal(suggestFoodAddAction(10), "weight");
   assert.equal(suggestFoodAddAction(12), "photo");
-  assert.equal(suggestFoodAddAction(16), "workout");
-  assert.equal(suggestFoodAddAction(19), "workout");
+  assert.equal(suggestFoodAddAction(16), "photo");
+  assert.equal(suggestFoodAddAction(19), "photo");
   assert.equal(suggestFoodAddAction(20), "photo");
   assert.equal(suggestFoodAddAction(23), "water");
   assert.equal(suggestFoodAddAction(2), "water");
