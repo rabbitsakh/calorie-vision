@@ -35,6 +35,7 @@ import {
   type SpeechRecognitionLike,
 } from "@/lib/speech-recognition";
 import type { RecognitionResponse } from "@/types";
+import { formatSavedMealToast } from "@/lib/confirm-review-cta";
 
 type AddMode = FoodAddMode;
 
@@ -427,12 +428,14 @@ export function FoodAddPanel({
           setTextQuery("");
           setBarcodeQuery("");
           setError(null);
-          if (meta?.rememberedCorrection) {
-            setSavedToast("Запомнили исправление — в следующий раз подставим автоматически");
-          } else if (meta?.savedCount && meta.savedCount > 1) {
-            setSavedToast(`Сохранено ${meta.savedCount} блюд`);
-          } else if (meta?.savedCount === 1) {
-            setSavedToast("Сохранено");
+          if (meta?.savedCount || meta?.rememberedCorrection) {
+            setSavedToast(
+              formatSavedMealToast({
+                savedCount: meta.savedCount,
+                totalCalories: meta.totalCalories,
+                rememberedCorrection: meta.rememberedCorrection,
+              }),
+            );
           }
           emitMascotReaction("save");
           onSaved();

@@ -56,6 +56,7 @@ import {
   parseBlockMode,
 } from "@/lib/workouts/block-mode";
 import {
+  adviseCardioProgression,
   adviseProgression,
   autofillNextDraft,
   bumpKg,
@@ -1197,6 +1198,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const focusExForStage = detail?.exercises.find((e) => e.id === focusExerciseId) ?? detail?.exercises[0];
   const stageAdvice = useMemo(() => {
     if (!detail || !focusExForStage) return null;
+    if (focusExForStage.kind === "cardio") {
+      const prevPace =
+        focusExForStage.lastTime?.sets
+          ?.map((s) =>
+            s.durationSec && s.distanceKm && s.distanceKm > 0
+              ? s.durationSec / s.distanceKm
+              : null,
+          )
+          .filter((p): p is number => p != null && p > 0)
+          .sort((a, b) => a - b)[0] ?? null;
+      return adviseCardioProgression({
+        lastDistanceKm: focusExForStage.cardioDistanceKm,
+        lastDurationSec: focusExForStage.cardioDurationSec,
+        previousBestPaceSecPerKm: prevPace,
+      });
+    }
     const hist = historyByName[focusExForStage.name];
     const points =
       hist?.points.map((p) => ({
@@ -2027,18 +2044,29 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             ]);
             const suggestedKg = suggestNextWeightKg(lastKg, detail.progressRate);
             const hist = historyByName[ex.name];
-            const progression = hist
-              ? adviseProgression(
-                  hist.points.map((p) => ({
-                    date: p.date,
-                    topWeightKg: p.topWeightKg,
-                    topReps: p.topReps,
-                    totalLoad: p.totalLoad,
-                  })),
-                  detail.progressRate,
-                  lastKg,
-                )
-              : null;
+            const prevCardioPace =
+              hist?.points
+                .map((p) => p.bestPaceSecPerKm)
+                .filter((p): p is number => p != null && p > 0)
+                .sort((a, b) => a - b)[0] ?? ex.cardioBestPaceSecPerKm;
+            const progression = isCardio
+              ? adviseCardioProgression({
+                  lastDistanceKm: ex.cardioDistanceKm,
+                  lastDurationSec: ex.cardioDurationSec,
+                  previousBestPaceSecPerKm: prevCardioPace,
+                })
+              : hist
+                ? adviseProgression(
+                    hist.points.map((p) => ({
+                      date: p.date,
+                      topWeightKg: p.topWeightKg,
+                      topReps: p.topReps,
+                      totalLoad: p.totalLoad,
+                    })),
+                    detail.progressRate,
+                    lastKg,
+                  )
+                : null;
             const prevEx = detail.exercises[exIndex - 1];
             return (
               <section
@@ -2112,8 +2140,16 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                           : ` (+${Math.round(detail.progressRate * 1000) / 10}%)`}
                       </p>
                     ) : null}
-                    {progression?.kind === "stall" ? (
-                      <p className="mt-1 text-xs text-amber-800">{progression.detail}</p>
+                    {progression && (progression.kind === "stall" || isCardio) ? (
+                      <p
+                        className={`mt-1 text-xs ${
+                          progression.kind === "stall" || progression.kind === "hold"
+                            ? "text-amber-800"
+                            : "text-[var(--accent)]"
+                        }`}
+                      >
+                        {progression.detail}
+                      </p>
                     ) : null}
                     <div className="mt-1 flex flex-wrap gap-2 text-xs">
                       {BLOCK_MODES.map((mode) => (

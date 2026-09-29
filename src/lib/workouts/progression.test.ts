@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  adviseCardioProgression,
   adviseProgression,
   autofillNextDraft,
   bumpKg,
@@ -44,6 +45,26 @@ test("adviseProgression stall → deload", () => {
   );
   assert.equal(advice.kind, "stall");
   assert.equal(advice.suggestedKg, 90);
+});
+
+test("adviseCardioProgression suggests distance bump", () => {
+  const advice = adviseCardioProgression({
+    lastDistanceKm: 5,
+    lastDurationSec: 1800,
+    previousBestPaceSecPerKm: 360,
+  });
+  assert.equal(advice.kind, "progress");
+  assert.match(advice.detail, /5\.5 км/);
+});
+
+test("adviseCardioProgression holds when pace is slower", () => {
+  const advice = adviseCardioProgression({
+    lastDistanceKm: 5,
+    lastDurationSec: 2100,
+    previousBestPaceSecPerKm: 360,
+  });
+  assert.equal(advice.kind, "hold");
+  assert.match(advice.detail, /рекорд/i);
 });
 
 test("autofillNextDraft prefers incomplete then last", () => {

@@ -1,7 +1,8 @@
 import type { FoodRecognitionResult } from "./food-types";
 
+// Note: JS \b is ASCII-word only — prefer bare Cyrillic stems (борщ, щи, харчо).
 const SOUP_NAME_RE =
-  /\bсуп\b|том[\s-]*ям|tom[\s-]*yum|борщ|солянк|рассольник|уха\b|окрошк|грибной\s+суп|куриный\s+суп/i;
+  /\bсуп\b|том[\s-]*ям|tom[\s-]*yum|борщ|солянк|рассольник|уха\b|окрошк|щи|харчо|рамен|ramen|лагман|мисо|miso|cream[\s-]*soup|лапша\s+(быстр|горяч)|горячий\s+стакан|грибной\s+суп|куриный\s+суп/i;
 
 const GRAIN_PACK_RE =
   /овсян|геркулес|хлопья|мюсли|granola|muesli|oatmeal|каша\s+быстр|porridge|гречк|манк|перлов/i;
@@ -26,7 +27,8 @@ export function estimateKcalPer100(result: FoodRecognitionResult): number | null
 
 export function looksLikeSoupName(name: string): boolean {
   const n = normalize(name);
-  return n.length >= 3 && SOUP_NAME_RE.test(n);
+  // Allow short stems like «щи» (2 letters); otherwise require ≥3.
+  return n.length >= 2 && SOUP_NAME_RE.test(n);
 }
 
 export function looksLikeGrainPackName(name: string): boolean {
@@ -164,5 +166,9 @@ export function repairPackagedMislabel(result: FoodRecognitionResult): FoodRecog
     };
   }
 
-  return result;
+  // Suspicious but unrepaired — clamp confidence so confirm review CTA fires.
+  return {
+    ...result,
+    confidence: Math.min(result.confidence, 0.55),
+  };
 }
