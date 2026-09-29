@@ -74,6 +74,8 @@ model User {
   fastingEndHour   Int?
   /** Per-kind push reminder toggles/hours; null → quiet first-run defaults. */
   pushReminderPrefs Json?
+  /** Workout UI prefs: default rest + per-exercise rest map (synced). */
+  workoutPrefsJson Json?
   /** Equipped collection frame key (synced across devices). */
   equippedFrameKey   String? @db.VarChar(64)
   /** Equipped diary sticker key (synced across devices). */
