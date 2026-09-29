@@ -81,6 +81,70 @@ export function adviseProgression(
   };
 }
 
+/**
+ * Cardio advice from last distance/duration vs previous best pace (sec/km).
+ * No kg suggestions — pace/distance language only.
+ */
+export function adviseCardioProgression(input: {
+  lastDistanceKm: number;
+  lastDurationSec: number;
+  previousBestPaceSecPerKm: number | null;
+}): ProgressionAdvice {
+  const dist = input.lastDistanceKm;
+  const dur = input.lastDurationSec;
+  if (!(dist > 0) && !(dur > 0)) {
+    return {
+      kind: "base",
+      title: "Кардио",
+      detail: "Запишите км или минуты — подскажем темп в следующий раз.",
+      suggestedKg: null,
+    };
+  }
+  const pace =
+    dist > 0 && dur > 0 ? Math.round(dur / dist) : null;
+  if (
+    pace != null &&
+    input.previousBestPaceSecPerKm != null &&
+    input.previousBestPaceSecPerKm > 0 &&
+    pace > input.previousBestPaceSecPerKm * 1.08
+  ) {
+    const bestMin = Math.floor(input.previousBestPaceSecPerKm / 60);
+    const bestSec = Math.round(input.previousBestPaceSecPerKm % 60)
+      .toString()
+      .padStart(2, "0");
+    return {
+      kind: "hold",
+      title: "Темп",
+      detail: `Сейчас спокойнее рекорда (${bestMin}:${bestSec} /км) — можно чуть ускориться или добавить 0.5 км.`,
+      suggestedKg: null,
+    };
+  }
+  if (pace != null && input.previousBestPaceSecPerKm != null && pace < input.previousBestPaceSecPerKm) {
+    return {
+      kind: "progress",
+      title: "Темп",
+      detail: "Темп лучше прошлого — зафиксируйте или добавьте дистанцию.",
+      suggestedKg: null,
+    };
+  }
+  if (dist > 0) {
+    const next = Math.round((dist + 0.5) * 10) / 10;
+    return {
+      kind: "progress",
+      title: "Дистанция",
+      detail: `Цель в следующий раз: ~${next} км в том же темпе.`,
+      suggestedKg: null,
+    };
+  }
+  const nextMin = Math.round(dur / 60) + 5;
+  return {
+    kind: "progress",
+    title: "Время",
+    detail: `Цель в следующий раз: ~${nextMin} мин.`,
+    suggestedKg: null,
+  };
+}
+
 export type AutofillSet = {
   weightKg: number | null;
   reps: number | null;

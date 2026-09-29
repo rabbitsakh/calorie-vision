@@ -5,6 +5,7 @@ import {
   confirmReviewPrimaryCta,
   confirmSaveButtonLabel,
   formatPendingConfirmHint,
+  formatSavedMealToast,
   photoKindShortLabel,
   saveAsIsHint,
   worstReviewDishIndex,
@@ -110,10 +111,10 @@ test("canSaveAsIs requires low confidence with calories", () => {
   );
 });
 
-test("confirmSaveButtonLabel uses short Сохранить primary", () => {
+test("confirmSaveButtonLabel marks soft-save as как есть", () => {
   assert.equal(
     confirmSaveButtonLabel({ saving: false, enriching: false, multi: false, saveAsIs: true }),
-    "Сохранить",
+    "Сохранить как есть",
   );
   assert.equal(
     confirmSaveButtonLabel({ saving: false, enriching: true, multi: false, saveAsIs: false }),
@@ -126,4 +127,10 @@ test("confirmSaveButtonLabel uses short Сохранить primary", () => {
   assert.match(saveAsIsHint(), /поправить порцию позже/i);
   assert.equal(photoKindShortLabel("label"), "этикетка");
   assert.match(formatPendingConfirmHint({ dishName: "Чай", calories: 1, photoKind: "meal" }), /Чай/);
+});
+
+test("formatSavedMealToast includes kcal", () => {
+  assert.equal(formatSavedMealToast({ savedCount: 1, totalCalories: 420.4 }), "Сохранено · 420 ккал");
+  assert.match(formatSavedMealToast({ savedCount: 3, totalCalories: 840 }), /3 блюд · 840 ккал/);
+  assert.match(formatSavedMealToast({ rememberedCorrection: true }), /Запомнили/);
 });

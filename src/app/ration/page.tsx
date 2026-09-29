@@ -322,8 +322,18 @@ function RationBody({
 
           <WaterTracker selectedDate={date} onChanged={bump} compact />
 
-          {/* Wave 2: one habits door + optional soft fold — no motivation wall after meals. */}
           <CelebrationOrchestrator>
+          {/* Retention: at-risk streak + evening check-in on surface (quietHide / self-gated). */}
+          <StreakNudge
+            selectedDate={date}
+            today={today}
+            refreshKey={refreshKey}
+            onAddFood={openFoodPicker}
+            quietHide
+          />
+          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
+
+          {/* One habits door + soft fold — no motivation wall after meals. */}
           <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
             <button
               type="button"
@@ -366,13 +376,6 @@ function RationBody({
             </summary>
             <div className="flex flex-col gap-3 border-t border-[var(--border-quiet)] px-3 py-3 md:px-4">
               <MotivationQueue>
-                <StreakNudge
-                  selectedDate={date}
-                  today={today}
-                  refreshKey={refreshKey}
-                  onAddFood={openFoodPicker}
-                  quietHide
-                />
                 <MotivationTip today={today} selectedDate={date} quietHide />
                 <ReferralNudge today={today} selectedDate={date} quietHide />
               </MotivationQueue>
@@ -383,7 +386,6 @@ function RationBody({
                 onOpenHabits={openHabitsPanel}
               />
               {date === today ? <DailySummaryCard today={today} /> : null}
-              <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
               {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
               <FirstShareNudge date={date} today={today} mealCount={mealCount} />
               {!isCapacitorNative() ? (

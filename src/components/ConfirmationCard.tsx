@@ -91,7 +91,11 @@ type ConfirmationCardProps = {
   /** Restored confirm edits from pending-confirm draft (1.11.1). */
   initialUi?: PendingConfirmUi | null;
   onCancel: () => void;
-  onSaved: (meta?: { rememberedCorrection?: boolean; savedCount?: number }) => void;
+  onSaved: (meta?: {
+    rememberedCorrection?: boolean;
+    savedCount?: number;
+    totalCalories?: number;
+  }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
   onSaveQueued?: () => void;
 };
@@ -806,7 +810,8 @@ export function ConfirmationCard({
         trackMealSavedGoal();
         trackFirstConfirmSaveGoal();
         stopPersistingDraft({ clearDraft: true });
-        onSaved({ rememberedCorrection, savedCount: dishes.length });
+        const totalCalories = payloads.reduce((sum, p) => sum + (Number(p.calories) || 0), 0);
+        onSaved({ rememberedCorrection, savedCount: dishes.length, totalCalories });
         return;
       }
 
@@ -824,7 +829,11 @@ export function ConfirmationCard({
       trackMealSavedGoal();
       trackFirstConfirmSaveGoal();
       stopPersistingDraft({ clearDraft: true });
-      onSaved({ rememberedCorrection, savedCount: 1 });
+      onSaved({
+        rememberedCorrection,
+        savedCount: 1,
+        totalCalories: Number(payloads[0]!.calories) || 0,
+      });
     } catch (err) {
       if (queuedBody) {
         // Offline queue owns the meal; drop pending-confirm so the next «+» is clean.
@@ -874,11 +883,16 @@ export function ConfirmationCard({
       const flag = dishNeedsReview(active, lowConfidenceThreshold);
       if (flag.lowConfidence || flag.missingCalories || flag.missingMacros) return active;
     }
-    if (lowestConfidenceDish) return lowestConfidenceDish;
-    const missingCal =
-      dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingCalories) ?? null;
-    if (missingCal) return missingCal;
-    return dishes.find((dish) => dishNeedsReview(dish, lowConfidenceThreshold).missingMacros) ?? null;
+    const worstIdx = worstReviewDishIndex(
+      dishes.map((dish, i) => ({
+        confidence: dish.original.confidence,
+        calories: Number(dish.calories) || 0,
+        missingCalories: reviewFlags[i]!.missingCalories,
+        missingMacros: reviewFlags[i]!.missingMacros,
+        lowConfidence: reviewFlags[i]!.lowConfidence,
+      })),
+    );
+    return dishes[worstIdx] ?? lowestConfidenceDish;
   })();
   const reviewCta = confirmReviewPrimaryCta({
     enriching,
@@ -1043,7 +1057,7 @@ export function ConfirmationCard({
             {reviewCta ? (
               <button
                 type="button"
-                className="shrink-0 text-sm font-semibold underline-offset-2 hover:underline disabled:opacity-50"
+                className="btn btn-primary shrink-0 px-3 py-1.5 text-sm disabled:opacity-50"
                 disabled={
                   formDisabled ||
                   (reviewCta.mode === "lookup-one"
@@ -1186,17 +1200,53 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* Skim: Save above meal-time / recognition details. */}
+        {/* Trust: when review needed, Уточнить is primary; Save demoted (как есть). */}
         <div className="confirm-card-actions">
           {multi ? (
             <p className="w-full text-center text-xs font-medium text-slate-500">
               {dishes.length} позиций · {totalCalories || "—"} ккал
             </p>
           ) : null}
+          {needsReview && reviewCta ? (
+            <button
+              type="button"
+              className="btn btn-primary inline-flex items-center justify-center gap-2"
+              disabled={
+                formDisabled ||
+                (reviewCta.mode === "lookup-one"
+                  ? !reviewTargetDish || searchingId === reviewTargetDish.id
+                  : bulkLookupRunning)
+              }
+              onClick={() => {
+                if (reviewCta.mode === "force-all") {
+                  void handleLookupAll({ forceAll: true });
+                  return;
+                }
+                if (reviewCta.mode === "lookup-all") {
+                  void handleLookupAll();
+                  return;
+                }
+                if (!reviewTargetDish) return;
+                const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
+                if (idx >= 0) setActiveDish(idx);
+                void handleLookup(reviewTargetDish);
+              }}
+            >
+              {reviewCta.mode === "force-all" || reviewCta.mode === "lookup-all"
+                ? bulkLookupRunning
+                  ? reviewCta.busyLabel
+                  : reviewCta.label
+                : searchingId === reviewTargetDish?.id || bulkLookupRunning
+                  ? reviewCta.busyLabel
+                  : reviewCta.label}
+            </button>
+          ) : null}
           <button
             type="button"
-            className="btn btn-primary inline-flex items-center justify-center gap-2"
-            disabled={saving || searching}
+            className={`inline-flex items-center justify-center gap-2 ${
+              needsReview && reviewCta ? "btn btn-secondary" : "btn btn-primary"
+            }`}
+            disabled={saving || searching || (anyMissingCalories && !enriching)}
             onClick={() => void handleSave()}
           >
             {saving ? (
@@ -1224,6 +1274,11 @@ export function ConfirmationCard({
         </div>
         {saveAsIs && !saving ? (
           <p className="text-center text-xs text-slate-500">{saveAsIsHint()}</p>
+        ) : null}
+        {anyMissingCalories && !enriching && !saving ? (
+          <p className="text-center text-xs text-amber-800">
+            Без калорий сохранить нельзя — уточните название или введите ккал.
+          </p>
         ) : null}
 
         <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">

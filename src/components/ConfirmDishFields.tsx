@@ -252,7 +252,7 @@ export function DishFields({
           {showReviewCta ? (
             <button
               type="button"
-              className="mt-2 text-sm font-semibold text-amber-800 underline-offset-2 hover:underline"
+              className="btn btn-secondary mt-2 w-full text-sm sm:w-auto"
               disabled={lookupDisabled}
               onClick={() => onLookup()}
             >

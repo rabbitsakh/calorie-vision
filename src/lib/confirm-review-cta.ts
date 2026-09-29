@@ -127,7 +127,8 @@ export function confirmSaveButtonLabel(input: {
   saveAsIs: boolean;
 }): string {
   if (input.saving) return "Сохраняем...";
-  if (input.saveAsIs) return "Сохранить";
+  // Trust: label the soft path so Save is not mistaken for “verified”.
+  if (input.saveAsIs) return "Сохранить как есть";
   if (input.enriching) return "Сохранить";
   if (input.multi) return "Сохранить все";
   return "Сохранить";
@@ -135,4 +136,26 @@ export function confirmSaveButtonLabel(input: {
 
 export function saveAsIsHint(): string {
   return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
+}
+
+/** Format post-save toast with kcal so the diary feels confirmed. */
+export function formatSavedMealToast(input: {
+  savedCount?: number;
+  totalCalories?: number;
+  rememberedCorrection?: boolean;
+}): string {
+  if (input.rememberedCorrection) {
+    return "Запомнили исправление — в следующий раз подставим автоматически";
+  }
+  const kcal =
+    input.totalCalories != null && input.totalCalories > 0
+      ? Math.round(input.totalCalories)
+      : null;
+  if (input.savedCount && input.savedCount > 1) {
+    return kcal != null
+      ? `Сохранено ${input.savedCount} блюд · ${kcal} ккал`
+      : `Сохранено ${input.savedCount} блюд`;
+  }
+  if (kcal != null) return `Сохранено · ${kcal} ккал`;
+  return "Сохранено";
 }

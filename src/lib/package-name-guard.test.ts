@@ -12,7 +12,23 @@ import {
 test("detects soup names", () => {
   assert.equal(looksLikeSoupName("суп Том Ям"), true);
   assert.equal(looksLikeSoupName("борщ"), true);
+  assert.equal(looksLikeSoupName("харчо"), true);
+  assert.equal(looksLikeSoupName("рамен"), true);
+  assert.equal(looksLikeSoupName("щи"), true);
   assert.equal(looksLikeSoupName("Овсянка"), false);
+});
+
+test("unrepaired suspicious soup clamps confidence for review CTA", () => {
+  const repaired = repairPackagedMislabel({
+    dishName: "харчо",
+    calories: 120,
+    confidence: 0.88,
+    photoKind: "package",
+    portionGrams: 50,
+    // calories/portion not dense enough for grain fallback, no brand — still suspicious
+  });
+  assert.equal(repaired.dishName, "харчо");
+  assert.ok(repaired.confidence <= 0.55);
 });
 
 test("detects grain pack names", () => {

@@ -28,6 +28,16 @@
 
 Подробный гайд: [`PUBLISH.md`](PUBLISH.md). Тексты: [`listing.ru.md`](listing.ru.md).
 
+**В репозитории уже готово (скопировать в Консоль):**
+- тексты: `listing.ru.md`
+- иконка: `rustore/icon-512-store.png`
+- скриншоты: `rustore/screenshots/submit/` (01→06)
+- обложка канала VK: `rustore/channel/cover-1590x400.png` + `vk-channel-fields.ru.md`
+- промо-ролик: `rustore/promo-tour/`
+- Capacitor shell + offline stub (не TWA)
+
+**После публикации в RuStore:** задать `NEXT_PUBLIC_RUSTORE_URL` на проде → кнопка «Открыть в RuStore» на лендинге `/#install`.
+
 - [ ] Название: Calorie Vision
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
@@ -44,6 +54,7 @@
 - [ ] Ссылка на политику: `https://calorievision.ru/privacy`
 - [ ] Ссылка на условия: `https://calorievision.ru/terms`
 - [ ] В описании: не медуслуга, оценка калорий — не лабораторный анализ
+- [ ] `NEXT_PUBLIC_RUSTORE_URL` на проде после появления страницы приложения
 
 ## Модерация
 

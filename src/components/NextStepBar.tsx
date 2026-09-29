@@ -76,7 +76,7 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
       <p className="min-w-0 text-sm font-medium text-slate-700">{step.label}</p>
       <button
         type="button"
-        className="shrink-0 rounded-xl bg-teal-800/90 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-900"
+        className="shrink-0 rounded-xl bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
         onClick={step.onClick}
       >
         {step.actionLabel}
