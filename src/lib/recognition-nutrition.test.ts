@@ -810,6 +810,56 @@ test("recognitionNeedsPortionRescale catches kJ misread bottle totals", () => {
   assert.equal(recognitionNeedsPortionRescale(item, 150), true);
 });
 
+test("resolveDisplayPortionGrams treats drink portion 100 as wrong default", () => {
+  assert.equal(
+    resolveDisplayPortionGrams({
+      dishName: "Кола",
+      calories: 42,
+      portionGrams: 100,
+      photoKind: "package",
+      source: "gigachat",
+      per100g: { calories: 42, carbs: 10.6 },
+    }),
+    DEFAULT_DRINK_SERVING_ML,
+  );
+  assert.equal(
+    resolveDisplayPortionGrams({
+      dishName: "Кола 1.5 л",
+      calories: 42,
+      portionGrams: 100,
+      photoKind: "package",
+      source: "gigachat",
+    }),
+    1500,
+  );
+});
+
+test("applyFoodLookupToPortion rejects soup staple on packaged cup", () => {
+  const current = {
+    dishName: "Овсянка быстрого приготовления",
+    calories: 148,
+    protein: 4,
+    fat: 2,
+    carbs: 26,
+    portionGrams: 40,
+    confidence: 0.6,
+    photoKind: "package" as const,
+    source: "gigachat" as const,
+  };
+  const looked = {
+    dishName: "Овощной суп",
+    calories: 35,
+    protein: 1,
+    fat: 1,
+    carbs: 5,
+    portionGrams: 100,
+    source: "ru-table" as const,
+  };
+  const merged = applyFoodLookupToPortion(current, looked, 40);
+  assert.equal(merged.dishName, "Овсянка быстрого приготовления");
+  assert.ok(merged.calories >= 100);
+});
+
 test("applyFoodLookupToPortion keeps label calories and user portion", () => {
   const current = {
     dishName: "Пиво светлое фильтрованное",

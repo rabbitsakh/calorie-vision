@@ -14,6 +14,11 @@ import {
   parsePushReminderPrefs,
   type PushReminderPrefs,
 } from "@/lib/push-reminder-schedule";
+import {
+  normalizeWorkoutPrefs,
+  parseWorkoutPrefs,
+  type WorkoutPrefs,
+} from "@/lib/workouts/workout-prefs";
 import { isCheerReward, isFrameReward, isStickerReward } from "@/lib/rewards";
 import { saveUploadedImage } from "@/lib/upload";
 import { isValidWaterTargetMl } from "@/lib/water-target";
@@ -63,6 +68,7 @@ export async function GET() {
           quietHoursStart: true,
           quietHoursEnd: true,
           pushReminderPrefs: true,
+          workoutPrefsJson: true,
           fastingStartHour: true,
           fastingEndHour: true,
           sex: true,
@@ -111,6 +117,7 @@ equippedCheerKey: true,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
       pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
+      workoutPrefs: parseWorkoutPrefs(user.workoutPrefsJson),
       fastingStartHour: user.fastingStartHour ?? null,
       fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,
@@ -153,6 +160,7 @@ export async function PUT(request: NextRequest) {
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
       pushReminderPrefs?: PushReminderPrefs | null;
+      workoutPrefs?: WorkoutPrefs | null;
       fastingStartHour?: number | null;
       fastingEndHour?: number | null;
       sex?: string | null;
@@ -196,6 +204,7 @@ equippedCheerKey?: string | null;
       quietHoursStart?: number | null;
       quietHoursEnd?: number | null;
       pushReminderPrefs?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
+      workoutPrefsJson?: Prisma.InputJsonValue | typeof Prisma.JsonNull;
       fastingStartHour?: number | null;
       fastingEndHour?: number | null;
       sex?: Sex | null;
@@ -413,6 +422,17 @@ equippedCheerKey?: string | null;
       }
     }
 
+    if (body.workoutPrefs !== undefined) {
+      if (body.workoutPrefs === null) {
+        data.workoutPrefsJson = Prisma.JsonNull;
+      } else {
+        const normalized = normalizeWorkoutPrefs(body.workoutPrefs);
+        data.workoutPrefsJson = normalized
+          ? (normalized as Prisma.InputJsonValue)
+          : Prisma.JsonNull;
+      }
+    }
+
     if (body.fastingStartHour !== undefined || body.fastingEndHour !== undefined) {
       let start: number | null | undefined = body.fastingStartHour === undefined
         ? undefined
@@ -476,6 +496,7 @@ equippedCheerKey?: string | null;
         quietHoursStart: true,
         quietHoursEnd: true,
         pushReminderPrefs: true,
+        workoutPrefsJson: true,
         fastingStartHour: true,
         fastingEndHour: true,
         sex: true,
@@ -504,6 +525,7 @@ equippedCheerKey: true,
       quietHoursStart: user.quietHoursStart ?? null,
       quietHoursEnd: user.quietHoursEnd ?? null,
       pushReminderPrefs: parsePushReminderPrefs(user.pushReminderPrefs),
+      workoutPrefs: parseWorkoutPrefs(user.workoutPrefsJson),
       fastingStartHour: user.fastingStartHour ?? null,
       fastingEndHour: user.fastingEndHour ?? null,
       sex: user.sex ?? null,

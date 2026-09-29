@@ -61,6 +61,7 @@ import {
   autofillNextDraft,
   bumpKg,
 } from "@/lib/workouts/progression";
+import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
   computeExercisePrs,
   describePrBeat,
@@ -68,6 +69,8 @@ import {
   type ExercisePrs,
 } from "@/lib/workouts/prs";
 import {
+  getDefaultRestSec,
+  readExerciseRestMap,
   resolveRestForSet,
   setExerciseRestSec,
 } from "@/lib/workouts/rest-timer";
@@ -694,6 +697,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         setLiveMode(false);
         setStageOpen(false);
         setShowSummary(true);
+        markPostWorkoutNudge();
       }
       if (clock === "start") {
         setLiveMode(true);
@@ -1642,6 +1646,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
               void loadList();
             }}
             onGoToRation={() => {
+              markPostWorkoutNudge();
               setShowSummary(false);
               setActiveId(null);
               setDetail(null);
@@ -1727,6 +1732,18 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             onRememberRest={() => {
               if (!focusExForStage) return;
               setExerciseRestSec(focusExForStage.name, restSeconds);
+              void fetch(withBasePath("/api/account"), {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  workoutPrefs: {
+                    defaultRestSec: getDefaultRestSec(),
+                    byExercise: readExerciseRestMap(),
+                  },
+                }),
+              }).catch(() => {
+                // offline — local map already saved
+              });
               showPrToast(`Отдых ${restSeconds}с для «${focusExForStage.name}»`);
             }}
             busy={busy}

@@ -1,6 +1,7 @@
 import type { FoodRecognitionResult } from "./food-types";
 import { looksLikePreparedFoodName } from "./ai/sticker-vision";
 import { inferDrinkPackMlFromText, looksLikeDrinkName } from "./portion-unit";
+import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "./package-name-guard";
 import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
@@ -694,10 +695,18 @@ export function resolveDisplayPortionGrams(
   const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
 
   const absurdTiny = explicit !== undefined && explicit <= 1;
-  const absurdDrink = drink && explicit !== undefined && explicit < MIN_CREDIBLE_DRINK_PORTION_ML;
+  // 100 ml/g is a common wrong default for bottles — treat like absurd when no label volume.
+  const absurdDrink =
+    drink &&
+    explicit !== undefined &&
+    (explicit < MIN_CREDIBLE_DRINK_PORTION_ML || explicit === 100);
   if ((drink || (barcodeSource && hasPer100)) && (absurdTiny || absurdDrink)) {
     if (fromText && fromText >= MIN_CREDIBLE_DRINK_PORTION_ML) {
       return fromText;
+    }
+    // Explicit 100 with matching text «100 мл» — keep; else default serving.
+    if (absurdDrink && explicit === 100 && fromText === 100) {
+      return 100;
     }
     return DEFAULT_DRINK_SERVING_ML;
   }
@@ -976,18 +985,28 @@ export function applyFoodLookupToPortion(
     current.photoKind === "package" ||
     current.photoKind === "barcode";
 
+  // Trust: do not let RU soup staples replace a packaged / suspicious cup name.
+  const packagedContext =
+    fromLabel || isSuspiciousSoupOnPackaged(current);
+  const lookedSoup = looksLikeSoupName(looked.dishName);
+  const currentSoup = looksLikeSoupName(current.dishName);
+  const rejectSoupSwap = packagedContext && lookedSoup && !currentSoup;
+  const dishName = rejectSoupSwap
+    ? current.dishName
+    : looked.dishName.trim() || current.dishName;
+
   const calories =
-    fromLabel &&
+    (fromLabel || rejectSoupSwap) &&
     scaledCurrent.calories > 0 &&
     scaledLooked.calories > 0 &&
-    scaledCurrent.calories > scaledLooked.calories * 1.25
+    (rejectSoupSwap || scaledCurrent.calories > scaledLooked.calories * 1.25)
       ? scaledCurrent.calories
       : scaledLooked.calories > 0
         ? scaledLooked.calories
         : scaledCurrent.calories;
 
   return {
-    dishName: looked.dishName.trim() || current.dishName,
+    dishName,
     calories,
     protein: pickMacro(scaledCurrent.protein, scaledLooked.protein),
     fat: pickMacro(scaledCurrent.fat, scaledLooked.fat),

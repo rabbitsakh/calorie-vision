@@ -5,15 +5,36 @@ import { playRestEndBeep } from "@/lib/workouts/session-clock";
 import {
   REST_OPTIONS,
   formatRestClock,
+  hydrateExerciseRestMap,
+  readExerciseRestMap,
   resolveRestDuration,
 } from "@/lib/workouts/rest-timer";
+import type { WorkoutPrefs } from "@/lib/workouts/workout-prefs";
+import { withBasePath } from "@/lib/paths";
 
 const STORAGE_KEY = "cv-workout-rest-ends-at";
 const SEC_KEY = "cv-workout-rest-seconds";
 const SOUND_KEY = "cv-workout-rest-sound";
 
+function pushWorkoutPrefs(patch: WorkoutPrefs): void {
+  void fetch(withBasePath("/api/account"), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      workoutPrefs: {
+        defaultRestSec: patch.defaultRestSec,
+        byExercise: { ...readExerciseRestMap(), ...patch.byExercise },
+        sound: patch.sound,
+      },
+    }),
+  }).catch(() => {
+    // offline — localStorage already updated
+  });
+}
+
 /**
  * Rest timer that survives WebView backgrounding via localStorage.
+ * Hydrates/pushes default rest + per-exercise map via account.workoutPrefs.
  */
 export function useWorkoutRestTimer() {
   const [restSeconds, setRestSecondsState] = useState(90);
@@ -38,6 +59,38 @@ export function useWorkoutRestTimer() {
     } catch {
       // ignore
     }
+
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/account"));
+        if (!resp.ok) return;
+        const data = (await resp.json()) as { workoutPrefs?: WorkoutPrefs | null };
+        const prefs = data.workoutPrefs;
+        if (!prefs) return;
+        if (prefs.byExercise) hydrateExerciseRestMap(prefs.byExercise);
+        if (
+          typeof prefs.defaultRestSec === "number" &&
+          REST_OPTIONS.includes(prefs.defaultRestSec as (typeof REST_OPTIONS)[number])
+        ) {
+          setRestSecondsState(prefs.defaultRestSec);
+          try {
+            localStorage.setItem(SEC_KEY, String(prefs.defaultRestSec));
+          } catch {
+            // ignore
+          }
+        }
+        if (typeof prefs.sound === "boolean") {
+          setRestSoundState(prefs.sound);
+          try {
+            localStorage.setItem(SOUND_KEY, prefs.sound ? "1" : "0");
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+    })();
   }, []);
 
   const setRestSeconds = useCallback((sec: number) => {
@@ -47,6 +100,7 @@ export function useWorkoutRestTimer() {
     } catch {
       // ignore
     }
+    pushWorkoutPrefs({ defaultRestSec: sec });
   }, []);
 
   const setRestSound = useCallback((on: boolean) => {
@@ -56,7 +110,8 @@ export function useWorkoutRestTimer() {
     } catch {
       // ignore
     }
-  }, []);
+    pushWorkoutPrefs({ sound: on, defaultRestSec: restSeconds });
+  }, [restSeconds]);
 
   const startRest = useCallback(
     (overrideSec?: unknown) => {

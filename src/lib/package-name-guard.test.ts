@@ -11,6 +11,7 @@ import {
 
 test("detects soup names", () => {
   assert.equal(looksLikeSoupName("суп Том Ям"), true);
+  assert.equal(looksLikeSoupName("Овощной суп"), true);
   assert.equal(looksLikeSoupName("борщ"), true);
   assert.equal(looksLikeSoupName("харчо"), true);
   assert.equal(looksLikeSoupName("рамен"), true);
@@ -18,16 +19,29 @@ test("detects soup names", () => {
   assert.equal(looksLikeSoupName("Овсянка"), false);
 });
 
-test("unrepaired suspicious soup clamps confidence for review CTA", () => {
+test("unrepaired suspicious soup uses grain fallback and clamps confidence", () => {
   const repaired = repairPackagedMislabel({
     dishName: "харчо",
     calories: 120,
     confidence: 0.88,
     photoKind: "package",
     portionGrams: 50,
-    // calories/portion not dense enough for grain fallback, no brand — still suspicious
+    // calories/portion not dense enough for kcal100 grain path — still small cup
   });
-  assert.equal(repaired.dishName, "харчо");
+  assert.equal(repaired.dishName, "Каша быстрого приготовления");
+  assert.ok(repaired.confidence <= 0.55);
+});
+
+test("unrepaired suspicious soup prefers brand as dish name", () => {
+  const repaired = repairPackagedMislabel({
+    dishName: "харчо",
+    brand: "Быстров",
+    calories: 120,
+    confidence: 0.88,
+    photoKind: "package",
+    portionGrams: 50,
+  });
+  assert.equal(repaired.dishName, "Быстров");
   assert.ok(repaired.confidence <= 0.55);
 });
 

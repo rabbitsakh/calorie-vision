@@ -2,7 +2,7 @@ import type { FoodRecognitionResult } from "../food-types";
 import { looksLikeDrinkName } from "../portion-unit";
 import { recognitionNeedsPortionRescale } from "../recognition-nutrition";
 
-const TYPICAL_BOTTLE_ML = new Set([150, 200, 250, 330, 350, 450, 500, 750, 1000]);
+const TYPICAL_BOTTLE_ML = new Set([150, 200, 250, 330, 350, 450, 500, 750, 1000, 1500, 2000]);
 
 function hasDrinkVolume(result: FoodRecognitionResult): boolean {
   const g = result.portionGrams ?? 0;

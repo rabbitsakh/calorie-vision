@@ -1,8 +1,8 @@
 import type { FoodRecognitionResult } from "./food-types";
 
-// Note: JS \b is ASCII-word only — prefer bare Cyrillic stems (борщ, щи, харчо).
+// Note: JS \b is ASCII-word only — use bare Cyrillic stems (суп, борщ, щи…).
 const SOUP_NAME_RE =
-  /\bсуп\b|том[\s-]*ям|tom[\s-]*yum|борщ|солянк|рассольник|уха\b|окрошк|щи|харчо|рамен|ramen|лагман|мисо|miso|cream[\s-]*soup|лапша\s+(быстр|горяч)|горячий\s+стакан|грибной\s+суп|куриный\s+суп/i;
+  /суп|том[\s-]*ям|tom[\s-]*yum|борщ|солянк|рассольник|уха|окрошк|щи|харчо|рамен|ramen|лагман|мисо|miso|cream[\s-]*soup|лапша\s+(быстр|горяч)|горячий\s+стакан/i;
 
 const GRAIN_PACK_RE =
   /овсян|геркулес|хлопья|мюсли|granola|muesli|oatmeal|каша\s+быстр|porridge|гречк|манк|перлов/i;
@@ -166,7 +166,26 @@ export function repairPackagedMislabel(result: FoodRecognitionResult): FoodRecog
     };
   }
 
-  // Suspicious but unrepaired — clamp confidence so confirm review CTA fires.
+  // Suspicious but unrepaired — prefer brand / grain fallback, clamp for review CTA.
+  if (brand) {
+    return {
+      ...result,
+      dishName: brand,
+      photoKind: result.photoKind ?? "package",
+      confidence: Math.min(result.confidence, 0.55),
+    };
+  }
+  if (portion > 0 && portion <= INSTANT_CUP_GRAMS_MAX) {
+    const altNames = (result.alternatives ?? [])
+      .map((alt) => alt.dishName)
+      .filter(Boolean);
+    return {
+      ...result,
+      dishName: inferInstantGrainFallbackName(result.dishName, ...altNames),
+      photoKind: result.photoKind ?? "package",
+      confidence: Math.min(result.confidence, 0.55),
+    };
+  }
   return {
     ...result,
     confidence: Math.min(result.confidence, 0.55),
