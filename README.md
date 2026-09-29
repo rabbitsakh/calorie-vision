@@ -342,7 +342,7 @@ git pull
 bash deploy/deploy.sh
 ```
 
-Если `next build` падает с `SIGKILL` (OOM на маленьком VPS): `deploy.sh` сам останавливает pm2 перед сборкой, ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable`. Принудительно: `NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM полезен swap (`fallocate -l 2G /swapfile …`).
+Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): `deploy.sh` останавливает pm2, сбрасывает page cache (если root), ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB). Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него сборка текущего приложения часто не проходит.
 
 Если деплой «висит» на `==> Install dependencies`: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` по умолчанию ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (runtime Sentry не нужен в CLI). Для upload source maps задайте `SENTRY_AUTH_TOKEN` в окружении перед деплоем.
 
