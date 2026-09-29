@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvatarFrame } from "@/components/AvatarFrame";
+import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { clearCapacitorResumeToken } from "@/lib/capacitor-resume";
 import {
@@ -17,7 +18,7 @@ import {
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { getImageUrl, withBasePath } from "@/lib/paths";
+import { withBasePath } from "@/lib/paths";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import {
   buildReferralShareUrl,
@@ -378,18 +379,12 @@ export function ProfileForm() {
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
               <label className="relative cursor-pointer">
                 <AvatarFrame>
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={getImageUrl(image)}
-                      alt=""
-                      className="h-24 w-24 rounded-full border border-slate-200 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800">
-                      {displayName.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <UserAvatar
+                    image={image}
+                    label={displayName}
+                    className="h-24 w-24 rounded-full border border-slate-200 object-cover bg-slate-100"
+                    fallbackClassName="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800"
+                  />
                 </AvatarFrame>
                 <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/45 py-1 text-center text-xs text-white">
                   {uploading ? "..." : "Фото"}

@@ -5,7 +5,8 @@ import { DaisyLoading } from "@/components/DaisyLoading";
 import { ADMIN_PAGE_SIZE, type AdminUserRow, type AdminUsersResponse } from "@/lib/admin";
 import { sexLabel } from "@/lib/diet";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { getImageUrl, withBasePath } from "@/lib/paths";
+import { UserAvatar } from "@/components/UserAvatar";
+import { withBasePath } from "@/lib/paths";
 
 type AdminUsersTableProps = {
   showCounts?: boolean;
@@ -23,22 +24,14 @@ function displayName(user: AdminUserRow): string {
   return user.name?.trim() || user.email || user.phone || "Без имени";
 }
 
-function UserAvatar({ user }: { user: AdminUserRow }) {
-  if (user.image) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={getImageUrl(user.image)}
-        alt=""
-        className="h-8 w-8 shrink-0 rounded-full object-cover"
-      />
-    );
-  }
-
+function AdminUserAvatar({ user }: { user: AdminUserRow }) {
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800">
-      {displayName(user).charAt(0).toUpperCase()}
-    </div>
+    <UserAvatar
+      image={user.image}
+      label={displayName(user)}
+      className="h-8 w-8 shrink-0 rounded-full object-cover bg-slate-100"
+      fallbackClassName="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 text-xs font-semibold text-teal-800"
+    />
   );
 }
 
@@ -148,7 +141,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
       <ul className="divide-y divide-slate-100 md:hidden">
         {users.map((user) => (
           <li key={user.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-            <UserAvatar user={user} />
+            <AdminUserAvatar user={user} />
             <div className="min-w-0 flex-1">
               <p className="font-medium text-slate-900">{displayName(user)}</p>
               <p className="mt-0.5 break-all text-sm text-slate-500">{user.email ?? "—"}</p>
@@ -201,7 +194,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
               <tr key={user.id}>
                 <td>
                   <div className="flex items-center gap-2">
-                    <UserAvatar user={user} />
+                    <AdminUserAvatar user={user} />
                     <span className="font-medium text-slate-900">{displayName(user)}</span>
                   </div>
                 </td>

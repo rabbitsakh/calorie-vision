@@ -44,17 +44,18 @@ export const FOOD_ADD_MODE_OPTIONS: FoodAddModeOption[] = [
   },
 ];
 
-/** Soft day-part nudge among photo / water / weight / workout. Never auto-opens camera. */
+/** Soft day-part nudge among photo / water / weight. Never auto-opens camera. */
 export type FoodAddSuggestedAction = "photo" | "water" | "weight" | "workout";
 
 /**
- * Morning → вес, поздний день → зал, ночь → вода, иначе → фото еды.
+ * Morning → вес, ночь → вода, иначе → фото еды.
+ * Workout stays a tile in «+» but is never the time-based highlight (dinner
+ * hours were wrongly nudging «тренировка»).
  * Hour is 0–23 local. Never navigates automatically.
  */
 export function suggestFoodAddAction(hour: number): FoodAddSuggestedAction {
   const h = ((Math.trunc(hour) % 24) + 24) % 24;
   if (h >= 5 && h < 11) return "weight";
-  if (h >= 16 && h < 20) return "workout";
   if (h >= 22 || h < 5) return "water";
   return "photo";
 }
