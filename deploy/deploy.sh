@@ -14,16 +14,38 @@ restore_generated_version_files() {
   git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
 }
 
-# Pick a Node heap that fits available RAM (override with NODE_OPTIONS).
-pick_node_heap_mb() {
-  local avail_mb=2048
+# Print MemAvailable / SwapFree for deploy logs.
+log_meminfo() {
   if [[ -r /proc/meminfo ]]; then
-    avail_mb=$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
+    awk '
+      /MemTotal:/ { total = int($2/1024) }
+      /MemAvailable:/ { avail = int($2/1024) }
+      /SwapTotal:/ { swap_t = int($2/1024) }
+      /SwapFree:/ { swap_f = int($2/1024) }
+      END {
+        printf "   MemTotal: %d MB  MemAvailable: %d MB  SwapTotal: %d MB  SwapFree: %d MB\n",
+          total+0, avail+0, swap_t+0, swap_f+0
+      }
+    ' /proc/meminfo
   fi
-  # Leave headroom for OS + MySQL + webpack worker; clamp 1024..3072.
-  local heap=$((avail_mb - 768))
-  if (( heap < 1024 )); then heap=1024; fi
-  if (( heap > 3072 )); then heap=3072; fi
+}
+
+# Pick a Node heap that fits free RAM + swap after the app is stopped.
+# Override the whole NODE_OPTIONS string with DEPLOY_NODE_OPTIONS.
+pick_node_heap_mb() {
+  local mem_avail_mb=2048
+  local swap_free_mb=0
+  if [[ -r /proc/meminfo ]]; then
+    mem_avail_mb=$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
+    swap_free_mb=$(awk '/SwapFree:/ {print int($2/1024)}' /proc/meminfo)
+  fi
+  # App is stopped; leave headroom for OS + MySQL + webpack RSS outside the V8 heap.
+  # Count most of free swap so a ≤2 GB VPS can still finish next build.
+  local usable_mb=$((mem_avail_mb + (swap_free_mb * 3) / 4))
+  local heap=$((usable_mb - 512))
+  # Current app needs >1 GB V8 heap; 1024 floors caused "heap out of memory".
+  if (( heap < 1536 )); then heap=1536; fi
+  if (( heap > 4096 )); then heap=4096; fi
   echo "$heap"
 }
 
@@ -114,22 +136,35 @@ if pm2 describe calorie-vision >/dev/null 2>&1; then
   APP_WAS_RUNNING=1
   pm2 stop calorie-vision || true
 fi
+# Best-effort: reclaim page cache so MemAvailable reflects real free RAM.
+if [[ "$(id -u)" -eq 0 ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
+  sync || true
+  echo 3 >/proc/sys/vm/drop_caches 2>/dev/null || true
+fi
+log_meminfo
 
 echo "==> Build"
-# Next.js production build can OOM on small VPS (SIGKILL). Cap heap to available RAM
-# and keep a single compile worker (see next.config experimental.cpus).
-if [[ -z "${NODE_OPTIONS:-}" ]]; then
+# Next.js production build can OOM on small VPS (V8 heap limit or SIGKILL).
+# Always re-pick heap after pm2 stop — do not inherit a low NODE_OPTIONS from .env.
+# Override: DEPLOY_NODE_OPTIONS='--max-old-space-size=2048'
+if [[ -n "${DEPLOY_NODE_OPTIONS:-}" ]]; then
+  export NODE_OPTIONS="$DEPLOY_NODE_OPTIONS"
+else
   HEAP_MB="$(pick_node_heap_mb)"
   export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
 fi
 export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
+# Fewer libuv threads = slightly less peak RSS during compile.
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
 echo "   NODE_OPTIONS=$NODE_OPTIONS"
 echo "   NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
-if [[ -r /proc/meminfo ]]; then
-  awk '/MemAvailable:/ {printf "   MemAvailable: %d MB\n", int($2/1024)}' /proc/meminfo
-fi
+echo "   UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
+log_meminfo
 if ! npm run build; then
   echo "   build FAILED"
+  echo "   Hint: V8 heap OOM → raise DEPLOY_NODE_OPTIONS or add swap (see README)."
+  echo "   Hint: SIGKILL → lower heap / add swap; NEXT_BUILD_CPUS=1 is already default."
+  log_meminfo
   if (( APP_WAS_RUNNING )); then
     echo "   Restarting previous app so the site does not stay on 502"
     pm2 restart calorie-vision || pm2 start deploy/ecosystem.config.cjs
