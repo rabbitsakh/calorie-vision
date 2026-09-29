@@ -855,6 +855,30 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Three-up row: stack icon above copy so «Тренировка» fits narrow phone columns. */
+.food-add-utility-row--three .food-add-utility-tile {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0.6rem 0.55rem;
+}
+
+.food-add-utility-row--three .food-add-utility-copy {
+  width: 100%;
+}
+
+.food-add-utility-row--three .food-add-utility-label {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.food-add-utility-row--three .food-add-utility-hint {
+  font-size: 0.62rem;
+}
+
 .food-add-photo-sources {
   display: flex;
   flex-direction: column;
@@ -941,6 +965,8 @@ select {
   display: flex;
   gap: 0.65rem;
   min-height: 3.35rem;
+  min-width: 0;
+  overflow: hidden;
   padding: 0.65rem 0.75rem;
   text-align: left;
   transition:
@@ -1118,13 +1144,16 @@ select {
   line-height: 1.25;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 360px) {
   .food-add-utility-row--three {
     grid-template-columns: 1fr;
   }
 
   .food-add-utility-row--three .food-add-utility-tile {
+    align-items: center;
     flex-direction: row;
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
   }
 }
 
