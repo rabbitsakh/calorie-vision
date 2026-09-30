@@ -64,6 +64,14 @@ import {
 } from "@/lib/workouts/progression";
 import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
+  countWorkoutSetDrafts,
+  enqueueWorkoutSetDraft,
+  listWorkoutSetDrafts,
+  removeWorkoutSetDraft,
+  subscribeWorkoutSetDraftQueue,
+} from "@/lib/workout-set-draft-queue";
+import { isNetworkFetchError } from "@/lib/read-api-json";
+import {
   computeExercisePrs,
   describePrBeat,
   mergeExercisePrs,
@@ -403,6 +411,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [queuedSets, setQueuedSets] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -612,6 +621,12 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     void loadRoutines();
     void loadCalendar();
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
+
+  useEffect(() => {
+    const refresh = () => setQueuedSets(countWorkoutSetDrafts());
+    refresh();
+    return subscribeWorkoutSetDraftQueue(refresh);
+  }, []);
 
   useEffect(() => {
     if (!creating) return;
@@ -884,6 +899,45 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     await loadList();
   };
 
+  const flushQueuedSets = useCallback(async () => {
+    const items = listWorkoutSetDrafts();
+    if (items.length === 0) return;
+    let saved = 0;
+    let lastSession: SessionDetail | null = null;
+    for (const item of items) {
+      try {
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/exercises/${item.exerciseId}/sets`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.body),
+          }),
+        );
+        removeWorkoutSetDraft(item.id);
+        saved += 1;
+        lastSession = data.session;
+      } catch {
+        break;
+      }
+    }
+    if (saved > 0) {
+      setError(null);
+      if (lastSession && detail?.id === lastSession.id) {
+        await refreshDetail(lastSession);
+      } else {
+        void loadList();
+      }
+    }
+  }, [detail?.id, loadList]);
+
+  useEffect(() => {
+    function onOnline() {
+      void flushQueuedSets();
+    }
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushQueuedSets]);
+
   const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
     if (!detail) return;
     const name = (nameOverride ?? exerciseName).trim();
@@ -1075,14 +1129,13 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     };
     setError(null);
     clearDraftError(exerciseId);
+    const validated = validateSetDraft(ex.kind, draft);
+    if (!validated.ok) {
+      failDraft(exerciseId, validated.message, validated.field);
+      return;
+    }
+    const body: Record<string, unknown> = { ...meta, ...validated.body };
     try {
-      const validated = validateSetDraft(ex.kind, draft);
-      if (!validated.ok) {
-        failDraft(exerciseId, validated.message, validated.field);
-        return;
-      }
-      const body: Record<string, unknown> = { ...meta, ...validated.body };
-
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
           method: "POST",
@@ -1108,6 +1161,27 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
+      if (isNetworkFetchError(err) || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        enqueueWorkoutSetDraft({
+          sessionId: detail.id,
+          exerciseId,
+          body,
+        });
+        setSetDrafts((prev) => ({
+          ...prev,
+          [exerciseId]: {
+            ...EMPTY_DRAFT,
+            kg: spec.usesWeight ? draft.kg : "",
+            km: spec.usesDistance ? draft.km : "",
+            setType: draft.setType === "rest_pause" ? "working" : draft.setType,
+          },
+        }));
+        clearDraftError(exerciseId);
+        const queued = "Подход сохранён на устройстве — ждёт сеть";
+        setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
+        setError(queued);
+        return;
+      }
       const message = err instanceof Error ? err.message : "Не удалось добавить подход";
       setDraftErrors((prev) => ({ ...prev, [exerciseId]: message }));
       setError(message);
@@ -1986,6 +2060,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           </label>
         </section>
 
+        {queuedSets > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            <p className="min-w-0 font-medium">
+              {queuedSets === 1
+                ? "1 подход ждёт сеть"
+                : `${queuedSets} подхода ждут сеть`}
+            </p>
+            <button
+              type="button"
+              className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1 text-xs font-semibold hover:bg-amber-900/15"
+              onClick={() => void flushQueuedSets()}
+            >
+              Отправить
+            </button>
+          </div>
+        ) : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         {liveMode && detail.exercises.length > 0 ? (
@@ -3053,6 +3143,22 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         </section>
       ) : null}
 
+      {queuedSets > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+          <p className="min-w-0 font-medium">
+            {queuedSets === 1
+              ? "1 подход ждёт сеть"
+              : `${queuedSets} подхода ждут сеть`}
+          </p>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1 text-xs font-semibold hover:bg-amber-900/15"
+            onClick={() => void flushQueuedSets()}
+          >
+            Отправить
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {loading ? <p className="text-sm text-slate-500">Загрузка…</p> : null}

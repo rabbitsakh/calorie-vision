@@ -586,7 +586,7 @@ export function ConfirmationCard({
 
       const merged = applyFoodLookupToPortion(dish.original, next, targetPortion);
 
-      updateDish(dish.id, {
+      const patch: Partial<DishDraft> = {
         dishName: decodeHtmlEntities(merged.dishName),
         calories: String(merged.calories),
         protein: merged.protein !== undefined ? formatMacro(merged.protein) : "",
@@ -601,6 +601,35 @@ export function ConfirmationCard({
           photoKind: dish.original.photoKind,
           source: next.source ?? dish.original.source,
         }),
+      };
+      setDishes((current) => {
+        const nextDishes = current.map((item) =>
+          item.id === dish.id ? { ...item, ...patch } : item,
+        );
+        // Multi-dish: after Уточнить, jump to the next weak item.
+        if (!signal && nextDishes.length > 1) {
+          const nextIdx = worstReviewDishIndex(
+            nextDishes.map((d) => {
+              const flag = dishNeedsReview(d, lowConfidenceThreshold);
+              return {
+                confidence: d.original.confidence,
+                calories: Number(d.calories) || 0,
+                missingCalories: flag.missingCalories,
+                missingMacros: flag.missingMacros,
+                lowConfidence: flag.lowConfidence,
+              };
+            }),
+          );
+          const stillNeeds = dishNeedsReview(nextDishes[nextIdx]!, lowConfidenceThreshold);
+          if (
+            stillNeeds.lowConfidence ||
+            stillNeeds.missingCalories ||
+            stillNeeds.missingMacros
+          ) {
+            queueMicrotask(() => setActiveDish(nextIdx));
+          }
+        }
+        return nextDishes;
       });
       if (!previewUrl && data.imagePath && (dishes.length === 1 || !imagePath.trim())) {
         setImagePath(data.imagePath);

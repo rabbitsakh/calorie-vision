@@ -27,6 +27,7 @@ import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
+import { PendingConfirmBanner } from "@/components/PendingConfirmBanner";
 import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
@@ -40,6 +41,7 @@ import {
   requestOpenFoodAddPicker,
   requestOpenFoodCamera,
   requestOpenFoodText,
+  requestOpenPendingConfirm,
 } from "@/lib/open-food-camera";
 import { WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
@@ -262,6 +264,10 @@ function RationBody({
           <div className="px-0.5">
             <NextStepBar selectedDate={date} today={today} />
           </div>
+          {/* Trust: unfinished confirm above the fold — not buried under the feed. */}
+          <div className="px-0.5">
+            <PendingConfirmBanner selectedDate={date} />
+          </div>
 
           {/* Layer 2 — meal feed */}
           <div className="ration-day-feed px-0.5 pt-1">
@@ -286,7 +292,12 @@ function RationBody({
           <OfflineMealQueueBanner
             selectedDate={date}
             onFlushed={bump}
-            onRecognitionReady={() => bump()}
+            onRecognitionReady={(readyDate) => {
+              bump();
+              if (readyDate === date) {
+                requestOpenPendingConfirm();
+              }
+            }}
           />
           <FastingWindowBanner isToday={date === today} />
 
@@ -321,6 +332,10 @@ function RationBody({
           ) : null}
 
           <WaterTracker selectedDate={date} onChanged={bump} compact />
+
+          {/* Retention: quests / next badge on the day surface (not only in habits sheet). */}
+          <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
+          <ProgressHintsRow refreshKey={refreshKey} />
 
           {/* Retention: Plan is not a tab — keep a light door on the day surface. */}
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5 text-sm">
@@ -366,7 +381,7 @@ function RationBody({
                   Привычки и заметки
                 </p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Серия, челлендж, квесты, значки
+                  Серия, челлендж, заметки дня
                 </p>
               </div>
               <ChevronIcon open={showHabits} />
@@ -450,8 +465,6 @@ function RationBody({
                         refreshKey={refreshKey}
                         onStarted={bump}
                       />
-                      <ProgressHintsRow refreshKey={refreshKey} />
-                      <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
                       <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700">
                         <Link
                           href={`${withDateQuery("/plan", date)}#shopping`}

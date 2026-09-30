@@ -22,6 +22,7 @@ import {
   MealTypeInlineChips,
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
+import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
 
 function formatMacros(
   entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">,
@@ -282,6 +283,15 @@ function GroupedMealCard({
                         allergens={userAllergens}
                       />
                       <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+                      {mealNeedsMacrosRepair(entry) ? (
+                        <button
+                          type="button"
+                          className="mt-1 text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline"
+                          onClick={() => setEditingId(entry.id)}
+                        >
+                          Уточнить БЖУ
+                        </button>
+                      ) : null}
                     </div>
                     <div className="meal-card-actions shrink-0">
                       <button
@@ -479,6 +489,15 @@ function SingleMealCard({
                 allergens={userAllergens}
               />
               <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+              {mealNeedsMacrosRepair(entry) ? (
+                <button
+                  type="button"
+                  className="mt-1 text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline"
+                  onClick={() => setEditing(true)}
+                >
+                  Уточнить БЖУ
+                </button>
+              ) : null}
             </div>
             <div className="meal-card-actions shrink-0">
               <button type="button" title="Редактировать" onClick={() => setEditing(true)}>

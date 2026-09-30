@@ -149,6 +149,24 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
     didAutoOpen.current = true;
   }, [hydrated, items]);
 
+  // Deep-link from рацион «Покупки» — keep panel open and scroll into view on hash.
+  useEffect(() => {
+    function onHash() {
+      if (typeof window === "undefined") return;
+      if (window.location.hash !== "#shopping") return;
+      setOpen(true);
+      window.requestAnimationFrame(() => {
+        document.getElementById("shopping")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+    onHash();
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
   async function fetchDishNamesForDate(dateKey: string): Promise<string[]> {
     const resp = await fetch(withBasePath(`/api/meals?date=${dateKey}`), {
       cache: "no-store",

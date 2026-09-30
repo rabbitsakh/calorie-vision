@@ -733,6 +733,11 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   /** Wave 3: first fold = insight + calories; WoW / macros / weight behind this. */
   const [chartsOpen, setChartsOpen] = useState(false);
+  const [gymSignal, setGymSignal] = useState<{
+    sessionCount: number;
+    tonnage: number;
+    cardioKm: number;
+  } | null>(null);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
@@ -750,6 +755,50 @@ export function StatsView({ endDate }: StatsViewProps) {
   }, [endDate, period]);
 
   useEffect(() => { void loadStats(); }, [loadStats]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const daysBack = period === "quarter" ? 89 : period === "month" ? 29 : 6;
+    const from = shiftDateKey(endDate, -daysBack);
+    void (async () => {
+      try {
+        const resp = await fetch(
+          withBasePath(`/api/workouts?from=${from}&to=${endDate}&limit=100`),
+        );
+        if (!resp.ok || cancelled) return;
+        const payload = (await resp.json()) as {
+          sessions?: Array<{
+            totalLoad?: number;
+            cardioDistanceKm?: number;
+            endedAt?: string | null;
+            setCount?: number;
+          }>;
+        };
+        const sessions = payload.sessions ?? [];
+        if (cancelled) return;
+        if (sessions.length === 0) {
+          setGymSignal(null);
+          return;
+        }
+        let tonnage = 0;
+        let cardioKm = 0;
+        for (const s of sessions) {
+          tonnage += Number(s.totalLoad) || 0;
+          cardioKm += Number(s.cardioDistanceKm) || 0;
+        }
+        setGymSignal({
+          sessionCount: sessions.length,
+          tonnage: Math.round(tonnage),
+          cardioKm: Math.round(cardioKm * 10) / 10,
+        });
+      } catch {
+        if (!cancelled) setGymSignal(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [endDate, period]);
 
   useEffect(() => {
     setExportTo(endDate);
@@ -903,6 +952,30 @@ export function StatsView({ endDate }: StatsViewProps) {
               <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
             </div>
           </section>
+
+          {gymSignal && gymSignal.sessionCount > 0 ? (
+            <section className="card flex flex-wrap items-center justify-between gap-3 p-4 md:px-6">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Зал за период</p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                  {gymSignal.sessionCount}{" "}
+                  {gymSignal.sessionCount === 1
+                    ? "тренировка"
+                    : gymSignal.sessionCount < 5
+                      ? "тренировки"
+                      : "тренировок"}
+                  {gymSignal.tonnage > 0 ? ` · ${gymSignal.tonnage} кг` : ""}
+                  {gymSignal.cardioKm > 0 ? ` · ${gymSignal.cardioKm} км` : ""}
+                </p>
+              </div>
+              <Link
+                href={withDateQuery("/workouts", endDate)}
+                className="shrink-0 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+              >
+                Открыть зал
+              </Link>
+            </section>
+          ) : null}
 
           <button
             type="button"

@@ -18,8 +18,8 @@ function withBase(path) {
 }
 
 /** Shell + static asset cache — bump when strategy or icons change. */
-const CACHE_NAME = "cv-shell-v9";
-const STATIC_CACHE = "cv-static-v9";
+const CACHE_NAME = "cv-shell-v10";
+const STATIC_CACHE = "cv-static-v10";
 /** Bump with logo/icon releases so precache + notifications pick new assets. */
 const ICON_VER = "2.2.1";
 
@@ -40,6 +40,8 @@ function precacheUrls() {
     withBase("/profile/"),
     withBase("/plan"),
     withBase("/plan/"),
+    withBase("/workouts"),
+    withBase("/workouts/"),
     withBase("/install"),
     withBase("/install/"),
     withBase("/manifest.json"),
@@ -58,6 +60,7 @@ function isShellPath(pathname) {
   const weight = withBase("/weight");
   const profile = withBase("/profile");
   const plan = withBase("/plan");
+  const workouts = withBase("/workouts");
   const install = withBase("/install");
   return (
     pathname === withBase("/") ||
@@ -71,6 +74,8 @@ function isShellPath(pathname) {
     pathname === `${profile}/` ||
     pathname === plan ||
     pathname === `${plan}/` ||
+    pathname === workouts ||
+    pathname === `${workouts}/` ||
     pathname === install ||
     pathname === `${install}/` ||
     pathname === withBase("/manifest.json") ||
