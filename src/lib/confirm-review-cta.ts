@@ -38,18 +38,25 @@ export type ConfirmReviewCta = {
 /**
  * Single primary action for the trust banner.
  * Multi-dish defaults to refining the weakest dish — not bulk «Уточнить все».
+ * Macros gap prefers «Уточнить БЖУ» so Save is not mistaken for a full verify.
  */
 export function confirmReviewPrimaryCta(input: {
   enriching: boolean;
   enrichmentTimedOut: boolean;
   needsReview: boolean;
   multi: boolean;
+  /** Prefer macros-specific CTA when kcal exist but BJU do not. */
+  missingMacros?: boolean;
+  missingCalories?: boolean;
 }): ConfirmReviewCta | null {
   if (input.enriching) return null;
   if (input.enrichmentTimedOut) {
     return { mode: "force-all", label: "Досчитать", busyLabel: "Считаем…" };
   }
   if (!input.needsReview) return null;
+  if (input.missingMacros && !input.missingCalories) {
+    return { mode: "lookup-one", label: "Уточнить БЖУ", busyLabel: "Уточняем…" };
+  }
   if (input.multi) {
     return { mode: "lookup-one", label: "Уточнить", busyLabel: "Уточняем…" };
   }
@@ -105,19 +112,18 @@ export function worstReviewDishIndex(
   return worst >= 0 ? worst : 0;
 }
 
-/** Low confidence with usable kcal — allow completing the log without forcing lookup. */
+/**
+ * Soft-save path: usable kcal but trust is incomplete (low confidence and/or empty BJU).
+ * Missing calories still block save entirely in the card.
+ */
 export function canSaveAsIs(input: {
   anyLowConfidence: boolean;
   anyMissingCalories: boolean;
   anyMissingMacros?: boolean;
   totalCalories: number;
 }): boolean {
-  return (
-    input.anyLowConfidence &&
-    !input.anyMissingCalories &&
-    !input.anyMissingMacros &&
-    input.totalCalories > 0
-  );
+  if (input.anyMissingCalories || input.totalCalories <= 0) return false;
+  return input.anyLowConfidence || Boolean(input.anyMissingMacros);
 }
 
 export function confirmSaveButtonLabel(input: {
@@ -134,7 +140,16 @@ export function confirmSaveButtonLabel(input: {
   return "Сохранить";
 }
 
-export function saveAsIsHint(): string {
+export function saveAsIsHint(input?: {
+  anyMissingMacros?: boolean;
+  anyLowConfidence?: boolean;
+}): string {
+  if (input?.anyMissingMacros && !input.anyLowConfidence) {
+    return "БЖУ не заполнены — можно сохранить ккал как есть и уточнить белки/жиры/углеводы позже.";
+  }
+  if (input?.anyMissingMacros && input.anyLowConfidence) {
+    return "Оценка приблизительная, БЖУ пустые — можно сохранить как есть и поправить в дневнике.";
+  }
   return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
 }
 

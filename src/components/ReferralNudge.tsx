@@ -114,7 +114,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
       }}
     >
       <p className="text-sm leading-relaxed text-slate-700">
-        Если дневник помогает — можно тихо поделиться ссылкой. Без давления.
+        Поделитесь ссылкой с другом — когда он войдёт, вам откроется мягкий сундук. Без давления.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button

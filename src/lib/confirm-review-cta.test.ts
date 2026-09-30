@@ -63,6 +63,19 @@ test("confirmReviewPrimaryCta single uses Уточнить по названию
   assert.equal(cta?.label, "Уточнить по названию");
 });
 
+test("confirmReviewPrimaryCta macros gap prefers Уточнить БЖУ", () => {
+  const cta = confirmReviewPrimaryCta({
+    enriching: false,
+    enrichmentTimedOut: false,
+    needsReview: true,
+    multi: false,
+    missingMacros: true,
+    missingCalories: false,
+  });
+  assert.equal(cta?.mode, "lookup-one");
+  assert.equal(cta?.label, "Уточнить БЖУ");
+});
+
 test("formatPendingConfirmHint includes kcal and kind", () => {
   assert.match(
     formatPendingConfirmHint({
@@ -83,7 +96,7 @@ test("worstReviewDishIndex picks lowest confidence among review-needed", () => {
   assert.equal(idx, 1);
 });
 
-test("canSaveAsIs requires low confidence with calories", () => {
+test("canSaveAsIs allows low confidence or missing macros when kcal exist", () => {
   assert.equal(
     canSaveAsIs({ anyLowConfidence: true, anyMissingCalories: false, totalCalories: 400 }),
     true,
@@ -94,12 +107,21 @@ test("canSaveAsIs requires low confidence with calories", () => {
   );
   assert.equal(
     canSaveAsIs({
+      anyLowConfidence: false,
+      anyMissingCalories: false,
+      anyMissingMacros: true,
+      totalCalories: 400,
+    }),
+    true,
+  );
+  assert.equal(
+    canSaveAsIs({
       anyLowConfidence: true,
       anyMissingCalories: false,
       anyMissingMacros: true,
       totalCalories: 400,
     }),
-    false,
+    true,
   );
   assert.equal(
     canSaveAsIs({ anyLowConfidence: false, anyMissingCalories: false, totalCalories: 400 }),
@@ -125,6 +147,7 @@ test("confirmSaveButtonLabel marks soft-save as как есть", () => {
     "Сохранить все",
   );
   assert.match(saveAsIsHint(), /поправить порцию позже/i);
+  assert.match(saveAsIsHint({ anyMissingMacros: true }), /БЖУ не заполнены/i);
   assert.equal(photoKindShortLabel("label"), "этикетка");
   assert.match(formatPendingConfirmHint({ dishName: "Чай", calories: 1, photoKind: "meal" }), /Чай/);
 });

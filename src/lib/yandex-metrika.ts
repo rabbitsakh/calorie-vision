@@ -15,7 +15,8 @@ export function resolveMetrikaId(
 }
 
 export function shouldTrackMetrikaPath(pathname: string): boolean {
-  return !pathname.startsWith("/admin") && !pathname.startsWith("/workouts");
+  // Workouts are public app chrome now — only skip admin.
+  return !pathname.startsWith("/admin");
 }
 
 /** Funnel goals used in client components (Yandex Metrika reachGoal names). */
@@ -34,6 +35,10 @@ export const METRIKA_GOALS = {
   onboardingComplete: "onboarding_complete",
   onboardingPhotoCta: "onboarding_photo_cta",
   firstConfirmSave: "first_confirm_save",
+  /** Soft-save from confirm when confidence/macros incomplete. */
+  confirmSaveAsIs: "confirm_save_as_is",
+  /** User tapped Уточнить / Уточнить БЖУ on confirm. */
+  confirmLookup: "confirm_lookup",
 } as const;
 
 export type MetrikaGoal = (typeof METRIKA_GOALS)[keyof typeof METRIKA_GOALS];
@@ -83,5 +88,5 @@ export function buildMetrikaInitScript(counterId: string): string {
   if (!id) {
     return "";
   }
-  return `(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");ym(${id},"init",{defer:true,clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)});if(location.pathname.indexOf("/admin")!==0&&location.pathname.indexOf("/workouts")!==0){ym(${id},"hit",location.href);}`;
+  return `(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");ym(${id},"init",{defer:true,clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)});if(location.pathname.indexOf("/admin")!==0){ym(${id},"hit",location.href);}`;
 }

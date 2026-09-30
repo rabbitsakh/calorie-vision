@@ -112,7 +112,12 @@ function TabLink({
       className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-semibold transition-colors ${
         active ? "text-[var(--accent)]" : "text-slate-500"
       }`}
-      aria-label={showQueueBadge ? `${item.label}: ${queueCount} в офлайн-очереди` : item.label}
+      aria-label={
+        showQueueBadge
+          ? `${item.label}: ${queueCount} ждёт сеть`
+          : item.label
+      }
+      title={showQueueBadge ? `${queueCount} в очереди — ждёт сеть` : undefined}
     >
       <div
         className={`relative flex h-8 w-full max-w-[4.5rem] items-center justify-center rounded-full transition-colors ${

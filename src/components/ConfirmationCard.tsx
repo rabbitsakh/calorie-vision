@@ -41,7 +41,13 @@ import {
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
-import { trackFirstMealSaveGoal, trackMealSavedGoal, trackFirstConfirmSaveGoal } from "@/lib/metrika-funnel";
+import {
+  trackFirstMealSaveGoal,
+  trackMealSavedGoal,
+  trackFirstConfirmSaveGoal,
+  trackConfirmSaveAsIsGoal,
+  trackConfirmLookupGoal,
+} from "@/lib/metrika-funnel";
 import {
   canSaveAsIs,
   confirmReviewPrimaryCta,
@@ -795,6 +801,14 @@ export function ConfirmationCard({
       );
       const rememberedCorrection = payloads.some((payload) => payload.wasCorrected);
       queuedBody = dishes.length > 1 ? { entries: payloads } : payloads[0]!;
+      const saveFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));
+      const saveTotalCalories = payloads.reduce((sum, p) => sum + (Number(p.calories) || 0), 0);
+      const softSave = canSaveAsIs({
+        anyLowConfidence: saveFlags.some((flag) => flag.lowConfidence),
+        anyMissingCalories: saveFlags.some((flag) => flag.missingCalories),
+        anyMissingMacros: saveFlags.some((flag) => flag.missingMacros),
+        totalCalories: saveTotalCalories,
+      });
 
       if (dishes.length > 1) {
         const response = await fetch(withBasePath("/api/meals"), {
@@ -809,9 +823,13 @@ export function ConfirmationCard({
         trackFirstMealSaveGoal();
         trackMealSavedGoal();
         trackFirstConfirmSaveGoal();
+        if (softSave) trackConfirmSaveAsIsGoal();
         stopPersistingDraft({ clearDraft: true });
-        const totalCalories = payloads.reduce((sum, p) => sum + (Number(p.calories) || 0), 0);
-        onSaved({ rememberedCorrection, savedCount: dishes.length, totalCalories });
+        onSaved({
+          rememberedCorrection,
+          savedCount: dishes.length,
+          totalCalories: saveTotalCalories,
+        });
         return;
       }
 
@@ -828,6 +846,7 @@ export function ConfirmationCard({
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       trackFirstConfirmSaveGoal();
+      if (softSave) trackConfirmSaveAsIsGoal();
       stopPersistingDraft({ clearDraft: true });
       onSaved({
         rememberedCorrection,
@@ -899,6 +918,8 @@ export function ConfirmationCard({
     enrichmentTimedOut: Boolean(recognition.enrichmentTimedOut),
     needsReview,
     multi,
+    missingMacros: anyMissingMacros,
+    missingCalories: anyMissingCalories,
   });
   const saveAsIs = canSaveAsIs({
     anyLowConfidence,
@@ -911,6 +932,10 @@ export function ConfirmationCard({
     enriching,
     multi,
     saveAsIs,
+  });
+  const softSaveHint = saveAsIsHint({
+    anyMissingMacros,
+    anyLowConfidence,
   });
   const allergenHits = Array.from(
     new Set(
@@ -1047,7 +1072,7 @@ export function ConfirmationCard({
                   : anyMissingCalories
                     ? "Нет калорий — уточните название"
                     : anyMissingMacros
-                      ? "Есть ккал, нет БЖУ — уточните"
+                      ? "Ккал есть, БЖУ неполные — уточните"
                       : anyLowConfidence && multi
                         ? `Слабая уверенность · ${lowConfidenceDishes.length}/${dishes.length}`
                         : anyLowConfidence && lowestConfidenceDish
@@ -1065,6 +1090,7 @@ export function ConfirmationCard({
                     : bulkLookupRunning)
                 }
                 onClick={() => {
+                  trackConfirmLookupGoal();
                   if (reviewCta.mode === "force-all") {
                     void handleLookupAll({ forceAll: true });
                     return;
@@ -1218,6 +1244,7 @@ export function ConfirmationCard({
                   : bulkLookupRunning)
               }
               onClick={() => {
+                trackConfirmLookupGoal();
                 if (reviewCta.mode === "force-all") {
                   void handleLookupAll({ forceAll: true });
                   return;
@@ -1273,7 +1300,7 @@ export function ConfirmationCard({
           </button>
         </div>
         {saveAsIs && !saving ? (
-          <p className="text-center text-xs text-slate-500">{saveAsIsHint()}</p>
+          <p className="text-center text-xs text-slate-500">{softSaveHint}</p>
         ) : null}
         {anyMissingCalories && !enriching && !saving ? (
           <p className="text-center text-xs text-amber-800">

@@ -322,6 +322,26 @@ function RationBody({
 
           <WaterTracker selectedDate={date} onChanged={bump} compact />
 
+          {/* Retention: Plan is not a tab — keep a light door on the day surface. */}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5 text-sm">
+            <Link
+              href={withDateQuery("/plan", date)}
+              className="font-semibold text-teal-800 underline-offset-2 hover:underline"
+            >
+              План недели
+            </Link>
+            <span className="text-slate-300" aria-hidden>
+              ·
+            </span>
+            <Link
+              href={`${withDateQuery("/plan", date)}#shopping`}
+              className="inline-flex items-center gap-1 font-medium text-slate-600 underline-offset-2 hover:text-teal-800 hover:underline"
+            >
+              Покупки
+              <ShoppingCountChip date={date} />
+            </Link>
+          </p>
+
           <CelebrationOrchestrator>
           {/* Retention: at-risk streak + evening check-in on surface (quietHide / self-gated). */}
           <StreakNudge
