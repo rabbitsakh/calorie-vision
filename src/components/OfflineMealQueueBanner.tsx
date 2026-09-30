@@ -236,33 +236,33 @@ export function OfflineMealQueueBanner({
   if (recognitionCount > 0) {
     lines.push(
       recognitionCount === 1
-        ? "1 фото — распознать при сети"
-        : `${recognitionCount} фото — распознать при сети`,
+        ? "1 фото ждёт сеть — распознаем при появлении интернета"
+        : `${recognitionCount} фото ждут сеть — распознаем при появлении интернета`,
     );
   }
   if (failedCount > 0) {
     lines.push(
       failedCount === 1
-        ? "1 блюдо — отправить в дневник"
-        : `${failedCount} блюда — отправить в дневник`,
+        ? "1 блюдо ждёт сеть — отправим в дневник"
+        : `${failedCount} блюда ждут сеть — отправим в дневник`,
     );
   }
   if (waterCount > 0) {
     lines.push(
-      waterCount === 1 ? "1 запись воды" : `${waterCount} записи воды`,
+      waterCount === 1 ? "1 запись воды ждёт сеть" : `${waterCount} записи воды ждут сеть`,
     );
   }
   if (weightCount > 0) {
     lines.push(
-      weightCount === 1 ? "1 запись веса" : `${weightCount} записи веса`,
+      weightCount === 1 ? "1 запись веса ждёт сеть" : `${weightCount} записи веса ждут сеть`,
     );
   }
 
   const queueTitle = flushing
     ? "Отправляем черновики…"
     : !online
-      ? `Нет сети · ${totalCount} на устройстве`
-      : `Не отправлено · ${totalCount} на устройстве`;
+      ? `Ждёт сеть · ${totalCount} на устройстве`
+      : `Ждёт отправку · ${totalCount} на устройстве`;
 
   return (
     <div className="flex flex-col gap-2" role="status">
