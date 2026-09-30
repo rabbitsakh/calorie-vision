@@ -349,7 +349,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
 
       {offlineQueued ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          Нет сети — фото сохранено в офлайн-очередь. Распознаем и покажем карточку, когда интернет вернётся.
+          Фото ждёт сеть — сохранено на устройстве. Распознаем и покажем карточку, когда появится интернет.
         </p>
       ) : null}
 
