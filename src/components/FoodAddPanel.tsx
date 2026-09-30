@@ -29,6 +29,7 @@ import { useTimezone } from "@/lib/use-timezone";
 import type { FoodAddMode } from "@/lib/open-food-camera";
 import { photoKindToContextChip } from "@/lib/photo-kind-context";
 import { withBasePath } from "@/lib/paths";
+import type { PhotoContextChip } from "@/lib/recognition-confidence-ui";
 import {
   createRuSpeechRecognition,
   isSpeechRecognitionSupported,
@@ -396,6 +397,19 @@ export function FoodAddPanel({
     void lookupFood({ barcode: code });
   }
 
+  function rerunWithContext(context: PhotoContextChip) {
+    photoAbortRef.current?.abort();
+    lookupAbortRef.current?.abort();
+    clearPendingConfirmDraft(selectedDate);
+    setPendingResult(null);
+    setDraftBanner(null);
+    setMode("photo");
+    setPhotoContext(context);
+    setRestaurantMode(context === "restaurant");
+    setError(null);
+    window.setTimeout(() => photoAbortRef.current?.openCamera(), 160);
+  }
+
   if (pendingResult) {
     const draftUi = getPendingConfirmDraft(selectedDate)?.ui ?? null;
     return (
@@ -405,6 +419,7 @@ export function FoodAddPanel({
         timezone={timezone}
         initialMealType={initialMealType}
         initialUi={draftUi}
+        onRerunWithContext={rerunWithContext}
         onCancel={() => {
           photoAbortRef.current?.abort();
           lookupAbortRef.current?.abort();

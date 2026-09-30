@@ -1,12 +1,13 @@
 "use client";
 
+import { useSession } from "next-auth/react";
 import { useState } from "react";
 import type { MealEntry } from "@/types";
 import {
   formatDateTime,
   formatTimeShort,
 } from "@/lib/dates";
-import { getImageUrl } from "@/lib/paths";
+import { getImageUrl, withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import type { MealListGroup, MealListItem } from "@/lib/meal-groups";
 import { MealPhotoPicker } from "@/components/MealPhotoPicker";
@@ -23,6 +24,8 @@ import {
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
+import { buildMacrosRepairPatch } from "@/lib/meal-macros-lookup";
+import { addItemsFromDishNames } from "@/lib/shopping-list";
 
 function formatMacros(
   entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">,
@@ -125,6 +128,64 @@ function PhotoSearchIcon() {
   );
 }
 
+async function lookupAndRepairMacros(
+  entry: MealEntry,
+  onEdit: (id: string, patch: EditPatch) => Promise<void>,
+): Promise<string | null> {
+  const query = decodeHtmlEntities(entry.dishName).trim();
+  if (!query) return "Нет названия для поиска";
+  try {
+    const response = await fetch(withBasePath("/api/food/lookup"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dishName: query }),
+    });
+    const data = (await response.json()) as {
+      recognition?: {
+        dishName?: string;
+        calories?: number;
+        protein?: number | null;
+        fat?: number | null;
+        carbs?: number | null;
+        fiber?: number | null;
+        sugar?: number | null;
+        portionGrams?: number | null;
+      };
+      error?: string;
+    };
+    if (!response.ok || !data.recognition) {
+      return data.error ?? "Не удалось уточнить БЖУ";
+    }
+    const patch = buildMacrosRepairPatch(entry, data.recognition);
+    if (!patch) return "В базе нет БЖУ для этого блюда";
+    await onEdit(entry.id, {
+      ...patch,
+      mealType: entry.mealType,
+      eatenAt: entry.eatenAt ?? entry.createdAt,
+    });
+    return null;
+  } catch {
+    return "Не удалось связаться с сервером";
+  }
+}
+
+function useAddDishToShopping() {
+  const { data: session } = useSession();
+  const userId = session?.user?.id ?? null;
+  return (dishName: string, sourceDate?: string) => {
+    const next = addItemsFromDishNames([dishName], sourceDate, { userId });
+    if (userId) {
+      void fetch(withBasePath("/api/shopping-list"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: next }),
+      }).catch(() => {
+        // local copy kept
+      });
+    }
+  };
+}
+
 function GroupedMealCard({
   group,
   timezone,
@@ -160,6 +221,10 @@ function GroupedMealCard({
   const [timeBusyId, setTimeBusyId] = useState<string | null>(null);
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [dupBusyId, setDupBusyId] = useState<string | null>(null);
+  const [repairBusyId, setRepairBusyId] = useState<string | null>(null);
+  const [repairError, setRepairError] = useState<string | null>(null);
+  const [shopFlashId, setShopFlashId] = useState<string | null>(null);
+  const addToShopping = useAddDishToShopping();
 
   /** Prefer group photo; fall back to any entry photo so the header is never blank. */
   const headerImage =
@@ -283,14 +348,38 @@ function GroupedMealCard({
                         allergens={userAllergens}
                       />
                       <MealEntryDetails entry={entry} timezone={timezone} hideTime />
-                      {mealNeedsMacrosRepair(entry) ? (
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        {mealNeedsMacrosRepair(entry) ? (
+                          <button
+                            type="button"
+                            className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                            disabled={repairBusyId === entry.id}
+                            onClick={() => {
+                              setRepairError(null);
+                              setRepairBusyId(entry.id);
+                              void lookupAndRepairMacros(entry, onEdit).then((err) => {
+                                setRepairBusyId(null);
+                                if (err) setRepairError(err);
+                              });
+                            }}
+                          >
+                            {repairBusyId === entry.id ? "Уточняем…" : "Уточнить БЖУ"}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
-                          className="mt-1 text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline"
-                          onClick={() => setEditingId(entry.id)}
+                          className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+                          onClick={() => {
+                            addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
+                            setShopFlashId(entry.id);
+                            window.setTimeout(() => setShopFlashId(null), 1600);
+                          }}
                         >
-                          Уточнить БЖУ
+                          {shopFlashId === entry.id ? "В покупках" : "В покупки"}
                         </button>
+                      </div>
+                      {repairError && repairBusyId === null ? (
+                        <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
                       ) : null}
                     </div>
                     <div className="meal-card-actions shrink-0">
@@ -422,6 +511,10 @@ function SingleMealCard({
   const [timeBusy, setTimeBusy] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [dupBusy, setDupBusy] = useState(false);
+  const [repairBusy, setRepairBusy] = useState(false);
+  const [repairError, setRepairError] = useState<string | null>(null);
+  const [shopFlash, setShopFlash] = useState(false);
+  const addToShopping = useAddDishToShopping();
 
   if (editing) {
     return (
@@ -489,14 +582,38 @@ function SingleMealCard({
                 allergens={userAllergens}
               />
               <MealEntryDetails entry={entry} timezone={timezone} hideTime />
-              {mealNeedsMacrosRepair(entry) ? (
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                {mealNeedsMacrosRepair(entry) ? (
+                  <button
+                    type="button"
+                    className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                    disabled={repairBusy}
+                    onClick={() => {
+                      setRepairError(null);
+                      setRepairBusy(true);
+                      void lookupAndRepairMacros(entry, onEdit).then((err) => {
+                        setRepairBusy(false);
+                        if (err) setRepairError(err);
+                      });
+                    }}
+                  >
+                    {repairBusy ? "Уточняем…" : "Уточнить БЖУ"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  className="mt-1 text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline"
-                  onClick={() => setEditing(true)}
+                  className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+                  onClick={() => {
+                    addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
+                    setShopFlash(true);
+                    window.setTimeout(() => setShopFlash(false), 1600);
+                  }}
                 >
-                  Уточнить БЖУ
+                  {shopFlash ? "В покупках" : "В покупки"}
                 </button>
+              </div>
+              {repairError && !repairBusy ? (
+                <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
               ) : null}
             </div>
             <div className="meal-card-actions shrink-0">

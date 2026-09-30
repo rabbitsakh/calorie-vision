@@ -27,7 +27,7 @@ export function rationMealLink(meal?: MealType | null): string {
 /** Build client path for a push notification tap. */
 export function reminderDeepLink(kind: ReminderKind): string {
   if (kind === "weekly") {
-    return withBasePath("/plan");
+    return `${withBasePath("/plan")}#shopping`;
   }
   if (kind === "calories") {
     return withBasePath("/stats");

@@ -27,6 +27,9 @@ import {
   confidenceWhyHint,
   formatConfidencePercent,
   getConfidenceTone,
+  photoContextChipLabel,
+  suggestedPhotoContextChips,
+  type PhotoContextChip,
 } from "@/lib/recognition-confidence-ui";
 import {
   applyAlternativeToPortion,
@@ -104,6 +107,8 @@ type ConfirmationCardProps = {
   }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
   onSaveQueued?: () => void;
+  /** Low-confidence re-pass: parent sets photo context and opens camera. */
+  onRerunWithContext?: (context: PhotoContextChip) => void;
 };
 
 
@@ -276,6 +281,7 @@ export function ConfirmationCard({
   onCancel,
   onSaved,
   onSaveQueued,
+  onRerunWithContext,
 }: ConfirmationCardProps) {
   const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() =>
@@ -1145,6 +1151,42 @@ export function ConfirmationCard({
             ) : null}
           </div>
         ) : null}
+
+        {(() => {
+          if (!onRerunWithContext) return null;
+          const tone = getConfidenceTone(
+            lowestConfidenceDish?.original.confidence ??
+              dishes[0]?.original.confidence ??
+              0.5,
+            lowConfidenceThreshold,
+          );
+          const chips = suggestedPhotoContextChips(tone, {
+            photoKind:
+              lowestConfidenceDish?.original.photoKind ?? recognition.photoKind,
+            dishName: lowestConfidenceDish?.dishName ?? dishes[0]?.dishName,
+          });
+          if (chips.length === 0) return null;
+          return (
+            <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
+              <p className="text-xs font-semibold text-slate-700">
+                Переснять с подсказкой контекста
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {chips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-50"
+                    disabled={saving || searching}
+                    onClick={() => onRerunWithContext(chip)}
+                  >
+                    {photoContextChipLabel(chip)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="flex flex-col gap-4">
           {(multi ? dishes.filter((_, index) => index === Math.min(activeDish, dishes.length - 1)) : dishes).map(

@@ -15,6 +15,7 @@ import {
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
+import { withBasePath } from "@/lib/paths";
 
 type DailyQuestsStripProps = {
   selectedDate: string;
@@ -39,6 +40,35 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
   const claimedRef = useRef<string | null>(null);
   const todayKey = toDateKey(new Date());
 
+  const [gymSessionCount, setGymSessionCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(
+          withBasePath(`/api/workouts?date=${selectedDate}&limit=20`),
+        );
+        if (!resp.ok || cancelled) return;
+        const payload = (await resp.json()) as {
+          sessions?: Array<{ endedAt?: string | null; setCount?: number; elapsedSec?: number }>;
+        };
+        const count = (payload.sessions ?? []).filter(
+          (s) =>
+            Boolean(s.endedAt) ||
+            (Number(s.elapsedSec) || 0) > 0 ||
+            (Number(s.setCount) || 0) > 0,
+        ).length;
+        if (!cancelled) setGymSessionCount(count);
+      } catch {
+        if (!cancelled) setGymSessionCount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, refreshKey]);
+
   const progress = useMemo(() => {
     if (!day?.data || day.date !== selectedDate) return null;
     const mealCount = day.data.meals?.entries?.length ?? 0;
@@ -46,8 +76,9 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
       mealCount,
       waterMl: day.data.water.totalMl,
       waterTarget: day.data.water.target,
+      gymSessionCount,
     });
-  }, [day, selectedDate]);
+  }, [day, selectedDate, gymSessionCount]);
 
   const tryClaim = useCallback(async () => {
     if (selectedDate !== today) return;
@@ -91,7 +122,8 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
   if (!progress || selectedDate !== today) return null;
 
-  const doneCount = progress.quests.filter((q) => q.done).length;
+  const requiredQuests = progress.quests.filter((q) => !q.bonus);
+  const doneCount = requiredQuests.filter((q) => q.done).length;
 
   return (
     <>
@@ -101,7 +133,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
             На сегодня
           </p>
           <span className="text-xs font-bold tabular-nums text-slate-600">
-            {doneCount}/{progress.quests.length}
+            {doneCount}/{requiredQuests.length}
           </span>
         </div>
         <ul className="mt-1.5 flex flex-col gap-1">
@@ -115,6 +147,9 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
               <span className="truncate">
                 {q.done ? "✓ " : "○ "}
                 {q.title}
+                {q.bonus && !q.done ? (
+                  <span className="ml-1 text-[10px] font-medium text-slate-400">бонус</span>
+                ) : null}
               </span>
               {q.done ? (
                 <span className="shrink-0 text-[10px] font-medium text-teal-600">{q.doneHint}</span>

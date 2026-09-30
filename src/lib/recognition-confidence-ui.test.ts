@@ -7,6 +7,7 @@ import {
   confidenceWhyHint,
   confidenceReshootHint,
   confidenceActionHint,
+  suggestedPhotoContextChips,
 } from "./recognition-confidence-ui.ts";
 
 test("formatConfidencePercent clamps and rounds", () => {
@@ -58,4 +59,13 @@ test("confidenceReshootHint drink-aware low", () => {
 
 test("confidenceActionHint drink medium mentions volume", () => {
   assert.match(confidenceActionHint("medium", { dishName: "Молоко 2.5%" }) ?? "", /мл|объём/i);
+});
+
+test("suggestedPhotoContextChips empty for high, offers plate/label/restaurant for low meal", () => {
+  assert.deepEqual(suggestedPhotoContextChips("high"), []);
+  assert.deepEqual(suggestedPhotoContextChips("low"), ["plate", "label", "restaurant"]);
+  assert.deepEqual(suggestedPhotoContextChips("medium", { photoKind: "label" }), [
+    "label",
+    "plate",
+  ]);
 });
