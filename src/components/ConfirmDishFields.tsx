@@ -332,8 +332,8 @@ export function DishFields({
           <>
             {review.missingMacros && !review.missingCalories ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
-                Есть калории, но белки/жиры/углеводы нулевые — нажмите «Уточнить по названию» или
-                заполните БЖУ вручную.
+                Есть калории, но БЖУ неполные — нажмите «Уточнить БЖУ» или заполните белки/жиры/углеводы
+                вручную.
               </p>
             ) : null}
 
