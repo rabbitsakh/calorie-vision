@@ -10,6 +10,10 @@ import { APP_NAV, navKeepsDate } from "@/lib/navigation";
 import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
+import {
+  countWorkoutSetDrafts,
+  subscribeWorkoutSetDraftQueue,
+} from "@/lib/workout-set-draft-queue";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type MobileTabBarProps = {
@@ -28,15 +32,23 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
-    const refresh = () => setQueueCount(countOfflineQueue() + countWaterDrafts() + countWeightDrafts());
+    const refresh = () =>
+      setQueueCount(
+        countOfflineQueue() +
+          countWaterDrafts() +
+          countWeightDrafts() +
+          countWorkoutSetDrafts(),
+      );
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);
     const unsubWater = subscribeWaterDraftQueue(refresh);
     const unsubWeight = subscribeWeightDraftQueue(refresh);
+    const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
     return () => {
       unsubMeal();
       unsubWater();
       unsubWeight();
+      unsubSets();
     };
   }, []);
 

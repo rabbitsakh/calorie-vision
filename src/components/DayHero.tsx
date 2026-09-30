@@ -11,6 +11,11 @@ import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
 import { useTimezone } from "@/lib/use-timezone";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import {
+  estimateDayWorkoutBurnKcal,
+  formatWorkoutBurnHint,
+  type WorkoutBurnSessionLike,
+} from "@/lib/workout-day-burn";
 
 type ProgressData = {
   calories: number;
@@ -117,10 +122,14 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
   const timezone = useTimezone();
   const [data, setData] = useState<ProgressData | null>(null);
+  const [workoutBurnKcal, setWorkoutBurnKcal] = useState(0);
+  const [workoutSessionCount, setWorkoutSessionCount] = useState(0);
   const atmosphere = dayHeroAtmosphereClass(hourInTimezone(new Date(), timezone));
 
   useEffect(() => {
     setData(null);
+    setWorkoutBurnKcal(0);
+    setWorkoutSessionCount(0);
   }, [selectedDate]);
 
   useEffect(() => {
@@ -179,16 +188,46 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     })();
   }, [selectedDate, refreshKey, day]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath(`/api/workouts?date=${selectedDate}&limit=20`));
+        if (!resp.ok || cancelled) return;
+        const payload = (await resp.json()) as {
+          sessions?: WorkoutBurnSessionLike[];
+        };
+        const sessions = (payload.sessions ?? []).filter(
+          (s) => Boolean(s.endedAt) || (Number(s.elapsedSec) || 0) > 0 || (Number(s.setCount) || 0) > 0,
+        );
+        if (cancelled) return;
+        setWorkoutSessionCount(sessions.length);
+        setWorkoutBurnKcal(estimateDayWorkoutBurnKcal(sessions));
+      } catch {
+        if (!cancelled) {
+          setWorkoutSessionCount(0);
+          setWorkoutBurnKcal(0);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, refreshKey]);
+
   const waitingForData =
     !data &&
     (Boolean(day?.loading && day.date === selectedDate) ||
       Boolean(day && day.date === selectedDate && !day.data && !day.error) ||
       !day);
 
+  const effectiveTarget =
+    data?.calorieTarget != null && data.calorieTarget > 0
+      ? data.calorieTarget + Math.max(0, workoutBurnKcal)
+      : data?.calorieTarget ?? null;
+
   const caloriePct =
-    data?.calorieTarget && data.calorieTarget > 0
-      ? (data.calories / data.calorieTarget) * 100
-      : 0;
+    effectiveTarget && effectiveTarget > 0 ? (data!.calories / effectiveTarget) * 100 : 0;
 
   const streak = day?.data?.streak?.streak ?? 0;
   const loggedToday = day?.data?.streak?.loggedToday ?? (data?.calories ?? 0) > 0;
@@ -199,23 +238,24 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     () =>
       buildDayHeroCopy({
         calories: data?.calories ?? 0,
-        calorieTarget: data?.calorieTarget ?? null,
+        calorieTarget: effectiveTarget,
         caloriePct,
         streak,
         loggedToday,
         isToday,
         holiday,
       }),
-    [data?.calories, data?.calorieTarget, caloriePct, streak, loggedToday, isToday, holiday],
+    [data?.calories, effectiveTarget, caloriePct, streak, loggedToday, isToday, holiday],
   );
 
   if (waitingForData) {
     return <DayHeroSkeleton />;
   }
 
+  const burnHint = formatWorkoutBurnHint(workoutBurnKcal, workoutSessionCount);
   const calLabel =
     data?.calorieTarget != null
-      ? `${data.calories} / ${data.calorieTarget} ккал`
+      ? `${data.calories} / ${Math.round(effectiveTarget ?? data.calorieTarget)} ккал`
       : data
         ? `${data.calories} ккал`
         : "—";
@@ -244,10 +284,11 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
           </p>
           <p className="mt-1.5 text-xs font-medium text-slate-600">
             {calLabel}
+            {burnHint ? ` · ${burnHint}` : ""}
             {holiday ? " · праздн. запас" : ""}
           </p>
         </div>
-        <HeroRing pct={data?.calorieTarget ? caloriePct : 0} />
+        <HeroRing pct={effectiveTarget ? caloriePct : 0} />
       </div>
     </section>
   );
