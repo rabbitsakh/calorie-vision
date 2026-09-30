@@ -666,6 +666,10 @@ export function isMissingCaloriesForReview(
  * Kcal present but all macros zero — usually a bad plate pass / incomplete enrichment.
  * Skip drinks (often legitimately ~0 protein/fat).
  */
+/**
+ * Trust: flag incomplete BJU when kcal exist but fewer than two of P/F/C are set.
+ * Drinks often have near-zero macros — skip to avoid false «Уточнить БЖУ».
+ */
 export function isMissingMacrosForReview(
   item: Pick<FoodRecognitionResult, "dishName" | "brand" | "calories" | "protein" | "fat" | "carbs">,
 ): boolean {
@@ -675,7 +679,8 @@ export function isMissingMacrosForReview(
   const protein = Number(item.protein) || 0;
   const fat = Number(item.fat) || 0;
   const carbs = Number(item.carbs) || 0;
-  return protein <= 0 && fat <= 0 && carbs <= 0;
+  const filled = [protein, fat, carbs].filter((value) => value > 0).length;
+  return filled < 2;
 }
 
 /** Resolve portion shown on confirm card (bottle ml from label text when vision omits volume). */

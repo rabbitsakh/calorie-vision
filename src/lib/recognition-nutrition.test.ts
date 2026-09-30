@@ -677,7 +677,7 @@ test("isMissingCaloriesForReview ignores zero portion when per100g is present", 
   assert.equal(isMissingCaloriesForReview(50, undefined), false);
 });
 
-test("isMissingMacrosForReview flags kcal without BJU, skips drinks", () => {
+test("isMissingMacrosForReview flags kcal without complete BJU, skips drinks", () => {
   assert.equal(
     isMissingMacrosForReview({
       dishName: "Котлета",
@@ -688,12 +688,23 @@ test("isMissingMacrosForReview flags kcal without BJU, skips drinks", () => {
     }),
     true,
   );
+  // Only one macro filled — still incomplete for trust review.
   assert.equal(
     isMissingMacrosForReview({
       dishName: "Котлета",
       calories: 320,
       protein: 20,
       fat: 0,
+      carbs: 0,
+    }),
+    true,
+  );
+  assert.equal(
+    isMissingMacrosForReview({
+      dishName: "Котлета",
+      calories: 320,
+      protein: 20,
+      fat: 15,
       carbs: 0,
     }),
     false,

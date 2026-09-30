@@ -145,6 +145,16 @@ export function trackFirstConfirmSaveGoal(): void {
   store?.setItem(FIRST_CONFIRM_SAVE_KEY, "1");
 }
 
+/** Soft-save («как есть») — once per day for funnel share. */
+export function trackConfirmSaveAsIsGoal(now = Date.now()): void {
+  trackOncePerDay("cv_metrika_confirm_save_as_is_day", METRIKA_GOALS.confirmSaveAsIs, now);
+}
+
+/** Confirm «Уточнить» tap — once per day. */
+export function trackConfirmLookupGoal(now = Date.now()): void {
+  trackOncePerDay("cv_metrika_confirm_lookup_day", METRIKA_GOALS.confirmLookup, now);
+}
+
 /**
  * d7_return: user opened the app again at least 7 days after first open.
  * Fires once per browser.
@@ -194,5 +204,7 @@ export function resetMetrikaFunnelStorageForTests(): void {
   localStore()?.removeItem(ONBOARDING_COMPLETE_KEY);
   localStore()?.removeItem(ONBOARDING_PHOTO_CTA_KEY);
   localStore()?.removeItem(FIRST_CONFIRM_SAVE_KEY);
+  localStore()?.removeItem("cv_metrika_confirm_save_as_is_day");
+  localStore()?.removeItem("cv_metrika_confirm_lookup_day");
   sessionStore()?.removeItem(LOGIN_SENT_KEY);
 }
