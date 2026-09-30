@@ -33,8 +33,6 @@ type Props = {
   /** No history at all — first-ever gym open. */
   firstWorkout?: boolean;
   onOpenSession: (id: string) => void;
-  /** Open session and jump straight into fullscreen gym stage. */
-  onContinueInGym?: (id: string) => void;
   onStartBlank: () => void;
   onStartRoutine: (routineId: string) => void;
   onEditRoutine: (routineId: string) => void;
@@ -71,7 +69,6 @@ export function WorkoutWeekPlan({
   sessions,
   firstWorkout = false,
   onOpenSession,
-  onContinueInGym,
   onStartBlank,
   onStartRoutine,
   onEditRoutine,
@@ -149,18 +146,10 @@ export function WorkoutWeekPlan({
             className="mt-3 w-full rounded-xl bg-teal-700 py-3 text-base font-bold text-white disabled:opacity-40"
             onClick={() => onOpenSession(active.id)}
           >
-            Продолжить
+            {active.clockStatus === "running" || active.clockStatus === "paused"
+              ? "Продолжить в зале"
+              : "Открыть"}
           </button>
-          {onContinueInGym ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="mt-2 w-full rounded-xl border-2 border-teal-700 bg-white py-3 text-base font-bold text-teal-900 disabled:opacity-40"
-              onClick={() => onContinueInGym(active.id)}
-            >
-              Продолжить в зале
-            </button>
-          ) : null}
         </section>
       ) : null}
 
