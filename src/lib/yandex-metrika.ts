@@ -34,6 +34,10 @@ export const METRIKA_GOALS = {
   onboardingComplete: "onboarding_complete",
   onboardingPhotoCta: "onboarding_photo_cta",
   firstConfirmSave: "first_confirm_save",
+  /** Soft-save from confirm when confidence/macros incomplete. */
+  confirmSaveAsIs: "confirm_save_as_is",
+  /** User tapped Уточнить / Уточнить БЖУ on confirm. */
+  confirmLookup: "confirm_lookup",
 } as const;
 
 export type MetrikaGoal = (typeof METRIKA_GOALS)[keyof typeof METRIKA_GOALS];
