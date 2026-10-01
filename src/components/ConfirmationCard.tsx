@@ -987,7 +987,7 @@ export function ConfirmationCard({
         {hasImage ? (
           <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl">
             {!imageLoaded ? (
-              <div className="absolute inset-0 min-h-44 animate-pulse bg-slate-200" aria-hidden />
+              <div className="absolute inset-0 min-h-36 animate-pulse bg-slate-200" aria-hidden />
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -1000,54 +1000,21 @@ export function ConfirmationCard({
             />
             <div className="confirm-hero-overlay">
               <h2 className="font-display text-lg font-bold">Проверьте и сохраните</h2>
-              <p className="mt-0.5 text-sm text-white/80">
+              <p className="mt-0.5 text-sm text-white/85">
                 {multi
                   ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                  : dishes[0]?.dishName || "Проверьте порцию и калории"}
+                  : dishes[0]?.dishName || "Порция и калории"}
               </p>
-              {!multi && dishes[0] ? (
-                <div className="mt-2">
-                  <ConfidenceBadge
-                    confidence={dishes[0].original.confidence}
-                    threshold={lowConfidenceThreshold}
-                    photoKind={dishes[0].original.photoKind}
-                    source={dishes[0].original.source}
-                    dishName={dishes[0].dishName || dishes[0].original.dishName}
-                    nutritionBasis={
-                      shouldSurfaceNutritionBasis(dishes[0].original)
-                        ? describeNutritionBasis(dishes[0].original)
-                        : null
-                    }
-                    inverted
-                  />
-                </div>
-              ) : null}
             </div>
           </div>
         ) : (
           <div>
-            <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
+            <h2 className="font-display text-xl font-bold">Проверьте и сохраните</h2>
             <p className="mt-1 text-sm text-slate-500">
               {multi
                 ? "Несколько блюд — поправьте порции и сохраните."
-                : "Проверьте порцию и калории. БЖУ можно уточнить ниже."}
+                : "Порция и калории — сохраните. БЖУ при необходимости ниже."}
             </p>
-            {!multi && dishes[0] ? (
-              <div className="mt-2">
-                <ConfidenceBadge
-                  confidence={dishes[0].original.confidence}
-                  threshold={lowConfidenceThreshold}
-                  photoKind={dishes[0].original.photoKind}
-                  source={dishes[0].original.source}
-                  dishName={dishes[0].dishName || dishes[0].original.dishName}
-                  nutritionBasis={
-                    shouldSurfaceNutritionBasis(dishes[0].original)
-                      ? describeNutritionBasis(dishes[0].original)
-                      : null
-                  }
-                />
-              </div>
-            ) : null}
           </div>
         )}
 
@@ -1088,105 +1055,14 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* One primary review strip — no stacked enriching + lookup-all copy. */}
-        {enriching || recognition.enrichmentTimedOut || needsReview ? (
-          <div
-            className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${
-              enriching
-                ? "border-teal-200 bg-teal-50 text-teal-950"
-                : "border-amber-200 bg-amber-50 text-amber-950"
-            }`}
-          >
-            <p className="min-w-0 flex-1 font-semibold leading-snug">
-              {enriching
-                ? totalCalories > 0
-                  ? `${totalCalories} ккал — можно сохранить`
-                  : "Уточняем по базе — можно сохранить"
-                : recognition.enrichmentTimedOut
-                  ? "Уточнение не завершилось — проверьте ккал"
-                  : anyMissingCalories
-                    ? "Нет калорий — уточните название"
-                    : anyMissingMacros
-                      ? "Ккал есть, БЖУ неполные — уточните"
-                      : anyLowConfidence && multi
-                        ? `Слабая уверенность · ${lowConfidenceDishes.length}/${dishes.length}`
-                        : anyLowConfidence && lowestConfidenceDish
-                          ? `Слабая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)})`
-                          : "Проверьте блюдо"}
-            </p>
-            {reviewCta ? (
-              <button
-                type="button"
-                className="btn btn-primary shrink-0 px-3 py-1.5 text-sm disabled:opacity-50"
-                disabled={
-                  formDisabled ||
-                  (reviewCta.mode === "lookup-one"
-                    ? !reviewTargetDish || searchingId === reviewTargetDish.id
-                    : bulkLookupRunning)
-                }
-                onClick={() => {
-                  trackConfirmLookupGoal();
-                  if (reviewCta.mode === "force-all") {
-                    void handleLookupAll({ forceAll: true });
-                    return;
-                  }
-                  if (reviewCta.mode === "lookup-all") {
-                    void handleLookupAll();
-                    return;
-                  }
-                  if (!reviewTargetDish) return;
-                  const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
-                  if (idx >= 0) setActiveDish(idx);
-                  void handleLookup(reviewTargetDish);
-                }}
-              >
-                {reviewCta.mode === "force-all" || reviewCta.mode === "lookup-all"
-                  ? bulkLookupRunning
-                    ? reviewCta.busyLabel
-                    : reviewCta.label
-                  : searchingId === reviewTargetDish?.id || bulkLookupRunning
-                    ? reviewCta.busyLabel
-                    : reviewCta.label}
-              </button>
-            ) : null}
-          </div>
+        {/* Soft status only while enriching — keeps skim free of trust wall. */}
+        {enriching ? (
+          <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-950">
+            {totalCalories > 0
+              ? `${totalCalories} ккал — можно сохранить`
+              : "Уточняем по базе — можно сохранить"}
+          </p>
         ) : null}
-
-        {(() => {
-          if (!onRerunWithContext) return null;
-          const tone = getConfidenceTone(
-            lowestConfidenceDish?.original.confidence ??
-              dishes[0]?.original.confidence ??
-              0.5,
-            lowConfidenceThreshold,
-          );
-          const chips = suggestedPhotoContextChips(tone, {
-            photoKind:
-              lowestConfidenceDish?.original.photoKind ?? recognition.photoKind,
-            dishName: lowestConfidenceDish?.dishName ?? dishes[0]?.dishName,
-          });
-          if (chips.length === 0) return null;
-          return (
-            <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <p className="text-xs font-semibold text-slate-700">
-                Переснять с подсказкой контекста
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {chips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-50"
-                    disabled={saving || searching}
-                    onClick={() => onRerunWithContext(chip)}
-                  >
-                    {photoContextChipLabel(chip)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
 
         <div className="flex flex-col gap-4">
           {(multi ? dishes.filter((_, index) => index === Math.min(activeDish, dishes.length - 1)) : dishes).map(
@@ -1277,6 +1153,7 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
+        {/* Allergen ack stays on skim — required for save when hits exist. */}
         {allergenHits.length > 0 ? (
           <div
             ref={allergenBlockRef}
@@ -1297,7 +1174,7 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* Trust: when review needed, Уточнить is primary; Save demoted (как есть). */}
+        {/* D3 skim CTA: Save first; Уточнить demoted when review needed. */}
         <div className="confirm-card-actions">
           {multi ? (
             <p className="w-full text-center text-xs font-medium text-slate-500">
@@ -1379,18 +1256,91 @@ export function ConfirmationCard({
           </p>
         ) : null}
 
-        <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">
-          <summary className="cursor-pointer select-none font-semibold text-slate-800">
-            Приём и время
+        {/* D3: one fold for trust / meal time / recognition meta / reshoot context. */}
+        <details className="confirm-details-fold">
+          <summary>
+            Подробнее
+            {!multi && dishes[0]
+              ? ` · ${formatConfidencePercent(dishes[0].original.confidence)}`
+              : ""}
             {mealType
               ? ` · ${MEAL_TYPE_LABELS[mealType as keyof typeof MEAL_TYPE_LABELS] ?? mealType}`
               : ""}
-            {eatenTime ? ` · ${eatenTime}` : ""}
           </summary>
-          <div className="mt-3 flex flex-col gap-3">
+          <div className="confirm-details-fold__body">
+            {!multi && dishes[0] ? (
+              <ConfidenceBadge
+                confidence={dishes[0].original.confidence}
+                threshold={lowConfidenceThreshold}
+                photoKind={dishes[0].original.photoKind}
+                source={dishes[0].original.source}
+                dishName={dishes[0].dishName || dishes[0].original.dishName}
+                nutritionBasis={
+                  shouldSurfaceNutritionBasis(dishes[0].original)
+                    ? describeNutritionBasis(dishes[0].original)
+                    : null
+                }
+              />
+            ) : null}
+
+            {!enriching && (recognition.enrichmentTimedOut || needsReview) ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                <p className="min-w-0 flex-1 font-semibold leading-snug">
+                  {recognition.enrichmentTimedOut
+                    ? "Уточнение не завершилось — проверьте ккал"
+                    : anyMissingCalories
+                      ? "Нет калорий — уточните название"
+                      : anyMissingMacros
+                        ? "Ккал есть, БЖУ неполные — уточните"
+                        : anyLowConfidence && multi
+                          ? `Слабая уверенность · ${lowConfidenceDishes.length}/${dishes.length}`
+                          : anyLowConfidence && lowestConfidenceDish
+                            ? `Слабая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)})`
+                            : "Проверьте блюдо"}
+                </p>
+              </div>
+            ) : null}
+
+            {(() => {
+              if (!onRerunWithContext) return null;
+              const tone = getConfidenceTone(
+                lowestConfidenceDish?.original.confidence ??
+                  dishes[0]?.original.confidence ??
+                  0.5,
+                lowConfidenceThreshold,
+              );
+              const chips = suggestedPhotoContextChips(tone, {
+                photoKind:
+                  lowestConfidenceDish?.original.photoKind ?? recognition.photoKind,
+                dishName: lowestConfidenceDish?.dishName ?? dishes[0]?.dishName,
+              });
+              if (chips.length === 0) return null;
+              return (
+                <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
+                  <p className="text-xs font-semibold text-slate-700">
+                    Переснять с подсказкой контекста
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-50"
+                        disabled={saving || searching}
+                        onClick={() => onRerunWithContext(chip)}
+                      >
+                        {photoContextChipLabel(chip)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             <div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Приём пищи
+                {eatenTime ? ` · ${eatenTime}` : ""}
               </p>
               <div className="chip-row-fill">
                 {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(
@@ -1406,43 +1356,38 @@ export function ConfirmationCard({
                   ),
                 )}
               </div>
+              <div className="field mt-3 max-w-[12rem]">
+                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Время приёма
+                </label>
+                <input
+                  type="time"
+                  className="mt-1.5"
+                  value={eatenTime}
+                  disabled={saving}
+                  onChange={(e) => setEatenTime(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="field max-w-[12rem]">
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Время приёма
-              </label>
-              <input
-                type="time"
-                className="mt-1.5"
-                value={eatenTime}
-                disabled={saving}
-                onChange={(e) => setEatenTime(e.target.value)}
-                required
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                Для статистики по часам и бюджета приёмов
+
+            <div className="space-y-1 text-xs text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Распознавание
+              </p>
+              <p>
+                {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
+                {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
+                {recognition.photoKind === "label" ? " · этикетка" : ""}
+              </p>
+              <p>
+                {multi
+                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+                  : `Уверенность: ${formatConfidencePercent(recognition.confidence)}`}
+                {recognition.barcode ? ` · ${recognition.barcode}` : ""}
+                {recognition.brand ? ` · ${recognition.brand}` : ""}
               </p>
             </div>
-          </div>
-        </details>
-
-        <details className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700">
-          <summary className="cursor-pointer select-none font-semibold text-slate-800">
-            Подробности распознавания
-          </summary>
-          <div className="mt-2 space-y-1 text-xs text-slate-600">
-            <p>
-              {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
-              {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
-              {recognition.photoKind === "label" ? " · этикетка" : ""}
-            </p>
-            <p>
-              {multi
-                ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                : `Уверенность: ${formatConfidencePercent(recognition.confidence)}`}
-              {recognition.barcode ? ` · ${recognition.barcode}` : ""}
-              {recognition.brand ? ` · ${recognition.brand}` : ""}
-            </p>
           </div>
         </details>
       </div>

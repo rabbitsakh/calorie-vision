@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^feat\(design\): D3 confirm photo-first skim$/i, "Дизайн: подтверждение блюда — фото, порция, ккал и сохранение; подробности в одном fold"],
   [/^feat\(design\): D2 declutter ration day-more$/i, "Дизайн: рацион ниже ленты — один слот удержания и дверь в привычки/план"],
   [/^feat\(design\): D0\+D1 tokens and app chrome$/i, "Дизайн: единые токены и шапка без карточки — совместимо с APK 2.3.22"],
   [/^fix\(apk\): profile avatar missing in WebView$/i, "Исправление: фото профиля снова видно в приложении Android"],
