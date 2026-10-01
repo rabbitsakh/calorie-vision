@@ -876,28 +876,31 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     }
   };
 
-  const refreshDetail = async (session: SessionDetail) => {
-    setDetail(session);
-    const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-      await fetch(withBasePath(`/api/workouts/${session.id}`)),
-    );
-    setDetail(data.session);
-    setProgress(data.progress);
-    setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-    setSetDrafts((prev) => {
-      const next = { ...prev };
-      for (const ex of data.session.exercises) {
-        const cur = next[ex.id];
-        if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
-        const last = ex.lastTime?.sets?.at(-1);
-        if (last) {
-          next[ex.id] = draftFromHistorySet(last, ex.kind);
+  const refreshDetail = useCallback(
+    async (session: SessionDetail) => {
+      setDetail(session);
+      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        await fetch(withBasePath(`/api/workouts/${session.id}`)),
+      );
+      setDetail(data.session);
+      setProgress(data.progress);
+      setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
+      setSetDrafts((prev) => {
+        const next = { ...prev };
+        for (const ex of data.session.exercises) {
+          const cur = next[ex.id];
+          if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
+          const last = ex.lastTime?.sets?.at(-1);
+          if (last) {
+            next[ex.id] = draftFromHistorySet(last, ex.kind);
+          }
         }
-      }
-      return next;
-    });
-    await loadList();
-  };
+        return next;
+      });
+      await loadList();
+    },
+    [loadList],
+  );
 
   const flushQueuedSets = useCallback(async () => {
     const items = listWorkoutSetDrafts();
@@ -928,7 +931,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         void loadList();
       }
     }
-  }, [detail?.id, loadList]);
+  }, [detail?.id, loadList, refreshDetail]);
 
   useEffect(() => {
     function onOnline() {
