@@ -36,9 +36,10 @@ _progress_draw() {
   (( pct > 100 )) && pct=100
   local filled=$((pct * width / 100))
   local empty=$((width - filled))
-  local bar
-  bar="$(printf '%*s' "$filled" '' | tr ' ' '█')"
-  bar+="$(printf '%*s' "$empty" '' | tr ' ' '░')"
+  local bar="" i
+  # ASCII-safe bar (reliable width; works over SSH without UTF-8 quirks).
+  for ((i = 0; i < filled; i++)); do bar+="#"; done
+  for ((i = 0; i < empty; i++)); do bar+="-"; done
   if (( _IS_TTY )); then
     printf '\r\033[K[%s] %3d%%  %s' "$bar" "$pct" "$label" >&2
   else
