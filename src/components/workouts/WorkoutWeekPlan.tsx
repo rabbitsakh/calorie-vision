@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
+import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
+import { useTimezone } from "@/lib/use-timezone";
 import { formatDistanceKm, formatDurationMinutes } from "@/lib/workouts/cardio";
 import { WEEKDAY_LABELS_RU } from "@/lib/workouts/weekdays";
 import type { SerializedRoutine } from "@/lib/workouts/routines";
@@ -62,7 +65,7 @@ function sessionMetric(s: TodaySessionCard): string {
 }
 
 /**
- * Today hub: one clear story — what's happening now, then how to start, then week plan.
+ * D5: Today hub as one day scene (atmosphere + actions), not a card stack.
  */
 export function WorkoutWeekPlan({
   todayKey,
@@ -75,10 +78,16 @@ export function WorkoutWeekPlan({
   onGoTemplates,
   busy,
 }: Props) {
+  const timezone = useTimezone();
   const [data, setData] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [weekOpen, setWeekOpen] = useState(false);
+
+  const atmosphere = useMemo(
+    () => dayHeroAtmosphereClass(hourInTimezone(new Date(), timezone)),
+    [timezone],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -110,254 +119,297 @@ export function WorkoutWeekPlan({
   const isFirstEmpty =
     firstWorkout && !active && drafts.length === 0 && finished.length === 0;
 
+  const sceneHeadline = active
+    ? `${statusLabel(active.clockStatus)} · ${active.muscleLabels.join(" · ") || "Тренировка"}`
+    : drafts.length > 0
+      ? "Есть незавершённая"
+      : finished.length > 0
+        ? "Уже потренировались"
+        : isFirstEmpty
+          ? "Первая тренировка"
+          : "Начать сегодня";
+
+  const sceneMeta = active
+    ? [
+        active.elapsedLabel,
+        `${active.exerciseCount} упр.`,
+        sessionMetric(active),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : data
+      ? data.weekdayLabel
+      : "Зал";
+
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <h2 className="text-xl font-semibold text-slate-900">
-          Сегодня
-          {data ? (
-            <span className="ml-2 text-base font-medium text-slate-500">
-              · {data.weekdayLabel}
-            </span>
-          ) : null}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          {isFirstEmpty
-            ? "Начните первую тренировку — упражнения добавите по ходу."
-            : "Продолжите тренировку или начните новую."}
-        </p>
-      </header>
-
-      {active ? (
-        <section className="rounded-2xl border-2 border-teal-400 bg-teal-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
-            Сейчас · {statusLabel(active.clockStatus)}
-            {active.elapsedLabel ? ` · ${active.elapsedLabel}` : ""}
-          </p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">
-            {active.muscleLabels.join(" · ") || "Тренировка"}
-          </p>
-          <p className="text-sm text-slate-600">
-            {active.exerciseCount} упр. · {sessionMetric(active)}
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            className="mt-3 w-full rounded-xl bg-teal-700 py-3 text-base font-bold text-white disabled:opacity-40"
-            onClick={() => onOpenSession(active.id)}
-          >
-            {active.clockStatus === "running" || active.clockStatus === "paused"
-              ? "Продолжить в зале"
-              : "Открыть"}
-          </button>
-        </section>
-      ) : null}
-
-      {!active && drafts.length > 0 ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
-            Незавершённые сегодня
-          </p>
-          <ul className="mt-2 space-y-2">
-            {drafts.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">
-                    {s.muscleLabels.join(" · ") || "Тренировка"}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {s.exerciseCount} упр. · {s.setCount} подх.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="shrink-0 rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                  onClick={() => onOpenSession(s.id)}
-                >
-                  Открыть
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            disabled={busy}
-            className="mt-3 text-sm font-medium text-teal-800 disabled:opacity-40"
-            onClick={onStartBlank}
-          >
-            + Новая вместо этого
-          </button>
-        </section>
-      ) : null}
-
-      {!active && drafts.length === 0 ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-900">
-            {isFirstEmpty ? "Первая тренировка" : "Начать тренировку"}
-          </p>
-          <p className="mt-1 text-sm text-slate-500">
-            {isFirstEmpty
-              ? "Один тап — и вы в зале. Подходы и кардио можно добавить сразу."
-              : "Пустая сессия на сегодня — упражнения добавите сами."}
-          </p>
-          <button
-            type="button"
-            disabled={busy}
-            className="mt-3 w-full rounded-xl bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
-            onClick={onStartBlank}
-          >
-            {isFirstEmpty ? "Начать тренировку" : "Новая тренировка"}
-          </button>
-
-          {isFirstEmpty ? null : loading ? (
-            <p className="mt-4 text-sm text-slate-400">Загрузка плана…</p>
-          ) : error ? (
-            <p className="mt-4 text-sm text-red-600">{error}</p>
-          ) : planned.length > 0 ? (
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Или по плану на сегодня
-              </p>
-              <ul className="mt-2 space-y-2">
-                {planned.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">
-                        {r.planLabel ? (
-                          <span className="mr-1.5 rounded bg-teal-700 px-1.5 py-0.5 text-xs text-white">
-                            {r.planLabel}
-                          </span>
-                        ) : null}
-                        {r.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="shrink-0 rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                      onClick={() => onStartRoutine(r.id)}
-                    >
-                      Старт
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-500">
-              Плана на сегодня нет.{" "}
-              <button
-                type="button"
-                className="font-medium text-teal-800 underline-offset-2 hover:underline"
-                onClick={onGoTemplates}
-              >
-                Назначить дни в шаблонах
-              </button>
+    <div className="gym-day">
+      <section
+        className={`day-hero day-hero--scene ${atmosphere}`}
+        aria-label="Сводка зала на сегодня"
+      >
+        <div className="day-hero-glow" aria-hidden />
+        <div className="relative flex items-center gap-3 px-3.5 py-4 md:px-5 md:py-5">
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
+              Сегодня{data ? ` · ${data.weekdayLabel}` : ""}
             </p>
-          )}
-        </section>
-      ) : null}
+            <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+              {sceneHeadline}
+            </p>
+            <p className="mt-1.5 text-xs font-medium text-slate-600">{sceneMeta}</p>
+          </div>
+          {active ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3.5 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+              onClick={() => onOpenSession(active.id)}
+            >
+              В зал
+            </button>
+          ) : null}
+        </div>
+      </section>
 
-      {finished.length > 0 ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Уже сегодня
-          </p>
-          <ul className="mt-2 space-y-2">
-            {finished.map((s) => (
-              <li key={s.id} className="flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-slate-900">
-                    {s.muscleLabels.join(" · ") || "Тренировка"}
-                  </p>
-                  <p className="text-xs text-slate-500">{sessionMetric(s)}</p>
-                </div>
-                <button
-                  type="button"
-                  className="shrink-0 text-sm font-semibold text-teal-800"
-                  onClick={() => onOpenSession(s.id)}
-                >
-                  Итог
-                </button>
-              </li>
-            ))}
-          </ul>
-          {active || drafts.length > 0 ? null : (
+      <div className="gym-today-feed">
+        {active ? (
+          <div className="gym-today-row">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
+                Сейчас · {statusLabel(active.clockStatus)}
+              </p>
+              <p className="mt-0.5 font-semibold text-slate-900">
+                {active.muscleLabels.join(" · ") || "Тренировка"}
+              </p>
+              <p className="text-sm text-slate-600">
+                {active.exerciseCount} упр. · {sessionMetric(active)}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              onClick={() => onOpenSession(active.id)}
+            >
+              Продолжить
+            </button>
+          </div>
+        ) : null}
+
+        {!active && drafts.length > 0 ? (
+          <div className="gym-today-block">
+            <p className="text-xs font-semibold uppercase tracking-wide text-amber-900">
+              Незавершённые сегодня
+            </p>
+            <ul className="mt-2 space-y-2">
+              {drafts.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">
+                      {s.muscleLabels.join(" · ") || "Тренировка"}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {s.exerciseCount} упр. · {s.setCount} подх.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                    onClick={() => onOpenSession(s.id)}
+                  >
+                    Открыть
+                  </button>
+                </li>
+              ))}
+            </ul>
             <button
               type="button"
               disabled={busy}
               className="mt-3 text-sm font-medium text-teal-800 disabled:opacity-40"
               onClick={onStartBlank}
             >
-              + Ещё одна сегодня
+              + Новая вместо этого
             </button>
-          )}
-        </section>
-      ) : null}
+          </div>
+        ) : null}
 
-      {isFirstEmpty ? null : (
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between text-left"
-          onClick={() => setWeekOpen((v) => !v)}
-        >
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            План на неделю
-          </span>
-          <span className="text-sm text-slate-400">{weekOpen ? "▾" : "▸"}</span>
-        </button>
-        {weekOpen ? (
-          loading || !data ? (
-            <p className="mt-2 text-sm text-slate-400">…</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {data.week.map((day) => (
-                <li key={day.weekday} className="flex gap-3 text-sm">
-                  <span
-                    className={`w-8 shrink-0 font-semibold ${
-                      day.weekday === data.weekday ? "text-teal-800" : "text-slate-500"
-                    }`}
-                  >
-                    {WEEKDAY_LABELS_RU[day.weekday]}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    {day.routines.length === 0 ? (
-                      <span className="text-slate-400">—</span>
-                    ) : (
-                      day.routines.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          className="mr-2 text-left font-medium text-teal-900 underline-offset-2 hover:underline"
-                          onClick={() => onEditRoutine(r.id)}
-                        >
-                          {r.planLabel ? `${r.planLabel}: ` : ""}
+        {!active && drafts.length === 0 ? (
+          <div className="gym-today-block">
+            <p className="text-sm font-semibold text-slate-900">
+              {isFirstEmpty ? "Первая тренировка" : "Начать тренировку"}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {isFirstEmpty
+                ? "Один тап — и вы в зале. Подходы и кардио можно добавить сразу."
+                : "Пустая сессия на сегодня — упражнения добавите сами."}
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
+              onClick={onStartBlank}
+            >
+              {isFirstEmpty ? "Начать тренировку" : "Новая тренировка"}
+            </button>
+
+            {isFirstEmpty ? null : loading ? (
+              <p className="mt-4 text-sm text-slate-400">Загрузка плана…</p>
+            ) : error ? (
+              <p className="mt-4 text-sm text-red-600">{error}</p>
+            ) : planned.length > 0 ? (
+              <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Или по плану на сегодня
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {planned.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-slate-50/80 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-900">
+                          {r.planLabel ? (
+                            <span className="mr-1.5 rounded bg-teal-700 px-1.5 py-0.5 text-xs text-white">
+                              {r.planLabel}
+                            </span>
+                          ) : null}
                           {r.name}
-                        </button>
-                      ))
-                    )}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                        onClick={() => onStartRoutine(r.id)}
+                      >
+                        Старт
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">
+                Плана на сегодня нет.{" "}
+                <button
+                  type="button"
+                  className="font-medium text-teal-800 underline-offset-2 hover:underline"
+                  onClick={onGoTemplates}
+                >
+                  Назначить дни в шаблонах
+                </button>
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {finished.length > 0 ? (
+          <div className="gym-today-block">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Уже сегодня
+            </p>
+            <ul className="mt-2 space-y-2">
+              {finished.map((s) => (
+                <li key={s.id} className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">
+                      {s.muscleLabels.join(" · ") || "Тренировка"}
+                    </p>
+                    <p className="text-xs text-slate-500">{sessionMetric(s)}</p>
                   </div>
+                  <button
+                    type="button"
+                    className="shrink-0 text-sm font-semibold text-teal-800"
+                    onClick={() => onOpenSession(s.id)}
+                  >
+                    Итог
+                  </button>
                 </li>
               ))}
             </ul>
-          )
-        ) : (
-          <p className="mt-2 text-sm text-slate-500">
-            {planned.length > 0
-              ? `Сегодня: ${planned.map((r) => r.name).join(", ")}`
-              : "Нажмите, чтобы посмотреть дни"}
-          </p>
+            {active || drafts.length > 0 ? null : (
+              <button
+                type="button"
+                disabled={busy}
+                className="mt-3 text-sm font-medium text-teal-800 disabled:opacity-40"
+                onClick={onStartBlank}
+              >
+                + Ещё одна сегодня
+              </button>
+            )}
+          </div>
+        ) : null}
+
+        {isFirstEmpty ? null : (
+          <details
+            className="gym-today-fold group"
+            open={weekOpen}
+            onToggle={(e) => setWeekOpen((e.target as HTMLDetailsElement).open)}
+          >
+            <summary className="gym-today-fold-summary">
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  План на неделю
+                </span>
+                {!weekOpen ? (
+                  <span className="mt-0.5 block text-sm text-slate-500">
+                    {planned.length > 0
+                      ? `Сегодня: ${planned.map((r) => r.name).join(", ")}`
+                      : "Нажмите, чтобы посмотреть дни"}
+                  </span>
+                ) : null}
+              </span>
+              <span
+                className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                aria-hidden
+              >
+                ▾
+              </span>
+            </summary>
+            <div className="gym-today-fold-body">
+              {loading || !data ? (
+                <p className="text-sm text-slate-400">…</p>
+              ) : (
+                <ul className="space-y-2">
+                  {data.week.map((day) => (
+                    <li key={day.weekday} className="flex gap-3 text-sm">
+                      <span
+                        className={`w-8 shrink-0 font-semibold ${
+                          day.weekday === data.weekday ? "text-teal-800" : "text-slate-500"
+                        }`}
+                      >
+                        {WEEKDAY_LABELS_RU[day.weekday]}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        {day.routines.length === 0 ? (
+                          <span className="text-slate-400">—</span>
+                        ) : (
+                          day.routines.map((r) => (
+                            <button
+                              key={r.id}
+                              type="button"
+                              className="mr-2 text-left font-medium text-teal-900 underline-offset-2 hover:underline"
+                              onClick={() => onEditRoutine(r.id)}
+                            >
+                              {r.planLabel ? `${r.planLabel}: ` : ""}
+                              {r.name}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </details>
         )}
-      </section>
-      )}
+      </div>
     </div>
   );
 }

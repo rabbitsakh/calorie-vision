@@ -597,7 +597,7 @@ function MonthHeatmap({
   const weekdays = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
   return (
-    <section className="card p-4 md:p-6">
+    <section className="stats-chart-block">
       <StatsSectionHeader
         title="Календарь калорий"
         under={`Дни относительно цели${calorieTarget ? ` (${calorieTarget} ккал)` : ""}. Нажмите день, чтобы открыть рацион.`}
@@ -665,34 +665,34 @@ function MonthHeatmap({
 
 // ── PrimaryInsightCard ────────────────────────────────────────────────────────
 
-const INSIGHT_TONE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
-  amber: "border-amber-200 bg-amber-50 text-amber-950",
-  sky: "border-sky-200 bg-sky-50 text-sky-950",
-  teal: "border-teal-100 bg-teal-50/70 text-teal-950",
-  slate: "border-slate-200 bg-slate-50 text-slate-800",
+const INSIGHT_SCENE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
+  amber: "day-hero--evening",
+  sky: "day-hero--morning",
+  teal: "day-hero--day",
+  slate: "day-hero--night",
 };
 
-const INSIGHT_TITLE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
-  amber: "opacity-80",
-  sky: "opacity-80",
-  teal: "text-teal-700",
-  slate: "text-teal-700",
-};
-
+/** D6: insight as day scene — not a bordered tone tile. */
 function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
   return (
-    <div
-      className={`rounded-2xl border px-4 py-3 text-sm ${INSIGHT_TONE_CLASS[insight.tone]}`}
+    <section
+      className={`day-hero day-hero--scene stats-insight-scene ${INSIGHT_SCENE_CLASS[insight.tone]}`}
       role="status"
+      aria-label={insight.title}
     >
-      <p
-        className={`text-xs font-medium uppercase tracking-wide ${INSIGHT_TITLE_CLASS[insight.tone]}`}
-      >
-        {insight.title}
-      </p>
-      <p className="mt-1 font-semibold">{insight.body}</p>
-      {insight.detail ? <p className="mt-1.5 text-xs opacity-80">{insight.detail}</p> : null}
-    </div>
+      <div className="day-hero-glow" aria-hidden />
+      <div className="relative px-3.5 py-4 md:px-5 md:py-5">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
+          {insight.title}
+        </p>
+        <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+          {insight.body}
+        </p>
+        {insight.detail ? (
+          <p className="mt-1.5 text-xs font-medium text-slate-600">{insight.detail}</p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -710,7 +710,7 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl px-4 py-3 ${accent ? "bg-teal-50" : "bg-slate-50"}`}>
+    <div className={`stats-stat-tile ${accent ? "stats-stat-tile--accent" : ""}`}>
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
       <div className={`mt-1 text-2xl font-bold ${accent ? "text-teal-700" : ""}`}>{value}</div>
       {sub ? <div className="mt-0.5 text-xs text-slate-400">{sub}</div> : null}
@@ -903,7 +903,7 @@ export function StatsView({ endDate }: StatsViewProps) {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {data && data.summary.totalMealDays === 0 ? (
-        <div className="card flex flex-col items-center gap-3 p-6 text-center">
+        <div className="stats-chart-block flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-slate-600">За этот период пока нет записей.</p>
           <a href={withBasePath("/ration")} className="btn btn-primary text-sm">Добавить еду</a>
         </div>
@@ -935,8 +935,8 @@ export function StatsView({ endDate }: StatsViewProps) {
             </div>
           ) : null}
 
-          {/* Calories — primary chart in first fold (Wave 3) */}
-          <section className="card p-4 md:p-6">
+          {/* Calories — primary chart (D6: no card chrome) */}
+          <section className="stats-chart-block">
             <StatsSectionHeader
               title="Калории по дням"
               meta={
@@ -954,7 +954,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           </section>
 
           {gymSignal && gymSignal.sessionCount > 0 ? (
-            <section className="card flex flex-wrap items-center justify-between gap-3 p-4 md:px-6">
+            <section className="stats-chart-block flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Зал за период</p>
                 <p className="mt-0.5 text-sm font-semibold text-slate-900">
@@ -979,7 +979,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           <button
             type="button"
-            className="flex w-full items-center justify-between rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+            className="stats-more-toggle"
             aria-expanded={chartsOpen}
             onClick={() => setChartsOpen((v) => !v)}
           >
@@ -998,7 +998,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           {chartsOpen ? (
             <>
           {showWowSection && wow ? (
-            <section className="card p-4 md:p-6">
+            <section className="stats-chart-block">
               <StatsSectionHeader
                 title="Спокойное сравнение недель"
                 under="Средние ккал в дни с записями — без оценок «хорошо/плохо», просто ориентир."
@@ -1066,7 +1066,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           ) : null}
 
           {/* Macros */}
-          <section className="card p-4 md:p-6">
+          <section className="stats-chart-block">
             <StatsSectionHeader
               title="БЖУ по дням"
               meta={
@@ -1095,7 +1095,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           </section>
 
           {/* Weight */}
-          <section className="card p-4 md:p-6">
+          <section className="stats-chart-block">
             <StatsSectionHeader title="Вес по дням" />
             <div className="mt-4">
               <WeightLineChart days={data.days} period={period} />
@@ -1106,7 +1106,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           <button
             type="button"
-            className="flex w-full items-center justify-between rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-800"
+            className="stats-more-toggle"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((v) => !v)}
           >
@@ -1120,7 +1120,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             <>
           {/* Top foods */}
           {data.topFoods.length > 0 ? (
-            <section className="card p-4 md:p-6">
+            <section className="stats-chart-block">
               <StatsSectionHeader
                 title="Что вы часто едите"
                 meta={
@@ -1155,7 +1155,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Timing */}
           {data.hourlyCalories.some((v) => v > 0) ? (
-            <section className="card p-4 md:p-6">
+            <section className="stats-chart-block">
               <StatsSectionHeader
                 title="Когда вы едите"
                 under="Калории по часам суток за период"
@@ -1167,7 +1167,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           ) : null}
 
           {/* Export */}
-          <section className="card p-4 md:p-6">
+          <section className="stats-chart-block">
             <h2 className="mb-1 font-display text-lg font-bold">Экспорт · Calorie Vision</h2>
             <p className="mb-3 text-xs text-slate-500">PDF с брендингом и дневником за выбранный период</p>
             <div className="mb-3 flex flex-wrap gap-1.5">

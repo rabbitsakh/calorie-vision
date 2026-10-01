@@ -804,18 +804,28 @@ select {
   width: 100%;
 }
 
-/* Stats 7/30/90 — equal segments; chips must shrink (min-width:auto overflows). */
-.stats-period-tabs {
+/* Shared thin segment tabs (stats periods, gym hub D5). */
+.stats-period-tabs,
+.cv-segment-tabs {
   display: grid;
   gap: 0.25rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   background: #f1f5f9;
   padding: 0.25rem;
   width: 100%;
 }
 
-.stats-period-tabs .chip {
+.cv-segment-tabs--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cv-segment-tabs--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats-period-tabs .chip,
+.cv-segment-tabs .chip {
   min-width: 0;
   width: 100%;
   justify-content: center;
@@ -827,12 +837,14 @@ select {
   text-overflow: ellipsis;
 }
 
-.stats-period-tabs .chip:not(.chip-active) {
+.stats-period-tabs .chip:not(.chip-active),
+.cv-segment-tabs .chip:not(.chip-active) {
   background: transparent;
 }
 
 @media (min-width: 380px) {
-  .stats-period-tabs .chip {
+  .stats-period-tabs .chip,
+  .cv-segment-tabs .chip {
     font-size: 0.8125rem;
     padding-left: 0.35rem;
     padding-right: 0.35rem;
@@ -2050,6 +2062,97 @@ select {
 .profile-settings__nested-body {
   padding: 0.75rem 0.85rem 1rem;
   border-top: 1px solid var(--border-hairline);
+}
+
+/* —— D5: Gym today scene + unboxed feed —— */
+.gym-day {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  animation: plan-week-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gym-today-feed {
+  display: flex;
+  flex-direction: column;
+}
+
+.gym-today-row,
+.gym-today-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 0.15rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.gym-today-block {
+  display: block;
+}
+
+.gym-today-fold {
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.gym-today-fold-summary {
+  display: flex;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.15rem;
+  user-select: none;
+}
+
+.gym-today-fold-summary::-webkit-details-marker {
+  display: none;
+}
+
+.gym-today-fold-body {
+  padding: 0 0.15rem 0.95rem;
+}
+
+/* —— D6: Stats charts without card cascade —— */
+.stats-insight-scene {
+  animation: plan-week-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stats-chart-block {
+  padding: 0.85rem 0.1rem 1rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.stats-chart-block:last-child {
+  border-bottom: none;
+}
+
+.stats-stat-tile {
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  background: rgba(248, 250, 252, 0.85);
+  border: 1px solid var(--border-hairline);
+}
+
+.stats-stat-tile--accent {
+  background: rgba(240, 253, 250, 0.9);
+  border-color: var(--border-quiet);
+}
+
+.stats-more-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 0.15rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  border-bottom: 1px solid var(--border-hairline);
+  background: transparent;
 }
 
 .ration-soft-nudge {
