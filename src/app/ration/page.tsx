@@ -333,32 +333,11 @@ function RationBody({
 
           <WaterTracker selectedDate={date} onChanged={bump} compact />
 
-          {/* Retention: quests / next badge on the day surface (not only in habits sheet). */}
+          {/* D2: one retention slot on the day surface — quests only. */}
           <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
-          <ProgressHintsRow refreshKey={refreshKey} />
-
-          {/* Retention: Plan is not a tab — keep a light door on the day surface. */}
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5 text-sm">
-            <Link
-              href={withDateQuery("/plan", date)}
-              className="font-semibold text-teal-800 underline-offset-2 hover:underline"
-            >
-              План недели
-            </Link>
-            <span className="text-slate-300" aria-hidden>
-              ·
-            </span>
-            <Link
-              href={`${withDateQuery("/plan", date)}#shopping`}
-              className="inline-flex items-center gap-1 font-medium text-slate-600 underline-offset-2 hover:text-teal-800 hover:underline"
-            >
-              Покупки
-              <ShoppingCountChip date={date} />
-            </Link>
-          </p>
 
           <CelebrationOrchestrator>
-          {/* Retention: at-risk streak + evening check-in on surface (quietHide / self-gated). */}
+          {/* Interrupt-only: at-risk streak (quietHide / self-gated). */}
           <StreakNudge
             selectedDate={date}
             today={today}
@@ -366,10 +345,13 @@ function RationBody({
             onAddFood={openFoodPicker}
             quietHide
           />
-          <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
 
-          {/* One habits door + soft fold — no motivation wall after meals. */}
-          <section ref={habitsRef} id="habits-panel" className="card overflow-hidden scroll-mt-3">
+          {/* D2: one habits/plan door — plan & shopping live here, not a second link row. */}
+          <section
+            ref={habitsRef}
+            id="habits-panel"
+            className="overflow-hidden scroll-mt-3 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/90"
+          >
             <button
               type="button"
               className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
@@ -377,16 +359,14 @@ function RationBody({
               aria-expanded={showHabits}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-slate-800">
-                  Привычки и заметки
-                </p>
+                <p className="font-semibold text-slate-800">Привычки и план</p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  Серия, челлендж, заметки дня
+                  Серия, челлендж, покупки, заметки
                 </p>
               </div>
               <ChevronIcon open={showHabits} />
             </button>
-            <div className="flex gap-2 border-t border-slate-100 px-3 py-2 md:px-4">
+            <div className="flex gap-2 border-t border-[var(--border-hairline)] px-3 py-2 md:px-4">
               <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
               <WeeklyChallenge
                 selectedDate={date}
@@ -397,36 +377,46 @@ function RationBody({
             </div>
           </section>
 
-          <details className="group rounded-2xl border border-[var(--border-quiet)] bg-white/80 open:bg-white">
+          <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
                 <p className="font-semibold text-slate-800">Ещё за день</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Подсказки, итог, напоминания
-                </p>
+                <p className="mt-0.5 text-xs text-slate-500">Итог, подсказки, установка</p>
               </div>
               <span className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden>
                 ▾
               </span>
             </summary>
             <div className="flex flex-col gap-3 border-t border-[var(--border-quiet)] px-3 py-3 md:px-4">
-              <MotivationQueue>
-                <MotivationTip today={today} selectedDate={date} quietHide />
-                <ReferralNudge today={today} selectedDate={date} quietHide />
-              </MotivationQueue>
-              <SevenDayAhaCard today={today} selectedDate={date} />
-              <ChallengeStrip
-                selectedDate={date}
-                refreshKey={refreshKey}
-                onOpenHabits={openHabitsPanel}
-              />
+              <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
               {date === today ? <DailySummaryCard today={today} /> : null}
-              {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
-              <FirstShareNudge date={date} today={today} mealCount={mealCount} />
-              {!isCapacitorNative() ? (
-                <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
-              ) : null}
-              <PushNotificationPrompt />
+
+              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60">
+                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+                  Подсказки
+                </summary>
+                <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">
+                  <MotivationQueue>
+                    <MotivationTip today={today} selectedDate={date} quietHide />
+                    <ReferralNudge today={today} selectedDate={date} quietHide />
+                  </MotivationQueue>
+                  <SevenDayAhaCard today={today} selectedDate={date} />
+                </div>
+              </details>
+
+              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60">
+                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+                  Установка и напоминания
+                </summary>
+                <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">
+                  {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
+                  <FirstShareNudge date={date} today={today} mealCount={mealCount} />
+                  {!isCapacitorNative() ? (
+                    <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+                  ) : null}
+                  <PushNotificationPrompt />
+                </div>
+              </details>
             </div>
           </details>
 
@@ -446,9 +436,9 @@ function RationBody({
                     <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                       <div className="min-w-0">
                         <p id="habits-sheet-title" className="font-semibold text-slate-900">
-                          Привычки и заметки
+                          Привычки и план
                         </p>
-                        <p className="text-xs text-slate-500">Серия, челлендж, квесты</p>
+                        <p className="text-xs text-slate-500">Серия, челлендж, покупки, заметки</p>
                       </div>
                       <button
                         type="button"
@@ -465,14 +455,29 @@ function RationBody({
                         refreshKey={refreshKey}
                         onStarted={bump}
                       />
+                      <ProgressHintsRow refreshKey={refreshKey} />
+                      <ChallengeStrip
+                        selectedDate={date}
+                        refreshKey={refreshKey}
+                        onOpenHabits={openHabitsPanel}
+                      />
                       <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700">
                         <Link
-                          href={`${withDateQuery("/plan", date)}#shopping`}
-                          className="hover:border-teal-200 hover:text-teal-800"
+                          href={withDateQuery("/plan", date)}
+                          className="font-semibold text-teal-800 hover:underline"
                         >
-                          Неделя и покупки
+                          План недели
                         </Link>
-                        <ShoppingCountChip date={date} />
+                        <span className="text-slate-300" aria-hidden>
+                          ·
+                        </span>
+                        <Link
+                          href={`${withDateQuery("/plan", date)}#shopping`}
+                          className="inline-flex items-center gap-1 hover:text-teal-800 hover:underline"
+                        >
+                          Покупки
+                          <ShoppingCountChip date={date} />
+                        </Link>
                       </p>
                       <DiaryNoteWidget selectedDate={date} />
                     </div>
