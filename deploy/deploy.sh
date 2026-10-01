@@ -128,6 +128,84 @@ run_quiet() {
   return "$rc"
 }
 
+# Long quiet step with live heartbeat on the progress line:
+#   [#####----]  18%  npm install (45с)
+# Soft-fail: mode=soft. Hard-fail (deploy_fail): mode=quiet.
+# timeout_sec=0 → no kill; % crawls toward end_pct only when timeout_sec>0.
+# Usage: run_long soft|quiet "Label" timeout_sec end_pct cmd args…
+run_long() {
+  local mode="$1"
+  local label="$2"
+  local timeout_sec="${3:-0}"
+  local end_pct="${4:-$_PROGRESS_PCT}"
+  shift 4
+  local start_pct=$_PROGRESS_PCT
+  local start=$SECONDS
+  local pid rc=0
+
+  if [[ "$DEPLOY_VERBOSE" == "1" ]]; then
+    "$@"
+    return $?
+  fi
+
+  "$@" >>"$DEPLOY_LOG" 2>&1 &
+  pid=$!
+
+  _kill_long() {
+    if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+      sleep 2
+      # npm often leaves children after the parent dies
+      pkill -P "$pid" 2>/dev/null || true
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+  }
+
+  trap '_kill_long; trap - INT TERM; return 130' INT TERM
+
+  while kill -0 "$pid" 2>/dev/null; do
+    local elapsed=$((SECONDS - start))
+    if (( timeout_sec > 0 && elapsed >= timeout_sec )); then
+      echo "[timeout] $label after ${timeout_sec}s" >>"$DEPLOY_LOG"
+      _kill_long
+      wait "$pid" 2>/dev/null || true
+      trap - INT TERM
+      if [[ "$mode" == "soft" ]]; then
+        echo "[soft-fail] $label (таймаут ${timeout_sec}с)" >>"$DEPLOY_LOG"
+        return 124
+      fi
+      deploy_fail "$label — таймаут ${timeout_sec}с (см. лог)"
+      return 124
+    fi
+    local pct=$start_pct
+    if (( timeout_sec > 0 && end_pct > start_pct )); then
+      pct=$((start_pct + (end_pct - start_pct) * elapsed / timeout_sec))
+      (( pct > end_pct )) && pct=$end_pct
+    fi
+    _progress_draw "$pct" "${label} (${elapsed}с)"
+    sleep 2
+  done
+
+  set +e
+  wait "$pid"
+  rc=$?
+  set -e
+  trap - INT TERM
+  _PROGRESS_PCT=$end_pct
+  _PROGRESS_LABEL="$label"
+  _progress_draw "$_PROGRESS_PCT" "$_PROGRESS_LABEL"
+
+  if (( rc == 0 )); then
+    return 0
+  fi
+  if [[ "$mode" == "soft" ]]; then
+    echo "[soft-fail] $label (код $rc)" >>"$DEPLOY_LOG"
+    return "$rc"
+  fi
+  deploy_fail "$label (код $rc)"
+  return "$rc"
+}
+
 # Print MemAvailable / SwapFree into the log (not the progress line).
 log_meminfo() {
   if [[ -r /proc/meminfo ]]; then
@@ -201,22 +279,35 @@ fi
 
 progress 18 "npm install"
 # @sentry/cli postinstall downloads a binary from CDN and often hangs on VPS
-# (IPv6 / CDN timeout). Skip unless we explicitly upload source maps.
-if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
-  export SENTRYCLI_SKIP_DOWNLOAD="${SENTRYCLI_SKIP_DOWNLOAD:-1}"
-  echo "SENTRYCLI_SKIP_DOWNLOAD=$SENTRYCLI_SKIP_DOWNLOAD" >>"$DEPLOY_LOG"
+# (IPv6 / CDN timeout). Always skip on deploy unless DEPLOY_SENTRY_CLI=1.
+# SENTRY_AUTH_TOKEN alone must NOT enable the download — that was a common hang.
+if [[ "${DEPLOY_SENTRY_CLI:-}" == "1" ]]; then
+  echo "DEPLOY_SENTRY_CLI=1 — allowing @sentry/cli binary download" >>"$DEPLOY_LOG"
+  unset SENTRYCLI_SKIP_DOWNLOAD || true
 else
-  echo "SENTRY_AUTH_TOKEN set — allowing @sentry/cli binary download" >>"$DEPLOY_LOG"
+  export SENTRYCLI_SKIP_DOWNLOAD=1
+  echo "SENTRYCLI_SKIP_DOWNLOAD=1" >>"$DEPLOY_LOG"
 fi
-export npm_config_fetch_timeout="${npm_config_fetch_timeout:-120000}"
-export npm_config_fetch_retries="${npm_config_fetch_retries:-3}"
+export npm_config_fetch_timeout="${npm_config_fetch_timeout:-60000}"
+export npm_config_fetch_retries="${npm_config_fetch_retries:-2}"
+export npm_config_fetch_retry_mintimeout="${npm_config_fetch_retry_mintimeout:-5000}"
+export npm_config_fetch_retry_maxtimeout="${npm_config_fetch_retry_maxtimeout:-20000}"
+# Heartbeat + hard cap so the bar never sits silent at 18%.
+DEPLOY_NPM_TIMEOUT="${DEPLOY_NPM_TIMEOUT:-600}"
+npm_prefer=()
+if [[ -d node_modules ]]; then
+  npm_prefer=(--prefer-offline)
+fi
 if [[ -f package-lock.json ]]; then
-  if ! run_soft "npm ci" npm ci --no-audit --no-fund; then
+  if ! run_long soft "npm ci" "$DEPLOY_NPM_TIMEOUT" 32 \
+    npm ci --no-audit --no-fund "${npm_prefer[@]}"; then
     deploy_warn "npm ci не удался — пробуем npm install"
-    run_quiet "npm install" npm install --no-audit --no-fund || exit 1
+    run_long quiet "npm install" "$DEPLOY_NPM_TIMEOUT" 34 \
+      npm install --no-audit --no-fund "${npm_prefer[@]}" || exit 1
   fi
 else
-  run_quiet "npm install" npm install --no-audit --no-fund || exit 1
+  run_long quiet "npm install" "$DEPLOY_NPM_TIMEOUT" 34 \
+    npm install --no-audit --no-fund "${npm_prefer[@]}" || exit 1
 fi
 
 progress 35 "Prisma"
@@ -270,8 +361,10 @@ export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
   echo "UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
 } >>"$DEPLOY_LOG"
 log_meminfo
-if ! run_quiet "npm run build" npm run build; then
-  deploy_fail "Build failed. Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap."
+DEPLOY_BUILD_TIMEOUT="${DEPLOY_BUILD_TIMEOUT:-900}"
+if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 85 npm run build; then
+  # run_long already printed deploy_fail + log tail
+  echo "Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap; таймаут → DEPLOY_BUILD_TIMEOUT" >>"$DEPLOY_LOG"
   log_meminfo
   if (( APP_WAS_RUNNING )); then
     deploy_warn "Перезапускаем предыдущую версию, чтобы не оставить 502"

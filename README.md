@@ -344,7 +344,7 @@ bash deploy/deploy.sh
 
 Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): `deploy.sh` останавливает pm2, сбрасывает page cache (если root), ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB). Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него сборка текущего приложения часто не проходит.
 
-Если деплой «висит» на `==> Install dependencies`: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` по умолчанию ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (runtime Sentry не нужен в CLI). Для upload source maps задайте `SENTRY_AUTH_TOKEN` в окружении перед деплоем.
+Если деплой «висит» на npm install: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` всегда ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (даже при `SENTRY_AUTH_TOKEN` в `.env`). Явно разрешить CLI: `DEPLOY_SENTRY_CLI=1`. Долгие шаги показывают секунды на шкале (`npm install (45с)`); таймаут по умолчанию 10 мин (`DEPLOY_NPM_TIMEOUT=600`).
 
 ### 5. Nginx
 
