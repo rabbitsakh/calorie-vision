@@ -11,6 +11,7 @@ import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
 import { RewardsPanel } from "@/components/RewardsPanel";
 
+/** D4: settings-list row — hairline group, not a stacked card accordion. */
 function ProfileSection({
   id,
   title,
@@ -32,10 +33,10 @@ function ProfileSection({
   }, [forceOpen]);
 
   return (
-    <section className="card overflow-hidden" id={id}>
+    <section className="profile-settings__item" id={id}>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
+        className="profile-settings__row"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
@@ -43,12 +44,37 @@ function ProfileSection({
           <p className="font-semibold text-slate-800">{title}</p>
           <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
         </div>
-        <span className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden>
+        <span
+          className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        >
           ▾
         </span>
       </button>
-      {open ? <div className="min-w-0 overflow-x-hidden border-t border-slate-100 px-4 py-3 md:px-5">{children}</div> : null}
+      {open ? <div className="profile-settings__body">{children}</div> : null}
     </section>
+  );
+}
+
+function ProfileDoor({
+  href,
+  title,
+  hint,
+}: {
+  href: string;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <Link href={href} className="profile-settings__door">
+      <span className="min-w-0">
+        <span className="block font-semibold text-slate-800">{title}</span>
+        <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
+      </span>
+      <span className="shrink-0 text-slate-400" aria-hidden>
+        →
+      </span>
+    </Link>
   );
 }
 
@@ -81,41 +107,25 @@ export default function ProfilePage() {
   }, [hash]);
 
   return (
-    <AppShell title="Профиль" compact description="Цели, напоминания и награды.">
+    <AppShell title="Профиль" compact description="Цели, система и награды.">
       <AuthGate>
-        <div className="flex flex-col gap-4 md:gap-5">
+        {/* D4: one settings list — not nested card stacks. */}
+        <div className="profile-settings">
           <ProfileSection
             id="account"
-            title="Цели"
-            hint="Норма, вес, план, зал"
+            title="Цели и аккаунт"
+            hint="Норма, данные, аллергены"
             defaultOpen={hash !== "#rewards" && hash !== "#reminders"}
             forceOpen={hash === "#account" || hash === "#nutrient-goals"}
           >
-            <div className="flex flex-col gap-4">
-              <ProfileForm />
-              <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                <h2 className="font-display text-base font-semibold text-slate-800">Цель по весу</h2>
-                <p className="mt-1 text-sm text-slate-500">Вес и цель — в разделе «Вес».</p>
-                <Link href="/weight" className="btn btn-primary mt-3 inline-flex self-start text-sm">
-                  Открыть вес и цель
-                </Link>
-              </section>
-              <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                <h2 className="font-display text-base font-semibold text-slate-800">Неделя и покупки</h2>
-                <p className="mt-1 text-sm text-slate-500">План недели и список покупок.</p>
-                <Link href="/plan" className="btn btn-primary mt-3 inline-flex self-start text-sm">
-                  Открыть план
-                </Link>
-              </section>
-              <section className="rounded-xl border border-slate-100 bg-slate-50/80 p-3">
-                <h2 className="font-display text-base font-semibold text-slate-800">Тренировки</h2>
-                <p className="mt-1 text-sm text-slate-500">Вкладка «Зал» внизу.</p>
-                <Link href="/workouts" className="btn btn-primary mt-3 inline-flex self-start text-sm">
-                  Открыть зал
-                </Link>
-              </section>
-            </div>
+            <ProfileForm />
           </ProfileSection>
+
+          <div className="profile-settings__group" aria-label="Разделы">
+            <ProfileDoor href="/weight" title="Вес и цель" hint="График и целевой вес" />
+            <ProfileDoor href="/plan" title="Неделя и покупки" hint="План, челлендж, список" />
+            <ProfileDoor href="/workouts" title="Тренировки" hint="Вкладка «Зал»" />
+          </div>
 
           <ProfileSection
             id="reminders"

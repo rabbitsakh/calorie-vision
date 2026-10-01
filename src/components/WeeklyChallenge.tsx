@@ -57,6 +57,8 @@ type WeeklyChallengeProps = {
   onMiniClick?: () => void;
   /** Fires after a challenge is successfully started / replaced. */
   onStarted?: () => void;
+  /** D4: quieter band inside plan-week (no emerald card). */
+  embedded?: boolean;
 };
 
 export function WeeklyChallenge({
@@ -65,6 +67,7 @@ export function WeeklyChallenge({
   mini = false,
   onMiniClick,
   onStarted,
+  embedded = false,
 }: WeeklyChallengeProps) {
   const [data, setData] = useState<ChallengesResponse | null>(null);
   const [history, setHistory] = useState<
@@ -288,13 +291,19 @@ export function WeeklyChallenge({
     .slice()
     .sort((a, b) => Number(Boolean(b.recommended)) - Number(Boolean(a.recommended)));
 
+  const shellClass = embedded
+    ? "plan-week__band"
+    : "rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4";
+  const titleClass = embedded ? "font-semibold text-slate-800" : "font-semibold text-emerald-900";
+  const hintClass = embedded ? "text-xs text-slate-500" : "text-xs text-emerald-700";
+
   return (
     <>
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">
+      <div className={shellClass}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
-            <p className="font-semibold text-emerald-900">Челлендж недели</p>
-            <p className="text-xs text-emerald-700">Одна цель на 7 дней — без перфекционизма</p>
+            <p className={titleClass}>Челлендж недели</p>
+            <p className={hintClass}>Одна цель на 7 дней — без перфекционизма</p>
           </div>
           <button
             type="button"

@@ -26,6 +26,8 @@ import type { MealEntry } from "@/types";
 
 type ShoppingListPanelProps = {
   selectedDate: string;
+  /** D4: no outer card — hairline band in plan-week. */
+  embedded?: boolean;
 };
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -43,7 +45,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
-export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
+export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingListPanelProps) {
   const { data: session } = useSession();
   const userId = session?.user?.id ?? null;
   const [open, setOpen] = useState(false);
@@ -290,7 +292,14 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
         : `${items.length}`;
 
   return (
-    <section id="shopping" className="card scroll-mt-3 overflow-hidden">
+    <section
+      id="shopping"
+      className={
+        embedded
+          ? "plan-week__fold scroll-mt-3 overflow-hidden"
+          : "card scroll-mt-3 overflow-hidden"
+      }
+    >
       <button
         type="button"
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
@@ -307,7 +316,7 @@ export function ShoppingListPanel({ selectedDate }: ShoppingListPanelProps) {
       </button>
 
       {open ? (
-        <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 md:px-5">
+        <div className="flex flex-col gap-3 border-t border-[var(--border-hairline)] px-4 py-3 md:px-5">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
