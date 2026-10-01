@@ -123,3 +123,35 @@ export function confidenceReshootHint(
   }
   return "Переснимите блюдо при хорошем свете, целиком в кадре";
 }
+
+export type PhotoContextChip = "plate" | "label" | "restaurant";
+
+/** Suggest context chips when confidence is shaky (confirm re-pass). */
+export function suggestedPhotoContextChips(
+  tone: ConfidenceTone,
+  opts?: ConfidenceHintOpts,
+): PhotoContextChip[] {
+  if (tone === "high") return [];
+  if (opts?.photoKind === "barcode") {
+    return ["label"];
+  }
+  if (opts?.photoKind === "package" || opts?.photoKind === "label") {
+    return ["label", "plate"];
+  }
+  if (isDrinkHint(opts)) {
+    return ["label", "plate"];
+  }
+  // Medium/low plate — offer all three so user can steer the next pass.
+  return ["plate", "label", "restaurant"];
+}
+
+export function photoContextChipLabel(chip: PhotoContextChip): string {
+  switch (chip) {
+    case "plate":
+      return "Тарелка";
+    case "label":
+      return "Этикетка";
+    case "restaurant":
+      return "Столовая";
+  }
+}
