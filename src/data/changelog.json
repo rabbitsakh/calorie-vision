@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.3.23",
+    "date": "2026-10-01",
+    "summary": "fix(apk): ложное «Нет интернета» при рабочей сети",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "APK: probe через /api/health + favicon; offline stub не врёт «нет сети» до проверки"
+      },
+      {
+        "kind": "fix",
+        "text": "APK: при живой сети offline.html сразу уходит в локальный черновик"
+      }
+    ]
+  },
+  {
     "version": "2.3.22",
     "date": "2026-09-25",
     "summary": "fix(apk): resume редиректил на localhost:3000",
