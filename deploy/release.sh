@@ -12,7 +12,6 @@ REPO="rabbitsakh/calorie-vision"
 APP_DIR="/var/www/calorie-vision"
 
 if [[ "${1:-}" == "--deploy-only" || "${1:-}" == "-d" ]]; then
-  echo "==> Deploy only (no merge)"
   cd "$APP_DIR"
   bash deploy/deploy.sh
   exit 0
@@ -26,27 +25,23 @@ pr_state() {
 
 STATE="$(pr_state)"
 if [[ "$STATE" == "MERGED" ]]; then
-  echo "==> PR $TARGET already merged — skip merge, deploy only"
+  : # already merged — deploy only
 elif [[ "$STATE" == "CLOSED" ]]; then
-  echo "==> PR $TARGET is closed (not merged). Aborting." >&2
+  echo "✗  PR $TARGET закрыт (не смержен)." >&2
   exit 1
 else
-  echo "==> Merge PR: $TARGET (state=$STATE)"
-  gh pr merge "$TARGET" \
+  if ! gh pr merge "$TARGET" \
     --repo "$REPO" \
     --merge \
-    --delete-branch || {
+    --delete-branch; then
       # Race: merged between view and merge (or already merged).
       STATE="$(pr_state)"
-      if [[ "$STATE" == "MERGED" ]]; then
-        echo "==> Merge reported failure but PR is MERGED — continuing to deploy"
-      else
-        echo "==> Merge failed (state=$STATE)" >&2
+      if [[ "$STATE" != "MERGED" ]]; then
+        echo "✗  Merge PR $TARGET не удался (state=$STATE)" >&2
         exit 1
       fi
-    }
+  fi
 fi
 
-echo "==> Deploy"
 cd "$APP_DIR"
 bash deploy/deploy.sh

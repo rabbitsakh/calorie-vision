@@ -10,11 +10,112 @@ GENERATED_VERSION_FILES=(
   "src/data/changelog.json"
 )
 
+# Verbose: DEPLOY_VERBOSE=1 bash deploy/deploy.sh
+DEPLOY_VERBOSE="${DEPLOY_VERBOSE:-0}"
+DEPLOY_LOG="${DEPLOY_LOG:-/tmp/cv-deploy-$$.log}"
+: >"$DEPLOY_LOG"
+
 restore_generated_version_files() {
   git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
 }
 
-# Print MemAvailable / SwapFree for deploy logs.
+# —— Quiet progress UI ————————————————————————————————
+# One updating line: [████░░░░]  42%  Build
+# Failures / warnings print as normal text below.
+
+_PROGRESS_PCT=0
+_PROGRESS_LABEL="Старт"
+_IS_TTY=0
+if [[ -t 1 ]]; then _IS_TTY=1; fi
+
+_progress_draw() {
+  local pct="${1:-$_PROGRESS_PCT}"
+  local label="${2:-$_PROGRESS_LABEL}"
+  local width=28
+  (( pct < 0 )) && pct=0
+  (( pct > 100 )) && pct=100
+  local filled=$((pct * width / 100))
+  local empty=$((width - filled))
+  local bar
+  bar="$(printf '%*s' "$filled" '' | tr ' ' '█')"
+  bar+="$(printf '%*s' "$empty" '' | tr ' ' '░')"
+  if (( _IS_TTY )); then
+    printf '\r\033[K[%s] %3d%%  %s' "$bar" "$pct" "$label" >&2
+  else
+    printf '[%s] %3d%%  %s\n' "$bar" "$pct" "$label" >&2
+  fi
+}
+
+progress() {
+  _PROGRESS_PCT="$1"
+  _PROGRESS_LABEL="$2"
+  _progress_draw "$_PROGRESS_PCT" "$_PROGRESS_LABEL"
+}
+
+progress_done() {
+  local label="${1:-Готово}"
+  _progress_draw 100 "$label"
+  if (( _IS_TTY )); then
+    printf '\n' >&2
+  fi
+}
+
+# Print a warning/error line without breaking the bar (new line).
+deploy_warn() {
+  if (( _IS_TTY )); then
+    printf '\n' >&2
+  fi
+  printf '⚠  %s\n' "$*" >&2
+  _progress_draw "$_PROGRESS_PCT" "$_PROGRESS_LABEL"
+}
+
+deploy_fail() {
+  if (( _IS_TTY )); then
+    printf '\n' >&2
+  fi
+  printf '✗  %s\n' "$*" >&2
+  if [[ -s "$DEPLOY_LOG" ]]; then
+    printf '\n—— последние строки лога (%s) ——\n' "$DEPLOY_LOG" >&2
+    tail -n 50 "$DEPLOY_LOG" >&2 || true
+    printf '——————————————————————————————\n' >&2
+  fi
+}
+
+# Run command quietly. Soft fail: only append to log (no banner).
+# Usage: run_soft "Label" cmd args…
+run_soft() {
+  local label="$1"
+  shift
+  if [[ "$DEPLOY_VERBOSE" == "1" ]]; then
+    "$@"
+    return $?
+  fi
+  if "$@" >>"$DEPLOY_LOG" 2>&1; then
+    return 0
+  fi
+  local rc=$?
+  echo "[soft-fail] $label (код $rc)" >>"$DEPLOY_LOG"
+  return "$rc"
+}
+
+# Run command quietly; on failure show log tail (caller decides exit).
+# Usage: run_quiet "Label" cmd args…
+run_quiet() {
+  local label="$1"
+  shift
+  if [[ "$DEPLOY_VERBOSE" == "1" ]]; then
+    "$@"
+    return $?
+  fi
+  if "$@" >>"$DEPLOY_LOG" 2>&1; then
+    return 0
+  fi
+  local rc=$?
+  deploy_fail "$label (код $rc)"
+  return "$rc"
+}
+
+# Print MemAvailable / SwapFree into the log (not the progress line).
 log_meminfo() {
   if [[ -r /proc/meminfo ]]; then
     awk '
@@ -23,10 +124,10 @@ log_meminfo() {
       /SwapTotal:/ { swap_t = int($2/1024) }
       /SwapFree:/ { swap_f = int($2/1024) }
       END {
-        printf "   MemTotal: %d MB  MemAvailable: %d MB  SwapTotal: %d MB  SwapFree: %d MB\n",
+        printf "MemTotal: %d MB  MemAvailable: %d MB  SwapTotal: %d MB  SwapFree: %d MB\n",
           total+0, avail+0, swap_t+0, swap_f+0
       }
-    ' /proc/meminfo
+    ' /proc/meminfo >>"$DEPLOY_LOG"
   fi
 }
 
@@ -49,32 +150,32 @@ pick_node_heap_mb() {
   echo "$heap"
 }
 
-echo "==> Pull latest code"
+progress 2 "Pull"
 restore_generated_version_files
 # GitHub HTTPS from some VPS intermittently times out — retry with backoff.
 pull_ok=0
 for attempt in 1 2 3 4; do
-  if git pull; then
+  if run_soft "git pull" git pull; then
     pull_ok=1
     break
   fi
-  echo "   git pull failed (attempt $attempt/4) — retry in $((attempt * 8))s…"
+  deploy_warn "git pull не удался ($attempt/4) — повтор через $((attempt * 8))с…"
   sleep $((attempt * 8))
 done
 if (( ! pull_ok )); then
-  echo "   git pull failed after retries." >&2
-  echo "   Check VPS → github.com:443 (timeout/IPv6). Then: cv-release --deploy-only" >&2
+  deploy_fail "git pull после 4 попыток. Проверьте VPS → github.com:443, затем: cv-release --deploy-only"
   exit 1
 fi
 
-echo "==> Node $(node -v)"
+progress 8 "Node"
 if ! node -e "process.exit(Number(process.versions.node.split('.')[0]) >= 24 ? 0 : 1)"; then
-  echo "Need Node.js 24 LTS. See README: «Node.js 24 на VPS» (NodeSource setup_24.x or nvm install 24)."
+  deploy_fail "Нужен Node.js 24 LTS (сейчас $(node -v)). См. README: «Node.js 24 на VPS»."
   exit 1
 fi
+echo "node $(node -v)" >>"$DEPLOY_LOG"
 
-echo "==> Version"
-node --experimental-strip-types --no-warnings scripts/sync-app-version.ts
+progress 12 "Версия"
+run_quiet "sync-app-version" node --experimental-strip-types --no-warnings scripts/sync-app-version.ts
 
 # Load .env early so SENTRY_* flags are visible for install/build.
 if [[ -f .env ]]; then
@@ -84,57 +185,51 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-echo "==> Install dependencies"
+progress 18 "npm install"
 # @sentry/cli postinstall downloads a binary from CDN and often hangs on VPS
 # (IPv6 / CDN timeout). Skip unless we explicitly upload source maps.
 if [[ -z "${SENTRY_AUTH_TOKEN:-}" ]]; then
   export SENTRYCLI_SKIP_DOWNLOAD="${SENTRYCLI_SKIP_DOWNLOAD:-1}"
-  echo "   SENTRYCLI_SKIP_DOWNLOAD=$SENTRYCLI_SKIP_DOWNLOAD (no SENTRY_AUTH_TOKEN)"
+  echo "SENTRYCLI_SKIP_DOWNLOAD=$SENTRYCLI_SKIP_DOWNLOAD" >>"$DEPLOY_LOG"
 else
-  echo "   SENTRY_AUTH_TOKEN set — allowing @sentry/cli binary download"
+  echo "SENTRY_AUTH_TOKEN set — allowing @sentry/cli binary download" >>"$DEPLOY_LOG"
 fi
-# Prefer lockfile install; fall back to npm install if lock is out of sync.
 export npm_config_fetch_timeout="${npm_config_fetch_timeout:-120000}"
 export npm_config_fetch_retries="${npm_config_fetch_retries:-3}"
 if [[ -f package-lock.json ]]; then
-  echo "   npm ci…"
-  if ! npm ci --no-audit --no-fund; then
-    echo "   npm ci failed — falling back to npm install"
-    npm install --no-audit --no-fund
+  if ! run_soft "npm ci" npm ci --no-audit --no-fund; then
+    deploy_warn "npm ci не удался — пробуем npm install"
+    run_quiet "npm install" npm install --no-audit --no-fund || exit 1
   fi
 else
-  echo "   npm install…"
-  npm install --no-audit --no-fund
+  run_quiet "npm install" npm install --no-audit --no-fund || exit 1
 fi
 
-echo "==> Prisma: apply schema changes"
+progress 35 "Prisma"
 # Run the hand-written SQL migration first so prisma db push does not trip over
 # duplicate foreign key names that MySQL doesn't let Prisma rename automatically.
 if ls deploy/migrate-*.sql >/dev/null 2>&1; then
-  if npm run db:migrate-sql 2>&1; then
-    echo "   SQL migration applied"
-  else
-    echo "   SQL migration failed or already applied; continuing with db:push"
+  if ! run_soft "db:migrate-sql" npm run db:migrate-sql; then
+    deploy_warn "SQL migration failed or already applied — продолжаем db:push"
   fi
 fi
-if npm run db:push; then
-  echo "   db:push ok"
-else
+if ! run_soft "db:push" npm run db:push; then
   if [[ "${ALLOW_DB_PUSH_FAIL:-}" == "1" ]]; then
-    echo "   db:push failed — ALLOW_DB_PUSH_FAIL=1, continuing"
+    deploy_warn "db:push failed — ALLOW_DB_PUSH_FAIL=1, продолжаем"
   else
-    echo "   db:push failed — aborting deploy (set ALLOW_DB_PUSH_FAIL=1 to override)"
+    deploy_fail "db:push failed — abort (set ALLOW_DB_PUSH_FAIL=1 to override)"
     exit 1
   fi
 fi
-echo "==> Prisma: generate client (once, after schema sync)"
-npm run db:generate
 
-echo "==> Free RAM before build (stop running app)"
+progress 42 "Prisma generate"
+run_quiet "db:generate" npm run db:generate || exit 1
+
+progress 48 "Освобождаем RAM"
 APP_WAS_RUNNING=0
 if pm2 describe calorie-vision >/dev/null 2>&1; then
   APP_WAS_RUNNING=1
-  pm2 stop calorie-vision || true
+  pm2 stop calorie-vision >>"$DEPLOY_LOG" 2>&1 || true
 fi
 # Best-effort: reclaim page cache so MemAvailable reflects real free RAM.
 if [[ "$(id -u)" -eq 0 ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
@@ -143,7 +238,7 @@ if [[ "$(id -u)" -eq 0 ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
 fi
 log_meminfo
 
-echo "==> Build"
+progress 55 "Build"
 # Next.js production build can OOM on small VPS (V8 heap limit or SIGKILL).
 # Always re-pick heap after pm2 stop — do not inherit a low NODE_OPTIONS from .env.
 # Override: DEPLOY_NODE_OPTIONS='--max-old-space-size=2048'
@@ -154,45 +249,45 @@ else
   export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
 fi
 export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
-# Fewer libuv threads = slightly less peak RSS during compile.
 export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
-echo "   NODE_OPTIONS=$NODE_OPTIONS"
-echo "   NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
-echo "   UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
+{
+  echo "NODE_OPTIONS=$NODE_OPTIONS"
+  echo "NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
+  echo "UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
+} >>"$DEPLOY_LOG"
 log_meminfo
-if ! npm run build; then
-  echo "   build FAILED"
-  echo "   Hint: V8 heap OOM → raise DEPLOY_NODE_OPTIONS or add swap (see README)."
-  echo "   Hint: SIGKILL → lower heap / add swap; NEXT_BUILD_CPUS=1 is already default."
+if ! run_quiet "npm run build" npm run build; then
+  deploy_fail "Build failed. Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap."
   log_meminfo
   if (( APP_WAS_RUNNING )); then
-    echo "   Restarting previous app so the site does not stay on 502"
-    pm2 restart calorie-vision || pm2 start deploy/ecosystem.config.cjs
-    pm2 save || true
+    deploy_warn "Перезапускаем предыдущую версию, чтобы не оставить 502"
+    pm2 restart calorie-vision >>"$DEPLOY_LOG" 2>&1 \
+      || pm2 start deploy/ecosystem.config.cjs >>"$DEPLOY_LOG" 2>&1 || true
+    pm2 save >>"$DEPLOY_LOG" 2>&1 || true
   fi
   exit 1
 fi
 
-echo "==> Restart app"
+progress 88 "Restart"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
-  pm2 restart calorie-vision --update-env
+  run_quiet "pm2 restart" pm2 restart calorie-vision --update-env || exit 1
 else
-  pm2 start deploy/ecosystem.config.cjs
+  run_quiet "pm2 start" pm2 start deploy/ecosystem.config.cjs || exit 1
 fi
 
 # Sanity: public auth URL must not be localhost (Custom Tabs would fail on the phone).
 AUTH_URL_CHECK="$(grep -E '^NEXTAUTH_URL=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
 if [[ -z "$AUTH_URL_CHECK" ]]; then
-  echo "   WARNING: NEXTAUTH_URL missing in .env"
+  deploy_warn "NEXTAUTH_URL отсутствует в .env"
 elif echo "$AUTH_URL_CHECK" | grep -qiE 'localhost|127\.0\.0\.1'; then
-  echo "   WARNING: NEXTAUTH_URL looks like localhost ($AUTH_URL_CHECK) — set https://calorievision.ru"
+  deploy_warn "NEXTAUTH_URL похож на localhost ($AUTH_URL_CHECK) — нужен https://calorievision.ru"
 else
-  echo "   NEXTAUTH_URL=$AUTH_URL_CHECK"
+  echo "NEXTAUTH_URL=$AUTH_URL_CHECK" >>"$DEPLOY_LOG"
 fi
 
-pm2 save
+pm2 save >>"$DEPLOY_LOG" 2>&1 || true
 
-echo "==> Health check"
+progress 94 "Health"
 HEALTH_PORT="${PORT:-3000}"
 HEALTH_BASE="${NEXT_PUBLIC_BASE_PATH:-}"
 if [[ -f .env ]]; then
@@ -208,18 +303,21 @@ for i in $(seq 1 15); do
   if curl -sf "http://127.0.0.1:${HEALTH_PORT}${HEALTH_BASE}/api/health/" >/dev/null \
      || curl -sf "http://127.0.0.1:${HEALTH_PORT}${HEALTH_BASE}/api/health" >/dev/null; then
     HEALTH_OK=1
-    echo "   /api/health ok"
+    echo "/api/health ok" >>"$DEPLOY_LOG"
     break
   fi
   sleep 2
 done
 if (( ! HEALTH_OK )); then
-  echo "   WARNING: health check failed — site may be down (pm2 logs calorie-vision)"
+  deploy_warn "health check failed — сайт может быть недоступен (pm2 logs calorie-vision)"
 fi
 
-echo "==> Compress and backfill meal images (after build — less peak RAM)"
-npm run images:backfill || echo "image backfill skipped"
+progress 97 "Картинки"
+if ! run_soft "images:backfill" npm run images:backfill; then
+  deploy_warn "image backfill пропущен"
+fi
 
 restore_generated_version_files
 
-echo "==> Done"
+progress_done "Готово"
+echo "   лог: $DEPLOY_LOG" >&2
