@@ -84,9 +84,9 @@ const VARIANT_THEME: Record<
   },
   badge: {
     pose: "cheer",
-    colors: ["#a78bfa", "#5eead4", "#fbbf24", "#c4b5fd", "#ffffff"],
-    glow: "fs-celeb-glow-violet",
-    badgeClass: "bg-violet-500/95",
+    colors: ["#2dd4bf", "#5eead4", "#fbbf24", "#99f6e4", "#ffffff"],
+    glow: "fs-celeb-glow-emerald",
+    badgeClass: "bg-teal-500/95",
   },
   challenge: {
     pose: "goal",

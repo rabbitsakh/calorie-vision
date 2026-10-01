@@ -38,7 +38,7 @@ function DesktopAddButton() {
 
   return (
     <div className="relative hidden md:inline-flex">
-      <div className="inline-flex overflow-hidden rounded-full bg-[var(--accent)] shadow-sm">
+      <div className="inline-flex overflow-hidden rounded-[var(--radius-control)] bg-[var(--accent)] shadow-sm">
         <button
           type="button"
           className="inline-flex min-h-10 items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-40"
@@ -65,7 +65,6 @@ function DesktopAddButton() {
         </button>
       </div>
       <FoodAddModeMenu open={menuOpen} onClose={closeMenu} placement="down" className="right-0 left-auto translate-x-0" />
-      {/* Keyboard: A opens picker when not typing in a field */}
       <DesktopAddHotkey disabled={confirmOpen} />
     </div>
   );
@@ -106,18 +105,17 @@ export function AppShell({
   return (
     <FoodAddHost date={date} enabled={foodAddEnabled}>
       <div className="cv-app-frame">
-        <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2.5 md:gap-6 md:px-4 md:py-8">
-          <header className={`card ${compact ? "p-2.5 md:p-5" : "p-4 md:p-6"}`}>
-            {/* Brand + avatar share one fixed-height row so they sit on the same axis. */}
-            <div className="flex h-11 items-center justify-between gap-3 md:h-11">
-              <Link
-                href={homeHref}
-                className="inline-flex h-full min-w-0 max-w-full items-center gap-2 md:gap-3"
-              >
-                <BrandMark size={compact ? 36 : 40} className="md:hidden" />
-                <BrandMark size={compact ? 40 : 48} className="hidden md:block" />
-                <span className="font-display truncate text-[0.7rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent)] md:text-sm md:tracking-[0.2em]">
+        <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2 md:gap-6 md:px-4 md:py-8">
+          <header className="app-chrome">
+            <div className="flex h-11 items-center justify-between gap-3 md:h-12">
+              <Link href={homeHref} className="app-chrome__brand">
+                <BrandMark size={compact ? 38 : 42} className="md:hidden" />
+                <BrandMark size={compact ? 44 : 52} className="hidden md:block" />
+                <span className="app-chrome__wordmark truncate">
                   Calorie Vision
+                  {compact && !hideTitleOnMobile ? (
+                    <span className="app-chrome__wordmark-sub md:hidden">{title}</span>
+                  ) : null}
                 </span>
               </Link>
               <div className="flex h-full shrink-0 items-center gap-2">
@@ -125,12 +123,13 @@ export function AppShell({
                 <AuthPanel compactTrigger />
               </div>
             </div>
+
             <h1
               className={`font-display font-bold tracking-tight text-slate-900 ${
                 hideTitleOnMobile
-                  ? "mt-0 hidden md:mt-2 md:block md:text-2xl"
+                  ? "mt-0 hidden md:mt-3 md:block md:text-2xl"
                   : compact
-                    ? "mt-2 text-xl md:text-2xl"
+                    ? "mt-2 hidden text-xl md:mt-3 md:block md:text-2xl"
                     : "mt-2.5 text-2xl md:text-3xl"
               }`}
             >
@@ -148,7 +147,7 @@ export function AppShell({
 
             {headerExtra ? <div className={compact ? "mt-2" : "mt-4"}>{headerExtra}</div> : null}
 
-            <nav className={`hidden flex-wrap gap-2 md:flex ${compact ? "md:mt-4" : "md:mt-6"}`}>
+            <nav className="app-chrome__nav" aria-label="Разделы">
               {APP_NAV.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const href =
@@ -158,9 +157,7 @@ export function AppShell({
                   <Link
                     key={item.href}
                     href={href}
-                    className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                      active ? "bg-[var(--accent)] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                    }`}
+                    className={`app-chrome__nav-link${active ? " app-chrome__nav-link--active" : ""}`}
                   >
                     <NavIcon name={item.icon} className="h-4 w-4" />
                     {item.label}
@@ -186,21 +183,15 @@ export function AppShell({
 export function PageFallback() {
   return (
     <main className="app-shell mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-3 px-3 py-3 md:gap-6 md:px-4 md:py-8">
-      <section className="card p-3 md:p-5">
-        <div className="skeleton-line w-28" />
-        <div className="mt-3 flex items-center gap-4">
-          <div className="skeleton-ring" />
-          <div className="flex-1 space-y-2">
-            <div className="skeleton-line w-3/4" />
-            <div className="skeleton-line w-1/2" />
-          </div>
-        </div>
-      </section>
-      <div className="card space-y-2 p-4">
+      <header className="app-chrome">
         <div className="skeleton-line w-40" />
-        <div className="h-24 animate-pulse rounded-xl bg-slate-200" />
-        <div className="h-16 animate-pulse rounded-xl bg-slate-100" />
-      </div>
+        <div className="mt-3 skeleton-line w-24" />
+      </header>
+      <section className="space-y-2 pt-1">
+        <div className="skeleton-line w-3/4" />
+        <div className="h-24 animate-pulse rounded-[var(--radius-lg)] bg-teal-100/60" />
+        <div className="h-16 animate-pulse rounded-[var(--radius-lg)] bg-slate-100/80" />
+      </section>
     </main>
   );
 }

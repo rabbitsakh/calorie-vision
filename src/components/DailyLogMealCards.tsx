@@ -83,7 +83,7 @@ function MealEntryDetails({
 function mealStripeClass(mealType: string | null | undefined): string {
   if (mealType === "BREAKFAST") return "bg-amber-400";
   if (mealType === "LUNCH") return "bg-teal-500";
-  if (mealType === "DINNER") return "bg-indigo-400";
+  if (mealType === "DINNER") return "bg-teal-600";
   if (mealType === "SNACK") return "bg-rose-400";
   return "bg-slate-200";
 }

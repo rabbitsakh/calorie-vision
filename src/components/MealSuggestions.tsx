@@ -35,7 +35,7 @@ type ApiResponse = {
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   protein: { label: "Белковое", color: "bg-teal-100 text-teal-800" },
-  carbs: { label: "Углеводы", color: "bg-violet-100 text-violet-800" },
+  carbs: { label: "Углеводы", color: "bg-cyan-100 text-cyan-900" },
   fat: { label: "Жиры", color: "bg-amber-100 text-amber-800" },
   balanced: { label: "Баланс", color: "bg-slate-100 text-slate-700" },
   light: { label: "Лёгкое", color: "bg-sky-100 text-sky-800" },
@@ -238,7 +238,7 @@ export function MealSuggestions({
           <div className="grid grid-cols-3 gap-2">
             <MacroBar label="Белки" eaten={data.eaten.protein} target={data.target.protein} color="bg-teal-400" />
             <MacroBar label="Жиры" eaten={data.eaten.fat} target={data.target.fat} color="bg-amber-400" />
-            <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-violet-400" />
+            <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-cyan-500" />
           </div>
           {data.tip ? (
             <p className="mt-2 text-xs text-slate-500">{data.tip}</p>

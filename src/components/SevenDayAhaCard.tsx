@@ -26,15 +26,15 @@ export function SevenDayAhaCard({ today, selectedDate }: { today: string; select
   if (!visible) return null;
 
   return (
-    <div className="rounded-xl border border-indigo-100 bg-indigo-50/70 px-3 py-2.5 text-sm text-indigo-950">
+    <div className="rounded-xl border border-teal-100 bg-teal-50/80 px-3 py-2.5 text-sm text-teal-950">
       <p className="font-semibold">Неделя в дневнике</p>
-      <p className="mt-0.5 text-xs text-indigo-900/80">
+      <p className="mt-0.5 text-xs text-teal-900/80">
         Уже {daysLogged} дней с записями — в статистике видно коридор калорий и настроение по еде.
       </p>
       <div className="mt-2 flex items-center gap-3">
         <Link
           href={withBasePath("/stats")}
-          className="text-xs font-semibold text-indigo-900 underline-offset-2 hover:underline"
+          className="text-xs font-semibold text-teal-900 underline-offset-2 hover:underline"
           onClick={() => {
             markSevenDayAhaSeen();
             setVisible(false);
@@ -44,7 +44,7 @@ export function SevenDayAhaCard({ today, selectedDate }: { today: string; select
         </Link>
         <button
           type="button"
-          className="text-xs font-medium text-indigo-800/70"
+          className="text-xs font-medium text-teal-800/70"
           onClick={() => {
             markSevenDayAhaSeen();
             setVisible(false);

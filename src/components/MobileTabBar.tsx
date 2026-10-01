@@ -56,10 +56,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const right = APP_NAV.slice(2);
 
   return (
-    <nav
-      className="mobile-tab-bar shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden"
-      aria-label="Основные разделы"
-    >
+    <nav className="mobile-tab-bar shrink-0 md:hidden" aria-label="Основные разделы">
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)] pt-1">
         {left.map((item) => (
           <TabLink
@@ -78,11 +75,9 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
             aria-label="Добавить: фото, текст, штрихкод, вода, вес или тренировка"
           >
             <span
-              className={`flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-md shadow-teal-800/25 transition-transform ${
-                confirmOpen ? "opacity-40" : "active:scale-95"
-              }`}
+              className={`mobile-tab-bar__add ${confirmOpen ? "opacity-40" : ""}`}
             >
-              <svg aria-hidden className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg aria-hidden className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M12 5v14M5 12h14" strokeLinecap="round" />
               </svg>
             </span>
@@ -121,9 +116,7 @@ function TabLink({
   return (
     <Link
       href={href}
-      className={`flex min-h-11 min-w-0 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-semibold transition-colors ${
-        active ? "text-[var(--accent)]" : "text-slate-500"
-      }`}
+      className={`mobile-tab-bar__link${active ? " mobile-tab-bar__link--active" : ""}`}
       aria-label={
         showQueueBadge
           ? `${item.label}: ${queueCount} ждёт сеть`
@@ -131,11 +124,7 @@ function TabLink({
       }
       title={showQueueBadge ? `${queueCount} в очереди — ждёт сеть` : undefined}
     >
-      <div
-        className={`relative flex h-8 w-full max-w-[4.5rem] items-center justify-center rounded-full transition-colors ${
-          active ? "bg-teal-50" : ""
-        }`}
-      >
+      <div className="mobile-tab-bar__icon">
         <NavIcon
           name={item.icon}
           className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-slate-500"}`}

@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^feat\(design\): D0\+D1 tokens and app chrome$/i, "Дизайн: единые токены и шапка без карточки — совместимо с APK 2.3.22"],
   [/^fix\(apk\): profile avatar missing in WebView$/i, "Исправление: фото профиля снова видно в приложении Android"],
   [/^fix\(ui\): avatar menu clipped on desktop$/i, "Исправление: меню по аватару больше не обрезается; крупнее фото на мобилке"],
   [/^fix\(lookup\): boiled egg not pouch egg$/i, "Исправление: «вареное яйцо» больше не подставляет «яйцо в мешочек»"],
