@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^fix\(apk\): profile avatar missing in WebView$/i, "Исправление: фото профиля снова видно в приложении Android"],
   [/^fix\(ui\): avatar menu clipped on desktop$/i, "Исправление: меню по аватару больше не обрезается; крупнее фото на мобилке"],
   [/^fix\(lookup\): boiled egg not pouch egg$/i, "Исправление: «вареное яйцо» больше не подставляет «яйцо в мешочек»"],
   [/^fix\(auth\): Yandex invalid_scope.*$/i, "Исправление: вход через Яндекс (scope login:default_phone)"],
