@@ -13,7 +13,6 @@ GENERATED_VERSION_FILES=(
 # Verbose: DEPLOY_VERBOSE=1 bash deploy/deploy.sh
 DEPLOY_VERBOSE="${DEPLOY_VERBOSE:-0}"
 DEPLOY_LOG="${DEPLOY_LOG:-/tmp/cv-deploy-$$.log}"
-: >"$DEPLOY_LOG"
 
 restore_generated_version_files() {
   git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
@@ -28,6 +27,8 @@ if [[ "${CV_DEPLOY_REEXEC:-}" != "1" ]]; then
   export DEPLOY_LOG
   exec bash "$APP_DIR/deploy/deploy.sh"
 fi
+
+: >"$DEPLOY_LOG"
 
 # —— Quiet progress UI ————————————————————————————————
 # One updating line: [####----]  42%  Build

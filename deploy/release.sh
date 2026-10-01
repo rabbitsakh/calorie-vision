@@ -12,37 +12,47 @@ set -euo pipefail
 REPO="rabbitsakh/calorie-vision"
 APP_DIR="/var/www/calorie-vision"
 DEPLOY_SH="$APP_DIR/deploy/deploy.sh"
+RELEASE_SH="$APP_DIR/deploy/release.sh"
 
 # Warn if cv-release is a stale copy instead of a symlink into the repo.
 if [[ -e /usr/local/bin/cv-release ]]; then
   _cv_target="$(readlink -f /usr/local/bin/cv-release 2>/dev/null || true)"
-  if [[ -n "$_cv_target" && "$_cv_target" != "$APP_DIR/deploy/release.sh" ]]; then
-    echo "⚠  /usr/local/bin/cv-release → $_cv_target (ожидали $APP_DIR/deploy/release.sh)" >&2
-    echo "   sudo ln -sf $APP_DIR/deploy/release.sh /usr/local/bin/cv-release" >&2
+  if [[ -z "$_cv_target" ]]; then
+    # Regular file (not a symlink) — almost certainly a stale copy.
+    if [[ ! -L /usr/local/bin/cv-release ]]; then
+      echo "⚠  /usr/local/bin/cv-release — обычный файл (копия), не symlink." >&2
+      echo "   sudo ln -sf $RELEASE_SH /usr/local/bin/cv-release" >&2
+    fi
+  elif [[ "$_cv_target" != "$RELEASE_SH" ]]; then
+    echo "⚠  /usr/local/bin/cv-release → $_cv_target (ожидали $RELEASE_SH)" >&2
+    echo "   sudo ln -sf $RELEASE_SH /usr/local/bin/cv-release" >&2
   fi
 fi
 
-# Pull latest tree BEFORE starting deploy.sh so progress-bar / script fixes
-# from main apply on this same run (bash does not re-read a script mid-flight).
-refresh_app_scripts() {
+# Pull latest tree, then re-exec the repo copy of this script so a stale
+# /usr/local/bin/cv-release copy still picks up merge/deploy fixes this run.
+if [[ "${CV_RELEASE_REEXEC:-}" != "1" ]]; then
   cd "$APP_DIR"
   git restore package.json package-lock.json src/data/changelog.json 2>/dev/null || true
   if ! git pull --ff-only >/tmp/cv-release-pull.log 2>&1; then
     if ! git pull >/tmp/cv-release-pull.log 2>&1; then
-      echo "⚠  git pull перед деплоем не удался — см. /tmp/cv-release-pull.log" >&2
-      return 1
+      echo "⚠  git pull перед cv-release не удался — см. /tmp/cv-release-pull.log" >&2
     fi
   fi
-  return 0
-}
+  if [[ ! -f "$RELEASE_SH" ]]; then
+    echo "✗  Нет $RELEASE_SH" >&2
+    exit 1
+  fi
+  export CV_RELEASE_REEXEC=1
+  exec bash "$RELEASE_SH" "$@"
+fi
 
 run_deploy() {
-  refresh_app_scripts || true
-  if [[ ! -x "$DEPLOY_SH" && ! -f "$DEPLOY_SH" ]]; then
+  if [[ ! -f "$DEPLOY_SH" ]]; then
     echo "✗  Нет $DEPLOY_SH" >&2
     exit 1
   fi
-  # Re-exec so we never keep running a pre-pull script body.
+  # deploy.sh pulls again + re-execs itself for the quiet progress UI.
   exec bash "$DEPLOY_SH"
 }
 
@@ -67,13 +77,13 @@ else
     --repo "$REPO" \
     --merge \
     --delete-branch; then
-      # Race: merged between view and merge (or already merged).
-      STATE="$(pr_state)"
-      if [[ "$STATE" != "MERGED" ]]; then
-        echo "✗  Merge PR $TARGET не удался (state=$STATE)" >&2
-        exit 1
-      fi
+    # Race: merged between view and merge (or already merged).
+    STATE="$(pr_state)"
+    if [[ "$STATE" != "MERGED" ]]; then
+      echo "✗  Merge PR $TARGET не удался (state=$STATE)" >&2
+      exit 1
+    fi
   fi
 fi
 
-run_deploy()
+run_deploy
