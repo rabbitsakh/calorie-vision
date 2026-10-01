@@ -242,7 +242,7 @@ test("weekly deep link opens Plan tab", () => {
     daysInLastWeek: 7,
   });
   assert.ok(payload);
-  assert.equal(payload.url, "/plan");
+  assert.equal(payload.url, "/plan#shopping");
 });
 
 test("computeStreakStats respects freezes", () => {
