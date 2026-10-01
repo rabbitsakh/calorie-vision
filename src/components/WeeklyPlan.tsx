@@ -37,6 +37,8 @@ type WeeklyPlanProps = {
   onHolidayChange?: () => void;
   /** Link to /plan hub — hide when already on Plan (Weekly OS polish). */
   showPlanLink?: boolean;
+  /** D4: sit inside plan-week scene — no outer card chrome. */
+  embedded?: boolean;
 };
 
 export function WeeklyPlan({
@@ -49,6 +51,7 @@ export function WeeklyPlan({
   showHolidayToggle = false,
   onHolidayChange,
   showPlanLink = true,
+  embedded = false,
 }: WeeklyPlanProps) {
   const day = useOptionalRationDay();
   const [days, setDays] = useState<DayRow[]>([]);
@@ -144,13 +147,24 @@ export function WeeklyPlan({
     return `${weekSummary.headline}${best}`;
   }, [weekSummary]);
 
+  const shellClass = compact || embedded ? "overflow-hidden" : "card overflow-hidden";
+  const padClass = compact ? "pb-1.5" : embedded ? "px-4 pb-1 pt-4 md:px-5" : "px-4 py-3 md:px-5";
+
   return (
-    <section className={compact ? "overflow-hidden" : "card overflow-hidden"}>
-      <div className={`flex items-start justify-between gap-2 ${compact ? "pb-1.5" : "px-4 py-3 md:px-5"}`}>
+    <section className={shellClass}>
+      <div className={`flex items-start justify-between gap-2 ${padClass}`}>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <p className={`font-semibold text-slate-800 ${compact ? "text-sm" : ""}`}>
-              {compact ? "Неделя" : "План недели"}
+            <p
+              className={
+                compact
+                  ? "text-sm font-semibold text-slate-800"
+                  : embedded
+                    ? "font-display text-xl font-semibold tracking-tight text-slate-900 md:text-2xl"
+                    : "font-semibold text-slate-800"
+              }
+            >
+              {compact ? "Неделя" : embedded ? "Неделя" : "План недели"}
             </p>
             {showPlanLink ? (
               <Link

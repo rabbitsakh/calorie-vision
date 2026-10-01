@@ -51,7 +51,7 @@ type AccountResponse = {
   error?: string;
 };
 
-/** Wave 3: collapse secondary profile blocks so «Цели» is not one long dump. */
+/** D4: nested settings rows — hairline, not stacked cards. */
 function ProfileCollapse({
   id,
   title,
@@ -68,16 +68,16 @@ function ProfileCollapse({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="card overflow-hidden scroll-mt-3">
+    <section id={id} className="profile-settings__nested scroll-mt-3">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-6 md:py-4"
+        className="profile-settings__row"
         aria-expanded={open}
         onClick={onToggle}
       >
         <div className="min-w-0">
-          <h2 className="font-display text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-0.5 text-sm text-slate-500">{hint}</p>
+          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">{hint}</p>
         </div>
         <span
           className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
@@ -86,7 +86,7 @@ function ProfileCollapse({
           ▾
         </span>
       </button>
-      {open ? <div className="border-t border-[var(--border-quiet)] px-4 pb-4 pt-3 md:px-6 md:pb-6">{children}</div> : null}
+      {open ? <div className="profile-settings__nested-body">{children}</div> : null}
     </section>
   );
 }
@@ -368,14 +368,14 @@ export function ProfileForm() {
   return (
     <>
       {loading ? (
-        <section className="card p-4 md:p-6">
+        <section className="px-1 py-2">
           <p className="text-sm text-slate-500">Загрузка...</p>
         </section>
       ) : null}
 
       {!loading ? (
-        <form className="flex flex-col gap-4 md:gap-5" onSubmit={handleSave}>
-          <section className="card p-4 md:p-6">
+        <form className="flex flex-col gap-3 md:gap-4" onSubmit={handleSave}>
+          <section className="profile-settings__identity">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
               <label className="relative cursor-pointer">
                 <AvatarFrame>
@@ -659,9 +659,9 @@ export function ProfileForm() {
             </div>
           </ProfileCollapse>
 
-          <section className="card p-4 md:p-6">
-            <h2 className="font-display text-lg font-semibold text-slate-900">Данные</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+          <section className="profile-settings__nested px-1 py-2">
+            <h2 className="text-base font-semibold text-slate-900">Данные</h2>
+            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
               Сохранение профиля, экспорт и установка
             </p>
             {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}

@@ -31,9 +31,11 @@ type WeeklyReportCardProps = {
   endDate: string;
   /** Calendar today — ritual only when viewing the current week day. */
   today?: string;
+  /** D4: flat inside plan-week fold (no teal card shell). */
+  embedded?: boolean;
 };
 
-export function WeeklyReportCard({ endDate, today }: WeeklyReportCardProps) {
+export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyReportCardProps) {
   const timezone = useTimezone();
   const [data, setData] = useState<WeeklyReportData | null>(null);
   const [hidden, setHidden] = useState(false);
@@ -83,15 +85,31 @@ export function WeeklyReportCard({ endDate, today }: WeeklyReportCardProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-teal-100 bg-teal-50/70 p-4">
+    <div
+      className={
+        embedded
+          ? "px-1 py-1"
+          : "rounded-2xl border border-teal-100 bg-teal-50/70 p-4"
+      }
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
-            {ritual ? ritual.title : "Недельный отчёт"}
+          {embedded ? null : (
+            <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+              {ritual ? ritual.title : "Недельный отчёт"}
+            </p>
+          )}
+          <p className={`font-semibold ${embedded ? "text-slate-800" : "text-teal-950"}`}>
+            {data.weekLabel}
           </p>
-          <p className="font-semibold text-teal-950">{data.weekLabel}</p>
           {ritual ? (
-            <p className="mt-1 text-sm leading-snug text-teal-950/85">{ritual.body}</p>
+            <p
+              className={`mt-1 text-sm leading-snug ${
+                embedded ? "text-slate-600" : "text-teal-950/85"
+              }`}
+            >
+              {ritual.body}
+            </p>
           ) : null}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">

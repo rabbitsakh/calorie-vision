@@ -33,38 +33,86 @@ export default function PlanPage() {
     <AppShell
       title="План"
       compact
-      description="Неделя, челлендж, цель по весу, покупки."
+      description="Неделя целиком: челлендж, вес, покупки."
       date={date}
     >
       <AuthGate>
-        <div className="flex flex-col gap-4">
-          <WeeklyPlan
-            selectedDate={date}
-            today={today}
-            refreshKey={refreshKey}
-            showPlanLink={false}
-            showHolidayToggle={date === today}
-            onHolidayChange={() => setRefreshKey((k) => k + 1)}
-            onWeekNavigate={(next) => setDate(next)}
-            onSelectDate={(next) => {
-              router.push(`/ration?date=${next}`);
-            }}
-          />
-          <div id="challenge">
-            <WeeklyChallenge
+        {/* D4: one weekly composition — not five stacked cards. */}
+        <div className="plan-week">
+          <div className="plan-week__hero">
+            <WeeklyPlan
               selectedDate={date}
+              today={today}
               refreshKey={refreshKey}
-              onStarted={() => setRefreshKey((k) => k + 1)}
+              showPlanLink={false}
+              embedded
+              showHolidayToggle={date === today}
+              onHolidayChange={() => setRefreshKey((k) => k + 1)}
+              onWeekNavigate={(next) => setDate(next)}
+              onSelectDate={(next) => {
+                router.push(`/ration?date=${next}`);
+              }}
             />
           </div>
-          <WeeklyReportCard endDate={date} today={today} />
-          <WeightGoalCard
-            selectedDate={date === today ? today : date}
-            refreshKey={refreshKey}
-            showCurrentWeight
-            onChanged={() => setRefreshKey((k) => k + 1)}
-          />
-          <ShoppingListPanel selectedDate={date} />
+
+          <div className="plan-week__rail">
+            <section id="challenge" className="scroll-mt-3">
+              <WeeklyChallenge
+                selectedDate={date}
+                refreshKey={refreshKey}
+                embedded
+                onStarted={() => setRefreshKey((k) => k + 1)}
+              />
+            </section>
+
+            <details className="plan-week__fold group">
+              <summary className="plan-week__fold-summary">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">Итог недели</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Средние, лучший день, шаринг
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▾
+                </span>
+              </summary>
+              <div className="plan-week__fold-body">
+                <WeeklyReportCard endDate={date} today={today} embedded />
+              </div>
+            </details>
+
+            <details className="plan-week__fold group">
+              <summary className="plan-week__fold-summary">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">Цель по весу</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    Текущий вес и темп
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▾
+                </span>
+              </summary>
+              <div className="plan-week__fold-body">
+                <WeightGoalCard
+                  selectedDate={date === today ? today : date}
+                  refreshKey={refreshKey}
+                  showCurrentWeight
+                  embedded
+                  onChanged={() => setRefreshKey((k) => k + 1)}
+                />
+              </div>
+            </details>
+
+            <ShoppingListPanel selectedDate={date} embedded />
+          </div>
         </div>
       </AuthGate>
     </AppShell>

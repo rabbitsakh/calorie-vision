@@ -63,6 +63,8 @@ type WeightGoalCardProps = {
   refreshKey: number;
   onChanged: () => void;
   showCurrentWeight?: boolean;
+  /** D4: no outer card — lives inside a plan-week fold. */
+  embedded?: boolean;
 };
 
 export function WeightGoalCard({
@@ -70,6 +72,7 @@ export function WeightGoalCard({
   refreshKey,
   onChanged,
   showCurrentWeight = false,
+  embedded = false,
 }: WeightGoalCardProps) {
   const [goal, setGoal] = useState<WeightGoal | null>(null);
   const [goalPace, setGoalPace] = useState<GoalPace | null>(null);
@@ -257,7 +260,7 @@ export function WeightGoalCard({
       : null;
 
   return (
-    <section className="card p-6">
+    <section className={embedded ? "px-1 py-1" : "card p-6"}>
       <div className="flex flex-col gap-5">
         {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
 
