@@ -13,20 +13,32 @@ GENERATED_VERSION_FILES=(
 # Verbose: DEPLOY_VERBOSE=1 bash deploy/deploy.sh
 DEPLOY_VERBOSE="${DEPLOY_VERBOSE:-0}"
 DEPLOY_LOG="${DEPLOY_LOG:-/tmp/cv-deploy-$$.log}"
-: >"$DEPLOY_LOG"
 
 restore_generated_version_files() {
   git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
 }
 
+# If cv-release/deploy was started from an older on-disk script, pull and
+# re-exec once so the quiet progress UI from main actually runs this time.
+if [[ "${CV_DEPLOY_REEXEC:-}" != "1" ]]; then
+  restore_generated_version_files
+  git pull --ff-only >>"$DEPLOY_LOG" 2>&1 || git pull >>"$DEPLOY_LOG" 2>&1 || true
+  export CV_DEPLOY_REEXEC=1
+  export DEPLOY_LOG
+  exec bash "$APP_DIR/deploy/deploy.sh"
+fi
+
+: >"$DEPLOY_LOG"
+
 # —— Quiet progress UI ————————————————————————————————
-# One updating line: [████░░░░]  42%  Build
+# One updating line: [####----]  42%  Build
 # Failures / warnings print as normal text below.
 
 _PROGRESS_PCT=0
 _PROGRESS_LABEL="Старт"
+# Progress writes to stderr — detect that fd (stdout may be piped).
 _IS_TTY=0
-if [[ -t 1 ]]; then _IS_TTY=1; fi
+if [[ -t 2 ]]; then _IS_TTY=1; fi
 
 _progress_draw() {
   local pct="${1:-$_PROGRESS_PCT}"
@@ -153,7 +165,8 @@ pick_node_heap_mb() {
 
 progress 2 "Pull"
 restore_generated_version_files
-# GitHub HTTPS from some VPS intermittently times out — retry with backoff.
+# Already pulled once in the re-exec prologue / cv-release — a fast second pull is enough
+# unless that failed; then retry with backoff (GitHub HTTPS timeouts on some VPS).
 pull_ok=0
 for attempt in 1 2 3 4; do
   if run_soft "git pull" git pull; then
