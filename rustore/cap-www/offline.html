@@ -8,7 +8,7 @@
     />
     <meta name="theme-color" content="#0F766E" />
     <meta name="color-scheme" content="light" />
-    <title>Calorie Vision — нет сети</title>
+    <title>Calorie Vision — сеть</title>
     <link rel="icon" href="./assets/icon-512.png" />
     <style>
       :root {
@@ -162,25 +162,29 @@
           transform: scaleX(1);
         }
       }
+
+      .actions[hidden],
+      .panel[hidden] {
+        display: none !important;
+      }
     </style>
   </head>
   <body>
     <main class="wrap">
       <img class="mark" src="./assets/icon-512.png" alt="" width="88" height="88" />
       <p class="brand">Calorie Vision</p>
-      <h1>Нет интернета</h1>
-      <p class="lead">
-        Приложение сейчас без сети. Это не страница сайта — облачный дневник
-        и вход недоступны офлайн.
+      <h1 id="title">Проверяем сеть…</h1>
+      <p class="lead" id="lead">
+        Секунду — не доверяем ложному «офлайну» Android WebView.
       </p>
-      <div class="panel">
+      <div class="panel" id="panel" hidden>
         <p>
           <strong>Что можно сделать:</strong> открыть локальный черновик на
           устройстве или подождать сеть и повторить вход.
         </p>
       </div>
       <div class="wave" aria-hidden="true"></div>
-      <div class="actions">
+      <div class="actions" id="actions" hidden>
         <button type="button" class="btn btn-primary" id="btn-retry">
           Повторить подключение
         </button>
@@ -188,13 +192,15 @@
           Открыть черновик на устройстве
         </button>
       </div>
-      <p class="status" id="status" aria-live="polite"></p>
+      <p class="status" id="status" aria-live="polite">Проверяем сеть…</p>
     </main>
     <script>
       (function () {
         var status = document.getElementById("status");
-        var title = document.querySelector("h1");
-        var lead = document.querySelector(".lead");
+        var title = document.getElementById("title");
+        var lead = document.getElementById("lead");
+        var panel = document.getElementById("panel");
+        var actions = document.getElementById("actions");
         var PRODUCT = "https://calorievision.ru";
         var SKIP_KEY = "cv_cap_skip_auto_restore";
         var HITS_KEY = "cv_cap_offline_hits";
@@ -216,7 +222,6 @@
           }
         }
 
-        /** Count offline.html visits — break bounce after 2 hits in this tab session. */
         function bumpHits() {
           try {
             var n = Number(sessionStorage.getItem(HITS_KEY) || "0") || 0;
@@ -228,20 +233,14 @@
           }
         }
 
-        function hits() {
-          try {
-            return Number(sessionStorage.getItem(HITS_KEY) || "0") || 0;
-          } catch (e) {
-            return 0;
-          }
-        }
-
         /**
-         * Do not trust navigator.onLine alone — Android WebView often lies.
-         * no-cors opaque success still means the product host was reached.
+         * Multi-step probe — Android WebView often lies with navigator.onLine.
+         * 1) CORS /api/health (JSON ok)
+         * 2) no-cors favicon
+         * 3) Image favicon
          */
         function probeOnline(timeoutMs) {
-          var ms = typeof timeoutMs === "number" ? timeoutMs : 4500;
+          var ms = typeof timeoutMs === "number" ? timeoutMs : 6000;
           return new Promise(function (resolve) {
             var done = false;
             function finish(ok) {
@@ -253,24 +252,46 @@
             var timer = setTimeout(function () {
               finish(false);
             }, ms);
-            fetch(PRODUCT + "/favicon.ico?cv_probe=" + Date.now(), {
+
+            var bust = Date.now();
+            fetch(PRODUCT + "/api/health?cv_probe=" + bust, {
               method: "GET",
               cache: "no-store",
               credentials: "omit",
-              mode: "no-cors",
+              mode: "cors",
             })
-              .then(function () {
-                finish(true);
+              .then(function (resp) {
+                if (!resp || !resp.ok) throw new Error("health");
+                return resp.json();
+              })
+              .then(function (data) {
+                if (data && data.ok) {
+                  finish(true);
+                  return;
+                }
+                throw new Error("health-body");
               })
               .catch(function () {
-                var img = new Image();
-                img.onload = function () {
-                  finish(true);
-                };
-                img.onerror = function () {
-                  finish(false);
-                };
-                img.src = PRODUCT + "/favicon.ico?cv_img=" + Date.now();
+                return fetch(PRODUCT + "/favicon.ico?cv_probe=" + bust, {
+                  method: "GET",
+                  cache: "no-store",
+                  credentials: "omit",
+                  mode: "no-cors",
+                }).then(
+                  function () {
+                    finish(true);
+                  },
+                  function () {
+                    var img = new Image();
+                    img.onload = function () {
+                      finish(true);
+                    };
+                    img.onerror = function () {
+                      finish(false);
+                    };
+                    img.src = PRODUCT + "/favicon.ico?cv_img=" + bust;
+                  },
+                );
               });
           });
         }
@@ -284,25 +305,37 @@
           window.location.replace("./index.html");
         }
 
-        function showReachableCopy() {
-          if (title) title.textContent = "Не удалось открыть дневник";
+        function showOfflineUi() {
+          if (title) title.textContent = "Нет интернета";
           if (lead) {
             lead.textContent =
-              "Сеть есть, но переход в облако оборвался. Откройте черновик и нажмите «Войти» ещё раз — или обновите приложение после деплоя.";
+              "Приложение сейчас без сети. Это не страница сайта — облачный дневник и вход недоступны офлайн.";
           }
+          if (panel) panel.hidden = false;
+          if (actions) actions.hidden = false;
+          document.title = "Calorie Vision — нет сети";
+        }
+
+        function showReachableCopy() {
+          if (title) title.textContent = "Сеть есть";
+          if (lead) {
+            lead.textContent =
+              "Переход в облако оборвался, но интернет работает. Открываем черновик на устройстве — войдите ещё раз оттуда.";
+          }
+          document.title = "Calorie Vision — сеть есть";
         }
 
         async function retry() {
           if (probing) return;
           probing = true;
           setStatus("Проверяем сеть…");
-          var ok = await probeOnline(5000);
+          var ok = await probeOnline(6500);
           probing = false;
           if (!ok) {
+            showOfflineUi();
             setStatus("Сети всё ещё нет — откройте черновик на устройстве");
             return;
           }
-          // One deliberate attempt: clear skip so shell may restore session once.
           clearSkipRestore();
           try {
             sessionStorage.setItem(HITS_KEY, "0");
@@ -313,8 +346,7 @@
           window.location.replace("./index.html");
         }
 
-        // Landing on errorPath / offline stub: always suppress the next auto-restore
-        // so we do not loop offline → shell → product → offline.
+        // Landing on errorPath: suppress next auto-restore to break bounce.
         setSkipRestore();
         var visit = bumpHits();
 
@@ -324,23 +356,23 @@
         document.getElementById("btn-local").addEventListener("click", goLocal);
 
         window.addEventListener("online", function () {
-          setStatus("Сеть появилась — можно повторить или открыть черновик");
+          setStatus("Сеть появилась — проверяем ещё раз…");
+          void retry();
         });
 
         void (async function bootProbe() {
           setStatus("Проверяем сеть…");
-          var ok = await probeOnline(5000);
+          var ok = await probeOnline(6500);
           if (ok) {
             showReachableCopy();
-            if (visit >= 2) {
-              setStatus("Слишком много попыток — открываем черновик на устройстве");
-              setTimeout(goLocal, 500);
-              return;
-            }
-            setStatus("Сеть есть — откройте черновик или нажмите «Повторить»");
-          } else {
-            setStatus("Сети нет — откройте черновик или повторите позже");
+            // Network OK — never strand the user on «Нет интернета».
+            // skip-restore already set, so shell will not bounce back here.
+            setStatus("Сеть есть — открываем черновик…");
+            setTimeout(goLocal, visit >= 2 ? 200 : 350);
+            return;
           }
+          showOfflineUi();
+          setStatus("Сети нет — откройте черновик или повторите позже");
         })();
       })();
     </script>

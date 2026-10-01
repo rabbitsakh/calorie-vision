@@ -174,11 +174,11 @@
 
   /**
    * Android WebView often reports navigator.onLine=false even with working network.
-   * Never gate navigation on onLine alone — probe the product origin.
-   * Prefer mode:no-cors so opaque success still means the host was reached.
+   * Never gate navigation on onLine alone — multi-step probe of the product origin:
+   * CORS /api/health → no-cors favicon → Image favicon.
    */
   function probeOnline(timeoutMs) {
-    var ms = typeof timeoutMs === "number" ? timeoutMs : 4000;
+    var ms = typeof timeoutMs === "number" ? timeoutMs : 6000;
     return new Promise(function (resolve) {
       var done = false;
       function finish(ok) {
@@ -190,26 +190,45 @@
       var timer = setTimeout(function () {
         finish(false);
       }, ms);
-      var url = PRODUCT_ORIGIN + "/favicon.ico?cv_probe=" + Date.now();
-      // no-cors: opaque 200 still resolves — proves connectivity without CORS headers.
-      fetch(url, {
+      var bust = Date.now();
+      fetch(PRODUCT_ORIGIN + "/api/health?cv_probe=" + bust, {
         method: "GET",
         cache: "no-store",
         credentials: "omit",
-        mode: "no-cors",
+        mode: "cors",
       })
-        .then(function () {
-          finish(true);
+        .then(function (resp) {
+          if (!resp || !resp.ok) throw new Error("health");
+          return resp.json();
+        })
+        .then(function (data) {
+          if (data && data.ok) {
+            finish(true);
+            return;
+          }
+          throw new Error("health-body");
         })
         .catch(function () {
-          var img = new Image();
-          img.onload = function () {
-            finish(true);
-          };
-          img.onerror = function () {
-            finish(false);
-          };
-          img.src = PRODUCT_ORIGIN + "/favicon.ico?cv_img=" + Date.now();
+          return fetch(PRODUCT_ORIGIN + "/favicon.ico?cv_probe=" + bust, {
+            method: "GET",
+            cache: "no-store",
+            credentials: "omit",
+            mode: "no-cors",
+          }).then(
+            function () {
+              finish(true);
+            },
+            function () {
+              var img = new Image();
+              img.onload = function () {
+                finish(true);
+              };
+              img.onerror = function () {
+                finish(false);
+              };
+              img.src = PRODUCT_ORIGIN + "/favicon.ico?cv_img=" + bust;
+            },
+          );
         });
     });
   }
@@ -238,8 +257,9 @@
   async function openProductLogin() {
     var hint = $("demo-hint");
     if (hint) hint.textContent = "Проверяем сеть…";
-    var ok = await probeOnline(4500);
+    var ok = await probeOnline(6500);
     if (!ok) {
+      // Confirmed offline — branded stub (moderation: авиарежим + Войти).
       goOfflineStub();
       return;
     }
@@ -247,9 +267,14 @@
   }
 
   async function openProductRation() {
-    var ok = await probeOnline(4500);
+    var ok = await probeOnline(6500);
     if (!ok) {
-      goOfflineStub();
+      // Soft-fail: stay on local shell instead of scaring with «Нет интернета».
+      var hint = $("demo-hint");
+      if (hint) {
+        hint.textContent =
+          "Сеть пока недоступна — локальный черновик. Войдите снова, когда появится интернет.";
+      }
       return;
     }
     // Top-level navigation so calorievision.ru session cookies are sent.
@@ -336,7 +361,7 @@
     }
 
     // Have credentials — only leave the shell when the product is reachable.
-    var ok = await probeOnline(5000);
+    var ok = await probeOnline(6500);
     if (!ok) {
       var hint = $("demo-hint");
       if (hint) {
