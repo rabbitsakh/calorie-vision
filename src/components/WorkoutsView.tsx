@@ -2738,7 +2738,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         />
       ) : (
         <>
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+      {/* D5: thin hub — Сегодня | Ещё (parity with stats period tabs). */}
+      <div className="cv-segment-tabs cv-segment-tabs--2" role="tablist" aria-label="Раздел зала">
         {(
           [
             ["today", "Сегодня"],
@@ -2751,6 +2752,8 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             <button
               key={id}
               type="button"
+              role="tab"
+              aria-selected={active}
               onClick={() => {
                 if (id === "today") {
                   setHubTab("today");
@@ -2760,9 +2763,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
                   setHubTab("history");
                 }
               }}
-              className={`flex-1 rounded-lg px-2 py-2 text-sm font-semibold ${
-                active ? "bg-white text-teal-900 shadow-sm" : "text-slate-600"
-              }`}
+              className={`chip min-h-9 ${active ? "chip-active" : ""}`}
             >
               {label}
             </button>
@@ -2771,7 +2772,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       </div>
 
       {hubTab !== "today" ? (
-        <div className="flex gap-1 rounded-xl border border-slate-200 bg-white p-1">
+        <div className="cv-segment-tabs cv-segment-tabs--3" role="tablist" aria-label="Ещё в зале">
           {(
             [
               ["history", "История"],
@@ -2782,10 +2783,10 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             <button
               key={id}
               type="button"
+              role="tab"
+              aria-selected={hubTab === id}
               onClick={() => setHubTab(id)}
-              className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-semibold ${
-                hubTab === id ? "bg-teal-50 text-teal-900" : "text-slate-600"
-              }`}
+              className={`chip min-h-9 ${hubTab === id ? "chip-active" : ""}`}
             >
               {label}
             </button>
