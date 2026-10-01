@@ -316,7 +316,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
       </button>
 
       {open ? (
-        <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 md:px-5">
+        <div className="flex flex-col gap-3 border-t border-[var(--border-hairline)] px-4 py-3 md:px-5">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
