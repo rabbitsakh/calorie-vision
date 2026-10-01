@@ -1,5 +1,7 @@
+import { isAllowedAvatarUrl } from "@/lib/avatar-url";
 import { normalizeAuthPhone } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
+import { cacheOAuthAvatar } from "@/lib/upload";
 
 export type OAuthIdentityFields = {
   email?: string | null;
@@ -128,7 +130,24 @@ export async function syncOAuthIdentityToUser(
 
   const image = typeof identity.image === "string" ? identity.image.trim() : "";
   if (image && !user.image) {
-    data.image = image;
+    // Prefer same-origin upload — APK WebView often blocks OAuth CDN <img>.
+    if (isAllowedAvatarUrl(image)) {
+      const cached = await cacheOAuthAvatar(image, userId);
+      data.image = cached ?? image;
+    } else {
+      data.image = image;
+    }
+  } else if (
+    image &&
+    user.image &&
+    isAllowedAvatarUrl(user.image) &&
+    isAllowedAvatarUrl(image)
+  ) {
+    // Soft-upgrade an existing hotlink to a cached upload when possible.
+    const cached = await cacheOAuthAvatar(user.image, userId);
+    if (cached) {
+      data.image = cached;
+    }
   }
 
   if (Object.keys(data).length === 0) {

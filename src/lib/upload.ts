@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
 import sharp from "sharp";
+import { isAllowedAvatarUrl } from "./avatar-url";
 import { isAllowedImageUrl } from "./food-image";
 import { isDownloadableProductImageUrl } from "./product-web-image";
 import { compressFoodImage, FOOD_IMAGE_MAX_BYTES, FOOD_IMAGE_MAX_EDGE } from "./image-compress";
@@ -197,18 +198,24 @@ function isPrivateOrBlockedHost(hostname: string): boolean {
   return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.|169\.254\.)/.test(host);
 }
 
-function canFetchRemoteImage(url: string, allowWebProduct: boolean): boolean {
+function canFetchRemoteImage(
+  url: string,
+  allowWebProduct: boolean,
+  allowAvatar: boolean,
+): boolean {
   if (isAllowedImageUrl(url)) return true;
+  if (allowAvatar && isAllowedAvatarUrl(url)) return true;
   if (!allowWebProduct) return false;
   return isDownloadableProductImageUrl(url);
 }
 
 export async function saveRemoteImage(
   url: string,
-  options?: { ownerUserId?: string; allowWebProduct?: boolean },
+  options?: { ownerUserId?: string; allowWebProduct?: boolean; allowAvatar?: boolean },
 ): Promise<string | null> {
   const allowWebProduct = Boolean(options?.allowWebProduct);
-  if (!canFetchRemoteImage(url, allowWebProduct)) {
+  const allowAvatar = Boolean(options?.allowAvatar);
+  if (!canFetchRemoteImage(url, allowWebProduct, allowAvatar)) {
     return null;
   }
 
@@ -218,8 +225,12 @@ export async function saveRemoteImage(
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": "CalorieVision/1.0 (https://calorievision.ru; food image lookup)",
+        // Browser-like UA for OAuth avatars — Google/Yandex often 403 bot UAs.
+        "User-Agent": allowAvatar
+          ? "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+          : "CalorieVision/1.0 (https://calorievision.ru; food image lookup)",
         Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        ...(allowAvatar ? { Referer: "https://calorievision.ru/" } : {}),
       },
       redirect: "follow",
       signal: controller.signal,
@@ -236,7 +247,7 @@ export async function saveRemoteImage(
       if (isPrivateOrBlockedHost(finalHost)) {
         return null;
       }
-      finalOk = canFetchRemoteImage(response.url, allowWebProduct);
+      finalOk = canFetchRemoteImage(response.url, allowWebProduct, allowAvatar);
     } catch {
       return null;
     }
@@ -275,7 +286,7 @@ export async function saveRemoteImage(
 
 export async function cacheRemoteImage(
   url: string | undefined,
-  options?: { ownerUserId?: string; allowWebProduct?: boolean },
+  options?: { ownerUserId?: string; allowWebProduct?: boolean; allowAvatar?: boolean },
 ): Promise<string | undefined> {
   if (!url) {
     return undefined;
@@ -287,7 +298,22 @@ export async function cacheRemoteImage(
   }
 
   // Never hotlink arbitrary web CDNs into the diary — only catalog hosts.
+  // OAuth avatars may remain as hotlinks when download fails (client proxies in APK).
+  if (options?.allowAvatar && isAllowedAvatarUrl(url)) {
+    return url;
+  }
   return isAllowedImageUrl(url) ? url : undefined;
+}
+
+/** Download an OAuth avatar to `/api/uploads/…` when possible. */
+export async function cacheOAuthAvatar(
+  url: string,
+  ownerUserId: string,
+): Promise<string | null> {
+  if (!isAllowedAvatarUrl(url)) {
+    return null;
+  }
+  return saveRemoteImage(url, { ownerUserId, allowAvatar: true });
 }
 
 export async function recompressStoredImages(): Promise<number> {
