@@ -61,7 +61,8 @@ export function DishFields({
   const fieldId = (name: string) => `${name}-${dish.id}`;
   const showReviewCta =
     review.lowConfidence || review.missingCalories || review.missingMacros;
-  const [showAdvanced, setShowAdvanced] = useState(showReviewCta);
+  // D3: BJU stay behind toggle — never auto-expand into the skim.
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [wrongDishHint, setWrongDishHint] = useState(false);
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const dishNameRef = useRef<HTMLInputElement>(null);
@@ -265,19 +266,6 @@ export function DishFields({
         </div>
 
         <div className="field">
-          <label htmlFor={fieldId("calories")}>Калории, ккал</label>
-          <input
-            id={fieldId("calories")}
-            type="number"
-            inputMode="decimal"
-            min="1"
-            className="text-base"
-            value={dish.calories}
-            onChange={(event) => onBaselineChange({ calories: event.target.value })}
-          />
-        </div>
-
-        <div className="field">
           <label htmlFor={fieldId("portionGrams")}>
             {looksLikeDrink(dish) ? "Порция, мл" : "Порция, г"}
           </label>
@@ -306,6 +294,19 @@ export function DishFields({
               );
             })}
           </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor={fieldId("calories")}>Калории, ккал</label>
+          <input
+            id={fieldId("calories")}
+            type="number"
+            inputMode="decimal"
+            min="1"
+            className="text-base"
+            value={dish.calories}
+            onChange={(event) => onBaselineChange({ calories: event.target.value })}
+          />
           {dish.fiber.trim() || dish.sugar.trim() ? (
             <p className="mt-1 text-xs text-slate-500">
               {[
