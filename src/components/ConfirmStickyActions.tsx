@@ -52,7 +52,7 @@ export function ConfirmStickyActions({
   return (
     <div className="confirm-card-actions">
       {multi ? (
-        <p className="w-full text-center text-xs font-medium text-slate-500">
+        <p className="w-full text-center text-xs font-medium text-[var(--muted)]">
           {dishesLength} позиций · {totalCalories || "—"} ккал
         </p>
       ) : null}

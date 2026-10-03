@@ -61,7 +61,7 @@ export function ConfirmTrustSkim({
         </p>
       ) : null}
       {saveAsIs && !saving ? (
-        <p className="text-center text-xs text-slate-500">{softSaveHint}</p>
+        <p className="text-center text-xs text-[var(--muted)]">{softSaveHint}</p>
       ) : null}
       {anyMissingCalories && !enriching && !saving && !skimTrustLine ? (
         <p className="text-center text-xs text-amber-800">

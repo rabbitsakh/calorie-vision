@@ -28,6 +28,8 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^feat\(ux\): W8 tokens ration dayhero tabbar$/i, "UX: рацион, DayHero и таббар на CSS-токенах вместо slate/teal"],
   [/^feat\(ux\): W9 soft celebration daily budget$/i, "UX: лимит мягких празднований в день — тише в первую неделю"],
   [/^feat\(ux\): W10 split confirmation card modules$/i, "UX: подтверждение — sticky CTA, trust skim и details fold вынесены из монолита"],
+  [/^feat\(ux\): W11 tokens stats workouts confirm$/i, "UX: статы, чипы зала и confirm на CSS-токенах"],
+  [/^feat\(ux\): W12 first-week growth nudges quiet$/i, "UX: PWA и push не мешают в первую неделю логирования"],
   [/^feat\(ux\): W1 confirm skim trust line$/i, "UX: на подтверждении видны слабая уверенность и неполные БЖУ без раскрытия fold"],
   [/^feat\(design\): D5\+D6 gym day scene and stats without card cascade$/i, "Дизайн: зал — сцена дня и тонкий хаб; статы — инсайт-сцена и графики без стопки карточек"],
   [/^feat\(design\): D4 plan week scene and profile settings list$/i, "Дизайн: план — одна недельная сцена; профиль — список настроек без стопки карточек"],

@@ -101,8 +101,8 @@ export function ConfirmDetailsFold({
           });
           if (chips.length === 0) return null;
           return (
-            <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
-              <p className="text-xs font-semibold text-slate-700">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-summary-soft)]/80 px-3 py-2">
+              <p className="text-xs font-semibold text-[var(--muted-strong)]">
                 Переснять с подсказкой контекста
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -110,7 +110,7 @@ export function ConfirmDetailsFold({
                   <button
                     key={chip}
                     type="button"
-                    className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-50"
+                    className="rounded-lg border border-[var(--border-quiet)] bg-[var(--card)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
                     disabled={saving || searching}
                     onClick={() => onRerunWithContext(chip)}
                   >
@@ -123,7 +123,7 @@ export function ConfirmDetailsFold({
         })()}
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Приём пищи
             {eatenTime ? ` · ${eatenTime}` : ""}
           </p>
@@ -142,7 +142,7 @@ export function ConfirmDetailsFold({
             )}
           </div>
           <div className="field mt-3 max-w-[12rem]">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Время приёма
             </label>
             <input
@@ -156,8 +156,8 @@ export function ConfirmDetailsFold({
           </div>
         </div>
 
-        <div className="space-y-1 text-xs text-slate-600">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <div className="space-y-1 text-xs text-[var(--muted-strong)]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Распознавание
           </p>
           <p>
