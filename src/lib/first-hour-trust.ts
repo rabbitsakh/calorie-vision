@@ -62,6 +62,14 @@ export function isFirstWeekQuiet(minDays = 7): boolean {
   return getCachedLoggedDaysTotal() < minDays;
 }
 
+/**
+ * Growth surfaces (PWA soft prompt, push, share nudge, referral) wait until
+ * the diary habit exists — onboarding remains the only install interrupt.
+ */
+export function shouldShowGrowthNudges(minDays = 7): boolean {
+  return !isFirstWeekQuiet(minDays);
+}
+
 /** One soft «aha» after a week of use. */
 export function shouldShowSevenDayAha(daysLoggedTotal: number): boolean {
   if (daysLoggedTotal < 7) return false;
