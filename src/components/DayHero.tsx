@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { LiveMascot } from "@/components/LiveMascot";
-import { DiarySticker } from "@/components/DiarySticker";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
@@ -85,7 +84,7 @@ function HeroRing({ pct }: { pct: number }) {
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`font-display text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
+          className={`text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
         >
           {Math.round(clamped)}%
         </span>
@@ -270,16 +269,15 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             size="md"
             title={copy.headline}
             entrance
-            idleReel
-            interactive
+            idleReel={false}
+            interactive={false}
           />
-          <DiarySticker className="pointer-events-none absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent-ink)]/70">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {copy.eyebrow}
           </p>
-          <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
+          <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
             {copy.headline}
           </p>
           <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">

@@ -91,7 +91,7 @@ function StatsSectionHeader({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 className="font-display text-lg font-bold text-[var(--foreground)]">{title}</h2>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
         {meta ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-strong)]">{meta}</div>
         ) : null}
@@ -682,10 +682,10 @@ function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
     >
       <div className="day-hero-glow" aria-hidden />
       <div className="relative px-3.5 py-4 md:px-5 md:py-5">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent-ink)]/70">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
           {insight.title}
         </p>
-        <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
+        <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
           {insight.body}
         </p>
         {insight.detail ? (
@@ -1006,7 +1006,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-teal-50 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
-                  <p className="mt-1 font-display text-2xl font-bold text-slate-900">
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
                     {wow.thisWeek.daysLogged > 0 ? wow.thisWeek.avgCalories : "—"}
                   </p>
                   <p className="text-xs text-slate-500">
@@ -1017,7 +1017,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                 </div>
                 <div className="rounded-xl bg-slate-50 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Прошлая</p>
-                  <p className="mt-1 font-display text-2xl font-bold text-slate-900">
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
                     {wow.prevWeek.daysLogged > 0 ? wow.prevWeek.avgCalories : "—"}
                   </p>
                   <p className="text-xs text-slate-500">
@@ -1029,7 +1029,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                 <div className="rounded-xl border border-slate-100 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Разница</p>
                   <p
-                    className={`mt-1 font-display text-2xl font-bold ${
+                    className={`mt-1 text-2xl font-bold tabular-nums ${
                       wow.deltaAvgCalories == null
                         ? "text-slate-400"
                         : wow.deltaAvgCalories > 0
@@ -1168,7 +1168,7 @@ export function StatsView({ endDate }: StatsViewProps) {
 
           {/* Export */}
           <section className="stats-chart-block">
-            <h2 className="mb-1 font-display text-lg font-bold">Экспорт · Calorie Vision</h2>
+            <h2 className="mb-1 text-lg font-bold">Экспорт · Calorie Vision</h2>
             <p className="mb-3 text-xs text-slate-500">PDF с брендингом и дневником за выбранный период</p>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {(

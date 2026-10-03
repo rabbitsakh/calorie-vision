@@ -97,32 +97,32 @@ export function SoftCelebration({
 
   return (
     <div
-      className="soft-celeb-root fixed inset-0 z-50 flex items-end justify-center bg-slate-900/25 p-4 pb-24 backdrop-blur-[1px] sm:items-center sm:pb-4"
+      className="soft-celeb-root fixed inset-0 z-50 flex items-end justify-center bg-slate-900/20 p-4 pb-24 sm:items-center sm:pb-4"
       role="status"
       aria-live="polite"
       onClick={onClose}
     >
       <div
-        className="soft-celeb-card relative w-full max-w-sm overflow-hidden rounded-3xl bg-white px-5 py-5 text-center shadow-xl ring-1 ring-teal-100"
+        className="soft-celeb-card relative w-full max-w-sm overflow-hidden bg-white px-5 py-5 text-center ring-1 ring-slate-200/80"
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className={`pointer-events-none absolute left-1/2 top-2 h-20 w-20 -translate-x-1/2 rounded-full ${ringClass(pose, variant)}`}
+          className={`pointer-events-none absolute left-1/2 top-2 h-16 w-16 -translate-x-1/2 rounded-full ${ringClass(pose, variant)}`}
           aria-hidden
         />
         <div className="relative mx-auto mb-2 flex flex-col items-center">
-          <Mascot pose={pose} size="lg" />
+          <Mascot pose={pose} size="md" />
           {badge ? (
             <span
-              className={`mt-1 rounded-full px-2.5 py-0.5 text-xs font-bold text-white ${
-                pose === "streak" || variant === "streak" ? "bg-amber-600" : "bg-teal-700"
+              className={`mt-1 rounded-md px-2 py-0.5 text-xs font-semibold text-white ${
+                pose === "streak" || variant === "streak" ? "bg-amber-700" : "bg-teal-800"
               }`}
             >
               {badge}
             </span>
           ) : null}
         </div>
-        <p className="text-lg font-bold text-slate-900">{title}</p>
+        <p className="text-base font-semibold text-slate-900">{title}</p>
         {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         <button type="button" className="btn-quiet mt-3 text-sm text-teal-800" onClick={onClose}>
           {ctaLabel}

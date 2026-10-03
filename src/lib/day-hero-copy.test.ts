@@ -13,7 +13,7 @@ describe("day-hero-copy", () => {
       isToday: true,
     });
     assert.equal(copy.pose, "empty");
-    assert.match(copy.headline, /приём|движении/i);
+    assert.match(copy.headline, /приём|начнётся/i);
   });
 
   test("streak empty day mentions series", () => {
@@ -52,6 +52,6 @@ describe("day-hero-copy", () => {
       isToday: true,
     });
     assert.equal(copy.pose, "streak");
-    assert.match(copy.headline, /7 серии|50%/);
+    assert.match(copy.headline, /7 серии|50%/i);
   });
 });
