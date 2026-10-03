@@ -55,6 +55,7 @@ import {
   canSaveAsIs,
   confirmReviewPrimaryCta,
   confirmSaveButtonLabel,
+  confirmSkimTrustLine,
   saveAsIsHint,
   worstReviewDishIndex,
 } from "@/lib/confirm-review-cta";
@@ -972,6 +973,26 @@ export function ConfirmationCard({
     anyMissingMacros,
     anyLowConfidence,
   });
+  const skimTrustLine = confirmSkimTrustLine({
+    enriching,
+    enrichmentTimedOut: Boolean(recognition.enrichmentTimedOut),
+    needsReview,
+    anyMissingCalories,
+    anyMissingMacros,
+    anyLowConfidence,
+    multi,
+    lowConfidenceCount: lowConfidenceDishes.length,
+    dishCount: dishes.length,
+    lowestConfidencePercent: lowestConfidenceDish
+      ? formatConfidencePercent(lowestConfidenceDish.original.confidence)
+      : null,
+  });
+  const skimTone =
+    !multi && dishes[0]
+      ? getConfidenceTone(dishes[0].original.confidence, lowConfidenceThreshold)
+      : anyLowConfidence
+        ? "low"
+        : "high";
   const allergenHits = Array.from(
     new Set(
       dishes.flatMap((dish) => {
@@ -1079,6 +1100,7 @@ export function ConfirmationCard({
                   formDisabled={formDisabled}
                   canRemove={multi}
                   review={reviewFlags[index]!}
+                  hideInlineLookupCta={Boolean(reviewCta)}
                   onChange={(patch) => updateDish(dish.id, patch)}
                   onBaselineChange={(patch) =>
                     updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
@@ -1174,7 +1196,25 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* D3 skim CTA: Save first; Уточнить demoted when review needed. */}
+        {/* W1: trust line + soft hints above sticky CTAs (visible above dock). */}
+        {skimTrustLine ? (
+          <p
+            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-amber-950"
+            role="status"
+          >
+            {skimTrustLine}
+          </p>
+        ) : null}
+        {saveAsIs && !saving ? (
+          <p className="text-center text-xs text-slate-500">{softSaveHint}</p>
+        ) : null}
+        {anyMissingCalories && !enriching && !saving && !skimTrustLine ? (
+          <p className="text-center text-xs text-amber-800">
+            Без калорий сохранить нельзя — уточните название или введите ккал.
+          </p>
+        ) : null}
+
+        {/* W1: when review needed, Уточнить is primary; Save is soft «как есть». */}
         <div className="confirm-card-actions">
           {multi ? (
             <p className="w-full text-center text-xs font-medium text-slate-500">
@@ -1247,22 +1287,18 @@ export function ConfirmationCard({
             Отменить
           </button>
         </div>
-        {saveAsIs && !saving ? (
-          <p className="text-center text-xs text-slate-500">{softSaveHint}</p>
-        ) : null}
-        {anyMissingCalories && !enriching && !saving ? (
-          <p className="text-center text-xs text-amber-800">
-            Без калорий сохранить нельзя — уточните название или введите ккал.
-          </p>
-        ) : null}
 
         {/* D3: one fold for trust / meal time / recognition meta / reshoot context. */}
         <details className="confirm-details-fold">
           <summary>
             Подробнее
             {!multi && dishes[0]
-              ? ` · ${formatConfidencePercent(dishes[0].original.confidence)}`
-              : ""}
+              ? ` · ${formatConfidencePercent(dishes[0].original.confidence)}${
+                  skimTone !== "high" ? ` · ${confidenceShortLabel(skimTone)}` : ""
+                }`
+              : multi && anyLowConfidence
+                ? ` · слабая ${lowConfidenceDishes.length}/${dishes.length}`
+                : ""}
             {mealType
               ? ` · ${MEAL_TYPE_LABELS[mealType as keyof typeof MEAL_TYPE_LABELS] ?? mealType}`
               : ""}
@@ -1283,23 +1319,7 @@ export function ConfirmationCard({
               />
             ) : null}
 
-            {!enriching && (recognition.enrichmentTimedOut || needsReview) ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-                <p className="min-w-0 flex-1 font-semibold leading-snug">
-                  {recognition.enrichmentTimedOut
-                    ? "Уточнение не завершилось — проверьте ккал"
-                    : anyMissingCalories
-                      ? "Нет калорий — уточните название"
-                      : anyMissingMacros
-                        ? "Ккал есть, БЖУ неполные — уточните"
-                        : anyLowConfidence && multi
-                          ? `Слабая уверенность · ${lowConfidenceDishes.length}/${dishes.length}`
-                          : anyLowConfidence && lowestConfidenceDish
-                            ? `Слабая уверенность (${formatConfidencePercent(lowestConfidenceDish.original.confidence)})`
-                            : "Проверьте блюдо"}
-                </p>
-              </div>
-            ) : null}
+            {/* Skim already shows the trust line — fold keeps deep badge/reshoot only. */}
 
             {(() => {
               if (!onRerunWithContext) return null;

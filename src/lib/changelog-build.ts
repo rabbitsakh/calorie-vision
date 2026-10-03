@@ -18,6 +18,8 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^feat\(ux\): W1–W6 trust find profile gym recog copy$/i, "UX: доверие на confirm, план с рациона, профиль, зал, распознавание, тексты установки"],
+  [/^feat\(ux\): W1 confirm skim trust line$/i, "UX: на подтверждении видны слабая уверенность и неполные БЖУ без раскрытия fold"],
   [/^feat\(design\): D5\+D6 gym day scene and stats without card cascade$/i, "Дизайн: зал — сцена дня и тонкий хаб; статы — инсайт-сцена и графики без стопки карточек"],
   [/^feat\(design\): D4 plan week scene and profile settings list$/i, "Дизайн: план — одна недельная сцена; профиль — список настроек без стопки карточек"],
   [/^feat\(design\): D3 confirm photo-first skim$/i, "Дизайн: подтверждение блюда — фото, порция, ккал и сохранение; подробности в одном fold"],

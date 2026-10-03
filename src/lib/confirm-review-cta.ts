@@ -153,6 +153,48 @@ export function saveAsIsHint(input?: {
   return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
 }
 
+/**
+ * One skim-visible trust line above sticky CTAs (W1).
+ * Keeps D3 skim: does not expand BJU or the details fold.
+ */
+export function confirmSkimTrustLine(input: {
+  enriching: boolean;
+  enrichmentTimedOut: boolean;
+  needsReview: boolean;
+  anyMissingCalories: boolean;
+  anyMissingMacros: boolean;
+  anyLowConfidence: boolean;
+  multi: boolean;
+  lowConfidenceCount?: number;
+  dishCount?: number;
+  lowestConfidencePercent?: string | null;
+}): string | null {
+  if (input.enriching) return null;
+  if (input.enrichmentTimedOut) {
+    return "Уточнение не завершилось — проверьте ккал";
+  }
+  if (!input.needsReview) return null;
+  if (input.anyMissingCalories) {
+    return "Нет калорий — уточните название или введите ккал";
+  }
+  if (input.anyMissingMacros) {
+    return "Ккал есть, БЖУ неполные — уточните или сохраните как есть";
+  }
+  if (input.anyLowConfidence && input.multi) {
+    const n = input.lowConfidenceCount ?? 0;
+    const total = input.dishCount ?? 0;
+    return total > 0
+      ? `Слабая уверенность · ${n}/${total} — уточните или сохраните как есть`
+      : "Слабая уверенность — уточните или сохраните как есть";
+  }
+  if (input.anyLowConfidence) {
+    return input.lowestConfidencePercent
+      ? `Слабая уверенность (${input.lowestConfidencePercent}) — уточните или сохраните как есть`
+      : "Слабая уверенность — уточните или сохраните как есть";
+  }
+  return "Проверьте блюдо перед сохранением";
+}
+
 /** Format post-save toast with kcal so the diary feels confirmed. */
 export function formatSavedMealToast(input: {
   savedCount?: number;

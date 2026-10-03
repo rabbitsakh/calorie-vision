@@ -36,6 +36,8 @@ export function DishFields({
   formDisabled,
   canRemove,
   review,
+  /** Sticky skim already shows «Уточнить» — hide the under-name duplicate. */
+  hideInlineLookupCta = false,
   onChange,
   onBaselineChange,
   onPortionChange,
@@ -51,6 +53,7 @@ export function DishFields({
   formDisabled: boolean;
   canRemove: boolean;
   review: { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean };
+  hideInlineLookupCta?: boolean;
   onChange: (patch: Partial<DishDraft>) => void;
   onBaselineChange: (patch: Partial<DishDraft>) => void;
   onPortionChange: (value: string) => void;
@@ -250,7 +253,7 @@ export function DishFields({
               следующий раз.
             </p>
           ) : null}
-          {showReviewCta ? (
+          {showReviewCta && !hideInlineLookupCta ? (
             <button
               type="button"
               className="btn btn-secondary mt-2 w-full text-sm sm:w-auto"
@@ -303,10 +306,24 @@ export function DishFields({
             type="number"
             inputMode="decimal"
             min="1"
-            className="text-base"
+            className={`text-base${
+              review.missingCalories ? " border-amber-300 ring-1 ring-amber-200" : ""
+            }`}
             value={dish.calories}
             onChange={(event) => onBaselineChange({ calories: event.target.value })}
           />
+          {/* W1: one skim micro-hint — BJU stay collapsed. */}
+          {showReviewCta && !showAdvanced ? (
+            <p className="mt-1 text-xs font-medium text-amber-800">
+              {review.missingCalories
+                ? "Без ккал сохранить нельзя — уточните название или введите число."
+                : review.missingMacros
+                  ? "БЖУ неполные — кнопка «Уточнить БЖУ» ниже или раскройте поля."
+                  : review.lowConfidence
+                    ? `Слабая уверенность (${formatConfidencePercent(dish.original.confidence)}) — уточните название.`
+                    : null}
+            </p>
+          ) : null}
           {dish.fiber.trim() || dish.sugar.trim() ? (
             <p className="mt-1 text-xs text-slate-500">
               {[

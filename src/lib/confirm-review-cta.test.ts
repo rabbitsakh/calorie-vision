@@ -4,6 +4,7 @@ import {
   canSaveAsIs,
   confirmReviewPrimaryCta,
   confirmSaveButtonLabel,
+  confirmSkimTrustLine,
   formatPendingConfirmHint,
   formatSavedMealToast,
   photoKindShortLabel,
@@ -156,4 +157,70 @@ test("formatSavedMealToast includes kcal", () => {
   assert.equal(formatSavedMealToast({ savedCount: 1, totalCalories: 420.4 }), "Сохранено · 420 ккал");
   assert.match(formatSavedMealToast({ savedCount: 3, totalCalories: 840 }), /3 блюд · 840 ккал/);
   assert.match(formatSavedMealToast({ rememberedCorrection: true }), /Запомнили/);
+});
+
+test("confirmSkimTrustLine surfaces macros / confidence / missing kcal on skim", () => {
+  assert.equal(
+    confirmSkimTrustLine({
+      enriching: true,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: true,
+      anyLowConfidence: false,
+      multi: false,
+    }),
+    null,
+  );
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: true,
+      anyMissingMacros: false,
+      anyLowConfidence: false,
+      multi: false,
+    }) ?? "",
+    /Нет калорий/,
+  );
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: true,
+      anyLowConfidence: false,
+      multi: false,
+    }) ?? "",
+    /БЖУ неполные/,
+  );
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: false,
+      anyLowConfidence: true,
+      multi: true,
+      lowConfidenceCount: 2,
+      dishCount: 3,
+    }) ?? "",
+    /2\/3/,
+  );
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: false,
+      anyLowConfidence: true,
+      multi: false,
+      lowestConfidencePercent: "48%",
+    }) ?? "",
+    /48%/,
+  );
 });
