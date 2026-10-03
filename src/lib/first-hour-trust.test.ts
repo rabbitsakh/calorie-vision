@@ -9,6 +9,7 @@ import {
   markOpenCameraAfterOnboarding,
   markSevenDayAhaSeen,
   shouldShowFirstShareNudge,
+  shouldShowGrowthNudges,
   shouldShowSevenDayAha,
 } from "./first-hour-trust.ts";
 
@@ -93,5 +94,14 @@ test("seven day aha gates on count and seen flag", () => {
     assert.equal(shouldShowSevenDayAha(7), true);
     markSevenDayAhaSeen();
     assert.equal(shouldShowSevenDayAha(10), false);
+  });
+});
+
+test("growth nudges wait until first week of logging", () => {
+  withStorage(() => {
+    cacheLoggedDaysTotal(2);
+    assert.equal(shouldShowGrowthNudges(), false);
+    cacheLoggedDaysTotal(7);
+    assert.equal(shouldShowGrowthNudges(), true);
   });
 });

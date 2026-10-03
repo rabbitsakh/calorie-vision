@@ -91,12 +91,12 @@ function StatsSectionHeader({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 className="font-display text-lg font-bold text-slate-900">{title}</h2>
+        <h2 className="font-display text-lg font-bold text-[var(--foreground)]">{title}</h2>
         {meta ? (
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">{meta}</div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted-strong)]">{meta}</div>
         ) : null}
       </div>
-      {under ? <div className="text-xs text-slate-500">{under}</div> : null}
+      {under ? <div className="text-xs text-[var(--muted)]">{under}</div> : null}
     </div>
   );
 }
@@ -682,14 +682,14 @@ function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
     >
       <div className="day-hero-glow" aria-hidden />
       <div className="relative px-3.5 py-4 md:px-5 md:py-5">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent-ink)]/70">
           {insight.title}
         </p>
-        <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+        <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
           {insight.body}
         </p>
         {insight.detail ? (
-          <p className="mt-1.5 text-xs font-medium text-slate-600">{insight.detail}</p>
+          <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">{insight.detail}</p>
         ) : null}
       </div>
     </section>
@@ -711,9 +711,9 @@ function StatCard({
 }) {
   return (
     <div className={`stats-stat-tile ${accent ? "stats-stat-tile--accent" : ""}`}>
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-bold ${accent ? "text-teal-700" : ""}`}>{value}</div>
-      {sub ? <div className="mt-0.5 text-xs text-slate-400">{sub}</div> : null}
+      <div className="text-xs uppercase tracking-wide text-[var(--muted)]">{label}</div>
+      <div className={`mt-1 text-2xl font-bold ${accent ? "text-[var(--accent)]" : "text-[var(--foreground)]"}`}>{value}</div>
+      {sub ? <div className="mt-0.5 text-xs text-[var(--muted)]">{sub}</div> : null}
     </div>
   );
 }
@@ -956,8 +956,8 @@ export function StatsView({ endDate }: StatsViewProps) {
           {gymSignal && gymSignal.sessionCount > 0 ? (
             <section className="stats-chart-block flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Зал за период</p>
-                <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Зал за период</p>
+                <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
                   {gymSignal.sessionCount}{" "}
                   {gymSignal.sessionCount === 1
                     ? "тренировка"
@@ -970,7 +970,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               </div>
               <Link
                 href={withDateQuery("/workouts", endDate)}
-                className="shrink-0 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                className="shrink-0 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
               >
                 Открыть зал
               </Link>

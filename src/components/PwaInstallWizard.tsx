@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { shouldShowGrowthNudges } from "@/lib/first-hour-trust";
 import { isLikelyIos, isStandalonePwa } from "@/lib/push-client";
 
 const WIZARD_DISMISS_KEY = "pwa-install-wizard-dismissed";
@@ -221,6 +222,8 @@ export function PwaInstallOnboardingPrompt({ onOpenWizard }: SoftPromptProps) {
     if (typeof window === "undefined") return;
     if (isStandalonePwa()) return;
     if (getPwaOnboardingSeen() || getPwaWizardDismissed()) return;
+    // First week: onboarding owns install — don't compete on the day surface.
+    if (!shouldShowGrowthNudges()) return;
     setVisible(true);
   }, []);
 

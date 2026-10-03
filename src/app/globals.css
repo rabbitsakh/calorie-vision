@@ -729,10 +729,10 @@ select {
 
 .chip {
   align-items: center;
-  background: #f1f5f9;
+  background: color-mix(in srgb, var(--muted) 12%, var(--card));
   border: none;
   border-radius: var(--radius-pill);
-  color: #334155;
+  color: var(--muted-strong);
   cursor: pointer;
   display: inline-flex;
   font-size: 0.8125rem;
@@ -762,7 +762,7 @@ select {
 }
 
 .chip-active:hover:not(:disabled) {
-  background: #0d5f58;
+  background: var(--accent-hover);
 }
 
 .chip-row {
@@ -894,7 +894,7 @@ select {
 /* Confirm card: static in diary; sticky inside FoodAdd sheet scrollport (1.11.0). */
 .confirm-card-actions {
   background: var(--card);
-  border-top: 1px solid rgba(15, 118, 110, 0.1);
+  border-top: 1px solid var(--border-quiet);
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
@@ -2236,9 +2236,9 @@ select {
 .confirm-details-fold {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.72);
+  background: color-mix(in srgb, var(--card) 72%, transparent);
   font-size: 0.875rem;
-  color: #334155;
+  color: var(--muted-strong);
 }
 
 .confirm-details-fold > summary {
@@ -2246,7 +2246,7 @@ select {
   list-style: none;
   padding: 0.7rem 0.85rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--foreground);
   user-select: none;
 }
 

@@ -3,32 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
-import { MEAL_TYPE_LABELS } from "@/types";
-import { inferMealTypeFromHour } from "@/lib/meal-type";
 import { dateKeyAndTimeToIso, toTimeInputValue } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
-import type { FoodRecognitionResult } from "@/lib/food-types";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
-import { looksLikeDrinkName } from "@/lib/portion-unit";
-import { getRecognitionLowConfidenceThreshold } from "@/lib/ai/recognition-thresholds";
 import {
   draftFromRecognition,
   draftsFromRecognition,
   mergeDishesFromRecognition,
-  type ConfirmDishDraft,
 } from "@/lib/confirm-dish-merge";
+import {
+  applyUiToDishes,
+  DEFAULT_LOW_CONFIDENCE,
+  dishFormDisabled,
+  dishLookupDisabled,
+  dishNeedsReview,
+  parseOptionalNumber,
+  resolveInitialMealType,
+  serializeDishUi,
+  type DishDraft,
+} from "@/lib/confirm-card-draft";
 import { resolveConfirmHeroSrc } from "@/lib/confirm-hero";
 import {
-  confidenceActionHint,
-  confidenceReshootHint,
-  confidenceShortLabel,
-  confidenceToneClasses,
-  confidenceWhyHint,
   formatConfidencePercent,
   getConfidenceTone,
-  photoContextChipLabel,
-  suggestedPhotoContextChips,
   type PhotoContextChip,
 } from "@/lib/recognition-confidence-ui";
 import {
@@ -37,9 +35,6 @@ import {
   nutritionBaselineFromRecognition,
   recognitionNeedsPortionRescale,
   resolvePer100gForScaling,
-  describeNutritionBasis,
-  isMissingCaloriesForReview,
-  isMissingMacrosForReview,
   scaleRecognitionToPortion,
   scaleRecognitionToDisplayPortion,
 } from "@/lib/recognition-nutrition";
@@ -49,7 +44,6 @@ import {
   trackMealSavedGoal,
   trackFirstConfirmSaveGoal,
   trackConfirmSaveAsIsGoal,
-  trackConfirmLookupGoal,
 } from "@/lib/metrika-funnel";
 import {
   canSaveAsIs,
@@ -63,12 +57,14 @@ import {
   clearPendingConfirmDraft,
   enqueueFailedSave,
   upsertPendingConfirmDraft,
-  type PendingConfirmDishUi,
   type PendingConfirmUi,
 } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { Chip } from "@/components/Chip";
 import { DishFields } from "@/components/ConfirmDishFields";
+import { ConfirmTrustSkim } from "@/components/ConfirmTrustSkim";
+import { ConfirmStickyActions } from "@/components/ConfirmStickyActions";
+import { ConfirmDetailsFold } from "@/components/ConfirmDetailsFold";
 import { isLikelyIos } from "@/lib/push-client";
 import {
   allergenLabel,
@@ -90,8 +86,6 @@ type NutritionFields = {
   source?: string;
 };
 
-type DishDraft = ConfirmDishDraft;
-
 type ConfirmationCardProps = {
   result: RecognitionResponse;
   selectedDate: string;
@@ -111,167 +105,6 @@ type ConfirmationCardProps = {
   /** Low-confidence re-pass: parent sets photo context and opens camera. */
   onRerunWithContext?: (context: PhotoContextChip) => void;
 };
-
-
-function parseOptionalNumber(value: string): number | undefined {
-  if (value.trim() === "") {
-    return undefined;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function serializeDishUi(dish: DishDraft): PendingConfirmDishUi {
-  return {
-    id: dish.id,
-    dishName: dish.dishName,
-    calories: dish.calories,
-    protein: dish.protein,
-    fat: dish.fat,
-    carbs: dish.carbs,
-    fiber: dish.fiber,
-    sugar: dish.sugar,
-    portionGrams: dish.portionGrams,
-    baseline: dish.baseline,
-  };
-}
-
-function applyUiToDishes(dishes: DishDraft[], ui?: PendingConfirmUi | null): DishDraft[] {
-  if (!ui?.dishes?.length) return dishes;
-  const byId = new Map(ui.dishes.map((item) => [item.id, item]));
-  return dishes.map((dish, index) => {
-    const saved = byId.get(dish.id) ?? ui.dishes![index];
-    if (!saved) return dish;
-    return {
-      ...dish,
-      dishName: saved.dishName,
-      calories: saved.calories,
-      protein: saved.protein,
-      fat: saved.fat,
-      carbs: saved.carbs,
-      fiber: saved.fiber,
-      sugar: saved.sugar,
-      portionGrams: saved.portionGrams,
-      baseline: saved.baseline ?? dish.baseline,
-    };
-  });
-}
-
-function resolveInitialMealType(
-  initialMealType: string | undefined,
-  ui: PendingConfirmUi | null | undefined,
-): string {
-  if (ui?.mealType && ui.mealType in MEAL_TYPE_LABELS) {
-    return ui.mealType;
-  }
-  if (initialMealType && initialMealType in MEAL_TYPE_LABELS) {
-    return initialMealType;
-  }
-  return inferMealTypeFromHour(new Date().getHours());
-}
-
-function dishFormDisabled(saving: boolean, searchingId: string | null): boolean {
-  return saving || searchingId === "all";
-}
-
-function dishLookupDisabled(
-  dishId: string,
-  saving: boolean,
-  searchingId: string | null,
-  enriching: boolean,
-): boolean {
-  if (saving) return true;
-  if (enriching) return false;
-  if (searchingId === "all") return true;
-  if (searchingId !== null && searchingId !== dishId) return false;
-  return searchingId === dishId;
-}
-
-const DEFAULT_LOW_CONFIDENCE = getRecognitionLowConfidenceThreshold();
-
-function dishNeedsReview(
-  dish: DishDraft,
-  lowConfidenceThreshold: number,
-): { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean } {
-  return {
-    lowConfidence: dish.original.confidence < lowConfidenceThreshold,
-    missingCalories: isMissingCaloriesForReview(
-      Number(dish.calories),
-      dish.original.per100g,
-    ),
-    missingMacros: isMissingMacrosForReview({
-      dishName: dish.dishName,
-      brand: dish.original.brand,
-      calories: Number(dish.calories),
-      protein: Number(dish.protein) || 0,
-      fat: Number(dish.fat) || 0,
-      carbs: Number(dish.carbs) || 0,
-    }),
-  };
-}
-
-function shouldSurfaceNutritionBasis(item: FoodRecognitionResult): boolean {
-  const kind = item.photoKind;
-  return (
-    kind === "label" ||
-    kind === "package" ||
-    looksLikeDrinkName(item.dishName, item.brand)
-  );
-}
-
-function ConfidenceBadge({
-  confidence,
-  threshold,
-  photoKind,
-  source,
-  dishName,
-  nutritionBasis,
-  inverted,
-}: {
-  confidence: number;
-  threshold: number;
-  photoKind?: string;
-  source?: string;
-  dishName?: string;
-  nutritionBasis?: string | null;
-  inverted?: boolean;
-}) {
-  const tone = getConfidenceTone(confidence, threshold);
-  const classes = inverted
-    ? "border-white/30 bg-black/35 text-white"
-    : confidenceToneClasses(tone);
-  const hintOpts = { photoKind, source, dishName };
-  const why = confidenceWhyHint(tone, hintOpts);
-  const reshoot = confidenceReshootHint(tone, hintOpts);
-
-  return (
-    <div className="flex max-w-full flex-col gap-1">
-      <span
-        className={`inline-flex max-w-full flex-wrap items-center gap-x-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold leading-snug ${classes}`}
-      >
-        <span>{formatConfidencePercent(confidence)}</span>
-        <span className={inverted ? "text-white/85" : "opacity-80"}>
-          · {confidenceShortLabel(tone)} · {confidenceActionHint(tone, hintOpts)}
-        </span>
-      </span>
-      {nutritionBasis ? (
-        <p className={`text-xs font-medium leading-snug ${inverted ? "text-teal-100" : "text-teal-800"}`}>
-          {nutritionBasis}
-        </p>
-      ) : null}
-      {why ? (
-        <p className={`text-xs leading-snug ${inverted ? "text-white/80" : "text-slate-600"}`}>{why}</p>
-      ) : null}
-      {reshoot ? (
-        <p className={`text-xs font-medium leading-snug ${inverted ? "text-amber-100" : "text-amber-800"}`}>
-          {reshoot}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
 
 export function ConfirmationCard({
   result,
@@ -1179,241 +1012,63 @@ export function ConfirmationCard({
           </div>
         ) : null}
 
-        {/* Allergen ack stays on skim — required for save when hits exist. */}
-        {allergenHits.length > 0 ? (
-          <div
-            ref={allergenBlockRef}
-            id="confirm-allergen-ack"
-            className="rounded-xl border border-amber-200/80 bg-amber-50 px-3 py-2 text-sm text-amber-950"
-          >
-            <label className="flex items-start gap-2 text-xs font-medium text-amber-950">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={allergenAck}
-                onChange={(e) => setAllergenAck(e.target.checked)}
-              />
-              <span>
-                Аллерген: {allergenHits.map((id) => allergenLabel(id)).join(", ")} — проверил(а)
-              </span>
-            </label>
-          </div>
-        ) : null}
+        <ConfirmTrustSkim
+          allergenHits={allergenHits}
+          allergenAck={allergenAck}
+          onAllergenAckChange={setAllergenAck}
+          allergenBlockRef={allergenBlockRef}
+          skimTrustLine={skimTrustLine}
+          saveAsIs={saveAsIs}
+          saving={saving}
+          softSaveHint={softSaveHint}
+          anyMissingCalories={anyMissingCalories}
+          enriching={enriching}
+        />
 
-        {/* W1: trust line + soft hints above sticky CTAs (visible above dock). */}
-        {skimTrustLine ? (
-          <p
-            className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-snug text-amber-950"
-            role="status"
-          >
-            {skimTrustLine}
-          </p>
-        ) : null}
-        {saveAsIs && !saving ? (
-          <p className="text-center text-xs text-slate-500">{softSaveHint}</p>
-        ) : null}
-        {anyMissingCalories && !enriching && !saving && !skimTrustLine ? (
-          <p className="text-center text-xs text-amber-800">
-            Без калорий сохранить нельзя — уточните название или введите ккал.
-          </p>
-        ) : null}
+        <ConfirmStickyActions
+          multi={multi}
+          dishesLength={dishes.length}
+          totalCalories={totalCalories}
+          needsReview={needsReview}
+          reviewCta={reviewCta}
+          formDisabled={formDisabled}
+          reviewTargetDish={reviewTargetDish}
+          searchingId={searchingId}
+          bulkLookupRunning={bulkLookupRunning}
+          dishes={dishes}
+          onSetActiveDish={setActiveDish}
+          onLookupAll={(opts) => void handleLookupAll(opts)}
+          onLookup={(dish) => void handleLookup(dish)}
+          saving={saving}
+          searching={searching}
+          anyMissingCalories={anyMissingCalories}
+          enriching={enriching}
+          saveLabel={saveLabel}
+          onSave={() => void handleSave()}
+          onCancel={() => {
+            stopPersistingDraft({ clearDraft: true });
+            onCancel();
+          }}
+        />
 
-        {/* W1: when review needed, Уточнить is primary; Save is soft «как есть». */}
-        <div className="confirm-card-actions">
-          {multi ? (
-            <p className="w-full text-center text-xs font-medium text-slate-500">
-              {dishes.length} позиций · {totalCalories || "—"} ккал
-            </p>
-          ) : null}
-          {needsReview && reviewCta ? (
-            <button
-              type="button"
-              className="btn btn-primary inline-flex items-center justify-center gap-2"
-              disabled={
-                formDisabled ||
-                (reviewCta.mode === "lookup-one"
-                  ? !reviewTargetDish || searchingId === reviewTargetDish.id
-                  : bulkLookupRunning)
-              }
-              onClick={() => {
-                trackConfirmLookupGoal();
-                if (reviewCta.mode === "force-all") {
-                  void handleLookupAll({ forceAll: true });
-                  return;
-                }
-                if (reviewCta.mode === "lookup-all") {
-                  void handleLookupAll();
-                  return;
-                }
-                if (!reviewTargetDish) return;
-                const idx = dishes.findIndex((d) => d.id === reviewTargetDish.id);
-                if (idx >= 0) setActiveDish(idx);
-                void handleLookup(reviewTargetDish);
-              }}
-            >
-              {reviewCta.mode === "force-all" || reviewCta.mode === "lookup-all"
-                ? bulkLookupRunning
-                  ? reviewCta.busyLabel
-                  : reviewCta.label
-                : searchingId === reviewTargetDish?.id || bulkLookupRunning
-                  ? reviewCta.busyLabel
-                  : reviewCta.label}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={`inline-flex items-center justify-center gap-2 ${
-              needsReview && reviewCta ? "btn btn-secondary" : "btn btn-primary"
-            }`}
-            disabled={saving || searching || (anyMissingCalories && !enriching)}
-            onClick={() => void handleSave()}
-          >
-            {saving ? (
-              <>
-                <span className="daisy-loading daisy-loading-sm" aria-hidden>
-                  <span /><span /><span />
-                </span>
-                Сохраняем...
-              </>
-            ) : (
-              saveLabel
-            )}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={saving}
-            onClick={() => {
-              stopPersistingDraft({ clearDraft: true });
-              onCancel();
-            }}
-          >
-            Отменить
-          </button>
-        </div>
-
-        {/* D3: one fold for trust / meal time / recognition meta / reshoot context. */}
-        <details className="confirm-details-fold">
-          <summary>
-            Подробнее
-            {!multi && dishes[0]
-              ? ` · ${formatConfidencePercent(dishes[0].original.confidence)}${
-                  skimTone !== "high" ? ` · ${confidenceShortLabel(skimTone)}` : ""
-                }`
-              : multi && anyLowConfidence
-                ? ` · слабая ${lowConfidenceDishes.length}/${dishes.length}`
-                : ""}
-            {mealType
-              ? ` · ${MEAL_TYPE_LABELS[mealType as keyof typeof MEAL_TYPE_LABELS] ?? mealType}`
-              : ""}
-          </summary>
-          <div className="confirm-details-fold__body">
-            {!multi && dishes[0] ? (
-              <ConfidenceBadge
-                confidence={dishes[0].original.confidence}
-                threshold={lowConfidenceThreshold}
-                photoKind={dishes[0].original.photoKind}
-                source={dishes[0].original.source}
-                dishName={dishes[0].dishName || dishes[0].original.dishName}
-                nutritionBasis={
-                  shouldSurfaceNutritionBasis(dishes[0].original)
-                    ? describeNutritionBasis(dishes[0].original)
-                    : null
-                }
-              />
-            ) : null}
-
-            {/* Skim already shows the trust line — fold keeps deep badge/reshoot only. */}
-
-            {(() => {
-              if (!onRerunWithContext) return null;
-              const tone = getConfidenceTone(
-                lowestConfidenceDish?.original.confidence ??
-                  dishes[0]?.original.confidence ??
-                  0.5,
-                lowConfidenceThreshold,
-              );
-              const chips = suggestedPhotoContextChips(tone, {
-                photoKind:
-                  lowestConfidenceDish?.original.photoKind ?? recognition.photoKind,
-                dishName: lowestConfidenceDish?.dishName ?? dishes[0]?.dishName,
-              });
-              if (chips.length === 0) return null;
-              return (
-                <div className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
-                  <p className="text-xs font-semibold text-slate-700">
-                    Переснять с подсказкой контекста
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {chips.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        className="rounded-lg border border-teal-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-50"
-                        disabled={saving || searching}
-                        onClick={() => onRerunWithContext(chip)}
-                      >
-                        {photoContextChipLabel(chip)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Приём пищи
-                {eatenTime ? ` · ${eatenTime}` : ""}
-              </p>
-              <div className="chip-row-fill">
-                {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(
-                  ([value, label]) => (
-                    <Chip
-                      key={value}
-                      active={mealType === value}
-                      disabled={saving}
-                      onClick={() => setMealType(mealType === value ? "" : value)}
-                    >
-                      {label}
-                    </Chip>
-                  ),
-                )}
-              </div>
-              <div className="field mt-3 max-w-[12rem]">
-                <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Время приёма
-                </label>
-                <input
-                  type="time"
-                  className="mt-1.5"
-                  value={eatenTime}
-                  disabled={saving}
-                  onChange={(e) => setEatenTime(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1 text-xs text-slate-600">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Распознавание
-              </p>
-              <p>
-                {RECOGNITION_SOURCE_LABELS[recognition.source ?? "gigachat"] ?? "Распознавание по фото"}
-                {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
-                {recognition.photoKind === "label" ? " · этикетка" : ""}
-              </p>
-              <p>
-                {multi
-                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
-                  : `Уверенность: ${formatConfidencePercent(recognition.confidence)}`}
-                {recognition.barcode ? ` · ${recognition.barcode}` : ""}
-                {recognition.brand ? ` · ${recognition.brand}` : ""}
-              </p>
-            </div>
-          </div>
-        </details>
+        <ConfirmDetailsFold
+          multi={multi}
+          dishes={dishes}
+          skimTone={skimTone}
+          anyLowConfidence={anyLowConfidence}
+          lowConfidenceDishesLength={lowConfidenceDishes.length}
+          lowConfidenceThreshold={lowConfidenceThreshold}
+          mealType={mealType}
+          eatenTime={eatenTime}
+          saving={saving}
+          searching={searching}
+          onRerunWithContext={onRerunWithContext}
+          lowestConfidenceDish={lowestConfidenceDish}
+          recognition={recognition}
+          totalCalories={totalCalories}
+          onMealTypeToggle={setMealType}
+          onEatenTimeChange={setEatenTime}
+        />
       </div>
     </section>
   );
