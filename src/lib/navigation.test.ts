@@ -29,8 +29,8 @@ test("isFoodAddPath keeps plan shell with +", () => {
   assert.equal(isFoodAddPath("/weight"), false);
 });
 
-test("navKeepsDate includes plan route for deep links", () => {
+test("navKeepsDate includes plan and workouts for date continuity", () => {
   assert.equal(navKeepsDate("/plan"), true);
-  assert.equal(navKeepsDate("/workouts"), false);
+  assert.equal(navKeepsDate("/workouts"), true);
   assert.equal(navKeepsDate("/profile"), false);
 });

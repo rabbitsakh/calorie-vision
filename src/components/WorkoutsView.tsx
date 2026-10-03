@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   formatDateShort,
   formatDateWords,
-  formatMonthTitle,
-  getMonthGrid,
   mondayOfWeek,
   shiftDateKey,
   shiftYearMonth,
@@ -48,6 +46,9 @@ import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor
 import { WorkoutLiveStage } from "@/components/workouts/WorkoutLiveStage";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import { WorkoutCreateSessionPanel } from "@/components/workouts/WorkoutCreateSessionPanel";
+import { WorkoutTemplatesPanel } from "@/components/workouts/WorkoutTemplatesPanel";
+import { WorkoutHistoryHub } from "@/components/workouts/WorkoutHistoryHub";
+import { formatWorkoutLoad, formatWorkoutTrend } from "@/lib/workouts/format";
 import {
   BLOCK_MODE_LABELS,
   BLOCK_MODES,
@@ -188,6 +189,8 @@ type SessionDetail = SessionSummary & {
 
 type WorkoutsViewProps = {
   todayKey: string;
+  /** Diary date from ?date= — may differ from calendar today. */
+  selectedDate?: string;
 };
 
 type InsightSuggestion = {
@@ -273,11 +276,7 @@ type HistoryBundle = {
   metric: "weight" | "volume" | "pace" | "reps" | "duration" | "distance";
 };
 
-function formatTrend(pct: number | null | undefined): string | null {
-  if (pct == null || !Number.isFinite(pct)) return null;
-  const sign = pct > 0 ? "+" : "";
-  return `${sign}${pct}%`;
-}
+const formatTrend = formatWorkoutTrend;
 
 function sparklinePath(
   values: number[],
@@ -339,10 +338,7 @@ function ExerciseSparkline({
   );
 }
 
-function formatLoad(value: number): string {
-  if (!Number.isFinite(value)) return "0";
-  return value >= 100 ? Math.round(value).toLocaleString("ru-RU") : String(Math.round(value * 10) / 10);
-}
+const formatLoad = formatWorkoutLoad;
 
 function formatPct(value: number | null | undefined): string | null {
   if (value == null || !Number.isFinite(value)) return null;
@@ -405,9 +401,10 @@ function nextSetType(current: SetType): SetType {
   return SET_TYPES[(idx + 1) % SET_TYPES.length]!;
 }
 
-export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
+export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const viewDate = selectedDate && selectedDate.length >= 8 ? selectedDate : todayKey;
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -420,7 +417,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [fromPlusMenu, setFromPlusMenu] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const [newDate, setNewDate] = useState(todayKey);
+  const [newDate, setNewDate] = useState(viewDate);
   const [newGroups, setNewGroups] = useState<MuscleGroupKey[]>([]);
   const [copyExercises, setCopyExercises] = useState(true);
   const [progressRate, setProgressRate] = useState(DEFAULT_PROGRESS_RATE);
@@ -633,14 +630,25 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [creating]);
 
-  // Deep link from «+» → Тренировка (`/workouts?new=1`).
+  // Keep create-form date aligned with the diary date strip.
+  useEffect(() => {
+    setNewDate(viewDate);
+  }, [viewDate]);
+
+  // Deep link from «+» → Тренировка (`/workouts?new=1`) — keep ?date=.
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
     setCreating(true);
     setFromPlusMenu(true);
     setHubTab("today");
-    router.replace(withBasePath("/workouts"), { scroll: false });
-  }, [searchParams, router]);
+    setNewDate(viewDate);
+    const keepDate = searchParams.get("date");
+    const next =
+      keepDate && keepDate.length >= 8
+        ? `/workouts?date=${keepDate}`
+        : "/workouts";
+    router.replace(withBasePath(next), { scroll: false });
+  }, [searchParams, router, viewDate]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {
@@ -806,7 +814,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         await fetch(withBasePath(`/api/workouts/${sourceId}/repeat`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date: todayKey, copySets: true }),
+          body: JSON.stringify({ date: viewDate, copySets: true }),
         }),
       );
       await loadList();
@@ -826,7 +834,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         await fetch(withBasePath(`/api/workouts/routines/${routineId}/start`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date: todayKey, copySets: true }),
+          body: JSON.stringify({ date: viewDate, copySets: true }),
         }),
       );
       await loadList();
@@ -2814,17 +2822,19 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             setCreating(false);
             setFromPlusMenu(false);
           }}
-          onGoRation={() => router.push(withBasePath("/ration"))}
+          onGoRation={() =>
+            router.push(withBasePath(`/ration?date=${viewDate}`))
+          }
         />
       ) : null}
 
       {hubTab === "today" ? (
         <WorkoutWeekPlan
-          todayKey={todayKey}
+          todayKey={viewDate}
           busy={busy}
           firstWorkout={sessions.length === 0}
           sessions={sessions
-            .filter((s) => s.date === todayKey)
+            .filter((s) => s.date === viewDate)
             .map((s) => ({
               id: s.id,
               muscleLabels: s.muscleLabels,
@@ -2853,7 +2863,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           }}
           onStartBlank={() => {
             setCreating(true);
-            setNewDate(todayKey);
+            setNewDate(viewDate);
           }}
           onStartRoutine={(id) => void startRoutine(id)}
           onEditRoutine={(id) => setEditingRoutineId(id)}
@@ -2864,382 +2874,70 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
       {hubTab === "library" ? <WorkoutLibraryPanel /> : null}
 
       {hubTab === "templates" ? (
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-            onClick={() => setEditingRoutineId("new")}
-          >
-            + Новый шаблон
-          </button>
-          {routines.length === 0 ? (
-            <p className="text-sm text-slate-500">Пока нет шаблонов.</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {routines.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-stretch gap-2 rounded-xl border border-slate-100 bg-slate-50"
-                >
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white disabled:opacity-40"
-                    onClick={() => void startRoutine(r.id)}
-                  >
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
-                        {r.planLabel ? (
-                          <span className="mr-1 rounded bg-teal-700 px-1.5 py-0.5 text-[10px] text-white">
-                            {r.planLabel}
-                          </span>
-                        ) : null}
-                        {r.name}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs font-semibold text-teal-800">Старт</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600"
-                    onClick={() => setEditingRoutineId(r.id)}
-                  >
-                    ✎
-                  </button>
-                  <button
-                    type="button"
-                    className="shrink-0 border-l border-slate-100 px-2.5 text-xs text-slate-400 hover:text-red-600"
-                    title="Удалить шаблон"
-                    onClick={() => void deleteRoutine(r.id)}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <WorkoutTemplatesPanel
+          routines={routines}
+          busy={busy}
+          onCreateNew={() => setEditingRoutineId("new")}
+          onStart={(id) => void startRoutine(id)}
+          onEdit={(id) => setEditingRoutineId(id)}
+          onDelete={(id) => void deleteRoutine(id)}
+        />
       ) : null}
 
       {hubTab === "history" ? (
-        <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">
-          Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
-        </p>
-        <button
-          type="button"
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-          onClick={() => {
+        <WorkoutHistoryHub
+          todayKey={todayKey}
+          sessions={sessions}
+          loading={loading}
+          error={error}
+          creating={creating}
+          busy={busy}
+          queuedSets={queuedSets}
+          insights={insights}
+          filterPeriod={filterPeriod}
+          filterDate={filterDate}
+          filterCardio={filterCardio}
+          filterGroups={filterGroups}
+          calYear={calYear}
+          calMonth={calMonth}
+          calMarked={calMarked}
+          monthSummary={monthSummary}
+          onNewSession={(date) => {
             setCreating(true);
-            setNewDate(filterDate ?? todayKey);
+            setNewDate(date);
           }}
-        >
-          Новая
-        </button>
-      </div>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
-            onClick={() => {
-              const n = shiftYearMonth(calYear, calMonth, -1);
-              setCalYear(n.year);
-              setCalMonth(n.monthIndex);
-            }}
-          >
-            ←
-          </button>
-          <p className="text-sm font-semibold text-slate-800">
-            {formatMonthTitle(calYear, calMonth)}
-          </p>
-          <button
-            type="button"
-            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
-            onClick={() => {
-              const n = shiftYearMonth(calYear, calMonth, 1);
-              setCalYear(n.year);
-              setCalMonth(n.monthIndex);
-            }}
-          >
-            →
-          </button>
-        </div>
-        {monthSummary ? (
-          <p className="mb-2 text-xs text-slate-500">
-            {monthSummary.sessionCount} трен. · {formatLoad(monthSummary.tonnage)} кг·повт
-            {monthSummary.cardioDistanceKm > 0
-              ? ` · ${formatDistanceKm(monthSummary.cardioDistanceKm)} км`
-              : ""}
-          </p>
-        ) : null}
-        <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
-          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
-            <div key={d} className="py-1">
-              {d}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-0.5">
-          {getMonthGrid(calYear, calMonth).map((day, i) => {
-            if (!day) return <div key={`e-${i}`} />;
-            const count = calMarked[day] ?? 0;
-            const selected = filterPeriod === "day" && filterDate === day;
-            return (
-              <button
-                key={day}
-                type="button"
-                className={`relative rounded-lg py-1.5 text-sm tabular-nums ${
-                  selected
-                    ? "bg-teal-700 font-semibold text-white"
-                    : count > 0
-                      ? "bg-teal-50 font-medium text-teal-900 hover:bg-teal-100"
-                      : "text-slate-600 hover:bg-slate-50"
-                }`}
-                onClick={() => {
-                  setFilterPeriod("day");
-                  setFilterDate(day);
-                  setCreating(false);
-                  setNewDate(day);
-                }}
-              >
-                {Number(day.slice(8, 10))}
-                {count > 0 ? (
-                  <span
-                    className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                      selected ? "bg-white" : "bg-teal-600"
-                    }`}
-                  />
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Фильтр списка
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {(
-            [
-              ["all", "Все"],
-              ["week", "Неделя"],
-              ["month", "Месяц"],
-              ["day", "День"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                filterPeriod === key ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
-              }`}
-              onClick={() => {
-                setFilterPeriod(key);
-                if (key !== "day") setFilterDate(null);
-                else if (!filterDate) setFilterDate(todayKey);
-              }}
-            >
-              {label}
-            </button>
-          ))}
-          <button
-            type="button"
-            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              filterCardio ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
-            }`}
-            onClick={() => setFilterCardio((v) => !v)}
-          >
-            Кардио
-          </button>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {MUSCLE_GROUPS.filter((g) => g.key !== "cardio").map((g) => {
-            const on = filterGroups.includes(g.key);
-            return (
-              <button
-                key={g.key}
-                type="button"
-                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-slate-50 text-slate-600"
-                }`}
-                onClick={() =>
-                  setFilterGroups((prev) =>
-                    on ? prev.filter((k) => k !== g.key) : [...prev, g.key],
-                  )
-                }
-              >
-                {g.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {insights ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Неделя {formatDateShort(insights.weekStart)}–{formatDateShort(insights.weekEnd)}
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
-            {formatLoad(insights.weeklyTotal)}{" "}
-            <span className="text-sm font-normal text-slate-500">кг·повт</span>
-            {formatTrend(insights.weekTrendPct) ? (
-              <span className="ml-2 text-sm font-medium text-teal-800">
-                {formatTrend(insights.weekTrendPct)} к пред.
-              </span>
-            ) : null}
-          </p>
-          {(insights.weeklyCardioKm ?? 0) > 0 ? (
-            <p className="text-sm tabular-nums text-slate-700">
-              Кардио {formatDistanceKm(insights.weeklyCardioKm!)} км
-              {formatTrend(insights.weekCardioTrendPct) ? (
-                <span className="ml-2 text-xs text-teal-800">
-                  {formatTrend(insights.weekCardioTrendPct)}
-                </span>
-              ) : null}
-            </p>
-          ) : null}
-          <p className="text-xs text-slate-400">{insights.sessionCount} тренировок</p>
-          {Object.keys(insights.weeklyByGroup).length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {Object.entries(insights.weeklyByGroup).map(([key, g]) => (
-                <span
-                  key={key}
-                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
-                >
-                  {g.label}: {formatLoad(g.load)}
-                </span>
-              ))}
-            </div>
-          ) : null}
-          {insights.monthStart ? (
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Месяц {insights.monthStart.slice(0, 7)}
-              </p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
-                {formatLoad(insights.monthlyTotal ?? 0)}{" "}
-                <span className="text-sm font-normal text-slate-500">кг·повт</span>
-                {formatTrend(insights.monthTrendPct) ? (
-                  <span className="ml-2 text-sm font-medium text-teal-800">
-                    {formatTrend(insights.monthTrendPct)}
-                  </span>
-                ) : null}
-              </p>
-              {(insights.monthlyCardioKm ?? 0) > 0 ? (
-                <p className="text-sm text-slate-700">
-                  Кардио {formatDistanceKm(insights.monthlyCardioKm!)} км
-                </p>
-              ) : null}
-              <p className="text-xs text-slate-400">
-                {insights.monthlySessionCount ?? 0} тренировок
-              </p>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {queuedSets > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-          <p className="min-w-0 font-medium">
-            {queuedSets === 1
-              ? "1 подход ждёт сеть"
-              : `${queuedSets} подхода ждут сеть`}
-          </p>
-          <button
-            type="button"
-            className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1 text-xs font-semibold hover:bg-amber-900/15"
-            onClick={() => void flushQueuedSets()}
-          >
-            Отправить
-          </button>
-        </div>
-      ) : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-      {loading ? <p className="text-sm text-slate-500">Загрузка…</p> : null}
-
-      {!loading && sessions.length === 0 && !creating ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
-          {filterPeriod !== "all" || filterGroups.length || filterCardio
-            ? "Нет тренировок по фильтру."
-            : "Пока нет тренировок. Создайте первую и отметьте вид / группы."}
-          {filterPeriod === "day" && filterDate ? (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="font-semibold text-teal-800"
-                onClick={() => {
-                  setCreating(true);
-                  setNewDate(filterDate);
-                }}
-              >
-                Создать на {formatDateShort(filterDate)}
-              </button>
-            </>
-          ) : null}
-        </p>
-      ) : null}
-
-      <ul className="flex flex-col gap-2">
-        {sessions.map((s) => (
-          <li
-            key={s.id}
-            className="flex items-stretch gap-2 rounded-2xl border border-slate-200 bg-white"
-          >
-            <button
-              type="button"
-              className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
-              onClick={() => void openSession(s.id)}
-            >
-              <div className="min-w-0">
-                <p className="font-semibold text-slate-900">{formatDateWords(s.date)}</p>
-                <p className="truncate text-sm text-slate-600">{s.muscleLabels.join(" · ")}</p>
-                <p className="text-xs text-slate-400">
-                  {s.exerciseCount} упр. · {s.setCount}{" "}
-                  {s.cardioOnly ? "отр." : "подх."}
-                </p>
-              </div>
-              <p className="text-lg font-semibold tabular-nums text-slate-900">
-                {s.cardioOnly
-                  ? s.cardioDistanceKm > 0
-                    ? `${formatDistanceKm(s.cardioDistanceKm)} км`
-                    : formatDurationMinutes(s.cardioDurationSec)
-                  : formatLoad(s.totalLoad)}
-              </p>
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
-              onClick={() => void repeatSession(s.id)}
-            >
-              Повторить
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
-              title="Сохранить как шаблон"
-              onClick={() =>
-                void saveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))
-              }
-            >
-              Шаблон
-            </button>
-          </li>
-        ))}
-      </ul>
-        </>
+          onCalPrev={() => {
+            const n = shiftYearMonth(calYear, calMonth, -1);
+            setCalYear(n.year);
+            setCalMonth(n.monthIndex);
+          }}
+          onCalNext={() => {
+            const n = shiftYearMonth(calYear, calMonth, 1);
+            setCalYear(n.year);
+            setCalMonth(n.monthIndex);
+          }}
+          onPickDay={(day) => {
+            setFilterPeriod("day");
+            setFilterDate(day);
+            setCreating(false);
+            setNewDate(day);
+          }}
+          onSetFilterPeriod={(key) => {
+            setFilterPeriod(key);
+            if (key !== "day") setFilterDate(null);
+            else if (!filterDate) setFilterDate(todayKey);
+          }}
+          onToggleCardio={() => setFilterCardio((v) => !v)}
+          onToggleGroup={(key) =>
+            setFilterGroups((prev) =>
+              prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+            )
+          }
+          onFlushQueue={() => void flushQueuedSets()}
+          onOpenSession={(id) => void openSession(id)}
+          onRepeat={(id) => void repeatSession(id)}
+          onSaveAsRoutine={(id, name) => void saveAsRoutine(id, name)}
+        />
       ) : null}
         </>
       )}

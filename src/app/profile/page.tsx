@@ -10,6 +10,8 @@ import { FastingWindowSettings } from "@/components/FastingWindowSettings";
 import { GamificationQuietToggle } from "@/components/GamificationQuietToggle";
 import { BadgesPanel } from "@/components/BadgesPanel";
 import { RewardsPanel } from "@/components/RewardsPanel";
+import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
+import { useTimezone } from "@/lib/use-timezone";
 
 /** D4: settings-list row — hairline group, not a stacked card accordion. */
 function ProfileSection({
@@ -80,6 +82,8 @@ function ProfileDoor({
 
 export default function ProfilePage() {
   const [hash, setHash] = useState("");
+  const timezone = useTimezone();
+  const { date } = useSelectedDate(timezone);
 
   useEffect(() => {
     const sync = () => setHash(typeof window !== "undefined" ? window.location.hash : "");
@@ -107,7 +111,7 @@ export default function ProfilePage() {
   }, [hash]);
 
   return (
-    <AppShell title="Профиль" compact description="Цели, система и награды.">
+    <AppShell title="Профиль" compact description="Цели, система и награды." date={date}>
       <AuthGate>
         {/* D4: one settings list — not nested card stacks. */}
         <div className="profile-settings">
@@ -122,9 +126,9 @@ export default function ProfilePage() {
           </ProfileSection>
 
           <div className="profile-settings__group" aria-label="Разделы">
-            <ProfileDoor href="/weight" title="Вес и цель" hint="График и целевой вес" />
-            <ProfileDoor href="/plan" title="Неделя и покупки" hint="План, челлендж, список" />
-            <ProfileDoor href="/workouts" title="Тренировки" hint="Вкладка «Зал»" />
+            <ProfileDoor href={withDateQuery("/weight", date)} title="Вес и цель" hint="График и целевой вес" />
+            <ProfileDoor href={withDateQuery("/plan", date)} title="Неделя и покупки" hint="План, челлендж, список" />
+            <ProfileDoor href={withDateQuery("/workouts", date)} title="Тренировки" hint="Вкладка «Зал»" />
           </div>
 
           <ProfileSection

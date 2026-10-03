@@ -347,9 +347,11 @@ export function ProfileForm() {
     deleteChecklistReady && deleteTyped.trim() === ACCOUNT_DELETE_CONFIRM && !deleting;
 
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
+  const [openContacts, setOpenContacts] = useState(false);
   const [openNorm, setOpenNorm] = useState(false);
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openTimezone, setOpenTimezone] = useState(false);
+  const [openData, setOpenData] = useState(false);
   const [openInvite, setOpenInvite] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
@@ -410,7 +412,27 @@ export function ProfileForm() {
                 <label htmlFor="lastName">Фамилия</label>
                 <input id="lastName" value={lastName} onChange={(event) => setLastName(event.target.value)} />
               </div>
-              <div className="field sm:col-span-2">
+            </div>
+
+            {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
+            {error && !openData && !openDelete ? (
+              <p className="mt-3 text-sm text-red-600">{error}</p>
+            ) : null}
+            <div className="mt-4">
+              <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
+                {saving ? "Сохраняем..." : "Сохранить профиль"}
+              </button>
+            </div>
+          </section>
+
+          <ProfileCollapse
+            title="Контакты"
+            hint={email || phone ? [email, phone].filter(Boolean).join(" · ") : "Email и телефон"}
+            open={openContacts}
+            onToggle={() => setOpenContacts((v) => !v)}
+          >
+            <div className="grid gap-4">
+              <div className="field">
                 <label htmlFor="email">Email</label>
                 <input
                   id="email"
@@ -422,10 +444,10 @@ export function ProfileForm() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
                 {emailLocked ? (
-                  <p className="text-xs text-slate-500">🔒 Email привязан к Google или VK — изменить нельзя</p>
+                  <p className="text-xs text-slate-500">Email привязан к Google или VK</p>
                 ) : null}
               </div>
-              <div className="field sm:col-span-2">
+              <div className="field">
                 <label htmlFor="phone">Телефон</label>
                 <input
                   id="phone"
@@ -436,12 +458,9 @@ export function ProfileForm() {
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">
-                  Можно указать вручную — для профиля и напоминаний.
-                </p>
               </div>
             </div>
-          </section>
+          </ProfileCollapse>
 
           <ProfileCollapse
             title="Расчёт нормы"
@@ -465,9 +484,6 @@ export function ProfileForm() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500">
-                  Нужен для расчёта нормы калорий: у женщин базовый обмен ниже, чем у мужчин
-                </p>
               </div>
               <div className="field">
                 <label htmlFor="heightCm">Рост, см</label>
@@ -480,7 +496,6 @@ export function ProfileForm() {
                   value={heightCm}
                   onChange={(event) => setHeightCm(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">Для точного расчёта базового обмена</p>
               </div>
               <div className="field">
                 <label htmlFor="birthYear">Год рождения</label>
@@ -493,7 +508,6 @@ export function ProfileForm() {
                   value={birthYear}
                   onChange={(event) => setBirthYear(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">Возраст влияет на расход калорий</p>
               </div>
               <div className="field sm:col-span-2">
                 <label htmlFor="activityLevel">Уровень активности</label>
@@ -514,9 +528,6 @@ export function ProfileForm() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500">
-                  Множитель к базовому обмену (BMR → TDEE). По умолчанию 1.25 — как раньше.
-                </p>
               </div>
               <div className="sm:col-span-2">
                 <MedicalDisclaimerNote />
@@ -544,9 +555,6 @@ export function ProfileForm() {
                   value={waterTargetMl}
                   onChange={(event) => setWaterTargetMl(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">
-                  Пусто — {WATER_DAILY_TARGET_ML} мл. Влияет на трекер и напоминания.
-                </p>
               </div>
               <div className="field">
                 <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>
@@ -560,7 +568,6 @@ export function ProfileForm() {
                   value={fiberTargetG}
                   onChange={(event) => setFiberTargetG(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">Пусто — авто ~28 г (ВОЗ/EFSA)</p>
               </div>
               <div className="field">
                 <label htmlFor="sugarTargetG">Лимит сахара, г/день</label>
@@ -574,7 +581,6 @@ export function ProfileForm() {
                   value={sugarTargetG}
                   onChange={(event) => setSugarTargetG(event.target.value)}
                 />
-                <p className="text-xs text-slate-500">Мягкий потолок; пусто — ~10% калорий</p>
               </div>
             </div>
           </ProfileCollapse>
@@ -620,16 +626,9 @@ export function ProfileForm() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500">
-                  Нужен для напоминаний: завтрак в 8:00, чек-ин в 21:00 — по этому поясу, не по
-                  Москве. Если пусто — подставим пояс устройства при открытии приложения.
-                </p>
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-800">Аллергены</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Мягкое предупреждение при сохранении блюда — не медицинский совет
-                </p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
                   {ALLERGEN_OPTIONS.map((option) => {
                     const checked = allergens.includes(option.id);
@@ -659,36 +658,51 @@ export function ProfileForm() {
             </div>
           </ProfileCollapse>
 
-          <section className="profile-settings__nested px-1 py-2">
-            <h2 className="text-base font-semibold text-slate-900">Данные</h2>
-            <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">
-              Сохранение профиля, экспорт и установка
-            </p>
-            {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
-            {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
-                {saving ? "Сохраняем..." : "Сохранить профиль"}
-              </button>
+          <ProfileCollapse
+            title="Экспорт и установка"
+            hint="CSV, PDF, приложение на телефон"
+            open={openData}
+            onToggle={() => setOpenData((v) => !v)}
+          >
+            {error && openData ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
+            <div className="flex flex-col gap-2">
               <a
                 href={withBasePath("/api/export?format=csv")}
                 download="calorie-vision-export.csv"
-                className="btn btn-secondary"
+                className="profile-settings__door"
               >
-                Скачать CSV
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">Скачать CSV</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">Дневник таблицей</span>
+                </span>
+                <span className="shrink-0 text-slate-400" aria-hidden>
+                  ↓
+                </span>
               </a>
               <a
                 href={withBasePath("/api/export?format=pdf")}
                 download="calorie-vision-export.pdf"
-                className="btn btn-secondary"
+                className="profile-settings__door"
               >
-                Скачать PDF
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">Скачать PDF</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">Краткая выгрузка</span>
+                </span>
+                <span className="shrink-0 text-slate-400" aria-hidden>
+                  ↓
+                </span>
               </a>
-              <a href={withBasePath("/install")} className="btn btn-secondary">
-                Установить приложение
-              </a>
+              <Link href={withBasePath("/install")} className="profile-settings__door">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-slate-800">Установить приложение</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">PWA или APK</span>
+                </span>
+                <span className="shrink-0 text-slate-400" aria-hidden>
+                  →
+                </span>
+              </Link>
             </div>
-          </section>
+          </ProfileCollapse>
         </form>
       ) : null}
 

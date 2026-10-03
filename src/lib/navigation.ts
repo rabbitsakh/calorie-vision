@@ -33,5 +33,5 @@ export function isFoodAddPath(pathname: string): boolean {
 
 /** Paths that keep the selected ?date= when switching tabs. */
 export function navKeepsDate(href: string): boolean {
-  return href === "/ration" || href === "/stats" || href === "/plan";
+  return href === "/ration" || href === "/stats" || href === "/plan" || href === "/workouts";
 }

@@ -20,8 +20,31 @@ export function photoKindShortLabel(kind: ConfirmPhotoKind): string | null {
       return "упаковка";
     case "sticker":
       return "стикер";
+    case "drink":
+      return "напиток";
     case "meal":
       return "фото";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Eval-driven skim hint for known weak photo kinds (W5).
+ * Shown when review is needed — complements BJU/confidence lines.
+ */
+export function confirmSkimHintForPhotoKind(kind: ConfirmPhotoKind): string | null {
+  switch (kind) {
+    case "drink":
+      return "Похоже на напиток — проверьте объём порции, не только ккал на 100 мл";
+    case "label":
+      return "Этикетка: сверьте порцию с упаковкой, не с таблицей на 100 г";
+    case "barcode":
+      return "Штрихкод найден — проверьте название и порцию перед сохранением";
+    case "package":
+      return "Упаковка: вес порции часто больше 100 г — проверьте";
+    case "sticker":
+      return "Стикер кафе: макросы часто неполные — уточните при сомнении";
     default:
       return null;
   }
@@ -151,6 +174,62 @@ export function saveAsIsHint(input?: {
     return "Оценка приблизительная, БЖУ пустые — можно сохранить как есть и поправить в дневнике.";
   }
   return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
+}
+
+/**
+ * One skim-visible trust line above sticky CTAs (W1).
+ * Keeps D3 skim: does not expand BJU or the details fold.
+ */
+export function confirmSkimTrustLine(input: {
+  enriching: boolean;
+  enrichmentTimedOut: boolean;
+  needsReview: boolean;
+  anyMissingCalories: boolean;
+  anyMissingMacros: boolean;
+  anyLowConfidence: boolean;
+  multi: boolean;
+  lowConfidenceCount?: number;
+  dishCount?: number;
+  lowestConfidencePercent?: string | null;
+  photoKind?: ConfirmPhotoKind;
+}): string | null {
+  if (input.enriching) return null;
+  if (input.enrichmentTimedOut) {
+    return "Уточнение не завершилось — проверьте ккал";
+  }
+  if (!input.needsReview) return null;
+  if (input.anyMissingCalories) {
+    return "Нет калорий — уточните название или введите ккал";
+  }
+  // Weak eval paths: drink/label portion mistakes beat generic macros copy.
+  const kindHint =
+    input.photoKind === "drink" ||
+    input.photoKind === "label" ||
+    input.photoKind === "barcode" ||
+    input.photoKind === "package" ||
+    input.photoKind === "sticker"
+      ? confirmSkimHintForPhotoKind(input.photoKind)
+      : null;
+  if (kindHint && (input.anyMissingMacros || input.anyLowConfidence)) {
+    return kindHint;
+  }
+  if (input.anyMissingMacros) {
+    return "Ккал есть, БЖУ неполные — уточните или сохраните как есть";
+  }
+  if (input.anyLowConfidence && input.multi) {
+    const n = input.lowConfidenceCount ?? 0;
+    const total = input.dishCount ?? 0;
+    return total > 0
+      ? `Слабая уверенность · ${n}/${total} — уточните или сохраните как есть`
+      : "Слабая уверенность — уточните или сохраните как есть";
+  }
+  if (input.anyLowConfidence) {
+    return input.lowestConfidencePercent
+      ? `Слабая уверенность (${input.lowestConfidencePercent}) — уточните или сохраните как есть`
+      : "Слабая уверенность — уточните или сохраните как есть";
+  }
+  if (kindHint) return kindHint;
+  return "Проверьте блюдо перед сохранением";
 }
 
 /** Format post-save toast with kcal so the diary feels confirmed. */

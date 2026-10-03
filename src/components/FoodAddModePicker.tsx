@@ -19,6 +19,7 @@ import type { FoodAddMode } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
 
@@ -104,7 +105,7 @@ export function FoodAddModePicker({
       requestOpenWeightQuick();
       return;
     }
-    router.push(withBasePath("/workouts?new=1"));
+    router.push(withBasePath(`${withDateQuery("/workouts", selectedDate)}&new=1`));
   }
 
   const title = step === "photo" ? "Фото" : "Добавить";

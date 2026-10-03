@@ -18,6 +18,13 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^feat\(ux\): W1–W6 trust find profile gym recog copy$/i, "UX: доверие на confirm, план с рациона, профиль, зал, распознавание, тексты установки"],
+  [/^feat\(ux\): W2 find plan door and workouts date$/i, "UX: план и покупки на рационе; дата дня сохраняется при переходе в «Зал»"],
+  [/^feat\(ux\): W3 profile declutter in D4 list$/i, "UX: профиль — контакты и экспорт свёрнуты, сохранение на первом экране"],
+  [/^feat\(ux\): W4 split workouts hub modules$/i, "UX: зал — шаблоны и история вынесены из монолита WorkoutsView"],
+  [/^feat\(ux\): W5 recog skim hints for weak kinds$/i, "UX: на подтверждении подсказки для напитков, этикеток и штрихкодов"],
+  [/^feat\(ux\): W6 install copy not wrapper$/i, "UX: тексты установки APK без «обёртки» — дневник на телефоне"],
+  [/^feat\(ux\): W1 confirm skim trust line$/i, "UX: на подтверждении видны слабая уверенность и неполные БЖУ без раскрытия fold"],
   [/^feat\(design\): D5\+D6 gym day scene and stats without card cascade$/i, "Дизайн: зал — сцена дня и тонкий хаб; статы — инсайт-сцена и графики без стопки карточек"],
   [/^feat\(design\): D4 plan week scene and profile settings list$/i, "Дизайн: план — одна недельная сцена; профиль — список настроек без стопки карточек"],
   [/^feat\(design\): D3 confirm photo-first skim$/i, "Дизайн: подтверждение блюда — фото, порция, ккал и сохранение; подробности в одном fold"],
