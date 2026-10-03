@@ -986,6 +986,10 @@ export function ConfirmationCard({
     lowestConfidencePercent: lowestConfidenceDish
       ? formatConfidencePercent(lowestConfidenceDish.original.confidence)
       : null,
+    photoKind:
+      lowestConfidenceDish?.original.photoKind ??
+      dishes[0]?.original.photoKind ??
+      recognition.photoKind,
   });
   const skimTone =
     !multi && dishes[0]

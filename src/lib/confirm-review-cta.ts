@@ -20,8 +20,31 @@ export function photoKindShortLabel(kind: ConfirmPhotoKind): string | null {
       return "упаковка";
     case "sticker":
       return "стикер";
+    case "drink":
+      return "напиток";
     case "meal":
       return "фото";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Eval-driven skim hint for known weak photo kinds (W5).
+ * Shown when review is needed — complements BJU/confidence lines.
+ */
+export function confirmSkimHintForPhotoKind(kind: ConfirmPhotoKind): string | null {
+  switch (kind) {
+    case "drink":
+      return "Похоже на напиток — проверьте объём порции, не только ккал на 100 мл";
+    case "label":
+      return "Этикетка: сверьте порцию с упаковкой, не с таблицей на 100 г";
+    case "barcode":
+      return "Штрихкод найден — проверьте название и порцию перед сохранением";
+    case "package":
+      return "Упаковка: вес порции часто больше 100 г — проверьте";
+    case "sticker":
+      return "Стикер кафе: макросы часто неполные — уточните при сомнении";
     default:
       return null;
   }
@@ -168,6 +191,7 @@ export function confirmSkimTrustLine(input: {
   lowConfidenceCount?: number;
   dishCount?: number;
   lowestConfidencePercent?: string | null;
+  photoKind?: ConfirmPhotoKind;
 }): string | null {
   if (input.enriching) return null;
   if (input.enrichmentTimedOut) {
@@ -176,6 +200,18 @@ export function confirmSkimTrustLine(input: {
   if (!input.needsReview) return null;
   if (input.anyMissingCalories) {
     return "Нет калорий — уточните название или введите ккал";
+  }
+  // Weak eval paths: drink/label portion mistakes beat generic macros copy.
+  const kindHint =
+    input.photoKind === "drink" ||
+    input.photoKind === "label" ||
+    input.photoKind === "barcode" ||
+    input.photoKind === "package" ||
+    input.photoKind === "sticker"
+      ? confirmSkimHintForPhotoKind(input.photoKind)
+      : null;
+  if (kindHint && (input.anyMissingMacros || input.anyLowConfidence)) {
+    return kindHint;
   }
   if (input.anyMissingMacros) {
     return "Ккал есть, БЖУ неполные — уточните или сохраните как есть";
@@ -192,6 +228,7 @@ export function confirmSkimTrustLine(input: {
       ? `Слабая уверенность (${input.lowestConfidencePercent}) — уточните или сохраните как есть`
       : "Слабая уверенность — уточните или сохраните как есть";
   }
+  if (kindHint) return kindHint;
   return "Проверьте блюдо перед сохранением";
 }
 

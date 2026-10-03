@@ -4,6 +4,7 @@ import {
   canSaveAsIs,
   confirmReviewPrimaryCta,
   confirmSaveButtonLabel,
+  confirmSkimHintForPhotoKind,
   confirmSkimTrustLine,
   formatPendingConfirmHint,
   formatSavedMealToast,
@@ -16,6 +17,7 @@ test("photoKindShortLabel covers store kinds", () => {
   assert.equal(photoKindShortLabel("barcode"), "штрихкод");
   assert.equal(photoKindShortLabel("label"), "этикетка");
   assert.equal(photoKindShortLabel("package"), "упаковка");
+  assert.equal(photoKindShortLabel("drink"), "напиток");
   assert.equal(photoKindShortLabel("meal"), "фото");
   assert.equal(photoKindShortLabel(undefined), null);
 });
@@ -222,5 +224,35 @@ test("confirmSkimTrustLine surfaces macros / confidence / missing kcal on skim",
       lowestConfidencePercent: "48%",
     }) ?? "",
     /48%/,
+  );
+});
+
+test("confirmSkimTrustLine prefers drink/label portion hints from eval weak kinds", () => {
+  assert.match(confirmSkimHintForPhotoKind("drink") ?? "", /напиток|объём/i);
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: true,
+      anyLowConfidence: false,
+      multi: false,
+      photoKind: "drink",
+    }) ?? "",
+    /напиток|объём/i,
+  );
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: true,
+      anyMissingCalories: false,
+      anyMissingMacros: false,
+      anyLowConfidence: true,
+      multi: false,
+      photoKind: "label",
+    }) ?? "",
+    /Этикетка|порци/i,
   );
 });
