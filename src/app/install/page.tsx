@@ -30,7 +30,8 @@ export default function InstallPage() {
       <section className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
         <h2 className="font-semibold text-slate-900">Android · APK</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Тот же сайт в обёртке приложения. Установите APK напрямую — без Google Play.
+          Тот же дневник на телефоне: офлайн-иконка, напоминания и камера. Установите APK
+          напрямую — без Google Play.
           {rustoreUrl ? " Или поставьте из RuStore." : ""}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">

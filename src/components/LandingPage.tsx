@@ -196,8 +196,8 @@ function AndroidApkCta() {
           Android · APK
         </h3>
         <p className="landing-apk-text">
-          Тот же дневник в обёртке приложения. Скачайте APK или поставьте из RuStore — без Google
-          Play.
+          Тот же дневник на телефоне — иконка, напоминания и камера. Скачайте APK или поставьте из
+          RuStore — без Google Play.
         </p>
       </div>
       <div className="landing-apk-actions">
