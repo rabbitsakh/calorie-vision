@@ -346,7 +346,7 @@ function RationBody({
             quietHide
           />
 
-          {/* D2: one habits/plan door — plan & shopping live here, not a second link row. */}
+          {/* D2/W2: one habits door + visible plan/shopping on the day surface. */}
           <section
             ref={habitsRef}
             id="habits-panel"
@@ -375,6 +375,24 @@ function RationBody({
                 onMiniClick={openHabitsPanel}
               />
             </div>
+            <p className="flex flex-wrap items-center gap-x-1 border-t border-[var(--border-hairline)] px-3 py-2 text-sm font-medium text-slate-700 md:px-4">
+              <Link
+                href={withDateQuery("/plan", date)}
+                className="font-semibold text-teal-800 hover:underline"
+              >
+                План недели
+              </Link>
+              <span className="text-slate-300" aria-hidden>
+                ·
+              </span>
+              <Link
+                href={`${withDateQuery("/plan", date)}#shopping`}
+                className="inline-flex items-center gap-1 hover:text-teal-800 hover:underline"
+              >
+                Покупки
+                <ShoppingCountChip date={date} />
+              </Link>
+            </p>
           </section>
 
           <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white">

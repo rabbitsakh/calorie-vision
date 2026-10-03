@@ -24,6 +24,7 @@ import { openFoodAdd, requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
 export { FOOD_ADD_LONG_PRESS_MS, FOOD_ADD_MODE_OPTIONS } from "@/lib/food-add-modes";
@@ -47,6 +48,7 @@ export function FoodAddModeMenu({
   const rootRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const timezone = useTimezone();
+  const { date: selectedDate } = useSelectedDate(timezone);
   const suggested = useMemo(
     () => suggestFoodAddAction(hourInTimezone(new Date(), timezone)),
     [timezone],
@@ -204,7 +206,10 @@ export function FoodAddModeMenu({
                     onClose();
                     if (opt.id === "water") requestOpenWaterQuick();
                     else if (opt.id === "weight") requestOpenWeightQuick();
-                    else router.push(withBasePath("/workouts?new=1"));
+                    else
+                      router.push(
+                        withBasePath(`${withDateQuery("/workouts", selectedDate)}&new=1`),
+                      );
                   }}
                 >
                   <span

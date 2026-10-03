@@ -188,6 +188,8 @@ type SessionDetail = SessionSummary & {
 
 type WorkoutsViewProps = {
   todayKey: string;
+  /** Diary date from ?date= — may differ from calendar today. */
+  selectedDate?: string;
 };
 
 type InsightSuggestion = {
@@ -405,9 +407,10 @@ function nextSetType(current: SetType): SetType {
   return SET_TYPES[(idx + 1) % SET_TYPES.length]!;
 }
 
-export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
+export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const viewDate = selectedDate && selectedDate.length >= 8 ? selectedDate : todayKey;
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -420,7 +423,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
   const [fromPlusMenu, setFromPlusMenu] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const [newDate, setNewDate] = useState(todayKey);
+  const [newDate, setNewDate] = useState(viewDate);
   const [newGroups, setNewGroups] = useState<MuscleGroupKey[]>([]);
   const [copyExercises, setCopyExercises] = useState(true);
   const [progressRate, setProgressRate] = useState(DEFAULT_PROGRESS_RATE);
@@ -633,14 +636,25 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
     createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [creating]);
 
-  // Deep link from «+» → Тренировка (`/workouts?new=1`).
+  // Keep create-form date aligned with the diary date strip.
+  useEffect(() => {
+    setNewDate(viewDate);
+  }, [viewDate]);
+
+  // Deep link from «+» → Тренировка (`/workouts?new=1`) — keep ?date=.
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
     setCreating(true);
     setFromPlusMenu(true);
     setHubTab("today");
-    router.replace(withBasePath("/workouts"), { scroll: false });
-  }, [searchParams, router]);
+    setNewDate(viewDate);
+    const keepDate = searchParams.get("date");
+    const next =
+      keepDate && keepDate.length >= 8
+        ? `/workouts?date=${keepDate}`
+        : "/workouts";
+    router.replace(withBasePath(next), { scroll: false });
+  }, [searchParams, router, viewDate]);
 
   useEffect(() => {
     if (detail?.muscleKeys?.length) {
@@ -806,7 +820,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         await fetch(withBasePath(`/api/workouts/${sourceId}/repeat`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date: todayKey, copySets: true }),
+          body: JSON.stringify({ date: viewDate, copySets: true }),
         }),
       );
       await loadList();
@@ -826,7 +840,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
         await fetch(withBasePath(`/api/workouts/routines/${routineId}/start`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date: todayKey, copySets: true }),
+          body: JSON.stringify({ date: viewDate, copySets: true }),
         }),
       );
       await loadList();
@@ -2814,17 +2828,19 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
             setCreating(false);
             setFromPlusMenu(false);
           }}
-          onGoRation={() => router.push(withBasePath("/ration"))}
+          onGoRation={() =>
+            router.push(withBasePath(`/ration?date=${viewDate}`))
+          }
         />
       ) : null}
 
       {hubTab === "today" ? (
         <WorkoutWeekPlan
-          todayKey={todayKey}
+          todayKey={viewDate}
           busy={busy}
           firstWorkout={sessions.length === 0}
           sessions={sessions
-            .filter((s) => s.date === todayKey)
+            .filter((s) => s.date === viewDate)
             .map((s) => ({
               id: s.id,
               muscleLabels: s.muscleLabels,
@@ -2853,7 +2869,7 @@ export function WorkoutsView({ todayKey }: WorkoutsViewProps) {
           }}
           onStartBlank={() => {
             setCreating(true);
-            setNewDate(todayKey);
+            setNewDate(viewDate);
           }}
           onStartRoutine={(id) => void startRoutine(id)}
           onEditRoutine={(id) => setEditingRoutineId(id)}
