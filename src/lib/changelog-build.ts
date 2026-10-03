@@ -25,6 +25,8 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^feat\(ux\): W5 recog skim hints for weak kinds$/i, "UX: на подтверждении подсказки для напитков, этикеток и штрихкодов"],
   [/^feat\(ux\): W6 install copy not wrapper$/i, "UX: тексты установки APK без «обёртки» — дневник на телефоне"],
   [/^feat\(ux\): W7 extract workout active session$/i, "UX: зал — активная тренировка вынесена из монолита WorkoutsView"],
+  [/^feat\(ux\): W8 tokens ration dayhero tabbar$/i, "UX: рацион, DayHero и таббар на CSS-токенах вместо slate/teal"],
+  [/^feat\(ux\): W9 soft celebration daily budget$/i, "UX: лимит мягких празднований в день — тише в первую неделю"],
   [/^feat\(ux\): W1 confirm skim trust line$/i, "UX: на подтверждении видны слабая уверенность и неполные БЖУ без раскрытия fold"],
   [/^feat\(design\): D5\+D6 gym day scene and stats without card cascade$/i, "Дизайн: зал — сцена дня и тонкий хаб; статы — инсайт-сцена и графики без стопки карточек"],
   [/^feat\(design\): D4 plan week scene and profile settings list$/i, "Дизайн: план — одна недельная сцена; профиль — список настроек без стопки карточек"],

@@ -127,10 +127,10 @@ function TabLink({
       <div className="mobile-tab-bar__icon">
         <NavIcon
           name={item.icon}
-          className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-slate-500"}`}
+          className={`h-5 w-5 ${active ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
         />
         {showQueueBadge ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold leading-none text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--warn)] px-1 text-[10px] font-bold leading-none text-white">
             {queueCount > 9 ? "9+" : queueCount}
           </span>
         ) : null}

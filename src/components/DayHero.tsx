@@ -69,13 +69,13 @@ function HeroRing({ pct }: { pct: number }) {
   return (
     <div className="day-hero-ring relative h-[4.75rem] w-[4.75rem] shrink-0">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(15,118,110,0.15)" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="8" />
         <circle
           cx="50"
           cy="50"
           r={r}
           fill="none"
-          stroke={over ? "#d97706" : "#0f766e"}
+          stroke={over ? "var(--warn)" : "var(--accent)"}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -85,11 +85,11 @@ function HeroRing({ pct }: { pct: number }) {
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`font-display text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-amber-700" : "text-teal-800"}`}
+          className={`font-display text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
         >
           {Math.round(clamped)}%
         </span>
-        <span className="text-[0.5rem] font-semibold uppercase leading-none tracking-wide text-slate-500">
+        <span className="text-[0.5rem] font-semibold uppercase leading-none tracking-wide text-[var(--muted)]">
           ккал
         </span>
       </div>
@@ -276,13 +276,13 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
           <DiarySticker className="pointer-events-none absolute -bottom-1 -right-1" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[var(--accent-ink)]/70">
             {copy.eyebrow}
           </p>
-          <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+          <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
             {copy.headline}
           </p>
-          <p className="mt-1.5 text-xs font-medium text-slate-600">
+          <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">
             {calLabel}
             {burnHint ? ` · ${burnHint}` : ""}
             {holiday ? " · праздн. запас" : ""}

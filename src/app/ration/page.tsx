@@ -134,7 +134,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
       aria-hidden
-      className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`h-5 w-5 shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -308,7 +308,7 @@ function RationBody({
               </p>
               <button
                 type="button"
-                className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                 disabled={day.loading}
                 onClick={() => void day.refresh()}
               >
@@ -322,7 +322,7 @@ function RationBody({
               </p>
               <button
                 type="button"
-                className="shrink-0 font-semibold text-teal-800 underline-offset-2 hover:underline"
+                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                 disabled={day.loading}
                 onClick={() => void day.refresh()}
               >
@@ -359,8 +359,8 @@ function RationBody({
               aria-expanded={showHabits}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-slate-800">Привычки и план</p>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="font-semibold text-[var(--foreground)]">Привычки и план</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
                   Серия, челлендж, покупки, заметки
                 </p>
               </div>
@@ -375,19 +375,19 @@ function RationBody({
                 onMiniClick={openHabitsPanel}
               />
             </div>
-            <p className="flex flex-wrap items-center gap-x-1 border-t border-[var(--border-hairline)] px-3 py-2 text-sm font-medium text-slate-700 md:px-4">
+            <p className="flex flex-wrap items-center gap-x-1 border-t border-[var(--border-hairline)] px-3 py-2 text-sm font-medium text-[var(--muted-strong)] md:px-4">
               <Link
                 href={withDateQuery("/plan", date)}
-                className="font-semibold text-teal-800 hover:underline"
+                className="font-semibold text-[var(--accent-ink)] hover:underline"
               >
                 План недели
               </Link>
-              <span className="text-slate-300" aria-hidden>
+              <span className="text-[var(--muted)]" aria-hidden>
                 ·
               </span>
               <Link
                 href={`${withDateQuery("/plan", date)}#shopping`}
-                className="inline-flex items-center gap-1 hover:text-teal-800 hover:underline"
+                className="inline-flex items-center gap-1 hover:text-[var(--accent-ink)] hover:underline"
               >
                 Покупки
                 <ShoppingCountChip date={date} />
@@ -398,10 +398,10 @@ function RationBody({
           <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
-                <p className="font-semibold text-slate-800">Ещё за день</p>
-                <p className="mt-0.5 text-xs text-slate-500">Итог, подсказки, установка</p>
+                <p className="font-semibold text-[var(--foreground)]">Ещё за день</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">Итог, подсказки, установка</p>
               </div>
-              <span className="shrink-0 text-slate-400 transition-transform group-open:rotate-180" aria-hidden>
+              <span className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180" aria-hidden>
                 ▾
               </span>
             </summary>
@@ -451,16 +451,16 @@ function RationBody({
                     className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3">
                       <div className="min-w-0">
-                        <p id="habits-sheet-title" className="font-semibold text-slate-900">
+                        <p id="habits-sheet-title" className="font-semibold text-[var(--foreground)]">
                           Привычки и план
                         </p>
-                        <p className="text-xs text-slate-500">Серия, челлендж, покупки, заметки</p>
+                        <p className="text-xs text-[var(--muted)]">Серия, челлендж, покупки, заметки</p>
                       </div>
                       <button
                         type="button"
-                        className="btn-quiet text-sm text-slate-500"
+                        className="btn-quiet text-sm text-[var(--muted)]"
                         onClick={() => setShowHabits(false)}
                       >
                         Закрыть
@@ -479,19 +479,19 @@ function RationBody({
                         refreshKey={refreshKey}
                         onOpenHabits={openHabitsPanel}
                       />
-                      <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 text-sm font-medium text-slate-700">
+                      <p className="flex flex-wrap items-center gap-x-1 rounded-xl border border-[var(--border-hairline)] bg-[var(--accent-summary-soft)]/80 px-3 py-2.5 text-sm font-medium text-[var(--muted-strong)]">
                         <Link
                           href={withDateQuery("/plan", date)}
-                          className="font-semibold text-teal-800 hover:underline"
+                          className="font-semibold text-[var(--accent-ink)] hover:underline"
                         >
                           План недели
                         </Link>
-                        <span className="text-slate-300" aria-hidden>
+                        <span className="text-[var(--muted)]" aria-hidden>
                           ·
                         </span>
                         <Link
                           href={`${withDateQuery("/plan", date)}#shopping`}
-                          className="inline-flex items-center gap-1 hover:text-teal-800 hover:underline"
+                          className="inline-flex items-center gap-1 hover:text-[var(--accent-ink)] hover:underline"
                         >
                           Покупки
                           <ShoppingCountChip date={date} />
