@@ -125,7 +125,7 @@ export function AppShell({
             </div>
 
             <h1
-              className={`font-display font-bold tracking-tight text-slate-900 ${
+              className={`font-bold tracking-tight text-slate-900 ${
                 hideTitleOnMobile
                   ? "mt-0 hidden md:mt-3 md:block md:text-2xl"
                   : compact

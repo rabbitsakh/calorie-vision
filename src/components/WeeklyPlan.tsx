@@ -160,7 +160,7 @@ export function WeeklyPlan({
                 compact
                   ? "text-sm font-semibold text-slate-800"
                   : embedded
-                    ? "font-display text-xl font-semibold tracking-tight text-slate-900 md:text-2xl"
+                    ? "text-xl font-semibold tracking-tight text-slate-900 md:text-2xl"
                     : "font-semibold text-slate-800"
               }
             >

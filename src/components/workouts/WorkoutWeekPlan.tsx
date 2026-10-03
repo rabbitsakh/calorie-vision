@@ -153,7 +153,7 @@ export function WorkoutWeekPlan({
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
               Сегодня{data ? ` · ${data.weekdayLabel}` : ""}
             </p>
-            <p className="mt-1 font-display text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+            <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
               {sceneHeadline}
             </p>
             <p className="mt-1.5 text-xs font-medium text-slate-600">{sceneMeta}</p>

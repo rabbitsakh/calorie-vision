@@ -1,5 +1,6 @@
 /**
  * Short day-hero phrases — one line under the mascot on the ration screen.
+ * Tone: adult product — calm, factual, no cheerleading.
  */
 
 import type { MascotPose } from "@/lib/mascot-types";
@@ -38,7 +39,7 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
     return {
       eyebrow,
       headline: ctx.isToday
-        ? "Один приём — и день уже в движении."
+        ? "Добавьте первый приём — день начнётся."
         : "Пока пусто. Можно добавить записи за этот день.",
       pose: "empty",
     };
@@ -49,7 +50,7 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
       eyebrow,
       headline: ctx.holiday
         ? "Цель закрыта — с учётом праздничного запаса."
-        : "Цель почти закрыта. Отличная работа!",
+        : "Цель почти закрыта.",
       pose: "goal",
     };
   }
@@ -57,7 +58,7 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
   if (hasTarget && pct > 110) {
     return {
       eyebrow,
-      headline: "Чуть выше цели — без паники, день ещё идёт.",
+      headline: "Чуть выше цели — день ещё идёт.",
       pose: "tip",
     };
   }
@@ -67,8 +68,8 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
       eyebrow,
       headline:
         streak >= 3
-          ? `День ${streak} серии — вы уже на ${Math.round(pct)}%.`
-          : `Уже ${Math.round(pct)}% к цели — продолжайте в своём темпе.`,
+          ? `День ${streak} серии · ${Math.round(pct)}% к цели.`
+          : `${Math.round(pct)}% к цели.`,
       pose: streak >= 3 ? "streak" : "cheer",
     };
   }
@@ -77,8 +78,8 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
     eyebrow,
     headline:
       streak >= 2
-        ? `Запись есть. Серия ${streak} ${pluralDays(streak)} в безопасности.`
-        : "Первый шаг сделан — дальше проще.",
+        ? `Запись есть · серия ${streak} ${pluralDays(streak)}.`
+        : "Первый приём записан.",
     pose: "cheer",
   };
 }

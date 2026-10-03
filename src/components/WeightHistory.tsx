@@ -255,7 +255,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
         <div className="rounded-2xl bg-teal-50 px-4 py-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-teal-800">Текущий вес</div>
           <div className="mt-1 flex items-end justify-between gap-3">
-            <p className="font-display text-4xl font-bold text-slate-900">
+            <p className="text-4xl font-bold tabular-nums text-slate-900">
               {data?.currentWeightKg != null ? `${data.currentWeightKg}` : "—"}
               {data?.currentWeightKg != null ? <span className="text-lg font-semibold text-slate-500"> кг</span> : null}
             </p>

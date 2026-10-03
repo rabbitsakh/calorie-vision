@@ -23,7 +23,7 @@ export function GamificationQuietToggle() {
 
   return (
     <section className="card p-4 md:p-5">
-      <h2 className="font-display text-base font-semibold text-slate-800">Мягкий режим</h2>
+      <h2 className="text-base font-semibold text-slate-800">Мягкий режим</h2>
       <p className="mt-1 text-sm text-slate-500">
         Меньше празднований и звуков — прогресс в дневнике остаётся.
       </p>

@@ -131,7 +131,7 @@ export function FoodAddModePicker({
       >
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
           <div className="min-w-0">
-            <p id={titleId} className="font-display text-base font-semibold tracking-tight text-slate-900">
+            <p id={titleId} className="text-base font-semibold tracking-tight text-slate-900">
               {title}
             </p>
             <p className="text-xs text-slate-500">{subtitle}</p>

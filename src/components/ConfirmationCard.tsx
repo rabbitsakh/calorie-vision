@@ -857,7 +857,7 @@ export function ConfirmationCard({
               className={imageLoaded ? "" : "opacity-0"}
             />
             <div className="confirm-hero-overlay">
-              <h2 className="font-display text-lg font-bold">Проверьте и сохраните</h2>
+              <h2 className="text-lg font-bold">Проверьте и сохраните</h2>
               <p className="mt-0.5 text-sm text-white/85">
                 {multi
                   ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
@@ -867,7 +867,7 @@ export function ConfirmationCard({
           </div>
         ) : (
           <div>
-            <h2 className="font-display text-xl font-bold">Проверьте и сохраните</h2>
+            <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
             <p className="mt-1 text-sm text-slate-500">
               {multi
                 ? "Несколько блюд — поправьте порции и сохраните."

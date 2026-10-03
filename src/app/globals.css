@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces */
-  --background: #eef5f3;
+  /* Surfaces — cooler, flatter (adult product chrome) */
+  --background: #f4f6f8;
   --foreground: #0f172a;
   --card: #ffffff;
-  --surface-chrome: rgba(255, 255, 255, 0.78);
+  --surface-chrome: rgba(255, 255, 255, 0.88);
   --surface-elevated: #ffffff;
   --muted: #64748b;
   --muted-strong: #334155;
@@ -13,7 +13,7 @@
   /* Brand — teal family only (no indigo/violet product accents) */
   --accent: #0f766e;
   --accent-hover: #0d9488;
-  --accent-soft: #ccfbf1;
+  --accent-soft: #e6f4f2;
   --accent-ink: #115e59;
   --accent-water: #0284c7;
   --accent-water-soft: #e0f2fe;
@@ -27,17 +27,17 @@
   --accent-carbs: #0891b2;
   --accent-carbs-soft: #cffafe;
 
-  --border-quiet: rgba(15, 118, 110, 0.14);
+  --border-quiet: rgba(15, 118, 110, 0.12);
   --border-hairline: rgba(15, 23, 42, 0.08);
   --success: #0f766e;
   --warn: #d97706;
   --danger: #dc2626;
 
-  --radius-lg: 18px;
-  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
   --radius-sm: 8px;
   --radius-pill: 999px;
-  --radius-control: 14px;
+  --radius-control: 10px;
 
   --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Unbounded", var(--font-body);
@@ -47,7 +47,7 @@
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
-  --shadow-card: 0 2px 12px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-quiet: none;
   --control-h: 48px;
   --text-xs: 0.75rem;
@@ -263,10 +263,8 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   color: var(--foreground);
-  background:
-    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 100% 110%, rgba(2, 132, 199, 0.08), transparent 50%),
-    linear-gradient(180deg, #f3faf8 0%, var(--background) 38%, #e8f0f4 100%);
+  /* Adult product: calm wash — marketing landing keeps its own tokens */
+  background: linear-gradient(180deg, #fafbfc 0%, var(--background) 42%, #f1f4f6 100%);
   background-attachment: fixed;
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 100vh;
@@ -434,20 +432,20 @@ select {
 
 .btn {
   border: none;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: 600;
   min-height: var(--control-h);
   padding: 0.75rem 1.25rem;
-  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .btn:hover:not(:disabled) {
-  transform: translateY(-1px);
+  opacity: 0.94;
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.97);
+  opacity: 0.88;
 }
 
 .btn:disabled {
@@ -705,15 +703,15 @@ select {
   width: 2.75rem;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35);
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .mobile-tab-bar__add:active {
-  transform: scale(0.95);
+  opacity: 0.9;
 }
 
 @keyframes tab-indicator-in {
@@ -740,7 +738,7 @@ select {
   justify-content: center;
   min-height: 40px;
   padding: 0.4rem 0.9rem;
-  transition: background-color 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.12s ease;
 }
 
 .chip:hover:not(:disabled) {
@@ -748,7 +746,7 @@ select {
 }
 
 .chip:active:not(:disabled) {
-  transform: scale(0.97);
+  opacity: 0.88;
 }
 
 .chip:disabled {
@@ -1833,15 +1831,14 @@ select {
 .day-hero {
   position: relative;
   overflow: hidden;
-  border-radius: 1.15rem;
+  border-radius: var(--radius-lg);
   padding: 0.75rem 0.9rem 0.7rem;
+  /* Adult: quieter day-part wash — less candy radial stack */
   background:
-    radial-gradient(120% 90% at 0% 0%, rgba(45, 212, 191, 0.18), transparent 55%),
-    radial-gradient(90% 80% at 100% 10%, rgba(13, 148, 136, 0.12), transparent 50%),
-    linear-gradient(165deg, #f0fdfa 0%, #ecfeff 42%, #f8fafc 100%);
-  border: 1px solid rgba(15, 118, 110, 0.1);
-  box-shadow: 0 10px 28px -18px rgba(15, 118, 110, 0.35);
-  animation: day-hero-in 0.45s ease-out both;
+    linear-gradient(165deg, #f3f7f6 0%, #f6f8f9 48%, #f4f6f8 100%);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-card);
+  animation: day-hero-in 0.3s ease-out both;
 }
 
 /* Full-bleed scene under the shell padding — one composition, day-part air. */
@@ -1858,8 +1855,8 @@ select {
 
 @media (min-width: 768px) {
   .day-hero--scene {
-    border-radius: 1.25rem;
-    border: 1px solid rgba(15, 118, 110, 0.1);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-hairline);
     margin-left: 0;
     margin-right: 0;
     overflow: hidden;
@@ -1868,30 +1865,22 @@ select {
 
 .day-hero--morning {
   background:
-    radial-gradient(110% 90% at 8% 0%, rgba(253, 224, 71, 0.22), transparent 52%),
-    radial-gradient(90% 80% at 100% 20%, rgba(45, 212, 191, 0.16), transparent 55%),
-    linear-gradient(168deg, #fffbeb 0%, #ecfeff 48%, #f8fafc 100%);
+    linear-gradient(168deg, #faf8f3 0%, #f4f7f6 52%, #f4f6f8 100%);
 }
 
 .day-hero--day {
   background:
-    radial-gradient(120% 90% at 0% 0%, rgba(45, 212, 191, 0.2), transparent 55%),
-    radial-gradient(90% 80% at 100% 10%, rgba(13, 148, 136, 0.14), transparent 50%),
-    linear-gradient(165deg, #f0fdfa 0%, #ecfeff 42%, #f8fafc 100%);
+    linear-gradient(165deg, #f3f7f6 0%, #f5f8f9 48%, #f4f6f8 100%);
 }
 
 .day-hero--evening {
   background:
-    radial-gradient(110% 90% at 0% 0%, rgba(251, 146, 60, 0.18), transparent 50%),
-    radial-gradient(90% 80% at 100% 15%, rgba(15, 118, 110, 0.14), transparent 55%),
-    linear-gradient(168deg, #fff7ed 0%, #f0fdfa 55%, #f8fafc 100%);
+    linear-gradient(168deg, #f8f5f2 0%, #f4f7f6 55%, #f4f6f8 100%);
 }
 
 .day-hero--night {
   background:
-    radial-gradient(110% 90% at 10% 0%, rgba(125, 211, 252, 0.2), transparent 50%),
-    radial-gradient(90% 80% at 100% 20%, rgba(15, 118, 110, 0.12), transparent 55%),
-    linear-gradient(168deg, #e0f2fe 0%, #f0fdfa 50%, #f8fafc 100%);
+    linear-gradient(168deg, #f2f5f8 0%, #f4f7f6 50%, #f4f6f8 100%);
 }
 
 .day-hero-glow {
@@ -1899,8 +1888,8 @@ select {
   position: absolute;
   inset: -20% 40% auto -10%;
   height: 70%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), transparent 70%);
-  opacity: 0.7;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 70%);
+  opacity: 0.45;
 }
 
 .ration-day-scene {
@@ -1927,10 +1916,8 @@ select {
 }
 
 .ration-empty-day {
-  background:
-    radial-gradient(90% 70% at 50% 0%, rgba(45, 212, 191, 0.12), transparent 60%),
-    linear-gradient(180deg, rgba(240, 253, 250, 0.65), transparent 70%);
-  border-radius: 1.25rem;
+  background: linear-gradient(180deg, rgba(243, 247, 246, 0.7), transparent 70%);
+  border-radius: var(--radius-lg);
 }
 
 .ration-day-more {
@@ -1946,10 +1933,8 @@ select {
   overflow: hidden;
   border: 1px solid var(--border-quiet);
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(120% 80% at 50% -20%, rgba(45, 212, 191, 0.16), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.55) 42%, #fff 100%);
-  animation: plan-week-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  background: linear-gradient(180deg, #fff 0%, #f7f9fa 48%, #fff 100%);
+  animation: plan-week-in 0.3s ease-out both;
 }
 
 .plan-week__hero {
@@ -2160,49 +2145,42 @@ select {
 }
 
 .day-hero-mascot {
-  animation: day-hero-mascot-in 0.55s ease-out 0.05s both;
+  animation: day-hero-mascot-in 0.35s ease-out 0.04s both;
 }
 
 .day-hero-ring {
-  animation: day-hero-ring-in 0.6s ease-out 0.12s both;
+  animation: day-hero-ring-in 0.35s ease-out 0.08s both;
   overflow: visible;
 }
 
-/* Unbounded ascenders sit high; nudge label stack so % clears the stroke. */
 .day-hero-ring-label {
-  transform: translateY(5px);
+  transform: none;
 }
 
 @keyframes day-hero-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 @keyframes day-hero-mascot-in {
   from {
     opacity: 0;
-    transform: scale(0.92) translateY(6px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
   }
 }
 
 @keyframes day-hero-ring-in {
   from {
     opacity: 0;
-    transform: scale(0.88);
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -2452,41 +2430,39 @@ select {
 }
 
 @keyframes soft-celeb-pop {
-  0% {
+  from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(8px);
   }
-  60% {
+  to {
     opacity: 1;
-    transform: translateY(0) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 @keyframes soft-celeb-pulse {
   0% {
-    transform: translateX(-50%) scale(0.7);
-    opacity: 0.7;
+    transform: translateX(-50%) scale(0.85);
+    opacity: 0.45;
   }
   100% {
-    transform: translateX(-50%) scale(1.55);
+    transform: translateX(-50%) scale(1.25);
     opacity: 0;
   }
 }
 
 .soft-celeb-root {
-  animation: soft-celeb-fade 0.25s ease-out;
+  animation: soft-celeb-fade 0.2s ease-out;
 }
 
 .soft-celeb-card {
-  animation: soft-celeb-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: soft-celeb-pop 0.28s ease-out;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
 }
 
 .soft-celeb-ring {
-  animation: soft-celeb-pulse 1.1s ease-out infinite;
+  animation: soft-celeb-pulse 1.4s ease-out 1 both;
 }
 
 @keyframes mascot-bob {
