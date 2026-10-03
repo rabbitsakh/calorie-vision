@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { Mascot, type MascotPose } from "@/components/Mascot";
 import type { CelebrationVariant } from "@/components/FullscreenCelebration";
 import type { RewardRarity } from "@/lib/rewards";
 import { hydrateQuietHoursFromAccount } from "@/lib/quiet-hours-prefs";
 import {
+  consumeSoftCelebrationSlot,
+  isSoftCelebrationCapReached,
   isSoftCelebrationQuietBlocked,
   isSoftCelebrationSuppressed,
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
+import { toDateKeyTz } from "@/lib/dates";
 
 type SoftCelebrationProps = {
   open: boolean;
@@ -55,9 +58,12 @@ export function SoftCelebration({
   onClose,
 }: SoftCelebrationProps) {
   const gate = useCelebrationGate();
+  const todayKey = muteDate ?? toDateKeyTz(new Date());
+  const claimedSlotRef = useRef(false);
+  const budgetBlocked = isSoftCelebrationCapReached(todayKey);
   const suppressed = isSoftCelebrationSuppressed({
     open,
-    quietBlocked: isSoftCelebrationQuietBlocked(),
+    quietBlocked: isSoftCelebrationQuietBlocked() || budgetBlocked,
     fullscreenActiveId: gate?.activeId ?? null,
   });
 
@@ -68,6 +74,17 @@ export function SoftCelebration({
   useEffect(() => {
     if (open && suppressed) onClose();
   }, [open, suppressed, onClose]);
+
+  // Claim a daily soft slot once per open — not on every onClose identity change.
+  useEffect(() => {
+    if (!open || suppressed) {
+      claimedSlotRef.current = false;
+      return;
+    }
+    if (claimedSlotRef.current) return;
+    claimedSlotRef.current = true;
+    if (!consumeSoftCelebrationSlot(todayKey)) onClose();
+  }, [open, suppressed, todayKey, onClose]);
 
   useEffect(() => {
     if (!open || suppressed) return;

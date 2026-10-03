@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  consumeSoftCelebrationSlot,
+  getSoftCelebrationCount,
+  isSoftCelebrationCapReached,
   isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationSuppressed,
   markSoftCelebrationSeen,
+  softCelebrationDailyCap,
+  SOFT_CELEB_DAILY_CAP,
+  SOFT_CELEB_FIRST_WEEK_CAP,
 } from "./soft-celebration.ts";
 import { GAMIFICATION_QUIET_KEY } from "./gamification-quiet.ts";
+import { cacheLoggedDaysTotal } from "./first-hour-trust.ts";
 
 test("marks day-opened celebration as seen in localStorage", () => {
   const store = new Map<string, string>();
@@ -72,4 +79,39 @@ test("soft celebration yields to fullscreen gate", () => {
     isSoftCelebrationSuppressed({ open: true, quietBlocked: true, fullscreenActiveId: null }),
     true,
   );
+});
+
+test("soft celebration daily budget caps cards per day", () => {
+  const store = new Map<string, string>();
+  const memoryStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+  };
+  (globalThis as { window?: unknown }).window = {
+    localStorage: memoryStorage,
+  };
+
+  // Past first week → full soft budget.
+  cacheLoggedDaysTotal(10);
+  assert.equal(softCelebrationDailyCap(), SOFT_CELEB_DAILY_CAP);
+  assert.equal(isSoftCelebrationCapReached("2026-10-03"), false);
+  for (let i = 0; i < SOFT_CELEB_DAILY_CAP; i++) {
+    assert.equal(consumeSoftCelebrationSlot("2026-10-03"), true);
+  }
+  assert.equal(getSoftCelebrationCount("2026-10-03"), SOFT_CELEB_DAILY_CAP);
+  assert.equal(isSoftCelebrationCapReached("2026-10-03"), true);
+  assert.equal(consumeSoftCelebrationSlot("2026-10-03"), false);
+
+  // First week → tighter budget.
+  cacheLoggedDaysTotal(2);
+  assert.equal(softCelebrationDailyCap(), SOFT_CELEB_FIRST_WEEK_CAP);
+  assert.equal(consumeSoftCelebrationSlot("2026-10-04"), true);
+  assert.equal(consumeSoftCelebrationSlot("2026-10-04"), false);
+
+  delete (globalThis as { window?: unknown }).window;
 });
