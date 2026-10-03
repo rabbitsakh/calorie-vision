@@ -235,7 +235,7 @@ export default function LoginForm() {
             Calorie Vision
           </p>
         </div>
-        <h1 className="font-display mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
         <p className="mt-2 text-slate-600 capacitor-web-only">
           Войдите через Яндекс, Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
