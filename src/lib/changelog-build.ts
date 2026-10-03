@@ -20,6 +20,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^feat\(ux\): W1–W6 trust find profile gym recog copy$/i, "UX: доверие на confirm, план с рациона, профиль, зал, распознавание, тексты установки"],
   [/^feat\(ux\): W2 find plan door and workouts date$/i, "UX: план и покупки на рационе; дата дня сохраняется при переходе в «Зал»"],
+  [/^feat\(ux\): W3 profile declutter in D4 list$/i, "UX: профиль — контакты и экспорт свёрнуты, сохранение на первом экране"],
   [/^feat\(ux\): W1 confirm skim trust line$/i, "UX: на подтверждении видны слабая уверенность и неполные БЖУ без раскрытия fold"],
   [/^feat\(design\): D5\+D6 gym day scene and stats without card cascade$/i, "Дизайн: зал — сцена дня и тонкий хаб; статы — инсайт-сцена и графики без стопки карточек"],
   [/^feat\(design\): D4 plan week scene and profile settings list$/i, "Дизайн: план — одна недельная сцена; профиль — список настроек без стопки карточек"],
