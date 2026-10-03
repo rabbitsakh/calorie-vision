@@ -18,7 +18,7 @@ export default function InstallPage() {
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col gap-6 px-4 py-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">На телефон</p>
-        <h1 className="mt-1 font-display text-3xl font-bold text-slate-900">Установка</h1>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Установка</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
           Calorie Vision — PWA. Добавьте на главный экран: иконка, полноэкранный режим, удобный дневник.
           На Android можно скачать APK. Напоминания на iPhone работают только с этой иконки (iOS 16.4+).

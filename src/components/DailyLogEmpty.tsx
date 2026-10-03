@@ -40,7 +40,7 @@ export function DailyLogEmpty({
       }`}
     >
       <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
-      <p className="font-display text-lg font-semibold text-slate-900">
+      <p className="text-lg font-semibold text-slate-900">
         {MASCOT_COPY.emptyDiary.headline}
       </p>
       <p className="max-w-xs text-sm text-slate-600">{MASCOT_COPY.emptyDiary.body}</p>

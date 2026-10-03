@@ -395,7 +395,7 @@ export function ProfileForm() {
               </label>
 
               <div>
-                <h2 className="font-display text-lg font-semibold text-slate-900">Аккаунт</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Аккаунт</h2>
                 <p className="mt-0.5 text-sm text-slate-500">
                   Имя, email и фото видны в шапке приложения
                 </p>
