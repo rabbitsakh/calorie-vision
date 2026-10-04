@@ -35,10 +35,14 @@ type Props = {
   sessions: TodaySessionCard[];
   /** No history at all — first-ever gym open. */
   firstWorkout?: boolean;
+  /** Open the week fold (e.g. after saving a template). */
+  preferWeekOpen?: boolean;
   onOpenSession: (id: string) => void;
   onStartBlank: () => void;
   onStartRoutine: (routineId: string) => void;
   onEditRoutine: (routineId: string) => void;
+  /** Create a new template, optionally prefilled for a weekday (0=Mon … 6=Sun). */
+  onCreatePlanDay?: (weekday?: number) => void;
   onGoTemplates: () => void;
   busy?: boolean;
 };
@@ -71,10 +75,12 @@ export function WorkoutWeekPlan({
   todayKey,
   sessions,
   firstWorkout = false,
+  preferWeekOpen = false,
   onOpenSession,
   onStartBlank,
   onStartRoutine,
   onEditRoutine,
+  onCreatePlanDay,
   onGoTemplates,
   busy,
 }: Props) {
@@ -82,7 +88,11 @@ export function WorkoutWeekPlan({
   const [data, setData] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [weekOpen, setWeekOpen] = useState(false);
+  const [weekOpen, setWeekOpen] = useState(true);
+
+  useEffect(() => {
+    if (preferWeekOpen) setWeekOpen(true);
+  }, [preferWeekOpen]);
 
   const atmosphere = useMemo(
     () => dayHeroAtmosphereClass(hourInTimezone(new Date(), timezone)),
@@ -294,16 +304,22 @@ export function WorkoutWeekPlan({
                 </ul>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">
-                Плана на сегодня нет.{" "}
+              <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
+                <p className="text-sm text-slate-600">
+                  На сегодня в плане пусто. Составьте шаблон и отметьте дни недели — он появится здесь.
+                </p>
                 <button
                   type="button"
-                  className="font-medium text-teal-800 underline-offset-2 hover:underline"
-                  onClick={onGoTemplates}
+                  className="mt-2 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                  onClick={() =>
+                    onCreatePlanDay
+                      ? onCreatePlanDay(data?.weekday)
+                      : onGoTemplates()
+                  }
                 >
-                  Назначить дни в шаблонах
+                  Составить план на неделю
                 </button>
-              </p>
+              </div>
             )}
           </div>
         ) : null}
@@ -360,7 +376,7 @@ export function WorkoutWeekPlan({
                   <span className="mt-0.5 block text-sm text-slate-500">
                     {planned.length > 0
                       ? `Сегодня: ${planned.map((r) => r.name).join(", ")}`
-                      : "Нажмите, чтобы посмотреть дни"}
+                      : "Шаблоны по дням · нажмите, чтобы настроить"}
                   </span>
                 ) : null}
               </span>
@@ -371,13 +387,22 @@ export function WorkoutWeekPlan({
                 ▾
               </span>
             </summary>
-            <div className="gym-today-fold-body">
+            <div className="gym-today-fold-body space-y-3">
+              <p className="text-sm text-slate-600">
+                План = шаблоны с отмеченными днями. Нажмите день без записи — создадите шаблон;
+                нажмите название — отредактируете.
+              </p>
               {loading || !data ? (
                 <p className="text-sm text-slate-400">…</p>
               ) : (
                 <ul className="space-y-2">
                   {data.week.map((day) => (
-                    <li key={day.weekday} className="flex gap-3 text-sm">
+                    <li
+                      key={day.weekday}
+                      className={`flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2 text-sm ${
+                        day.weekday === data.weekday ? "bg-teal-50/70" : ""
+                      }`}
+                    >
                       <span
                         className={`w-8 shrink-0 font-semibold ${
                           day.weekday === data.weekday ? "text-teal-800" : "text-slate-500"
@@ -387,7 +412,17 @@ export function WorkoutWeekPlan({
                       </span>
                       <div className="min-w-0 flex-1">
                         {day.routines.length === 0 ? (
-                          <span className="text-slate-400">—</span>
+                          onCreatePlanDay ? (
+                            <button
+                              type="button"
+                              className="text-left font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+                              onClick={() => onCreatePlanDay(day.weekday)}
+                            >
+                              + Назначить
+                            </button>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )
                         ) : (
                           day.routines.map((r) => (
                             <button
@@ -406,6 +441,15 @@ export function WorkoutWeekPlan({
                   ))}
                 </ul>
               )}
+              {onCreatePlanDay ? (
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                  onClick={() => onCreatePlanDay()}
+                >
+                  + Новый шаблон в план
+                </button>
+              ) : null}
             </div>
           </details>
         )}

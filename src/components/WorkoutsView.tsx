@@ -353,7 +353,6 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
     REST_OPTIONS,
   } = useWorkoutRestTimer();
 
-  const [liveMode, setLiveMode] = useState(false);
   const [stageOpen, setStageOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [circuitRound, setCircuitRound] = useState(1);
@@ -363,6 +362,10 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   const [prToast, setPrToast] = useState<string | null>(null);
   const prToastTimer = useRef<number | null>(null);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null | "new">(null);
+  /** Prefill weekdays when creating a template from a day in the week plan. */
+  const [newRoutineWeekdays, setNewRoutineWeekdays] = useState<number[] | null>(null);
+  /** Open «План на неделю» after saving a template. */
+  const [preferWeekOpen, setPreferWeekOpen] = useState(false);
   const [filterGroups, setFilterGroups] = useState<MuscleGroupKey[]>([]);
   const [filterCardio, setFilterCardio] = useState(false);
   const [filterPeriod, setFilterPeriod] = useState<"all" | "week" | "month" | "day">("all");
@@ -459,7 +462,6 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
       const enterStage = Boolean(opts?.enterStage) && data.session.clockStatus !== "finished";
-      setLiveMode(enterStage);
       setStageOpen(enterStage);
       setShowSummary(false);
       setCircuitRound(1);
@@ -618,13 +620,11 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       setDetail(data.session);
       setProgress(data.progress);
       if (clock === "finish") {
-        setLiveMode(false);
         setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
       }
       if (clock === "start") {
-        setLiveMode(true);
         setStageOpen(true);
       }
     } catch (err) {
@@ -1530,6 +1530,11 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}`), { method: "DELETE" }),
       );
+      // Keep focus on a remaining exercise so list/stage never show a stale pager target.
+      setFocusExerciseId((prev) => {
+        if (prev !== exerciseId) return prev;
+        return data.session.exercises[0]?.id ?? null;
+      });
       await refreshDetail(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось удалить упражнение");
@@ -1582,8 +1587,6 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         setShowSummary={setShowSummary}
         stageOpen={stageOpen}
         setStageOpen={setStageOpen}
-        liveMode={liveMode}
-        setLiveMode={setLiveMode}
         busy={busy}
         error={error}
         restSeconds={restSeconds}
@@ -1691,11 +1694,17 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       {editingRoutineId !== null ? (
         <WorkoutRoutineEditor
           routineId={editingRoutineId === "new" ? null : editingRoutineId}
-          onClose={() => setEditingRoutineId(null)}
+          initialWeekdays={editingRoutineId === "new" ? newRoutineWeekdays ?? undefined : undefined}
+          onClose={() => {
+            setEditingRoutineId(null);
+            setNewRoutineWeekdays(null);
+          }}
           onSaved={() => {
             setEditingRoutineId(null);
+            setNewRoutineWeekdays(null);
             void loadRoutines();
-            setHubTab("templates");
+            setHubTab("today");
+            setPreferWeekOpen(true);
           }}
         />
       ) : (
@@ -1820,7 +1829,14 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
             setNewDate(viewDate);
           }}
           onStartRoutine={(id) => void startRoutine(id)}
+          preferWeekOpen={preferWeekOpen}
           onEditRoutine={(id) => setEditingRoutineId(id)}
+          onCreatePlanDay={(weekday) => {
+            setNewRoutineWeekdays(
+              weekday != null && Number.isFinite(weekday) ? [weekday] : null,
+            );
+            setEditingRoutineId("new");
+          }}
           onGoTemplates={() => setHubTab("templates")}
         />
       ) : null}

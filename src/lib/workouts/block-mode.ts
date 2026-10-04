@@ -5,7 +5,7 @@ export type BlockMode = (typeof BLOCK_MODES)[number];
 export const BLOCK_MODE_LABELS: Record<BlockMode, string> = {
   normal: "Обычный",
   circuit: "Круг",
-  rest_pause: "Rest-pause",
+  rest_pause: "Отдых-пауза",
 };
 
 export function isBlockMode(value: unknown): value is BlockMode {

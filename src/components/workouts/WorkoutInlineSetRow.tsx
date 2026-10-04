@@ -10,6 +10,8 @@ import {
   parseDurationToSec,
 } from "@/lib/workouts/cardio";
 import {
+  EFFORT_FIELD_ARIA,
+  EFFORT_FIELD_LABEL,
   SET_TYPES,
   SET_TYPE_LABELS,
   SET_TYPE_SHORT,
@@ -185,7 +187,9 @@ export function WorkoutInlineSetRow({
           {summary}
           {set.load > 0 ? <span className="text-slate-400"> ({Math.round(set.load)})</span> : null}
           {set.rpe != null ? (
-            <span className="ml-1 text-xs text-slate-400">RPE {set.rpe}</span>
+            <span className="ml-1 text-xs text-slate-400">
+              {EFFORT_FIELD_LABEL} {set.rpe}
+            </span>
           ) : null}
         </button>
         <button
@@ -244,14 +248,18 @@ export function WorkoutInlineSetRow({
             </label>
           ) : null}
           {kind !== "cardio" ? (
-            <label className="flex flex-col gap-1 text-xs text-slate-500" title="RPE 1–10">
-              RPE
+            <label
+              className="flex flex-col gap-1 text-xs text-slate-500"
+              title={EFFORT_FIELD_ARIA}
+            >
+              {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
                 className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                 value={rpe}
                 onChange={(e) => setRpe(e.target.value)}
                 placeholder="8"
+                aria-label={EFFORT_FIELD_ARIA}
               />
             </label>
           ) : null}

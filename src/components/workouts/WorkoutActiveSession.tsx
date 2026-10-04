@@ -42,6 +42,9 @@ import {
 import { WorkoutLiveStage } from "@/components/workouts/WorkoutLiveStage";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import {
+  EFFORT_FIELD_ARIA,
+  EFFORT_FIELD_HINT,
+  EFFORT_FIELD_LABEL,
   SET_TYPE_LABELS,
   SET_TYPE_SHORT,
   type SetType,
@@ -311,8 +314,6 @@ export type WorkoutActiveSessionProps = {
   setShowSummary: (v: boolean) => void;
   stageOpen: boolean;
   setStageOpen: (v: boolean) => void;
-  liveMode: boolean;
-  setLiveMode: (v: boolean) => void;
   busy: boolean;
   error: string | null;
   restSeconds: number;
@@ -400,8 +401,6 @@ export function WorkoutActiveSession({
   setShowSummary,
   stageOpen,
   setStageOpen,
-  liveMode,
-  setLiveMode,
   busy,
   error,
   restSeconds,
@@ -704,7 +703,6 @@ export function WorkoutActiveSession({
                 onClick={() => {
                   if (!detail.startedAt) void patchClock("start");
                   else {
-                    setLiveMode(true);
                     setStageOpen(true);
                     if (focusExerciseId && !historyByName[focusExForStage?.name ?? ""]) {
                       void toggleExerciseHistory(
@@ -864,59 +862,9 @@ export function WorkoutActiveSession({
     ) : null}
     {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-    {liveMode && detail.exercises.length > 0 ? (
-      <div className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-        <button
-          type="button"
-          className="text-sm font-medium text-teal-800 disabled:opacity-30"
-          disabled={
-            !focusExerciseId ||
-            detail.exercises.findIndex((e) => e.id === focusExerciseId) <= 0
-          }
-          onClick={() => {
-            const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
-            if (idx > 0) setFocusExerciseId(detail.exercises[idx - 1]!.id);
-          }}
-        >
-          ← Пред
-        </button>
-        <p className="min-w-0 truncate text-center text-sm font-semibold text-slate-900">
-          Сейчас:{" "}
-          {detail.exercises.find((e) => e.id === focusExerciseId)?.name ??
-            detail.exercises[0]?.name}
-        </p>
-        <button
-          type="button"
-          className="text-sm font-medium text-teal-800 disabled:opacity-30"
-          disabled={
-            !focusExerciseId ||
-            detail.exercises.findIndex((e) => e.id === focusExerciseId) >=
-              detail.exercises.length - 1
-          }
-          onClick={() => {
-            const idx = detail.exercises.findIndex((e) => e.id === focusExerciseId);
-            if (idx >= 0 && idx < detail.exercises.length - 1) {
-              setFocusExerciseId(detail.exercises[idx + 1]!.id);
-            }
-          }}
-        >
-          След →
-        </button>
-      </div>
-    ) : null}
-
+    {/* List is always a vertical stack. One-exercise paging lives only in «В зал» stage. */}
     <div className="flex flex-col gap-3">
       {detail.exercises.map((ex, exIndex) => {
-        const focusEx = focusExerciseId
-          ? detail.exercises.find((e) => e.id === focusExerciseId)
-          : null;
-        if (liveMode && focusEx) {
-          if (focusEx.supersetGroup) {
-            if (ex.supersetGroup !== focusEx.supersetGroup) return null;
-          } else if (ex.id !== focusExerciseId) {
-            return null;
-          }
-        }
         const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
         const hint = lastSetHint(ex.lastTime ?? null, ex.kind);
         const isCardio = ex.kind === "cardio";
@@ -958,12 +906,8 @@ export function WorkoutActiveSession({
         return (
           <section
             key={ex.id}
-            className={`rounded-2xl border bg-white p-4 ${
-              liveMode && focusExerciseId === ex.id
-                ? "border-teal-400 shadow-sm"
-                : ex.supersetGroup
-                  ? "border-teal-300"
-                  : "border-slate-200"
+            className={`rounded-[var(--radius-lg)] border bg-white p-4 ${
+              ex.supersetGroup ? "border-teal-300" : "border-[var(--border-hairline)]"
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -1217,9 +1161,9 @@ export function WorkoutActiveSession({
               />
             </label>
 
-            {liveMode && ex.lastTime?.sets?.length ? (
-              <div className="mt-3 rounded-xl bg-teal-50 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
+            {ex.lastTime?.sets?.length ? (
+              <div className="mt-3 rounded-[var(--radius-md)] bg-slate-50 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Прошлые подходы
                 </p>
                 <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
@@ -1341,7 +1285,7 @@ export function WorkoutActiveSession({
                 {ex.kind !== "cardio" ? (
                   <button
                     type="button"
-                    title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип`}
+                    title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип подхода`}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
                     onClick={() =>
                       patchDraft(ex.id, { setType: nextSetType(draft.setType) })
@@ -1353,14 +1297,14 @@ export function WorkoutActiveSession({
                 {kindUsesRestTimer(ex.kind) ? (
                   <label
                     className="flex flex-col gap-1 text-xs text-slate-500"
-                    title="RPE — насколько тяжело было (1 легко … 10 до отказа)"
+                    title={EFFORT_FIELD_ARIA}
                   >
-                    RPE
+                    {EFFORT_FIELD_LABEL}
                     <input
                       inputMode="decimal"
                       className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
                       placeholder="8"
-                      aria-label="RPE — ощущаемая тяжесть от 1 до 10"
+                      aria-label={EFFORT_FIELD_ARIA}
                       value={draft.rpe}
                       onChange={(e) => patchDraft(ex.id, { rpe: e.target.value })}
                     />
@@ -1389,6 +1333,16 @@ export function WorkoutActiveSession({
                       : "+ Подход"}
                 </button>
               </div>
+              {ex.kind !== "cardio" ? (
+                <p className="text-[11px] leading-snug text-slate-400">
+                  Тип: {SET_TYPE_LABELS[draft.setType]}
+                  {draft.setType === "rest_pause"
+                    ? " — короткий отдых внутри подхода"
+                    : ""}
+                  {" · "}
+                  {EFFORT_FIELD_LABEL}: {EFFORT_FIELD_HINT}
+                </p>
+              ) : null}
               {draftErrors[ex.id] ? (
                 <p className="text-sm text-red-600" role="alert">
                   {draftErrors[ex.id]}
