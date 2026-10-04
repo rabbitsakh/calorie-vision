@@ -7,7 +7,7 @@ export const SET_TYPE_LABELS: Record<SetType, string> = {
   working: "Рабочий",
   drop: "Дроп",
   failure: "Отказ",
-  rest_pause: "R-P",
+  rest_pause: "Отдых-пауза",
 };
 
 /** Short Russian labels shown on set chips (tap to cycle). */
@@ -16,8 +16,14 @@ export const SET_TYPE_SHORT: Record<SetType, string> = {
   working: "Раб",
   drop: "Дроп",
   failure: "Отказ",
-  rest_pause: "RP",
+  /** Was "RP" — confused with RPE; spell out. */
+  rest_pause: "О-п",
 };
+
+/** Effort field (was labeled "RPE" — unclear for RU users). */
+export const EFFORT_FIELD_LABEL = "Усилие";
+export const EFFORT_FIELD_HINT = "1 легко · 10 отказ";
+export const EFFORT_FIELD_ARIA = "Усилие — насколько тяжело было, от 1 (легко) до 10 (отказ)";
 
 export function isSetType(value: unknown): value is SetType {
   return typeof value === "string" && (SET_TYPES as readonly string[]).includes(value);

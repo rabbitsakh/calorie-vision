@@ -31,6 +31,8 @@ type DraftEx = {
 
 type Props = {
   routineId: string | null;
+  /** Prefill weekdays when creating from the week plan. */
+  initialWeekdays?: number[];
   onClose: () => void;
   onSaved: (routine: SerializedRoutine) => void;
 };
@@ -48,11 +50,16 @@ function emptyEx(): DraftEx {
   };
 }
 
-export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
+export function WorkoutRoutineEditor({
+  routineId,
+  initialWeekdays,
+  onClose,
+  onSaved,
+}: Props) {
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [planLabel, setPlanLabel] = useState("");
-  const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [weekdays, setWeekdays] = useState<number[]>(initialWeekdays ?? []);
   const [groups, setGroups] = useState<MuscleGroupKey[]>([]);
   const [exercises, setExercises] = useState<DraftEx[]>([emptyEx()]);
   const [loading, setLoading] = useState(Boolean(routineId));
@@ -61,6 +68,7 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
 
   useEffect(() => {
     if (!routineId) {
+      setWeekdays(initialWeekdays ?? []);
       setLoading(false);
       return;
     }
@@ -112,7 +120,7 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [routineId]);
+  }, [routineId, initialWeekdays]);
 
   const toggleDay = (d: number) => {
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
@@ -192,12 +200,17 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-900">
-          {routineId ? "Редактор шаблона" : "Новый шаблон"}
+          {routineId ? "Шаблон в плане" : "Новый день в плане"}
         </h2>
         <button type="button" className="text-sm text-slate-500" onClick={onClose}>
           Закрыть
         </button>
       </div>
+
+      <p className="text-sm text-slate-600">
+        Шаблон = список упражнений. Отметьте дни ниже — они появятся в «План на неделю» на вкладке
+        «Сегодня».
+      </p>
 
       <label className="flex flex-col gap-1 text-xs text-slate-500">
         Название
@@ -205,6 +218,7 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
           className="rounded-lg border border-slate-200 px-3 py-2 text-base"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          placeholder="Грудь · Трицепс"
         />
       </label>
 
@@ -219,8 +233,9 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Слот плана (A/B/C)
+          Метка в плане (необяз.)
         </p>
+        <p className="mt-0.5 text-[11px] text-slate-400">Например A / B / C для сплита</p>
         <input
           className="mt-1 w-20 rounded-lg border border-slate-200 px-3 py-2 text-base uppercase"
           maxLength={8}
@@ -231,7 +246,12 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Дни недели</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Дни в недельном плане
+        </p>
+        <p className="mt-0.5 text-[11px] text-slate-400">
+          В эти дни шаблон покажется как «по плану на сегодня»
+        </p>
         <div className="mt-2 flex flex-wrap gap-1">
           {WEEKDAY_LABELS_RU.map((label, day) => {
             const on = weekdays.includes(day);
@@ -240,7 +260,7 @@ export function WorkoutRoutineEditor({ routineId, onClose, onSaved }: Props) {
                 key={day}
                 type="button"
                 onClick={() => toggleDay(day)}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium ${
                   on ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-700"
                 }`}
               >

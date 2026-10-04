@@ -10,6 +10,8 @@ import { fieldsForKind, kindUsesSetTypes, type ExerciseKind } from "@/lib/workou
 import { type ProgressionAdvice } from "@/lib/workouts/progression";
 import { formatSuggestedKg } from "@/lib/workouts/suggested-load";
 import {
+  EFFORT_FIELD_ARIA,
+  EFFORT_FIELD_LABEL,
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
@@ -260,14 +262,18 @@ export function WorkoutLiveStage({
             >
               {SET_TYPE_SHORT[draftSetType]}
             </button>
-            <label className="flex items-center gap-1.5 text-xs text-slate-400">
-              RPE
+            <label
+              className="flex items-center gap-1.5 text-xs text-slate-400"
+              title={EFFORT_FIELD_ARIA}
+            >
+              {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
                 className="w-14 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-teal-400"
                 value={draftRpe}
                 onChange={(e) => onDraftRpe(e.target.value)}
                 placeholder="—"
+                aria-label={EFFORT_FIELD_ARIA}
               />
             </label>
           </div>
@@ -403,7 +409,7 @@ export function WorkoutLiveStage({
                 className="flex-1 rounded-2xl border border-white/20 py-3 text-sm font-semibold"
                 onClick={onRestPause}
               >
-                Rest-pause {REST_PAUSE_SEC}с
+                Отдых-пауза {REST_PAUSE_SEC}с
               </button>
             ) : null}
             {mode === "circuit" ? (
