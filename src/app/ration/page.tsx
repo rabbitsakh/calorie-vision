@@ -166,7 +166,7 @@ function RationBody({
   const [showHabits, setShowHabits] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
   const splashStartedAt = useRef<number | null>(null);
-  const habitsRef = useRef<HTMLElement | null>(null);
+  const habitsRef = useRef<HTMLDetailsElement | null>(null);
 
   const openHabitsPanel = useCallback(() => {
     setShowHabits(true);
@@ -331,10 +331,8 @@ function RationBody({
             </div>
           ) : null}
 
+          {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}
           <WaterTracker selectedDate={date} onChanged={bump} compact />
-
-          {/* D2: one retention slot on the day surface — quests only. */}
-          <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
 
           <CelebrationOrchestrator>
           {/* Interrupt-only: at-risk streak (quietHide / self-gated). */}
@@ -346,66 +344,63 @@ function RationBody({
             quietHide
           />
 
-          {/* D2/W2: one habits door + visible plan/shopping on the day surface. */}
-          <section
+          {/* G2 adult: one door for quests, habits, summary, tips, install. */}
+          <details
             ref={habitsRef}
             id="habits-panel"
-            className="overflow-hidden scroll-mt-3 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/90"
+            className="group scroll-mt-3 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white"
           >
-            <button
-              type="button"
-              className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left md:px-5"
-              onClick={() => setShowHabits(true)}
-              aria-expanded={showHabits}
-            >
-              <div className="min-w-0">
-                <p className="font-semibold text-[var(--foreground)]">Привычки и план</p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">
-                  Серия, челлендж, покупки, заметки
-                </p>
-              </div>
-              <ChevronIcon open={showHabits} />
-            </button>
-            <div className="flex gap-2 border-t border-[var(--border-hairline)] px-3 py-2 md:px-4">
-              <StreakWidget selectedDate={date} refreshKey={refreshKey} mini />
-              <WeeklyChallenge
-                selectedDate={date}
-                refreshKey={refreshKey}
-                mini
-                onMiniClick={openHabitsPanel}
-              />
-            </div>
-            <p className="flex flex-wrap items-center gap-x-1 border-t border-[var(--border-hairline)] px-3 py-2 text-sm font-medium text-[var(--muted-strong)] md:px-4">
-              <Link
-                href={withDateQuery("/plan", date)}
-                className="font-semibold text-[var(--accent-ink)] hover:underline"
-              >
-                План недели
-              </Link>
-              <span className="text-[var(--muted)]" aria-hidden>
-                ·
-              </span>
-              <Link
-                href={`${withDateQuery("/plan", date)}#shopping`}
-                className="inline-flex items-center gap-1 hover:text-[var(--accent-ink)] hover:underline"
-              >
-                Покупки
-                <ShoppingCountChip date={date} />
-              </Link>
-            </p>
-          </section>
-
-          <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
-                <p className="font-semibold text-[var(--foreground)]">Ещё за день</p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">Итог, подсказки, установка</p>
+                <p className="font-semibold text-[var(--foreground)]">Ещё</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  Привычки, план, итог, установка
+                </p>
               </div>
-              <span className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180" aria-hidden>
+              <span
+                className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180"
+                aria-hidden
+              >
                 ▾
               </span>
             </summary>
             <div className="flex flex-col gap-3 border-t border-[var(--border-quiet)] px-3 py-3 md:px-4">
+              <DailyQuestsStrip selectedDate={date} today={today} refreshKey={refreshKey} />
+
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60 px-3 py-2.5 text-left"
+                onClick={() => setShowHabits(true)}
+                aria-expanded={showHabits}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[var(--foreground)]">Привычки и план</p>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    Серия, челлендж, покупки, заметки
+                  </p>
+                </div>
+                <ChevronIcon open={showHabits} />
+              </button>
+
+              <p className="flex flex-wrap items-center gap-x-1 px-0.5 text-sm font-medium text-[var(--muted-strong)]">
+                <Link
+                  href={withDateQuery("/plan", date)}
+                  className="font-semibold text-[var(--accent-ink)] hover:underline"
+                >
+                  План недели
+                </Link>
+                <span className="text-[var(--muted)]" aria-hidden>
+                  ·
+                </span>
+                <Link
+                  href={`${withDateQuery("/plan", date)}#shopping`}
+                  className="inline-flex items-center gap-1 hover:text-[var(--accent-ink)] hover:underline"
+                >
+                  Покупки
+                  <ShoppingCountChip date={date} />
+                </Link>
+              </p>
+
               <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
               {date === today ? <DailySummaryCard today={today} /> : null}
 
@@ -448,7 +443,7 @@ function RationBody({
                   onClick={() => setShowHabits(false)}
                 >
                   <div
-                    className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+                    className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[var(--radius-lg)] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.12)] sm:rounded-[var(--radius-lg)]"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <div className="flex items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3">

@@ -1,13 +1,12 @@
 /**
- * Rotating micro-copy for the post-save mascot toast.
+ * Post-save toast copy — factual, adult product tone.
  */
 
 export const SAVE_REACTION_LINES = [
-  "Записано!",
-  "Отлично!",
-  "Ещё один шаг",
-  "Так держать!",
-  "День пополнен",
+  "Приём сохранён",
+  "Записано",
+  "Сохранено",
+  "Готово",
 ] as const;
 
 export type SaveReactionContext = {
@@ -18,7 +17,7 @@ export type SaveReactionContext = {
 
 export function pickSaveReactionLine(ctx: SaveReactionContext = {}): string {
   if (ctx.firstMealToday) {
-    return "Первый приём дня — супер!";
+    return "Первый приём записан";
   }
   const seed = ctx.seed ?? Date.now();
   const line = SAVE_REACTION_LINES[Math.abs(seed) % SAVE_REACTION_LINES.length];
