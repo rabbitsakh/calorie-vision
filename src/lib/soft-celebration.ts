@@ -18,8 +18,8 @@ export type SoftCelebrationKind =
   | "quest-chest"
   | "referral-chest";
 
-/** Soft cards per local day (fullscreen has its own cap of 2). */
-export const SOFT_CELEB_DAILY_CAP = 3;
+/** Soft cards per local day — adult default: at most one. */
+export const SOFT_CELEB_DAILY_CAP = 1;
 
 /** First week: at most one soft celebration so logging stays primary. */
 export const SOFT_CELEB_FIRST_WEEK_CAP = 1;

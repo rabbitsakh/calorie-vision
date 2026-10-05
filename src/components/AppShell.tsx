@@ -13,6 +13,7 @@ import { WaterQuickSheet } from "@/components/WaterQuickSheet";
 import { APP_NAV, isFoodAddPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
+import { ensureAdultQuietDefault } from "@/lib/gamification-quiet";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -101,6 +102,10 @@ export function AppShell({
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
   const foodAddEnabled = isFoodAddPath(pathname);
+
+  useEffect(() => {
+    ensureAdultQuietDefault();
+  }, []);
 
   return (
     <FoodAddHost date={date} enabled={foodAddEnabled}>
