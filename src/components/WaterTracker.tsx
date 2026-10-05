@@ -191,18 +191,18 @@ export function WaterTracker({
     return (
       <section
         id="water-tracker"
-        className="card scroll-mt-4 overflow-hidden px-3 py-2.5 md:px-4"
+        className="scroll-mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white/95 px-3.5 py-3 shadow-[var(--shadow-card)] md:px-4"
         aria-label="Вода"
       >
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2.5 flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-sky-950">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
               Вода{" "}
-              <span className="font-medium text-sky-900/80">
+              <span className="font-medium text-[var(--muted-strong)]">
                 {totalMl} / {target} мл
               </span>
             </p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[var(--muted)]">
               {done
                 ? "Норма выполнена"
                 : remaining > 0
@@ -213,13 +213,15 @@ export function WaterTracker({
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`rounded-lg px-2 py-1 text-xs font-bold ${
-                done ? "bg-teal-100 text-teal-800" : "bg-sky-100 text-sky-900"
+              className={`rounded-[var(--radius-sm)] px-2 py-1 text-xs font-bold tabular-nums ${
+                done
+                  ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                  : "bg-[var(--accent-water-soft)] text-sky-900"
               }`}
             >
               {done ? "✓" : `${pct}%`}
             </span>
-            <button type="button" className="btn-quiet text-sky-800" onClick={handleHide}>
+            <button type="button" className="btn-quiet text-[var(--muted)]" onClick={handleHide}>
               Скрыть
             </button>
           </div>

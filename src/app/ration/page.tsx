@@ -258,7 +258,7 @@ function RationBody({
           date={date}
           today={today}
           onDateChange={setDate}
-          className="ration-day-scene flex flex-col gap-2"
+          className="ration-day-scene flex flex-col gap-3"
         >
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
           <div className="px-0.5">
@@ -269,8 +269,8 @@ function RationBody({
             <PendingConfirmBanner selectedDate={date} />
           </div>
 
-          {/* Layer 2 — meal feed */}
-          <div className="ration-day-feed px-0.5 pt-1">
+          {/* Layer 2 — meal feed (elevated rows inside day mist) */}
+          <div className="ration-day-feed pt-0.5">
             <DailyLog
               selectedDate={date}
               refreshKey={refreshKey}

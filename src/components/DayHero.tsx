@@ -256,20 +256,27 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       : data
         ? `${data.calories} ккал`
         : "—";
+  const proteinLabel =
+    data?.proteinTarget != null && data.proteinTarget > 0
+      ? `белок ${Math.round(data.protein)} / ${Math.round(data.proteinTarget)} г`
+      : data && data.protein > 0
+        ? `белок ${Math.round(data.protein)} г`
+        : null;
 
   return (
     <section className={`day-hero day-hero--scene ${atmosphere}`} aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-3 px-3.5 py-4 md:px-5 md:py-5">
+      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
         <div className="min-w-0 flex-1">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70">
             {copy.eyebrow}
           </p>
-          <p className="mt-1.5 text-[1.2rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.35rem]">
+          <p className="mt-2 text-[1.35rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
             {copy.headline}
           </p>
-          <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">
+          <p className="mt-2 text-sm font-medium leading-relaxed text-[var(--muted-strong)]">
             {calLabel}
+            {proteinLabel ? ` · ${proteinLabel}` : ""}
             {burnHint ? ` · ${burnHint}` : ""}
             {holiday ? " · праздн. запас" : ""}
           </p>
