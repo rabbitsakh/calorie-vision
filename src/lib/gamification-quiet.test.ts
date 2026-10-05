@@ -3,6 +3,7 @@ import { describe, test } from "node:test";
 import {
   GAMIFICATION_QUIET_KEY,
   QUIET_DEFAULT_APPLIED_KEY,
+  ensureAdultQuietDefault,
   ensureQuietDefaultForNewUsers,
   isGamificationQuiet,
   setGamificationQuiet,
@@ -33,20 +34,21 @@ function memoryStorage(): Storage {
 }
 
 describe("gamification-quiet", () => {
-  test("defaults off and toggles via localStorage", () => {
+  test("adult default quiet when unset; opt-in celebrations with 0", () => {
     const storage = memoryStorage();
     (globalThis as { localStorage?: Storage }).localStorage = storage;
 
+    assert.equal(isGamificationQuiet(), true);
+    setGamificationQuiet(false);
+    assert.equal(storage.getItem(GAMIFICATION_QUIET_KEY), "0");
     assert.equal(isGamificationQuiet(), false);
     setGamificationQuiet(true);
     assert.equal(storage.getItem(GAMIFICATION_QUIET_KEY), "1");
     assert.equal(isGamificationQuiet(), true);
-    setGamificationQuiet(false);
-    assert.equal(storage.getItem(GAMIFICATION_QUIET_KEY), null);
-    assert.equal(isGamificationQuiet(), false);
 
     delete (globalThis as { localStorage?: Storage }).localStorage;
   });
+
   test("ensureQuietDefaultForNewUsers sets quiet once for unset preference", () => {
     const storage = memoryStorage();
     (globalThis as { localStorage?: Storage }).localStorage = storage;
@@ -63,4 +65,19 @@ describe("gamification-quiet", () => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
   });
 
+  test("ensureAdultQuietDefault migrates unset users but respects opt-in 0", () => {
+    const storage = memoryStorage();
+    (globalThis as { localStorage?: Storage }).localStorage = storage;
+
+    ensureAdultQuietDefault();
+    assert.equal(storage.getItem(GAMIFICATION_QUIET_KEY), "1");
+
+    storage.setItem(QUIET_DEFAULT_APPLIED_KEY, "");
+    storage.removeItem(QUIET_DEFAULT_APPLIED_KEY);
+    storage.setItem(GAMIFICATION_QUIET_KEY, "0");
+    ensureAdultQuietDefault();
+    assert.equal(isGamificationQuiet(), false);
+
+    delete (globalThis as { localStorage?: Storage }).localStorage;
+  });
 });

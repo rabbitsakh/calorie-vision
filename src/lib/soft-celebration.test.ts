@@ -55,6 +55,9 @@ test("quiet blocked when gamification quiet is on", () => {
     localStorage: memoryStorage,
   };
 
+  // Adult default: unset → quiet. Explicit "0" enables celebrations.
+  assert.equal(isSoftCelebrationQuietBlocked(), true);
+  store.set(GAMIFICATION_QUIET_KEY, "0");
   assert.equal(isSoftCelebrationQuietBlocked(), false);
   store.set(GAMIFICATION_QUIET_KEY, "1");
   assert.equal(isSoftCelebrationQuietBlocked(), true);

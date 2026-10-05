@@ -354,7 +354,8 @@ select {
 
 .app-chrome__wordmark {
   min-width: 0;
-  font-family: var(--font-display), var(--font-body), sans-serif;
+  /* Adult product: Manrope in chrome; Unbounded stays on landing */
+  font-family: var(--font-body), sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -802,16 +803,17 @@ select {
   width: 100%;
 }
 
-/* Shared thin segment tabs (stats periods, gym hub D5). */
+/* Shared segment tabs — underline track, not pill candy (adult visible). */
 .stats-period-tabs,
 .cv-segment-tabs {
   display: grid;
-  gap: 0.25rem;
+  gap: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-radius: var(--radius-md);
-  background: #f1f5f9;
-  padding: 0.25rem;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   width: 100%;
+  border-bottom: 1px solid var(--border-hairline);
 }
 
 .cv-segment-tabs--2 {
@@ -827,23 +829,35 @@ select {
   min-width: 0;
   width: 100%;
   justify-content: center;
-  padding-left: 0.2rem;
-  padding-right: 0.2rem;
-  font-size: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.2rem;
+  border-radius: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: transparent !important;
+  color: var(--muted-strong);
+  box-shadow: inset 0 -2px 0 transparent;
 }
 
 .stats-period-tabs .chip:not(.chip-active),
 .cv-segment-tabs .chip:not(.chip-active) {
-  background: transparent;
+  background: transparent !important;
+}
+
+.stats-period-tabs .chip-active,
+.cv-segment-tabs .chip-active {
+  background: transparent !important;
+  color: var(--accent-ink) !important;
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 
 @media (min-width: 380px) {
   .stats-period-tabs .chip,
   .cv-segment-tabs .chip {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     padding-left: 0.35rem;
     padding-right: 0.35rem;
   }
@@ -1827,30 +1841,28 @@ select {
   }
 }
 
-/* Day hero — first-viewport scene on ration (Wave A/D) */
+/* Day hero — flat adult first fold (visible wave: no day-part candy) */
 .day-hero {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
   padding: 0.75rem 0.9rem 0.7rem;
-  /* Adult: quieter day-part wash — less candy radial stack */
-  background:
-    linear-gradient(165deg, #f3f7f6 0%, #f6f8f9 48%, #f4f6f8 100%);
+  background: #fff;
   border: 1px solid var(--border-hairline);
-  box-shadow: var(--shadow-card);
-  animation: day-hero-in 0.3s ease-out both;
+  box-shadow: none;
+  animation: day-hero-in 0.25s ease-out both;
 }
 
-/* Full-bleed scene under the shell padding — one composition, day-part air. */
+/* Full-bleed under shell padding — white plane + bottom hairline */
 .day-hero--scene {
   border-radius: 0;
-  border-left: none;
-  border-right: none;
-  border-top: none;
+  border: none;
+  border-bottom: 1px solid var(--border-hairline);
   margin-left: -0.625rem;
   margin-right: -0.625rem;
   padding: 0;
   box-shadow: none;
+  background: #fff;
 }
 
 @media (min-width: 768px) {
@@ -1863,33 +1875,20 @@ select {
   }
 }
 
-.day-hero--morning {
-  background:
-    linear-gradient(168deg, #faf8f3 0%, #f4f7f6 52%, #f4f6f8 100%);
-}
-
-.day-hero--day {
-  background:
-    linear-gradient(165deg, #f3f7f6 0%, #f5f8f9 48%, #f4f6f8 100%);
-}
-
-.day-hero--evening {
-  background:
-    linear-gradient(168deg, #f8f5f2 0%, #f4f7f6 55%, #f4f6f8 100%);
-}
-
+.day-hero--morning,
+.day-hero--day,
+.day-hero--evening,
 .day-hero--night {
-  background:
-    linear-gradient(168deg, #f2f5f8 0%, #f4f7f6 50%, #f4f6f8 100%);
+  background: #fff;
 }
 
 .day-hero-glow {
-  pointer-events: none;
-  position: absolute;
-  inset: -20% 40% auto -10%;
-  height: 70%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 70%);
-  opacity: 0.45;
+  display: none;
+}
+
+.day-hero-scene-inner {
+  padding-top: 1.1rem !important;
+  padding-bottom: 1.15rem !important;
 }
 
 .ration-day-scene {

@@ -65,16 +65,16 @@ function HeroRing({ pct }: { pct: number }) {
   const over = pct > 105;
 
   return (
-    <div className="day-hero-ring relative h-[4.75rem] w-[4.75rem] shrink-0">
+    <div className="day-hero-ring relative h-[5.5rem] w-[5.5rem] shrink-0">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="7" />
         <circle
           cx="50"
           cy="50"
           r={r}
           fill="none"
           stroke={over ? "var(--warn)" : "var(--accent)"}
-          strokeWidth="8"
+          strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
@@ -83,11 +83,11 @@ function HeroRing({ pct }: { pct: number }) {
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`text-[0.875rem] font-bold leading-none tracking-tight ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
+          className={`text-[1.05rem] font-bold leading-none tracking-tight tabular-nums ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
         >
           {Math.round(clamped)}%
         </span>
-        <span className="text-[0.5rem] font-semibold uppercase leading-none tracking-wide text-[var(--muted)]">
+        <span className="text-[0.55rem] font-semibold uppercase leading-none tracking-wide text-[var(--muted)]">
           ккал
         </span>
       </div>
@@ -265,7 +265,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {copy.eyebrow}
           </p>
-          <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
+          <p className="mt-1.5 text-[1.2rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.35rem]">
             {copy.headline}
           </p>
           <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">
