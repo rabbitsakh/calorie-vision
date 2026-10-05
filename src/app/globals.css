@@ -3363,37 +3363,26 @@ select {
   background: rgb(254 243 199 / 0.9);
 }
 
+/* Adult quiet save toast — fade only, no mascot pop */
+.save-quiet-toast {
+  animation: soft-celeb-fade 0.2s ease-out both;
+}
+
 .mascot-save-toast {
-  animation: mascot-entrance-pop 0.55s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+  animation: none;
   min-width: 8.5rem;
 }
 
 .mascot-save-toast-mascot {
-  min-height: 7rem;
+  min-height: 0;
 }
 
 .mascot-save-toast-glow {
-  position: absolute;
-  left: 50%;
-  top: 55%;
-  z-index: 0;
-  width: 5.5rem;
-  height: 4.25rem;
-  transform: translate(-50%, -50%);
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(94, 234, 212, 0.55), transparent 70%);
-  filter: blur(6px);
-  pointer-events: none;
-}
-
-.mascot-save-toast-mascot .mascot-root,
-.mascot-save-toast-mascot .mascot-entrance-wrap {
-  position: relative;
-  z-index: 1;
+  display: none;
 }
 
 .mascot-save-toast-line {
-  animation: app-splash-fade-up 0.35s ease-out 0.12s both;
+  animation: none;
 }
 
 .next-step-bar {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LiveMascot } from "@/components/LiveMascot";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
@@ -101,7 +100,6 @@ function DayHeroSkeleton() {
     <section className="day-hero day-hero--scene" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
       <div className="relative flex items-center gap-3 px-3.5 py-4 md:px-5">
-        <div className="skeleton-ring !h-14 !w-14 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="skeleton-line !h-2 w-16" />
           <div className="skeleton-line !h-3.5 w-44 max-w-full" />
@@ -114,8 +112,8 @@ function DayHeroSkeleton() {
 }
 
 /**
- * First-viewport day scene: atmosphere + mascot + one phrase + calorie ring.
- * Secondary metrics / week door live outside the hero (Wave A / D).
+ * First-viewport day scene: one phrase + calorie ring (adult product).
+ * Mascot no longer anchors the hero — G1 adult redesign.
  */
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
@@ -263,16 +261,6 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     <section className={`day-hero day-hero--scene ${atmosphere}`} aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
       <div className="day-hero-scene-inner relative flex items-center gap-3 px-3.5 py-4 md:px-5 md:py-5">
-        <div className="day-hero-mascot relative shrink-0">
-          <LiveMascot
-            pose={copy.pose}
-            size="md"
-            title={copy.headline}
-            entrance
-            idleReel={false}
-            interactive={false}
-          />
-        </div>
         <div className="min-w-0 flex-1">
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
             {copy.eyebrow}
