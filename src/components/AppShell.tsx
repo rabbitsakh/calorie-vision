@@ -101,7 +101,11 @@ export function AppShell({
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
-  const theaterChrome = pathname === "/ration" || pathname === "/stats" || pathname === "/workouts";
+  const theaterChrome =
+    pathname === "/ration" ||
+    pathname === "/stats" ||
+    pathname === "/workouts" ||
+    pathname.startsWith("/dev/chrome-preview");
   const foodAddEnabled = isFoodAddPath(pathname);
 
   useEffect(() => {
