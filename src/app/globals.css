@@ -1,44 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces — rich calm (sage mist, not white void / not candy) */
-  --background: #eef2f0;
-  --foreground: #0f172a;
+  /* Surfaces — alive adult: warm light + teal bloom (not gray mist) */
+  --background: #f3f5f2;
+  --foreground: #0c1222;
   --card: #ffffff;
-  --surface-chrome: rgba(255, 255, 255, 0.92);
+  --surface-chrome: rgba(255, 255, 255, 0.94);
   --surface-elevated: #ffffff;
-  --surface-mist: #f3f7f5;
-  --muted: #64748b;
-  --muted-strong: #334155;
+  --surface-mist: #eef7f4;
+  --surface-warm: #f7f4ef;
+  --muted: #5b6b7a;
+  --muted-strong: #2a3544;
 
   /* Brand — teal family only (no indigo/violet product accents) */
-  --accent: #0f766e;
-  --accent-hover: #0d9488;
-  --accent-soft: #dceeea;
-  --accent-ink: #115e59;
+  --accent: #0d7377;
+  --accent-hover: #14919b;
+  --accent-soft: #d4f0ec;
+  --accent-ink: #0f5c5e;
   --accent-water: #0284c7;
   --accent-water-soft: #e0f2fe;
   --accent-streak: #d97706;
   --accent-streak-soft: #fffbeb;
-  --accent-summary: #0f766e;
-  --accent-summary-soft: #e8f5f2;
+  --accent-summary: #0d7377;
+  --accent-summary-soft: #e3f6f2;
   /* Macros: protein=teal, fat=amber, carbs=cyan (same family as water) */
-  --accent-protein: #0f766e;
+  --accent-protein: #0d7377;
   --accent-fat: #d97706;
   --accent-carbs: #0891b2;
   --accent-carbs-soft: #cffafe;
 
-  --border-quiet: rgba(15, 118, 110, 0.14);
-  --border-hairline: rgba(15, 23, 42, 0.07);
-  --success: #0f766e;
+  --border-quiet: rgba(13, 115, 119, 0.16);
+  --border-hairline: rgba(15, 23, 42, 0.06);
+  --success: #0d7377;
   --warn: #d97706;
   --danger: #dc2626;
 
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
   --radius-pill: 999px;
-  --radius-control: 12px;
+  --radius-control: 14px;
 
   --font-body: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Unbounded", var(--font-body);
@@ -48,7 +49,7 @@
   --space-4: 1rem;
   --space-5: 1.25rem;
   --space-6: 1.5rem;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px rgba(13, 115, 119, 0.07);
   --shadow-quiet: none;
   --control-h: 48px;
   --text-xs: 0.75rem;
@@ -264,11 +265,11 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   color: var(--foreground);
-  /* Rich calm atmosphere — sage mist (landing keeps its own tokens) */
+  /* Alive atmosphere — warm light + teal bloom (landing keeps its own tokens) */
   background:
-    radial-gradient(ellipse 90% 55% at 10% -8%, rgba(15, 118, 110, 0.09), transparent 55%),
-    radial-gradient(ellipse 70% 40% at 100% 100%, rgba(15, 118, 110, 0.05), transparent 50%),
-    linear-gradient(180deg, #f4f8f6 0%, var(--background) 45%, #e8eeec 100%);
+    radial-gradient(ellipse 100% 60% at 8% -12%, rgba(13, 115, 119, 0.14), transparent 58%),
+    radial-gradient(ellipse 80% 45% at 100% 105%, rgba(247, 244, 239, 0.9), transparent 52%),
+    linear-gradient(180deg, #f7faf8 0%, var(--background) 42%, var(--surface-warm) 100%);
   background-attachment: fixed;
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 100vh;
@@ -400,7 +401,7 @@ select {
 }
 
 .app-chrome__nav-link:hover {
-  background: rgba(15, 118, 110, 0.08);
+  background: rgba(13, 115, 119, 0.1);
   color: var(--accent-ink);
 }
 
@@ -464,8 +465,8 @@ select {
 }
 
 .btn-secondary {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .btn-danger {
@@ -500,8 +501,8 @@ select {
 .field input,
 .field textarea,
 .field select {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: #f7faf8;
+  border: 1px solid rgba(13, 115, 119, 0.18);
   border-radius: var(--radius-md);
   box-sizing: border-box;
   /* !important: beat Tailwind text-sm/xs on the same node (ration portion, confirm) */
@@ -530,7 +531,7 @@ select {
   background: transparent;
   border: none;
   border-radius: var(--radius-md);
-  color: #64748b;
+  color: var(--muted);
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
@@ -544,8 +545,8 @@ select {
 }
 
 .btn-quiet:hover {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .input-with-action {
@@ -647,13 +648,13 @@ select {
 }
 
 .mobile-tab-bar {
-  box-shadow: 0 -6px 20px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 -8px 28px rgba(13, 115, 119, 0.08);
   position: relative;
   width: 100%;
-  border-top: 1px solid var(--border-hairline);
-  background: var(--surface-chrome);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(13, 115, 119, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
@@ -711,7 +712,7 @@ select {
   border-radius: var(--radius-md);
   background: var(--accent);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 14px rgba(13, 115, 119, 0.28);
   transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
@@ -1552,10 +1553,11 @@ select {
 
 /* Dense diary meal rows — less scroll, chips stay on one line. */
 .meal-card {
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  border-radius: 12px;
+  border: 1px solid rgba(13, 115, 119, 0.1);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.72);
+  background: #fff;
+  box-shadow: var(--shadow-card);
 }
 
 .meal-card-body {
@@ -1580,17 +1582,18 @@ select {
 }
 
 .meal-card-meta {
-  color: #64748b;
+  color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.35;
   margin-top: 0.1rem;
 }
 
 .meal-card-meta-secondary {
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 0.68rem;
   line-height: 1.3;
   margin-top: 0.05rem;
+  opacity: 0.85;
 }
 
 .meal-type-chips {
@@ -1628,8 +1631,8 @@ select {
 
 .meal-type-chip-idle {
   background: #fff;
-  color: #64748b;
-  box-shadow: inset 0 0 0 1px #e2e8f0;
+  color: var(--muted);
+  box-shadow: inset 0 0 0 1px rgba(13, 115, 119, 0.14);
 }
 
 .meal-type-chip-active {
@@ -1664,18 +1667,18 @@ select {
 }
 
 .meal-type-badge-dinner {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: #d4f0ec;
+  color: #0f5c5e;
 }
 
 .meal-type-badge-snack {
-  background: #ffe4e6;
-  color: #9f1239;
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .meal-type-badge-default {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-mist);
+  color: var(--muted-strong);
 }
 
 .meal-card-meta-row {
@@ -1687,10 +1690,10 @@ select {
 }
 
 .meal-time-badge {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-mist);
+  border: 1px solid rgba(13, 115, 119, 0.12);
   border-radius: 999px;
-  color: #475569;
+  color: var(--muted-strong);
   font-size: 0.65rem;
   font-weight: 650;
   line-height: 1;
@@ -1721,13 +1724,13 @@ select {
 
 .meal-card-actions button {
   border-radius: 8px;
-  color: #94a3b8;
+  color: var(--muted);
   padding: 0.35rem;
 }
 
 .meal-card-actions button:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .meal-card-actions button.danger:hover {
@@ -1845,27 +1848,27 @@ select {
   }
 }
 
-/* Day hero — rich calm mist (editorial, not void / not candy) */
+/* Day hero — luminous warm-teal panel (alive, not gloomy) */
 .day-hero {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-lg);
   padding: 0.75rem 0.9rem 0.7rem;
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.72) 0%, rgba(236, 245, 242, 0.95) 100%);
-  border: 1px solid rgba(15, 118, 110, 0.1);
+    linear-gradient(155deg, #ffffff 0%, #e9f7f3 48%, #f4faf7 100%);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   box-shadow: var(--shadow-card);
-  animation: day-hero-in 0.3s ease-out both;
+  animation: day-hero-in 0.35s ease-out both;
 }
 
 .day-hero--scene {
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   margin-left: 0;
   margin-right: 0;
   padding: 0;
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.88) 0%, rgba(232, 244, 240, 0.96) 55%, rgba(243, 247, 245, 0.98) 100%);
+    linear-gradient(152deg, #ffffff 0%, #e6f5f1 42%, #eef8f4 72%, #f7f4ef 100%);
   box-shadow: var(--shadow-card);
 }
 
@@ -1876,95 +1879,102 @@ select {
   }
 }
 
-/* Soft day-part tint only — same family, never candy yellow/orange */
 .day-hero--morning {
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.9) 0%, rgba(236, 245, 242, 0.96) 100%);
+    linear-gradient(152deg, #ffffff 0%, #eaf6f2 45%, #f7f4ef 100%);
 }
 
 .day-hero--day {
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.88) 0%, rgba(232, 244, 240, 0.96) 100%);
+    linear-gradient(152deg, #ffffff 0%, #e6f5f1 50%, #eef8f4 100%);
 }
 
 .day-hero--evening {
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.9) 0%, rgba(234, 242, 240, 0.97) 100%);
+    linear-gradient(152deg, #ffffff 0%, #e8f4f1 48%, #f5f2ec 100%);
 }
 
 .day-hero--night {
   background:
-    linear-gradient(160deg, rgba(248, 252, 251, 0.95) 0%, rgba(230, 240, 238, 0.98) 100%);
+    linear-gradient(152deg, #f8fcfb 0%, #e4f2ef 55%, #eef6f4 100%);
 }
 
 .day-hero-glow {
   pointer-events: none;
   position: absolute;
-  inset: -30% 35% auto -15%;
-  height: 85%;
-  background: radial-gradient(circle, rgba(15, 118, 110, 0.1), transparent 68%);
-  opacity: 0.9;
+  inset: -40% 20% auto -20%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(20, 184, 166, 0.22), transparent 55%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.7), transparent 45%);
+  opacity: 1;
 }
 
 .day-hero-scene-inner {
-  padding-top: 1.25rem !important;
-  padding-bottom: 1.3rem !important;
+  padding-top: 1.35rem !important;
+  padding-bottom: 1.4rem !important;
 }
 
-/* One day composition: hero + feed share the mist band */
+.day-hero-ring {
+  filter: drop-shadow(0 6px 16px rgba(13, 115, 119, 0.22));
+}
+
+/* One day composition: luminous band under hero + feed */
 .ration-day-scene {
   touch-action: pan-y;
   margin-left: -0.625rem;
   margin-right: -0.625rem;
-  padding: 0.35rem 0.625rem 1rem;
+  padding: 0.45rem 0.625rem 1.1rem;
   background:
-    linear-gradient(180deg, rgba(220, 236, 230, 0.55) 0%, rgba(243, 247, 245, 0.35) 42%, transparent 78%);
+    linear-gradient(180deg, rgba(214, 240, 232, 0.55) 0%, rgba(247, 244, 239, 0.35) 48%, transparent 82%);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .ration-meal-feed {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  margin-top: 0.35rem;
+  gap: 0.65rem;
+  margin-top: 0.45rem;
 }
 
 .ration-meal-feed .meal-card {
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--border-hairline);
+  background: #fff;
+  border: 1px solid rgba(13, 115, 119, 0.08);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
 .ration-meal-feed .meal-card-body {
-  padding-left: 0.85rem;
-  padding-right: 0.85rem;
+  padding-left: 0.95rem;
+  padding-right: 0.95rem;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
 }
 
 .ration-meal-feed .meal-section-header {
-  margin-top: 0.35rem;
-  margin-bottom: 0.1rem;
-  padding: 0 0.15rem;
+  margin-top: 0.45rem;
+  margin-bottom: 0.15rem;
+  padding: 0 0.2rem;
 }
 
 .ration-empty-day {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(243, 247, 245, 0.4));
-  border: 1px solid var(--border-hairline);
+  background: linear-gradient(165deg, #fff 0%, #eef8f4 100%);
+  border: 1px solid rgba(13, 115, 119, 0.12);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
 
 .ration-day-more {
   border-top: none;
-  padding-top: 0.35rem;
+  padding-top: 0.45rem;
 }
 
 .ration-day-more > details,
 .ration-day-more > section {
   box-shadow: var(--shadow-card);
-  background: rgba(255, 255, 255, 0.94);
+  background: #fff;
+  border-color: rgba(13, 115, 119, 0.1);
 }
 
 /* —— D4: Plan — one weekly composition —— */
@@ -2297,7 +2307,7 @@ select {
 
 .skeleton-ring {
   animation: pulse-skel 1.2s ease-in-out infinite;
-  background: #e2e8f0;
+  background: var(--accent-soft);
   border-radius: 999px;
   height: 7.5rem;
   width: 7.5rem;
@@ -2305,7 +2315,7 @@ select {
 
 .skeleton-line {
   animation: pulse-skel 1.2s ease-in-out infinite;
-  background: #e2e8f0;
+  background: var(--accent-soft);
   border-radius: 8px;
   height: 0.75rem;
 }

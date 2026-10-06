@@ -29,7 +29,7 @@ describe("day-hero-copy", () => {
     assert.match(copy.headline, /Серия 4/);
   });
 
-  test("near goal uses goal pose", () => {
+  test("near goal leads with percent", () => {
     const copy = buildDayHeroCopy({
       calories: 2000,
       calorieTarget: 2000,
@@ -39,10 +39,11 @@ describe("day-hero-copy", () => {
       isToday: true,
     });
     assert.equal(copy.pose, "goal");
-    assert.match(copy.headline, /Цель|закрыт/i);
+    assert.match(copy.headline, /^100%/);
+    assert.match(copy.headline, /цель|закрыт/i);
   });
 
-  test("mid progress with streak uses streak pose", () => {
+  test("mid progress with streak uses streak pose and leads with %", () => {
     const copy = buildDayHeroCopy({
       calories: 1000,
       calorieTarget: 2000,
@@ -52,6 +53,20 @@ describe("day-hero-copy", () => {
       isToday: true,
     });
     assert.equal(copy.pose, "streak");
-    assert.match(copy.headline, /7 серии|50%/i);
+    assert.match(copy.headline, /^50%/);
+    assert.match(copy.headline, /7 серии/i);
+  });
+
+  test("early progress still leads with percent", () => {
+    const copy = buildDayHeroCopy({
+      calories: 200,
+      calorieTarget: 2000,
+      caloriePct: 10,
+      streak: 0,
+      loggedToday: true,
+      isToday: true,
+    });
+    assert.equal(copy.pose, "cheer");
+    assert.match(copy.headline, /^10%/);
   });
 });

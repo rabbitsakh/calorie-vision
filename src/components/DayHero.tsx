@@ -59,22 +59,22 @@ function progressFromPayload(
 
 function HeroRing({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 30;
+  const r = 34;
   const c = 2 * Math.PI * r;
   const offset = c - (clamped / 100) * c;
   const over = pct > 105;
 
   return (
-    <div className="day-hero-ring relative h-[5.5rem] w-[5.5rem] shrink-0">
+    <div className="day-hero-ring relative h-[6.25rem] w-[6.25rem] shrink-0 sm:h-[6.75rem] sm:w-[6.75rem]">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="7" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="9" />
         <circle
           cx="50"
           cy="50"
           r={r}
           fill="none"
           stroke={over ? "var(--warn)" : "var(--accent)"}
-          strokeWidth="7"
+          strokeWidth="9"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
@@ -83,11 +83,11 @@ function HeroRing({ pct }: { pct: number }) {
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`text-[1.05rem] font-bold leading-none tracking-tight tabular-nums ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
+          className={`text-[1.25rem] font-bold leading-none tracking-tight tabular-nums sm:text-[1.35rem] ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
         >
           {Math.round(clamped)}%
         </span>
-        <span className="text-[0.55rem] font-semibold uppercase leading-none tracking-wide text-[var(--muted)]">
+        <span className="text-[0.6rem] font-semibold uppercase leading-none tracking-wide text-[var(--accent-ink)]/55">
           ккал
         </span>
       </div>
@@ -99,13 +99,13 @@ function DayHeroSkeleton() {
   return (
     <section className="day-hero day-hero--scene" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="relative flex items-center gap-3 px-3.5 py-4 md:px-5">
-        <div className="min-w-0 flex-1 space-y-2">
+      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
+        <div className="min-w-0 flex-1 space-y-2.5">
           <div className="skeleton-line !h-2 w-16" />
-          <div className="skeleton-line !h-3.5 w-44 max-w-full" />
-          <div className="skeleton-line !h-2.5 w-28" />
+          <div className="skeleton-line !h-4 w-48 max-w-full" />
+          <div className="skeleton-line !h-2.5 w-32" />
         </div>
-        <div className="skeleton-ring !h-[4.75rem] !w-[4.75rem] shrink-0" aria-hidden />
+        <div className="skeleton-ring !h-[6.25rem] !w-[6.25rem] shrink-0" aria-hidden />
       </div>
     </section>
   );
@@ -266,15 +266,15 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   return (
     <section className={`day-hero day-hero--scene ${atmosphere}`} aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
+      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:gap-5 md:px-6 md:py-6">
         <div className="min-w-0 flex-1">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
             {copy.eyebrow}
           </p>
-          <p className="mt-2 text-[1.35rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
+          <p className="font-display mt-2 text-[1.4rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.6rem]">
             {copy.headline}
           </p>
-          <p className="mt-2 text-sm font-medium leading-relaxed text-[var(--muted-strong)]">
+          <p className="mt-2.5 text-sm font-medium leading-relaxed text-[var(--muted-strong)]">
             {calLabel}
             {proteinLabel ? ` · ${proteinLabel}` : ""}
             {burnHint ? ` · ${burnHint}` : ""}

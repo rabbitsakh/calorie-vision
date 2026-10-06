@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.3.29",
+    "date": "2026-10-06",
+    "summary": "design: живой взрослый рацион — тёплый свет, сильное кольцо, % вперёд",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "Тёплый luminous фон и teal bloom вместо серого mist"
+      },
+      {
+        "kind": "improve",
+        "text": "DayHero: крупнее кольцо, Unbounded-заголовок, процент как главный сигнал"
+      },
+      {
+        "kind": "improve",
+        "text": "Лента, вода и вкладки — живые поверхности без slate-серости"
+      }
+    ]
+  },
+  {
     "version": "2.3.28",
     "date": "2026-10-05",
     "summary": "design: богатый спокойный рацион — mist, elevated feed, одна сцена дня",
