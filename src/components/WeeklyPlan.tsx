@@ -158,10 +158,10 @@ export function WeeklyPlan({
             <p
               className={
                 compact
-                  ? "text-sm font-semibold text-slate-800"
+                  ? "text-sm font-semibold text-[var(--foreground)]"
                   : embedded
-                    ? "text-xl font-semibold tracking-tight text-slate-900 md:text-2xl"
-                    : "font-semibold text-slate-800"
+                    ? "text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl"
+                    : "font-semibold text-[var(--foreground)]"
               }
             >
               {compact ? "Неделя" : embedded ? "Неделя" : "План недели"}
@@ -170,7 +170,7 @@ export function WeeklyPlan({
               <Link
                 href={withDateQuery("/plan", selectedDate)}
                 className={`font-semibold text-teal-800 underline-offset-2 hover:underline ${
-                  compact ? "text-[11px] text-slate-500 hover:text-teal-800" : "text-xs"
+                  compact ? "text-[11px] text-[var(--muted)] hover:text-teal-800" : "text-xs"
                 }`}
               >
                 {compact ? "открыть план" : "Подробнее →"}
@@ -179,15 +179,15 @@ export function WeeklyPlan({
           </div>
           {compact ? (
             effectiveTarget ? (
-              <p className="mt-0.5 text-[11px] text-slate-500">
+              <p className="mt-0.5 text-[11px] text-[var(--muted)]">
                 норма {effectiveTarget} ккал
                 {holidayOn ? " · праздн." : ""}
               </p>
             ) : null
           ) : weekHeadline ? (
-            <p className="mt-0.5 text-xs leading-snug text-slate-500">{weekHeadline}</p>
+            <p className="mt-0.5 text-xs leading-snug text-[var(--muted)]">{weekHeadline}</p>
           ) : (
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
               Цель vs факт по дням
               {effectiveTarget ? ` · норма ${effectiveTarget} ккал` : ""}
               {holidayOn ? " · праздничный запас" : ""}
@@ -197,8 +197,8 @@ export function WeeklyPlan({
         {showHolidayToggle ? (
           <label className="flex shrink-0 cursor-pointer items-center gap-2 pl-2">
             <span className="text-right leading-tight">
-              <span className="block text-xs font-semibold text-slate-700">Праздничный запас</span>
-              <span className="block text-[10px] text-slate-500">+{holidayPct}% к норме</span>
+              <span className="block text-xs font-semibold text-[var(--muted-strong)]">Праздничный запас</span>
+              <span className="block text-[10px] text-[var(--muted)]">+{holidayPct}% к норме</span>
             </span>
             <button
               type="button"
@@ -229,7 +229,7 @@ export function WeeklyPlan({
         <div className="flex items-center justify-center gap-1 px-3 pb-2 md:px-4">
           <button
             type="button"
-            className="btn-quiet min-h-8 px-2.5 text-xs font-semibold text-slate-600"
+            className="btn-quiet min-h-8 px-2.5 text-xs font-semibold text-[var(--muted-strong)]"
             aria-label="Предыдущая неделя"
             onClick={() => onWeekNavigate(shiftDateKey(selectedDate, -7))}
           >
@@ -238,7 +238,7 @@ export function WeeklyPlan({
           <button
             type="button"
             className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
-              isThisWeek ? "text-teal-800" : "text-slate-600"
+              isThisWeek ? "text-teal-800" : "text-[var(--muted-strong)]"
             }`}
             disabled={isThisWeek || !today}
             aria-label="Текущая неделя"
@@ -251,7 +251,7 @@ export function WeeklyPlan({
           <button
             type="button"
             className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
-              canGoNext ? "text-slate-600" : "cursor-not-allowed text-slate-300"
+              canGoNext ? "text-[var(--muted-strong)]" : "cursor-not-allowed text-slate-300"
             }`}
             disabled={!canGoNext}
             aria-label="Следующая неделя"
@@ -266,7 +266,7 @@ export function WeeklyPlan({
       ) : null}
 
       {loading && days.length === 0 ? (
-        <p className={`text-sm text-slate-500 ${compact ? "" : "px-4 pb-4 md:px-5"}`}>
+        <p className={`text-sm text-[var(--muted)] ${compact ? "" : "px-4 pb-4 md:px-5"}`}>
           Загружаем неделю…
         </p>
       ) : (
@@ -287,12 +287,12 @@ export function WeeklyPlan({
                 key={dayRow.date}
                 type="button"
                 className={`flex flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 transition-colors ${
-                  selected ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-slate-50"
+                  selected ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => onSelectDate?.(dayRow.date)}
                 aria-label={`${weekdayShort(dayRow.date)} ${dayRow.date}: ${dayRow.calories} ккал`}
               >
-                <span className="text-[0.65rem] font-semibold uppercase text-slate-500">
+                <span className="text-[0.65rem] font-semibold uppercase text-[var(--muted)]">
                   {weekdayShort(dayRow.date)}
                 </span>
                 <div className="flex h-10 w-full items-end justify-center">
@@ -305,7 +305,7 @@ export function WeeklyPlan({
                 </div>
                 <span
                   className={`text-[0.65rem] font-semibold tabular-nums ${
-                    over ? "text-rose-600" : "text-slate-700"
+                    over ? "text-rose-600" : "text-[var(--muted-strong)]"
                   }`}
                 >
                   {dayRow.calories > 0 ? dayRow.calories : "—"}

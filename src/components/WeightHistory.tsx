@@ -255,11 +255,11 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
         <div className="rounded-2xl bg-teal-50 px-4 py-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-teal-800">Текущий вес</div>
           <div className="mt-1 flex items-end justify-between gap-3">
-            <p className="text-4xl font-bold tabular-nums text-slate-900">
+            <p className="text-4xl font-bold tabular-nums text-[var(--foreground)]">
               {data?.currentWeightKg != null ? `${data.currentWeightKg}` : "—"}
-              {data?.currentWeightKg != null ? <span className="text-lg font-semibold text-slate-500"> кг</span> : null}
+              {data?.currentWeightKg != null ? <span className="text-lg font-semibold text-[var(--muted)]"> кг</span> : null}
             </p>
-            <p className="text-sm font-semibold text-slate-600">
+            <p className="text-sm font-semibold text-[var(--muted-strong)]">
               {data?.weightChangeKg != null ? formatSignedKg(data.weightChangeKg) : "с начала —"}
             </p>
           </div>
@@ -288,12 +288,12 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
 
         <div>
           <h2 className="text-lg font-bold">Последние измерения</h2>
-          {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка…</p> : null}
+          {loading ? <p className="mt-3 text-sm text-[var(--muted)]">Загрузка…</p> : null}
 
           {!loading && grouped.length === 0 && !pendingDelete ? (
-            <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-slate-500">
+            <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-8 text-center text-[var(--muted)]">
               <Mascot pose="empty" size="sm" title={MASCOT_COPY.emptyWeight.title} entrance />
-              <p className="font-medium text-slate-700">{MASCOT_COPY.emptyWeight.headline}</p>
+              <p className="font-medium text-[var(--muted-strong)]">{MASCOT_COPY.emptyWeight.headline}</p>
               <p className="max-w-xs text-sm">{MASCOT_COPY.emptyWeight.body}</p>
               <button
                 type="button"
@@ -308,29 +308,29 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
           <div className="mt-4 flex flex-col gap-3">
             {grouped.map(({ date, items }) => (
               <div key={date}>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                   {formatDateWords(date)}
                 </p>
                 <ul className="flex flex-col gap-1.5">
                   {items.map((entry) => (
                     <li
                       key={entry.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)] px-4 py-2.5"
                     >
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <div className="flex items-baseline gap-3">
                           <p className="font-semibold">{entry.weightKg} кг</p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-[var(--muted)]">
                             {formatTimeShort(entry.measuredAt, timezone)}
                           </p>
                         </div>
                         {entry.note ? (
-                          <p className="truncate text-xs text-slate-500">{entry.note}</p>
+                          <p className="truncate text-xs text-[var(--muted)]">{entry.note}</p>
                         ) : null}
                       </div>
                       <button
                         type="button"
-                        className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                        className="rounded-lg p-1.5 text-[var(--muted)] transition hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
                         title="Удалить"
                         aria-label="Удалить"
                         disabled={deletingId === entry.id}
