@@ -364,7 +364,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-2.5 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)]"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
         <span>Мои продукты</span>
@@ -380,7 +380,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       ) : null}
       {logNotice ? <p className="mb-2 text-xs text-amber-800">{logNotice}</p> : null}
       <div className="flex items-center justify-between gap-2">
-        {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-slate-700">Избранное / мои продукты</span>}
+        {!embedded ? <h2 className="text-base font-semibold">Мои продукты</h2> : <span className="text-sm font-semibold text-[var(--muted-strong)]">Избранное / мои продукты</span>}
         <div className="flex gap-2">
         <button
           type="button"
@@ -480,7 +480,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         </div>
       ) : null}
 
-      {csvStatus ? <p className="mt-2 text-xs text-slate-600">{csvStatus}</p> : null}
+      {csvStatus ? <p className="mt-2 text-xs text-[var(--muted-strong)]">{csvStatus}</p> : null}
 
       {recipeOpen ? (
         <div className="mt-3">
@@ -499,12 +499,12 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         </div>
       ) : null}
 
-      {loading ? <p className="mt-3 text-sm text-slate-500">Загрузка...</p> : null}
+      {loading ? <p className="mt-3 text-sm text-[var(--muted)]">Загрузка...</p> : null}
 
       {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
         <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
           <p className="text-sm font-medium text-teal-900">Избранное пока пусто</p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[var(--muted)]">
             Сохраните частые блюда — потом добавляйте в дневник в один тап.
           </p>
           <button
@@ -518,7 +518,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       ) : null}
 
       {foods.length > 0 ? (
-        <ul className="mt-3 divide-y divide-slate-100">
+        <ul className="mt-3 divide-y divide-[rgba(13,115,119,0.08)]">
           {foods.map((food) => {
             const picking = portionFoodId === food.id;
             return (
@@ -527,7 +527,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{food.name}</p>
                     <AllergenHint text={food.name} allergens={userAllergens} />
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[var(--muted)]">
                       {food.calories} ккал
                       {food.portionGrams ? ` · ${food.portionGrams} г` : ""}
                       {food.useCount > 1 ? ` · использовано ${food.useCount}×` : ""}
@@ -542,7 +542,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                   </button>
                   <button
                     type="button"
-                    className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    className="shrink-0 rounded-lg p-1.5 text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--muted-strong)]"
                     aria-label="Редактировать"
                     onClick={() => fillForm(food)}
                   >
@@ -550,7 +550,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                   </button>
                   <button
                     type="button"
-                    className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    className="shrink-0 rounded-lg p-1.5 text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
                     aria-label="Удалить"
                     onClick={() => void deleteFood(food.id)}
                   >
@@ -558,14 +558,14 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                   </button>
                 </div>
                 {picking ? (
-                  <div className="mt-2 flex flex-wrap items-end gap-2 rounded-xl bg-slate-50 px-3 py-2">
-                    <label className="flex flex-col gap-1 text-xs text-slate-500">
+                  <div className="mt-2 flex flex-wrap items-end gap-2 rounded-xl bg-[var(--surface-mist)] px-3 py-2">
+                    <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                       Порция, г
                       <input
                         type="number"
                         min="1"
                         inputMode="decimal"
-                        className="w-28 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                        className="w-28 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                         value={portionGramsInput}
                         onChange={(e) => setPortionGramsInput(e.target.value)}
                       />
@@ -595,7 +595,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                     ) : null}
                     <button
                       type="button"
-                      className="rounded-lg px-2 py-1.5 text-xs text-slate-500"
+                      className="rounded-lg px-2 py-1.5 text-xs text-[var(--muted)]"
                       onClick={() => setPortionFoodId(null)}
                     >
                       Отмена

@@ -36,14 +36,14 @@ export function DailyLogEmpty({
   return (
     <div
       className={`ration-empty-day flex flex-col items-center gap-3 px-4 py-10 text-center ${
-        sceneFeed ? "" : "rounded-2xl border border-dashed border-slate-200 text-slate-500"
+        sceneFeed ? "" : "rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] text-[var(--muted)]"
       }`}
     >
       <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
-      <p className="text-lg font-semibold text-slate-900">
+      <p className="text-lg font-semibold text-[var(--foreground)]">
         {MASCOT_COPY.emptyDiary.headline}
       </p>
-      <p className="max-w-xs text-sm text-slate-600">{MASCOT_COPY.emptyDiary.body}</p>
+      <p className="max-w-xs text-sm text-[var(--muted-strong)]">{MASCOT_COPY.emptyDiary.body}</p>
       {onAddFood ? (
         <button
           type="button"
@@ -66,7 +66,7 @@ export function DailyLogEmpty({
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
-            className="text-sm font-semibold text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+            className="text-sm font-semibold text-[var(--muted)] underline-offset-2 hover:text-teal-800 hover:underline"
             onClick={onToggleCopyOptions}
             aria-expanded={showCopyOptions}
           >
