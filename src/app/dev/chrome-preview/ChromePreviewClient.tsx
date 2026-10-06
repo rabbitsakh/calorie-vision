@@ -96,6 +96,43 @@ export function ChromePreviewClient() {
           </div>
         </section>
       </div>
+
+      <div className="gym-day mt-6">
+        <section className="day-hero day-hero--scene day-hero--day" aria-label="Зал сегодня (превью)">
+          <div className="day-hero-glow" aria-hidden />
+          <div className="day-hero-scene-inner relative px-4 py-4 md:px-6">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
+              Зал
+            </p>
+            <p className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-tight text-[var(--foreground)]">
+              Сегодня · верх тела
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted-strong)]">3 упражнения · шаблон A</p>
+          </div>
+        </section>
+        <div className="gym-today-feed px-1">
+          <div className="gym-today-row">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-[var(--foreground)]">Жим лёжа</p>
+              <p className="text-xs text-[var(--muted)]">4×8 · 60 кг</p>
+            </div>
+            <span className="text-sm font-semibold tabular-nums text-[var(--accent-ink)]">2/4</span>
+          </div>
+          <div className="gym-today-row">
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-[var(--foreground)]">Тяга блока</p>
+              <p className="text-xs text-[var(--muted)]">3×10 · 45 кг</p>
+            </div>
+            <span className="text-sm font-semibold tabular-nums text-[var(--muted)]">0/3</span>
+          </div>
+        </div>
+        <section className="mt-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3 shadow-[var(--shadow-card)]">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Нагрузка, кг·повт
+          </p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">4 820</p>
+        </section>
+      </div>
     </AppShell>
   );
 }
