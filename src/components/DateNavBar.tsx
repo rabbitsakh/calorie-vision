@@ -95,7 +95,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
       <div className="flex items-center gap-0.5">
         <button
           type="button"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95"
           aria-label="Предыдущий день"
           onClick={() => onDateChange(shiftDateKey(date, -1))}
         >
@@ -104,14 +104,14 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
 
         <button
           type="button"
-          className="min-w-0 flex-1 rounded-lg px-1.5 py-1.5 text-center transition-colors hover:bg-[var(--surface-mist)]"
+          className="min-w-0 flex-1 rounded-lg px-1 py-1 text-center transition-colors hover:bg-white/50"
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={`${dateLabel}, открыть календарь`}
           onClick={() => setOpen((value) => !value)}
         >
           <span className="inline-flex max-w-full items-center justify-center gap-1.5">
-            <span className="truncate text-[0.95rem] font-semibold leading-tight tracking-tight text-[var(--foreground)]">
+            <span className="truncate font-display text-[0.95rem] font-semibold leading-tight tracking-tight text-[var(--foreground)]">
               {dateLabel}
             </span>
             <svg
@@ -129,7 +129,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
 
         <button
           type="button"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95 disabled:opacity-30"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95 disabled:opacity-30"
           aria-label="Следующий день"
           disabled={!canGoForward}
           onClick={() => canGoForward && onDateChange(shiftDateKey(date, 1))}
@@ -140,7 +140,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
         {!isToday ? (
           <button
             type="button"
-            className="ml-0.5 shrink-0 rounded-full px-2.5 py-1.5 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-50"
+            className="ml-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--accent-ink)] transition-colors hover:bg-white/60"
             onClick={() => pickDate(today)}
           >
             Сегодня
@@ -148,7 +148,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
         ) : null}
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-0.5">
+      <div className="mt-1.5 grid grid-cols-7 gap-1">
         {weekDays.map((day) => {
           const future = day > today;
           const selected = day === date;
@@ -159,27 +159,27 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
               type="button"
               disabled={future}
               onClick={() => pickDate(day)}
-              className={`flex flex-col items-center gap-0.5 rounded-xl px-0.5 py-1 transition-colors disabled:opacity-40 ${
+              className={`flex flex-col items-center gap-0.5 rounded-2xl px-0.5 py-1.5 transition-all disabled:opacity-40 ${
                 selected
-                  ? "bg-[var(--accent)] text-white"
+                  ? "bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(13,115,119,0.28)] scale-[1.04]"
                   : dayIsToday
-                    ? "text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
-                    : "text-[var(--foreground)] hover:bg-[var(--surface-mist)]"
+                    ? "bg-white/55 text-[var(--accent-ink)] hover:bg-white/80"
+                    : "text-[var(--foreground)] hover:bg-white/45"
               }`}
             >
               <span
-                className={`text-[0.6rem] font-semibold uppercase tracking-wide ${
+                className={`text-[0.58rem] font-bold uppercase tracking-[0.08em] ${
                   selected ? "text-white/85" : "text-[var(--muted)]"
                 }`}
               >
                 {weekdayShort(day)}
               </span>
               <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold tabular-nums ${
                   selected
-                    ? "bg-white/15 text-white"
+                    ? "text-white"
                     : dayIsToday
-                      ? "ring-1 ring-teal-400/70"
+                      ? "ring-2 ring-[var(--accent)]/45"
                       : ""
                 }`}
               >

@@ -57,7 +57,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
 
   return (
     <nav className="mobile-tab-bar shrink-0 md:hidden" aria-label="Основные разделы">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-[env(safe-area-inset-bottom)] pt-1">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1.5">
         {left.map((item) => (
           <TabLink
             key={item.href}

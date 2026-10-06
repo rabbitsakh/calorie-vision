@@ -57,39 +57,17 @@ function progressFromPayload(
   };
 }
 
-function HeroRing({ pct }: { pct: number }) {
+/** C1 — wide arc under the giant %, full composition width. */
+function HeroArc({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 38;
-  const c = 2 * Math.PI * r;
-  const offset = c - (clamped / 100) * c;
   const over = pct > 105;
-
   return (
-    <div className="day-hero-ring relative h-[7.5rem] w-[7.5rem] shrink-0 sm:h-[8.25rem] sm:w-[8.25rem]">
-      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="8" />
-        <circle
-          cx="50"
-          cy="50"
-          r={r}
-          fill="none"
-          stroke={over ? "var(--warn)" : "var(--accent)"}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          className="day-hero-ring-progress transition-[stroke-dashoffset] duration-1000 ease-out"
+    <div className="day-hero-arc" aria-hidden>
+      <div className="day-hero-arc__track">
+        <div
+          className={`day-hero-arc__fill ${over ? "day-hero-arc__fill--over" : ""}`}
+          style={{ width: `${Math.min(100, clamped)}%` }}
         />
-      </svg>
-      <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
-        <span
-          className={`font-display text-[1.55rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[1.7rem] ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
-        >
-          {Math.round(clamped)}%
-        </span>
-        <span className="text-[0.62rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent-ink)]/55">
-          ккал
-        </span>
       </div>
     </div>
   );
@@ -97,22 +75,20 @@ function HeroRing({ pct }: { pct: number }) {
 
 function DayHeroSkeleton() {
   return (
-    <section className="day-hero day-hero--scene day-hero--editorial" aria-busy="true" aria-label="Сводка дня">
+    <section className="day-hero day-hero--scene day-hero--theater" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-5 px-5 py-7 md:px-7 md:py-8">
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="skeleton-line !h-2 w-20" />
-          <div className="skeleton-line !h-5 w-56 max-w-full" />
-          <div className="skeleton-line !h-2.5 w-36" />
-        </div>
-        <div className="skeleton-ring !h-[7.5rem] !w-[7.5rem] shrink-0" aria-hidden />
+      <div className="day-hero-theater-inner relative flex flex-col gap-4 px-5 py-8 md:px-8 md:py-10">
+        <div className="skeleton-line !h-2 w-16" />
+        <div className="skeleton-line !h-12 w-40" />
+        <div className="skeleton-line !h-3 w-56 max-w-full" />
+        <div className="skeleton-line !h-2.5 w-full !rounded-full" />
       </div>
     </section>
   );
 }
 
 /**
- * B1 editorial day scene: one phrase + large calorie ring as the first composition.
+ * C1 day theater: giant % as the first signal, phrase + arc as one composition.
  */
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
@@ -249,42 +225,67 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   }
 
   const burnHint = formatWorkoutBurnHint(workoutBurnKcal, workoutSessionCount);
-  const calLabel =
+  const hasTarget = effectiveTarget != null && effectiveTarget > 0;
+  const pctShow = hasTarget ? Math.round(Math.min(999, Math.max(0, caloriePct))) : null;
+  const remaining =
+    hasTarget && data ? Math.max(0, Math.round(effectiveTarget! - data.calories)) : null;
+  // Phrase without leading "N% …" — the giant number owns that signal.
+  const phrase = copy.headline.replace(/^\d+%\s*[·—–-]?\s*/u, "").replace(/\.$/, "") || copy.headline;
+  const over = hasTarget && caloriePct > 105;
+
+  const metaParts = [
     data?.calorieTarget != null
       ? `${data.calories} / ${Math.round(effectiveTarget ?? data.calorieTarget)} ккал`
       : data
         ? `${data.calories} ккал`
-        : "—";
-  const proteinLabel =
+        : null,
     data?.proteinTarget != null && data.proteinTarget > 0
       ? `белок ${Math.round(data.protein)} / ${Math.round(data.proteinTarget)} г`
       : data && data.protein > 0
         ? `белок ${Math.round(data.protein)} г`
-        : null;
+        : null,
+    burnHint,
+    holiday ? "праздн. запас" : null,
+  ].filter(Boolean);
 
   return (
     <section
-      className={`day-hero day-hero--scene day-hero--editorial ${atmosphere}`}
+      className={`day-hero day-hero--scene day-hero--theater ${atmosphere}`}
       aria-label="Сводка дня"
     >
       <div className="day-hero-glow" aria-hidden />
       <div className="day-hero-wash" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-5 px-5 py-7 md:gap-6 md:px-7 md:py-8">
-        <div className="min-w-0 flex-1">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--accent-ink)]/70">
-            {copy.eyebrow}
-          </p>
-          <p className="font-display mt-2.5 text-[1.65rem] font-semibold leading-[1.15] tracking-tight text-[var(--foreground)] sm:text-[1.9rem]">
-            {copy.headline}
-          </p>
-          <p className="mt-3 text-[0.95rem] font-medium leading-relaxed text-[var(--muted-strong)]">
-            {calLabel}
-            {proteinLabel ? ` · ${proteinLabel}` : ""}
-            {burnHint ? ` · ${burnHint}` : ""}
-            {holiday ? " · праздн. запас" : ""}
-          </p>
+      <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
+        <p className="day-hero-eyebrow">{copy.eyebrow}</p>
+
+        <div className="mt-3 flex items-end gap-3">
+          {pctShow != null ? (
+            <p
+              className={`day-hero-giant tabular-nums ${over ? "day-hero-giant--over" : ""}`}
+              aria-label={`${pctShow} процентов от цели по калориям`}
+            >
+              {pctShow}
+              <span className="day-hero-giant__unit">%</span>
+            </p>
+          ) : (
+            <p className="day-hero-giant day-hero-giant--muted tabular-nums" aria-label="Нет цели по калориям">
+              —
+            </p>
+          )}
+          {remaining != null && !over ? (
+            <p className="day-hero-remain pb-1.5">
+              ещё <span className="tabular-nums font-semibold text-[var(--foreground)]">{remaining}</span> ккал
+            </p>
+          ) : null}
         </div>
-        <HeroRing pct={effectiveTarget ? caloriePct : 0} />
+
+        <p className="day-hero-phrase mt-2">{phrase}.</p>
+
+        {hasTarget ? <HeroArc pct={caloriePct} /> : <div className="day-hero-arc day-hero-arc--idle" aria-hidden />}
+
+        {metaParts.length > 0 ? (
+          <p className="day-hero-meta mt-3">{metaParts.join(" · ")}</p>
+        ) : null}
       </div>
     </section>
   );

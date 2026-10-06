@@ -681,15 +681,15 @@ function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
       aria-label={insight.title}
     >
       <div className="day-hero-glow" aria-hidden />
-      <div className="relative px-4 py-5 md:px-6 md:py-6">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70">
+      <div className="relative px-5 py-7 md:px-7 md:py-8">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[var(--accent-ink)]/70">
           {insight.title}
         </p>
-        <p className="stats-insight-body mt-2 sm:text-[1.3rem]">
+        <p className="stats-insight-body mt-3 text-[1.45rem] sm:text-[1.7rem]">
           {insight.body}
         </p>
         {insight.detail ? (
-          <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">{insight.detail}</p>
+          <p className="mt-2.5 text-[0.95rem] font-medium text-[var(--muted-strong)]">{insight.detail}</p>
         ) : null}
       </div>
     </section>

@@ -339,12 +339,21 @@ select {
   box-shadow: var(--shadow-quiet);
 }
 
-/* Product chrome — not a card: one composition with the page */
+/* C2 — minimal product chrome; theater mode collapses to brand row */
 .app-chrome {
   position: relative;
   padding: 0.65rem 0.15rem 0.85rem;
   border-bottom: 1px solid var(--border-hairline);
   animation: app-chrome-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-chrome--theater {
+  padding: 0.35rem 0.1rem 0.45rem;
+  border-bottom: none;
+}
+
+.app-chrome--theater .app-chrome__wordmark {
+  font-size: 1.15rem;
 }
 
 .app-chrome__brand {
@@ -647,32 +656,44 @@ select {
   }
 }
 
-/* B2 — confident chrome: cream glass tab + raised add */
+/* C2 — floating dock tab bar */
 .mobile-tab-bar {
-  box-shadow: 0 -12px 36px rgba(13, 115, 119, 0.1);
   position: relative;
   width: 100%;
-  border-top: 1px solid rgba(13, 115, 119, 0.12);
-  background: rgba(255, 252, 248, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  border-top: none;
+  background: transparent;
+  padding: 0 0.65rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: none;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
+.mobile-tab-bar > div {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(13, 115, 119, 0.14);
+  background: rgba(255, 252, 248, 0.92);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow:
+    0 10px 32px rgba(13, 115, 119, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+}
+
 .mobile-tab-bar__link {
   display: flex;
-  min-height: 2.9rem;
+  min-height: 2.75rem;
   min-width: 0;
   flex: 1;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.4rem 0.2rem;
+  gap: 0.15rem;
+  padding: 0.3rem 0.15rem;
   border-radius: var(--radius-md);
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   color: var(--muted);
   text-decoration: none;
   transition: color 0.18s ease, transform 0.15s ease, background-color 0.18s ease;
@@ -685,25 +706,26 @@ select {
 .mobile-tab-bar__icon {
   position: relative;
   display: flex;
-  height: 1.95rem;
+  height: 1.85rem;
   width: 100%;
-  max-width: 3.5rem;
+  max-width: 3.25rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0.85rem;
-  transition: background-color 0.2s ease;
+  border-radius: 0.9rem;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
 .mobile-tab-bar__link--active .mobile-tab-bar__icon {
-  background: rgba(13, 115, 119, 0.12);
+  background: rgba(13, 115, 119, 0.14);
+  transform: translateY(-1px);
 }
 
 .mobile-tab-bar__link--active .mobile-tab-bar__icon::after {
   content: "";
   position: absolute;
-  bottom: -0.15rem;
+  bottom: -0.12rem;
   left: 50%;
-  width: 1.25rem;
+  width: 1.15rem;
   height: 2.5px;
   border-radius: 999px;
   background: var(--accent);
@@ -713,23 +735,23 @@ select {
 
 .mobile-tab-bar__add {
   display: flex;
-  height: 3.1rem;
-  width: 3.1rem;
-  margin-top: -0.55rem;
+  height: 3.25rem;
+  width: 3.25rem;
+  margin-top: -0.85rem;
   align-items: center;
   justify-content: center;
-  border-radius: 1rem;
+  border-radius: 1.15rem;
   background: linear-gradient(160deg, #14919b 0%, var(--accent) 55%, #0a5c5f 100%);
   color: #fff;
   box-shadow:
-    0 6px 18px rgba(13, 115, 119, 0.35),
-    0 0 0 4px rgba(255, 252, 248, 0.95);
+    0 8px 22px rgba(13, 115, 119, 0.4),
+    0 0 0 5px rgba(255, 252, 248, 0.95);
   transition: opacity 0.15s ease, transform 0.18s ease, background-color 0.15s ease;
 }
 
 .mobile-tab-bar__add:active {
   opacity: 0.92;
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 @keyframes tab-indicator-in {
@@ -995,18 +1017,36 @@ select {
 }
 
 /* B8 — add sheet as a stage */
+/* C8 — add as mode stage */
 .food-add-sheet--picker {
-  max-height: min(92vh, 40rem);
+  max-height: min(94vh, 42rem);
   background:
-    radial-gradient(ellipse 90% 50% at 50% 0%, rgba(212, 240, 236, 0.75), transparent 55%),
-    #fffaf6 !important;
+    radial-gradient(ellipse 100% 55% at 50% -5%, rgba(20, 184, 166, 0.22), transparent 55%),
+    linear-gradient(180deg, #fffaf6 0%, #f3fbf8 100%) !important;
+}
+
+.food-add-sheet--picker .food-add-mode-grid {
+  gap: 0.75rem;
+}
+
+.food-add-sheet--picker .food-add-mode-tile {
+  min-height: 6.5rem;
+  padding: 1rem 0.75rem;
+  border-radius: 1.15rem;
+}
+
+.food-add-sheet--picker .food-add-mode-tile-label {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .food-add-sheet--picker .food-add-mode-tile--primary {
   background: linear-gradient(160deg, #14919b 0%, var(--accent) 100%);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 8px 22px rgba(13, 115, 119, 0.28);
+  box-shadow: 0 10px 28px rgba(13, 115, 119, 0.32);
+  transform: scale(1.02);
 }
 
 .food-add-sheet--picker .food-add-mode-tile--primary .food-add-mode-tile-hint {
@@ -1880,7 +1920,7 @@ select {
   }
 }
 
-/* B1 — Day hero: edge-to-edge editorial plane (not a card) */
+/* C1 — Day theater: giant % + full-width arc (not a side ring card) */
 .day-hero {
   position: relative;
   overflow: hidden;
@@ -1890,7 +1930,7 @@ select {
     linear-gradient(155deg, #ffffff 0%, #e9f7f3 48%, #f4faf7 100%);
   border: 1px solid rgba(13, 115, 119, 0.14);
   box-shadow: var(--shadow-card);
-  animation: day-hero-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: day-hero-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .day-hero--scene {
@@ -1900,63 +1940,70 @@ select {
   margin-right: 0;
   padding: 0;
   background:
-    linear-gradient(158deg, #ffffff 0%, #dff3ee 38%, #eaf6f2 68%, #f6f2eb 100%);
+    radial-gradient(ellipse 120% 90% at 0% 0%, rgba(20, 184, 166, 0.22), transparent 55%),
+    radial-gradient(ellipse 80% 70% at 100% 20%, rgba(255, 255, 255, 0.9), transparent 50%),
+    linear-gradient(168deg, #f3fbf8 0%, #d5efe8 42%, #eef6f2 72%, #f7f3ec 100%);
   box-shadow: none;
 }
 
-.day-hero--editorial {
+.day-hero--theater {
   isolation: isolate;
 }
 
-.day-hero--editorial .day-hero-scene-inner {
-  min-height: 9.5rem;
+.day-hero--theater .day-hero-theater-inner {
+  z-index: 1;
+  min-height: 13.5rem;
 }
 
 @media (min-width: 768px) {
   .day-hero--scene {
-    border-radius: var(--radius-lg);
+    border-radius: 1.5rem;
     overflow: hidden;
   }
 }
 
 .day-hero--morning {
   background:
-    linear-gradient(158deg, #ffffff 0%, #e4f5f0 42%, #f7f3ec 100%);
+    radial-gradient(ellipse 110% 85% at 10% -10%, rgba(45, 212, 191, 0.28), transparent 55%),
+    linear-gradient(168deg, #ffffff 0%, #e0f4ef 45%, #f7f3ec 100%);
 }
 
 .day-hero--day {
   background:
-    linear-gradient(158deg, #ffffff 0%, #daf2ec 48%, #eef8f4 100%);
+    radial-gradient(ellipse 120% 90% at 0% 0%, rgba(20, 184, 166, 0.26), transparent 55%),
+    linear-gradient(168deg, #f3fbf8 0%, #cfece5 48%, #eef8f4 100%);
 }
 
 .day-hero--evening {
   background:
-    linear-gradient(158deg, #ffffff 0%, #e2f2ee 44%, #f4efe8 100%);
+    radial-gradient(ellipse 100% 80% at 90% 0%, rgba(13, 115, 119, 0.14), transparent 50%),
+    linear-gradient(168deg, #ffffff 0%, #dceee9 44%, #f4efe8 100%);
 }
 
 .day-hero--night {
   background:
-    linear-gradient(158deg, #f7fcfb 0%, #dceeea 52%, #eef5f2 100%);
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(13, 115, 119, 0.12), transparent 55%),
+    linear-gradient(168deg, #f0f7f5 0%, #d2e8e3 52%, #eef5f2 100%);
 }
 
 .day-hero-glow {
   pointer-events: none;
   position: absolute;
-  inset: -45% 10% auto -25%;
-  height: 120%;
+  inset: -50% -10% auto -30%;
+  height: 140%;
   background:
-    radial-gradient(circle at 28% 42%, rgba(20, 184, 166, 0.28), transparent 52%),
-    radial-gradient(circle at 88% 18%, rgba(255, 255, 255, 0.85), transparent 42%);
+    radial-gradient(circle at 22% 38%, rgba(20, 184, 166, 0.35), transparent 48%),
+    radial-gradient(circle at 92% 12%, rgba(255, 255, 255, 0.9), transparent 40%);
   opacity: 1;
-  animation: day-hero-glow-drift 10s ease-in-out infinite alternate;
+  animation: day-hero-glow-drift 12s ease-in-out infinite alternate;
 }
 
 .day-hero-wash {
   pointer-events: none;
   position: absolute;
-  inset: auto 0 -30% 0;
-  height: 55%;
-  background: linear-gradient(180deg, transparent, rgba(248, 243, 235, 0.55));
+  inset: auto 0 -35% 0;
+  height: 60%;
+  background: linear-gradient(180deg, transparent, rgba(248, 243, 235, 0.65));
   z-index: 0;
 }
 
@@ -1966,49 +2013,138 @@ select {
   padding-bottom: 1.65rem !important;
 }
 
+.day-hero-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent-ink) 72%, transparent);
+}
+
+.day-hero-giant {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: clamp(3.4rem, 14vw, 4.6rem);
+  font-weight: 600;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: var(--accent-ink);
+  animation: day-hero-ring-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+.day-hero-giant--over {
+  color: var(--warn);
+}
+
+.day-hero-giant--muted {
+  color: color-mix(in srgb, var(--muted) 55%, var(--accent-ink));
+  font-size: clamp(2.8rem, 12vw, 3.8rem);
+}
+
+.day-hero-giant__unit {
+  margin-left: 0.08em;
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  vertical-align: super;
+}
+
+.day-hero-remain {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted-strong);
+}
+
+.day-hero-phrase {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: clamp(1.15rem, 4.2vw, 1.45rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  max-width: 22rem;
+}
+
+.day-hero-meta {
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted-strong);
+}
+
+.day-hero-arc {
+  margin-top: 1.15rem;
+  width: 100%;
+}
+
+.day-hero-arc__track {
+  height: 0.55rem;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(13, 115, 119, 0.12);
+  overflow: hidden;
+}
+
+.day-hero-arc__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14919b 0%, var(--accent) 55%, #0a5c5f 100%);
+  box-shadow: 0 0 16px rgba(13, 115, 119, 0.35);
+  transition: width 1s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.day-hero-arc__fill--over {
+  background: linear-gradient(90deg, #f59e0b 0%, var(--warn) 100%);
+}
+
+.day-hero-arc--idle .day-hero-arc__track {
+  opacity: 0.45;
+}
+
 .day-hero-ring {
   filter: drop-shadow(0 10px 22px rgba(13, 115, 119, 0.28));
 }
 
-/* B1 — one day composition: date band + hero + feed as a mural */
+/* C1 — full-bleed day mural into the chrome */
 .ration-day-scene {
   touch-action: pan-y;
   margin-left: -0.625rem;
   margin-right: -0.625rem;
-  padding: 0.35rem 0.625rem 1.25rem;
+  margin-top: -0.35rem;
+  padding: 0.2rem 0.625rem 1.5rem;
   background:
     linear-gradient(
       180deg,
-      rgba(214, 240, 232, 0.72) 0%,
-      rgba(247, 244, 239, 0.5) 42%,
-      rgba(245, 243, 238, 0.2) 72%,
+      rgba(200, 234, 224, 0.85) 0%,
+      rgba(247, 244, 239, 0.55) 38%,
+      rgba(245, 243, 238, 0.15) 70%,
       transparent 100%
     );
-  border-radius: 0 0 1.5rem 1.5rem;
-  animation: ration-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  border-radius: 0 0 1.75rem 1.75rem;
+  animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ration-day-band {
   position: relative;
   z-index: 2;
+  padding-bottom: 0.15rem;
 }
 
-/* B3 — editorial meal feed: hairline rows, not a card stack */
+/* C3 — meal timeline: larger type, photo-forward rows */
 .ration-meal-feed {
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: 0.15rem;
+  margin-top: 0.35rem;
 }
 
 .ration-meal-feed .meal-card {
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(13, 115, 119, 0.1);
+  border-bottom: 1px solid rgba(13, 115, 119, 0.12);
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
-  animation: meal-row-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: meal-row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ration-meal-feed .meal-card:last-child {
@@ -2016,45 +2152,68 @@ select {
 }
 
 .ration-meal-feed .meal-card-body {
-  padding-left: 0.35rem;
-  padding-right: 0.35rem;
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
+  padding-left: 0.45rem;
+  padding-right: 0.2rem;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
 }
 
-.ration-meal-feed .meal-section-header {
-  margin-top: 0.85rem;
-  margin-bottom: 0.35rem;
-  padding: 0 0.15rem;
+.ration-meal-feed .meal-card-title {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ration-meal-feed .meal-card-kcal {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
-.ration-meal-feed .meal-card:nth-child(1) { animation-delay: 0.04s; }
-.ration-meal-feed .meal-card:nth-child(2) { animation-delay: 0.08s; }
-.ration-meal-feed .meal-card:nth-child(3) { animation-delay: 0.12s; }
-.ration-meal-feed .meal-card:nth-child(4) { animation-delay: 0.16s; }
-.ration-meal-feed .meal-card:nth-child(5) { animation-delay: 0.2s; }
+.ration-meal-feed .meal-card-thumb {
+  height: 4.25rem !important;
+  width: 4.25rem !important;
+  border-radius: 0.85rem !important;
+}
 
-/* B10 — theatrical empty stage */
+.ration-meal-feed .meal-section-header {
+  margin-top: 1.15rem;
+  margin-bottom: 0.45rem;
+  padding: 0 0.15rem;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.ration-meal-feed .meal-card:nth-child(1) { animation-delay: 0.05s; }
+.ration-meal-feed .meal-card:nth-child(2) { animation-delay: 0.1s; }
+.ration-meal-feed .meal-card:nth-child(3) { animation-delay: 0.15s; }
+.ration-meal-feed .meal-card:nth-child(4) { animation-delay: 0.2s; }
+.ration-meal-feed .meal-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* C10 — invitation mural */
 .ration-empty-day {
   position: relative;
   overflow: hidden;
+  min-height: 16rem;
   background:
-    radial-gradient(ellipse 80% 70% at 50% 0%, rgba(212, 240, 236, 0.85), transparent 60%),
-    linear-gradient(165deg, #fff 0%, #eef8f4 55%, #f7f3ec 100%);
+    radial-gradient(ellipse 100% 80% at 50% -10%, rgba(20, 184, 166, 0.28), transparent 55%),
+    linear-gradient(165deg, #ffffff 0%, #e4f5f0 50%, #f7f3ec 100%);
   border: none;
-  border-radius: 1.25rem;
+  border-radius: 1.5rem;
   box-shadow: none;
-  padding-top: 2.5rem !important;
-  padding-bottom: 2.5rem !important;
-  animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  padding-top: 3rem !important;
+  padding-bottom: 3rem !important;
+  animation: ration-scene-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ration-empty-day .font-display,
 .ration-empty-day > p:first-of-type {
   font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: clamp(1.5rem, 5vw, 1.85rem) !important;
 }
 
 .ration-day-more {
@@ -2069,26 +2228,27 @@ select {
   border-color: rgba(13, 115, 119, 0.1);
 }
 
-/* B5 — Plan week mural */
+/* C5 — Plan week mural, full atmosphere */
 .plan-week {
   display: flex;
   flex-direction: column;
   gap: 0;
   overflow: hidden;
   border: none;
-  border-radius: 1.35rem;
+  border-radius: 1.5rem;
   background:
-    linear-gradient(180deg, #fff 0%, #e8f6f2 38%, var(--surface-warm) 100%);
-  box-shadow: 0 12px 40px rgba(13, 115, 119, 0.08);
-  animation: plan-week-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    linear-gradient(180deg, #fff 0%, #dceee9 36%, var(--surface-warm) 100%);
+  box-shadow: 0 16px 48px rgba(13, 115, 119, 0.1);
+  animation: plan-week-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .plan-week__hero {
   position: relative;
   border-bottom: 1px solid rgba(13, 115, 119, 0.1);
+  padding-top: 0.35rem;
   background:
-    radial-gradient(ellipse 90% 80% at 10% 0%, rgba(20, 184, 166, 0.16), transparent 55%),
-    linear-gradient(165deg, #ffffff 0%, #e6f5f1 100%);
+    radial-gradient(ellipse 100% 90% at 0% 0%, rgba(20, 184, 166, 0.28), transparent 55%),
+    linear-gradient(165deg, #ffffff 0%, #d8efe9 100%);
 }
 
 .plan-week__rail {
@@ -2206,42 +2366,50 @@ select {
 }
 
 /* B6 — Gym live scene */
+/* C6 — gym console: deep teal stage when live */
 .gym-day {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  margin-left: -0.35rem;
-  margin-right: -0.35rem;
-  padding: 0.35rem 0.35rem 0.5rem;
-  border-radius: 0 0 1.35rem 1.35rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.45rem 0.5rem 0.65rem;
+  border-radius: 0 0 1.5rem 1.5rem;
   background:
-    linear-gradient(180deg, rgba(212, 240, 236, 0.55) 0%, rgba(247, 244, 239, 0.35) 45%, transparent 70%);
-  animation: plan-week-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    linear-gradient(180deg, rgba(200, 234, 224, 0.65) 0%, rgba(247, 244, 239, 0.4) 45%, transparent 70%);
+  animation: plan-week-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .gym-day .day-hero--scene {
-  border-radius: 1.15rem;
+  border-radius: 1.35rem;
+  overflow: hidden;
 }
 
-.gym-day .day-hero--scene .font-display,
-.gym-day .day-hero--scene p.mt-1 {
-  font-family: var(--font-display), var(--font-body), sans-serif;
+.gym-day .day-hero--scene.day-hero--live,
+.gym-day .day-hero--scene:has(.gym-console-active) {
+  background:
+    radial-gradient(ellipse 90% 80% at 20% 0%, rgba(45, 212, 191, 0.35), transparent 50%),
+    linear-gradient(165deg, #0a5c5f 0%, #0d7377 48%, #0f4f52 100%);
+}
+
+.gym-console-active {
+  color: #fff;
 }
 
 .gym-live-pulse {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
 }
 
 .gym-live-pulse::before {
   content: "";
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.55rem;
+  height: 0.55rem;
   border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 0 0 rgba(13, 115, 119, 0.45);
+  background: #5eead4;
+  box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.55);
   animation: gym-live-ping 1.6s ease-out infinite;
 }
 
@@ -2297,23 +2465,28 @@ select {
   min-height: 6.5rem;
 }
 
+/* C4 — stats as magazine cover */
 .stats-insight-body {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  font-size: 1.2rem;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
   font-weight: 600;
   color: var(--foreground);
 }
 
 .stats-page-scene {
-  margin-left: -0.5rem;
-  margin-right: -0.5rem;
-  padding: 0.35rem 0.5rem 0.65rem;
-  border-radius: 1.25rem;
+  margin-left: -0.625rem;
+  margin-right: -0.625rem;
+  padding: 0.45rem 0.625rem 0.85rem;
+  border-radius: 1.5rem;
   background:
-    linear-gradient(180deg, rgba(212, 240, 236, 0.45) 0%, rgba(247, 244, 239, 0.28) 38%, transparent 58%);
-  animation: ration-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    linear-gradient(180deg, rgba(200, 234, 224, 0.55) 0%, rgba(247, 244, 239, 0.35) 40%, transparent 62%);
+  animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stats-page-scene .day-hero--scene {
+  border-radius: 1.35rem;
 }
 
 .stats-chart-block {
@@ -2467,18 +2640,26 @@ select {
   }
 }
 
-/* B7 — confirm as a stage */
+/* C7 — confirm immersive photo stage */
 .confirm-hero {
   overflow: hidden;
   position: relative;
-  min-height: 12rem;
+  min-height: 16rem;
 }
 
 .confirm-hero img {
   display: block;
-  height: 12rem;
+  height: 16rem;
   object-fit: cover;
   width: 100%;
+}
+
+@media (min-width: 768px) {
+  .confirm-hero,
+  .confirm-hero img {
+    min-height: 18rem;
+    height: 18rem;
+  }
 }
 
 /* D3: one disclosure under sticky save — not a card wall */
@@ -2515,17 +2696,18 @@ select {
 }
 
 .confirm-hero-overlay {
-  background: linear-gradient(180deg, transparent 15%, rgba(10, 40, 42, 0.78));
+  background: linear-gradient(180deg, transparent 10%, rgba(8, 36, 38, 0.82));
   bottom: 0;
   color: #fff;
   left: 0;
-  padding: 1.4rem 1.1rem 1.05rem;
+  padding: 1.75rem 1.2rem 1.2rem;
   position: absolute;
   right: 0;
 }
 
 .confirm-hero-overlay h2 {
   font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.35rem;
   font-weight: 600;
   letter-spacing: -0.02em;
 }

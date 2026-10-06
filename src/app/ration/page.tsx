@@ -253,14 +253,14 @@ function RationBody({
         <PushSubscriptionResync />
         <ReferralCapture signedIn />
 
-        {/* B1 — one editorial day composition: date band + hero + feed */}
+        {/* C1 — day theater: date band + giant % + timeline feed */}
         <DaySwipeRegion
           date={date}
           today={today}
           onDateChange={setDate}
           className="ration-day-scene flex flex-col gap-0"
         >
-          <div className="ration-day-band px-1 pb-1 pt-0.5">
+          <div className="ration-day-band px-1 pb-0.5 pt-0.5">
             <DateNavBar
               date={date}
               today={today}
@@ -269,15 +269,15 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          <div className="px-1 pt-2.5">
+          <div className="px-1 pt-2">
             <NextStepBar selectedDate={date} today={today} />
           </div>
-          <div className="px-1 pt-2">
+          <div className="px-1 pt-1.5">
             <PendingConfirmBanner selectedDate={date} />
           </div>
 
-          {/* B3 — editorial meal feed inside the day band */}
-          <div className="ration-day-feed ration-meal-feed px-0.5 pt-3">
+          {/* C3 — meal timeline */}
+          <div className="ration-day-feed ration-meal-feed px-0.5 pt-2">
             <DailyLog
               selectedDate={date}
               refreshKey={refreshKey}

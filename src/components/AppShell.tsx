@@ -101,6 +101,11 @@ export function AppShell({
   const pathname = usePathname();
   const homeHref = date ? withDateQuery("/ration", date) : "/ration";
   const hideTitleOnMobile = compact && (pathname === "/ration" || pathname === "/stats");
+  const theaterChrome =
+    pathname === "/ration" ||
+    pathname === "/stats" ||
+    pathname === "/workouts" ||
+    pathname.startsWith("/dev/chrome-preview");
   const foodAddEnabled = isFoodAddPath(pathname);
 
   useEffect(() => {
@@ -110,15 +115,19 @@ export function AppShell({
   return (
     <FoodAddHost date={date} enabled={foodAddEnabled}>
       <div className="cv-app-frame">
-        <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-2.5 px-2.5 py-2 md:gap-6 md:px-4 md:py-8">
-          <header className="app-chrome">
-            <div className="flex h-11 items-center justify-between gap-3 md:h-12">
+        <main
+          className={`app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col px-2.5 md:gap-6 md:px-4 md:py-8 ${
+            theaterChrome ? "gap-1.5 py-1.5" : "gap-2.5 py-2"
+          }`}
+        >
+          <header className={`app-chrome${theaterChrome ? " app-chrome--theater" : ""}`}>
+            <div className={`flex items-center justify-between gap-3 ${theaterChrome ? "h-10 md:h-12" : "h-11 md:h-12"}`}>
               <Link href={homeHref} className="app-chrome__brand">
-                <BrandMark size={compact ? 38 : 42} className="md:hidden" />
+                <BrandMark size={theaterChrome ? 36 : compact ? 38 : 42} className="md:hidden" />
                 <BrandMark size={compact ? 44 : 52} className="hidden md:block" />
                 <span className="app-chrome__wordmark truncate">
                   Calorie Vision
-                  {compact && !hideTitleOnMobile ? (
+                  {compact && !hideTitleOnMobile && !theaterChrome ? (
                     <span className="app-chrome__wordmark-sub md:hidden">{title}</span>
                   ) : null}
                 </span>
