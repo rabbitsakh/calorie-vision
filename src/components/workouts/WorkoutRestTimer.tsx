@@ -198,13 +198,13 @@ export function WorkoutRestTimerBanner({
       <div className="pointer-events-auto flex w-full max-w-lg items-center justify-between gap-3 rounded-2xl border border-teal-400 bg-teal-50 px-4 py-3 shadow-lg">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">Отдых</p>
-          <p className="text-3xl font-semibold tabular-nums text-slate-900">
+          <p className="text-3xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatRestClock(restLeft)}
           </p>
         </div>
         <button
           type="button"
-          className="rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+          className="rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-[var(--muted-strong)]"
           onClick={onSkip}
         >
           Пропустить
@@ -240,11 +240,11 @@ export function WorkoutRestTimerControls({
 }) {
   const running = Boolean(restEndsAt && Number.isFinite(restEndsAt));
   return (
-    <div className={compact ? "mt-3 border-t border-teal-200/80 pt-3" : "rounded-2xl border border-slate-200 bg-white p-4"}>
+    <div className={compact ? "mt-3 border-t border-teal-200/80 pt-3" : "rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4"}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p
           className={`text-xs font-semibold uppercase tracking-wide ${
-            compact ? "text-teal-800" : "text-slate-500"
+            compact ? "text-teal-800" : "text-[var(--muted)]"
           }`}
         >
           Отдых между подходами
@@ -256,7 +256,7 @@ export function WorkoutRestTimerControls({
               type="button"
               onClick={() => setRestSeconds(sec)}
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                restSeconds === sec ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                restSeconds === sec ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
               }`}
             >
               {sec}с
@@ -265,11 +265,11 @@ export function WorkoutRestTimerControls({
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        <p className="text-2xl font-semibold tabular-nums text-slate-900">
+        <p className="text-2xl font-semibold tabular-nums text-[var(--foreground)]">
           {running ? formatRestClock(restLeft) : formatRestClock(restSeconds)}
         </p>
         {running ? (
-          <button type="button" className="text-sm text-slate-500" onClick={clearRest}>
+          <button type="button" className="text-sm text-[var(--muted)]" onClick={clearRest}>
             Сброс
           </button>
         ) : (
@@ -282,7 +282,7 @@ export function WorkoutRestTimerControls({
           </button>
         )}
       </div>
-      <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+      <label className="mt-2 flex items-center gap-2 text-xs text-[var(--muted-strong)]">
         <input
           type="checkbox"
           checked={restSound}

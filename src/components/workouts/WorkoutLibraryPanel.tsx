@@ -101,19 +101,19 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <input
-        className="rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
+        className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
         placeholder="Поиск…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
 
-      <section className="rounded-2xl border border-dashed border-slate-300 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Добавить в библиотеку
         </p>
         <div className="mt-2 flex flex-col gap-2">
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
             placeholder="Название"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -125,7 +125,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
                 type="button"
                 onClick={() => setKind(k)}
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                  kind === k ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                  kind === k ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {EXERCISE_KIND_LABELS[k]}
@@ -133,7 +133,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
             ))}
           </div>
           <select
-            className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
             value={group}
             onChange={(e) => setGroup(e.target.value)}
           >
@@ -156,17 +156,17 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
       </section>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {loading ? <p className="text-sm text-slate-500">Загрузка…</p> : null}
+      {loading ? <p className="text-sm text-[var(--muted)]">Загрузка…</p> : null}
 
       <ul className="space-y-2">
         {entries.map((e) => (
           <li
             key={e.id}
-            className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2"
+            className="flex items-center justify-between gap-2 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2"
           >
             <div className="min-w-0">
-              <p className="truncate font-medium text-slate-900">{e.name}</p>
-              <p className="text-xs text-slate-500">
+              <p className="truncate font-medium text-[var(--foreground)]">{e.name}</p>
+              <p className="text-xs text-[var(--muted)]">
                 {EXERCISE_KIND_LABELS[e.kind]} · {e.useCount}×
               </p>
             </div>
@@ -193,7 +193,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
         ))}
       </ul>
       {!loading && entries.length === 0 ? (
-        <p className="text-sm text-slate-500">Библиотека пуста — добавьте упражнения выше.</p>
+        <p className="text-sm text-[var(--muted)]">Библиотека пуста — добавьте упражнения выше.</p>
       ) : null}
     </div>
   );

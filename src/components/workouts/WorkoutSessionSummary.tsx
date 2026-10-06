@@ -116,7 +116,7 @@ export function WorkoutSessionSummary({
                 <p className="text-xs text-amber-200">Плато — подумайте о deload</p>
               ) : null}
             </div>
-            <p className="shrink-0 text-sm tabular-nums text-slate-300">
+            <p className="shrink-0 text-sm tabular-nums text-white/55">
               {ex.completedCount}/{ex.setCount}
               {ex.load > 0 ? ` · ${Math.round(ex.load)}` : ""}
             </p>

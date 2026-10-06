@@ -193,51 +193,51 @@ export function WorkoutRoutineEditor({
   }, [name, note, planLabel, weekdays, groups, exercises, routineId, onSaved]);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Загрузка шаблона…</p>;
+    return <p className="text-sm text-[var(--muted)]">Загрузка шаблона…</p>;
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-slate-900">
+        <h2 className="text-lg font-semibold text-[var(--foreground)]">
           {routineId ? "Шаблон в плане" : "Новый день в плане"}
         </h2>
-        <button type="button" className="text-sm text-slate-500" onClick={onClose}>
+        <button type="button" className="text-sm text-[var(--muted)]" onClick={onClose}>
           Закрыть
         </button>
       </div>
 
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-[var(--muted-strong)]">
         Шаблон = список упражнений. Отметьте дни ниже — они появятся в «План на неделю» на вкладке
         «Сегодня».
       </p>
 
-      <label className="flex flex-col gap-1 text-xs text-slate-500">
+      <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Название
         <input
-          className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Грудь · Трицепс"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs text-slate-500">
+      <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Заметка
         <input
-          className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
       </label>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Метка в плане (необяз.)
         </p>
-        <p className="mt-0.5 text-[11px] text-slate-400">Например A / B / C для сплита</p>
+        <p className="mt-0.5 text-[11px] text-[var(--muted)]">Например A / B / C для сплита</p>
         <input
-          className="mt-1 w-20 rounded-lg border border-slate-200 px-3 py-2 text-base uppercase"
+          className="mt-1 w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base uppercase"
           maxLength={8}
           value={planLabel}
           onChange={(e) => setPlanLabel(e.target.value)}
@@ -246,10 +246,10 @@ export function WorkoutRoutineEditor({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Дни в недельном плане
         </p>
-        <p className="mt-0.5 text-[11px] text-slate-400">
+        <p className="mt-0.5 text-[11px] text-[var(--muted)]">
           В эти дни шаблон покажется как «по плану на сегодня»
         </p>
         <div className="mt-2 flex flex-wrap gap-1">
@@ -261,7 +261,7 @@ export function WorkoutRoutineEditor({
                 type="button"
                 onClick={() => toggleDay(day)}
                 className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-700"
+                  on ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {label}
@@ -272,7 +272,7 @@ export function WorkoutRoutineEditor({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Группы</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Группы</p>
         <div className="mt-2 flex flex-wrap gap-1">
           {MUSCLE_GROUPS.map((g) => {
             const on = groups.includes(g.key);
@@ -282,7 +282,7 @@ export function WorkoutRoutineEditor({
                 type="button"
                 onClick={() => toggleGroup(g.key)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-700"
+                  on ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {g.label}
@@ -293,12 +293,12 @@ export function WorkoutRoutineEditor({
       </div>
 
       <div className="space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Упражнения</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Упражнения</p>
         {exercises.map((ex, idx) => (
           <div
             key={ex.key}
             className={`rounded-xl border p-3 ${
-              ex.supersetGroup ? "border-teal-300 bg-teal-50/40" : "border-slate-200 bg-white"
+              ex.supersetGroup ? "border-teal-300 bg-teal-50/40" : "border-[rgba(13,115,119,0.14)] bg-white"
             }`}
           >
             {ex.supersetGroup ? (
@@ -307,7 +307,7 @@ export function WorkoutRoutineEditor({
               </p>
             ) : null}
             <input
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-base"
+              className="w-full rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
               placeholder="Название"
               value={ex.name}
               onChange={(e) =>
@@ -331,7 +331,7 @@ export function WorkoutRoutineEditor({
                     })
                   }
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    ex.kind === k ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                    ex.kind === k ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                   }`}
                 >
                   {EXERCISE_KIND_LABELS[k]}
@@ -355,18 +355,18 @@ export function WorkoutRoutineEditor({
                     })
                   }
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    ex.blockMode === mode ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                    ex.blockMode === mode ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                   }`}
                 >
                   {BLOCK_MODE_LABELS[mode]}
                 </button>
               ))}
               {ex.blockMode === "circuit" ? (
-                <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                <label className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
                   Кругов
                   <input
                     inputMode="numeric"
-                    className="w-12 rounded border border-slate-200 px-1.5 py-0.5 text-base"
+                    className="w-12 rounded border border-[rgba(13,115,119,0.14)] px-1.5 py-0.5 text-base"
                     value={ex.circuitRounds ?? 3}
                     onChange={(e) => {
                       const n = parseCircuitRounds(e.target.value);
@@ -381,11 +381,11 @@ export function WorkoutRoutineEditor({
               ) : null}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <label className="flex items-center gap-1 text-slate-500">
+              <label className="flex items-center gap-1 text-[var(--muted)]">
                 Подходы
                 <input
                   inputMode="numeric"
-                  className="w-14 rounded border border-slate-200 px-2 py-1 text-base"
+                  className="w-14 rounded border border-[rgba(13,115,119,0.14)] px-2 py-1 text-base"
                   value={ex.plannedSets.length}
                   onChange={(e) => {
                     const n = Math.min(12, Math.max(1, Math.round(Number(e.target.value)) || 1));
@@ -407,11 +407,11 @@ export function WorkoutRoutineEditor({
                   }}
                 />
               </label>
-              <label className="flex items-center gap-1 text-slate-500">
+              <label className="flex items-center gap-1 text-[var(--muted)]">
                 Повт
                 <input
                   inputMode="numeric"
-                  className="w-14 rounded border border-slate-200 px-2 py-1 text-base"
+                  className="w-14 rounded border border-[rgba(13,115,119,0.14)] px-2 py-1 text-base"
                   value={ex.plannedSets[0]?.reps ?? ""}
                   onChange={(e) => {
                     const reps = Math.round(Number(e.target.value)) || null;
@@ -438,7 +438,7 @@ export function WorkoutRoutineEditor({
               {ex.supersetGroup ? (
                 <button
                   type="button"
-                  className="text-slate-500"
+                  className="text-[var(--muted)]"
                   onClick={() => clearSuperset(idx)}
                 >
                   Убрать из суперсета
@@ -474,7 +474,7 @@ export function WorkoutRoutineEditor({
         >
           Сохранить
         </button>
-        <button type="button" className="rounded-lg px-3 py-2 text-sm text-slate-600" onClick={onClose}>
+        <button type="button" className="rounded-lg px-3 py-2 text-sm text-[var(--muted-strong)]" onClick={onClose}>
           Отмена
         </button>
       </div>

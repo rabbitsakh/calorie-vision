@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.3.31",
+    "date": "2026-10-06",
+    "summary": "design: тёплый зал — сессия, план и история без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "Активная сессия, подходы, шаблоны и история — токены cream/teal вместо slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Live stage: глубокий teal-ink фон вместо холодного slate-950"
+      },
+      {
+        "kind": "improve",
+        "text": "Сцена «сегодня» в зале — мягкий teal wash под лентой"
+      }
+    ]
+  },
+  {
     "version": "2.3.30",
     "date": "2026-10-06",
     "summary": "design: тёплый chrome — cream tokens, календарь и лента без slate",

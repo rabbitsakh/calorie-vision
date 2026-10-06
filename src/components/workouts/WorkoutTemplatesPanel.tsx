@@ -36,13 +36,13 @@ export function WorkoutTemplatesPanel({
         + Новый шаблон
       </button>
       {routines.length === 0 ? (
-        <p className="text-sm text-slate-500">Пока нет шаблонов.</p>
+        <p className="text-sm text-[var(--muted)]">Пока нет шаблонов.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {routines.map((r) => (
             <li
               key={r.id}
-              className="flex items-stretch gap-2 rounded-xl border border-slate-100 bg-slate-50"
+              className="flex items-stretch gap-2 rounded-xl border border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]"
             >
               <button
                 type="button"
@@ -51,7 +51,7 @@ export function WorkoutTemplatesPanel({
                 onClick={() => onStart(r.id)}
               >
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">
+                  <p className="font-semibold text-[var(--foreground)]">
                     {r.planLabel ? (
                       <span className="mr-1 rounded bg-teal-700 px-1.5 py-0.5 text-[10px] text-white">
                         {r.planLabel}
@@ -59,7 +59,7 @@ export function WorkoutTemplatesPanel({
                     ) : null}
                     {r.name}
                   </p>
-                  <p className="truncate text-xs text-slate-500">
+                  <p className="truncate text-xs text-[var(--muted)]">
                     {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
                   </p>
                 </div>
@@ -67,14 +67,14 @@ export function WorkoutTemplatesPanel({
               </button>
               <button
                 type="button"
-                className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600"
+                className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--muted-strong)]"
                 onClick={() => onEdit(r.id)}
               >
                 ✎
               </button>
               <button
                 type="button"
-                className="shrink-0 border-l border-slate-100 px-2.5 text-xs text-slate-400 hover:text-red-600"
+                className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs text-[var(--muted)] hover:text-red-600"
                 title="Удалить шаблон"
                 onClick={() => onDelete(r.id)}
               >

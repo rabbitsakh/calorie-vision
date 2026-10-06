@@ -149,7 +149,7 @@ export function WorkoutInlineSetRow({
   return (
     <li
       className={`rounded-lg px-2 py-2 ${
-        set.completed ? "bg-slate-50" : "bg-amber-50/80"
+        set.completed ? "bg-[var(--surface-mist)]" : "bg-amber-50/80"
       }`}
     >
       <div className="flex items-center gap-2">
@@ -160,7 +160,7 @@ export function WorkoutInlineSetRow({
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold ${
             set.completed
               ? "border-teal-600 bg-teal-600 text-white"
-              : "border-slate-300 bg-white text-slate-400"
+              : "border-[rgba(13,115,119,0.22)] bg-white text-[var(--muted)]"
           }`}
           onClick={onToggleComplete}
         >
@@ -170,7 +170,7 @@ export function WorkoutInlineSetRow({
           <button
             type="button"
             title={`${SET_TYPE_LABELS[set.setType]} — сменить тип`}
-            className="shrink-0 rounded bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold text-slate-700"
+            className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--muted-strong)]"
             onClick={onCycleType}
           >
             {SET_TYPE_SHORT[set.setType]}
@@ -179,22 +179,22 @@ export function WorkoutInlineSetRow({
         <button
           type="button"
           className={`min-w-0 flex-1 text-left tabular-nums ${
-            set.completed ? "text-slate-800" : "text-slate-500"
+            set.completed ? "text-[var(--foreground)]" : "text-[var(--muted)]"
           }`}
           onClick={() => setEditing((v) => !v)}
         >
-          <span className="text-slate-400">№{index + 1} · </span>
+          <span className="text-[var(--muted)]">№{index + 1} · </span>
           {summary}
-          {set.load > 0 ? <span className="text-slate-400"> ({Math.round(set.load)})</span> : null}
+          {set.load > 0 ? <span className="text-[var(--muted)]"> ({Math.round(set.load)})</span> : null}
           {set.rpe != null ? (
-            <span className="ml-1 text-xs text-slate-400">
+            <span className="ml-1 text-xs text-[var(--muted)]">
               {EFFORT_FIELD_LABEL} {set.rpe}
             </span>
           ) : null}
         </button>
         <button
           type="button"
-          className="shrink-0 text-xs text-slate-400 hover:text-red-600"
+          className="shrink-0 text-xs text-[var(--muted)] hover:text-red-600"
           onClick={onDelete}
         >
           ✕
@@ -202,46 +202,46 @@ export function WorkoutInlineSetRow({
       </div>
 
       {editing ? (
-        <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-slate-200/80 pt-2">
+        <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-[rgba(13,115,119,0.12)] pt-2">
           {spec.usesDistance ? (
-            <label className="flex flex-col gap-1 text-xs text-slate-500">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Км
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={km}
                 onChange={(e) => setKm(e.target.value)}
               />
             </label>
           ) : null}
           {spec.usesDuration ? (
-            <label className="flex flex-col gap-1 text-xs text-slate-500">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Мин
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
               />
             </label>
           ) : null}
           {spec.usesWeight ? (
-            <label className="flex flex-col gap-1 text-xs text-slate-500">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Кг
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={kg}
                 onChange={(e) => setKg(e.target.value)}
               />
             </label>
           ) : null}
           {spec.usesReps ? (
-            <label className="flex flex-col gap-1 text-xs text-slate-500">
+            <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Повт
               <input
                 inputMode="numeric"
-                className="w-16 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="w-16 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
               />
@@ -249,13 +249,13 @@ export function WorkoutInlineSetRow({
           ) : null}
           {kind !== "cardio" ? (
             <label
-              className="flex flex-col gap-1 text-xs text-slate-500"
+              className="flex flex-col gap-1 text-xs text-[var(--muted)]"
               title={EFFORT_FIELD_ARIA}
             >
               {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
-                className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="w-14 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={rpe}
                 onChange={(e) => setRpe(e.target.value)}
                 placeholder="8"
@@ -282,7 +282,7 @@ export function WorkoutInlineSetRow({
           </button>
           <button
             type="button"
-            className="rounded-lg px-2 py-2 text-sm text-slate-500"
+            className="rounded-lg px-2 py-2 text-sm text-[var(--muted)]"
             onClick={() => setEditing(false)}
           >
             Отмена
