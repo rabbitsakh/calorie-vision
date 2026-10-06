@@ -123,7 +123,7 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
 
   return (
     <div className="next-step-bar ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-white/80 px-3.5 py-2.5 shadow-[var(--shadow-card)]">
-      <p className="min-w-0 text-sm font-medium text-slate-800">{step.label}</p>
+      <p className="min-w-0 text-sm font-medium text-[var(--foreground)]">{step.label}</p>
       <button
         type="button"
         className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"

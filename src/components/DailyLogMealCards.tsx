@@ -85,7 +85,7 @@ function mealStripeClass(mealType: string | null | undefined): string {
   if (mealType === "LUNCH") return "bg-teal-500";
   if (mealType === "DINNER") return "bg-teal-600";
   if (mealType === "SNACK") return "bg-rose-400";
-  return "bg-slate-200";
+  return "bg-[var(--accent-soft)]";
 }
 
 function TrashIcon() {
@@ -231,7 +231,7 @@ function GroupedMealCard({
     group.imagePath ?? group.entries.find((entry) => entry.imagePath)?.imagePath ?? null;
 
   return (
-    <article className="meal-card overflow-hidden rounded-2xl border border-teal-100 bg-slate-50">
+    <article className="meal-card overflow-hidden rounded-2xl border border-[rgba(13,115,119,0.12)] bg-white">
       <div className="flex items-start gap-2.5 p-2.5 md:gap-3 md:p-3">
         {headerImage ? (
           <div className="meal-card-thumb shrink-0 overflow-hidden rounded-xl bg-white md:h-20 md:w-20">
@@ -263,7 +263,7 @@ function GroupedMealCard({
 
         <button
           type="button"
-          className="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600"
+          className="shrink-0 rounded-lg p-1.5 text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
           title="Удалить все блюда с фото"
           onClick={() => onDeleteGroup(group.entries.map((e) => e.id))}
         >
@@ -271,7 +271,7 @@ function GroupedMealCard({
         </button>
       </div>
 
-      <div className="divide-y divide-slate-100 border-t border-slate-100 bg-white/70">
+      <div className="divide-y divide-[rgba(13,115,119,0.08)] border-t border-[rgba(13,115,119,0.1)] bg-[var(--surface-mist)]/40">
         {group.entries.map((entry) => {
           if (editingId === entry.id) {
             return (
@@ -325,7 +325,7 @@ function GroupedMealCard({
                       decoding="async"
                     />
                   ) : (
-                    <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-slate-400">
+                    <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-[var(--muted)]">
                       <PhotoSearchIcon />
                       <span className="text-[8px] font-medium">фото</span>
                     </span>
@@ -462,7 +462,7 @@ export function MealSectionHeader({
         {count != null ? ` · ${count}` : ""}
       </h3>
       {onToggle ? (
-        <span className="ml-auto text-[0.65rem] font-medium text-slate-400" aria-hidden>
+        <span className="ml-auto text-[0.65rem] font-medium text-[var(--muted)]" aria-hidden>
           {collapsed ? "показать" : "скрыть"}
         </span>
       ) : null}
@@ -542,7 +542,7 @@ function SingleMealCard({
   }
 
   return (
-    <article className="meal-card flex items-stretch gap-0 bg-slate-50">
+    <article className="meal-card flex items-stretch gap-0 bg-white">
       <span className={`meal-stripe ${mealStripeClass(entry.mealType)}`} aria-hidden />
       <div className="meal-card-body flex-1">
         <button
@@ -561,7 +561,7 @@ function SingleMealCard({
               decoding="async"
             />
           ) : (
-            <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-slate-400">
+            <span className="flex h-full w-full flex-col items-center justify-center gap-0.5 text-[var(--muted)]">
               <PhotoSearchIcon />
               <span className="text-[8px] font-medium">фото</span>
             </span>

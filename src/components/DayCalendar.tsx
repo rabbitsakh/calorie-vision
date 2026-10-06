@@ -72,7 +72,7 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
       <div className="mb-2.5 flex items-center justify-between gap-2">
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] disabled:opacity-40"
           disabled={disabled}
           aria-label="Предыдущий месяц"
           onClick={() => changeMonth(-1)}
@@ -81,10 +81,10 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
             <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <p className="text-sm font-semibold text-slate-800">{formatMonthTitle(year, monthIndex)}</p>
+        <p className="text-sm font-semibold text-[var(--foreground)]">{formatMonthTitle(year, monthIndex)}</p>
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] disabled:opacity-40"
           disabled={disabled}
           aria-label="Следующий месяц"
           onClick={() => changeMonth(1)}
@@ -95,7 +95,7 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+      <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
         {WEEKDAYS.map((day) => (
           <div key={day} className="py-1">
             {day}
@@ -123,8 +123,8 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
                 isSelected
                   ? "bg-[var(--accent)] text-white"
                   : isToday
-                    ? "bg-teal-50 text-teal-800 ring-1 ring-inset ring-teal-300/80"
-                    : "text-slate-700 hover:bg-slate-100"
+                    ? "bg-[var(--accent-soft)] text-[var(--accent-ink)] ring-1 ring-inset ring-[rgba(13,115,119,0.35)]"
+                    : "text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
             >
               {Number(date.slice(-2))}

@@ -130,7 +130,7 @@ export function AppShell({
             </div>
 
             <h1
-              className={`font-bold tracking-tight text-slate-900 ${
+              className={`font-bold tracking-tight text-[var(--foreground)] ${
                 hideTitleOnMobile
                   ? "mt-0 hidden md:mt-3 md:block md:text-2xl"
                   : compact
@@ -142,7 +142,7 @@ export function AppShell({
             </h1>
             {description ? (
               <p
-                className={`max-w-2xl text-sm text-slate-600 ${
+                className={`max-w-2xl text-sm text-[var(--muted-strong)] ${
                   compact ? "mt-0.5 hidden md:mt-1 md:block md:text-base" : "mt-1 md:mt-2 md:text-base"
                 }`}
               >
@@ -195,7 +195,7 @@ export function PageFallback() {
       <section className="space-y-2 pt-1">
         <div className="skeleton-line w-3/4" />
         <div className="h-24 animate-pulse rounded-[var(--radius-lg)] bg-teal-100/60" />
-        <div className="h-16 animate-pulse rounded-[var(--radius-lg)] bg-slate-100/80" />
+        <div className="h-16 animate-pulse rounded-[var(--radius-lg)] bg-[var(--accent-soft)]/70" />
       </section>
     </main>
   );

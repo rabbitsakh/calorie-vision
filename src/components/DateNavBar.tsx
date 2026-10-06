@@ -95,7 +95,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
       <div className="flex items-center gap-0.5">
         <button
           type="button"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 active:scale-95"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95"
           aria-label="Предыдущий день"
           onClick={() => onDateChange(shiftDateKey(date, -1))}
         >
@@ -104,19 +104,19 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
 
         <button
           type="button"
-          className="min-w-0 flex-1 rounded-lg px-1.5 py-1.5 text-center transition-colors hover:bg-slate-50"
+          className="min-w-0 flex-1 rounded-lg px-1.5 py-1.5 text-center transition-colors hover:bg-[var(--surface-mist)]"
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={`${dateLabel}, открыть календарь`}
           onClick={() => setOpen((value) => !value)}
         >
           <span className="inline-flex max-w-full items-center justify-center gap-1.5">
-            <span className="truncate text-[0.95rem] font-semibold leading-tight tracking-tight text-slate-900">
+            <span className="truncate text-[0.95rem] font-semibold leading-tight tracking-tight text-[var(--foreground)]">
               {dateLabel}
             </span>
             <svg
               aria-hidden
-              className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+              className={`h-3.5 w-3.5 shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -129,7 +129,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
 
         <button
           type="button"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 active:scale-95 disabled:opacity-30"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)] active:scale-95 disabled:opacity-30"
           aria-label="Следующий день"
           disabled={!canGoForward}
           onClick={() => canGoForward && onDateChange(shiftDateKey(date, 1))}
@@ -163,13 +163,13 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
                 selected
                   ? "bg-[var(--accent)] text-white"
                   : dayIsToday
-                    ? "text-teal-800 hover:bg-teal-50"
-                    : "text-slate-800 hover:bg-slate-100"
+                    ? "text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
+                    : "text-[var(--foreground)] hover:bg-[var(--surface-mist)]"
               }`}
             >
               <span
                 className={`text-[0.6rem] font-semibold uppercase tracking-wide ${
-                  selected ? "text-white/85" : "text-slate-500"
+                  selected ? "text-white/85" : "text-[var(--muted)]"
                 }`}
               >
                 {weekdayShort(day)}
@@ -193,7 +193,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
       {open ? (
         <div
           ref={dialogRef}
-          className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
+          className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3 shadow-[var(--shadow-card)]"
           role="dialog"
           aria-label="Календарь"
         >

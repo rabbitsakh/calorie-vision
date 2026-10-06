@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces — alive adult: warm light + teal bloom (not gray mist) */
-  --background: #f3f5f2;
-  --foreground: #0c1222;
+  /* Surfaces — warm luminous adult (cream + teal, not cool slate mist) */
+  --background: #f5f3ee;
+  --foreground: #14181f;
   --card: #ffffff;
-  --surface-chrome: rgba(255, 255, 255, 0.94);
+  --surface-chrome: rgba(255, 252, 248, 0.96);
   --surface-elevated: #ffffff;
-  --surface-mist: #eef7f4;
-  --surface-warm: #f7f4ef;
-  --muted: #5b6b7a;
-  --muted-strong: #2a3544;
+  --surface-mist: #eef6f2;
+  --surface-warm: #f8f3eb;
+  --muted: #5a635c;
+  --muted-strong: #2c3530;
 
   /* Brand — teal family only (no indigo/violet product accents) */
   --accent: #0d7377;
@@ -30,7 +30,7 @@
   --accent-carbs-soft: #cffafe;
 
   --border-quiet: rgba(13, 115, 119, 0.16);
-  --border-hairline: rgba(15, 23, 42, 0.06);
+  --border-hairline: rgba(44, 53, 48, 0.08);
   --success: #0d7377;
   --warn: #d97706;
   --danger: #dc2626;
@@ -265,11 +265,11 @@ body {
   overflow-x: hidden;
   overscroll-behavior-y: none;
   color: var(--foreground);
-  /* Alive atmosphere — warm light + teal bloom (landing keeps its own tokens) */
+  /* Warm atmosphere — cream wash + teal bloom (landing keeps its own tokens) */
   background:
-    radial-gradient(ellipse 100% 60% at 8% -12%, rgba(13, 115, 119, 0.14), transparent 58%),
-    radial-gradient(ellipse 80% 45% at 100% 105%, rgba(247, 244, 239, 0.9), transparent 52%),
-    linear-gradient(180deg, #f7faf8 0%, var(--background) 42%, var(--surface-warm) 100%);
+    radial-gradient(ellipse 100% 60% at 8% -12%, rgba(13, 115, 119, 0.16), transparent 58%),
+    radial-gradient(ellipse 85% 50% at 100% 100%, rgba(248, 243, 235, 0.95), transparent 55%),
+    linear-gradient(180deg, #faf7f2 0%, var(--background) 40%, var(--surface-warm) 100%);
   background-attachment: fixed;
   font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 100vh;
@@ -748,7 +748,7 @@ select {
 }
 
 .chip:hover:not(:disabled) {
-  background: #e2e8f0;
+  background: var(--accent-soft);
 }
 
 .chip:active:not(:disabled) {
@@ -994,10 +994,10 @@ select {
 
 .food-add-mode-tile {
   align-items: flex-start;
-  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 100%);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 1.1rem;
-  color: #0f172a;
+  color: var(--foreground);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1105,10 +1105,10 @@ select {
 
 .food-add-photo-source {
   align-items: center;
-  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 100%);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 1.1rem;
-  color: #0f172a;
+  color: var(--foreground);
   cursor: pointer;
   display: flex;
   gap: 0.85rem;
@@ -1279,10 +1279,10 @@ select {
 
 .food-add-desktop-item {
   align-items: center;
-  background: linear-gradient(165deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 100%);
+  border: 1px solid rgba(13, 115, 119, 0.12);
   border-radius: 0.85rem;
-  color: #0f172a;
+  color: var(--foreground);
   cursor: pointer;
   display: flex;
   gap: 0.7rem;
@@ -1322,7 +1322,7 @@ select {
   align-items: center;
   background: rgba(255, 255, 255, 0.85);
   border-radius: 0.7rem;
-  color: #64748b;
+  color: var(--muted);
   display: inline-flex;
   flex-shrink: 0;
   height: 2.15rem;
@@ -1443,10 +1443,10 @@ select {
 
 .food-add-quick-chip {
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--surface-mist);
+  border: 1px solid rgba(13, 115, 119, 0.16);
   border-radius: 999px;
-  color: #0f172a;
+  color: var(--foreground);
   cursor: pointer;
   display: inline-flex;
   gap: 0.4rem;
@@ -1985,7 +1985,7 @@ select {
   overflow: hidden;
   border: 1px solid var(--border-quiet);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, #fff 0%, #f7f9fa 48%, #fff 100%);
+  background: linear-gradient(180deg, #fff 0%, var(--surface-mist) 45%, var(--surface-warm) 100%);
   animation: plan-week-in 0.3s ease-out both;
 }
 
@@ -2093,7 +2093,7 @@ select {
   overflow: hidden;
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
-  background: rgba(248, 250, 252, 0.65);
+  background: rgba(238, 246, 242, 0.72);
 }
 
 .profile-settings__nested-body {
@@ -2168,12 +2168,12 @@ select {
 .stats-stat-tile {
   border-radius: var(--radius-md);
   padding: 0.75rem 1rem;
-  background: rgba(248, 250, 252, 0.85);
-  border: 1px solid var(--border-hairline);
+  background: rgba(255, 252, 248, 0.92);
+  border: 1px solid rgba(13, 115, 119, 0.1);
 }
 
 .stats-stat-tile--accent {
-  background: rgba(240, 253, 250, 0.9);
+  background: rgba(212, 240, 236, 0.55);
   border-color: var(--border-quiet);
 }
 
@@ -2187,7 +2187,7 @@ select {
   text-align: left;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--foreground);
   border-bottom: 1px solid var(--border-hairline);
   background: transparent;
 }
@@ -2510,7 +2510,9 @@ select {
 .soft-celeb-card {
   animation: soft-celeb-pop 0.28s ease-out;
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
+  background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 55%, var(--surface-warm) 100%);
+  border: 1px solid rgba(13, 115, 119, 0.14);
+  box-shadow: 0 10px 28px rgba(13, 115, 119, 0.12);
 }
 
 .soft-celeb-ring {

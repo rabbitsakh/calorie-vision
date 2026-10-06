@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.3.30",
+    "date": "2026-10-06",
+    "summary": "design: тёплый chrome — cream tokens, календарь и лента без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "Фон и muted-ink сдвинуты к cream/stone — меньше холодной серости"
+      },
+      {
+        "kind": "improve",
+        "text": "DateNavBar и календарь: teal mist hover вместо slate-100"
+      },
+      {
+        "kind": "improve",
+        "text": "План, профиль, статистика, меню +, soft celebration и meal cards на тёплых поверхностях"
+      }
+    ]
+  },
+  {
     "version": "2.3.29",
     "date": "2026-10-06",
     "summary": "design: живой взрослый рацион — тёплый свет, сильное кольцо, % вперёд",
