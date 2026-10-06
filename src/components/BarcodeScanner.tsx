@@ -120,10 +120,10 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--muted)]">
         Сканер читает штрихкод на устройстве и сразу получает цифры — фото в GigaChat не отправляется.
       </p>
-      <div className="overflow-hidden rounded-2xl bg-slate-900">
+      <div className="overflow-hidden rounded-2xl bg-[var(--accent-ink)]">
         <video
           ref={videoRef}
           className={`w-full object-cover ${scanning ? "h-48" : "h-0"}`}
@@ -131,7 +131,7 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
           playsInline
         />
         {!scanning ? (
-          <div className="flex h-28 items-center justify-center px-4 text-center text-sm text-slate-300">
+          <div className="flex h-28 items-center justify-center px-4 text-center text-sm text-[var(--muted)]">
             Наведите камеру на штрихкод на упаковке
           </div>
         ) : null}

@@ -77,7 +77,7 @@ function NativeOauthStartInner() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
       <BrandMark size={64} />
-      <p className="mt-4 text-sm text-slate-600">{error ?? PROVIDER_LABEL[provider]}</p>
+      <p className="mt-4 text-sm text-[var(--muted-strong)]">{error ?? PROVIDER_LABEL[provider]}</p>
     </main>
   );
 }
@@ -86,7 +86,7 @@ export default function NativeOauthStartPage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto flex min-h-[70vh] items-center justify-center px-4 text-sm text-slate-600">
+        <main className="mx-auto flex min-h-[70vh] items-center justify-center px-4 text-sm text-[var(--muted-strong)]">
           Открываем вход…
         </main>
       }

@@ -112,7 +112,7 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         <>
           {calorieLabel}
           {vsTarget ? (
-            <span className="mt-0.5 block text-xs font-normal text-slate-400">{vsTarget}</span>
+            <span className="mt-0.5 block text-xs font-normal text-[var(--muted)]">{vsTarget}</span>
           ) : null}
         </>
       ),
@@ -146,7 +146,7 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
       onDismiss={dismiss}
     >
       {entryCount > 0 && fiberSugar.length > 0 ? (
-        <p className="text-sm text-slate-300">{fiberSugar.join(" · ")}</p>
+        <p className="text-sm text-[var(--muted)]">{fiberSugar.join(" · ")}</p>
       ) : null}
     </StageScreen>
   );

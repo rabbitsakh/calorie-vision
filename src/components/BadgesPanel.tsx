@@ -140,10 +140,10 @@ export function BadgesPanel() {
 
   return (
     <>
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-slate-800">Достижения</h2>
-          <span className="text-xs text-slate-500">
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Достижения</h2>
+          <span className="text-xs text-[var(--muted)]">
             {unlockedCount} / {badges.length}
           </span>
         </div>
@@ -153,7 +153,7 @@ export function BadgesPanel() {
         <div className="flex flex-col gap-4">
           {grouped.map((group) => (
             <div key={group.id}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                 {group.label}
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -173,26 +173,26 @@ export function BadgesPanel() {
                       className={`rounded-xl border px-3 py-2.5 ${
                         badge.unlocked
                           ? "border-teal-200 bg-teal-50"
-                          : "border-slate-100 bg-slate-50"
+                          : "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]"
                       }`}
                     >
                       <p
                         className={`text-sm font-semibold ${
-                          badge.unlocked ? "text-teal-900" : "text-slate-600"
+                          badge.unlocked ? "text-teal-900" : "text-[var(--muted-strong)]"
                         }`}
                       >
                         {badge.title}
                       </p>
-                      <p className="mt-0.5 text-xs text-slate-500">{badge.description}</p>
+                      <p className="mt-0.5 text-xs text-[var(--muted)]">{badge.description}</p>
                       {progress ? (
                         <div className="mt-2">
-                          <div className="flex justify-between text-[10px] font-medium tabular-nums text-slate-500">
+                          <div className="flex justify-between text-[10px] font-medium tabular-nums text-[var(--muted)]">
                             <span>
                               {progress.current}/{progress.target}
                             </span>
                             <span>{pct}%</span>
                           </div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
                             <div
                               className="h-full rounded-full bg-teal-500/80"
                               style={{ width: `${pct}%` }}

@@ -53,7 +53,7 @@ type FilterId = "all" | "owned" | "locked" | RewardRarity | RewardGroup;
 const GROUP_ORDER: RewardGroup[] = ["sticker", "cheer", "frame"];
 
 const RARITY_TONE: Record<RewardRarity, string> = {
-  common: "border-slate-100 bg-slate-50 text-slate-700",
+  common: "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)] text-[var(--muted-strong)]",
   rare: "border-teal-200 bg-teal-50 text-teal-900",
   festive: "border-amber-200 bg-amber-50 text-amber-950",
 };
@@ -173,14 +173,14 @@ export function RewardsPanel() {
   const metaHint = nextMetaProgress(ownedCount);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+    <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold text-slate-800">Коллекция</h2>
-        <span className="text-xs text-slate-500">
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+        <span className="text-xs text-[var(--muted)]">
           {ownedCount} / {total}
         </span>
       </div>
-      <p className="mb-3 text-sm text-slate-500">
+      <p className="mb-3 text-sm text-[var(--muted)]">
         Награды из сундуков — за челленджи, серии и спокойные недели. Без штрафов.
       </p>
       {metaHint ? (
@@ -200,7 +200,7 @@ export function RewardsPanel() {
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                 active
                   ? "bg-teal-700 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
               onClick={() => setFilter(f.id)}
             >
@@ -211,12 +211,12 @@ export function RewardsPanel() {
       </div>
 
       {grouped.length === 0 ? (
-        <p className="text-sm text-slate-500">По этому фильтру пока пусто.</p>
+        <p className="text-sm text-[var(--muted)]">По этому фильтру пока пусто.</p>
       ) : (
         <div className="flex flex-col gap-4">
           {grouped.map((group) => (
             <div key={group.id}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                 {group.label}
               </p>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -234,12 +234,12 @@ export function RewardsPanel() {
                       className={`rounded-xl border px-3 py-2.5 ${
                         reward.unlocked
                           ? RARITY_TONE[reward.rarity]
-                          : "border-slate-100 bg-slate-50/80 text-slate-400"
+                          : "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]/80 text-[var(--muted)]"
                       }`}
                     >
                       {isFrame && reward.unlocked ? (
                         <div
-                          className={`mb-2 mx-auto h-10 w-10 rounded-full bg-slate-200 ${frameAvatarClass(reward.key)}`}
+                          className={`mb-2 mx-auto h-10 w-10 rounded-full bg-[var(--accent-soft)] ${frameAvatarClass(reward.key)}`}
                           aria-hidden
                         />
                       ) : null}

@@ -86,12 +86,12 @@ export function ShareWeekButton({
       <button
         type="button"
         role="menuitem"
-        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-60 ${className}`.trim()}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-60 ${className}`.trim()}
         disabled={busy}
         onClick={() => void share()}
       >
         <span>{busy ? "Готовим…" : "Неделя"}</span>
-        {hint ? <span className="text-[11px] text-slate-400">{hint}</span> : null}
+        {hint ? <span className="text-[11px] text-[var(--muted)]">{hint}</span> : null}
       </button>
     );
   }
@@ -106,7 +106,7 @@ export function ShareWeekButton({
       >
         {busy ? "Готовим…" : "Поделиться неделей"}
       </button>
-      {hint ? <span className="text-xs text-slate-500">{hint}</span> : null}
+      {hint ? <span className="text-xs text-[var(--muted)]">{hint}</span> : null}
     </div>
   );
 }

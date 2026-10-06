@@ -135,17 +135,17 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
   if (!visible) return null;
 
   return (
-    <div id="checkin" className="scroll-mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div id="checkin" className="scroll-mt-3 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-4">
       {done ? (
-        <p className="text-center text-sm font-medium text-slate-700">Спасибо! До завтра.</p>
+        <p className="text-center text-sm font-medium text-[var(--muted-strong)]">Спасибо! До завтра.</p>
       ) : (
         <>
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="font-semibold text-slate-800">Как настроение?</p>
-              <p className="text-xs text-slate-500">Один тап — и день закрыт</p>
+              <p className="font-semibold text-[var(--foreground)]">Как настроение?</p>
+              <p className="text-xs text-[var(--muted)]">Один тап — и день закрыт</p>
             </div>
-            <button type="button" className="btn-quiet text-xs text-slate-500" onClick={dismiss}>
+            <button type="button" className="btn-quiet text-xs text-[var(--muted)]" onClick={dismiss}>
               Позже
             </button>
           </div>
@@ -157,11 +157,11 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
                 disabled={saving}
                 title={mood.label}
                 aria-label={mood.label}
-                className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-1 py-2.5 text-xl transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+                className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-1 py-2.5 text-xl transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
                 onClick={() => void chooseMood(mood.value)}
               >
                 <span aria-hidden>{mood.emoji}</span>
-                <span className="text-[10px] font-medium leading-tight text-slate-500">
+                <span className="text-[10px] font-medium leading-tight text-[var(--muted)]">
                   {mood.label}
                 </span>
               </button>

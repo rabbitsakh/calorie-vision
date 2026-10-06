@@ -162,7 +162,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
           <div
             className={
               sheetVisible
-                ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+                ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
                 : "hidden"
             }
             role={sheetVisible ? "dialog" : undefined}
@@ -177,14 +177,14 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
               className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
               onClick={(event) => event.stopPropagation()}
             >
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-                <p id="food-add-sheet-title" className="font-semibold text-slate-900">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
+                <p id="food-add-sheet-title" className="font-semibold text-[var(--foreground)]">
                   {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
                 </p>
                 {confirmOpen ? (
-                  <span className="text-xs text-slate-400">Сохраните или отмените</span>
+                  <span className="text-xs text-[var(--muted)]">Сохраните или отмените</span>
                 ) : (
-                  <button type="button" className="btn-quiet text-sm text-slate-500" onClick={closeAll}>
+                  <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={closeAll}>
                     Закрыть
                   </button>
                 )}

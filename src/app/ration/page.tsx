@@ -436,7 +436,7 @@ function RationBody({
           {showHabits
             ? createPortal(
                 <div
-                  className="habits-sheet fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+                  className="habits-sheet fixed inset-0 z-[70] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="habits-sheet-title"

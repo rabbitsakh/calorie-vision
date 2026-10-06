@@ -101,7 +101,7 @@ export function WeightQuickSheet() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="weight-quick-title"
@@ -111,14 +111,14 @@ export function WeightQuickSheet() {
         className="flex w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
           <div className="min-w-0">
-            <p id="weight-quick-title" className="font-semibold text-slate-900">
+            <p id="weight-quick-title" className="font-semibold text-[var(--foreground)]">
               Вес сегодня
             </p>
-            <p className="text-xs text-slate-500">Быстрая запись из «+»</p>
+            <p className="text-xs text-[var(--muted)]">Быстрая запись из «+»</p>
           </div>
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={close}>
+          <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={close}>
             Закрыть
           </button>
         </div>
@@ -127,7 +127,7 @@ export function WeightQuickSheet() {
           className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]"
           onSubmit={(event) => void saveWeight(event)}
         >
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+          <div className="rounded-2xl border border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]/80 p-3">
             <div className="field">
               <label htmlFor="weight-quick-kg">Вес, кг</label>
               <input

@@ -251,8 +251,8 @@ export function RecipeBuilder({
   return (
     <div className={embedded ? "" : "card p-4 md:p-6"}>
       <div>
-        <h3 className="text-sm font-semibold text-slate-800">Конструктор рецепта</h3>
-        <p className="mt-0.5 text-xs text-slate-500">
+        <h3 className="text-sm font-semibold text-[var(--foreground)]">Конструктор рецепта</h3>
+        <p className="mt-0.5 text-xs text-[var(--muted)]">
           Сложите ингредиенты — подставим КБЖУ и клетчатку/сахар из справочника, если найдём.
         </p>
       </div>
@@ -268,9 +268,9 @@ export function RecipeBuilder({
 
       <ul className="mt-3 flex flex-col gap-3">
         {ingredients.map((row, index) => (
-          <li key={row.id} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+          <li key={row.id} className="rounded-xl border border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]/60 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-slate-600">Ингредиент {index + 1}</span>
+              <span className="text-xs font-medium text-[var(--muted-strong)]">Ингредиент {index + 1}</span>
               {ingredients.length > 1 ? (
                 <button
                   type="button"
@@ -401,7 +401,7 @@ export function RecipeBuilder({
           onChange={(e) => setLogPortionGrams(e.target.value)}
           placeholder={totals.grams > 0 ? String(Math.round(totals.grams)) : "вся порция"}
         />
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-[11px] text-[var(--muted)]">
           Пусто = весь рецепт
           {totals.grams > 0 ? ` (${Math.round(totals.grams)} г)` : ""}.
         </p>

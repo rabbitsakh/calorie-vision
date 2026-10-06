@@ -5,7 +5,7 @@ import type { MascotPose } from "@/components/Mascot";
 type MascotCompanionTone = "teal" | "orange" | "amber";
 
 const TONE_CLASS: Record<MascotCompanionTone, string> = {
-  teal: "border-slate-200 bg-gradient-to-r from-slate-50 to-teal-50/40",
+  teal: "border-[rgba(13,115,119,0.14)] bg-gradient-to-r from-[var(--surface-mist)] to-teal-50/40",
   orange: "border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50",
   amber: "border-amber-200 bg-amber-50/90",
 };
@@ -57,12 +57,12 @@ export function MascotCompanionCard({
           <div className="flex items-start justify-between gap-2">
             <p className={`text-xs font-medium uppercase tracking-wide ${TITLE_CLASS[tone]}`}>{title}</p>
             {onHide ? (
-              <button type="button" className="btn-quiet shrink-0 text-xs text-slate-500" onClick={onHide}>
+              <button type="button" className="btn-quiet shrink-0 text-xs text-[var(--muted)]" onClick={onHide}>
                 {hideLabel}
               </button>
             ) : null}
           </div>
-          <div className="mt-1 text-sm text-slate-800">{children}</div>
+          <div className="mt-1 text-sm text-[var(--foreground)]">{children}</div>
           {actions ? <div className="mt-3 flex flex-wrap gap-2">{actions}</div> : null}
         </div>
       </div>

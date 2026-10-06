@@ -80,7 +80,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-500 hover:border-slate-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-2.5 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)]"
         onClick={() => {
           showPanelToday(PANEL_ID, selectedDate);
           setHidden(false);
@@ -113,7 +113,7 @@ export function ReferralNudge({ today, selectedDate, quietHide = false }: Referr
         markSeen();
       }}
     >
-      <p className="text-sm leading-relaxed text-slate-700">
+      <p className="text-sm leading-relaxed text-[var(--muted-strong)]">
         Поделитесь ссылкой с другом — когда он войдёт, вам откроется мягкий сундук. Без давления.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">

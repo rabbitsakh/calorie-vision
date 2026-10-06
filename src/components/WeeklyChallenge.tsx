@@ -294,8 +294,8 @@ export function WeeklyChallenge({
   const shellClass = embedded
     ? "plan-week__band"
     : "rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4";
-  const titleClass = embedded ? "font-semibold text-slate-800" : "font-semibold text-emerald-900";
-  const hintClass = embedded ? "text-xs text-slate-500" : "text-xs text-emerald-700";
+  const titleClass = embedded ? "font-semibold text-[var(--foreground)]" : "font-semibold text-emerald-900";
+  const hintClass = embedded ? "text-xs text-[var(--muted)]" : "text-xs text-emerald-700";
 
   return (
     <>
@@ -319,8 +319,8 @@ export function WeeklyChallenge({
 
         {data.active && !switching ? (
           <div>
-            <p className="font-medium text-slate-800">{data.active.title}</p>
-            <p className="text-xs text-slate-500">{data.active.description}</p>
+            <p className="font-medium text-[var(--foreground)]">{data.active.title}</p>
+            <p className="text-xs text-[var(--muted)]">{data.active.description}</p>
             {(() => {
               const pct = Math.min(
                 100,
@@ -376,7 +376,7 @@ export function WeeklyChallenge({
                 <p className="text-xs font-medium text-emerald-900">Новая цель на эту неделю</p>
                 <button
                   type="button"
-                  className="text-xs text-slate-500 hover:text-slate-700"
+                  className="text-xs text-[var(--muted)] hover:text-[var(--muted-strong)]"
                   onClick={() => setSwitching(false)}
                 >
                   Отмена
@@ -398,8 +398,8 @@ export function WeeklyChallenge({
                 className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-left hover:border-emerald-300 disabled:opacity-60"
                 onClick={() => void start(opt.key, switching)}
               >
-                <p className="text-sm font-medium text-slate-800">{opt.title}</p>
-                <p className="text-xs text-slate-500">{opt.description}</p>
+                <p className="text-sm font-medium text-[var(--foreground)]">{opt.title}</p>
+                <p className="text-xs text-[var(--muted)]">{opt.description}</p>
                 {opt.recommended ? (
                   <p className="mt-1 text-xs font-semibold text-teal-700">Подойдёт на этой неделе</p>
                 ) : null}
@@ -425,10 +425,10 @@ export function WeeklyChallenge({
               {history.slice(0, 6).map((row) => (
                 <li
                   key={row.weekStart}
-                  className="flex items-center justify-between gap-2 text-xs text-slate-600"
+                  className="flex items-center justify-between gap-2 text-xs text-[var(--muted-strong)]"
                 >
                   <span className="min-w-0 truncate">
-                    <span className="font-medium text-slate-700">{row.weekStart}</span>
+                    <span className="font-medium text-[var(--muted-strong)]">{row.weekStart}</span>
                     {" · "}
                     {row.title}
                   </span>
