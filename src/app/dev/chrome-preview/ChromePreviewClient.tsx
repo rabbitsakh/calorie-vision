@@ -133,6 +133,35 @@ export function ChromePreviewClient() {
           <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">4 820</p>
         </section>
       </div>
+
+      <div className="stats-page-scene mt-6">
+        <section className="day-hero day-hero--scene stats-insight-scene" aria-label="Статистика (превью)">
+          <div className="day-hero-glow" aria-hidden />
+          <div className="day-hero-scene-inner relative px-4 py-4 md:px-6">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
+              Статистика
+            </p>
+            <p className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-tight text-[var(--foreground)]">
+              Среднее 1 840 ккал — близко к цели.
+            </p>
+            <p className="mt-1 text-sm text-[var(--muted-strong)]">7 дней · цель 2 000</p>
+          </div>
+        </section>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <div className="stats-stat-tile">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">ккал</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">1840</p>
+          </div>
+          <div className="stats-stat-tile stats-stat-tile--accent">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">дни</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">6/7</p>
+          </div>
+          <div className="stats-stat-tile">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">вес</p>
+            <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">−0.3</p>
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 }

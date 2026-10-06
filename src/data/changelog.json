@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.3.32",
+    "date": "2026-10-06",
+    "summary": "design W1: тёплая статистика — tiles, heatmap, empty scene",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "StatsView и heatmap: cream/teal токены вместо slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Пустой период — тёплая сцена с CTA, не серая заглушка"
+      },
+      {
+        "kind": "improve",
+        "text": "Мягкий teal wash под блоком статистики"
+      }
+    ]
+  },
+  {
     "version": "2.3.31",
     "date": "2026-10-06",
     "summary": "design: тёплый зал — сессия, план и история без slate",

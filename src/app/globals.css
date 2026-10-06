@@ -2159,9 +2159,17 @@ select {
   animation: plan-week-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.stats-page-scene {
+  margin-left: -0.35rem;
+  margin-right: -0.35rem;
+  padding: 0.25rem 0.35rem 0.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(212, 240, 236, 0.28) 0%, transparent 42%);
+}
+
 .stats-chart-block {
   padding: 0.85rem 0.1rem 1rem;
-  border-bottom: 1px solid var(--border-hairline);
+  border-bottom: 1px solid rgba(13, 115, 119, 0.1);
 }
 
 .stats-chart-block:last-child {
