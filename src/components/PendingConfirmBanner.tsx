@@ -69,12 +69,12 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
 
   return (
     <div
-      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 px-3 py-2.5 text-sm text-slate-900"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 px-3 py-2.5 text-sm text-[var(--foreground)]"
       role="status"
     >
       <div className="min-w-0 flex-1">
         <p className="font-semibold">Есть незавершённая проверка</p>
-        <p className="mt-0.5 text-xs text-slate-600">{hint}</p>
+        <p className="mt-0.5 text-xs text-[var(--muted-strong)]">{hint}</p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <button
@@ -86,7 +86,7 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
         </button>
         <button
           type="button"
-          className="rounded-lg border border-[var(--border-quiet)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white"
+          className="rounded-lg border border-[var(--border-quiet)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-white"
           onClick={() => clearPendingConfirmDraft(selectedDate)}
         >
           Удалить

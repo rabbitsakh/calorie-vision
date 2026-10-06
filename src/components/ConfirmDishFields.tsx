@@ -109,7 +109,7 @@ export function DishFields({
 
   const alternativesSection = dish.original.alternatives?.length ? (
     <div>
-      <p className="mb-2 text-sm font-semibold text-slate-600">Возможные варианты</p>
+      <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">Возможные варианты</p>
       <div className="flex flex-wrap gap-2">
         {dish.original.alternatives.map((item) => {
           const altName = decodeHtmlEntities(item.dishName);
@@ -128,7 +128,7 @@ export function DishFields({
             <button
               key={altName}
               type="button"
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200 disabled:opacity-50"
+              className="rounded-full bg-[var(--accent-soft)] px-3 py-1.5 text-sm hover:bg-[var(--surface-mist)] disabled:opacity-50"
               disabled={formDisabled || lookupDisabled}
               onClick={handleAltClick}
               title={hasMacros ? "Применить вариант с БЖУ" : "Уточнить по названию"}
@@ -146,7 +146,7 @@ export function DishFields({
       className={
         multi
           ? `rounded-2xl border p-4 ${
-              showReviewCta ? "border-amber-300 bg-amber-50/40" : "border-slate-200"
+              showReviewCta ? "border-amber-300 bg-amber-50/40" : "border-[rgba(13,115,119,0.14)]"
             }`
           : "flex flex-col gap-4"
       }
@@ -154,8 +154,8 @@ export function DishFields({
       {multi ? (
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Блюдо {index + 1}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-semibold text-[var(--muted-strong)]">Блюдо {index + 1}</p>
+            <p className="text-xs text-[var(--muted)]">
               Уверенность: {formatConfidencePercent(dish.original.confidence)}
               {review.missingCalories ? " · нет калорий" : ""}
               {review.missingMacros ? " · нет БЖУ" : ""}
@@ -181,7 +181,7 @@ export function DishFields({
             <label htmlFor={fieldId("dishName")}>Блюдо</label>
             <button
               type="button"
-              className="text-sm font-semibold text-slate-600 underline-offset-2 hover:underline disabled:opacity-50"
+              className="text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline disabled:opacity-50"
               disabled={formDisabled}
               onClick={handleWrongDish}
             >
@@ -231,7 +231,7 @@ export function DishFields({
               recognizedName.toLowerCase() !== currentName.toLowerCase()
             ) {
               return (
-                <p className="mt-1 text-xs text-slate-600">
+                <p className="mt-1 text-xs text-[var(--muted-strong)]">
                   Было: <span className="font-medium">{recognizedName}</span>
                   {" → "}
                   стало: <span className="font-medium">{currentName}</span>
@@ -325,7 +325,7 @@ export function DishFields({
             </p>
           ) : null}
           {dish.fiber.trim() || dish.sugar.trim() ? (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--muted)]">
               {[
                 dish.fiber.trim() ? `клетчатка ${dish.fiber.trim()} г` : null,
                 dish.sugar.trim() ? `сахар ${dish.sugar.trim()} г` : null,

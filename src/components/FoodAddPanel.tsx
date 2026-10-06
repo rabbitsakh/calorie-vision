@@ -470,12 +470,12 @@ export function FoodAddPanel({
         {layout === "card" ? (
           <div>
             <h2 className="text-lg font-bold md:text-xl">Добавить еду</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Сфотографируйте блюдо — или найдите по названию и штрихкоду.
             </p>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--muted)]">
             Сфотографируйте блюдо — или найдите по названию и штрихкоду.
           </p>
         )}
@@ -509,7 +509,7 @@ export function FoodAddPanel({
         ) : null}
 
         {queuedCount > 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700">
+          <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-3 text-sm text-[var(--muted-strong)]">
             <p>
               В очереди офлайн: {queuedCount}{" "}
               {queuedCount === 1 ? "элемент" : "элемента"}
@@ -554,7 +554,7 @@ export function FoodAddPanel({
           >
             Сфотографировать
           </button>
-          <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-[var(--accent-soft)] p-1">
             {tabs.filter((tab) => tab.id !== "photo").map((tab) => (
               <button
                 key={tab.id}
@@ -583,8 +583,8 @@ export function FoodAddPanel({
 
         {mode === "photo" ? (
           <div className="flex flex-col gap-1.5">
-            <p className="text-xs font-medium text-slate-600">Что на фото</p>
-            <div className="grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1">
+            <p className="text-xs font-medium text-[var(--muted-strong)]">Что на фото</p>
+            <div className="grid grid-cols-4 gap-1 rounded-xl bg-[var(--accent-soft)] p-1">
               {(
                 [
                   ["auto", "Авто"],
@@ -598,7 +598,7 @@ export function FoodAddPanel({
                   type="button"
                   disabled={disabled || loading}
                   className={`rounded-lg px-1.5 py-2 text-[0.7rem] font-semibold ${
-                    photoContext === id ? "bg-white text-teal-800 shadow-sm" : "text-slate-600"
+                    photoContext === id ? "bg-white text-teal-800 shadow-sm" : "text-[var(--muted-strong)]"
                   }`}
                   onClick={() => {
                     setPhotoContext(id);
@@ -795,7 +795,7 @@ export function FoodAddPanel({
         ) : null}
 
         {savedToast ? (
-          <p className="rounded-xl bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">{savedToast}</p>
+          <p className="rounded-xl bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">{savedToast}</p>
         ) : null}
       </div>
   );

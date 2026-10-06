@@ -62,7 +62,7 @@ export function ConfidenceBadge({
         </p>
       ) : null}
       {why ? (
-        <p className={`text-xs leading-snug ${inverted ? "text-white/80" : "text-slate-600"}`}>{why}</p>
+        <p className={`text-xs leading-snug ${inverted ? "text-white/80" : "text-[var(--muted-strong)]"}`}>{why}</p>
       ) : null}
       {reshoot ? (
         <p className={`text-xs font-medium leading-snug ${inverted ? "text-amber-100" : "text-amber-800"}`}>

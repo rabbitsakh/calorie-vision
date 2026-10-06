@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.3.36",
+    "date": "2026-10-06",
+    "summary": "design W5: тёплый confirm и add flow без slate",
+    "items": [
+      {"kind": "improve", "text": "ConfirmDishFields и ConfirmationCard на cream/teal"},
+      {"kind": "improve", "text": "FoodAdd panel/mode picker и photo picker без slate"}
+    ]
+  },
+  {
     "version": "2.3.35",
     "date": "2026-10-06",
     "summary": "design W4: тёплый дневник — лог, suggestions, favorites без slate",
