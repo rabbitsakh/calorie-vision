@@ -457,9 +457,13 @@ export function MealSectionHeader({
         className={`h-3.5 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`}
         aria-hidden
       />
-      <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted-strong)]">
+      <h3 className="font-display text-[0.85rem] font-semibold tracking-tight text-[var(--foreground)] normal-case">
         {sectionLabel(section)}
-        {count != null ? ` · ${count}` : ""}
+        {count != null ? (
+          <span className="ml-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">
+            · {count}
+          </span>
+        ) : null}
       </h3>
       {onToggle ? (
         <span className="ml-auto text-[0.65rem] font-medium text-[var(--muted)]" aria-hidden>

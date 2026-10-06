@@ -7,53 +7,61 @@ import { DateNavBar } from "@/components/DateNavBar";
 const TODAY = "2026-10-06";
 
 /**
- * Visual QA for warm chrome + DayHero atmosphere (no auth).
+ * Visual QA for bold B1–B10 composition (no auth).
  */
 export function ChromePreviewClient() {
   const [date, setDate] = useState(TODAY);
-  const r = 34;
+  const r = 38;
   const c = 2 * Math.PI * r;
   const pct = 62;
   const offset = c - (pct / 100) * c;
 
   return (
-    <AppShell title="Рацион" description="Превью warm chrome" compact date={date}>
-      <DateNavBar date={date} today={TODAY} onDateChange={setDate} />
-      <div className="ration-day-scene">
-        <section className="day-hero day-hero--scene day-hero--day" aria-label="Сводка дня (превью)">
+    <AppShell title="Рацион" compact date={date}>
+      {/* B1 — DateNav inside day band + editorial hero */}
+      <div className="ration-day-scene flex flex-col gap-0">
+        <div className="ration-day-band px-1 pb-1 pt-0.5">
+          <DateNavBar date={date} today={TODAY} onDateChange={setDate} />
+        </div>
+
+        <section
+          className="day-hero day-hero--scene day-hero--editorial day-hero--day"
+          aria-label="Сводка дня (превью)"
+        >
           <div className="day-hero-glow" aria-hidden />
-          <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:gap-5 md:px-6 md:py-6">
+          <div className="day-hero-wash" aria-hidden />
+          <div className="day-hero-scene-inner relative flex items-center gap-5 px-5 py-7 md:gap-6 md:px-7 md:py-8">
             <div className="min-w-0 flex-1">
-              <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--accent-ink)]/70">
                 Сегодня
               </p>
-              <p className="font-display mt-2 text-[1.4rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.6rem]">
+              <p className="font-display mt-2.5 text-[1.65rem] font-semibold leading-[1.15] tracking-tight text-[var(--foreground)] sm:text-[1.9rem]">
                 62% к цели.
               </p>
-              <p className="mt-2.5 text-sm font-medium leading-relaxed text-[var(--muted-strong)]">
+              <p className="mt-3 text-[0.95rem] font-medium leading-relaxed text-[var(--muted-strong)]">
                 1240 / 2000 ккал · белок 68 / 120 г
               </p>
             </div>
-            <div className="day-hero-ring relative h-[6.25rem] w-[6.25rem] shrink-0 sm:h-[6.75rem] sm:w-[6.75rem]">
+            <div className="day-hero-ring relative h-[7.5rem] w-[7.5rem] shrink-0 sm:h-[8.25rem] sm:w-[8.25rem]">
               <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-                <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="9" />
+                <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="8" />
                 <circle
                   cx="50"
                   cy="50"
                   r={r}
                   fill="none"
                   stroke="var(--accent)"
-                  strokeWidth="9"
+                  strokeWidth="8"
                   strokeLinecap="round"
                   strokeDasharray={c}
                   strokeDashoffset={offset}
                 />
               </svg>
               <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
-                <span className="text-[1.25rem] font-bold leading-none tracking-tight tabular-nums text-[var(--accent-ink)] sm:text-[1.35rem]">
+                <span className="font-display text-[1.55rem] font-semibold leading-none tracking-tight tabular-nums text-[var(--accent-ink)] sm:text-[1.7rem]">
                   62%
                 </span>
-                <span className="text-[0.6rem] font-semibold uppercase leading-none tracking-wide text-[var(--accent-ink)]/55">
+                <span className="text-[0.62rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent-ink)]/55">
                   ккал
                 </span>
               </div>
@@ -61,53 +69,63 @@ export function ChromePreviewClient() {
           </div>
         </section>
 
-        <div className="ration-meal-feed mt-3">
+        {/* B3 — editorial meal feed */}
+        <div className="ration-meal-feed px-0.5 pt-3">
+          <div className="meal-section-header flex items-center gap-2 pt-1">
+            <span className="h-3.5 w-1 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
+            <h3 className="font-display text-[0.85rem] font-semibold tracking-tight text-[var(--foreground)]">
+              Завтрак <span className="ml-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">· 1</span>
+            </h3>
+          </div>
           <article className="meal-card">
-            <div className="meal-card-body items-center">
+            <div className="meal-card-body flex items-center">
               <div className="min-w-0 flex-1">
                 <p className="meal-card-title">Овсянка с ягодами</p>
-                <p className="meal-card-meta">Завтрак · 320 ккал</p>
+                <p className="meal-card-meta">320 ккал</p>
               </div>
               <span className="meal-card-kcal text-[var(--accent-ink)]">320</span>
             </div>
           </article>
+          <div className="meal-section-header flex items-center gap-2 pt-1">
+            <span className="h-3.5 w-1 shrink-0 rounded-full bg-amber-500" aria-hidden />
+            <h3 className="font-display text-[0.85rem] font-semibold tracking-tight text-[var(--foreground)]">
+              Обед <span className="ml-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">· 1</span>
+            </h3>
+          </div>
           <article className="meal-card">
-            <div className="meal-card-body items-center">
+            <div className="meal-card-body flex items-center">
               <div className="min-w-0 flex-1">
                 <p className="meal-card-title">Куриный салат</p>
-                <p className="meal-card-meta">Обед · 480 ккал</p>
+                <p className="meal-card-meta">480 ккал</p>
               </div>
               <span className="meal-card-kcal text-[var(--accent-ink)]">480</span>
             </div>
           </article>
         </div>
-
-        <section
-          className="mt-3 overflow-hidden rounded-[var(--radius-lg)] border border-[rgba(2,132,199,0.14)] bg-gradient-to-br from-white to-[var(--accent-water-soft)]/55 px-3.5 py-3 shadow-[var(--shadow-card)]"
-          aria-label="Вода (превью)"
-        >
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              Вода <span className="font-medium text-[var(--muted-strong)]">900 / 2000 мл</span>
-            </p>
-            <span className="rounded-[var(--radius-sm)] bg-[var(--accent-water-soft)] px-2 py-1 text-xs font-bold tabular-nums text-sky-900">
-              45%
-            </span>
-          </div>
-        </section>
       </div>
 
+      {/* B6 — gym live */}
       <div className="gym-day mt-6">
         <section className="day-hero day-hero--scene day-hero--day" aria-label="Зал сегодня (превью)">
           <div className="day-hero-glow" aria-hidden />
-          <div className="day-hero-scene-inner relative px-4 py-4 md:px-6">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
-              Зал
-            </p>
-            <p className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-tight text-[var(--foreground)]">
-              Сегодня · верх тела
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted-strong)]">3 упражнения · шаблон A</p>
+          <div className="relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
+            <div className="min-w-0 flex-1">
+              <p className="gym-live-pulse text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70">
+                Сейчас · вт
+              </p>
+              <p className="font-display mt-2 text-[1.25rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.45rem]">
+                Верх тела · в зале
+              </p>
+              <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">
+                24:10 · 3 упр. · 4 820 кг·повт
+              </p>
+            </div>
+            <button
+              type="button"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(13,115,119,0.3)]"
+            >
+              В зал
+            </button>
           </div>
         </section>
         <div className="gym-today-feed px-1">
@@ -126,25 +144,20 @@ export function ChromePreviewClient() {
             <span className="text-sm font-semibold tabular-nums text-[var(--muted)]">0/3</span>
           </div>
         </div>
-        <section className="mt-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3 shadow-[var(--shadow-card)]">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Нагрузка, кг·повт
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">4 820</p>
-        </section>
       </div>
 
+      {/* B4 — stats editorial */}
       <div className="stats-page-scene mt-6">
         <section className="day-hero day-hero--scene stats-insight-scene" aria-label="Статистика (превью)">
           <div className="day-hero-glow" aria-hidden />
-          <div className="day-hero-scene-inner relative px-4 py-4 md:px-6">
-            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
-              Статистика
+          <div className="relative px-4 py-5 md:px-6 md:py-6">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70">
+              Главный вывод
             </p>
-            <p className="font-display mt-1.5 text-[1.2rem] font-semibold tracking-tight text-[var(--foreground)]">
+            <p className="stats-insight-body mt-2 sm:text-[1.3rem]">
               Среднее 1 840 ккал — близко к цели.
             </p>
-            <p className="mt-1 text-sm text-[var(--muted-strong)]">7 дней · цель 2 000</p>
+            <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">7 дней · цель 2 000</p>
           </div>
         </section>
         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -163,29 +176,40 @@ export function ChromePreviewClient() {
         </div>
       </div>
 
-      <div className="profile-settings mt-6">
-        <section className="profile-settings__item">
-          <div className="profile-settings__row">
-            <div className="min-w-0">
-              <p className="font-semibold text-[var(--foreground)]">Аккаунт</p>
-              <p className="mt-0.5 text-xs text-[var(--muted)]">Имя, email, аватар</p>
-            </div>
-            <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-              ▾
-            </span>
+      {/* B5 — plan mural */}
+      <div className="plan-week mt-6">
+        <div className="plan-week__hero px-4 py-5 md:px-6">
+          <p className="font-display text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl">
+            Неделя
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted)]">Цель vs факт · норма 2000 ккал</p>
+          <div className="mt-3 grid grid-cols-7 gap-1">
+            {["пн", "вт", "ср", "чт", "пт", "сб", "вс"].map((d, i) => (
+              <div
+                key={d}
+                className={`rounded-lg px-0.5 py-2 text-center text-[0.65rem] font-semibold ${
+                  i === 1 ? "bg-[var(--accent)] text-white" : "bg-white/70 text-[var(--muted-strong)]"
+                }`}
+              >
+                {d}
+                <div className="mt-1 text-sm tabular-nums">{[92, 62, 0, 0, 0, 0, 0][i]}%</div>
+              </div>
+            ))}
           </div>
-        </section>
-        <section className="profile-settings__item">
-          <div className="profile-settings__row">
-            <div className="min-w-0">
-              <p className="font-semibold text-[var(--foreground)]">Напоминания</p>
-              <p className="mt-0.5 text-xs text-[var(--muted)]">Пуш и тихие часы</p>
-            </div>
-            <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-              →
-            </span>
-          </div>
-        </section>
+        </div>
+      </div>
+
+      {/* B10 — empty stage */}
+      <div className="ration-empty-day mt-6 flex flex-col items-center gap-3 px-5 py-12 text-center">
+        <p className="font-display text-[1.35rem] font-semibold tracking-tight text-[var(--foreground)]">
+          День ещё пустой
+        </p>
+        <p className="max-w-xs text-[0.95rem] text-[var(--muted-strong)]">
+          Добавьте первый приём — кольцо оживёт.
+        </p>
+        <button type="button" className="btn btn-primary mt-1 min-h-12 px-7 text-base">
+          Добавить через «+»
+        </button>
       </div>
     </AppShell>
   );

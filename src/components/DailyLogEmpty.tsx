@@ -35,19 +35,21 @@ export function DailyLogEmpty({
 }: DailyLogEmptyProps) {
   return (
     <div
-      className={`ration-empty-day flex flex-col items-center gap-3 px-4 py-10 text-center ${
+      className={`ration-empty-day flex flex-col items-center gap-4 px-5 py-12 text-center ${
         sceneFeed ? "" : "rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] text-[var(--muted)]"
       }`}
     >
       <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
-      <p className="text-lg font-semibold text-[var(--foreground)]">
+      <p className="font-display text-[1.35rem] font-semibold tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
         {MASCOT_COPY.emptyDiary.headline}
       </p>
-      <p className="max-w-xs text-sm text-[var(--muted-strong)]">{MASCOT_COPY.emptyDiary.body}</p>
+      <p className="max-w-xs text-[0.95rem] leading-relaxed text-[var(--muted-strong)]">
+        {MASCOT_COPY.emptyDiary.body}
+      </p>
       {onAddFood ? (
         <button
           type="button"
-          className="btn btn-primary min-h-12 px-6 text-base"
+          className="btn btn-primary mt-1 min-h-12 px-7 text-base"
           onClick={() => onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)}
         >
           Добавить через «+»

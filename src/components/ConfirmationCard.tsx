@@ -843,9 +843,9 @@ export function ConfirmationCard({
     <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
       <div className="flex flex-col gap-5 p-4 md:p-0">
         {hasImage ? (
-          <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl">
+          <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-[1.15rem]">
             {!imageLoaded ? (
-              <div className="absolute inset-0 min-h-36 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
+              <div className="absolute inset-0 min-h-48 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -857,8 +857,8 @@ export function ConfirmationCard({
               className={imageLoaded ? "" : "opacity-0"}
             />
             <div className="confirm-hero-overlay">
-              <h2 className="text-lg font-bold">Проверьте и сохраните</h2>
-              <p className="mt-0.5 text-sm text-white/85">
+              <h2 className="text-xl font-semibold tracking-tight">Проверьте и сохраните</h2>
+              <p className="mt-1 text-sm text-white/88">
                 {multi
                   ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
                   : dishes[0]?.dishName || "Порция и калории"}
@@ -867,7 +867,7 @@ export function ConfirmationCard({
           </div>
         ) : (
           <div>
-            <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight">Проверьте и сохраните</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {multi
                 ? "Несколько блюд — поправьте порции и сохраните."

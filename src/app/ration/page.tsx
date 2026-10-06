@@ -253,24 +253,31 @@ function RationBody({
         <PushSubscriptionResync />
         <ReferralCapture signedIn />
 
-        {/* Layer 1 — day scene (Wave A/D). Critical status below hero, not in first viewport. */}
+        {/* B1 — one editorial day composition: date band + hero + feed */}
         <DaySwipeRegion
           date={date}
           today={today}
           onDateChange={setDate}
-          className="ration-day-scene flex flex-col gap-3"
+          className="ration-day-scene flex flex-col gap-0"
         >
+          <div className="ration-day-band px-1 pb-1 pt-0.5">
+            <DateNavBar
+              date={date}
+              today={today}
+              refreshKey={refreshKey}
+              onDateChange={setDate}
+            />
+          </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          <div className="px-0.5">
+          <div className="px-1 pt-2.5">
             <NextStepBar selectedDate={date} today={today} />
           </div>
-          {/* Trust: unfinished confirm above the fold — not buried under the feed. */}
-          <div className="px-0.5">
+          <div className="px-1 pt-2">
             <PendingConfirmBanner selectedDate={date} />
           </div>
 
-          {/* Layer 2 — meal feed (elevated rows inside day mist) */}
-          <div className="ration-day-feed pt-0.5">
+          {/* B3 — editorial meal feed inside the day band */}
+          <div className="ration-day-feed ration-meal-feed px-0.5 pt-3">
             <DailyLog
               selectedDate={date}
               refreshKey={refreshKey}
@@ -532,7 +539,6 @@ function RationShell({
   timezone: string | null | undefined;
   setDate: (next: string) => void;
 }) {
-  const day = useRationDay();
   const [pwaWizardOpen, setPwaWizardOpen] = useState(false);
   const openFoodPicker = useCallback(
     (mealType?: string) => requestOpenFoodAddPicker(mealType ? { mealType } : {}),
@@ -540,19 +546,7 @@ function RationShell({
   );
 
   return (
-    <AppShell
-      title="Рацион"
-      compact
-      date={date}
-      headerExtra={
-        <DateNavBar
-          date={date}
-          today={today}
-          refreshKey={day.refreshKey}
-          onDateChange={setDate}
-        />
-      }
-    >
+    <AppShell title="Рацион" compact date={date}>
       <RationBody
         date={date}
         today={today}

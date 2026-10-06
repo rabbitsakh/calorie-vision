@@ -160,8 +160,8 @@ export function WeeklyPlan({
                 compact
                   ? "text-sm font-semibold text-[var(--foreground)]"
                   : embedded
-                    ? "text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl"
-                    : "font-semibold text-[var(--foreground)]"
+                    ? "font-display text-xl font-semibold tracking-tight text-[var(--foreground)] md:text-2xl"
+                    : "font-display font-semibold text-[var(--foreground)]"
               }
             >
               {compact ? "Неделя" : embedded ? "Неделя" : "План недели"}

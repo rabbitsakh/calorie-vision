@@ -59,35 +59,35 @@ function progressFromPayload(
 
 function HeroRing({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
-  const r = 34;
+  const r = 38;
   const c = 2 * Math.PI * r;
   const offset = c - (clamped / 100) * c;
   const over = pct > 105;
 
   return (
-    <div className="day-hero-ring relative h-[6.25rem] w-[6.25rem] shrink-0 sm:h-[6.75rem] sm:w-[6.75rem]">
+    <div className="day-hero-ring relative h-[7.5rem] w-[7.5rem] shrink-0 sm:h-[8.25rem] sm:w-[8.25rem]">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden>
-        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="9" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="var(--accent-soft)" strokeWidth="8" />
         <circle
           cx="50"
           cy="50"
           r={r}
           fill="none"
           stroke={over ? "var(--warn)" : "var(--accent)"}
-          strokeWidth="9"
+          strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out"
+          className="day-hero-ring-progress transition-[stroke-dashoffset] duration-1000 ease-out"
         />
       </svg>
       <div className="day-hero-ring-label absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-1.5">
         <span
-          className={`text-[1.25rem] font-bold leading-none tracking-tight tabular-nums sm:text-[1.35rem] ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
+          className={`font-display text-[1.55rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[1.7rem] ${over ? "text-[var(--warn)]" : "text-[var(--accent-ink)]"}`}
         >
           {Math.round(clamped)}%
         </span>
-        <span className="text-[0.6rem] font-semibold uppercase leading-none tracking-wide text-[var(--accent-ink)]/55">
+        <span className="text-[0.62rem] font-semibold uppercase leading-none tracking-[0.14em] text-[var(--accent-ink)]/55">
           ккал
         </span>
       </div>
@@ -97,23 +97,22 @@ function HeroRing({ pct }: { pct: number }) {
 
 function DayHeroSkeleton() {
   return (
-    <section className="day-hero day-hero--scene" aria-busy="true" aria-label="Сводка дня">
+    <section className="day-hero day-hero--scene day-hero--editorial" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
-        <div className="min-w-0 flex-1 space-y-2.5">
-          <div className="skeleton-line !h-2 w-16" />
-          <div className="skeleton-line !h-4 w-48 max-w-full" />
-          <div className="skeleton-line !h-2.5 w-32" />
+      <div className="day-hero-scene-inner relative flex items-center gap-5 px-5 py-7 md:px-7 md:py-8">
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="skeleton-line !h-2 w-20" />
+          <div className="skeleton-line !h-5 w-56 max-w-full" />
+          <div className="skeleton-line !h-2.5 w-36" />
         </div>
-        <div className="skeleton-ring !h-[6.25rem] !w-[6.25rem] shrink-0" aria-hidden />
+        <div className="skeleton-ring !h-[7.5rem] !w-[7.5rem] shrink-0" aria-hidden />
       </div>
     </section>
   );
 }
 
 /**
- * First-viewport day scene: one phrase + calorie ring (adult product).
- * Mascot no longer anchors the hero — G1 adult redesign.
+ * B1 editorial day scene: one phrase + large calorie ring as the first composition.
  */
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
@@ -264,17 +263,21 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
         : null;
 
   return (
-    <section className={`day-hero day-hero--scene ${atmosphere}`} aria-label="Сводка дня">
+    <section
+      className={`day-hero day-hero--scene day-hero--editorial ${atmosphere}`}
+      aria-label="Сводка дня"
+    >
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-scene-inner relative flex items-center gap-4 px-4 py-5 md:gap-5 md:px-6 md:py-6">
+      <div className="day-hero-wash" aria-hidden />
+      <div className="day-hero-scene-inner relative flex items-center gap-5 px-5 py-7 md:gap-6 md:px-7 md:py-8">
         <div className="min-w-0 flex-1">
-          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent-ink)]/75">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[var(--accent-ink)]/70">
             {copy.eyebrow}
           </p>
-          <p className="font-display mt-2 text-[1.4rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.6rem]">
+          <p className="font-display mt-2.5 text-[1.65rem] font-semibold leading-[1.15] tracking-tight text-[var(--foreground)] sm:text-[1.9rem]">
             {copy.headline}
           </p>
-          <p className="mt-2.5 text-sm font-medium leading-relaxed text-[var(--muted-strong)]">
+          <p className="mt-3 text-[0.95rem] font-medium leading-relaxed text-[var(--muted-strong)]">
             {calLabel}
             {proteinLabel ? ` · ${proteinLabel}` : ""}
             {burnHint ? ` · ${burnHint}` : ""}

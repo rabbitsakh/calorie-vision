@@ -129,12 +129,12 @@ export function FoodAddModePicker({
         className="food-add-sheet food-add-sheet--picker food-add-sheet--in flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3.5">
           <div className="min-w-0">
-            <p id={titleId} className="text-base font-semibold tracking-tight text-[var(--foreground)]">
+            <p id={titleId} className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]">
               {title}
             </p>
-            <p className="text-xs text-[var(--muted)]">{subtitle}</p>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">{subtitle}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {step === "photo" ? (
