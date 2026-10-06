@@ -250,7 +250,7 @@ function ExerciseSparkline({
     })
     .filter((v) => Number.isFinite(v) && (metric === "pace" ? v > 0 : true));
   if (values.length < 2) {
-    return <p className="mt-2 text-xs text-slate-400">Мало точек для графика</p>;
+    return <p className="mt-2 text-xs text-[var(--muted)]">Мало точек для графика</p>;
   }
   const w = 240;
   const h = 56;
@@ -620,13 +620,13 @@ export function WorkoutActiveSession({
         >
           ← К списку
         </button>
-        <h2 className="mt-1 text-xl font-semibold text-slate-900">
+        <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
           {formatDateWords(detail.date)}
           {detail.date !== todayKey ? (
             <span className="ml-2 text-sm font-medium text-amber-700">задним числом</span>
           ) : null}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">{detail.muscleLabels.join(" · ")}</p>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">{detail.muscleLabels.join(" · ")}</p>
         {detail.clockStatus === "finished" ? (
           <button
             type="button"
@@ -638,7 +638,7 @@ export function WorkoutActiveSession({
         ) : null}
       </div>
       <details className="relative shrink-0">
-        <summary className="cursor-pointer list-none rounded-lg px-2 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer list-none rounded-lg px-2 py-1.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] [&::-webkit-details-marker]:hidden">
           Ещё ▾
         </summary>
         <div className="absolute right-0 z-20 mt-1 flex min-w-[9rem] flex-col rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-md">
@@ -673,10 +673,10 @@ export function WorkoutActiveSession({
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
               Таймер тренировки
             </p>
-            <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+            <p className="mt-1 text-3xl font-semibold tabular-nums text-[var(--foreground)]">
               {liveElapsedLabel}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-[var(--muted)]">
               {detail.clockStatus === "paused"
                 ? "Пауза"
                 : detail.clockStatus === "finished"
@@ -699,7 +699,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus !== "finished" && detail.exercises.length > 0 ? (
               <button
                 type="button"
-                className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-[var(--accent-ink)] px-3 py-2 text-sm font-semibold text-white"
                 onClick={() => {
                   if (!detail.startedAt) void patchClock("start");
                   else {
@@ -728,7 +728,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "running" ? (
               <button
                 type="button"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+                className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
                 onClick={() => void patchClock("pause")}
               >
                 Пауза
@@ -746,7 +746,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "running" || detail.clockStatus === "paused" ? (
               <button
                 type="button"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+                className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
                 onClick={() => void patchClock("finish")}
               >
                 Финиш
@@ -785,53 +785,53 @@ export function WorkoutActiveSession({
       </div>
     ) : null}
 
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
+    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
       {detail.cardioOnly ? (
         <>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Кардио · км / мин
           </p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+          <p className="mt-1 text-3xl font-semibold tabular-nums text-[var(--foreground)]">
             {detail.cardioDistanceKm > 0
               ? `${formatDistanceKm(detail.cardioDistanceKm)} км`
               : formatDurationMinutes(detail.cardioDurationSec)}
           </p>
-          {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
+          {progressLine ? <p className="mt-2 text-sm text-[var(--muted-strong)]">{progressLine}</p> : null}
         </>
       ) : (
         <>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Нагрузка, кг·повт
           </p>
-          <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">
+          <p className="mt-1 text-3xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatLoad(detail.totalLoad)}
           </p>
-          {progressLine ? <p className="mt-2 text-sm text-slate-600">{progressLine}</p> : null}
+          {progressLine ? <p className="mt-2 text-sm text-[var(--muted-strong)]">{progressLine}</p> : null}
           <div className="mt-2 flex flex-wrap gap-2 text-sm">
             {delta ? (
               <span
                 className={
                   progress && (progress.deltaPctVsPrevious ?? 0) >= 0
                     ? "text-teal-700"
-                    : "text-slate-600"
+                    : "text-[var(--muted-strong)]"
                 }
               >
                 к прошлой {delta}
               </span>
             ) : null}
             {vsTarget && progress?.targetLoad ? (
-              <span className="text-slate-500">к цели {vsTarget}</span>
+              <span className="text-[var(--muted)]">к цели {vsTarget}</span>
             ) : null}
           </div>
         </>
       )}
     </section>
 
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <label className="flex flex-col gap-1 text-xs text-slate-500">
+    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+      <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Заметка к тренировке
         <input
-          className="rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
+          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
           defaultValue={detail.note ?? ""}
           key={`note-${detail.id}-${detail.note ?? ""}`}
           placeholder="Самочувствие, зал…"
@@ -918,13 +918,13 @@ export function WorkoutActiveSession({
                       SS {ex.supersetGroup}
                     </span>
                   ) : null}
-                  <h3 className="font-semibold text-slate-900">{ex.name}</h3>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <h3 className="font-semibold text-[var(--foreground)]">{ex.name}</h3>
+                  <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
                     {EXERCISE_KIND_LABELS[ex.kind]}
                   </span>
                   <button
                     type="button"
-                    className="rounded px-1.5 text-xs text-slate-400 hover:bg-slate-100"
+                    className="rounded px-1.5 text-xs text-[var(--muted)] hover:bg-[var(--accent-soft)]"
                     title="Выше"
                     onClick={() => void moveExercise(ex.id, "up")}
                   >
@@ -932,14 +932,14 @@ export function WorkoutActiveSession({
                   </button>
                   <button
                     type="button"
-                    className="rounded px-1.5 text-xs text-slate-400 hover:bg-slate-100"
+                    className="rounded px-1.5 text-xs text-[var(--muted)] hover:bg-[var(--accent-soft)]"
                     title="Ниже"
                     onClick={() => void moveExercise(ex.id, "down")}
                   >
                     ↓
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--muted)]">
                   {isCardio
                     ? [
                         EXERCISE_KIND_LABELS.cardio,
@@ -990,7 +990,7 @@ export function WorkoutActiveSession({
                       className={`rounded-full px-2 py-0.5 font-semibold ${
                         parseBlockMode(ex.blockMode) === mode
                           ? "bg-teal-700 text-white"
-                          : "bg-slate-100 text-slate-600"
+                          : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                       }`}
                       onClick={() => void setExerciseBlockMode(ex.id, mode)}
                     >
@@ -1009,7 +1009,7 @@ export function WorkoutActiveSession({
                   {ex.supersetGroup ? (
                     <button
                       type="button"
-                      className="text-slate-500"
+                      className="text-[var(--muted)]"
                       onClick={() => void clearExerciseSuperset(ex.id)}
                     >
                       Убрать из суперсета
@@ -1026,7 +1026,7 @@ export function WorkoutActiveSession({
               </div>
               <button
                 type="button"
-                className="text-xs text-slate-400 hover:text-red-600"
+                className="text-xs text-[var(--muted)] hover:text-red-600"
                 onClick={() => void deleteExercise(ex.id)}
               >
                 Удалить
@@ -1034,7 +1034,7 @@ export function WorkoutActiveSession({
             </div>
 
             {historyOpen[ex.name] ? (
-              <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <div className="mt-2 rounded-lg bg-[var(--surface-mist)] px-3 py-2 text-xs text-[var(--muted-strong)]">
                 {!historyByName[ex.name] ? (
                   <p>Загрузка…</p>
                 ) : historyByName[ex.name]!.points.length === 0 ? (
@@ -1061,7 +1061,7 @@ export function WorkoutActiveSession({
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                             historyByName[ex.name]!.metric === m
                               ? "bg-teal-700 text-white"
-                              : "bg-white text-slate-600"
+                              : "bg-white text-[var(--muted-strong)]"
                           }`}
                           onClick={() =>
                             setHistoryByName((prev) => ({
@@ -1146,10 +1146,10 @@ export function WorkoutActiveSession({
               </div>
             ) : null}
 
-            <label className="mt-2 flex flex-col gap-1 text-xs text-slate-500">
+            <label className="mt-2 flex flex-col gap-1 text-xs text-[var(--muted)]">
               Заметка
               <input
-                className="rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                className="rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                 defaultValue={ex.note ?? ""}
                 key={`ex-note-${ex.id}-${ex.note ?? ""}`}
                 placeholder="Хват, амплитуда…"
@@ -1162,11 +1162,11 @@ export function WorkoutActiveSession({
             </label>
 
             {ex.lastTime?.sets?.length ? (
-              <div className="mt-3 rounded-[var(--radius-md)] bg-slate-50 px-3 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div className="mt-3 rounded-[var(--radius-md)] bg-[var(--surface-mist)] px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                   Прошлые подходы
                 </p>
-                <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+                <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
                   {ex.lastTime.sets
                     .map((s) =>
                       formatHistoryChip(
@@ -1214,15 +1214,15 @@ export function WorkoutActiveSession({
             <div className="mt-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-end gap-2">
                 {spec.usesDistance ? (
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
+                  <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                     Км
                     <input
                       data-draft-field={`${ex.id}-km`}
                       inputMode="decimal"
-                      className={`w-24 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                      className={`w-24 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.km.trim()
                           ? "border-red-400"
-                          : "border-slate-200"
+                          : "border-[rgba(13,115,119,0.14)]"
                       }`}
                       value={draft.km}
                       onChange={(e) => patchDraft(ex.id, { km: e.target.value })}
@@ -1230,15 +1230,15 @@ export function WorkoutActiveSession({
                   </label>
                 ) : null}
                 {spec.usesDuration ? (
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
+                  <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                     Мин
                     <input
                       data-draft-field={`${ex.id}-time`}
                       inputMode="decimal"
-                      className={`w-24 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                      className={`w-24 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.time.trim()
                           ? "border-red-400"
-                          : "border-slate-200"
+                          : "border-[rgba(13,115,119,0.14)]"
                       }`}
                       placeholder={ex.kind === "duration" ? "1" : "30"}
                       value={draft.time}
@@ -1247,7 +1247,7 @@ export function WorkoutActiveSession({
                   </label>
                 ) : null}
                 {spec.usesWeight ? (
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
+                  <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                     {ex.kind === "assisted"
                       ? "Помощь"
                       : ex.kind === "weighted_bw"
@@ -1256,10 +1256,10 @@ export function WorkoutActiveSession({
                     <input
                       data-draft-field={`${ex.id}-kg`}
                       inputMode="decimal"
-                      className={`w-20 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                      className={`w-20 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.kg.trim()
                           ? "border-red-400"
-                          : "border-slate-200"
+                          : "border-[rgba(13,115,119,0.14)]"
                       }`}
                       value={draft.kg}
                       onChange={(e) => patchDraft(ex.id, { kg: e.target.value })}
@@ -1267,15 +1267,15 @@ export function WorkoutActiveSession({
                   </label>
                 ) : null}
                 {spec.usesReps ? (
-                  <label className="flex flex-col gap-1 text-xs text-slate-500">
+                  <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
                     Повт.
                     <input
                       data-draft-field={`${ex.id}-reps`}
                       inputMode="numeric"
-                      className={`w-20 rounded-lg border px-2 py-2 text-base text-slate-900 ${
+                      className={`w-20 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.reps.trim()
                           ? "border-red-400"
-                          : "border-slate-200"
+                          : "border-[rgba(13,115,119,0.14)]"
                       }`}
                       value={draft.reps}
                       onChange={(e) => patchDraft(ex.id, { reps: e.target.value })}
@@ -1286,7 +1286,7 @@ export function WorkoutActiveSession({
                   <button
                     type="button"
                     title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип подхода`}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs font-bold text-slate-700"
+                    className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-2 py-2 text-xs font-bold text-[var(--muted-strong)]"
                     onClick={() =>
                       patchDraft(ex.id, { setType: nextSetType(draft.setType) })
                     }
@@ -1296,13 +1296,13 @@ export function WorkoutActiveSession({
                 ) : null}
                 {kindUsesRestTimer(ex.kind) ? (
                   <label
-                    className="flex flex-col gap-1 text-xs text-slate-500"
+                    className="flex flex-col gap-1 text-xs text-[var(--muted)]"
                     title={EFFORT_FIELD_ARIA}
                   >
                     {EFFORT_FIELD_LABEL}
                     <input
                       inputMode="decimal"
-                      className="w-14 rounded-lg border border-slate-200 px-2 py-2 text-base text-slate-900"
+                      className="w-14 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
                       placeholder="8"
                       aria-label={EFFORT_FIELD_ARIA}
                       value={draft.rpe}
@@ -1334,7 +1334,7 @@ export function WorkoutActiveSession({
                 </button>
               </div>
               {ex.kind !== "cardio" ? (
-                <p className="text-[11px] leading-snug text-slate-400">
+                <p className="text-[11px] leading-snug text-[var(--muted)]">
                   Тип: {SET_TYPE_LABELS[draft.setType]}
                   {draft.setType === "rest_pause"
                     ? " — короткий отдых внутри подхода"
@@ -1360,7 +1360,7 @@ export function WorkoutActiveSession({
           <button
             key={s.name}
             type="button"
-            className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-teal-50 hover:text-teal-900"
+            className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted-strong)] hover:bg-teal-50 hover:text-teal-900"
             onClick={() => void addExercise(s.name)}
           >
             {s.name}
@@ -1369,7 +1369,7 @@ export function WorkoutActiveSession({
       </div>
     ) : null}
 
-    <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-slate-300 p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-4">
       <div className="flex flex-wrap gap-1">
         {EXERCISE_KINDS.map((key) => (
           <button
@@ -1379,7 +1379,7 @@ export function WorkoutActiveSession({
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
               newExerciseKind === key
                 ? "bg-teal-700 text-white"
-                : "bg-slate-100 text-slate-600"
+                : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
             }`}
           >
             {EXERCISE_KIND_LABELS[key]}
@@ -1387,10 +1387,10 @@ export function WorkoutActiveSession({
         ))}
       </div>
       <div className="relative flex flex-wrap items-end gap-2">
-        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-slate-500">
+        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-[var(--muted)]">
           Упражнение
           <input
-            className="rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
+            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
             placeholder={EXERCISE_KIND_PLACEHOLDERS[newExerciseKind]}
             value={exerciseName}
             onChange={(e) => setExerciseName(e.target.value)}
@@ -1405,13 +1405,13 @@ export function WorkoutActiveSession({
         </label>
         <button
           type="button"
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800"
+          className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
           onClick={() => void addExercise()}
         >
           Добавить
         </button>
         {libraryHits.length > 0 ? (
-          <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-md">
+          <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-[rgba(13,115,119,0.14)] bg-white py-1 shadow-md">
             {libraryHits.map((hit) => (
               <li key={hit.id}>
                 <button
@@ -1422,8 +1422,8 @@ export function WorkoutActiveSession({
                     void addExercise(hit.name, hit.kind);
                   }}
                 >
-                  <span className="font-medium text-slate-900">{hit.name}</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="font-medium text-[var(--foreground)]">{hit.name}</span>
+                  <span className="text-xs text-[var(--muted)]">
                     {EXERCISE_KIND_LABELS[hit.kind]} · {hit.useCount}×
                   </span>
                 </button>
@@ -1434,15 +1434,15 @@ export function WorkoutActiveSession({
       </div>
     </div>
 
-    <section className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
         Вставить текстом
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-[var(--muted)]">
         Пример: «Жим лёжа 80x8, 80x8» — по строке на упражнение. Свободный текст — через AI.
       </p>
       <textarea
-        className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900"
+        className="mt-2 w-full rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
         rows={3}
         value={pasteText}
         onChange={(e) => setPasteText(e.target.value)}

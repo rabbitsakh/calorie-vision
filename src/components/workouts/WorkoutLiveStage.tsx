@@ -128,7 +128,7 @@ export function WorkoutLiveStage({
     exercises.find((e) => e.id === focusExerciseId) ?? exercises[0] ?? null;
   if (!focus) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 px-4 py-6 text-white">
+      <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] px-4 py-6 text-white">
         <p className="text-lg">Нет упражнений</p>
         <button type="button" className="mt-4 text-teal-300" onClick={onExitStage}>
           Назад
@@ -150,9 +150,9 @@ export function WorkoutLiveStage({
   const showSetMeta = kindUsesSetTypes(focus.kind);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950 text-white">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] text-white">
       <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button type="button" className="text-sm text-slate-300" onClick={onExitStage}>
+        <button type="button" className="text-sm text-white/70" onClick={onExitStage}>
           ← Список
         </button>
         <p className="text-2xl font-semibold tabular-nums tracking-tight">{elapsedLabel}</p>
@@ -171,7 +171,7 @@ export function WorkoutLiveStage({
       </div>
 
       {prToast ? (
-        <div className="mx-4 rounded-xl bg-amber-400 px-3 py-2 text-center text-sm font-bold text-slate-950">
+        <div className="mx-4 rounded-xl bg-amber-400 px-3 py-2 text-center text-sm font-bold text-[#0a1f1e]">
           {prToast}
         </div>
       ) : null}
@@ -201,7 +201,7 @@ export function WorkoutLiveStage({
 
       <div className="flex flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
         <div className="flex items-center justify-between gap-2">
-          <button type="button" className="text-slate-400" onClick={onPrev} disabled={busy}>
+          <button type="button" className="text-white/55" onClick={onPrev} disabled={busy}>
             ←
           </button>
           <div className="min-w-0 text-center">
@@ -216,12 +216,12 @@ export function WorkoutLiveStage({
               </p>
             ) : null}
             <h2 className="truncate text-2xl font-semibold leading-tight">{focus.name}</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-white/55">
               {doneCount}/{focus.sets.length || "—"} подходов
               {showSetMeta && currentSet ? ` · ${SET_TYPE_SHORT[currentSet.setType]}` : ""}
             </p>
           </div>
-          <button type="button" className="text-slate-400" onClick={onNext} disabled={busy}>
+          <button type="button" className="text-white/55" onClick={onNext} disabled={busy}>
             →
           </button>
         </div>
@@ -232,7 +232,7 @@ export function WorkoutLiveStage({
               <span
                 key={g.id}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  g.id === focus.id ? "bg-teal-600 text-white" : "bg-white/10 text-slate-300"
+                  g.id === focus.id ? "bg-teal-600 text-white" : "bg-white/10 text-white/70"
                 }`}
               >
                 {g.name}
@@ -246,7 +246,7 @@ export function WorkoutLiveStage({
             className={`mt-3 rounded-xl px-3 py-2 text-center text-sm ${
               advice.kind === "stall"
                 ? "bg-amber-500/20 text-amber-100"
-                : "bg-white/5 text-slate-200"
+                : "bg-white/5 text-white/80"
             }`}
           >
             <span className="font-semibold">{advice.title}.</span> {advice.detail}
@@ -263,7 +263,7 @@ export function WorkoutLiveStage({
               {SET_TYPE_SHORT[draftSetType]}
             </button>
             <label
-              className="flex items-center gap-1.5 text-xs text-slate-400"
+              className="flex items-center gap-1.5 text-xs text-white/55"
               title={EFFORT_FIELD_ARIA}
             >
               {EFFORT_FIELD_LABEL}
@@ -291,7 +291,7 @@ export function WorkoutLiveStage({
                   −
                 </button>
                 <label className="flex flex-col items-center gap-1">
-                  <span className="text-xs uppercase tracking-wide text-slate-400">кг</span>
+                  <span className="text-xs uppercase tracking-wide text-white/55">кг</span>
                   <input
                     data-draft-field={`${focus.id}-kg`}
                     inputMode="decimal"
@@ -315,7 +315,7 @@ export function WorkoutLiveStage({
             ) : null}
             {spec.usesReps ? (
               <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-slate-400">повт</span>
+                <span className="text-xs uppercase tracking-wide text-white/55">повт</span>
                 <input
                   data-draft-field={`${focus.id}-reps`}
                   inputMode="numeric"
@@ -331,7 +331,7 @@ export function WorkoutLiveStage({
             ) : null}
             {spec.usesDistance ? (
               <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-slate-400">км</span>
+                <span className="text-xs uppercase tracking-wide text-white/55">км</span>
                 <input
                   data-draft-field={`${focus.id}-km`}
                   inputMode="decimal"
@@ -347,7 +347,7 @@ export function WorkoutLiveStage({
             ) : null}
             {spec.usesDuration ? (
               <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-slate-400">мин</span>
+                <span className="text-xs uppercase tracking-wide text-white/55">мин</span>
                 <input
                   data-draft-field={`${focus.id}-time`}
                   inputMode="decimal"
@@ -377,7 +377,7 @@ export function WorkoutLiveStage({
             ) : null}
           </div>
         ) : (
-          <p className="mt-8 text-center text-slate-400">Отметьте подход ✓</p>
+          <p className="mt-8 text-center text-white/55">Отметьте подход ✓</p>
         )}
 
         <div className="mt-auto flex flex-col gap-3 pt-8">
@@ -385,7 +385,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-slate-950 disabled:opacity-40"
+              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
               onClick={onCompleteCurrent}
             >
               ✓ Готово
@@ -394,7 +394,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-slate-950 disabled:opacity-40"
+              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
               onClick={onAddAndComplete}
             >
               + Подход и ✓
@@ -426,7 +426,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy || !allDone}
-              className="flex-1 rounded-2xl bg-white py-3 text-sm font-bold text-slate-950 disabled:opacity-30"
+              className="flex-1 rounded-2xl bg-white py-3 text-sm font-bold text-[#0a1f1e] disabled:opacity-30"
               onClick={onFinish}
             >
               Завершить

@@ -55,22 +55,22 @@ export function WorkoutCreateSessionPanel({
       ref={formRef}
       className="rounded-2xl border-2 border-[var(--accent)] bg-white p-4 shadow-sm"
     >
-      <h2 className="font-semibold text-slate-900">Новая тренировка</h2>
+      <h2 className="font-semibold text-[var(--foreground)]">Новая тренировка</h2>
       {fromPlusMenu ? (
         <p className="mt-1 text-xs font-medium text-teal-800">
           Из меню «+» · после создания откроется зал
         </p>
       ) : null}
-      <label className="mt-3 flex flex-col gap-1 text-xs text-slate-500">
+      <label className="mt-3 flex flex-col gap-1 text-xs text-[var(--muted)]">
         Дата
         <input
           type="date"
-          className="rounded-lg border border-slate-200 px-3 py-2 text-base"
+          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
           value={newDate}
           onChange={(e) => onDateChange(e.target.value)}
         />
       </label>
-      <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
         Вид / группы
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -84,7 +84,7 @@ export function WorkoutCreateSessionPanel({
               className={`rounded-full px-3 py-1.5 text-sm font-medium ${
                 on
                   ? "bg-teal-700 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
             >
               {g.label}
@@ -94,7 +94,7 @@ export function WorkoutCreateSessionPanel({
       </div>
       {!cardioOnly ? (
         <>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Прогрессия к прошлой
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -106,22 +106,22 @@ export function WorkoutCreateSessionPanel({
                 className={`rounded-full px-3 py-1.5 text-sm font-medium ${
                   progressRate === opt.value
                     ? "bg-teal-700 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                 }`}
               >
                 +{opt.label}
               </button>
             ))}
           </div>
-          {progressLine ? <p className="mt-3 text-sm text-slate-600">{progressLine}</p> : null}
+          {progressLine ? <p className="mt-3 text-sm text-[var(--muted-strong)]">{progressLine}</p> : null}
         </>
       ) : (
-        <p className="mt-3 text-sm text-slate-600">
+        <p className="mt-3 text-sm text-[var(--muted-strong)]">
           Кардио: записывайте км и минуты — темп считается автоматически.
         </p>
       )}
       {hasPreviousSession ? (
-        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-3 flex items-center gap-2 text-sm text-[var(--muted-strong)]">
           <input
             type="checkbox"
             checked={copyExercises}
@@ -139,7 +139,7 @@ export function WorkoutCreateSessionPanel({
         >
           Создать и в зал
         </button>
-        <button type="button" className="rounded-lg px-3 py-2 text-sm text-slate-600" onClick={onCancel}>
+        <button type="button" className="rounded-lg px-3 py-2 text-sm text-[var(--muted-strong)]" onClick={onCancel}>
           Отмена
         </button>
         {fromPlusMenu ? (

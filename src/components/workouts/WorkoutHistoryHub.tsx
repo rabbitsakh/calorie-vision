@@ -109,7 +109,7 @@ export function WorkoutHistoryHub({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[var(--muted-strong)]">
           Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
         </p>
         <button
@@ -121,35 +121,35 @@ export function WorkoutHistoryHub({
         </button>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+      <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <button
             type="button"
-            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            className="rounded-full px-2 py-1 text-sm text-[var(--muted)] hover:bg-[var(--accent-soft)]"
             onClick={onCalPrev}
           >
             ←
           </button>
-          <p className="text-sm font-semibold text-slate-800">
+          <p className="text-sm font-semibold text-[var(--foreground)]">
             {formatMonthTitle(calYear, calMonth)}
           </p>
           <button
             type="button"
-            className="rounded-full px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            className="rounded-full px-2 py-1 text-sm text-[var(--muted)] hover:bg-[var(--accent-soft)]"
             onClick={onCalNext}
           >
             →
           </button>
         </div>
         {monthSummary ? (
-          <p className="mb-2 text-xs text-slate-500">
+          <p className="mb-2 text-xs text-[var(--muted)]">
             {monthSummary.sessionCount} трен. · {formatWorkoutLoad(monthSummary.tonnage)} кг·повт
             {monthSummary.cardioDistanceKm > 0
               ? ` · ${formatDistanceKm(monthSummary.cardioDistanceKm)} км`
               : ""}
           </p>
         ) : null}
-        <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-slate-400">
+        <div className="grid grid-cols-7 gap-0.5 text-center text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
           {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((d) => (
             <div key={d} className="py-1">
               {d}
@@ -170,7 +170,7 @@ export function WorkoutHistoryHub({
                     ? "bg-teal-700 font-semibold text-white"
                     : count > 0
                       ? "bg-teal-50 font-medium text-teal-900 hover:bg-teal-100"
-                      : "text-slate-600 hover:bg-slate-50"
+                      : "text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => onPickDay(day)}
               >
@@ -188,8 +188,8 @@ export function WorkoutHistoryHub({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Фильтр списка
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -205,7 +205,7 @@ export function WorkoutHistoryHub({
               key={key}
               type="button"
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                filterPeriod === key ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+                filterPeriod === key ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
               }`}
               onClick={() => onSetFilterPeriod(key)}
             >
@@ -215,7 +215,7 @@ export function WorkoutHistoryHub({
           <button
             type="button"
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              filterCardio ? "bg-teal-700 text-white" : "bg-slate-100 text-slate-600"
+              filterCardio ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
             }`}
             onClick={onToggleCardio}
           >
@@ -230,7 +230,7 @@ export function WorkoutHistoryHub({
                 key={g.key}
                 type="button"
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-slate-50 text-slate-600"
+                  on ? "bg-teal-700 text-white" : "bg-[var(--surface-mist)] text-[var(--muted-strong)]"
                 }`}
                 onClick={() => onToggleGroup(g.key)}
               >
@@ -242,13 +242,13 @@ export function WorkoutHistoryHub({
       </section>
 
       {insights ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Неделя {formatDateShort(insights.weekStart)}–{formatDateShort(insights.weekEnd)}
           </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatWorkoutLoad(insights.weeklyTotal)}{" "}
-            <span className="text-sm font-normal text-slate-500">кг·повт</span>
+            <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
             {formatWorkoutTrend(insights.weekTrendPct) ? (
               <span className="ml-2 text-sm font-medium text-teal-800">
                 {formatWorkoutTrend(insights.weekTrendPct)} к пред.
@@ -256,7 +256,7 @@ export function WorkoutHistoryHub({
             ) : null}
           </p>
           {(insights.weeklyCardioKm ?? 0) > 0 ? (
-            <p className="text-sm tabular-nums text-slate-700">
+            <p className="text-sm tabular-nums text-[var(--muted-strong)]">
               Кардио {formatDistanceKm(insights.weeklyCardioKm!)} км
               {formatWorkoutTrend(insights.weekCardioTrendPct) ? (
                 <span className="ml-2 text-xs text-teal-800">
@@ -265,13 +265,13 @@ export function WorkoutHistoryHub({
               ) : null}
             </p>
           ) : null}
-          <p className="text-xs text-slate-400">{insights.sessionCount} тренировок</p>
+          <p className="text-xs text-[var(--muted)]">{insights.sessionCount} тренировок</p>
           {Object.keys(insights.weeklyByGroup).length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(insights.weeklyByGroup).map(([key, g]) => (
                 <span
                   key={key}
-                  className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700"
+                  className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted-strong)]"
                 >
                   {g.label}: {formatWorkoutLoad(g.load)}
                 </span>
@@ -279,13 +279,13 @@ export function WorkoutHistoryHub({
             </div>
           ) : null}
           {insights.monthStart ? (
-            <div className="mt-3 border-t border-slate-100 pt-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="mt-3 border-t border-[rgba(13,115,119,0.08)] pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                 Месяц {insights.monthStart.slice(0, 7)}
               </p>
-              <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
                 {formatWorkoutLoad(insights.monthlyTotal ?? 0)}{" "}
-                <span className="text-sm font-normal text-slate-500">кг·повт</span>
+                <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
                 {formatWorkoutTrend(insights.monthTrendPct) ? (
                   <span className="ml-2 text-sm font-medium text-teal-800">
                     {formatWorkoutTrend(insights.monthTrendPct)}
@@ -293,11 +293,11 @@ export function WorkoutHistoryHub({
                 ) : null}
               </p>
               {(insights.monthlyCardioKm ?? 0) > 0 ? (
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-[var(--muted-strong)]">
                   Кардио {formatDistanceKm(insights.monthlyCardioKm!)} км
                 </p>
               ) : null}
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[var(--muted)]">
                 {insights.monthlySessionCount ?? 0} тренировок
               </p>
             </div>
@@ -323,10 +323,10 @@ export function WorkoutHistoryHub({
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      {loading ? <p className="text-sm text-slate-500">Загрузка…</p> : null}
+      {loading ? <p className="text-sm text-[var(--muted)]">Загрузка…</p> : null}
 
       {!loading && sessions.length === 0 && !creating ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">
+        <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-6 text-center text-sm text-[var(--muted-strong)]">
           {filterPeriod !== "all" || filterGroups.length || filterCardio
             ? "Нет тренировок по фильтру."
             : "Пока нет тренировок. Создайте первую и отметьте вид / группы."}
@@ -349,22 +349,22 @@ export function WorkoutHistoryHub({
         {sessions.map((s) => (
           <li
             key={s.id}
-            className="flex items-stretch gap-2 rounded-2xl border border-slate-200 bg-white"
+            className="flex items-stretch gap-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white"
           >
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50"
+              className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--surface-mist)]"
               onClick={() => onOpenSession(s.id)}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-slate-900">{formatDateWords(s.date)}</p>
-                <p className="truncate text-sm text-slate-600">{s.muscleLabels.join(" · ")}</p>
-                <p className="text-xs text-slate-400">
+                <p className="font-semibold text-[var(--foreground)]">{formatDateWords(s.date)}</p>
+                <p className="truncate text-sm text-[var(--muted-strong)]">{s.muscleLabels.join(" · ")}</p>
+                <p className="text-xs text-[var(--muted)]">
                   {s.exerciseCount} упр. · {s.setCount}{" "}
                   {s.cardioOnly ? "отр." : "подх."}
                 </p>
               </div>
-              <p className="text-lg font-semibold tabular-nums text-slate-900">
+              <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
                 {s.cardioOnly
                   ? s.cardioDistanceKm > 0
                     ? `${formatDistanceKm(s.cardioDistanceKm)} км`
@@ -375,7 +375,7 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
+              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
               onClick={() => onRepeat(s.id)}
             >
               Повторить
@@ -383,7 +383,7 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-slate-100 px-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-40"
               title="Сохранить как шаблон"
               onClick={() =>
                 onSaveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))

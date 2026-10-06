@@ -163,10 +163,10 @@ export function WorkoutWeekPlan({
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
               Сегодня{data ? ` · ${data.weekdayLabel}` : ""}
             </p>
-            <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-slate-900 sm:text-lg">
+            <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
               {sceneHeadline}
             </p>
-            <p className="mt-1.5 text-xs font-medium text-slate-600">{sceneMeta}</p>
+            <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">{sceneMeta}</p>
           </div>
           {active ? (
             <button
@@ -188,10 +188,10 @@ export function WorkoutWeekPlan({
               <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
                 Сейчас · {statusLabel(active.clockStatus)}
               </p>
-              <p className="mt-0.5 font-semibold text-slate-900">
+              <p className="mt-0.5 font-semibold text-[var(--foreground)]">
                 {active.muscleLabels.join(" · ") || "Тренировка"}
               </p>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-[var(--muted-strong)]">
                 {active.exerciseCount} упр. · {sessionMetric(active)}
               </p>
             </div>
@@ -215,10 +215,10 @@ export function WorkoutWeekPlan({
               {drafts.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900">
+                    <p className="truncate font-semibold text-[var(--foreground)]">
                       {s.muscleLabels.join(" · ") || "Тренировка"}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[var(--muted)]">
                       {s.exerciseCount} упр. · {s.setCount} подх.
                     </p>
                   </div>
@@ -246,10 +246,10 @@ export function WorkoutWeekPlan({
 
         {!active && drafts.length === 0 ? (
           <div className="gym-today-block">
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
               {isFirstEmpty ? "Первая тренировка" : "Начать тренировку"}
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {isFirstEmpty
                 ? "Один тап — и вы в зале. Подходы и кардио можно добавить сразу."
                 : "Пустая сессия на сегодня — упражнения добавите сами."}
@@ -264,22 +264,22 @@ export function WorkoutWeekPlan({
             </button>
 
             {isFirstEmpty ? null : loading ? (
-              <p className="mt-4 text-sm text-slate-400">Загрузка плана…</p>
+              <p className="mt-4 text-sm text-[var(--muted)]">Загрузка плана…</p>
             ) : error ? (
               <p className="mt-4 text-sm text-red-600">{error}</p>
             ) : planned.length > 0 ? (
               <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                   Или по плану на сегодня
                 </p>
                 <ul className="mt-2 space-y-2">
                   {planned.map((r) => (
                     <li
                       key={r.id}
-                      className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-slate-50/80 px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-mist)]/80 px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-900">
+                        <p className="truncate font-semibold text-[var(--foreground)]">
                           {r.planLabel ? (
                             <span className="mr-1.5 rounded bg-teal-700 px-1.5 py-0.5 text-xs text-white">
                               {r.planLabel}
@@ -287,7 +287,7 @@ export function WorkoutWeekPlan({
                           ) : null}
                           {r.name}
                         </p>
-                        <p className="truncate text-xs text-slate-500">
+                        <p className="truncate text-xs text-[var(--muted)]">
                           {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
                         </p>
                       </div>
@@ -305,7 +305,7 @@ export function WorkoutWeekPlan({
               </div>
             ) : (
               <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-[var(--muted-strong)]">
                   На сегодня в плане пусто. Составьте шаблон и отметьте дни недели — он появится здесь.
                 </p>
                 <button
@@ -326,17 +326,17 @@ export function WorkoutWeekPlan({
 
         {finished.length > 0 ? (
           <div className="gym-today-block">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
               Уже сегодня
             </p>
             <ul className="mt-2 space-y-2">
               {finished.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">
+                    <p className="truncate font-medium text-[var(--foreground)]">
                       {s.muscleLabels.join(" · ") || "Тренировка"}
                     </p>
-                    <p className="text-xs text-slate-500">{sessionMetric(s)}</p>
+                    <p className="text-xs text-[var(--muted)]">{sessionMetric(s)}</p>
                   </div>
                   <button
                     type="button"
@@ -369,11 +369,11 @@ export function WorkoutWeekPlan({
           >
             <summary className="gym-today-fold-summary">
               <span className="min-w-0">
-                <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                   План на неделю
                 </span>
                 {!weekOpen ? (
-                  <span className="mt-0.5 block text-sm text-slate-500">
+                  <span className="mt-0.5 block text-sm text-[var(--muted)]">
                     {planned.length > 0
                       ? `Сегодня: ${planned.map((r) => r.name).join(", ")}`
                       : "Шаблоны по дням · нажмите, чтобы настроить"}
@@ -381,19 +381,19 @@ export function WorkoutWeekPlan({
                 ) : null}
               </span>
               <span
-                className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180"
                 aria-hidden
               >
                 ▾
               </span>
             </summary>
             <div className="gym-today-fold-body space-y-3">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-[var(--muted-strong)]">
                 План = шаблоны с отмеченными днями. Нажмите день без записи — создадите шаблон;
                 нажмите название — отредактируете.
               </p>
               {loading || !data ? (
-                <p className="text-sm text-slate-400">…</p>
+                <p className="text-sm text-[var(--muted)]">…</p>
               ) : (
                 <ul className="space-y-2">
                   {data.week.map((day) => (
@@ -405,7 +405,7 @@ export function WorkoutWeekPlan({
                     >
                       <span
                         className={`w-8 shrink-0 font-semibold ${
-                          day.weekday === data.weekday ? "text-teal-800" : "text-slate-500"
+                          day.weekday === data.weekday ? "text-teal-800" : "text-[var(--muted)]"
                         }`}
                       >
                         {WEEKDAY_LABELS_RU[day.weekday]}
@@ -415,13 +415,13 @@ export function WorkoutWeekPlan({
                           onCreatePlanDay ? (
                             <button
                               type="button"
-                              className="text-left font-medium text-slate-500 underline-offset-2 hover:text-teal-800 hover:underline"
+                              className="text-left font-medium text-[var(--muted)] underline-offset-2 hover:text-teal-800 hover:underline"
                               onClick={() => onCreatePlanDay(day.weekday)}
                             >
                               + Назначить
                             </button>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-[var(--muted)]">—</span>
                           )
                         ) : (
                           day.routines.map((r) => (
