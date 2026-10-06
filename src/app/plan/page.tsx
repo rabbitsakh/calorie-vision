@@ -33,11 +33,11 @@ export default function PlanPage() {
     <AppShell
       title="План"
       compact
-      description="Неделя целиком: челлендж, вес, покупки."
+      description="Одна неделя — цели, вес и покупки."
       date={date}
     >
       <AuthGate>
-        {/* D4: one weekly composition — not five stacked cards. */}
+        {/* B5 — week mural */}
         <div className="plan-week">
           <div className="plan-week__hero">
             <WeeklyPlan

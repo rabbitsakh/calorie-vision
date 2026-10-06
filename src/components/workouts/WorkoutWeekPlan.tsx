@@ -158,21 +158,22 @@ export function WorkoutWeekPlan({
         aria-label="Сводка зала на сегодня"
       >
         <div className="day-hero-glow" aria-hidden />
-        <div className="relative flex items-center gap-3 px-3.5 py-4 md:px-5 md:py-5">
+        <div className="relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
           <div className="min-w-0 flex-1">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-teal-900/65">
-              Сегодня{data ? ` · ${data.weekdayLabel}` : ""}
+            <p className={`text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70 ${active ? "gym-live-pulse" : ""}`}>
+              {active ? "Сейчас" : "Сегодня"}
+              {data ? ` · ${data.weekdayLabel}` : ""}
             </p>
-            <p className="mt-1 text-[1.05rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-lg">
+            <p className="font-display mt-2 text-[1.25rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.45rem]">
               {sceneHeadline}
             </p>
-            <p className="mt-1.5 text-xs font-medium text-[var(--muted-strong)]">{sceneMeta}</p>
+            <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">{sceneMeta}</p>
           </div>
           {active ? (
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3.5 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(13,115,119,0.3)] disabled:opacity-40"
               onClick={() => onOpenSession(active.id)}
             >
               В зал

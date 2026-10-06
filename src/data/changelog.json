@@ -1,320 +1,672 @@
 [
   {
-    "version": "2.3.38",
+    "version": "2.6.19",
     "date": "2026-10-06",
-    "summary": "design W7–W10: retention, sheets, rhythm, final slate audit",
-    "items": [
-      {"kind": "improve", "text": "W7: rewards, badges, challenge, evening check-in — cream/teal"},
-      {"kind": "improve", "text": "W8: weight/water sheets, share, photo uploader без slate"},
-      {"kind": "improve", "text": "W9–W10: оставшиеся product surfaces + stage/companion audit"}
-    ]
-  },
-  {
-    "version": "2.3.37",
-    "date": "2026-10-06",
-    "summary": "design W6: тёплый auth и onboarding без slate",
-    "items": [
-      {"kind": "improve", "text": "AuthPanel и LoginForm на cream/teal токенах"},
-      {"kind": "improve", "text": "Onboarding overlay и PWA install wizard без холодного slate"}
-    ]
-  },
-  {
-    "version": "2.3.36",
-    "date": "2026-10-06",
-    "summary": "design W5: тёплый confirm и add flow без slate",
-    "items": [
-      {"kind": "improve", "text": "ConfirmDishFields и ConfirmationCard на cream/teal"},
-      {"kind": "improve", "text": "FoodAdd panel/mode picker и photo picker без slate"}
-    ]
-  },
-  {
-    "version": "2.3.35",
-    "date": "2026-10-06",
-    "summary": "design W4: тёплый дневник — лог, suggestions, favorites без slate",
-    "items": [
-      {"kind": "improve", "text": "DailyLog, quick-add и заметки на cream/teal токенах"},
-      {"kind": "improve", "text": "Suggestions и favorites — без холодных divide/slate"},
-      {"kind": "improve", "text": "Undo toast и empty day на тёплых поверхностях"}
-    ]
-  },
-  {
-    "version": "2.3.34",
-    "date": "2026-10-06",
-    "summary": "design W3: тёплый план — неделя, вес, покупки без slate",
+    "summary": "design: adult warm W1–W10 — cream/teal product surfaces ship",
     "items": [
       {
-        "kind": "improve",
-        "text": "WeeklyPlan, вес и покупки — cream/teal вместо slate"
-      },
-      {
-        "kind": "improve",
-        "text": "Недельный отчёт и история веса на тёплых поверхностях"
+        "kind": "improvement",
+        "text": "design: adult warm W1–W10 — cream/teal product surfaces ship"
       }
     ]
   },
   {
-    "version": "2.3.33",
+    "version": "2.6.18",
     "date": "2026-10-06",
-    "summary": "design W2: тёплый профиль — настройки и пуш без slate",
+    "summary": "design: warm gym — session, plan and history off slate",
     "items": [
       {
-        "kind": "improve",
-        "text": "ProfileForm, двери настроек и DietTargets на cream/teal токенах"
-      },
-      {
-        "kind": "improve",
-        "text": "Push reminders и тихие празднования — без холодного slate"
-      },
-      {
-        "kind": "improve",
-        "text": "Список профиля: мягкий wash и elevated rows"
+        "kind": "improvement",
+        "text": "design: warm gym — session, plan and history off slate"
       }
     ]
   },
   {
-    "version": "2.3.32",
+    "version": "2.6.17",
     "date": "2026-10-06",
-    "summary": "design W1: тёплая статистика — tiles, heatmap, empty scene",
+    "summary": "design: warm chrome — cream tokens, date strip off slate",
     "items": [
       {
-        "kind": "improve",
-        "text": "StatsView и heatmap: cream/teal токены вместо slate"
-      },
-      {
-        "kind": "improve",
-        "text": "Пустой период — тёплая сцена с CTA, не серая заглушка"
-      },
-      {
-        "kind": "improve",
-        "text": "Мягкий teal wash под блоком статистики"
+        "kind": "improvement",
+        "text": "design: warm chrome — cream tokens, date strip off slate"
       }
     ]
   },
   {
-    "version": "2.3.31",
+    "version": "2.6.16",
     "date": "2026-10-06",
-    "summary": "design: тёплый зал — сессия, план и история без slate",
+    "summary": "design: alive adult ration — warm light, bold ring, %-led hero",
     "items": [
       {
-        "kind": "improve",
-        "text": "Активная сессия, подходы, шаблоны и история — токены cream/teal вместо slate"
-      },
-      {
-        "kind": "improve",
-        "text": "Live stage: глубокий teal-ink фон вместо холодного slate-950"
-      },
-      {
-        "kind": "improve",
-        "text": "Сцена «сегодня» в зале — мягкий teal wash под лентой"
+        "kind": "improvement",
+        "text": "design: alive adult ration — warm light, bold ring, %-led hero"
       }
     ]
   },
   {
-    "version": "2.3.30",
+    "version": "2.6.15",
     "date": "2026-10-06",
-    "summary": "design: тёплый chrome — cream tokens, календарь и лента без slate",
+    "summary": "design: богатый спокойный рацион — mist, elevated feed",
     "items": [
       {
-        "kind": "improve",
-        "text": "Фон и muted-ink сдвинуты к cream/stone — меньше холодной серости"
-      },
-      {
-        "kind": "improve",
-        "text": "DateNavBar и календарь: teal mist hover вместо slate-100"
-      },
-      {
-        "kind": "improve",
-        "text": "План, профиль, статистика, меню +, soft celebration и meal cards на тёплых поверхностях"
+        "kind": "improvement",
+        "text": "design: богатый спокойный рацион — mist, elevated feed"
       }
     ]
   },
   {
-    "version": "2.3.29",
-    "date": "2026-10-06",
-    "summary": "design: живой взрослый рацион — тёплый свет, сильное кольцо, % вперёд",
-    "items": [
-      {
-        "kind": "improve",
-        "text": "Тёплый luminous фон и teal bloom вместо серого mist"
-      },
-      {
-        "kind": "improve",
-        "text": "DayHero: крупнее кольцо, Unbounded-заголовок, процент как главный сигнал"
-      },
-      {
-        "kind": "improve",
-        "text": "Лента, вода и вкладки — живые поверхности без slate-серости"
-      }
-    ]
-  },
-  {
-    "version": "2.3.28",
-    "date": "2026-10-05",
-    "summary": "design: богатый спокойный рацион — mist, elevated feed, одна сцена дня",
-    "items": [
-      {
-        "kind": "improve",
-        "text": "Атмосфера sage-mist вместо белой пустоты; мягкий teal glow в герое"
-      },
-      {
-        "kind": "improve",
-        "text": "Лента приёмов — приподнятые строки, не hairline-каша"
-      },
-      {
-        "kind": "improve",
-        "text": "День как одна композиция: герой + лента в общем mist-band; белок в сводке"
-      }
-    ]
-  },
-  {
-    "version": "2.3.27",
+    "version": "2.6.14",
     "date": "2026-10-05",
     "summary": "design: заметный взрослый вид — плоский герой, тихие празднования",
     "items": [
       {
-        "kind": "improve",
-        "text": "Рацион: белый плоский DayHero, крупнее кольцо и заголовок — без day-part «конфет»"
-      },
-      {
-        "kind": "improve",
-        "text": "Chrome: Manrope в wordmark; вкладки-сегменты подчёркиванием, не pill"
-      },
-      {
-        "kind": "improve",
-        "text": "Празднования тихие по умолчанию для всех; в профиле можно включить обратно"
+        "kind": "improvement",
+        "text": "design: заметный взрослый вид — плоский герой, тихие празднования"
       }
     ]
   },
   {
-    "version": "2.3.26",
+    "version": "2.6.13",
     "date": "2026-10-05",
-    "summary": "design: взрослый рацион G1–G3 — герой без маскота, «Ещё», тихий toast",
+    "summary": "design: взрослый рацион G1–G3 — герой, «Ещё», тихий toast",
     "items": [
       {
-        "kind": "improve",
-        "text": "Рацион: DayHero без маскота — кольцо и факт в первом viewport"
-      },
-      {
-        "kind": "improve",
-        "text": "Рацион: квесты/привычки/итог за одной дверью «Ещё»; вода остаётся на поверхности"
-      },
-      {
-        "kind": "improve",
-        "text": "Сохранение: тихий текстовый toast вместо cheer-маскота"
+        "kind": "improvement",
+        "text": "design: взрослый рацион G1–G3 — герой, «Ещё», тихий toast"
       }
     ]
   },
   {
-    "version": "2.3.25",
-    "date": "2026-10-04",
-    "summary": "fix(gym): список упражнений, усилие/отдых-пауза, план на неделю",
+    "version": "2.6.12",
+    "date": "2026-10-05",
+    "summary": "fix(gym): список упражнений, усилие, план на неделю",
     "items": [
       {
         "kind": "fix",
-        "text": "Зал: список упражнений всегда вертикальный; «← Пред/След →» только в режиме «В зал»"
-      },
-      {
-        "kind": "fix",
-        "text": "Зал: после удаления упражнения фокус не ломает раскладку"
-      },
-      {
-        "kind": "improve",
-        "text": "Подход: «Усилие» вместо RPE; тип «О-п» = отдых-пауза с подсказкой"
-      },
-      {
-        "kind": "improve",
-        "text": "План на неделю: открыт по умолчанию, «+ Назначить» по дням, сохранение возвращает к плану"
+        "text": "fix(gym): список упражнений, усилие, план на неделю"
       }
     ]
   },
   {
-    "version": "2.3.24",
+    "version": "2.6.11",
     "date": "2026-10-03",
-    "summary": "design: более взрослый продукт — спокойные токены и герой дня",
+    "summary": "design: взрослый продукт A1–A4 (токены, DayHero, soft celeb)",
     "items": [
       {
-        "kind": "improve",
-        "text": "Токены: спокойнее фон, плоские радиусы/тени, кнопки и чипы без bounce"
-      },
-      {
-        "kind": "improve",
-        "text": "День: тише DayHero (Manrope, без idle/pet), спокойные фразы и soft-celebration"
-      },
-      {
-        "kind": "improve",
-        "text": "Продуктовые заголовки на Manrope; Unbounded остаётся на бренде и лендинге"
+        "kind": "improvement",
+        "text": "design: взрослый продукт A1–A4 (токены, DayHero, soft celeb)"
       }
     ]
   },
   {
-    "version": "2.3.23",
+    "version": "2.6.10",
+    "date": "2026-10-03",
+    "summary": "feat(ux): W10–W12 confirm split, tokens, first-week quiet",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): W10–W12 confirm split, tokens, first-week quiet"
+      }
+    ]
+  },
+  {
+    "version": "2.6.9",
+    "date": "2026-10-03",
+    "summary": "feat(ux): W7–W9 active session split, tokens, soft budget",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): W7–W9 active session split, tokens, soft budget"
+      }
+    ]
+  },
+  {
+    "version": "2.6.8",
+    "date": "2026-10-03",
+    "summary": "feat(ux): W1–W6 trust, find, profile, gym, recog, install copy",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): W1–W6 trust, find, profile, gym, recog, install copy"
+      }
+    ]
+  },
+  {
+    "version": "2.6.7",
+    "date": "2026-10-02",
+    "summary": "chore(rustore): скриншоты витрины — рацион / зал / статы / «+»",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(rustore): скриншоты витрины — рацион / зал / статы / «+»"
+      }
+    ]
+  },
+  {
+    "version": "2.6.6",
     "date": "2026-10-01",
-    "summary": "fix(apk): ложное «Нет интернета» при рабочей сети",
+    "summary": "feat(design): D5+D6 — зал как сцена дня, статы без каскада карточек",
     "items": [
       {
-        "kind": "fix",
-        "text": "APK: probe через /api/health + favicon; offline stub не врёт «нет сети» до проверки"
-      },
-      {
-        "kind": "fix",
-        "text": "APK: при живой сети offline.html сразу уходит в локальный черновик"
+        "kind": "feature",
+        "text": "feat(design): D5+D6 — зал как сцена дня, статы без каскада карточек"
       }
     ]
   },
   {
-    "version": "2.3.22",
-    "date": "2026-09-25",
-    "summary": "fix(apk): resume редиректил на localhost:3000",
+    "version": "2.6.5",
+    "date": "2026-10-01",
+    "summary": "feat(design): D4 — план как недельная сцена, профиль как список настроек",
     "items": [
       {
-        "kind": "fix",
-        "text": "capacitor-resume / native-bridge: Location на calorievision.ru, не localhost:3000"
+        "kind": "feature",
+        "text": "feat(design): D4 — план как недельная сцена, профиль как список настроек"
       }
     ]
   },
   {
-    "version": "2.3.21",
-    "date": "2026-09-25",
-    "summary": "fix(apk): петля offline↔shell — без native cold-start resume",
+    "version": "2.6.4",
+    "date": "2026-10-01",
+    "summary": "fix(deploy): npm install не «зависает» молча на 18%",
     "items": [
       {
         "kind": "fix",
-        "text": "APK: убран native loadUrl resume (гонка с shell → прыжки на «Нет интернета»)"
-      },
-      {
-        "kind": "fix",
-        "text": "APK: offline stub не авто-редиректит в облако; skip одного auto-restore"
+        "text": "fix(deploy): npm install не «зависает» молча на 18%"
       }
     ]
   },
   {
-    "version": "2.3.20",
-    "date": "2026-09-25",
-    "summary": "fix(apk): вход + ложный офлайн; RuStore волны R1–R5",
+    "version": "2.6.3",
+    "date": "2026-10-01",
+    "summary": "feat: D3 confirm + cv-release progress в одном PR",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: D3 confirm + cv-release progress в одном PR"
+      }
+    ]
+  },
+  {
+    "version": "2.6.2",
+    "date": "2026-10-01",
+    "summary": "feat(deploy): шкала % вместо простыни логов",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(deploy): шкала % вместо простыни логов"
+      }
+    ]
+  },
+  {
+    "version": "2.6.1",
+    "date": "2026-10-01",
+    "summary": "fix(lint): WorkoutsView — deps для refreshDetail",
     "items": [
       {
         "kind": "fix",
-        "text": "APK: не залипать на «Нет интернета» при рабочей сети (probe calorievision.ru)"
-      },
+        "text": "fix(lint): WorkoutsView — deps для refreshDetail"
+      }
+    ]
+  },
+  {
+    "version": "2.6.0",
+    "date": "2026-10-01",
+    "summary": "feat(design): D2 — рацион ниже ленты без стены мотивации",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D2 — рацион ниже ленты без стены мотивации"
+      }
+    ]
+  },
+  {
+    "version": "2.5.19",
+    "date": "2026-10-01",
+    "summary": "feat(design): D0+D1 — токены и хром (совместимо с APK 2.3.22)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D0+D1 — токены и хром (совместимо с APK 2.3.22)"
+      }
+    ]
+  },
+  {
+    "version": "2.5.18",
+    "date": "2026-10-01",
+    "summary": "fix(apk): фото профиля снова в WebView",
+    "items": [
       {
         "kind": "fix",
-        "text": "APK: вход сохраняется после перезапуска (CvSession + resume-токен)"
-      },
+        "text": "fix(apk): фото профиля снова в WebView"
+      }
+    ]
+  },
+  {
+    "version": "2.5.17",
+    "date": "2026-10-01",
+    "summary": "fix(apk): ложное «Нет интернета» при рабочей сети (2.3.23)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): ложное «Нет интернета» при рабочей сети (2.3.23)"
+      }
+    ]
+  },
+  {
+    "version": "2.5.16",
+    "date": "2026-10-01",
+    "summary": "feat(ux): Уточнить БЖУ в дневнике, контекст фото, покупки, квест зала",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): Уточнить БЖУ в дневнике, контекст фото, покупки, квест зала"
+      }
+    ]
+  },
+  {
+    "version": "2.5.15",
+    "date": "2026-09-30",
+    "summary": "feat(ux): follow-ups 1–9 — trust, offline, gym↔день, retention",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): follow-ups 1–9 — trust, offline, gym↔день, retention"
+      }
+    ]
+  },
+  {
+    "version": "2.5.14",
+    "date": "2026-09-30",
+    "summary": "feat: волны B–E — trust, gym, retention, platform (без RuStore)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: волны B–E — trust, gym, retention, platform (без RuStore)"
+      }
+    ]
+  },
+  {
+    "version": "2.5.13",
+    "date": "2026-09-30",
+    "summary": "fix(ui): «Тренировка» не вылезает из плитки в меню +",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): «Тренировка» не вылезает из плитки в меню +"
+      }
+    ]
+  },
+  {
+    "version": "2.5.12",
+    "date": "2026-09-29",
+    "summary": "fix(deploy): build не падает на V8 heap OOM (~1 GB)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): build не падает на V8 heap OOM (~1 GB)"
+      }
+    ]
+  },
+  {
+    "version": "2.5.11",
+    "date": "2026-09-29",
+    "summary": "fix: + меню без «тренировки» вечером + стабильное фото профиля",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: + меню без «тренировки» вечером + стабильное фото профиля"
+      }
+    ]
+  },
+  {
+    "version": "2.5.10",
+    "date": "2026-09-29",
+    "summary": "feat: trust v2 → mid-week nudge → gym↔ration",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: trust v2 → mid-week nudge → gym↔ration"
+      }
+    ]
+  },
+  {
+    "version": "2.5.9",
+    "date": "2026-09-29",
+    "summary": "feat(ux): trust confirm → retention surface → cardio advice",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): trust confirm → retention surface → cardio advice"
+      }
+    ]
+  },
+  {
+    "version": "2.5.8",
+    "date": "2026-09-28",
+    "summary": "fix(ux): ghost draft after save + confirm / day-more / gym waves",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ux): ghost draft after save + confirm / day-more / gym waves"
+      }
+    ]
+  },
+  {
+    "version": "2.5.7",
+    "date": "2026-09-28",
+    "summary": "fix(eslint): unused describeNutritionBasis in ConfirmDishFields",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(eslint): unused describeNutritionBasis in ConfirmDishFields"
+      }
+    ]
+  },
+  {
+    "version": "2.5.6",
+    "date": "2026-09-28",
+    "summary": "feat(ui): волны 1–4 — skim рациона, плюс/зал, токены, splits",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ui): волны 1–4 — skim рациона, плюс/зал, токены, splits"
+      }
+    ]
+  },
+  {
+    "version": "2.5.5",
+    "date": "2026-09-28",
+    "summary": "chore(rustore): publish Capacitor APK to website downloads",
+    "items": [
       {
         "kind": "improvement",
-        "text": "Тише первый час: напоминания не перебивают пустой рацион"
-      },
+        "text": "chore(rustore): publish Capacitor APK to website downloads"
+      }
+    ]
+  },
+  {
+    "version": "2.5.4",
+    "date": "2026-09-28",
+    "summary": "feat(rustore): промо-ролик с описанием функций",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rustore): промо-ролик с описанием функций"
+      }
+    ]
+  },
+  {
+    "version": "2.5.3",
+    "date": "2026-09-28",
+    "summary": "fix: +отрезок валидация + APK уведомления (CvReminders)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix: +отрезок валидация + APK уведомления (CvReminders)"
+      }
+    ]
+  },
+  {
+    "version": "2.5.2",
+    "date": "2026-09-27",
+    "summary": "feat(ration): сцена дня — A/B/D/E redesign",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ration): сцена дня — A/B/D/E redesign"
+      }
+    ]
+  },
+  {
+    "version": "2.5.1",
+    "date": "2026-09-27",
+    "summary": "feat(plus): P3 умный default + P4 desktop/a11y",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(plus): P3 умный default + P4 desktop/a11y"
+      }
+    ]
+  },
+  {
+    "version": "2.5.0",
+    "date": "2026-09-27",
+    "summary": "feat(plus): камера/галерея, тренировка (P2), итог дня на iPhone",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(plus): камера/галерея, тренировка (P2), итог дня на iPhone"
+      }
+    ]
+  },
+  {
+    "version": "2.4.19",
+    "date": "2026-09-27",
+    "summary": "feat(plus): сетка «+» с Повторить/Избранное (P0+P1)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(plus): сетка «+» с Повторить/Избранное (P0+P1)"
+      }
+    ]
+  },
+  {
+    "version": "2.4.18",
+    "date": "2026-09-27",
+    "summary": "fix(recog): не подменять суп / творог / Bombbar при текстовом вводе",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(recog): не подменять суп / творог / Bombbar при текстовом вводе"
+      }
+    ]
+  },
+  {
+    "version": "2.4.17",
+    "date": "2026-09-25",
+    "summary": "fix(images): «Вареное яйцо» backfill finds a photo",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(images): «Вареное яйцо» backfill finds a photo"
+      }
+    ]
+  },
+  {
+    "version": "2.4.16",
+    "date": "2026-09-25",
+    "summary": "fix(apk): resume редиректил на localhost:3000 — «Не удалось открыть дневник»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): resume редиректил на localhost:3000 — «Не удалось открыть дневник»"
+      }
+    ]
+  },
+  {
+    "version": "2.4.15",
+    "date": "2026-09-25",
+    "summary": "fix(apk): разорвать петлю offline ↔ shell ↔ product",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): разорвать петлю offline ↔ shell ↔ product"
+      }
+    ]
+  },
+  {
+    "version": "2.4.14",
+    "date": "2026-09-25",
+    "summary": "feat(rustore): R1–R5 + фикс ложного «Нет интернета» (2.3.20)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rustore): R1–R5 + фикс ложного «Нет интернета» (2.3.20)"
+      }
+    ]
+  },
+  {
+    "version": "2.4.13",
+    "date": "2026-09-25",
+    "summary": "fix(apk): CvSession — реально запоминать вход (Cap JS только на localhost)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): CvSession — реально запоминать вход (Cap JS только на localhost)"
+      }
+    ]
+  },
+  {
+    "version": "2.4.12",
+    "date": "2026-09-25",
+    "summary": "fix(apk): после перезапуска сразу рацион (resume-токен)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): после перезапуска сразу рацион (resume-токен)"
+      }
+    ]
+  },
+  {
+    "version": "2.4.11",
+    "date": "2026-09-25",
+    "summary": "fix(apk): помнить вход + меню «+» по обычному тапу",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): помнить вход + меню «+» по обычному тапу"
+      }
+    ]
+  },
+  {
+    "version": "2.4.10",
+    "date": "2026-09-25",
+    "summary": "fix(apk): напоминания не «недоступны» — детект Capacitor shell",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): напоминания не «недоступны» — детект Capacitor shell"
+      }
+    ]
+  },
+  {
+    "version": "2.4.9",
+    "date": "2026-09-24",
+    "summary": "chore(rustore): скриншоты витрины с залом",
+    "items": [
       {
         "kind": "improvement",
-        "text": "Подтверждение: предупреждение «есть ккал, нет БЖУ»"
-      },
+        "text": "chore(rustore): скриншоты витрины с залом"
+      }
+    ]
+  },
+  {
+    "version": "2.4.8",
+    "date": "2026-09-24",
+    "summary": "docs(rustore): описание витрины — питание и зал",
+    "items": [
       {
         "kind": "improvement",
-        "text": "Зал: понятный старт первой тренировки"
-      },
+        "text": "docs(rustore): описание витрины — питание и зал"
+      }
+    ]
+  },
+  {
+    "version": "2.4.7",
+    "date": "2026-09-24",
+    "summary": "feat(apk): локальные напоминания в RuStore APK",
+    "items": [
       {
-        "kind": "improvement",
-        "text": "Офлайн-очередь и локальные напоминания с контекстом дня"
+        "kind": "feature",
+        "text": "feat(apk): локальные напоминания в RuStore APK"
+      }
+    ]
+  },
+  {
+    "version": "2.4.6",
+    "date": "2026-09-24",
+    "summary": "fix(apk): OAuth в WebView приложения, не во внешнем браузере",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): OAuth в WebView приложения, не во внешнем браузере"
+      }
+    ]
+  },
+  {
+    "version": "2.4.5",
+    "date": "2026-09-24",
+    "summary": "fix(ui): без zoom при фокусе порции и подходов",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): без zoom при фокусе порции и подходов"
+      }
+    ]
+  },
+  {
+    "version": "2.4.4",
+    "date": "2026-09-23",
+    "summary": "fix(rustore): офлайн-заглушка для модерации RuStore",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): офлайн-заглушка для модерации RuStore"
+      }
+    ]
+  },
+  {
+    "version": "2.4.3",
+    "date": "2026-09-23",
+    "summary": "feat(workouts): Зал depth волны A–G",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Зал depth волны A–G"
+      }
+    ]
+  },
+  {
+    "version": "2.4.2",
+    "date": "2026-09-23",
+    "summary": "feat(ux): волны A–H — declutter, Зал, offline, APK, профиль",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ux): волны A–H — declutter, Зал, offline, APK, профиль"
+      }
+    ]
+  },
+  {
+    "version": "2.4.1",
+    "date": "2026-09-23",
+    "summary": "fix(apk): OAuth не оставляет пользователя в браузере",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(apk): OAuth не оставляет пользователя в браузере"
+      }
+    ]
+  },
+  {
+    "version": "2.4.0",
+    "date": "2026-09-22",
+    "summary": "feat: дизайн-волны — вода в «+», яснее IA и рацион",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: дизайн-волны — вода в «+», яснее IA и рацион"
+      }
+    ]
+  },
+  {
+    "version": "2.3.19",
+    "date": "2026-09-22",
+    "summary": "feat: вкладка Зал + StageScreen (волны A–D)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: вкладка Зал + StageScreen (волны A–D)"
       }
     ]
   },
