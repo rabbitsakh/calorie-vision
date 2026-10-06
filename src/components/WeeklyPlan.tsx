@@ -206,7 +206,7 @@ export function WeeklyPlan({
               aria-checked={holidayOn}
               aria-label={`Праздничный запас +${holidayPct}% к норме`}
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                holidayOn ? "bg-teal-600" : "bg-slate-300"
+                holidayOn ? "bg-teal-600" : "bg-[var(--accent-soft)]"
               }`}
               onClick={() => {
                 const next = !holidayOn;
@@ -251,7 +251,7 @@ export function WeeklyPlan({
           <button
             type="button"
             className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
-              canGoNext ? "text-[var(--muted-strong)]" : "cursor-not-allowed text-slate-300"
+              canGoNext ? "text-[var(--muted-strong)]" : "cursor-not-allowed text-[var(--muted)]"
             }`}
             disabled={!canGoNext}
             aria-label="Следующая неделя"
@@ -298,7 +298,7 @@ export function WeeklyPlan({
                 <div className="flex h-10 w-full items-end justify-center">
                   <div
                     className={`w-3 rounded-t-sm ${
-                      over ? "bg-rose-400" : dayRow.calories > 0 ? "bg-teal-500" : "bg-slate-200"
+                      over ? "bg-rose-400" : dayRow.calories > 0 ? "bg-teal-500" : "bg-[var(--surface-mist)]"
                     }`}
                     style={{ height: `${barH}px` }}
                   />

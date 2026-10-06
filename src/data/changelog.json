@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.3.34",
+    "date": "2026-10-06",
+    "summary": "design W3: тёплый план — неделя, вес, покупки без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "WeeklyPlan, вес и покупки — cream/teal вместо slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Недельный отчёт и история веса на тёплых поверхностях"
+      }
+    ]
+  },
+  {
     "version": "2.3.33",
     "date": "2026-10-06",
     "summary": "design W2: тёплый профиль — настройки и пуш без slate",

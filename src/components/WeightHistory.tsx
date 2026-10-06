@@ -39,7 +39,7 @@ function WeightUndoToast({ label, onUndo, onExpired }: { label: string; onUndo: 
     return () => clearTimeout(t);
   }, [onExpired]);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-800 px-4 py-3 text-sm text-white">
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--accent-ink)] px-4 py-3 text-sm text-white">
       <span>Удалено: {label}</span>
       <button type="button" className="rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30" onClick={onUndo}>
         Отменить
