@@ -148,7 +148,7 @@ export function WaterTracker({
       <button
         type="button"
         id="water-tracker"
-        className="flex w-full scroll-mt-4 items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        className="flex w-full scroll-mt-4 items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] bg-[var(--accent-water-soft)]/40 px-4 py-2.5 text-sm text-[var(--muted-strong)] hover:border-[rgba(2,132,199,0.4)]"
         onClick={() => {
           showPanelToday(PANEL_ID, selectedDate);
           setHidden(false);
@@ -191,7 +191,7 @@ export function WaterTracker({
     return (
       <section
         id="water-tracker"
-        className="scroll-mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white/95 px-3.5 py-3 shadow-[var(--shadow-card)] md:px-4"
+        className="scroll-mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[rgba(2,132,199,0.14)] bg-gradient-to-br from-white to-[var(--accent-water-soft)]/55 px-3.5 py-3 shadow-[var(--shadow-card)] md:px-4"
         aria-label="Вода"
       >
         <div className="mb-2.5 flex items-center justify-between gap-2">
