@@ -785,8 +785,14 @@ export function DailyLog({
               <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
             </div>
           ) : (
-            <h2 className={`font-bold ${sceneFeed ? "text-sm font-semibold uppercase tracking-wide text-slate-500" : "text-base"}`}>
-              {sceneFeed ? "Приёмы" : "Дневник питания"}
+            <h2
+              className={
+                sceneFeed
+                  ? "text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+                  : "text-base font-bold"
+              }
+            >
+              {sceneFeed ? "Дневник" : "Дневник питания"}
             </h2>
           )}
           {!sceneFeed && streakDays >= 2 ? (

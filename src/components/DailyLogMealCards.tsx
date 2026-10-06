@@ -454,10 +454,10 @@ export function MealSectionHeader({
   const content = (
     <>
       <span
-        className={`h-3 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`}
+        className={`h-3.5 w-1 shrink-0 rounded-full ${mealStripeClass(section === "UNTAGGED" ? null : section)}`}
         aria-hidden
       />
-      <h3 className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
+      <h3 className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted-strong)]">
         {sectionLabel(section)}
         {count != null ? ` · ${count}` : ""}
       </h3>
@@ -470,13 +470,15 @@ export function MealSectionHeader({
   );
 
   if (!onToggle) {
-    return <div className="flex items-center gap-2 pt-0.5">{content}</div>;
+    return (
+      <div className="meal-section-header flex items-center gap-2 pt-1">{content}</div>
+    );
   }
 
   return (
     <button
       type="button"
-      className="flex w-full items-center gap-2 pt-0.5 text-left"
+      className="meal-section-header flex w-full items-center gap-2 pt-1 text-left"
       aria-expanded={!collapsed}
       onClick={onToggle}
     >
