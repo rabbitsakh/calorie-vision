@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.3.37",
+    "date": "2026-10-06",
+    "summary": "design W6: тёплый auth и onboarding без slate",
+    "items": [
+      {"kind": "improve", "text": "AuthPanel и LoginForm на cream/teal токенах"},
+      {"kind": "improve", "text": "Onboarding overlay и PWA install wizard без холодного slate"}
+    ]
+  },
+  {
     "version": "2.3.36",
     "date": "2026-10-06",
     "summary": "design W5: тёплый confirm и add flow без slate",

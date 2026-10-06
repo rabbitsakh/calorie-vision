@@ -96,37 +96,37 @@ export function PwaInstallWizard({
   // Portal above MobileTabBar (sibling of .cv-app-main; z-index alone inside main loses).
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-3"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--accent-ink)]/45 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-3"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pwa-wizard-title"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4 shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p id="pwa-wizard-title" className="font-semibold text-slate-900">
+            <p id="pwa-wizard-title" className="font-semibold text-[var(--foreground)]">
               {reinstall ? "Переустановить для уведомлений" : "Установить на телефон"}
             </p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {reinstall
                 ? "Сбросит запрет уведомлений на iPhone и заново подключит пуши."
                 : "Ярлык на экране «Домой» — удобнее дневник и напоминания."}
             </p>
           </div>
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={onClose}>
+          <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={onClose}>
             Закрыть
           </button>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+        <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-[var(--accent-soft)] p-1">
           <button
             type="button"
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
-              tab === "ios" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              tab === "ios" ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)]"
             }`}
             onClick={() => setTab("ios")}
           >
@@ -135,7 +135,7 @@ export function PwaInstallWizard({
           <button
             type="button"
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
-              tab === "android" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              tab === "android" ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)]"
             }`}
             onClick={() => setTab("android")}
           >
@@ -145,7 +145,7 @@ export function PwaInstallWizard({
 
         {tab === "ios" ? (
           reinstall ? (
-            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-[var(--muted-strong)]">
               <li>Удерживайте иконку Calorie Vision → «Удалить приложение» / с экрана «Домой».</li>
               <li>Откройте сайт снова в Safari (не из старой вкладки PWA).</li>
               <li>
@@ -161,7 +161,7 @@ export function PwaInstallWizard({
               </li>
             </ol>
           ) : (
-            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-[var(--muted-strong)]">
               <li>Откройте сайт в Safari.</li>
               <li>
                 Нажмите «Поделиться» <ShareGlyph /> внизу экрана.
@@ -171,7 +171,7 @@ export function PwaInstallWizard({
             </ol>
           )
         ) : reinstall ? (
-          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-[var(--muted-strong)]">
             <li>Удалите ярлык / установленное приложение с главного экрана.</li>
             <li>Откройте сайт в Chrome.</li>
             <li>
@@ -184,7 +184,7 @@ export function PwaInstallWizard({
             </li>
           </ol>
         ) : (
-          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-[var(--muted-strong)]">
             <li>Откройте сайт в Chrome.</li>
             <li>
               Меню <MenuGlyph /> → «Установить приложение» или «На главный экран».
@@ -230,15 +230,15 @@ export function PwaInstallOnboardingPrompt({ onOpenWizard }: SoftPromptProps) {
   if (!visible) return null;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="font-semibold text-slate-800">Добавить на экран «Домой»</p>
-      <p className="mt-1 text-sm text-slate-600">
+    <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-4">
+      <p className="font-semibold text-[var(--foreground)]">Добавить на экран «Домой»</p>
+      <p className="mt-1 text-sm text-[var(--muted-strong)]">
         Установите Calorie Vision как приложение — быстрее вход и напоминания.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="btn btn-on-tint text-sm text-slate-800"
+          className="btn btn-on-tint text-sm text-[var(--foreground)]"
           onClick={() => {
             setPwaOnboardingSeen();
             setVisible(false);
@@ -249,7 +249,7 @@ export function PwaInstallOnboardingPrompt({ onOpenWizard }: SoftPromptProps) {
         </button>
         <button
           type="button"
-          className="btn-quiet text-sm text-slate-500"
+          className="btn-quiet text-sm text-[var(--muted)]"
           onClick={() => {
             setPwaOnboardingSeen();
             setVisible(false);
