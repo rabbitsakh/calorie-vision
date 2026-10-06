@@ -23,21 +23,21 @@ export function GamificationQuietToggle() {
 
   return (
     <section className="rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white p-4 md:p-5">
-      <h2 className="text-base font-semibold text-slate-800">Празднования</h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <h2 className="text-base font-semibold text-[var(--foreground)]">Празднования</h2>
+      <p className="mt-1 text-sm text-[var(--muted)]">
         По умолчанию тихо: тосты вместо полноэкранных сцен. Можно включить обратно.
       </p>
       <label className="mt-4 flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
-          className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+          className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-600 focus:ring-teal-500"
           checked={!quiet}
           disabled={!ready}
           onChange={(event) => handleChange(!event.target.checked)}
         />
         <span>
-          <span className="block text-sm font-medium text-slate-800">Показывать празднования</span>
-          <span className="mt-0.5 block text-xs text-slate-500">
+          <span className="block text-sm font-medium text-[var(--foreground)]">Показывать празднования</span>
+          <span className="mt-0.5 block text-xs text-[var(--muted)]">
             Полноэкранные сцены, сундуки и звуки при вехах.
           </span>
         </span>

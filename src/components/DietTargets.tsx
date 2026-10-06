@@ -32,23 +32,23 @@ function Meter({
   const percent = comparison.target <= 0 ? 0 : (comparison.actual / comparison.target) * 100;
   const capped = Math.min(100, percent);
   const overflow = percent > 105;
-  const barClass = tone === "warn" ? "bg-amber-500" : tone === "good" ? "bg-teal-600" : "bg-slate-500";
+  const barClass = tone === "warn" ? "bg-amber-500" : tone === "good" ? "bg-teal-600" : "bg-[var(--surface-mist)]0";
 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between gap-3 text-sm">
-        <span className="font-semibold text-slate-700">{label}</span>
-        <span className="text-slate-500">
+        <span className="font-semibold text-[var(--muted-strong)]">{label}</span>
+        <span className="text-[var(--muted)]">
           {comparison.actual} / {comparison.target} {unit}
         </span>
       </div>
-      <div className="relative h-3 overflow-hidden rounded-full bg-slate-100">
+      <div className="relative h-3 overflow-hidden rounded-full bg-[var(--accent-soft)]">
         <div className={`h-3 rounded-full ${barClass} transition-all duration-500`} style={{ width: `${capped}%` }} />
         {overflow ? (
           <div className="absolute inset-y-0 right-0 w-2 rounded-r-full bg-red-400" />
         ) : null}
       </div>
-      <p className={`text-xs ${tone === "warn" ? "text-amber-700" : "text-slate-500"}`}>
+      <p className={`text-xs ${tone === "warn" ? "text-amber-700" : "text-[var(--muted)]"}`}>
         {formatBalanceLabel(comparison, unit)}
       </p>
     </div>
@@ -58,9 +58,9 @@ function Meter({
 export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex, calorieExplanation }: DietTargetsProps) {
   const sexText = sexNoun(sex);
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-semibold text-slate-700">Рекомендуемый рацион на день</p>
-      <p className="mt-1 text-xs text-slate-500">
+    <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-4">
+      <p className="text-sm font-semibold text-[var(--muted-strong)]">Рекомендуемый рацион на день</p>
+      <p className="mt-1 text-xs text-[var(--muted)]">
         Норма для {weightKg} кг
         {sexText ? ` · ${sexText}` : ""}
         {dietLabel ? ` · ${dietLabel}` : ""}
@@ -69,7 +69,7 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex,
         <p className="mt-1 text-xs text-amber-700">Укажите пол в профиле — норма станет точнее</p>
       ) : null}
       {calorieExplanation ? (
-        <p className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs leading-relaxed text-slate-600">
+        <p className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs leading-relaxed text-[var(--muted-strong)]">
           {calorieExplanation}
         </p>
       ) : null}
@@ -95,7 +95,7 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex,
           />
         ) : null}
       </div>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-[var(--muted)]">
         Не медицинская рекомендация.{" "}
         <Link
           href={withBasePath("/disclaimer")}

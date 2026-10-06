@@ -105,7 +105,7 @@ function toneClasses(tone: PushUxState["tone"]): string {
     case "tip":
       return "border-teal-200 bg-teal-50/70";
     default:
-      return "border-slate-200 bg-slate-50";
+      return "border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)]";
   }
 }
 
@@ -118,7 +118,7 @@ function matrixStepClasses(status: "done" | "current" | "todo" | "blocked"): str
     case "blocked":
       return "border-amber-300 bg-amber-100 text-amber-950";
     default:
-      return "border-slate-200 bg-white text-slate-500";
+      return "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted)]";
   }
 }
 
@@ -416,8 +416,8 @@ export function PushRemindersSettings() {
   if (!cap || cap.kind === "loading") {
     return (
       <section className="card p-4 md:p-6">
-        <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
-        <p className="mt-1 text-sm text-slate-500">Проверяем поддержку…</p>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Напоминания</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">Проверяем поддержку…</p>
       </section>
     );
   }
@@ -433,8 +433,8 @@ export function PushRemindersSettings() {
       <div className="flex items-start gap-3">
         <Mascot pose={pose} size="md" className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-bold text-slate-900">Напоминания</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="text-lg font-bold text-[var(--foreground)]">Напоминания</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
             По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний
             чек-ин — в часовом поясе профиля. Завтрак, воду и сводку калорий можно включить
             отдельно. Для каждого типа можно выбрать час.
@@ -446,7 +446,7 @@ export function PushRemindersSettings() {
       </div>
 
       <div className={`mt-4 rounded-2xl border px-4 py-3 ${toneClasses(ux.tone)}`}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           {isCapLocal ? "Статус в приложении" : "Статус push"}
         </p>
         <ol className="mt-2 flex flex-wrap gap-2" aria-label="Шаги подключения уведомлений">
@@ -460,18 +460,18 @@ export function PushRemindersSettings() {
             </li>
           ))}
         </ol>
-        <p className="mt-3 text-sm font-semibold text-slate-900">{ux.title}</p>
-        <p className="mt-1 text-sm text-slate-600">{ux.detail}</p>
-        <dl className="mt-3 grid gap-1 text-xs text-slate-500 sm:grid-cols-2">
+        <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">{ux.title}</p>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">{ux.detail}</p>
+        <dl className="mt-3 grid gap-1 text-xs text-[var(--muted)] sm:grid-cols-2">
           <div>
             Устройство:{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-[var(--muted-strong)]">
               {isCapLocal ? "приложение (APK)" : cap.isIos ? "iPhone / iPad" : "другое"}
             </span>
           </div>
           <div>
             Режим:{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-[var(--muted-strong)]">
               {isCapLocal
                 ? "локальные уведомления"
                 : cap.isStandalone
@@ -481,13 +481,13 @@ export function PushRemindersSettings() {
           </div>
           <div>
             Разрешение:{" "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-[var(--muted-strong)]">
               {permissionLabelRu(cap.permission)}
             </span>
           </div>
           <div>
             {isCapLocal ? "На устройстве: " : "На сервере: "}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-[var(--muted-strong)]">
               {server == null
                 ? "—"
                 : activeOnServer
@@ -540,9 +540,9 @@ export function PushRemindersSettings() {
         </div>
       ) : null}
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">Какие напоминания слать</p>
-        <p className="mt-1 text-sm text-slate-600">
+      <div className="mt-4 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-[var(--foreground)]">Какие напоминания слать</p>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">
           По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. Остальные — по желанию.
         </p>
         <ul className="mt-3 space-y-2">
@@ -551,12 +551,12 @@ export function PushRemindersSettings() {
             return (
               <li
                 key={slot.kind}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[var(--surface-mist)] px-3 py-2"
               >
-                <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-800">
+                <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-[var(--foreground)]">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                    className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
                     checked={row.enabled}
                     onChange={(event) => {
                       const enabled = event.target.checked;
@@ -569,7 +569,7 @@ export function PushRemindersSettings() {
                   <span className="min-w-0">{reminderKindLabel(slot.kind, row.hour)}</span>
                 </label>
                 <select
-                  className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                  className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-2 py-1.5 text-sm"
                   value={String(row.hour)}
                   disabled={!row.enabled}
                   aria-label={`Час: ${slot.kind}`}
@@ -605,12 +605,12 @@ export function PushRemindersSettings() {
               return (
                 <li
                   key={slot.kind}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[var(--surface-mist)] px-3 py-2"
                 >
-                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-slate-800">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-[var(--foreground)]">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                      className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
                       checked={row.enabled}
                       onChange={(event) => {
                         const enabled = event.target.checked;
@@ -627,7 +627,7 @@ export function PushRemindersSettings() {
                     <span className="min-w-0">{reminderKindLabel(slot.kind, row.hour)}</span>
                   </label>
                   <select
-                    className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-sm"
+                    className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-2 py-1.5 text-sm"
                     value={String(row.hour)}
                     disabled={!row.enabled}
                     aria-label={`Час: ${slot.kind}`}
@@ -660,17 +660,17 @@ export function PushRemindersSettings() {
         </button>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">Тихие часы</p>
-        <p className="mt-1 text-sm text-slate-600">
+      <div className="mt-4 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white px-4 py-3">
+        <p className="text-sm font-semibold text-[var(--foreground)]">Тихие часы</p>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">
           В этом интервале (по часовому поясу профиля) не приходят напоминания и не показываются
           празднования. Можно через полночь — например, с 22 до 7.
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="text-sm text-slate-700">
+          <label className="text-sm text-[var(--muted-strong)]">
             С
             <select
-              className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              className="mt-1 block rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-2 text-sm"
               value={quietStart}
               onChange={(event) => setQuietStart(event.target.value)}
             >
@@ -682,10 +682,10 @@ export function PushRemindersSettings() {
               ))}
             </select>
           </label>
-          <label className="text-sm text-slate-700">
+          <label className="text-sm text-[var(--muted-strong)]">
             До
             <select
-              className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+              className="mt-1 block rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-2 text-sm"
               value={quietEnd}
               onChange={(event) => setQuietEnd(event.target.value)}
             >
@@ -706,7 +706,7 @@ export function PushRemindersSettings() {
             {quietSaving ? "Сохраняем…" : "Сохранить"}
           </button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-[var(--muted)]">
           Сейчас: {formatQuietHoursLabel(
             quietStart === "" ? null : Number(quietStart),
             quietEnd === "" ? null : Number(quietEnd),
@@ -715,8 +715,8 @@ export function PushRemindersSettings() {
       </div>
 
       <div className="mt-4 rounded-2xl border border-teal-100 bg-teal-50/70 px-4 py-3">
-        <p className="text-sm font-semibold text-slate-900">Установка на телефон</p>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="text-sm font-semibold text-[var(--foreground)]">Установка на телефон</p>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">
           Добавьте приложение на экран «Домой» — на iPhone так работают напоминания. Если
           уведомления запрещены — переустановите ярлык.
         </p>

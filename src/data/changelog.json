@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.3.33",
+    "date": "2026-10-06",
+    "summary": "design W2: тёплый профиль — настройки и пуш без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "ProfileForm, двери настроек и DietTargets на cream/teal токенах"
+      },
+      {
+        "kind": "improve",
+        "text": "Push reminders и тихие празднования — без холодного slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Список профиля: мягкий wash и elevated rows"
+      }
+    ]
+  },
+  {
     "version": "2.3.32",
     "date": "2026-10-06",
     "summary": "design W1: тёплая статистика — tiles, heatmap, empty scene",

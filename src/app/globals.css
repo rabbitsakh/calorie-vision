@@ -2048,15 +2048,21 @@ select {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin-left: -0.2rem;
+  margin-right: -0.2rem;
+  padding: 0.2rem 0.2rem 0.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, rgba(212, 240, 236, 0.22) 0%, transparent 40%);
   animation: plan-week-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .profile-settings__item,
 .profile-settings__group {
   overflow: hidden;
-  border: 1px solid var(--border-quiet);
+  border: 1px solid rgba(13, 115, 119, 0.12);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 252, 248, 0.96);
+  box-shadow: var(--shadow-card);
 }
 
 .profile-settings__row,

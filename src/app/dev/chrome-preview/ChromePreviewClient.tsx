@@ -162,6 +162,31 @@ export function ChromePreviewClient() {
           </div>
         </div>
       </div>
+
+      <div className="profile-settings mt-6">
+        <section className="profile-settings__item">
+          <div className="profile-settings__row">
+            <div className="min-w-0">
+              <p className="font-semibold text-[var(--foreground)]">Аккаунт</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Имя, email, аватар</p>
+            </div>
+            <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+              ▾
+            </span>
+          </div>
+        </section>
+        <section className="profile-settings__item">
+          <div className="profile-settings__row">
+            <div className="min-w-0">
+              <p className="font-semibold text-[var(--foreground)]">Напоминания</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Пуш и тихие часы</p>
+            </div>
+            <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+              →
+            </span>
+          </div>
+        </section>
+      </div>
     </AppShell>
   );
 }
