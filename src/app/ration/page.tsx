@@ -369,7 +369,7 @@ function RationBody({
 
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60 px-3 py-2.5 text-left"
+                className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/70 px-3 py-2.5 text-left"
                 onClick={() => setShowHabits(true)}
                 aria-expanded={showHabits}
               >
@@ -404,8 +404,8 @@ function RationBody({
               <EveningCheckin today={today} selectedDate={date} timezone={timezone} />
               {date === today ? <DailySummaryCard today={today} /> : null}
 
-              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60">
-                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/70">
+                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-[var(--muted-strong)] [&::-webkit-details-marker]:hidden">
                   Подсказки
                 </summary>
                 <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">
@@ -417,8 +417,8 @@ function RationBody({
                 </div>
               </details>
 
-              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-slate-50/60">
-                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+              <details className="rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/70">
+                <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-[var(--muted-strong)] [&::-webkit-details-marker]:hidden">
                   Установка и напоминания
                 </summary>
                 <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">

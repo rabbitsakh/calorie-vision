@@ -97,13 +97,13 @@ export function SoftCelebration({
 
   return (
     <div
-      className="soft-celeb-root fixed inset-0 z-50 flex items-end justify-center bg-slate-900/20 p-4 pb-24 sm:items-center sm:pb-4"
+      className="soft-celeb-root fixed inset-0 z-50 flex items-end justify-center bg-[rgba(15,40,38,0.22)] p-4 pb-24 sm:items-center sm:pb-4"
       role="status"
       aria-live="polite"
       onClick={onClose}
     >
       <div
-        className="soft-celeb-card relative w-full max-w-sm overflow-hidden bg-white px-5 py-5 text-center ring-1 ring-slate-200/80"
+        className="soft-celeb-card relative w-full max-w-sm overflow-hidden px-5 py-5 text-center"
         onClick={(event) => event.stopPropagation()}
       >
         <div
@@ -122,15 +122,15 @@ export function SoftCelebration({
             </span>
           ) : null}
         </div>
-        <p className="text-base font-semibold text-slate-900">{title}</p>
-        {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
-        <button type="button" className="btn-quiet mt-3 text-sm text-teal-800" onClick={onClose}>
+        <p className="text-base font-semibold text-[var(--foreground)]">{title}</p>
+        {subtitle ? <p className="mt-1 text-sm text-[var(--muted-strong)]">{subtitle}</p> : null}
+        <button type="button" className="btn-quiet mt-3 text-sm text-[var(--accent-ink)]" onClick={onClose}>
           {ctaLabel}
         </button>
         {muteDate ? (
           <button
             type="button"
-            className="mt-2 block w-full text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+            className="mt-2 block w-full text-xs font-medium text-[var(--muted)] underline-offset-2 hover:text-[var(--accent-ink)] hover:underline"
             onClick={() => {
               muteSoftCelebrationsToday(muteDate);
               onClose();

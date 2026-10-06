@@ -120,8 +120,8 @@ export function MascotSaveReaction() {
       aria-live="polite"
     >
       <div className="save-quiet-toast rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white px-4 py-3 text-center shadow-[0_8px_24px_rgba(15,23,42,0.1)]">
-        <p className="text-sm font-semibold text-slate-900">{line}</p>
-        {detail ? <p className="mt-0.5 text-xs font-medium text-slate-500">{detail}</p> : null}
+        <p className="text-sm font-semibold text-[var(--foreground)]">{line}</p>
+        {detail ? <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">{detail}</p> : null}
       </div>
     </div>,
     host,
