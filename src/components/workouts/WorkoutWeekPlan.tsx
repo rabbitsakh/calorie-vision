@@ -154,26 +154,28 @@ export function WorkoutWeekPlan({
   return (
     <div className="gym-day">
       <section
-        className={`day-hero day-hero--scene ${atmosphere}`}
+        className={`day-hero day-hero--scene ${atmosphere}${active ? " day-hero--live" : ""}`}
         aria-label="Сводка зала на сегодня"
       >
         <div className="day-hero-glow" aria-hidden />
-        <div className="relative flex items-center gap-4 px-4 py-5 md:px-6 md:py-6">
+        <div className={`relative flex items-center gap-4 px-5 py-7 md:px-7 md:py-8 ${active ? "gym-console-active" : ""}`}>
           <div className="min-w-0 flex-1">
-            <p className={`text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[var(--accent-ink)]/70 ${active ? "gym-live-pulse" : ""}`}>
+            <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.22em] ${active ? "gym-live-pulse text-teal-100/90" : "text-[var(--accent-ink)]/70"}`}>
               {active ? "Сейчас" : "Сегодня"}
               {data ? ` · ${data.weekdayLabel}` : ""}
             </p>
-            <p className="font-display mt-2 text-[1.25rem] font-semibold leading-snug tracking-tight text-[var(--foreground)] sm:text-[1.45rem]">
+            <p className={`font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight sm:text-[1.7rem] ${active ? "text-white" : "text-[var(--foreground)]"}`}>
               {sceneHeadline}
             </p>
-            <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">{sceneMeta}</p>
+            <p className={`mt-2.5 text-[0.95rem] font-medium ${active ? "text-teal-50/85" : "text-[var(--muted-strong)]"}`}>
+              {sceneMeta}
+            </p>
           </div>
           {active ? (
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-4 py-2.5 text-sm font-bold text-white shadow-[0_6px_18px_rgba(13,115,119,0.3)] disabled:opacity-40"
+              className="shrink-0 rounded-[1rem] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.18)] disabled:opacity-40"
               onClick={() => onOpenSession(active.id)}
             >
               В зал

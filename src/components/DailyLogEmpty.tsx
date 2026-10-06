@@ -35,21 +35,21 @@ export function DailyLogEmpty({
 }: DailyLogEmptyProps) {
   return (
     <div
-      className={`ration-empty-day flex flex-col items-center gap-4 px-5 py-12 text-center ${
+      className={`ration-empty-day flex flex-col items-center gap-5 px-6 py-14 text-center ${
         sceneFeed ? "" : "rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] text-[var(--muted)]"
       }`}
     >
       <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
-      <p className="font-display text-[1.35rem] font-semibold tracking-tight text-[var(--foreground)] sm:text-[1.5rem]">
+      <p className="font-display text-[1.55rem] font-semibold tracking-tight text-[var(--foreground)] sm:text-[1.75rem]">
         {MASCOT_COPY.emptyDiary.headline}
       </p>
-      <p className="max-w-xs text-[0.95rem] leading-relaxed text-[var(--muted-strong)]">
+      <p className="max-w-sm text-base leading-relaxed text-[var(--muted-strong)]">
         {MASCOT_COPY.emptyDiary.body}
       </p>
       {onAddFood ? (
         <button
           type="button"
-          className="btn btn-primary mt-1 min-h-12 px-7 text-base"
+          className="btn btn-primary mt-2 min-h-12 px-8 text-base shadow-[0_8px_24px_rgba(13,115,119,0.28)]"
           onClick={() => onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)}
         >
           Добавить через «+»

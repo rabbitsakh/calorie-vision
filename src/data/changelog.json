@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.7.0",
+    "date": "2026-10-06",
+    "summary": "design B1–B10: bold composition — day scene, chrome, feed, stats, plan, gym, confirm, add, motion, empty",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "design B1–B10: bold composition — day scene, chrome, feed, stats, plan, gym, confirm, add, motion, empty"
+      }
+    ]
+  },
+  {
     "version": "2.6.19",
     "date": "2026-10-06",
     "summary": "design: adult warm W1–W10 — cream/teal product surfaces ship",
