@@ -67,8 +67,8 @@ export function QuickAddAgain({
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-800">Быстрое добавление</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Быстрое добавление</h2>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">
             {expanded
               ? "Повтор вчерашнего, избранное или шаблоны дня"
               : "Снова, избранное, шаблоны — по запросу"}
@@ -76,7 +76,7 @@ export function QuickAddAgain({
         </div>
         <svg
           aria-hidden
-          className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`h-5 w-5 shrink-0 text-[var(--muted)] transition-transform ${expanded ? "rotate-180" : ""}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -88,7 +88,7 @@ export function QuickAddAgain({
 
       {expanded ? (
         <>
-          <div className="flex overflow-x-auto border-b border-t border-slate-100">
+          <div className="flex overflow-x-auto border-b border-t border-[rgba(13,115,119,0.08)]">
             {(
               [
                 { id: "again" as const, label: "Снова" },
@@ -106,7 +106,7 @@ export function QuickAddAgain({
                 className={`min-h-11 shrink-0 flex-1 px-3 text-sm font-semibold transition-colors ${
                   tab === item.id
                     ? "border-b-2 border-teal-700 text-teal-800"
-                    : "text-slate-500 hover:text-slate-700"
+                    : "text-[var(--muted)] hover:text-[var(--muted-strong)]"
                 }`}
                 onClick={() => setTab(item.id)}
               >
@@ -149,7 +149,7 @@ export function QuickAddAgain({
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                         moreTab === item.id
                           ? "bg-teal-700 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                       }`}
                       onClick={() => setMoreTab(item.id)}
                     >

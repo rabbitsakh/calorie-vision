@@ -99,13 +99,13 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
               {ritual ? ritual.title : "Недельный отчёт"}
             </p>
           )}
-          <p className={`font-semibold ${embedded ? "text-slate-800" : "text-teal-950"}`}>
+          <p className={`font-semibold ${embedded ? "text-[var(--foreground)]" : "text-teal-950"}`}>
             {data.weekLabel}
           </p>
           {ritual ? (
             <p
               className={`mt-1 text-sm leading-snug ${
-                embedded ? "text-slate-600" : "text-teal-950/85"
+                embedded ? "text-[var(--muted-strong)]" : "text-teal-950/85"
               }`}
             >
               {ritual.body}
@@ -153,15 +153,15 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
-          <p className="text-xs text-slate-500">Дней с записями</p>
+          <p className="text-xs text-[var(--muted)]">Дней с записями</p>
           <p className="text-lg font-bold text-teal-950">{data.daysLogged}/7</p>
         </div>
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
-          <p className="text-xs text-slate-500">Среднее ккал</p>
+          <p className="text-xs text-[var(--muted)]">Среднее ккал</p>
           <p className="text-lg font-bold text-teal-950">{data.avgCalories}</p>
         </div>
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
-          <p className="text-xs text-slate-500">Вода/день</p>
+          <p className="text-xs text-[var(--muted)]">Вода/день</p>
           <p className="text-lg font-bold text-teal-950">
             {data.avgWaterMl > 0 ? `${data.avgWaterMl} мл` : "—"}
           </p>
@@ -188,19 +188,19 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
           {data.closestToTarget ? (
             <div className="rounded-xl bg-white/80 px-3 py-2">
               <p className="text-xs text-emerald-600">Ближе всего к цели</p>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-[var(--foreground)]">
                 {data.closestToTarget.calories} ккал
               </p>
-              <p className="text-xs text-slate-500">{data.closestToTarget.date}</p>
+              <p className="text-xs text-[var(--muted)]">{data.closestToTarget.date}</p>
             </div>
           ) : null}
           {data.hardestDay ? (
             <div className="rounded-xl bg-white/80 px-3 py-2">
               <p className="text-xs text-amber-600">Самый сложный день</p>
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-[var(--foreground)]">
                 {data.hardestDay.calories} ккал
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--muted)]">
                 {data.hardestDay.date} · один день не ломает тренд
               </p>
             </div>

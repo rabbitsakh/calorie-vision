@@ -132,7 +132,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-900/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--accent-ink)]/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cv-onboarding-title"
@@ -144,10 +144,10 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
               Шаг {step + 1} из {steps.length}
             </p>
-            <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-slate-900">
+            <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-[var(--foreground)]">
               {current.title}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{current.body}</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">{current.body}</p>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                     on
                       ? "bg-amber-700 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                   }`}
                   aria-pressed={on}
                   onClick={() => toggleAllergen(opt.id)}
@@ -175,7 +175,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
         ) : null}
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={() => finish()}>
+          <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={() => finish()}>
             Пропустить
           </button>
           <div className="flex flex-wrap items-center justify-end gap-2">

@@ -1,5 +1,96 @@
 [
   {
+    "version": "2.3.38",
+    "date": "2026-10-06",
+    "summary": "design W7–W10: retention, sheets, rhythm, final slate audit",
+    "items": [
+      {"kind": "improve", "text": "W7: rewards, badges, challenge, evening check-in — cream/teal"},
+      {"kind": "improve", "text": "W8: weight/water sheets, share, photo uploader без slate"},
+      {"kind": "improve", "text": "W9–W10: оставшиеся product surfaces + stage/companion audit"}
+    ]
+  },
+  {
+    "version": "2.3.37",
+    "date": "2026-10-06",
+    "summary": "design W6: тёплый auth и onboarding без slate",
+    "items": [
+      {"kind": "improve", "text": "AuthPanel и LoginForm на cream/teal токенах"},
+      {"kind": "improve", "text": "Onboarding overlay и PWA install wizard без холодного slate"}
+    ]
+  },
+  {
+    "version": "2.3.36",
+    "date": "2026-10-06",
+    "summary": "design W5: тёплый confirm и add flow без slate",
+    "items": [
+      {"kind": "improve", "text": "ConfirmDishFields и ConfirmationCard на cream/teal"},
+      {"kind": "improve", "text": "FoodAdd panel/mode picker и photo picker без slate"}
+    ]
+  },
+  {
+    "version": "2.3.35",
+    "date": "2026-10-06",
+    "summary": "design W4: тёплый дневник — лог, suggestions, favorites без slate",
+    "items": [
+      {"kind": "improve", "text": "DailyLog, quick-add и заметки на cream/teal токенах"},
+      {"kind": "improve", "text": "Suggestions и favorites — без холодных divide/slate"},
+      {"kind": "improve", "text": "Undo toast и empty day на тёплых поверхностях"}
+    ]
+  },
+  {
+    "version": "2.3.34",
+    "date": "2026-10-06",
+    "summary": "design W3: тёплый план — неделя, вес, покупки без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "WeeklyPlan, вес и покупки — cream/teal вместо slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Недельный отчёт и история веса на тёплых поверхностях"
+      }
+    ]
+  },
+  {
+    "version": "2.3.33",
+    "date": "2026-10-06",
+    "summary": "design W2: тёплый профиль — настройки и пуш без slate",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "ProfileForm, двери настроек и DietTargets на cream/teal токенах"
+      },
+      {
+        "kind": "improve",
+        "text": "Push reminders и тихие празднования — без холодного slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Список профиля: мягкий wash и elevated rows"
+      }
+    ]
+  },
+  {
+    "version": "2.3.32",
+    "date": "2026-10-06",
+    "summary": "design W1: тёплая статистика — tiles, heatmap, empty scene",
+    "items": [
+      {
+        "kind": "improve",
+        "text": "StatsView и heatmap: cream/teal токены вместо slate"
+      },
+      {
+        "kind": "improve",
+        "text": "Пустой период — тёплая сцена с CTA, не серая заглушка"
+      },
+      {
+        "kind": "improve",
+        "text": "Мягкий teal wash под блоком статистики"
+      }
+    ]
+  },
+  {
     "version": "2.3.31",
     "date": "2026-10-06",
     "summary": "design: тёплый зал — сессия, план и история без slate",

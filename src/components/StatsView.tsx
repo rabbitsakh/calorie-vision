@@ -182,7 +182,7 @@ function BarChart({
     <div className="flex gap-2 sm:gap-3">
       {/* Y-axis labels */}
       <div
-        className="relative shrink-0 text-right text-xs font-medium text-slate-400"
+        className="relative shrink-0 text-right text-xs font-medium text-[var(--muted)]"
         style={{ height: totalHeight, width: "2.75rem" }}
         aria-hidden="true"
       >
@@ -198,13 +198,13 @@ function BarChart({
       </div>
 
       {/* Plot area */}
-      <div className="min-w-0 flex-1 overflow-hidden border-l border-slate-200 pl-2 sm:pl-3">
+      <div className="min-w-0 flex-1 overflow-hidden border-l border-[rgba(13,115,119,0.14)] pl-2 sm:pl-3">
         <div className="relative" style={{ height: totalHeight }}>
           {/* Dashed grid lines in bar zone */}
           {ticks.map((tick, i) => (
             <div
               key={`grid-${i}`}
-              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-100"
+              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[rgba(13,115,119,0.08)]"
               style={{ top: `${labelAreaHeight + (i / (ticks.length - 1)) * plotHeight}px` }}
             />
           ))}
@@ -246,7 +246,7 @@ function BarChart({
                           style={{ bottom: `${heightPx + labelGap}px` }}
                         >
                           <span
-                            className={`font-semibold leading-none text-slate-600 ${valueLabelClass}`}
+                            className={`font-semibold leading-none text-[var(--muted-strong)] ${valueLabelClass}`}
                             style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
                           >
                             {formatChartValue(value, valueKey)}
@@ -255,7 +255,7 @@ function BarChart({
                       ) : null}
                     </>
                   ) : (
-                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[70%] max-w-8 -translate-x-1/2 rounded bg-slate-100" />
+                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[70%] max-w-8 -translate-x-1/2 rounded bg-[var(--accent-soft)]" />
                   )}
                 </div>
               );
@@ -273,7 +273,7 @@ function BarChart({
                 className="flex h-4 min-w-0 flex-1 shrink-0 items-center justify-center overflow-hidden"
               >
                 {show ? (
-                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
+                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-[var(--muted)] sm:text-xs">
                     {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
                   </span>
                 ) : null}
@@ -297,7 +297,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
   if (points.length < minDaysForTrend) {
     const need = minDaysForTrend - points.length;
     return (
-      <p className="py-6 text-center text-sm text-slate-500">
+      <p className="py-6 text-center text-sm text-[var(--muted)]">
         {points.length === 0
           ? `Пока нет измерений — добавьте ${minDaysForTrend} ${pluralDays(minDaysForTrend)}, чтобы увидеть тренд.`
           : `Мало данных для графика — добавьте ещё ${need} ${pluralDays(need)}.`}
@@ -349,7 +349,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
       <div className="flex gap-2 sm:gap-3">
         {/* Y-axis */}
         <div
-          className="relative shrink-0 text-right text-xs font-medium text-slate-400"
+          className="relative shrink-0 text-right text-xs font-medium text-[var(--muted)]"
           style={{ height: plotHeight, width: "2.75rem" }}
           aria-hidden="true"
         >
@@ -365,12 +365,12 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
         </div>
 
         {/* Plot */}
-        <div className="min-w-0 flex-1 overflow-hidden border-l border-slate-200 pl-2 sm:pl-3">
+        <div className="min-w-0 flex-1 overflow-hidden border-l border-[rgba(13,115,119,0.14)] pl-2 sm:pl-3">
           <div className="relative overflow-visible" style={{ height: plotHeight }}>
             {ticks.map((tick, i) => (
               <div
                 key={`grid-${i}`}
-                className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-slate-100"
+                className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[rgba(13,115,119,0.08)]"
                 style={{ top: `${(i / (ticks.length - 1)) * 100}%` }}
               />
             ))}
@@ -423,7 +423,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
                   />
                   {showLabel ? (
                     <span
-                      className="absolute z-10 whitespace-nowrap rounded bg-white/95 px-0.5 text-center text-[10px] font-semibold leading-none text-slate-700 shadow-sm sm:text-xs"
+                      className="absolute z-10 whitespace-nowrap rounded bg-white/95 px-0.5 text-center text-[10px] font-semibold leading-none text-[var(--muted-strong)] shadow-sm sm:text-xs"
                       style={{
                         ...(labelBelow
                           ? { top: "14px" }
@@ -453,7 +453,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
                   className="flex h-4 min-w-0 flex-1 shrink-0 items-center justify-center overflow-hidden"
                 >
                   {show ? (
-                    <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
+                    <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-[var(--muted)] sm:text-xs">
                       {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
                     </span>
                   ) : null}
@@ -466,7 +466,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
 
       {/* Legend — below chart, full width */}
       {avgPoints ? (
-        <div className="flex items-center gap-4 pl-[3.25rem] text-xs text-slate-500">
+        <div className="flex items-center gap-4 pl-[3.25rem] text-xs text-[var(--muted)]">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-6 rounded bg-sky-200" />
             Измерения
@@ -491,7 +491,7 @@ function MacroChart({
   period: "week" | "month" | "quarter";
 }) {
   const hasData = days.some((d) => d.protein > 0 || d.fat > 0 || d.carbs > 0);
-  if (!hasData) return <p className="py-4 text-center text-sm text-slate-400">Нет данных о БЖУ за период</p>;
+  if (!hasData) return <p className="py-4 text-center text-sm text-[var(--muted)]">Нет данных о БЖУ за период</p>;
 
   const maxTotal = Math.max(...days.map((d) => d.protein + d.fat + d.carbs), 1);
   const xLabels = axisLabelIndices(days.length, period);
@@ -499,7 +499,7 @@ function MacroChart({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-3 text-xs text-slate-600">
+      <div className="flex gap-3 text-xs text-[var(--muted-strong)]">
         {[{ label: "Белки", color: "bg-teal-500" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-cyan-500" }].map((m) => (
           <span key={m.label} className="flex items-center gap-1">
             <span className={`h-2.5 w-2.5 rounded-sm ${m.color}`} />
@@ -522,12 +522,12 @@ function MacroChart({
                     <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-cyan-500" />
                   </div>
                 ) : (
-                  <div className="h-0.5 w-full rounded bg-slate-100" />
+                  <div className="h-0.5 w-full rounded bg-[var(--accent-soft)]" />
                 )}
               </div>
               <div className="flex h-4 w-full shrink-0 items-center justify-center">
                 {show ? (
-                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-slate-500 sm:text-xs">
+                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-[var(--muted)] sm:text-xs">
                     {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
                   </span>
                 ) : null}
@@ -560,13 +560,13 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
                   title={`${String(hour).padStart(2, "0")}:00 — ${val} ккал`}
                 />
               ) : (
-                <div className="h-px w-full bg-slate-100" />
+                <div className="h-px w-full bg-[var(--accent-soft)]" />
               )}
             </div>
             {/* Fixed label slot so labeled columns don't lift bars (was items-end + uneven label height). */}
             <div className="flex h-4 w-full shrink-0 items-center justify-center">
               {show ? (
-                <span className="truncate text-[10px] font-medium leading-none text-slate-400 sm:text-xs">
+                <span className="truncate text-[10px] font-medium leading-none text-[var(--muted)] sm:text-xs">
                   {LABELS[Math.floor(hour / 4)]}
                 </span>
               ) : null}
@@ -602,7 +602,7 @@ function MonthHeatmap({
         title="Календарь калорий"
         under={`Дни относительно цели${calorieTarget ? ` (${calorieTarget} ккал)` : ""}. Нажмите день, чтобы открыть рацион.`}
       />
-      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:text-xs">
+      <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] font-medium uppercase tracking-wide text-[var(--muted)] sm:text-xs">
         {weekdays.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -632,7 +632,7 @@ function MonthHeatmap({
           );
         })}
       </div>
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+      <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
         <span className="flex items-center gap-1.5">
           <span className={`inline-block h-3 w-3 rounded ${HEATMAP_TONE_CLASS.empty.split(" ")[0]}`} />
           нет данных
@@ -872,9 +872,9 @@ export function StatsView({ endDate }: StatsViewProps) {
     primaryInsight?.title !== "Сравнение недель";
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="stats-page-scene flex flex-col gap-4">
       {/* Sticky under the notch — scrollport is `.cv-app-main`, so top:0 sticks to its top edge */}
-      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)] px-2.5 py-1.5 md:static md:mx-0 md:bg-transparent md:p-0">
+      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)]/92 px-2.5 py-1.5 backdrop-blur-sm md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <div className="stats-period-tabs sm:max-w-md" role="tablist" aria-label="Период статистики">
           {([
             ["week", "7 дней"],
@@ -896,15 +896,18 @@ export function StatsView({ endDate }: StatsViewProps) {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+        <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
           <span className="daisy-loading"><span /><span /><span /></span> Загрузка...
         </div>
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {data && data.summary.totalMealDays === 0 ? (
-        <div className="stats-chart-block flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-slate-600">За этот период пока нет записей.</p>
+        <div className="stats-chart-block flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-[rgba(13,115,119,0.12)] bg-gradient-to-b from-white to-[var(--surface-mist)] py-8 text-center shadow-[var(--shadow-card)]">
+          <p className="font-display text-base font-semibold text-[var(--foreground)]">Пока тихо</p>
+          <p className="max-w-xs text-sm text-[var(--muted-strong)]">
+            За этот период нет записей — добавьте приём, и здесь появится картина дня.
+          </p>
           <a href={withBasePath("/ration")} className="btn btn-primary text-sm">Добавить еду</a>
         </div>
       ) : null}
@@ -990,7 +993,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                   ? "Ещё графики: недели, БЖУ, вес, календарь"
                   : "Ещё графики: недели, БЖУ, вес"}
             </span>
-            <span className={`text-slate-400 transition-transform ${chartsOpen ? "rotate-180" : ""}`} aria-hidden>
+            <span className={`text-[var(--muted)] transition-transform ${chartsOpen ? "rotate-180" : ""}`} aria-hidden>
               ▾
             </span>
           </button>
@@ -1006,44 +1009,44 @@ export function StatsView({ endDate }: StatsViewProps) {
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl bg-teal-50 px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--foreground)]">
                     {wow.thisWeek.daysLogged > 0 ? wow.thisWeek.avgCalories : "—"}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--muted)]">
                     {wow.thisWeek.daysLogged > 0
                       ? `${wow.thisWeek.daysLogged} ${pluralDays(wow.thisWeek.daysLogged)} · ${formatDateShort(wow.thisWeek.start)}–${formatDateShort(wow.thisWeek.end)}`
                       : "нет записей"}
                   </p>
                 </div>
-                <div className="rounded-xl bg-slate-50 px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Прошлая</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">
+                <div className="rounded-xl bg-[var(--surface-mist)] px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Прошлая</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--foreground)]">
                     {wow.prevWeek.daysLogged > 0 ? wow.prevWeek.avgCalories : "—"}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--muted)]">
                     {wow.prevWeek.daysLogged > 0
                       ? `${wow.prevWeek.daysLogged} ${pluralDays(wow.prevWeek.daysLogged)} · ${formatDateShort(wow.prevWeek.start)}–${formatDateShort(wow.prevWeek.end)}`
                       : "нет записей"}
                   </p>
                 </div>
-                <div className="rounded-xl border border-slate-100 px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Разница</p>
+                <div className="rounded-xl border border-[rgba(13,115,119,0.08)] px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Разница</p>
                   <p
                     className={`mt-1 text-2xl font-bold tabular-nums ${
                       wow.deltaAvgCalories == null
-                        ? "text-slate-400"
+                        ? "text-[var(--muted)]"
                         : wow.deltaAvgCalories > 0
                           ? "text-amber-700"
                           : wow.deltaAvgCalories < 0
                             ? "text-teal-700"
-                            : "text-slate-800"
+                            : "text-[var(--foreground)]"
                     }`}
                   >
                     {wow.deltaAvgCalories == null
                       ? "—"
                       : `${wow.deltaAvgCalories > 0 ? "+" : ""}${wow.deltaAvgCalories}`}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--muted)]">
                     {wow.deltaAvgCalories == null
                       ? "нужны обе недели"
                       : Math.abs(wow.deltaAvgCalories) < 40
@@ -1111,7 +1114,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             onClick={() => setMoreOpen((v) => !v)}
           >
             <span>{moreOpen ? "Скрыть детали" : "Ещё: частые блюда, время, экспорт"}</span>
-            <span className={`text-slate-400 transition-transform ${moreOpen ? "rotate-180" : ""}`} aria-hidden>
+            <span className={`text-[var(--muted)] transition-transform ${moreOpen ? "rotate-180" : ""}`} aria-hidden>
               ▾
             </span>
           </button>
@@ -1135,14 +1138,14 @@ export function StatsView({ endDate }: StatsViewProps) {
                 }
               />
               {photoBackfillMsg ? (
-                <p className="mt-1 text-xs text-slate-500">{photoBackfillMsg}</p>
+                <p className="mt-1 text-xs text-[var(--muted)]">{photoBackfillMsg}</p>
               ) : null}
-              <ul className="mt-3 divide-y divide-slate-100">
+              <ul className="mt-3 divide-y divide-[rgba(13,115,119,0.08)]">
                 {data.topFoods.map((food) => (
                   <li key={food.dishName} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{decodeHtmlEntities(food.dishName)}</p>
-                      <p className="text-xs text-slate-500">~{food.avgCalories} ккал</p>
+                      <p className="text-xs text-[var(--muted)]">~{food.avgCalories} ккал</p>
                     </div>
                     <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
                       {food.count}×
@@ -1169,7 +1172,7 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Export */}
           <section className="stats-chart-block">
             <h2 className="mb-1 text-lg font-bold">Экспорт · Calorie Vision</h2>
-            <p className="mb-3 text-xs text-slate-500">PDF с брендингом и дневником за выбранный период</p>
+            <p className="mb-3 text-xs text-[var(--muted)]">PDF с брендингом и дневником за выбранный период</p>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {(
                 [
@@ -1235,7 +1238,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               </a>
             </div>
             {exportRange.from && exportRange.to ? (
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-[var(--muted)]">
                 Период: {exportRange.from} — {exportRange.to}
               </p>
             ) : null}

@@ -262,20 +262,20 @@ export function WeightGoalCard({
   return (
     <section className={embedded ? "px-1 py-1" : "card p-6"}>
       <div className="flex flex-col gap-5">
-        {loading ? <p className="text-sm text-slate-500">Загрузка...</p> : null}
+        {loading ? <p className="text-sm text-[var(--muted)]">Загрузка...</p> : null}
 
         {!loading && showCurrentWeight ? (
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">Текущий вес</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900">
+              <div className="rounded-2xl bg-[var(--surface-mist)] px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-[var(--muted)]">Текущий вес</div>
+                <div className="mt-1 text-2xl font-bold text-[var(--foreground)]">
                   {currentWeightKg != null ? `${currentWeightKg} кг` : "—"}
                 </div>
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-xs uppercase tracking-wide text-slate-500">С начала измерений</div>
-                <div className="mt-1 text-2xl font-bold text-slate-900">
+              <div className="rounded-2xl bg-[var(--surface-mist)] px-4 py-3">
+                <div className="text-xs uppercase tracking-wide text-[var(--muted)]">С начала измерений</div>
+                <div className="mt-1 text-2xl font-bold text-[var(--foreground)]">
                   {weightChangeKg != null ? formatSignedKg(weightChangeKg) : "—"}
                 </div>
               </div>
@@ -298,7 +298,7 @@ export function WeightGoalCard({
             ) : null}
             <Link
               href={withBasePath("/weight")}
-              className="inline-flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-teal-800 transition-colors hover:border-teal-200 hover:bg-teal-50/60"
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-[rgba(13,115,119,0.08)] bg-white px-3 py-2 text-sm text-teal-800 transition-colors hover:border-teal-200 hover:bg-teal-50/60"
             >
               <span className="font-medium">Журнал веса</span>
               <span className="shrink-0 font-semibold">Открыть →</span>
@@ -308,7 +308,7 @@ export function WeightGoalCard({
 
         {!loading ? (
           <div>
-            <p className="mb-2 text-sm font-semibold text-slate-600">Цель</p>
+            <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">Цель</p>
             {!goal ? (
               <p className="mb-2 text-xs text-teal-800">
                 Задайте цель — появится прогноз на Плане
@@ -391,18 +391,18 @@ export function WeightGoalCard({
                         className={`rounded-2xl border px-3 py-3 text-left ${
                           active
                             ? "border-teal-600 bg-teal-50 text-teal-900"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                            : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-teal-300"
                         }`}
                       >
                         <span className="block text-sm font-semibold">{option.label}</span>
-                        <span className="mt-1 block text-xs text-slate-500">{option.hint}</span>
+                        <span className="mt-1 block text-xs text-[var(--muted)]">{option.hint}</span>
                       </button>
                     );
                   })}
                 </div>
                 {showPace ? (
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-slate-600">Темп достижения цели</p>
+                    <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">Темп достижения цели</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       {PACE_OPTIONS.map((option) => {
                         const active = draftPace === option.value;
@@ -415,11 +415,11 @@ export function WeightGoalCard({
                             className={`rounded-2xl border px-3 py-3 text-left ${
                               active
                                 ? "border-teal-600 bg-teal-50 text-teal-900"
-                                : "border-slate-200 bg-white text-slate-700 hover:border-teal-300"
+                                : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-teal-300"
                             }`}
                           >
                             <span className="block text-sm font-semibold">{option.label}</span>
-                            <span className="mt-1 block text-xs text-slate-500">
+                            <span className="mt-1 block text-xs text-[var(--muted)]">
                               {draftGoal && goalNeedsPace(draftGoal)
                                 ? paceHint(draftGoal, option.value)
                                 : ""}
@@ -431,7 +431,7 @@ export function WeightGoalCard({
                   </div>
                 ) : null}
                 {draftCaloriePreview ? (
-                  <p className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-700">
+                  <p className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-2 text-xs leading-relaxed text-[var(--muted-strong)]">
                     Превью нормы: <strong>{draftCaloriePreview.target.calories} ккал</strong>
                     {" · "}поддержание {draftCaloriePreview.maintainCalories} ккал (BMR{" "}
                     {draftCaloriePreview.bmr} × {draftCaloriePreview.activityFactor}).

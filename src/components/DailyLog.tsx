@@ -52,9 +52,9 @@ function UndoToast({
   onUndo: () => void;
 }) {
   return (
-    <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white shadow-lg">
+    <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-[rgba(13,115,119,0.35)] bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">
       <span className="min-w-0">
-        <span className="block text-xs font-medium uppercase tracking-wide text-slate-300">Удалено</span>
+        <span className="block text-xs font-medium uppercase tracking-wide text-white/70">Удалено</span>
         <span className="mt-0.5 block truncate font-medium">{message}</span>
       </span>
       <button
@@ -782,7 +782,7 @@ export function DailyLog({
           {!compact && !sceneFeed ? (
             <div>
               <h2 className="text-xl font-bold">Дневник питания</h2>
-              <p className="mt-1 text-sm text-slate-500">{displayDate}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">{displayDate}</p>
             </div>
           ) : (
             <h2
@@ -818,7 +818,7 @@ export function DailyLog({
               ) : null}
             </div>
           ) : (totals.fiber > 0 || totals.sugar > 0) ? (
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[var(--muted)]">
               {totals.fiber > 0 ? `Клетч. ${totals.fiber} г` : null}
               {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
               {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
@@ -864,8 +864,8 @@ export function DailyLog({
                   const hasTypes = entries.some((e) => e.mealType);
                   if (!hasTypes) return null;
                   return (
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                      <p className="mb-2 text-xs font-semibold text-slate-700">Бюджет по приёмам</p>
+                    <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-3">
+                      <p className="mb-2 text-xs font-semibold text-[var(--muted-strong)]">Бюджет по приёмам</p>
                       <div className="grid gap-1.5 sm:grid-cols-2">
                         {budgets.map((b) => {
                           const alloc = Math.round(target * b.pct);
@@ -875,10 +875,10 @@ export function DailyLog({
                           return (
                             <div key={b.label} className="flex flex-col gap-0.5">
                               <div className="flex justify-between text-[11px]">
-                                <span className="font-medium text-slate-700">{b.label}</span>
-                                <span className={over ? "text-rose-600" : "text-slate-500"}>{used}/{alloc}</span>
+                                <span className="font-medium text-[var(--muted-strong)]">{b.label}</span>
+                                <span className={over ? "text-rose-600" : "text-[var(--muted)]"}>{used}/{alloc}</span>
                               </div>
-                              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
                                 <div className={`h-1.5 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
                               </div>
                             </div>
@@ -892,7 +892,7 @@ export function DailyLog({
             ) : null}
           </div>
         ) : !compact ? (
-          <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          <p className="rounded-2xl bg-[var(--surface-mist)] px-4 py-3 text-sm text-[var(--muted)]">
             Чтобы увидеть рекомендуемый рацион и дефицит/профицит, укажите вес и выберите цель.
           </p>
         ) : null}
@@ -952,7 +952,7 @@ export function DailyLog({
             {sceneFeed ? (
               <button
                 type="button"
-                className="self-start text-xs font-semibold uppercase tracking-wide text-slate-500 underline-offset-2 hover:text-[var(--accent)] hover:underline"
+                className="self-start text-xs font-semibold uppercase tracking-wide text-[var(--muted)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                 onClick={() => setShowFeedFilters((v) => !v)}
                 aria-expanded={showFeedFilters}
               >
@@ -970,7 +970,7 @@ export function DailyLog({
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                 mealFilter === "ALL"
                   ? "bg-[var(--accent)] text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
               onClick={() => setMealFilter("ALL")}
             >
@@ -986,7 +986,7 @@ export function DailyLog({
                   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     mealFilter === type
                       ? "bg-[var(--accent)] text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                   }`}
                   onClick={() => setMealFilter(type)}
                 >
@@ -995,7 +995,7 @@ export function DailyLog({
                 </button>
               );
             })}
-            <span className="mx-0.5 h-4 w-px bg-slate-200" aria-hidden />
+            <span className="mx-0.5 h-4 w-px bg-[var(--accent-soft)]" aria-hidden />
             {(
               [
                 ["PHOTO", "С фото"],
@@ -1009,7 +1009,7 @@ export function DailyLog({
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                   sourceFilter === value
                     ? "bg-amber-700 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => setSourceFilter((prev) => (prev === value ? "ALL" : value))}
                 aria-pressed={sourceFilter === value}
@@ -1028,7 +1028,7 @@ export function DailyLog({
           entries.length > 0 &&
           displayRows.length === 0 &&
           (mealFilter !== "ALL" || sourceFilter !== "ALL") ? (
-            <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
+            <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-8 text-center text-sm text-[var(--muted)]">
               Нет записей по этому фильтру.{" "}
               <button
                 type="button"

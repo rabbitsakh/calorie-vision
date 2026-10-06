@@ -88,15 +88,15 @@ export default function NativeBridgePage() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
       <BrandMark size={64} />
-      <h1 className="font-display mt-4 text-xl font-bold tracking-tight text-slate-900">
+      <h1 className="font-display mt-4 text-xl font-bold tracking-tight text-[var(--foreground)]">
         Calorie Vision
       </h1>
       {error ? (
         <p className="mt-4 text-sm text-rose-700">{error}</p>
       ) : (
-        <p className="mt-4 text-sm text-slate-600">Возвращаем в приложение…</p>
+        <p className="mt-4 text-sm text-[var(--muted-strong)]">Возвращаем в приложение…</p>
       )}
-      {hint ? <p className="mt-3 text-xs leading-snug text-slate-500">{hint}</p> : null}
+      {hint ? <p className="mt-3 text-xs leading-snug text-[var(--muted)]">{hint}</p> : null}
       {links ? (
         <div className="mt-6 flex w-full flex-col gap-3">
           <a
@@ -109,7 +109,7 @@ export default function NativeBridgePage() {
           >
             Открыть приложение
           </a>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[var(--muted)]">
             Не открывайте сайт в браузере — дневник должен быть в приложении.
           </p>
         </div>

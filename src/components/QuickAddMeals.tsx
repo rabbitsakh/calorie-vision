@@ -263,7 +263,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         </button>
       </div>
       ) : (
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-[var(--muted)]">
           {fromCache
             ? "Офлайн: последние предложения"
             : showSuggestions
@@ -281,8 +281,8 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
             onClick={() => void copyYesterday()}
           >
             <div className="min-w-0 flex-1">
-              <p className="font-medium text-slate-800">Как вчера</p>
-              <p className="text-xs text-slate-500">
+              <p className="font-medium text-[var(--foreground)]">Как вчера</p>
+              <p className="text-xs text-[var(--muted)]">
                 Скопировать все записи ({data.yesterdayCount})
               </p>
             </div>
@@ -293,7 +293,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
 
           {slotChips.length > 0 ? (
             <div>
-              <p className="mb-1.5 text-xs font-semibold text-slate-500">Или по приёму пищи</p>
+              <p className="mb-1.5 text-xs font-semibold text-[var(--muted)]">Или по приёму пищи</p>
               <div className="flex flex-wrap gap-1.5">
                 {slotChips.map((type) => (
                   <button
@@ -328,9 +328,9 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
               onClick={() => void addMeal(item)}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-semibold text-slate-800">{item.dishName}</p>
+                <p className="truncate text-base font-semibold text-[var(--foreground)]">{item.dishName}</p>
                 <AllergenHint text={item.dishName} allergens={userAllergens} />
-                <p className="text-xs text-slate-500">{item.why}</p>
+                <p className="text-xs text-[var(--muted)]">{item.why}</p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="text-base font-bold text-teal-800">{item.calories} ккал</p>

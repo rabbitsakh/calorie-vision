@@ -34,7 +34,7 @@ function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg
       aria-hidden
-      className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+      className={`h-5 w-5 shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -307,8 +307,8 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
         aria-expanded={open}
       >
         <div className="min-w-0">
-          <p className="font-semibold text-slate-800">Список покупок</p>
-          <p className="mt-0.5 text-xs text-slate-500">
+          <p className="font-semibold text-[var(--foreground)]">Список покупок</p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">
             Из рациона или вручную · {summary}
           </p>
         </div>
@@ -354,7 +354,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
             ) : null}
           </div>
 
-          {message ? <p className="text-xs text-slate-500">{message}</p> : null}
+          {message ? <p className="text-xs text-[var(--muted)]">{message}</p> : null}
 
           <form className="flex gap-2" onSubmit={handleManualAdd}>
             <input
@@ -362,7 +362,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
               value={manual}
               onChange={(e) => setManual(e.target.value)}
               placeholder="Добавить продукт…"
-              className="min-h-10 flex-1 rounded-xl border border-slate-200 px-3 text-sm"
+              className="min-h-10 flex-1 rounded-xl border border-[rgba(13,115,119,0.14)] px-3 text-sm"
               aria-label="Новый пункт списка"
             />
             <button
@@ -375,7 +375,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
           </form>
 
           {items.length === 0 ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[var(--muted)]">
               Список пуст. Соберите блюда за неделю или за день, либо добавьте вручную.
             </p>
           ) : (
@@ -385,19 +385,19 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
                 return (
                   <li
                     key={item.id}
-                    className="flex items-start gap-2 rounded-xl px-1 py-1 hover:bg-slate-50"
+                    className="flex items-start gap-2 rounded-xl px-1 py-1 hover:bg-[var(--surface-mist)]"
                   >
                     <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2.5">
                       <input
                         type="checkbox"
                         checked={item.checked}
                         onChange={() => handleToggle(item.id)}
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"
+                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-[rgba(13,115,119,0.22)]"
                       />
                       <span className="min-w-0">
                         <span
                           className={`block truncate text-sm ${
-                            item.checked ? "text-slate-400 line-through" : "text-slate-800"
+                            item.checked ? "text-[var(--muted)] line-through" : "text-[var(--foreground)]"
                           }`}
                         >
                           {item.name}
@@ -419,7 +419,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
                     ) : null}
                     <button
                       type="button"
-                      className="btn-quiet shrink-0 px-2 text-xs text-slate-400 hover:text-rose-600"
+                      className="btn-quiet shrink-0 px-2 text-xs text-[var(--muted)] hover:text-rose-600"
                       aria-label={`Удалить ${item.name}`}
                       onClick={() => handleRemove(item.id)}
                     >
@@ -431,7 +431,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
             </ul>
           )}
 
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-[var(--muted)]">
             Синхронизируется между устройствами при входе.
           </p>
         </div>

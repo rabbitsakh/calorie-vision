@@ -272,7 +272,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       {!compact ? (
         <div>
           <h2 className="text-xl font-bold">Добавить приём пищи</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[var(--muted)]">
             Сфотографируйте блюдо, заводскую упаковку, этикетку с КБЖУ или штрихкод.
           </p>
         </div>
@@ -289,7 +289,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         <div
           className={`flex min-h-36 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition md:min-h-44 md:py-8 ${
             disabled
-              ? "border-slate-200 bg-slate-50 opacity-70"
+              ? "border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] opacity-70"
               : dragOver
                 ? "border-teal-500 bg-teal-100/60 scale-[1.01]"
                 : "border-teal-300 bg-teal-50/60"
@@ -302,7 +302,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
             <p className="text-sm font-semibold text-teal-900 md:text-base">
               {dragOver ? "Отпустите для загрузки" : "Добавить фото еды"}
             </p>
-            <p className="mt-1 text-xs text-slate-500 md:text-sm">
+            <p className="mt-1 text-xs text-[var(--muted)] md:text-sm">
               Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP, HEIC · до {MAX_FILE_SIZE_MB}{" "}
               МБ
             </p>

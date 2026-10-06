@@ -37,7 +37,7 @@ export function ShareMenu({ date, className = "" }: ShareMenuProps) {
     <div ref={rootRef} className={`relative ${className}`.trim()}>
       <button
         type="button"
-        className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+        className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--accent-soft)] hover:text-[var(--muted-strong)]"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
@@ -51,7 +51,7 @@ export function ShareMenu({ date, className = "" }: ShareMenuProps) {
         <div
           id={menuId}
           role="menu"
-          className="absolute left-0 z-20 mt-1 min-w-[10.5rem] rounded-xl border border-slate-200 bg-white p-1.5 shadow-md"
+          className="absolute left-0 z-20 mt-1 min-w-[10.5rem] rounded-xl border border-[rgba(13,115,119,0.14)] bg-white p-1.5 shadow-md"
         >
           <ShareDayButton date={date} variant="menu" onDone={() => setOpen(false)} />
           <ShareWeekButton endDate={date} variant="menu" onDone={() => setOpen(false)} />

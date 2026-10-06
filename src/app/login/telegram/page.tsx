@@ -104,7 +104,7 @@ function TelegramCallbackInner() {
             </a>
           </>
         ) : (
-          <p className="mt-4 text-sm text-slate-600">Входим через Telegram…</p>
+          <p className="mt-4 text-sm text-[var(--muted-strong)]">Входим через Telegram…</p>
         )}
       </div>
     </main>
@@ -116,7 +116,7 @@ export default function TelegramCallbackPage() {
     <Suspense
       fallback={
         <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
-          <p className="text-center text-sm text-slate-500">Загрузка…</p>
+          <p className="text-center text-sm text-[var(--muted)]">Загрузка…</p>
         </main>
       }
     >

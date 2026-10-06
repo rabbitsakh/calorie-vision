@@ -20,7 +20,7 @@ export function heatmapCellTone(
 }
 
 export const HEATMAP_TONE_CLASS: Record<HeatmapTone, string> = {
-  empty: "bg-slate-100 text-slate-300",
+  empty: "bg-[var(--surface-mist)] text-[var(--muted)]",
   under: "bg-sky-200 text-sky-900",
   good: "bg-teal-500 text-white",
   over: "bg-rose-400 text-white",

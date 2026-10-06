@@ -52,7 +52,7 @@ export function StageScreen({
 
   const stage = (
     <div
-      className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-teal-950 to-slate-950 text-white"
+          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-teal-950 to-[#0a1f1e] text-white"
       role="dialog"
       aria-modal="true"
       aria-label={eyebrow}
@@ -62,7 +62,7 @@ export function StageScreen({
           <div className="mb-2 flex justify-end">
             <button
               type="button"
-              className="rounded-full px-3 py-1.5 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
+              className="rounded-full px-3 py-1.5 text-sm font-semibold text-[var(--muted)] hover:bg-white/10 hover:text-white"
               onClick={onDismiss}
               aria-label={dismissLabel}
             >
@@ -73,7 +73,7 @@ export function StageScreen({
 
         <p className="text-xs font-semibold uppercase tracking-widest text-teal-300/90">{eyebrow}</p>
         <h2 className="mt-2 text-3xl font-semibold leading-tight">{headline}</h2>
-        {subline ? <p className="mt-1 text-slate-300">{subline}</p> : null}
+        {subline ? <p className="mt-1 text-[var(--muted)]">{subline}</p> : null}
 
         {metrics && metrics.length > 0 ? (
           <div className="mt-8 grid grid-cols-2 gap-3">
@@ -84,7 +84,7 @@ export function StageScreen({
                   m.accent ? "bg-teal-500/20" : "bg-white/10"
                 }`}
               >
-                <p className={`text-xs ${m.accent ? "text-teal-200" : "text-slate-400"}`}>
+                <p className={`text-xs ${m.accent ? "text-teal-200" : "text-[var(--muted)]"}`}>
                   {m.label}
                 </p>
                 <p className="mt-1 text-xl font-semibold tabular-nums">{m.value}</p>
@@ -100,7 +100,7 @@ export function StageScreen({
             {primaryAction ? (
               <button
                 type="button"
-                className="rounded-2xl bg-teal-500 py-3.5 text-base font-bold text-slate-950"
+                className="rounded-2xl bg-teal-500 py-3.5 text-base font-bold text-[#0a1f1e]"
                 onClick={primaryAction.onClick}
               >
                 {primaryAction.label}

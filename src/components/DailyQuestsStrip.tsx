@@ -127,12 +127,12 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
   return (
     <>
-      <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+      <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             На сегодня
           </p>
-          <span className="text-xs font-bold tabular-nums text-slate-600">
+          <span className="text-xs font-bold tabular-nums text-[var(--muted-strong)]">
             {doneCount}/{requiredQuests.length}
           </span>
         </div>
@@ -141,14 +141,14 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
             <li
               key={q.id}
               className={`flex items-center justify-between gap-2 text-sm ${
-                q.done ? "text-teal-800" : "text-slate-600"
+                q.done ? "text-teal-800" : "text-[var(--muted-strong)]"
               }`}
             >
               <span className="truncate">
                 {q.done ? "✓ " : "○ "}
                 {q.title}
                 {q.bonus && !q.done ? (
-                  <span className="ml-1 text-[10px] font-medium text-slate-400">бонус</span>
+                  <span className="ml-1 text-[10px] font-medium text-[var(--muted)]">бонус</span>
                 ) : null}
               </span>
               {q.done ? (
@@ -157,7 +157,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
             </li>
           ))}
         </ul>
-        {hint ? <p className="mt-1.5 text-xs text-slate-500">{hint}</p> : null}
+        {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}
         {progress.allDone && !hint && !celebrate ? (
           <p className="mt-1.5 text-xs text-teal-700">День закрыт мягко — так и надо.</p>
         ) : null}

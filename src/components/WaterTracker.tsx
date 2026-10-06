@@ -294,7 +294,7 @@ export function WaterTracker({
             </button>
           </div>
         ) : null}
-        <p className="mb-3 text-xs text-slate-500">
+        <p className="mb-3 text-xs text-[var(--muted)]">
           {glasses > 0
             ? `≈ ${glasses} ${glasses === 1 ? "стакан" : glasses < 5 ? "стакана" : "стаканов"}`
             : "Быстрые кнопки — добавьте стакан воды"}

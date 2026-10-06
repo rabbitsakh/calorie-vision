@@ -76,11 +76,11 @@ function ProfileCollapse({
         onClick={onToggle}
       >
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          <p className="mt-0.5 text-xs text-slate-500 sm:text-sm">{hint}</p>
+          <h2 className="text-base font-semibold text-[var(--foreground)]">{title}</h2>
+          <p className="mt-0.5 text-xs text-[var(--muted)] sm:text-sm">{hint}</p>
         </div>
         <span
-          className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
         >
           ▾
@@ -371,7 +371,7 @@ export function ProfileForm() {
     <>
       {loading ? (
         <section className="px-1 py-2">
-          <p className="text-sm text-slate-500">Загрузка...</p>
+          <p className="text-sm text-[var(--muted)]">Загрузка...</p>
         </section>
       ) : null}
 
@@ -384,7 +384,7 @@ export function ProfileForm() {
                   <UserAvatar
                     image={image}
                     label={displayName}
-                    className="h-24 w-24 rounded-full border border-slate-200 object-cover bg-slate-100"
+                    className="h-24 w-24 rounded-full border border-[rgba(13,115,119,0.14)] object-cover bg-[var(--accent-soft)]"
                     fallbackClassName="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800"
                   />
                 </AvatarFrame>
@@ -395,11 +395,11 @@ export function ProfileForm() {
               </label>
 
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Аккаунт</h2>
-                <p className="mt-0.5 text-sm text-slate-500">
+                <h2 className="text-lg font-semibold text-[var(--foreground)]">Аккаунт</h2>
+                <p className="mt-0.5 text-sm text-[var(--muted)]">
                   Имя, email и фото видны в шапке приложения
                 </p>
-                <p className="mt-1 text-base font-semibold text-slate-800">{displayName}</p>
+                <p className="mt-1 text-base font-semibold text-[var(--foreground)]">{displayName}</p>
               </div>
             </div>
 
@@ -444,7 +444,7 @@ export function ProfileForm() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
                 {emailLocked ? (
-                  <p className="text-xs text-slate-500">Email привязан к Google или VK</p>
+                  <p className="text-xs text-[var(--muted)]">Email привязан к Google или VK</p>
                 ) : null}
               </div>
               <div className="field">
@@ -596,16 +596,16 @@ export function ProfileForm() {
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                    className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
                     checked={weeklyDigestEmail}
                     onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
                     disabled={!email.trim()}
                   />
                   <span>
-                    <span className="block text-sm font-medium text-slate-800">
+                    <span className="block text-sm font-medium text-[var(--foreground)]">
                       Недельный итог на email
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">
+                    <span className="mt-0.5 block text-xs text-[var(--muted)]">
                       Короткий дайджест раз в неделю. Нужен email
                       {!email.trim() ? " — сначала укажите адрес выше" : ""}.
                     </span>
@@ -628,18 +628,18 @@ export function ProfileForm() {
                 </select>
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-800">Аллергены</p>
+                <p className="text-sm font-medium text-[var(--foreground)]">Аллергены</p>
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
                   {ALLERGEN_OPTIONS.map((option) => {
                     const checked = allergens.includes(option.id);
                     return (
                       <label
                         key={option.id}
-                        className="flex cursor-pointer items-center gap-2 text-sm text-slate-700"
+                        className="flex cursor-pointer items-center gap-2 text-sm text-[var(--muted-strong)]"
                       >
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-600"
+                          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
                           checked={checked}
                           onChange={() => {
                             setAllergens((prev) =>
@@ -672,10 +672,10 @@ export function ProfileForm() {
                 className="profile-settings__door"
               >
                 <span className="min-w-0">
-                  <span className="block font-semibold text-slate-800">Скачать CSV</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">Дневник таблицей</span>
+                  <span className="block font-semibold text-[var(--foreground)]">Скачать CSV</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">Дневник таблицей</span>
                 </span>
-                <span className="shrink-0 text-slate-400" aria-hidden>
+                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
                   ↓
                 </span>
               </a>
@@ -685,19 +685,19 @@ export function ProfileForm() {
                 className="profile-settings__door"
               >
                 <span className="min-w-0">
-                  <span className="block font-semibold text-slate-800">Скачать PDF</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">Краткая выгрузка</span>
+                  <span className="block font-semibold text-[var(--foreground)]">Скачать PDF</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">Краткая выгрузка</span>
                 </span>
-                <span className="shrink-0 text-slate-400" aria-hidden>
+                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
                   ↓
                 </span>
               </a>
               <Link href={withBasePath("/install")} className="profile-settings__door">
                 <span className="min-w-0">
-                  <span className="block font-semibold text-slate-800">Установить приложение</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">PWA или APK</span>
+                  <span className="block font-semibold text-[var(--foreground)]">Установить приложение</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">PWA или APK</span>
                 </span>
-                <span className="shrink-0 text-slate-400" aria-hidden>
+                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
                   →
                 </span>
               </Link>
@@ -713,11 +713,11 @@ export function ProfileForm() {
           open={openInvite}
           onToggle={() => setOpenInvite((v) => !v)}
         >
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--muted)]">
             Поделитесь ссылкой — друзья откроют Calorie Vision с вашего приглашения, а вам
             начислится мягкий бонус к сундуку, когда они присоединятся.
           </p>
-          <p className="mt-3 break-all rounded-xl bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+          <p className="mt-3 break-all rounded-xl bg-[var(--surface-mist)] px-3 py-2 font-mono text-xs text-[var(--muted-strong)]">
             {referralUrl}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -752,7 +752,7 @@ export function ProfileForm() {
           open={openDelete}
           onToggle={() => setOpenDelete((v) => !v)}
         >
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--muted)]">
             Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
             Сначала скачайте полную копию данных (CSV и PDF).
           </p>
@@ -785,7 +785,7 @@ export function ProfileForm() {
                     >
                       Скачать CSV
                     </a>
-                    <label className="flex items-start gap-2 text-slate-700">
+                    <label className="flex items-start gap-2 text-[var(--muted-strong)]">
                       <input
                         type="checkbox"
                         className="mt-1"
@@ -807,7 +807,7 @@ export function ProfileForm() {
                     >
                       Скачать PDF
                     </a>
-                    <label className="flex items-start gap-2 text-slate-700">
+                    <label className="flex items-start gap-2 text-[var(--muted-strong)]">
                       <input
                         type="checkbox"
                         className="mt-1"
@@ -820,7 +820,7 @@ export function ProfileForm() {
                   </div>
                 </li>
                 <li>
-                  <label className="flex items-start gap-2 text-slate-700">
+                  <label className="flex items-start gap-2 text-[var(--muted-strong)]">
                     <input
                       type="checkbox"
                       className="mt-1"
@@ -877,7 +877,7 @@ export function ProfileForm() {
       ) : null}
 
       {!loading ? (
-        <footer className="px-1 pt-1 text-sm text-slate-500">
+        <footer className="px-1 pt-1 text-sm text-[var(--muted)]">
           <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Правовая информация">
             <Link
               href={withBasePath("/privacy")}

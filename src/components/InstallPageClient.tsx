@@ -23,11 +23,11 @@ export function InstallPageClient() {
   return (
     <>
       <div className="grid gap-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="font-semibold text-slate-900">
+        <article className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+          <h2 className="font-semibold text-[var(--foreground)]">
             <ShareGlyph /> iPhone · Safari
           </h2>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-[var(--muted-strong)]">
             <li>Откройте сайт в Safari.</li>
             <li>
               Нажмите «Поделиться» <ShareGlyph /> внизу экрана.
@@ -37,9 +37,9 @@ export function InstallPageClient() {
           </ol>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="font-semibold text-slate-900">Android · Chrome</h2>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-slate-700">
+        <article className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+          <h2 className="font-semibold text-[var(--foreground)]">Android · Chrome</h2>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-[var(--muted-strong)]">
             <li>Откройте сайт в Chrome.</li>
             <li>Меню ⋮ → «Установить приложение» или «Добавить на главный экран».</li>
             <li>Подтвердите установку.</li>

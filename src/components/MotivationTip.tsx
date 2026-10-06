@@ -147,7 +147,7 @@ export function MotivationTip({ today, selectedDate, quietHide = false }: Motiva
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-500 hover:border-slate-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-2.5 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)]"
         onClick={() => {
           showPanelToday(PANEL_ID, selectedDate);
           setHidden(false);

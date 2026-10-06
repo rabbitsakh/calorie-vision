@@ -208,7 +208,7 @@ export function QuickLogStrip({
   return (
     <div className="flex flex-col gap-1.5 px-0.5" aria-label="Быстрый лог">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Быстрый лог
         </p>
         {notice ? <p className="truncate text-xs text-amber-800">{notice}</p> : null}

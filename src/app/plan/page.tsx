@@ -68,13 +68,13 @@ export default function PlanPage() {
             <details className="plan-week__fold group">
               <summary className="plan-week__fold-summary">
                 <span className="min-w-0">
-                  <span className="block font-semibold text-slate-800">Итог недели</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
+                  <span className="block font-semibold text-[var(--foreground)]">Итог недели</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
                     Средние, лучший день, шаринг
                   </span>
                 </span>
                 <span
-                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                  className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180"
                   aria-hidden
                 >
                   ▾
@@ -88,13 +88,13 @@ export default function PlanPage() {
             <details className="plan-week__fold group">
               <summary className="plan-week__fold-summary">
                 <span className="min-w-0">
-                  <span className="block font-semibold text-slate-800">Цель по весу</span>
-                  <span className="mt-0.5 block text-xs text-slate-500">
+                  <span className="block font-semibold text-[var(--foreground)]">Цель по весу</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
                     Текущий вес и темп
                   </span>
                 </span>
                 <span
-                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                  className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-180"
                   aria-hidden
                 >
                   ▾

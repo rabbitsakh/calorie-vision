@@ -80,9 +80,9 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
 
   if (status === "loading") {
     return (
-      <div className={`flex items-center text-sm text-slate-500 ${compactTrigger ? "h-full" : "gap-3"}`}>
+      <div className={`flex items-center text-sm text-[var(--muted)] ${compactTrigger ? "h-full" : "gap-3"}`}>
         <span
-          className={`inline-block animate-pulse rounded-full bg-slate-200 ${
+          className={`inline-block animate-pulse rounded-full bg-[var(--accent-soft)] ${
             compactTrigger ? "h-11 w-11 md:h-10 md:w-10" : "h-9 w-9"
           }`}
         />
@@ -109,13 +109,13 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-[rgba(13,115,119,0.14)] bg-white py-1 shadow-lg"
             style={{ top: coords.top, right: coords.right }}
           >
             <Link
               href="/profile"
               role="menuitem"
-              className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               onClick={() => setOpen(false)}
             >
               Профиль
@@ -123,7 +123,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
             <Link
               href="/workouts"
               role="menuitem"
-              className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               onClick={() => setOpen(false)}
             >
               Тренировки
@@ -133,7 +133,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
                 <Link
                   href="/admin/users"
                   role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                   onClick={() => setOpen(false)}
                 >
                   Пользователи
@@ -141,7 +141,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
                 <Link
                   href="/admin/stats"
                   role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                   onClick={() => setOpen(false)}
                 >
                   Статистика
@@ -149,7 +149,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
                 <Link
                   href="/admin/changelog"
                   role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                   onClick={() => setOpen(false)}
                 >
                   Журнал изменений
@@ -184,8 +184,8 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
         className={
           compactTrigger
             ? // Mobile: larger avatar-only control; sm+: pill with name.
-              "flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white p-0 text-left hover:border-teal-300 sm:h-10 sm:w-auto sm:max-w-none sm:gap-2.5 sm:py-0 sm:pl-0 sm:pr-2.5"
-            : "flex max-w-[12rem] items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
+              "flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[rgba(13,115,119,0.14)] bg-white p-0 text-left hover:border-teal-300 sm:h-10 sm:w-auto sm:max-w-none sm:gap-2.5 sm:py-0 sm:pl-0 sm:pr-2.5"
+            : "flex max-w-[12rem] items-center gap-2 rounded-full border border-[rgba(13,115,119,0.14)] bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
         }
         aria-expanded={open}
         aria-haspopup="menu"
@@ -198,8 +198,8 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
             label={session.user.name ?? session.user.email ?? session.user.phone ?? "?"}
             className={
               compactTrigger
-                ? "h-full w-full rounded-full object-cover bg-slate-100"
-                : "h-9 w-9 shrink-0 rounded-full border border-slate-200 object-cover bg-slate-100"
+                ? "h-full w-full rounded-full object-cover bg-[var(--accent-soft)]"
+                : "h-9 w-9 shrink-0 rounded-full border border-[rgba(13,115,119,0.14)] object-cover bg-[var(--accent-soft)]"
             }
             fallbackClassName={
               compactTrigger
@@ -209,9 +209,9 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
           />
         </AvatarFrame>
         <div className="min-w-0 hidden sm:block">
-          <p className="truncate text-sm font-medium leading-tight text-slate-900">{label}</p>
+          <p className="truncate text-sm font-medium leading-tight text-[var(--foreground)]">{label}</p>
           {!compactTrigger && subtitle ? (
-            <p className="truncate text-xs text-slate-500">{subtitle}</p>
+            <p className="truncate text-xs text-[var(--muted)]">{subtitle}</p>
           ) : null}
         </div>
       </button>

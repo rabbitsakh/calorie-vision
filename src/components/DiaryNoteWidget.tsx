@@ -68,7 +68,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-2.5 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)]"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHiddenByUser(false); }}
       >
         <span>📝 Заметка о дне{mood ? ` · ${["😞","😕","😐","🙂","😄"][mood - 1]}` : ""}</span>
@@ -81,7 +81,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
     return (
       <button
         type="button"
-        className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+        className="flex w-full items-center gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-3 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)] hover:bg-[var(--surface-mist)]"
         onClick={() => setOpen(true)}
       >
         <span className="text-lg">📝</span>
@@ -118,7 +118,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
               type="button"
               title={m.label}
               className={`flex-1 rounded-xl py-2 text-xl transition-all ${
-                mood === m.value ? "bg-teal-100 ring-2 ring-teal-400" : "hover:bg-slate-100"
+                mood === m.value ? "bg-teal-100 ring-2 ring-teal-400" : "hover:bg-[var(--accent-soft)]"
               }`}
               onClick={() => setMood(mood === m.value ? null : m.value)}
             >
@@ -128,7 +128,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         </div>
 
         <textarea
-          className="min-h-[80px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-teal-400 focus:outline-none"
+          className="min-h-[80px] w-full resize-none rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-2 text-sm focus:border-teal-400 focus:outline-none"
           placeholder="Как прошёл день? Что повлияло на питание?"
           maxLength={500}
           value={note}
@@ -136,7 +136,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         />
 
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-slate-400">{note.length}/500</span>
+          <span className="text-xs text-[var(--muted)]">{note.length}/500</span>
           <button
             type="button"
             className="btn btn-primary text-sm"

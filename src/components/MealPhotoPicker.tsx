@@ -122,9 +122,9 @@ export function MealPhotoPicker({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">Фото из интернета</p>
-          <p className="mt-0.5 text-sm text-slate-600">Выберите картинку для «{dishName}»</p>
+          <p className="mt-0.5 text-sm text-[var(--muted-strong)]">Выберите картинку для «{dishName}»</p>
         </div>
-        <button type="button" className="btn-quiet text-xs text-slate-500" onClick={onClose}>
+        <button type="button" className="btn-quiet text-xs text-[var(--muted)]" onClick={onClose}>
           Закрыть
         </button>
       </div>
@@ -137,7 +137,7 @@ export function MealPhotoPicker({
         }}
       >
         <input
-          className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-xl border border-[rgba(13,115,119,0.14)] px-3 py-2 text-sm"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Запрос для поиска"
@@ -150,13 +150,13 @@ export function MealPhotoPicker({
 
       {imagePath ? (
         <div className="mt-3 flex items-center gap-3">
-          <div className="h-14 w-14 overflow-hidden rounded-xl bg-slate-100">
+          <div className="h-14 w-14 overflow-hidden rounded-xl bg-[var(--accent-soft)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={getImageUrl(imagePath)} alt="" className="h-full w-full object-cover" />
           </div>
           <button
             type="button"
-            className="text-xs font-medium text-slate-500 underline-offset-2 hover:underline"
+            className="text-xs font-medium text-[var(--muted)] underline-offset-2 hover:underline"
             disabled={Boolean(applying)}
             onClick={() => void clearPhoto()}
           >
@@ -168,7 +168,7 @@ export function MealPhotoPicker({
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
 
       {loading && candidates.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-500">Ищем фото…</p>
+        <p className="mt-3 text-sm text-[var(--muted)]">Ищем фото…</p>
       ) : null}
 
       {candidates.length > 0 ? (
@@ -180,7 +180,7 @@ export function MealPhotoPicker({
                 key={item.url}
                 type="button"
                 disabled={Boolean(applying)}
-                className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left transition hover:border-teal-400 disabled:opacity-60"
+                className="group relative overflow-hidden rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] text-left transition hover:border-teal-400 disabled:opacity-60"
                 onClick={() => void applyUrl(item.url)}
                 title={item.label ?? item.source}
               >

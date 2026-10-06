@@ -18,8 +18,8 @@ export default function InstallPage() {
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col gap-6 px-4 py-8">
       <div>
         <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">На телефон</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">Установка</h1>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+        <h1 className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">Установка</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">
           Calorie Vision — PWA. Добавьте на главный экран: иконка, полноэкранный режим, удобный дневник.
           На Android можно скачать APK. Напоминания на iPhone работают только с этой иконки (iOS 16.4+).
         </p>
@@ -28,8 +28,8 @@ export default function InstallPage() {
       <InstallPageClient />
 
       <section className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
-        <h2 className="font-semibold text-slate-900">Android · APK</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="font-semibold text-[var(--foreground)]">Android · APK</h2>
+        <p className="mt-1 text-sm text-[var(--muted-strong)]">
           Тот же дневник на телефоне: офлайн-иконка, напоминания и камера. Установите APK
           напрямую — без Google Play.
           {rustoreUrl ? " Или поставьте из RuStore." : ""}
@@ -49,23 +49,23 @@ export default function InstallPage() {
             </a>
           ) : null}
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-          Файл: <code className="text-slate-500">calorie-vision.apk</code>. После сборки копируется
-          в <code className="text-slate-500">public/downloads/</code> скриптом{" "}
-          <code className="text-slate-500">rustore:build</code>.
+        <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
+          Файл: <code className="text-[var(--muted)]">calorie-vision.apk</code>. После сборки копируется
+          в <code className="text-[var(--muted)]">public/downloads/</code> скриптом{" "}
+          <code className="text-[var(--muted)]">rustore:build</code>.
         </p>
       </section>
 
       {!rustoreUrl ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h2 className="font-semibold text-slate-900">RuStore</h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+          <h2 className="font-semibold text-[var(--foreground)]">RuStore</h2>
+          <p className="mt-1 text-sm text-[var(--muted-strong)]">
             Готовим бесплатное приложение в RuStore на базе этого же сайта. Пока удобнее APK или PWA
             на экран «Домой».
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-            Для TWA на сервере нужен <code className="text-slate-500">TWA_SHA256_FINGERPRINTS</code> — см.{" "}
-            <code className="text-slate-500">rustore/README.md</code>.
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
+            Для TWA на сервере нужен <code className="text-[var(--muted)]">TWA_SHA256_FINGERPRINTS</code> — см.{" "}
+            <code className="text-[var(--muted)]">rustore/README.md</code>.
           </p>
         </section>
       ) : null}

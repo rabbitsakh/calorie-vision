@@ -107,7 +107,7 @@ export function WaterQuickSheet() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="water-quick-title"
@@ -117,14 +117,14 @@ export function WaterQuickSheet() {
         className="flex w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
           <div className="min-w-0">
-            <p id="water-quick-title" className="font-semibold text-slate-900">
+            <p id="water-quick-title" className="font-semibold text-[var(--foreground)]">
               Вода сегодня
             </p>
-            <p className="text-xs text-slate-500">Быстрая запись из «+»</p>
+            <p className="text-xs text-[var(--muted)]">Быстрая запись из «+»</p>
           </div>
-          <button type="button" className="btn-quiet text-sm text-slate-500" onClick={close}>
+          <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={close}>
             Закрыть
           </button>
         </div>

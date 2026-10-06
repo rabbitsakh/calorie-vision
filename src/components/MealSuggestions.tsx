@@ -37,7 +37,7 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   protein: { label: "Белковое", color: "bg-teal-100 text-teal-800" },
   carbs: { label: "Углеводы", color: "bg-cyan-100 text-cyan-900" },
   fat: { label: "Жиры", color: "bg-amber-100 text-amber-800" },
-  balanced: { label: "Баланс", color: "bg-slate-100 text-slate-700" },
+  balanced: { label: "Баланс", color: "bg-[var(--accent-soft)] text-[var(--muted-strong)]" },
   light: { label: "Лёгкое", color: "bg-sky-100 text-sky-800" },
 };
 
@@ -56,11 +56,11 @@ function MacroBar({
   const over = eaten > target;
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="flex justify-between text-xs font-medium text-slate-600">
+      <div className="flex justify-between text-xs font-medium text-[var(--muted-strong)]">
         <span>{label}</span>
         <span className={over ? "text-rose-600" : ""}>{eaten}/{target} г</span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
         <div
           className={`h-1.5 rounded-full transition-all ${over ? "bg-rose-400" : color}`}
           style={{ width: `${pct}%` }}
@@ -163,7 +163,7 @@ export function MealSuggestions({
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400 hover:border-slate-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-2.5 text-sm text-[var(--muted)] hover:border-[rgba(13,115,119,0.22)]"
         onClick={() => { showPanelToday(PANEL_ID, selectedDate); setHidden(false); }}
       >
         <span>Рекомендации AI</span>
@@ -176,7 +176,7 @@ export function MealSuggestions({
     return (
       <button
         type="button"
-        className={`flex w-full items-center gap-3 rounded-2xl border border-dashed border-teal-200 px-4 py-3.5 text-sm text-teal-700 hover:border-teal-400 hover:bg-teal-50 ${embedded ? "border-slate-200" : ""}`}
+        className={`flex w-full items-center gap-3 rounded-2xl border border-dashed border-teal-200 px-4 py-3.5 text-sm text-teal-700 hover:border-teal-400 hover:bg-teal-50 ${embedded ? "border-[rgba(13,115,119,0.14)]" : ""}`}
         onClick={() => { setVisible(true); void load(); }}
       >
         <div className="text-left">
@@ -195,7 +195,7 @@ export function MealSuggestions({
     <section className={embedded ? "overflow-hidden" : "card overflow-hidden"}>
       {/* Header */}
       <div className={`flex items-center justify-between gap-2 ${embedded ? "pb-3" : "px-4 py-3 md:px-6"}`}>
-        {!embedded ? <h2 className="text-base font-semibold">Рекомендации AI</h2> : <span className="text-sm font-semibold text-slate-700">Подбор AI</span>}
+        {!embedded ? <h2 className="text-base font-semibold">Рекомендации AI</h2> : <span className="text-sm font-semibold text-[var(--muted-strong)]">Подбор AI</span>}
         <div className="flex gap-2">
           <button
             type="button"
@@ -219,9 +219,9 @@ export function MealSuggestions({
 
       {/* Progress summary */}
       {data?.eaten && data.target ? (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-3 md:px-6">
+        <div className="border-t border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]/60 px-4 py-3 md:px-6">
           <div className="mb-2 flex items-baseline justify-between gap-2">
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-sm font-medium text-[var(--muted-strong)]">
               {data.eaten.calories} / {data.target.calories} ккал
             </span>
             <span className={`text-xs font-semibold ${(data.pctCalories ?? 0) > 100 ? "text-rose-600" : "text-teal-700"}`}>
@@ -229,7 +229,7 @@ export function MealSuggestions({
             </span>
           </div>
           {/* Calorie bar */}
-          <div className="mb-3 h-2 overflow-hidden rounded-full bg-slate-200">
+          <div className="mb-3 h-2 overflow-hidden rounded-full bg-[var(--accent-soft)]">
             <div
               className={`h-2 rounded-full transition-all ${(data.pctCalories ?? 0) > 100 ? "bg-rose-400" : "bg-teal-500"}`}
               style={{ width: `${Math.min(100, data.pctCalories ?? 0)}%` }}
@@ -241,14 +241,14 @@ export function MealSuggestions({
             <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-cyan-500" />
           </div>
           {data.tip ? (
-            <p className="mt-2 text-xs text-slate-500">{data.tip}</p>
+            <p className="mt-2 text-xs text-[var(--muted)]">{data.tip}</p>
           ) : null}
         </div>
       ) : null}
 
       {/* Loading */}
       {loading ? (
-        <div className="flex items-center gap-2 px-4 py-4 text-sm text-slate-500 md:px-6">
+        <div className="flex items-center gap-2 px-4 py-4 text-sm text-[var(--muted)] md:px-6">
           <span className="daisy-loading"><span /><span /><span /></span>
           Анализируем рацион и подбираем блюда...
         </div>
@@ -257,14 +257,14 @@ export function MealSuggestions({
       {/* Reason / empty state */}
       {data?.reason && !loading ? (
         <div className="px-4 py-4 md:px-6">
-          <p className="text-sm text-slate-600">{data.reason}</p>
+          <p className="text-sm text-[var(--muted-strong)]">{data.reason}</p>
         </div>
       ) : null}
 
       {/* Remaining macros */}
       {data?.remaining && !data.reason && !loading ? (
-        <div className="border-t border-slate-100 px-4 pt-3 text-xs text-slate-500 md:px-6">
-          <span className="font-medium text-slate-600">Осталось до цели: </span>
+        <div className="border-t border-[rgba(13,115,119,0.08)] px-4 pt-3 text-xs text-[var(--muted)] md:px-6">
+          <span className="font-medium text-[var(--muted-strong)]">Осталось до цели: </span>
           <span className="font-semibold text-teal-800">
             {data.remaining.calories} ккал
           </span>
@@ -283,7 +283,7 @@ export function MealSuggestions({
       ) : null}
 
       {data?.suggestions && data.suggestions.length > 0 && !loading ? (
-        <ul className="divide-y divide-slate-100 px-4 py-2 md:px-6">
+        <ul className="divide-y divide-[rgba(13,115,119,0.08)] px-4 py-2 md:px-6">
           {data.suggestions.map((s, i) => {
             const cat = CATEGORY_LABELS[s.category] ?? CATEGORY_LABELS.balanced;
             const busy = addingIndex === i;
@@ -292,18 +292,18 @@ export function MealSuggestions({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <p className="font-semibold text-slate-900">{s.name}</p>
+                      <p className="font-semibold text-[var(--foreground)]">{s.name}</p>
                       <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cat.color}`}>
                         {cat.label}
                       </span>
                     </div>
                     <AllergenHint text={s.name} allergens={userAllergens} />
-                    {s.why ? <p className="mt-1 text-xs text-slate-500">{s.why}</p> : null}
+                    {s.why ? <p className="mt-1 text-xs text-[var(--muted)]">{s.why}</p> : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <div className="text-right">
                       <p className="text-sm font-bold text-teal-700">{s.calories} ккал</p>
-                      {s.portionGrams ? <p className="text-xs text-slate-400">{s.portionGrams} г</p> : null}
+                      {s.portionGrams ? <p className="text-xs text-[var(--muted)]">{s.portionGrams} г</p> : null}
                     </div>
                     <button
                       type="button"
@@ -316,7 +316,7 @@ export function MealSuggestions({
                   </div>
                 </div>
                 {(s.protein || s.fat || s.carbs) ? (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-[var(--muted)]">
                     Б {s.protein} · Ж {s.fat} · У {s.carbs} г
                   </p>
                 ) : null}

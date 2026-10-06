@@ -845,7 +845,7 @@ export function ConfirmationCard({
         {hasImage ? (
           <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-2xl">
             {!imageLoaded ? (
-              <div className="absolute inset-0 min-h-36 animate-pulse bg-slate-200" aria-hidden />
+              <div className="absolute inset-0 min-h-36 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -868,7 +868,7 @@ export function ConfirmationCard({
         ) : (
           <div>
             <h2 className="text-xl font-bold">Проверьте и сохраните</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[var(--muted)]">
               {multi
                 ? "Несколько блюд — поправьте порции и сохраните."
                 : "Порция и калории — сохраните. БЖУ при необходимости ниже."}

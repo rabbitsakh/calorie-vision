@@ -236,10 +236,10 @@ export default function LoginForm() {
           </p>
         </div>
         <h1 className="mt-3 text-2xl font-bold tracking-tight">Вход в аккаунт</h1>
-        <p className="mt-2 text-slate-600 capacitor-web-only">
+        <p className="mt-2 text-[var(--muted-strong)] capacitor-web-only">
           Войдите через Яндекс, Google, VK, Telegram или email — дневник сохранится в вашем аккаунте.
         </p>
-        <p className="mt-2 text-slate-600 capacitor-native-only">
+        <p className="mt-2 text-[var(--muted-strong)] capacitor-native-only">
           Вход через соцсети остаётся в приложении. После авторизации откроется ваш дневник.
         </p>
 
@@ -250,7 +250,7 @@ export default function LoginForm() {
         ) : null}
 
         {options === null ? (
-          <p className="mt-6 text-sm text-slate-500">Загрузка способов входа…</p>
+          <p className="mt-6 text-sm text-[var(--muted)]">Загрузка способов входа…</p>
         ) : (
           <>
             {hasSocial ? (
@@ -271,7 +271,7 @@ export default function LoginForm() {
                 {ready.google ? (
                   <button
                     type="button"
-                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-800 transition hover:border-teal-300 hover:bg-teal-50"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-4 py-3 font-medium text-[var(--foreground)] transition hover:border-teal-300 hover:bg-teal-50"
                     disabled={loading}
                     onClick={() => handleOauthLogin("google")}
                   >
@@ -322,7 +322,7 @@ export default function LoginForm() {
             ) : null}
 
             {ready.email ? (
-              <div className={`${hasSocial ? "mt-6 border-t border-slate-200 pt-6" : "mt-6"}`}>
+              <div className={`${hasSocial ? "mt-6 border-t border-[rgba(13,115,119,0.14)] pt-6" : "mt-6"}`}>
                 {hasSocial ? (
                   <button
                     type="button"
@@ -332,7 +332,7 @@ export default function LoginForm() {
                     {showEmail ? "Скрыть вход по email" : "Войти по email"}
                   </button>
                 ) : (
-                  <p className="text-sm font-semibold text-slate-700">Вход по email</p>
+                  <p className="text-sm font-semibold text-[var(--muted-strong)]">Вход по email</p>
                 )}
 
                 {showEmail || !hasSocial ? (
@@ -386,7 +386,7 @@ export default function LoginForm() {
 
         {/* Web only — APK must not look like a site with «На главную». */}
         {!capacitorShell ? (
-          <p className="capacitor-web-only mt-6 text-center text-sm text-slate-500">
+          <p className="capacitor-web-only mt-6 text-center text-sm text-[var(--muted)]">
             <Link href="/" className="text-teal-700 hover:underline">
               На главную
             </Link>

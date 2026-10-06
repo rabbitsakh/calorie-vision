@@ -1,6 +1,6 @@
 export function DaisyLoading({ label = "Загрузка..." }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 py-4 text-sm text-slate-500">
+    <div className="flex items-center justify-center gap-3 py-4 text-sm text-[var(--muted)]">
       <span className="daisy-loading" aria-hidden>
         <span />
         <span />

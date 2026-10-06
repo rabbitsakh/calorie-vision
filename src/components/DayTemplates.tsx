@@ -207,7 +207,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-[var(--muted)]">
         Сохраните текущий день как шаблон и применяйте его позже.
         {synced
           ? " Синхронизируется с аккаунтом."
@@ -238,14 +238,14 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
       {templates.length === 0 ? (
-        <p className="text-sm text-slate-500">Пока нет шаблонов — сохраните заполненный день.</p>
+        <p className="text-sm text-[var(--muted)]">Пока нет шаблонов — сохраните заполненный день.</p>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-[rgba(13,115,119,0.08)]">
           {templates.map((tpl) => (
             <li key={tpl.id} className="flex items-center gap-3 py-2.5">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-800">{tpl.name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="truncate text-sm font-medium text-[var(--foreground)]">{tpl.name}</p>
+                <p className="text-xs text-[var(--muted)]">
                   {tpl.meals.length}{" "}
                   {tpl.meals.length === 1 ? "блюдо" : tpl.meals.length < 5 ? "блюда" : "блюд"}
                   {" · "}
@@ -262,7 +262,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
               </button>
               <button
                 type="button"
-                className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600"
+                className="shrink-0 rounded-lg px-2 py-1.5 text-xs font-semibold text-[var(--muted)] hover:bg-red-50 hover:text-red-600"
                 disabled={applying !== null}
                 onClick={() => void handleDelete(tpl.id)}
               >

@@ -21,13 +21,13 @@ export function LegalDocument({ title, updated, children }: LegalDocumentProps) 
           <BrandMark size={48} decorative={false} />
           <span className="font-display text-lg font-semibold tracking-tight">Calorie Vision</span>
         </Link>
-        <h1 className="font-display mt-6 text-2xl font-bold text-slate-900 md:text-3xl">{title}</h1>
-        <p className="mt-2 text-sm text-slate-500">Обновлено: {updated}</p>
+        <h1 className="font-display mt-6 text-2xl font-bold text-[var(--foreground)] md:text-3xl">{title}</h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">Обновлено: {updated}</p>
       </header>
 
       <article className="legal-prose card p-5 md:p-8">{children}</article>
 
-      <nav className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600" aria-label="Юридические документы">
+      <nav className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm text-[var(--muted-strong)]" aria-label="Юридические документы">
         <Link href={withBasePath("/privacy")} className="text-teal-800 underline-offset-2 hover:underline">
           Конфиденциальность
         </Link>
@@ -37,7 +37,7 @@ export function LegalDocument({ title, updated, children }: LegalDocumentProps) 
         <Link href={withBasePath("/disclaimer")} className="text-teal-800 underline-offset-2 hover:underline">
           Медицинский дисклеймер
         </Link>
-        <Link href={withBasePath("/")} className="text-slate-500 underline-offset-2 hover:underline">
+        <Link href={withBasePath("/")} className="text-[var(--muted)] underline-offset-2 hover:underline">
           На главную
         </Link>
       </nav>

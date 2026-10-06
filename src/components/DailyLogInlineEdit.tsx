@@ -173,7 +173,7 @@ export function InlineEdit({
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
                     Number(portionGrams) === grams
                       ? "bg-teal-700 text-white"
-                      : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                      : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
                   }`}
                   onClick={() => handlePortionChange(String(grams))}
                 >
@@ -183,7 +183,7 @@ export function InlineEdit({
             </div>
           ) : null}
           {canScalePortion ? (
-            <p className="mt-1 text-[11px] text-slate-500">Ккал и БЖУ пересчитаются от исходной порции</p>
+            <p className="mt-1 text-[11px] text-[var(--muted)]">Ккал и БЖУ пересчитаются от исходной порции</p>
           ) : null}
         </div>
         <div className="field">
@@ -217,7 +217,7 @@ export function InlineEdit({
           <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={sugar} onChange={(e) => setSugar(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <p className="mb-1.5 text-xs font-semibold text-slate-500">Приём пищи</p>
+          <p className="mb-1.5 text-xs font-semibold text-[var(--muted)]">Приём пищи</p>
           <div className="flex flex-wrap gap-1">
             {(Object.entries(MEAL_TYPE_LABELS) as Array<[string, string]>).map(([value, label]) => (
               <button
@@ -226,7 +226,7 @@ export function InlineEdit({
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                   mealType === value
                     ? "bg-teal-700 text-white"
-                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                    : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => setMealType(mealType === value ? "" : value)}
               >

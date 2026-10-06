@@ -59,10 +59,10 @@ function NativeBridgeReturnInner() {
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col items-center justify-center px-4 py-12 text-center">
       <BrandMark size={64} />
-      <h1 className="font-display mt-4 text-xl font-bold tracking-tight text-slate-900">
+      <h1 className="font-display mt-4 text-xl font-bold tracking-tight text-[var(--foreground)]">
         Calorie Vision
       </h1>
-      <p className="mt-4 text-sm text-slate-600">
+      <p className="mt-4 text-sm text-[var(--muted-strong)]">
         Вход готов. Откройте приложение — сессия будет только там, не в браузере.
       </p>
       <button
@@ -72,7 +72,7 @@ function NativeBridgeReturnInner() {
       >
         Открыть приложение
       </button>
-      <p className="mt-4 text-xs leading-snug text-slate-500">
+      <p className="mt-4 text-xs leading-snug text-[var(--muted)]">
         Если ничего не произошло: вернитесь к иконке Calorie Vision на телефоне и закройте эту вкладку
         Chrome.
       </p>
@@ -84,7 +84,7 @@ export default function NativeBridgeReturnPage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto flex min-h-[70vh] items-center justify-center px-4 text-sm text-slate-600">
+        <main className="mx-auto flex min-h-[70vh] items-center justify-center px-4 text-sm text-[var(--muted-strong)]">
           Возвращаем в приложение…
         </main>
       }

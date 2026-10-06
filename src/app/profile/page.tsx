@@ -43,11 +43,11 @@ function ProfileSection({
         onClick={() => setOpen((v) => !v)}
       >
         <div className="min-w-0">
-          <p className="font-semibold text-slate-800">{title}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+          <p className="font-semibold text-[var(--foreground)]">{title}</p>
+          <p className="mt-0.5 text-xs text-[var(--muted)]">{hint}</p>
         </div>
         <span
-          className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-[var(--muted)] transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
         >
           ▾
@@ -70,10 +70,10 @@ function ProfileDoor({
   return (
     <Link href={href} className="profile-settings__door">
       <span className="min-w-0">
-        <span className="block font-semibold text-slate-800">{title}</span>
-        <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
+        <span className="block font-semibold text-[var(--foreground)]">{title}</span>
+        <span className="mt-0.5 block text-xs text-[var(--muted)]">{hint}</span>
       </span>
-      <span className="shrink-0 text-slate-400" aria-hidden>
+      <span className="shrink-0 text-[var(--muted)]" aria-hidden>
         →
       </span>
     </Link>

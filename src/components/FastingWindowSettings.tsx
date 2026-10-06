@@ -103,15 +103,15 @@ export function FastingWindowSettings() {
 
   return (
     <section className="card p-4 md:p-5">
-      <h2 className="text-base font-semibold text-slate-800">
+      <h2 className="text-base font-semibold text-[var(--foreground)]">
         Окно питания
       </h2>
-      <p className="mt-1 text-sm text-slate-500">
+      <p className="mt-1 text-sm text-[var(--muted)]">
         Мягкая подсказка по времени еды на рационе. Не медицинский совет и не интервальное
         голодание «по протоколу».
       </p>
 
-      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+      <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm text-[var(--muted-strong)]">
         <input
           type="checkbox"
           checked={enabled}
@@ -121,7 +121,7 @@ export function FastingWindowSettings() {
             setEnabled(on);
             void save(on, start || "12", end || "20");
           }}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)]"
         />
         Показывать подсказку вне окна
       </label>
