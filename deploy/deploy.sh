@@ -30,15 +30,62 @@ fi
 
 : >"$DEPLOY_LOG"
 
-# —— Quiet progress UI ————————————————————————————————
-# One updating line: [####----]  42%  Build
+# —— Color progress UI + end stats ————————————————————
+# One updating line: [████----]  42%  Build
+# Colors off: DEPLOY_COLOR=0 or NO_COLOR=1 or non-TTY.
 # Failures / warnings print as normal text below.
 
 _PROGRESS_PCT=0
 _PROGRESS_LABEL="Старт"
-# Progress writes to stderr — detect that fd (stdout may be piped).
+_DEPLOY_T0=$SECONDS
+_DEPLOY_T_NPM=0
+_DEPLOY_T_BUILD=0
+_DEPLOY_T_MARK=0
+KEEP_LIVE=0
+HEAP_MB=""
+HEALTH_OK=0
+
 _IS_TTY=0
 if [[ -t 2 ]]; then _IS_TTY=1; fi
+
+_USE_COLOR=0
+if (( _IS_TTY )) && [[ -z "${NO_COLOR:-}" && "${DEPLOY_COLOR:-1}" != "0" ]]; then
+  _USE_COLOR=1
+fi
+
+# Brand-ish teal / green palette (256-color; fine over modern SSH).
+_C_RESET="" _C_BOLD="" _C_DIM="" _C_TEAL="" _C_GREEN="" _C_YELLOW="" _C_RED="" _C_CYAN=""
+if (( _USE_COLOR )); then
+  _C_RESET=$'\033[0m'
+  _C_BOLD=$'\033[1m'
+  _C_DIM=$'\033[2m'
+  _C_TEAL=$'\033[38;5;37m'
+  _C_GREEN=$'\033[38;5;78m'
+  _C_YELLOW=$'\033[33m'
+  _C_RED=$'\033[31m'
+  _C_CYAN=$'\033[36m'
+fi
+
+_bar_color() {
+  local pct="$1"
+  if (( pct >= 85 )); then
+    printf '%s' "$_C_GREEN"
+  elif (( pct >= 45 )); then
+    printf '%s' "$_C_TEAL"
+  else
+    printf '%s' "$_C_CYAN"
+  fi
+}
+
+_fmt_duration() {
+  local sec="${1:-0}"
+  if (( sec < 0 )); then sec=0; fi
+  if (( sec < 60 )); then
+    printf '%dс' "$sec"
+  else
+    printf '%dм %dс' "$((sec / 60))" "$((sec % 60))"
+  fi
+}
 
 _progress_draw() {
   local pct="${1:-$_PROGRESS_PCT}"
@@ -49,13 +96,22 @@ _progress_draw() {
   local filled=$((pct * width / 100))
   local empty=$((width - filled))
   local bar="" i
-  # ASCII-safe bar (reliable width; works over SSH without UTF-8 quirks).
-  for ((i = 0; i < filled; i++)); do bar+="#"; done
-  for ((i = 0; i < empty; i++)); do bar+="-"; done
+  # UTF-8 blocks — repo/VPS already use Cyrillic over SSH.
+  for ((i = 0; i < filled; i++)); do bar+="█"; done
+  for ((i = 0; i < empty; i++)); do bar+="░"; done
+  local elapsed=$((SECONDS - _DEPLOY_T0))
+  local elapsed_s
+  elapsed_s="$(_fmt_duration "$elapsed")"
   if (( _IS_TTY )); then
-    printf '\r\033[K[%s] %3d%%  %s' "$bar" "$pct" "$label" >&2
+    local bc
+    bc="$(_bar_color "$pct")"
+    printf '\r\033[K%s[%s%s%s]%s %s%3d%%%s  %s%s%s  %s%s%s' \
+      "$_C_DIM" "$bc" "$bar" "$_C_DIM" "$_C_RESET" \
+      "$_C_BOLD" "$pct" "$_C_RESET" \
+      "$_C_TEAL" "$label" "$_C_RESET" \
+      "$_C_DIM" "$elapsed_s" "$_C_RESET" >&2
   else
-    printf '[%s] %3d%%  %s\n' "$bar" "$pct" "$label" >&2
+    printf '[%s] %3d%%  %s  (%s)\n' "$bar" "$pct" "$label" "$elapsed_s" >&2
   fi
 }
 
@@ -63,6 +119,21 @@ progress() {
   _PROGRESS_PCT="$1"
   _PROGRESS_LABEL="$2"
   _progress_draw "$_PROGRESS_PCT" "$_PROGRESS_LABEL"
+}
+
+# Mark wall-clock for a named phase (npm / build). Call before → after with same name.
+step_timer_begin() {
+  _DEPLOY_T_MARK=$SECONDS
+}
+
+step_timer_end() {
+  local name="$1"
+  local took=$((SECONDS - _DEPLOY_T_MARK))
+  case "$name" in
+    npm) _DEPLOY_T_NPM=$took ;;
+    build) _DEPLOY_T_BUILD=$took ;;
+  esac
+  echo "timer.${name}=${took}s" >>"$DEPLOY_LOG"
 }
 
 progress_done() {
@@ -73,12 +144,64 @@ progress_done() {
   fi
 }
 
+deploy_stats() {
+  local total=$((SECONDS - _DEPLOY_T0))
+  local sha ver mode mem heap health
+  sha="$(git rev-parse --short HEAD 2>/dev/null || echo '?')"
+  ver="$(node -e "console.log(require('./package.json').version)" 2>/dev/null || echo '?')"
+  if (( KEEP_LIVE )); then
+    mode="live · сайт не гасили"
+  else
+    mode="stop-fallback · pm2 стопили на build"
+  fi
+  mem="$(free_build_mb 2>/dev/null || echo '?')"
+  heap="${HEAP_MB:-—}"
+  if (( HEALTH_OK )); then
+    health="ok"
+  else
+    health="fail"
+  fi
+
+  if (( _IS_TTY )); then
+    printf '\n' >&2
+  fi
+  printf '%s%s✓  Деплой за %s%s\n' "$_C_BOLD" "$_C_GREEN" "$(_fmt_duration "$total")" "$_C_RESET" >&2
+  printf '   %scommit%s  %s%s%s  ·  v%s\n' "$_C_DIM" "$_C_RESET" "$_C_TEAL" "$sha" "$_C_RESET" "$ver" >&2
+  printf '   %sрежим%s   %s\n' "$_C_DIM" "$_C_RESET" "$mode" >&2
+  if (( _DEPLOY_T_NPM > 0 || _DEPLOY_T_BUILD > 0 )); then
+    printf '   %sшаги%s    npm %s · build %s\n' \
+      "$_C_DIM" "$_C_RESET" \
+      "$(_fmt_duration "${_DEPLOY_T_NPM:-0}")" \
+      "$(_fmt_duration "${_DEPLOY_T_BUILD:-0}")" >&2
+  fi
+  printf '   %sRAM%s     %s MB free · heap %s\n' "$_C_DIM" "$_C_RESET" "$mem" "$heap" >&2
+  if (( HEALTH_OK )); then
+    printf '   %shealth%s  %s%s%s\n' "$_C_DIM" "$_C_RESET" "$_C_GREEN" "$health" "$_C_RESET" >&2
+  else
+    printf '   %shealth%s  %s%s%s\n' "$_C_DIM" "$_C_RESET" "$_C_YELLOW" "$health" "$_C_RESET" >&2
+  fi
+  printf '   %sлог%s     %s\n' "$_C_DIM" "$_C_RESET" "$DEPLOY_LOG" >&2
+
+  {
+    echo "—— deploy stats ——"
+    echo "total_s=$total"
+    echo "commit=$sha"
+    echo "version=$ver"
+    echo "KEEP_LIVE=$KEEP_LIVE"
+    echo "npm_s=${_DEPLOY_T_NPM}"
+    echo "build_s=${_DEPLOY_T_BUILD}"
+    echo "free_mb=$mem"
+    echo "heap_mb=$heap"
+    echo "health=$health"
+  } >>"$DEPLOY_LOG"
+}
+
 # Print a warning/error line without breaking the bar (new line).
 deploy_warn() {
   if (( _IS_TTY )); then
     printf '\n' >&2
   fi
-  printf '⚠  %s\n' "$*" >&2
+  printf '%s⚠  %s%s\n' "$_C_YELLOW" "$*" "$_C_RESET" >&2
   _progress_draw "$_PROGRESS_PCT" "$_PROGRESS_LABEL"
 }
 
@@ -86,11 +209,11 @@ deploy_fail() {
   if (( _IS_TTY )); then
     printf '\n' >&2
   fi
-  printf '✗  %s\n' "$*" >&2
+  printf '%s%s✗  %s%s\n' "$_C_BOLD" "$_C_RED" "$*" "$_C_RESET" >&2
   if [[ -s "$DEPLOY_LOG" ]]; then
-    printf '\n—— последние строки лога (%s) ——\n' "$DEPLOY_LOG" >&2
+    printf '\n%s—— последние строки лога (%s) ——%s\n' "$_C_DIM" "$DEPLOY_LOG" "$_C_RESET" >&2
     tail -n 50 "$DEPLOY_LOG" >&2 || true
-    printf '——————————————————————————————\n' >&2
+    printf '%s——————————————————————————————%s\n' "$_C_DIM" "$_C_RESET" >&2
   fi
 }
 
@@ -361,6 +484,7 @@ npm_prefer=()
 if [[ -d node_modules ]]; then
   npm_prefer=(--prefer-offline)
 fi
+step_timer_begin
 if [[ -f package-lock.json ]]; then
   if ! run_long soft "npm ci" "$DEPLOY_NPM_TIMEOUT" 32 \
     npm ci --no-audit --no-fund "${npm_prefer[@]}"; then
@@ -372,6 +496,7 @@ else
   run_long quiet "npm install" "$DEPLOY_NPM_TIMEOUT" 34 \
     npm install --no-audit --no-fund "${npm_prefer[@]}" || exit 1
 fi
+step_timer_end npm
 
 progress 35 "Prisma"
 # Run the hand-written SQL migration first so prisma db push does not trip over
@@ -428,6 +553,8 @@ progress 55 "Build"
 # Override: DEPLOY_NODE_OPTIONS='--max-old-space-size=2048'
 if [[ -n "${DEPLOY_NODE_OPTIONS:-}" ]]; then
   export NODE_OPTIONS="$DEPLOY_NODE_OPTIONS"
+  # Best-effort parse for the end-of-deploy stats line.
+  HEAP_MB="$(printf '%s' "$DEPLOY_NODE_OPTIONS" | sed -n 's/.*max-old-space-size=\([0-9][0-9]*\).*/\1/p' | head -1)"
 else
   HEAP_MB="$(pick_node_heap_mb "$KEEP_LIVE")"
   export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
@@ -446,7 +573,9 @@ rm -rf "$NEXT_DIST_DIR" >>"$DEPLOY_LOG" 2>&1 || true
 } >>"$DEPLOY_LOG"
 log_meminfo
 DEPLOY_BUILD_TIMEOUT="${DEPLOY_BUILD_TIMEOUT:-900}"
+step_timer_begin
 if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 82 npm run build; then
+  step_timer_end build
   # run_long already printed deploy_fail + log tail
   echo "Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap / DEPLOY_FORCE_STOP=1; таймаут → DEPLOY_BUILD_TIMEOUT" >>"$DEPLOY_LOG"
   log_meminfo
@@ -461,6 +590,7 @@ if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 82 npm run build; then
   fi
   exit 1
 fi
+step_timer_end build
 
 progress 85 "Переключаем .next"
 if ! swap_next_build "$NEXT_DIST_DIR"; then
@@ -529,4 +659,4 @@ fi
 restore_generated_version_files
 
 progress_done "Готово"
-echo "   лог: $DEPLOY_LOG" >&2
+deploy_stats
