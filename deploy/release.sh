@@ -6,7 +6,12 @@ set -euo pipefail
 #   cv-release <PR number or branch name>
 #   cv-release --deploy-only          # skip merge; just pull + deploy (after a failed pull)
 #
-# Deploy itself is deploy/deploy.sh (live build + .next swap when RAM allows).
+# Always ends in deploy/deploy.sh (same near-zero-downtime path):
+#   live build → .next-build → atomic swap → pm2 reload
+#   when RAM+swap is tight → stop pm2 for build (fallback)
+# Env (forwarded as-is into deploy.sh):
+#   DEPLOY_FORCE_LIVE=1 | DEPLOY_FORCE_STOP=1 | DEPLOY_KEEP_LIVE_MIN_MB=2400
+#   DEPLOY_VERBOSE=1 | DEPLOY_NODE_OPTIONS=... | DEPLOY_BUILD_TIMEOUT=...
 #
 # Install (symlink, не копия — иначе скрипты на VPS не обновятся):
 #   sudo ln -sf /var/www/calorie-vision/deploy/release.sh /usr/local/bin/cv-release
@@ -54,7 +59,13 @@ run_deploy() {
     echo "✗  Нет $DEPLOY_SH" >&2
     exit 1
   fi
+  # Same deploy path as `bash deploy/deploy.sh` — live build + .next swap when RAM allows.
+  echo "→ deploy.sh (cv-release → near-zero-downtime: KEEP_LIVE если хватает RAM/swap)" >&2
+  if [[ -n "${DEPLOY_FORCE_LIVE:-}" || -n "${DEPLOY_FORCE_STOP:-}" || -n "${DEPLOY_KEEP_LIVE_MIN_MB:-}" ]]; then
+    echo "  env: DEPLOY_FORCE_LIVE=${DEPLOY_FORCE_LIVE:--} DEPLOY_FORCE_STOP=${DEPLOY_FORCE_STOP:--} DEPLOY_KEEP_LIVE_MIN_MB=${DEPLOY_KEEP_LIVE_MIN_MB:-2400}" >&2
+  fi
   # deploy.sh pulls again + re-execs itself for the quiet progress UI.
+  # Env vars (DEPLOY_*) are inherited by exec.
   exec bash "$DEPLOY_SH"
 }
 

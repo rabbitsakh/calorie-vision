@@ -353,7 +353,15 @@ bash deploy/deploy.sh
 
 Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): скрипт подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB), `experimental.cpus=1`. Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него live-сборка обычно не проходит порог и уходит в stop-fallback.
 
-`cv-release` / `cv-release --deploy-only` вызывают тот же `deploy.sh` — zero-downtime путь применяется и там.
+**`cv-release`** (основной путь на VPS) — merge PR + тот же `deploy.sh`:
+
+```bash
+cv-release 599                 # merge PR → deploy (live build, если хватает RAM)
+cv-release --deploy-only       # только pull + deploy
+DEPLOY_FORCE_STOP=1 cv-release --deploy-only   # старый режим: stop на время build
+```
+
+Симлинк (не копия): `sudo ln -sf /var/www/calorie-vision/deploy/release.sh /usr/local/bin/cv-release`.
 
 Если деплой «висит» на npm install: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` всегда ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (даже при `SENTRY_AUTH_TOKEN` в `.env`). Явно разрешить CLI: `DEPLOY_SENTRY_CLI=1`. Долгие шаги показывают секунды на шкале (`npm install (45с)`); таймаут по умолчанию 10 мин (`DEPLOY_NPM_TIMEOUT=600`).
 
