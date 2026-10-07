@@ -40,7 +40,7 @@
 (консоль: `https://console.rustore.ru/apps/2063753950`).  
 Кнопка «Открыть в RuStore» на лендинге `/#install` и `/install` берёт этот URL по умолчанию (`DEFAULT_RUSTORE_URL`).
 
-- [ ] Название: `Calorie Vision: счётчик КБЖУ` (≤30; лаунчер — короткое Calorie Vision)
+- [ ] Название: `Calorie Vision: счётчик КБЖУ и тренировки` (≤50; лаунчер — короткое Calorie Vision)
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
 - [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, полный набор 01→09:
