@@ -4392,6 +4392,53 @@ select {
   min-height: 2.75rem;
 }
 
+/* Official RuStore badge — local asset from RuStore help icons. */
+.landing-rustore-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  line-height: 0;
+  text-decoration: none;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.landing-rustore-badge img {
+  display: block;
+  height: 2.75rem;
+  width: auto;
+}
+
+.landing-rustore-badge:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.landing-rustore-badge:focus-visible {
+  outline: 2px solid var(--landing-accent, #0d7377);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.landing-rustore-badge--hero img {
+  height: 3.15rem;
+}
+
+.landing-hero-apk-note {
+  color: var(--landing-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0.85rem 0 0;
+}
+
+.landing-hero-apk-note a {
+  color: var(--landing-deep);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.landing-hero-apk-note a:hover {
+  text-decoration: underline;
+}
+
 .landing-cta-row {
   justify-content: flex-start;
 }
@@ -5410,6 +5457,10 @@ select {
 
   .landing-cta {
     margin-top: 1rem;
+  }
+
+  .landing-rustore-badge--hero img {
+    height: 2.85rem;
   }
 }
 

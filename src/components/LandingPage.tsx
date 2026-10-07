@@ -11,7 +11,13 @@ import { LandingShell } from "@/components/LandingShell";
 import { LandingStatsStrip } from "@/components/LandingStatsStrip";
 import { LandingTopNav } from "@/components/LandingTopNav";
 import { LandingTrustBand } from "@/components/LandingTrustBand";
-import { getApkDownloadUrl, getRustoreUrl } from "@/lib/android-install";
+import {
+  getApkDownloadUrl,
+  getRustoreBadgeUrl,
+  getRustoreUrl,
+  RUSTORE_BADGE_SRC,
+} from "@/lib/android-install";
+import { withBasePath } from "@/lib/paths";
 
 const display = Unbounded({
   subsets: ["latin", "cyrillic"],
@@ -183,7 +189,31 @@ function DownloadIcon() {
   );
 }
 
-/** Android APK (+ optional RuStore) — under #install steps (hero secondary CTA links here). */
+/** Official RuStore store badge (hosted locally). */
+function RustoreBadgeLink({ className = "" }: { className?: string }) {
+  const href = getRustoreBadgeUrl();
+  if (!href) return null;
+  return (
+    <a
+      href={href}
+      className={`landing-rustore-badge ${className}`.trim()}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Скачать из RuStore"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={withBasePath(RUSTORE_BADGE_SRC)}
+        alt="Скачать из RuStore"
+        width={188}
+        height={68}
+        decoding="async"
+      />
+    </a>
+  );
+}
+
+/** Android: RuStore first, APK fallback — under #install. */
 function AndroidApkCta() {
   const apkUrl = getApkDownloadUrl();
   const rustoreUrl = getRustoreUrl();
@@ -193,35 +223,23 @@ function AndroidApkCta() {
       <div className="landing-apk-copy">
         <h3 className="landing-install-heading">
           <DownloadIcon />
-          Android · APK
+          Android · RuStore
         </h3>
         <p className="landing-apk-text">
-          Тот же дневник на телефоне — иконка, напоминания и камера. Скачайте APK или поставьте из
-          RuStore — без Google Play.
+          Поставьте из официального магазина — обновления приходят сами. Тот же дневник: иконка,
+          напоминания и камера. Без Google Play.
         </p>
       </div>
       <div className="landing-apk-actions">
-        <a
-          href={apkUrl}
-          className="btn btn-primary landing-cta-primary landing-cta-sheen"
-          download
-        >
-          Скачать APK
+        {rustoreUrl ? <RustoreBadgeLink /> : null}
+        <a href={apkUrl} className="landing-cta-secondary" download>
+          Скачать APK напрямую
         </a>
-        {rustoreUrl ? (
-          <a
-            href={rustoreUrl}
-            className="landing-cta-secondary"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Открыть в RuStore
-          </a>
-        ) : (
+        {!rustoreUrl ? (
           <a href="/install" className="landing-cta-secondary">
             Подробнее про установку
           </a>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -260,10 +278,23 @@ export function LandingPage() {
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
               Начать бесплатно
             </Link>
-            <a href="#install" className="btn btn-secondary landing-cta-primary">
-              Скачать APK
-            </a>
+            {rustoreUrl ? (
+              <RustoreBadgeLink className="landing-rustore-badge--hero" />
+            ) : (
+              <a href="#install" className="btn btn-secondary landing-cta-primary">
+                Скачать APK
+              </a>
+            )}
           </div>
+          {rustoreUrl ? (
+            <p className="landing-hero-apk-note">
+              <a href="#install">Установка на iPhone</a>
+              {" · "}
+              <a href={getApkDownloadUrl()} download>
+                APK напрямую
+              </a>
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -364,8 +395,8 @@ export function LandingPage() {
               Calorie Vision — PWA. Откройте{" "}
               <strong className="landing-inline-strong">calorievision.ru</strong> в браузере и
               добавьте на главный экран: иконка и полноэкранный режим без App Store и Google Play.
-              На Android можно скачать APK. Напоминания на iPhone работают только с иконки
-              (iOS 16.4+).
+              На Android удобнее ставить из RuStore — или скачать APK. Напоминания на iPhone работают
+              только с иконки (iOS 16.4+).
             </p>
           </div>
 

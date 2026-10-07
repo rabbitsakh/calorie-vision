@@ -3,7 +3,9 @@ import { afterEach, test } from "node:test";
 import {
   DEFAULT_APK_PATH,
   DEFAULT_RUSTORE_URL,
+  RUSTORE_PACKAGE_ID,
   getApkDownloadUrl,
+  getRustoreBadgeUrl,
   getRustoreUrl,
 } from "./android-install.ts";
 
@@ -44,4 +46,22 @@ test("getRustoreUrl returns trimmed URL override", () => {
 test("getRustoreUrl empty env hides the button", () => {
   process.env.NEXT_PUBLIC_RUSTORE_URL = " ";
   assert.equal(getRustoreUrl(), null);
+});
+
+test("getRustoreBadgeUrl adds RuStore UTM marks", () => {
+  delete process.env.NEXT_PUBLIC_RUSTORE_URL;
+  const url = getRustoreBadgeUrl();
+  assert.ok(url);
+  const parsed = new URL(url!);
+  assert.equal(parsed.origin + parsed.pathname, DEFAULT_RUSTORE_URL);
+  assert.equal(parsed.searchParams.get("utm_source"), "available_in_rustore");
+  assert.equal(parsed.searchParams.get("utm_medium"), RUSTORE_PACKAGE_ID);
+  assert.equal(parsed.searchParams.get("rsm"), "1");
+  assert.equal(parsed.searchParams.get("mt_link_id"), "iios36");
+  assert.equal(parsed.searchParams.get("mt_sub1"), RUSTORE_PACKAGE_ID);
+});
+
+test("getRustoreBadgeUrl is null when RuStore is hidden", () => {
+  process.env.NEXT_PUBLIC_RUSTORE_URL = " ";
+  assert.equal(getRustoreBadgeUrl(), null);
 });
