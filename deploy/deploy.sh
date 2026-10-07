@@ -222,23 +222,86 @@ log_meminfo() {
   fi
 }
 
-# Pick a Node heap that fits free RAM + swap after the app is stopped.
-# Override the whole NODE_OPTIONS string with DEPLOY_NODE_OPTIONS.
-pick_node_heap_mb() {
+# Free RAM + swap in MB (for live-build gate and heap sizing).
+free_build_mb() {
   local mem_avail_mb=2048
   local swap_free_mb=0
   if [[ -r /proc/meminfo ]]; then
     mem_avail_mb=$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
     swap_free_mb=$(awk '/SwapFree:/ {print int($2/1024)}' /proc/meminfo)
   fi
-  # App is stopped; leave headroom for OS + MySQL + webpack RSS outside the V8 heap.
+  echo $((mem_avail_mb + swap_free_mb))
+}
+
+# Pick a Node heap that fits free RAM + swap.
+# When KEEP_LIVE=1 the app is still serving — leave more headroom.
+# Override the whole NODE_OPTIONS string with DEPLOY_NODE_OPTIONS.
+pick_node_heap_mb() {
+  local mem_avail_mb=2048
+  local swap_free_mb=0
+  local keep_live="${1:-0}"
+  if [[ -r /proc/meminfo ]]; then
+    mem_avail_mb=$(awk '/MemAvailable:/ {print int($2/1024)}' /proc/meminfo)
+    swap_free_mb=$(awk '/SwapFree:/ {print int($2/1024)}' /proc/meminfo)
+  fi
   # Count most of free swap so a ≤2 GB VPS can still finish next build.
   local usable_mb=$((mem_avail_mb + (swap_free_mb * 3) / 4))
-  local heap=$((usable_mb - 512))
+  local reserve=512
+  if (( keep_live )); then
+    # Running next start + MySQL + OS while webpack runs.
+    reserve=900
+  fi
+  local heap=$((usable_mb - reserve))
   # Current app needs >1 GB V8 heap; 1024 floors caused "heap out of memory".
   if (( heap < 1536 )); then heap=1536; fi
   if (( heap > 4096 )); then heap=4096; fi
   echo "$heap"
+}
+
+# A: keep pm2 online during build when free RAM+swap is enough.
+# Override: DEPLOY_FORCE_LIVE=1 | DEPLOY_FORCE_STOP=1
+# Threshold: DEPLOY_KEEP_LIVE_MIN_MB (default 2400).
+can_keep_live() {
+  if [[ "${DEPLOY_FORCE_STOP:-0}" == "1" ]]; then
+    return 1
+  fi
+  if [[ "${DEPLOY_FORCE_LIVE:-0}" == "1" ]]; then
+    return 0
+  fi
+  local min_mb="${DEPLOY_KEEP_LIVE_MIN_MB:-2400}"
+  local free_mb
+  free_mb="$(free_build_mb)"
+  echo "free_build_mb=${free_mb} keep_live_min_mb=${min_mb}" >>"$DEPLOY_LOG"
+  (( free_mb >= min_mb ))
+}
+
+# B: promote side-build dir onto `.next` without touching the live tree mid-build.
+swap_next_build() {
+  local build_dir="${1:-.next-build}"
+  local stamp
+  stamp="$(date +%s)"
+  if [[ ! -d "$build_dir" ]]; then
+    deploy_fail "Нет каталога сборки $build_dir"
+    return 1
+  fi
+  if [[ ! -f "$build_dir/BUILD_ID" && ! -d "$build_dir/server" ]]; then
+    deploy_fail "Сборка в $build_dir выглядит пустой (нет BUILD_ID/server)"
+    return 1
+  fi
+  rm -rf ".next.prev" ".next.prev-${stamp}" >>"$DEPLOY_LOG" 2>&1 || true
+  if [[ -d .next ]]; then
+    mv .next ".next.prev-${stamp}" >>"$DEPLOY_LOG" 2>&1 || return 1
+  fi
+  if ! mv "$build_dir" .next >>"$DEPLOY_LOG" 2>&1; then
+    deploy_fail "Не удалось заменить .next ← $build_dir"
+    if [[ -d ".next.prev-${stamp}" ]]; then
+      mv ".next.prev-${stamp}" .next >>"$DEPLOY_LOG" 2>&1 || true
+    fi
+    return 1
+  fi
+  rm -rf ".next.prev-${stamp}" >>"$DEPLOY_LOG" 2>&1 || true
+  echo "swapped ${build_dir} → .next" >>"$DEPLOY_LOG"
+  return 0
 }
 
 progress 2 "Pull"
@@ -330,54 +393,93 @@ fi
 progress 42 "Prisma generate"
 run_quiet "db:generate" npm run db:generate || exit 1
 
-progress 48 "Освобождаем RAM"
+# —— A/B: live build into .next-build, then atomic swap + short reload ————
+# A: keep pm2 online when free RAM+swap ≥ DEPLOY_KEEP_LIVE_MIN_MB (default 2400).
+# B: never write into live `.next` during build (NEXT_DIST_DIR=.next-build).
+KEEP_LIVE=0
 APP_WAS_RUNNING=0
 if pm2 describe calorie-vision >/dev/null 2>&1; then
   APP_WAS_RUNNING=1
-  pm2 stop calorie-vision >>"$DEPLOY_LOG" 2>&1 || true
 fi
-# Best-effort: reclaim page cache so MemAvailable reflects real free RAM.
-if [[ "$(id -u)" -eq 0 ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
-  sync || true
-  echo 3 >/proc/sys/vm/drop_caches 2>/dev/null || true
+log_meminfo
+if (( APP_WAS_RUNNING )) && can_keep_live; then
+  KEEP_LIVE=1
+  progress 48 "Build рядом (сайт онлайн)"
+  echo "KEEP_LIVE=1 — pm2 остаётся online на время сборки" >>"$DEPLOY_LOG"
+else
+  KEEP_LIVE=0
+  progress 48 "Освобождаем RAM"
+  if (( APP_WAS_RUNNING )); then
+    deploy_warn "Мало RAM/swap для сборки рядом — останавливаем pm2 на время build. Порог: DEPLOY_KEEP_LIVE_MIN_MB=${DEPLOY_KEEP_LIVE_MIN_MB:-2400}; форс-онлайн: DEPLOY_FORCE_LIVE=1"
+    pm2 stop calorie-vision >>"$DEPLOY_LOG" 2>&1 || true
+  fi
+  # Best-effort: reclaim page cache so MemAvailable reflects real free RAM.
+  if [[ "$(id -u)" -eq 0 ]] && [[ -w /proc/sys/vm/drop_caches ]]; then
+    sync || true
+    echo 3 >/proc/sys/vm/drop_caches 2>/dev/null || true
+  fi
+  echo "KEEP_LIVE=0 — сборка при остановленном pm2" >>"$DEPLOY_LOG"
 fi
 log_meminfo
 
 progress 55 "Build"
 # Next.js production build can OOM on small VPS (V8 heap limit or SIGKILL).
-# Always re-pick heap after pm2 stop — do not inherit a low NODE_OPTIONS from .env.
+# Always re-pick heap — do not inherit a low NODE_OPTIONS from .env.
 # Override: DEPLOY_NODE_OPTIONS='--max-old-space-size=2048'
 if [[ -n "${DEPLOY_NODE_OPTIONS:-}" ]]; then
   export NODE_OPTIONS="$DEPLOY_NODE_OPTIONS"
 else
-  HEAP_MB="$(pick_node_heap_mb)"
+  HEAP_MB="$(pick_node_heap_mb "$KEEP_LIVE")"
   export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
 fi
 export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
 export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
+# Side output so live `next start` keeps reading the old `.next` until swap.
+export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-build}"
+rm -rf "$NEXT_DIST_DIR" >>"$DEPLOY_LOG" 2>&1 || true
 {
   echo "NODE_OPTIONS=$NODE_OPTIONS"
   echo "NEXT_BUILD_CPUS=$NEXT_BUILD_CPUS"
   echo "UV_THREADPOOL_SIZE=$UV_THREADPOOL_SIZE"
+  echo "NEXT_DIST_DIR=$NEXT_DIST_DIR"
+  echo "KEEP_LIVE=$KEEP_LIVE"
 } >>"$DEPLOY_LOG"
 log_meminfo
 DEPLOY_BUILD_TIMEOUT="${DEPLOY_BUILD_TIMEOUT:-900}"
-if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 85 npm run build; then
+if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 82 npm run build; then
   # run_long already printed deploy_fail + log tail
-  echo "Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap; таймаут → DEPLOY_BUILD_TIMEOUT" >>"$DEPLOY_LOG"
+  echo "Hint: V8 OOM → DEPLOY_NODE_OPTIONS / swap; SIGKILL → lower heap / DEPLOY_FORCE_STOP=1; таймаут → DEPLOY_BUILD_TIMEOUT" >>"$DEPLOY_LOG"
   log_meminfo
-  if (( APP_WAS_RUNNING )); then
+  rm -rf "$NEXT_DIST_DIR" >>"$DEPLOY_LOG" 2>&1 || true
+  if (( APP_WAS_RUNNING && ! KEEP_LIVE )); then
     deploy_warn "Перезапускаем предыдущую версию, чтобы не оставить 502"
+    pm2 restart calorie-vision >>"$DEPLOY_LOG" 2>&1 \
+      || pm2 start deploy/ecosystem.config.cjs >>"$DEPLOY_LOG" 2>&1 || true
+    pm2 save >>"$DEPLOY_LOG" 2>&1 || true
+  elif (( KEEP_LIVE )); then
+    deploy_warn "Сборка рядом не удалась — оставляем текущий сайт без перезапуска"
+  fi
+  exit 1
+fi
+
+progress 85 "Переключаем .next"
+if ! swap_next_build "$NEXT_DIST_DIR"; then
+  if (( APP_WAS_RUNNING && ! KEEP_LIVE )); then
+    deploy_warn "Swap не удался — пробуем поднять прежний процесс"
     pm2 restart calorie-vision >>"$DEPLOY_LOG" 2>&1 \
       || pm2 start deploy/ecosystem.config.cjs >>"$DEPLOY_LOG" 2>&1 || true
     pm2 save >>"$DEPLOY_LOG" 2>&1 || true
   fi
   exit 1
 fi
+unset NEXT_DIST_DIR
 
-progress 88 "Restart"
+progress 88 "Reload"
 if pm2 describe calorie-vision >/dev/null 2>&1; then
-  run_quiet "pm2 restart" pm2 restart calorie-vision --update-env || exit 1
+  # reload ≈ короткий рестарт на fork-режиме; сайт лежит секунды, не минуты сборки.
+  if ! run_soft "pm2 reload" pm2 reload calorie-vision --update-env; then
+    run_quiet "pm2 restart" pm2 restart calorie-vision --update-env || exit 1
+  fi
 else
   run_quiet "pm2 start" pm2 start deploy/ecosystem.config.cjs || exit 1
 fi

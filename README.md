@@ -342,7 +342,18 @@ git pull
 bash deploy/deploy.sh
 ```
 
-Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): `deploy.sh` останавливает pm2, сбрасывает page cache (если root), ставит `experimental.cpus=1` и подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB). Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него сборка текущего приложения часто не проходит.
+**Простой при деплое.** `deploy.sh` по возможности **не гасит сайт на время сборки**:
+1. если `MemAvailable + SwapFree` ≥ `DEPLOY_KEEP_LIVE_MIN_MB` (по умолчанию **2400** MB) — pm2 остаётся online;
+2. `next build` пишет в `.next-build` (`NEXT_DIST_DIR`), затем каталог атомарно меняется на `.next`;
+3. короткий `pm2 reload` (секунды), а не простой на весь build.
+
+Если памяти мало — fallback как раньше: `pm2 stop` → build → start. Форсировать:
+- `DEPLOY_FORCE_LIVE=1` — всегда собирать рядом (риск OOM);
+- `DEPLOY_FORCE_STOP=1` — всегда останавливать pm2.
+
+Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): скрипт подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB), `experimental.cpus=1`. Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него live-сборка обычно не проходит порог и уходит в stop-fallback.
+
+`cv-release` / `cv-release --deploy-only` вызывают тот же `deploy.sh` — zero-downtime путь применяется и там.
 
 Если деплой «висит» на npm install: обычно это скачивание бинарника `@sentry/cli` с CDN. `deploy.sh` всегда ставит `SENTRYCLI_SKIP_DOWNLOAD=1` (даже при `SENTRY_AUTH_TOKEN` в `.env`). Явно разрешить CLI: `DEPLOY_SENTRY_CLI=1`. Долгие шаги показывают секунды на шкале (`npm install (45с)`); таймаут по умолчанию 10 мин (`DEPLOY_NPM_TIMEOUT=600`).
 

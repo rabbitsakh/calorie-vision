@@ -6,6 +6,8 @@ set -euo pipefail
 #   cv-release <PR number or branch name>
 #   cv-release --deploy-only          # skip merge; just pull + deploy (after a failed pull)
 #
+# Deploy itself is deploy/deploy.sh (live build + .next swap when RAM allows).
+#
 # Install (symlink, не копия — иначе скрипты на VPS не обновятся):
 #   sudo ln -sf /var/www/calorie-vision/deploy/release.sh /usr/local/bin/cv-release
 
