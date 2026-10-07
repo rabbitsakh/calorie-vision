@@ -1,5 +1,8 @@
 node_modules
 .next
+.next-build
+.next.prev
+.next.prev-*
 .env
 .env.local
 public/uploads/*

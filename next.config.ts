@@ -9,8 +9,12 @@ console.info(`Calorie Vision v${appVersion}`);
 /** Parallel webpack workers spike RSS on small VPS and get SIGKILL'd by the OOM killer. */
 const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "1", 10);
 
+/** Build into a side dir (deploy zero-downtime), then atomically swap onto `.next`. */
+const distDir = process.env.NEXT_DIST_DIR?.trim() || ".next";
+
 const nextConfig = {
   ...(basePath ? { basePath } : {}),
+  distDir,
   trailingSlash: true,
   // NextAuth callbacks and API POSTs break when Next.js 308-redirects them to a trailing slash.
   skipTrailingSlashRedirect: true,
