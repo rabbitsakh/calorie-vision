@@ -31,7 +31,7 @@
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`
 - иконка: `rustore/icon-512-store.png`
-- скриншоты: `rustore/screenshots/submit/` (01→06)
+- скриншоты: `rustore/screenshots/submit/` (01→09)
 - обложка канала VK: `rustore/channel/cover-1590x400.png` + `vk-channel-fields.ru.md`
 - промо-ролик: `rustore/promo-tour/`
 - Capacitor shell + offline stub (не TWA)
@@ -43,8 +43,8 @@
 - [ ] Название: Calorie Vision
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
-- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, порядок 01→06:
-      рацион → добавить → статистика → новая тренировка → итог зала → профиль)
+- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, полный набор 01→09:
+      рацион → добавить → стат → зал сегодня → новая тренировка → итог → план → профиль ×2)
 - [ ] Декларация данных (шпаргалка в `listing.ru.md`)
 - [ ] «Что нового» из `listing.ru.md`
 - [ ] Сборка Capacitor APK: `bash scripts/rustore-cap-init.sh` затем
