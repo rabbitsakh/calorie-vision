@@ -1709,9 +1709,26 @@ select {
 }
 
 .meal-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   font-size: 0.875rem;
   font-weight: 650;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.meal-card-remembered {
+  display: inline-block;
+  margin-top: 0.2rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  padding: 0.1rem 0.45rem;
+  font-size: 10px;
+  font-weight: 600;
+  color: #92400e;
 }
 
 .meal-card-meta {
@@ -1822,6 +1839,10 @@ select {
   margin-top: 0.35rem;
 }
 
+.meal-card-meta-row .meal-card-actions {
+  margin-left: auto;
+}
+
 .meal-time-badge {
   background: var(--surface-mist);
   border: 1px solid rgba(13, 115, 119, 0.12);
@@ -1849,16 +1870,19 @@ select {
 }
 
 .meal-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: -0.15rem -0.1rem 0 0;
+  display: inline-flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.05rem;
+  margin: 0;
 }
 
 .meal-card-actions button {
   border-radius: 8px;
   color: var(--muted);
-  padding: 0.35rem;
+  padding: 0.3rem;
+  line-height: 0;
 }
 
 .meal-card-actions button:hover {
@@ -2282,10 +2306,11 @@ select {
 
 .ration-meal-feed .meal-card-title {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.22;
+  max-width: 100%;
 }
 
 .ration-meal-feed .meal-card-kcal {

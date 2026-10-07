@@ -59,13 +59,20 @@ export function ChromePreviewClient() {
             </h3>
           </div>
           <article className="meal-card">
-            <div className="meal-card-body flex items-center gap-3">
+            <div className="meal-card-body">
               <div className="meal-card-thumb shrink-0 rounded-[0.85rem] bg-[var(--accent-soft)]" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="meal-card-title">Овсянка с ягодами</p>
-                <p className="meal-card-meta">320 ккал</p>
+                <p className="meal-card-title">Пирог с персиком и творожным кремом</p>
+                <p className="meal-card-meta">250 ккал · 100 г · Б 5.3 · Ж 10 · У 26.7</p>
+                <div className="meal-card-meta-row">
+                  <span className="meal-time-badge">06:55 Завтр.</span>
+                  <div className="meal-card-actions" aria-hidden>
+                    <button type="button" tabIndex={-1}>✎</button>
+                    <button type="button" tabIndex={-1}>⧉</button>
+                    <button type="button" tabIndex={-1} className="danger">🗑</button>
+                  </div>
+                </div>
               </div>
-              <span className="meal-card-kcal text-[var(--accent-ink)]">320</span>
             </div>
           </article>
           <div className="meal-section-header flex items-center gap-2 pt-1">
@@ -75,13 +82,20 @@ export function ChromePreviewClient() {
             </h3>
           </div>
           <article className="meal-card">
-            <div className="meal-card-body flex items-center gap-3">
+            <div className="meal-card-body">
               <div className="meal-card-thumb shrink-0 rounded-[0.85rem] bg-[var(--accent-soft)]" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="meal-card-title">Куриный салат</p>
-                <p className="meal-card-meta">480 ккал</p>
+                <p className="meal-card-title">Bombbar Natural bar chocolate peanut</p>
+                <p className="meal-card-meta">180 ккал · 40 г · Б 15 · Ж 6 · У 12</p>
+                <div className="meal-card-meta-row">
+                  <span className="meal-time-badge">13:20 Обед</span>
+                  <div className="meal-card-actions" aria-hidden>
+                    <button type="button" tabIndex={-1}>✎</button>
+                    <button type="button" tabIndex={-1}>⧉</button>
+                    <button type="button" tabIndex={-1} className="danger">🗑</button>
+                  </div>
+                </div>
               </div>
-              <span className="meal-card-kcal text-[var(--accent-ink)]">480</span>
             </div>
           </article>
         </div>

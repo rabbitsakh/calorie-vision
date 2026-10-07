@@ -333,56 +333,67 @@ function GroupedMealCard({
                 </button>
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start gap-1.5">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <h4 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h4>
-                        {entry.wasCorrected ? (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                            запомнили
-                          </span>
-                        ) : null}
-                      </div>
-                      <AllergenHint
-                        text={decodeHtmlEntities(entry.dishName)}
-                        allergens={userAllergens}
-                      />
-                      <MealEntryDetails entry={entry} timezone={timezone} hideTime />
-                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        {mealNeedsMacrosRepair(entry) ? (
-                          <button
-                            type="button"
-                            className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
-                            disabled={repairBusyId === entry.id}
-                            onClick={() => {
-                              setRepairError(null);
-                              setRepairBusyId(entry.id);
-                              void lookupAndRepairMacros(entry, onEdit).then((err) => {
-                                setRepairBusyId(null);
-                                if (err) setRepairError(err);
-                              });
-                            }}
-                          >
-                            {repairBusyId === entry.id ? "Уточняем…" : "Уточнить БЖУ"}
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
-                          onClick={() => {
-                            addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
-                            setShopFlashId(entry.id);
-                            window.setTimeout(() => setShopFlashId(null), 1600);
-                          }}
-                        >
-                          {shopFlashId === entry.id ? "В покупках" : "В покупки"}
-                        </button>
-                      </div>
-                      {repairError && repairBusyId === null ? (
-                        <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
-                      ) : null}
-                    </div>
-                    <div className="meal-card-actions shrink-0">
+                  <h4 className="meal-card-title">{decodeHtmlEntities(entry.dishName)}</h4>
+                  {entry.wasCorrected ? (
+                    <span className="meal-card-remembered">запомнили</span>
+                  ) : null}
+                  <AllergenHint
+                    text={decodeHtmlEntities(entry.dishName)}
+                    allergens={userAllergens}
+                  />
+                  <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    {mealNeedsMacrosRepair(entry) ? (
+                      <button
+                        type="button"
+                        className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                        disabled={repairBusyId === entry.id}
+                        onClick={() => {
+                          setRepairError(null);
+                          setRepairBusyId(entry.id);
+                          void lookupAndRepairMacros(entry, onEdit).then((err) => {
+                            setRepairBusyId(null);
+                            if (err) setRepairError(err);
+                          });
+                        }}
+                      >
+                        {repairBusyId === entry.id ? "Уточняем…" : "Уточнить БЖУ"}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+                      onClick={() => {
+                        addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
+                        setShopFlashId(entry.id);
+                        window.setTimeout(() => setShopFlashId(null), 1600);
+                      }}
+                    >
+                      {shopFlashId === entry.id ? "В покупках" : "В покупки"}
+                    </button>
+                  </div>
+                  {repairError && repairBusyId === null ? (
+                    <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
+                  ) : null}
+                  <div className="meal-card-meta-row">
+                    <MealTimeInlineEdit
+                      entry={entry}
+                      timezone={timezone}
+                      disabled={timeBusyId === entry.id || typeBusyId === entry.id}
+                      onChange={(eatenAt) => {
+                        setTimeBusyId(entry.id);
+                        void onEatenAtChange(entry.id, eatenAt).finally(() => setTimeBusyId(null));
+                      }}
+                    />
+                    <MealTypeInlineChips
+                      value={entry.mealType}
+                      disabled={typeBusyId === entry.id || timeBusyId === entry.id}
+                      onChange={(mealType) => {
+                        setTypeBusyId(entry.id);
+                        void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
+                      }}
+                    />
+                    <div className="meal-card-actions">
                       <button
                         type="button"
                         title="Редактировать"
@@ -410,25 +421,6 @@ function GroupedMealCard({
                         <TrashIcon />
                       </button>
                     </div>
-                  </div>
-                  <div className="meal-card-meta-row">
-                    <MealTimeInlineEdit
-                      entry={entry}
-                      timezone={timezone}
-                      disabled={timeBusyId === entry.id || typeBusyId === entry.id}
-                      onChange={(eatenAt) => {
-                        setTimeBusyId(entry.id);
-                        void onEatenAtChange(entry.id, eatenAt).finally(() => setTimeBusyId(null));
-                      }}
-                    />
-                    <MealTypeInlineChips
-                      value={entry.mealType}
-                      disabled={typeBusyId === entry.id || timeBusyId === entry.id}
-                      onChange={(mealType) => {
-                        setTypeBusyId(entry.id);
-                        void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusyId(null));
-                      }}
-                    />
                   </div>
                 </div>
               </div>
@@ -573,75 +565,48 @@ function SingleMealCard({
         </button>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-1.5">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <h3 className="meal-card-title truncate">{decodeHtmlEntities(entry.dishName)}</h3>
-                {entry.wasCorrected ? (
-                  <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                    запомнили
-                  </span>
-                ) : null}
-              </div>
-              <AllergenHint
-                text={decodeHtmlEntities(entry.dishName)}
-                allergens={userAllergens}
-              />
-              <MealEntryDetails entry={entry} timezone={timezone} hideTime />
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                {mealNeedsMacrosRepair(entry) ? (
-                  <button
-                    type="button"
-                    className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
-                    disabled={repairBusy}
-                    onClick={() => {
-                      setRepairError(null);
-                      setRepairBusy(true);
-                      void lookupAndRepairMacros(entry, onEdit).then((err) => {
-                        setRepairBusy(false);
-                        if (err) setRepairError(err);
-                      });
-                    }}
-                  >
-                    {repairBusy ? "Уточняем…" : "Уточнить БЖУ"}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
-                  onClick={() => {
-                    addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
-                    setShopFlash(true);
-                    window.setTimeout(() => setShopFlash(false), 1600);
-                  }}
-                >
-                  {shopFlash ? "В покупках" : "В покупки"}
-                </button>
-              </div>
-              {repairError && !repairBusy ? (
-                <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
-              ) : null}
-            </div>
-            <div className="meal-card-actions shrink-0">
-              <button type="button" title="Редактировать" onClick={() => setEditing(true)}>
-                <EditIcon />
-              </button>
+          <h3 className="meal-card-title">{decodeHtmlEntities(entry.dishName)}</h3>
+          {entry.wasCorrected ? (
+            <span className="meal-card-remembered">запомнили</span>
+          ) : null}
+          <AllergenHint
+            text={decodeHtmlEntities(entry.dishName)}
+            allergens={userAllergens}
+          />
+          <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {mealNeedsMacrosRepair(entry) ? (
               <button
                 type="button"
-                title="Дублировать"
-                disabled={dupBusy}
+                className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                disabled={repairBusy}
                 onClick={() => {
-                  setDupBusy(true);
-                  void onDuplicate(entry.id).finally(() => setDupBusy(false));
+                  setRepairError(null);
+                  setRepairBusy(true);
+                  void lookupAndRepairMacros(entry, onEdit).then((err) => {
+                    setRepairBusy(false);
+                    if (err) setRepairError(err);
+                  });
                 }}
               >
-                <DuplicateIcon />
+                {repairBusy ? "Уточняем…" : "Уточнить БЖУ"}
               </button>
-              <button type="button" className="danger" title="Удалить" onClick={() => onDelete(entry.id)}>
-                <TrashIcon />
-              </button>
-            </div>
+            ) : null}
+            <button
+              type="button"
+              className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+              onClick={() => {
+                addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
+                setShopFlash(true);
+                window.setTimeout(() => setShopFlash(false), 1600);
+              }}
+            >
+              {shopFlash ? "В покупках" : "В покупки"}
+            </button>
           </div>
+          {repairError && !repairBusy ? (
+            <p className="mt-0.5 text-[11px] text-red-600">{repairError}</p>
+          ) : null}
           <div className="meal-card-meta-row">
             <MealTimeInlineEdit
               entry={entry}
@@ -660,6 +625,25 @@ function SingleMealCard({
                 void onMealTypeChange(entry.id, mealType).finally(() => setTypeBusy(false));
               }}
             />
+            <div className="meal-card-actions">
+              <button type="button" title="Редактировать" onClick={() => setEditing(true)}>
+                <EditIcon />
+              </button>
+              <button
+                type="button"
+                title="Дублировать"
+                disabled={dupBusy}
+                onClick={() => {
+                  setDupBusy(true);
+                  void onDuplicate(entry.id).finally(() => setDupBusy(false));
+                }}
+              >
+                <DuplicateIcon />
+              </button>
+              <button type="button" className="danger" title="Удалить" onClick={() => onDelete(entry.id)}>
+                <TrashIcon />
+              </button>
+            </div>
           </div>
         </div>
       </div>
