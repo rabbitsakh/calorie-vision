@@ -36,7 +36,9 @@
 - промо-ролик: `rustore/promo-tour/`
 - Capacitor shell + offline stub (не TWA)
 
-**После публикации в RuStore:** задать `NEXT_PUBLIC_RUSTORE_URL` на проде → кнопка «Открыть в RuStore» на лендинге `/#install`.
+**Опубликовано:** витрина [Calorie Vision в RuStore](https://www.rustore.ru/catalog/app/ru.calorievision.app)  
+(консоль: `https://console.rustore.ru/apps/2063753950`).  
+Кнопка «Открыть в RuStore» на лендинге `/#install` и `/install` берёт этот URL по умолчанию (`DEFAULT_RUSTORE_URL`).
 
 - [ ] Название: Calorie Vision
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
@@ -54,14 +56,14 @@
 - [ ] Ссылка на политику: `https://calorievision.ru/privacy`
 - [ ] Ссылка на условия: `https://calorievision.ru/terms`
 - [ ] В описании: не медуслуга, оценка калорий — не лабораторный анализ
-- [ ] `NEXT_PUBLIC_RUSTORE_URL` на проде после появления страницы приложения
+- [x] Витрина live: `https://www.rustore.ru/catalog/app/ru.calorievision.app`
 
 ## Модерация
 
 - [ ] Черновик версии отправлен
 - [ ] Ответы на замечания модерации
 - [ ] Публикация в проде
-- [ ] Ссылка RuStore сохранена (для лендинга /#install позже)
+- [x] Ссылка RuStore: `https://www.rustore.ru/catalog/app/ru.calorievision.app`
 
 ## После релиза
 

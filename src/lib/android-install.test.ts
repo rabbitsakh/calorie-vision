@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
-import { DEFAULT_APK_PATH, getApkDownloadUrl, getRustoreUrl } from "./android-install.ts";
+import {
+  DEFAULT_APK_PATH,
+  DEFAULT_RUSTORE_URL,
+  getApkDownloadUrl,
+  getRustoreUrl,
+} from "./android-install.ts";
 
 const PREV_APK = process.env.NEXT_PUBLIC_APK_URL;
 const PREV_RUSTORE = process.env.NEXT_PUBLIC_RUSTORE_URL;
@@ -26,12 +31,17 @@ test("getApkDownloadUrl respects absolute CDN override", () => {
   assert.equal(getApkDownloadUrl(), "https://cdn.example/app.apk");
 });
 
-test("getRustoreUrl is null when unset", () => {
+test("getRustoreUrl defaults to published catalog card", () => {
   delete process.env.NEXT_PUBLIC_RUSTORE_URL;
-  assert.equal(getRustoreUrl(), null);
+  assert.equal(getRustoreUrl(), DEFAULT_RUSTORE_URL);
 });
 
-test("getRustoreUrl returns trimmed URL", () => {
+test("getRustoreUrl returns trimmed URL override", () => {
   process.env.NEXT_PUBLIC_RUSTORE_URL = " https://www.rustore.ru/catalog/app/x ";
   assert.equal(getRustoreUrl(), "https://www.rustore.ru/catalog/app/x");
+});
+
+test("getRustoreUrl empty env hides the button", () => {
+  process.env.NEXT_PUBLIC_RUSTORE_URL = " ";
+  assert.equal(getRustoreUrl(), null);
 });

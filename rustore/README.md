@@ -142,13 +142,19 @@ bash scripts/rustore-build.sh
 - Android: `appVersionCode` / `appVersionName` в `rustore/twa-manifest.json`  
   Каждая публикация в RuStore: **увеличивайте `appVersionCode`**.
 
-После публикации карточки в RuStore задайте на сайте:
+Витрина live:
+
+- Публичная: https://www.rustore.ru/catalog/app/ru.calorievision.app
+- Консоль: https://console.rustore.ru/apps/2063753950
+
+Кнопка «Открыть в RuStore» на лендинге и `/install` использует этот URL по умолчанию
+(`DEFAULT_RUSTORE_URL` в `src/lib/android-install.ts`). При необходимости переопределите:
 
 ```bash
-NEXT_PUBLIC_RUSTORE_URL=https://www.rustore.ru/catalog/app/...
+NEXT_PUBLIC_RUSTORE_URL=https://www.rustore.ru/catalog/app/ru.calorievision.app
 ```
 
-Кнопка «Открыть в RuStore» появится на `/install`. Fingerprint для Digital Asset Links по-прежнему через `TWA_SHA256_FINGERPRINTS`.
+Fingerprint для Digital Asset Links по-прежнему через `TWA_SHA256_FINGERPRINTS`.
 
 ## Монетизация
 
