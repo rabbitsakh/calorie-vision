@@ -415,9 +415,11 @@ select {
 }
 
 .app-chrome__nav-link--active {
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-soft) 88%, #fff);
   color: var(--accent-ink);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: none;
+  outline: 1.5px solid rgba(13, 115, 119, 0.28);
+  outline-offset: 0;
 }
 
 @media (min-width: 768px) {
@@ -1955,9 +1957,10 @@ select {
   min-height: 13.5rem;
 }
 
+/* Standalone scene heroes (stats/gym) keep a soft panel; ration embeds flush. */
 @media (min-width: 768px) {
-  .day-hero--scene {
-    border-radius: 1.5rem;
+  .day-hero--scene:not(.day-hero--theater) {
+    border-radius: 1.35rem;
     overflow: hidden;
   }
 }
@@ -2104,37 +2107,94 @@ select {
   filter: drop-shadow(0 10px 22px rgba(13, 115, 119, 0.28));
 }
 
-/* C1 — full-bleed day mural into the chrome */
+/* D1 — one day plane: date + hero + feed, no nested card frames */
 .ration-day-scene {
   touch-action: pan-y;
-  margin-left: -0.625rem;
-  margin-right: -0.625rem;
-  margin-top: -0.35rem;
-  padding: 0.2rem 0.625rem 1.5rem;
+  position: relative;
+  isolation: isolate;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  margin-top: 0;
+  padding: 0.85rem 0.85rem 1.35rem;
   background:
+    radial-gradient(ellipse 110% 70% at 0% 0%, rgba(20, 184, 166, 0.18), transparent 52%),
     linear-gradient(
       180deg,
-      rgba(200, 234, 224, 0.85) 0%,
-      rgba(247, 244, 239, 0.55) 38%,
-      rgba(245, 243, 238, 0.15) 70%,
+      rgba(232, 246, 241, 0.95) 0%,
+      rgba(247, 244, 239, 0.55) 42%,
+      rgba(245, 243, 238, 0.12) 78%,
       transparent 100%
     );
-  border-radius: 0 0 1.75rem 1.75rem;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(13, 115, 119, 0.1);
   animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .ration-day-scene {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 1rem 1.15rem 1.5rem;
+    border-radius: 1.5rem;
+  }
 }
 
 .ration-day-band {
   position: relative;
   z-index: 2;
-  padding-bottom: 0.15rem;
+  padding: 0 0.15rem 0.85rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px solid rgba(13, 115, 119, 0.1);
+}
+
+/* Hero is atmosphere inside the plane — never a second framed card */
+.ration-day-scene .day-hero--scene,
+.ration-day-scene .day-hero--theater {
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  margin: 0;
+}
+
+.ration-day-scene .day-hero-glow {
+  opacity: 0.55;
+  inset: -30% 30% auto -20%;
+  height: 90%;
+}
+
+.ration-day-scene .day-hero-wash {
+  display: none;
+}
+
+.ration-day-scene .day-hero-theater-inner {
+  min-height: 0;
+  padding: 1.1rem 0.15rem 0.35rem !important;
+}
+
+@media (min-width: 768px) {
+  .ration-day-scene .day-hero-theater-inner {
+    padding: 1.25rem 0.25rem 0.5rem !important;
+  }
 }
 
 /* C3 — meal timeline: larger type, photo-forward rows */
+/* D2 — diary toolbar inside the day plane */
+.ration-diary-toolbar {
+  padding: 0.15rem 0.1rem 0.35rem;
+  border-bottom: none;
+}
+
+.ration-diary-filters {
+  letter-spacing: 0.02em;
+}
+
 .ration-meal-feed {
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: 0.35rem;
+  margin-top: 0.55rem;
 }
 
 .ration-meal-feed .meal-card {

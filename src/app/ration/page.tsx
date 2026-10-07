@@ -260,7 +260,7 @@ function RationBody({
           onDateChange={setDate}
           className="ration-day-scene flex flex-col gap-0"
         >
-          <div className="ration-day-band px-1 pb-0.5 pt-0.5">
+          <div className="ration-day-band">
             <DateNavBar
               date={date}
               today={today}
@@ -269,15 +269,15 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          <div className="px-1 pt-2">
+          <div className="pt-2">
             <NextStepBar selectedDate={date} today={today} />
           </div>
-          <div className="px-1 pt-1.5">
+          <div className="pt-1.5">
             <PendingConfirmBanner selectedDate={date} />
           </div>
 
-          {/* C3 — meal timeline */}
-          <div className="ration-day-feed ration-meal-feed px-0.5 pt-2">
+          {/* D1 — meal timeline on the same plane */}
+          <div className="ration-day-feed ration-meal-feed">
             <DailyLog
               selectedDate={date}
               refreshKey={refreshKey}

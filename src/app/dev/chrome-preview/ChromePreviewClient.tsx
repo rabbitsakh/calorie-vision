@@ -15,7 +15,7 @@ export function ChromePreviewClient() {
   return (
     <AppShell title="Рацион" compact date={date}>
       <div className="ration-day-scene flex flex-col gap-0">
-        <div className="ration-day-band px-1 pb-1 pt-0.5">
+        <div className="ration-day-band">
           <DateNavBar date={date} today={TODAY} onDateChange={setDate} />
         </div>
 
@@ -24,8 +24,7 @@ export function ChromePreviewClient() {
           aria-label="Сводка дня (превью)"
         >
           <div className="day-hero-glow" aria-hidden />
-          <div className="day-hero-wash" aria-hidden />
-          <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
+          <div className="day-hero-theater-inner relative flex flex-col">
             <p className="day-hero-eyebrow">Сегодня</p>
             <div className="mt-3 flex items-end gap-3">
               <p className="day-hero-giant tabular-nums">
@@ -45,7 +44,14 @@ export function ChromePreviewClient() {
           </div>
         </section>
 
-        <div className="ration-meal-feed px-0.5 pt-3">
+        <div className="ration-diary-toolbar mt-3 flex items-end justify-between gap-2">
+          <h2 className="font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]">
+            Дневник
+          </h2>
+          <p className="text-xs font-medium text-[var(--muted-strong)]">Клетч. 2.3 г · Сахар 18.5 г</p>
+        </div>
+
+        <div className="ration-meal-feed">
           <div className="meal-section-header flex items-center gap-2 pt-1">
             <span className="h-3.5 w-1 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden />
             <h3 className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]">

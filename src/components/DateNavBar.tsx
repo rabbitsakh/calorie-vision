@@ -159,12 +159,12 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
               type="button"
               disabled={future}
               onClick={() => pickDate(day)}
-              className={`flex flex-col items-center gap-0.5 rounded-2xl px-0.5 py-1.5 transition-all disabled:opacity-40 ${
+              className={`flex flex-col items-center gap-0.5 rounded-xl px-0.5 py-1.5 transition-colors disabled:opacity-40 ${
                 selected
-                  ? "bg-[var(--accent)] text-white shadow-[0_6px_16px_rgba(13,115,119,0.28)] scale-[1.04]"
+                  ? "bg-[var(--accent)] text-white"
                   : dayIsToday
-                    ? "bg-white/55 text-[var(--accent-ink)] hover:bg-white/80"
-                    : "text-[var(--foreground)] hover:bg-white/45"
+                    ? "bg-white/70 text-[var(--accent-ink)] hover:bg-white"
+                    : "text-[var(--foreground)] hover:bg-white/55"
               }`}
             >
               <span

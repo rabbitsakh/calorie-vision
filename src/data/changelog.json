@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.7.1",
+    "date": "2026-10-07",
+    "summary": "design C1–C10: radical composition — day theater, dock, timeline, cover, console, stage",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "design C1–C10: radical composition — day theater, dock, timeline, cover, console, stage"
+      }
+    ]
+  },
+  {
     "version": "2.7.0",
     "date": "2026-10-06",
     "summary": "design B1–B10: bold composition — day scene, chrome, feed, stats, plan, gym, confirm, add, motion, empty",
