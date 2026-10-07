@@ -119,11 +119,15 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs text-[var(--muted)]">
+    <div className="barcode-scanner flex flex-col gap-2">
+      <p className="text-xs text-[var(--muted-strong)]">
         Сканер читает штрихкод на устройстве и сразу получает цифры — фото в GigaChat не отправляется.
       </p>
-      <div className="overflow-hidden rounded-2xl bg-[var(--accent-ink)]">
+      <div
+        className={`barcode-scanner__stage overflow-hidden ${
+          scanning ? "barcode-scanner__stage--live" : "barcode-scanner__stage--idle"
+        }`}
+      >
         <video
           ref={videoRef}
           className={`w-full object-cover ${scanning ? "h-48" : "h-0"}`}
@@ -131,10 +135,20 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
           playsInline
         />
         {!scanning ? (
-          <div className="flex h-28 items-center justify-center px-4 text-center text-sm text-[var(--muted)]">
-            Наведите камеру на штрихкод на упаковке
+          <div className="barcode-scanner__idle flex h-32 flex-col items-center justify-center gap-2 px-5 text-center">
+            <span className="barcode-scanner__frame" aria-hidden />
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              Наведите камеру на штрихкод на упаковке
+            </p>
+            <p className="text-xs text-[var(--muted-strong)]">
+              Или загрузите снимок / введите цифры ниже
+            </p>
           </div>
-        ) : null}
+        ) : (
+          <p className="barcode-scanner__live-hint px-3 py-2 text-center text-xs font-semibold">
+            Держите штрихкод в кадре…
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap gap-2">
         {!scanning ? (

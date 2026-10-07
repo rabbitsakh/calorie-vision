@@ -114,7 +114,7 @@ export function WaterQuickSheet() {
       onClick={close}
     >
       <div
-        className="flex w-full max-w-md flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+        className="food-add-sheet flex w-full max-w-md flex-col overflow-hidden rounded-t-3xl shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
