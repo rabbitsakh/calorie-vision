@@ -126,7 +126,7 @@ export function FoodAddModePicker({
     >
       <div
         ref={sheetRef}
-        className="food-add-sheet food-add-sheet--picker food-add-sheet--in flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+        className="food-add-sheet food-add-sheet--picker food-add-sheet--in flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3.5">

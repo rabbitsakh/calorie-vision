@@ -174,7 +174,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
             }}
           >
             <div
-              className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
+              className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">

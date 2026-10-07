@@ -169,6 +169,28 @@ export function ChromePreviewClient() {
           Добавить через «+»
         </button>
       </div>
+
+      <div className="food-add-sheet mt-6 shrink-0 rounded-[var(--radius-panel)] p-4 shadow-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-ink)]/70">
+          Штрихкод · idle
+        </p>
+        <div className="barcode-scanner mt-3 flex flex-col gap-2">
+          <p className="text-xs text-[var(--muted-strong)]">
+            Сканер читает штрихкод на устройстве и сразу получает цифры — фото в GigaChat не отправляется.
+          </p>
+          <div className="barcode-scanner__stage barcode-scanner__stage--idle">
+            <div className="barcode-scanner__idle flex h-32 flex-col items-center justify-center gap-2 px-5 text-center">
+              <span className="barcode-scanner__frame" aria-hidden />
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                Наведите камеру на штрихкод на упаковке
+              </p>
+              <p className="text-xs text-[var(--muted-strong)]">
+                Или загрузите снимок / введите цифры ниже
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 }
