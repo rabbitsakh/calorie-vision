@@ -778,7 +778,11 @@ export function DailyLog({
       }
     >
       <div className={`flex flex-col ${compact || sceneFeed ? "gap-3" : "gap-5"}`}>
-        <div className="flex flex-wrap items-end justify-between gap-2">
+        <div
+          className={`flex flex-wrap items-end justify-between gap-2 ${
+            sceneFeed ? "ration-diary-toolbar" : ""
+          }`}
+        >
           {!compact && !sceneFeed ? (
             <div>
               <h2 className="text-xl font-bold">Дневник питания</h2>
@@ -788,7 +792,7 @@ export function DailyLog({
             <h2
               className={
                 sceneFeed
-                  ? "text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]"
+                  ? "font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]"
                   : "text-base font-bold"
               }
             >
@@ -818,7 +822,7 @@ export function DailyLog({
               ) : null}
             </div>
           ) : (totals.fiber > 0 || totals.sugar > 0) ? (
-            <p className="text-[11px] text-[var(--muted)]">
+            <p className="text-xs font-medium text-[var(--muted-strong)]">
               {totals.fiber > 0 ? `Клетч. ${totals.fiber} г` : null}
               {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
               {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
@@ -952,7 +956,7 @@ export function DailyLog({
             {sceneFeed ? (
               <button
                 type="button"
-                className="self-start text-xs font-semibold uppercase tracking-wide text-[var(--muted)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+                className="ration-diary-filters self-start text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                 onClick={() => setShowFeedFilters((v) => !v)}
                 aria-expanded={showFeedFilters}
               >

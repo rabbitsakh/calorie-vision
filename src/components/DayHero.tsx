@@ -258,7 +258,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
         <p className="day-hero-eyebrow">{copy.eyebrow}</p>
 
-        <div className="mt-3 flex items-end gap-3">
+        <div className="mt-2.5 flex flex-wrap items-end gap-x-3 gap-y-1">
           {pctShow != null ? (
             <p
               className={`day-hero-giant tabular-nums ${over ? "day-hero-giant--over" : ""}`}
