@@ -272,7 +272,9 @@ export function LandingPage() {
           <p className="landing-brand">Calorie Vision</p>
           <h1 className="landing-headline">Сфотографировали — калории уже в дневнике</h1>
           <p className="landing-lead">
-            Тарелка, этикетка или название — порция и калории в дневнике за секунды.
+            Не ещё один ручной дневник вроде CalZen или FatSecret: сфотографировали тарелку или
+            этикетку — порция и КБЖУ уже в записи; штрихкод, текст и зал (подходы, прогрессия) в том
+            же приложении. Сейчас всё бесплатно, без подписки.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
