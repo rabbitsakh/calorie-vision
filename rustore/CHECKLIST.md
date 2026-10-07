@@ -31,7 +31,7 @@
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`
 - иконка: `rustore/icon-512-store.png`
-- скриншоты: `rustore/screenshots/submit/` (01→04)
+- скриншоты: `rustore/screenshots/submit/` (01→06)
 - обложка канала VK: `rustore/channel/cover-1590x400.png` + `vk-channel-fields.ru.md`
 - промо-ролик: `rustore/promo-tour/`
 - Capacitor shell + offline stub (не TWA)
@@ -44,7 +44,7 @@
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
 - [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, порядок 01→06:
-      рацион → зал → статистика → план → режимы «+» → профиль)
+      рацион → зал → статистика → план зала → профиль → профиль ещё)
 - [ ] Декларация данных (шпаргалка в `listing.ru.md`)
 - [ ] «Что нового» из `listing.ru.md`
 - [ ] Сборка Capacitor APK: `bash scripts/rustore-cap-init.sh` затем
