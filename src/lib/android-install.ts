@@ -15,8 +15,13 @@ export function getApkDownloadUrl(): string {
   return withBasePath(DEFAULT_APK_PATH);
 }
 
-/** RuStore catalog card, when published. */
+/** Public RuStore catalog card (package `ru.calorievision.app`). */
+export const DEFAULT_RUSTORE_URL =
+  "https://www.rustore.ru/catalog/app/ru.calorievision.app";
+
+/** RuStore catalog card. Env overrides the published default. */
 export function getRustoreUrl(): string | null {
-  const url = process.env.NEXT_PUBLIC_RUSTORE_URL?.trim();
-  return url || null;
+  const fromEnv = process.env.NEXT_PUBLIC_RUSTORE_URL?.trim();
+  if (fromEnv === "") return null;
+  return fromEnv || DEFAULT_RUSTORE_URL;
 }

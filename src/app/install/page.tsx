@@ -56,17 +56,21 @@ export default function InstallPage() {
         </p>
       </section>
 
-      {!rustoreUrl ? (
+      {rustoreUrl ? (
         <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
           <h2 className="font-semibold text-[var(--foreground)]">RuStore</h2>
           <p className="mt-1 text-sm text-[var(--muted-strong)]">
-            Готовим бесплатное приложение в RuStore на базе этого же сайта. Пока удобнее APK или PWA
-            на экран «Домой».
+            Бесплатное приложение в RuStore — тот же дневник и зал. Удобнее ставить из магазина: обновления
+            приходят сами.
           </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted)]">
-            Для TWA на сервере нужен <code className="text-[var(--muted)]">TWA_SHA256_FINGERPRINTS</code> — см.{" "}
-            <code className="text-[var(--muted)]">rustore/README.md</code>.
-          </p>
+          <a
+            href={rustoreUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary mt-3 inline-flex"
+          >
+            Открыть в RuStore
+          </a>
         </section>
       ) : null}
 
