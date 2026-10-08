@@ -1,25 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Unbounded } from "next/font/google";
 import { Suspense } from "react";
 import { AppVersion } from "@/components/AppVersion";
 import { PageFallback } from "@/components/AppShell";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Providers } from "@/components/Providers";
 import { YandexMetrikaGate } from "@/components/YandexMetrikaGate";
+import { bodyFont, displayFont } from "@/lib/app-fonts";
 import { resolveMetrikaId } from "@/lib/yandex-metrika";
 import "./globals.css";
-
-const body = Manrope({
-  subsets: ["cyrillic", "latin"],
-  variable: "--font-body",
-  display: "swap",
-});
-
-const display = Unbounded({
-  subsets: ["cyrillic", "latin"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Calorie Vision",
@@ -63,7 +51,7 @@ export default function RootLayout({
   );
 
   return (
-    <html lang="ru" className={`${body.variable} ${display.variable}`}>
+    <html lang="ru" className={`${bodyFont.variable} ${displayFont.variable}`}>
       <head>
         {/* Yandex / browsers: SVG + 120×120 PNG + classic favicon.ico */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -72,7 +60,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.png?v=2.2.1" type="image/png" sizes="192x192" />
         <link rel="apple-touch-icon" href="/apple-icon.png?v=2.2.1" sizes="180x180" />
       </head>
-      <body className={body.className}>
+      <body className={bodyFont.className}>
         <Providers>
           <Suspense fallback={<PageFallback />}>{children}</Suspense>
         </Providers>

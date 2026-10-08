@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Manrope, Unbounded } from "next/font/google";
 import { LandingAudience } from "@/components/LandingAudience";
 import { LandingDayPulse } from "@/components/LandingDayPulse";
 import { LandingFeatureGrid } from "@/components/LandingFeatureGrid";
@@ -18,20 +17,6 @@ import {
   RUSTORE_BADGE_SRC,
 } from "@/lib/android-install";
 import { withBasePath } from "@/lib/paths";
-
-const display = Unbounded({
-  subsets: ["latin", "cyrillic"],
-  weight: ["500", "600", "700"],
-  variable: "--font-landing-display",
-  display: "swap",
-});
-
-const body = Manrope({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-landing-body",
-  display: "swap",
-});
 
 /** Product diary mockup in the hero. */
 function AppPreview({ className = "" }: { className?: string }) {
@@ -250,7 +235,7 @@ export function LandingPage() {
   const rustoreUrl = getRustoreUrl();
 
   return (
-    <LandingShell className={`landing ${display.variable} ${body.variable}`}>
+    <LandingShell className="landing">
       <div className="landing-noise" aria-hidden />
       <div className="landing-orb landing-orb-a" aria-hidden />
       <div className="landing-orb landing-orb-b" aria-hidden />
