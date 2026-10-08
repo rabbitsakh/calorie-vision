@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AllergenHint } from "@/components/AllergenHint";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { scaleNutritionByPortion } from "@/lib/nutrition";
@@ -82,13 +83,6 @@ function writeFavoritesCache(foods: CustomFood[]): void {
   } catch {
     // quota / private mode
   }
-}
-
-function isLikelyOfflineError(err: unknown): boolean {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
-  if (err instanceof TypeError) return true;
-  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
-  return false;
 }
 
 export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: FavoriteFoodsProps) {
@@ -300,16 +294,11 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         onSaved();
         return;
       }
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueFailedSave(selectedDate, body);
-        setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
-        setPortionFoodId(null);
-        onSaved();
-      }
+      // HTTP errors are not offline — do not queue on navigator.onLine alone.
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueFailedSave(selectedDate, body);
-        setLogNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        setLogNotice("Не удалось отправить — сохранение в очереди на устройстве");
         setPortionFoodId(null);
         onSaved();
       }

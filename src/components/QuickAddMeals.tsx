@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AllergenHint } from "@/components/AllergenHint";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
@@ -66,13 +67,6 @@ function writeQuickAddCache(payload: QuickAddResponse): void {
   } catch {
     // quota / private mode
   }
-}
-
-function isLikelyOfflineError(err: unknown): boolean {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
-  if (err instanceof TypeError) return true;
-  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
-  return false;
 }
 
 export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = false }: QuickAddMealsProps) {
@@ -161,15 +155,10 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         onSaved();
         return;
       }
-      if (!resp.ok && typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueFailedSave(selectedDate, body);
-        setAddNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
-        onSaved();
-      }
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueFailedSave(selectedDate, body);
-        setAddNotice("Офлайн: сохранение в очереди — отправим при появлении сети");
+        setAddNotice("Не удалось отправить — сохранение в очереди на устройстве");
         onSaved();
       }
     } finally {

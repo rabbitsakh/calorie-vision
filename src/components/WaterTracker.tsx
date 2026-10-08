@@ -116,28 +116,14 @@ export function WaterTracker({
         onChanged?.();
         return;
       }
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueWaterDraft(selectedDate, ml);
-        setTotalMl((value) => value + ml);
-        trackWaterLoggedGoal();
-        notifyWaterLogged();
-        onChanged?.();
-      }
+      // HTTP errors are not offline — leave total unchanged.
     } catch {
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueWaterDraft(selectedDate, ml);
-        setTotalMl((value) => value + ml);
-        trackWaterLoggedGoal();
-        notifyWaterLogged();
-        onChanged?.();
-      } else {
-        // network flake — still queue so taps are not lost
-        enqueueWaterDraft(selectedDate, ml);
-        setTotalMl((value) => value + ml);
-        trackWaterLoggedGoal();
-        notifyWaterLogged();
-        onChanged?.();
-      }
+      // Network flake — queue so taps are not lost (never trust navigator.onLine).
+      enqueueWaterDraft(selectedDate, ml);
+      setTotalMl((value) => value + ml);
+      trackWaterLoggedGoal();
+      notifyWaterLogged();
+      onChanged?.();
     } finally {
       setLoading(false);
     }
