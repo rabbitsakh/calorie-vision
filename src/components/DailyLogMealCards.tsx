@@ -23,9 +23,23 @@ import {
   MealTypeInlineChips,
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
+import { FOOD_LOOKUP_MODE_LABELS, type FoodLookupMode } from "@/lib/food-types";
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
 import { buildMacrosRepairPatch } from "@/lib/meal-macros-lookup";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
+
+function mealLookupSubtitle(entry: Pick<MealEntry, "brand" | "lookupMode">): string | null {
+  const brand = entry.brand?.trim();
+  if (brand) return brand;
+  if (entry.lookupMode === "generic" || entry.lookupMode === "branded") {
+    return FOOD_LOOKUP_MODE_LABELS[entry.lookupMode as FoodLookupMode];
+  }
+  return null;
+}
+
+function macrosRepairLabel(busy: boolean): string {
+  return busy ? "Уточняем…" : "Сохранили как есть — уточнить БЖУ";
+}
 
 function formatMacros(
   entry: Pick<MealEntry, "protein" | "fat" | "carbs" | "fiber" | "sugar">,
@@ -334,6 +348,12 @@ function GroupedMealCard({
 
                 <div className="min-w-0 flex-1">
                   <h4 className="meal-card-title">{decodeHtmlEntities(entry.dishName)}</h4>
+                  {(() => {
+                    const lookupHint = mealLookupSubtitle(entry);
+                    return lookupHint ? (
+                      <p className="text-[11px] font-medium text-[var(--muted)]">{lookupHint}</p>
+                    ) : null;
+                  })()}
                   {entry.wasCorrected ? (
                     <span className="meal-card-remembered">запомнили</span>
                   ) : null}
@@ -357,7 +377,7 @@ function GroupedMealCard({
                           });
                         }}
                       >
-                        {repairBusyId === entry.id ? "Уточняем…" : "Уточнить БЖУ"}
+                        {macrosRepairLabel(repairBusyId === entry.id)}
                       </button>
                     ) : null}
                     <button
@@ -566,6 +586,12 @@ function SingleMealCard({
 
         <div className="min-w-0 flex-1">
           <h3 className="meal-card-title">{decodeHtmlEntities(entry.dishName)}</h3>
+          {(() => {
+            const lookupHint = mealLookupSubtitle(entry);
+            return lookupHint ? (
+              <p className="text-[11px] font-medium text-[var(--muted)]">{lookupHint}</p>
+            ) : null;
+          })()}
           {entry.wasCorrected ? (
             <span className="meal-card-remembered">запомнили</span>
           ) : null}
@@ -589,7 +615,7 @@ function SingleMealCard({
                   });
                 }}
               >
-                {repairBusy ? "Уточняем…" : "Уточнить БЖУ"}
+                {macrosRepairLabel(repairBusy)}
               </button>
             ) : null}
             <button

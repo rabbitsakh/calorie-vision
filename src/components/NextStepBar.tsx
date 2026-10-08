@@ -53,7 +53,18 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
     const protein = meals?.totalProtein ?? 0;
     const proteinLow = proteinTarget > 0 && protein < proteinTarget * 0.4;
 
-    // After gym → elevate protein (skip hour gate), priority over water.
+    // After gym → protein/meal (even before first meal — first-week habit).
+    if (postWorkout && !logged) {
+      return {
+        label: "После тренировки — запишите приём с белком",
+        actionLabel: "Добавить",
+        onClick: () => {
+          clearPostWorkoutNudge();
+          bump((n) => n + 1);
+          requestOpenFoodAddPicker();
+        },
+      };
+    }
     if (postWorkout && logged && proteinLow) {
       return {
         label: "После тренировки — белок",

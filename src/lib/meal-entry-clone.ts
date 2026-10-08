@@ -25,6 +25,8 @@ export function mealEntryCloneData(
     recognitionSource: source.recognitionSource,
     photoKind: source.photoKind,
     barcode: source.barcode,
+    brand: source.brand,
+    lookupMode: source.lookupMode,
     eatenAt: source.eatenAt,
     mealGroupId: null,
     ...overrides,

@@ -77,8 +77,6 @@ export function OfflineMealQueueBanner({
     };
   }, [refreshCounts]);
 
-  useEffect(() => subscribeConnectivity(setOnline), []);
-
   const flush = useCallback(async () => {
     const pending = listPendingRecognitions();
     const failed = listFailedSaves();
@@ -204,11 +202,15 @@ export function OfflineMealQueueBanner({
   }, [onFlushed, onRecognitionReady, refreshCounts]);
 
   useEffect(() => {
-    function onOnlineFlush() {
-      void flush();
-    }
-    window.addEventListener("online", onOnlineFlush);
-    return () => window.removeEventListener("online", onOnlineFlush);
+    let wasOnline = true;
+    return subscribeConnectivity((next) => {
+      setOnline(next);
+      // Probe can recover without a browser `online` event — flush then.
+      if (next && !wasOnline) {
+        void flush();
+      }
+      wasOnline = next;
+    });
   }, [flush]);
 
   const totalCount =
