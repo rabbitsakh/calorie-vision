@@ -56,10 +56,11 @@ export async function lookupCustomFoodByName(
       fiber: best.fiber ?? undefined,
       sugar: best.sugar ?? undefined,
       portionGrams: best.portionGrams ?? undefined,
+      brand: best.brand ?? undefined,
       confidence: bestScore >= 90 ? 0.88 : 0.78,
       source: "custom-food",
       photoKind: "package",
-      lookupMode: "branded",
+      lookupMode: best.brand ? "branded" : "generic",
     };
   } catch (error) {
     console.warn("custom-food lookup failed", error);

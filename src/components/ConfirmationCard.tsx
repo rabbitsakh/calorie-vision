@@ -577,6 +577,8 @@ export function ConfirmationCard({
       recognitionSource: dish.original.source,
       photoKind: dish.original.photoKind,
       barcode: dish.original.barcode,
+      brand: dish.original.brand,
+      lookupMode: dish.original.lookupMode,
     };
   }
 

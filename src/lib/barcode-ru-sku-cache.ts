@@ -331,6 +331,62 @@ export const RU_SKU_CACHE: RuSkuHint[] = [
     kcalPer100: 0,
     portionGrams: 2,
   },
+  {
+    barcode: "4607025395012",
+    name: "Творог обезжиренный 0.5%",
+    brand: "Простоквашино",
+    kcalPer100: 75,
+    portionGrams: 180,
+  },
+  {
+    barcode: "4607025395029",
+    name: "Творог 9%",
+    brand: "Простоквашино",
+    kcalPer100: 159,
+    portionGrams: 180,
+  },
+  {
+    barcode: "4607025235028",
+    name: "Сметана 15%",
+    brand: "Простоквашино",
+    kcalPer100: 160,
+    portionGrams: 180,
+  },
+  {
+    barcode: "4600494665017",
+    name: "Творог 5%",
+    brand: "Домик в деревне",
+    kcalPer100: 121,
+    portionGrams: 200,
+  },
+  {
+    barcode: "4600494665024",
+    name: "Молоко 1.5%",
+    brand: "Домик в деревне",
+    kcalPer100: 44,
+    portionGrams: 1000,
+  },
+  {
+    barcode: "4607065335022",
+    name: "Йогурт греческий 2%",
+    brand: "Савушкин",
+    kcalPer100: 87,
+    portionGrams: 130,
+  },
+  {
+    barcode: "4607004895023",
+    name: "Сыр Российский 50%",
+    brand: "President",
+    kcalPer100: 356,
+    portionGrams: 30,
+  },
+  {
+    barcode: "4600605025030",
+    name: "Овсяные хлопья",
+    brand: "Увелка",
+    kcalPer100: 350,
+    portionGrams: 40,
+  },
 ];
 
 const BY_CODE = new Map(RU_SKU_CACHE.map((row) => [row.barcode, row]));

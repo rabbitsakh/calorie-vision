@@ -215,6 +215,10 @@ model MealEntry {
   recognitionSource  String?   @db.VarChar(64)
   photoKind          String?   @db.VarChar(32)
   barcode            String?   @db.VarChar(32)
+  /** Pack brand from text/barcode lookup (e.g. Простоквашино). */
+  brand              String?   @db.VarChar(80)
+  /** Text-lookup mode: generic | branded. */
+  lookupMode         String?   @db.VarChar(16)
   /** User-editable meal time; null → display createdAt. */
   eatenAt            DateTime?
   createdAt          DateTime  @default(now())
@@ -277,6 +281,7 @@ model CustomFood {
   fiber        Float?
   sugar        Float?
   portionGrams Int?
+  brand        String?  @db.VarChar(80)
   useCount     Int      @default(1)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -402,6 +407,7 @@ model FoodCorrection {
   fiber         Float?
   sugar         Float?
   portionGrams  Int?
+  brand         String?  @db.VarChar(80)
   useCount      Int      @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

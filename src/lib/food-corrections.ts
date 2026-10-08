@@ -11,6 +11,7 @@ export type FoodCorrectionRecord = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
   useCount: number;
 };
 
@@ -24,6 +25,7 @@ export type RememberFoodCorrectionInput = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
   originalCalories?: number | null;
   originalProtein?: number | null;
   originalFat?: number | null;
@@ -189,6 +191,7 @@ export function applyFoodCorrection(
     fiber: correction.fiber ?? undefined,
     sugar: correction.sugar ?? undefined,
     portionGrams: correction.portionGrams ?? result.portionGrams,
+    brand: correction.brand?.trim() || result.brand,
     confidence: Math.max(result.confidence, 0.85),
     source: "correction-memory",
     alternatives: undefined,
@@ -208,6 +211,7 @@ export function mergeRememberedCorrection(
     fiber: input.fiber ?? null,
     sugar: input.sugar ?? null,
     portionGrams: input.portionGrams ?? null,
+    brand: input.brand?.trim() || null,
     useCount: 1,
   };
 
@@ -250,6 +254,7 @@ export function mergeRememberedCorrection(
       next.portionGrams !== null && next.portionGrams !== undefined
         ? Math.round(((existing.portionGrams ?? next.portionGrams) * weight + next.portionGrams) / (weight + 1))
         : existing.portionGrams ?? null,
+    brand: next.brand || existing.brand || null,
     useCount: existing.useCount + 1,
   };
 }

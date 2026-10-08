@@ -15,6 +15,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "ru-sku-cache": "Офлайн-подсказка по штрихкоду (RU)",
   "ru-name-sku": "Офлайн-подсказка по бренду (RU)",
   "custom-food": "Из ваших сохранённых продуктов",
+  "off-staple-average": "Типичные значения (среднее по базе)",
 };
 
 /** Text-lookup routing: average staple vs branded pack. */

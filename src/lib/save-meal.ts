@@ -30,6 +30,8 @@ export type SaveMealInput = {
   recognitionSource?: string;
   photoKind?: string;
   barcode?: string;
+  brand?: string;
+  lookupMode?: string;
   /** ISO instant — when the meal was eaten (defaults to save time if omitted). */
   eatenAt?: string;
 };
@@ -79,6 +81,8 @@ export function buildMealCreateData(
     recognitionSource: body.recognitionSource?.trim().slice(0, 64) || null,
     photoKind: body.photoKind?.trim().slice(0, 32) || null,
     barcode: body.barcode?.trim().slice(0, 32) || null,
+    brand: body.brand?.trim().slice(0, 80) || null,
+    lookupMode: body.lookupMode?.trim().slice(0, 16) || null,
     ...(eatenAt !== undefined && eatenAt !== null ? { eatenAt } : {}),
   };
 }
@@ -124,6 +128,7 @@ export async function rememberMealCorrectionIfNeeded(
     fiber: body.fiber,
     sugar: body.sugar,
     portionGrams: body.portionGrams,
+    brand: body.brand,
     originalCalories: body.originalCalories,
     originalProtein: body.originalProtein,
     originalFat: body.originalFat,
