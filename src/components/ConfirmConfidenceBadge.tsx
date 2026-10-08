@@ -13,6 +13,9 @@ import {
 } from "@/lib/recognition-confidence-ui";
 
 export function shouldSurfaceNutritionBasis(item: FoodRecognitionResult): boolean {
+  if (item.lookupMode === "generic" || item.lookupMode === "branded") {
+    return true;
+  }
   const kind = item.photoKind;
   return (
     kind === "label" ||

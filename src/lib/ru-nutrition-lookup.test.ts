@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dishLooksLikeAlcohol, lookupRuNutritionTable, scaleRuNutritionToGrams } from "./ru-nutrition-lookup.ts";
+import {
+  dishLooksLikeAlcohol,
+  listRuNutritionByBrand,
+  lookupRuNutritionBranded,
+  lookupRuNutritionTable,
+  scaleRuNutritionToGrams,
+} from "./ru-nutrition-lookup.ts";
 
 test("lookupRuNutritionTable matches boiled egg not pouch egg", () => {
   const boiled = lookupRuNutritionTable("вареное яйцо");
@@ -129,6 +135,24 @@ test("lookupRuNutritionTable matches brand packs", () => {
   const prostokvashino = lookupRuNutritionTable("кефир простоквашино");
   assert.ok(prostokvashino);
   assert.match(prostokvashino!.dishName, /Простоквашино/i);
+});
+
+test("lookupRuNutritionBranded and listRuNutritionByBrand", () => {
+  const cottage = lookupRuNutritionBranded("творог", "Простоквашино");
+  assert.ok(cottage);
+  assert.match(cottage!.dishName, /Творог.*Простоквашино|Простоквашино/i);
+  assert.equal(cottage!.brand, "Простоквашино");
+
+  const list = listRuNutritionByBrand("Простоквашино", 5);
+  assert.ok(list.length >= 2);
+  assert.ok(list.every((row) => row.brand === "Простоквашино"));
+});
+
+test("generic dairy fat variants", () => {
+  assert.match(lookupRuNutritionTable("творог 9%")!.dishName, /9%/);
+  assert.match(lookupRuNutritionTable("творог 2%")!.dishName, /2%/);
+  assert.match(lookupRuNutritionTable("кефир 1%")!.dishName, /1%/);
+  assert.match(lookupRuNutritionTable("молоко обезжиренное")!.dishName, /обезжир/i);
 });
 
 test("lookupRuNutritionTable and dishLooksLikeAlcohol for drinks", () => {

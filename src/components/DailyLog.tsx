@@ -326,6 +326,8 @@ export function DailyLog({
           source === "gigachat-barcode" ||
           source === "openfoodfacts-search" ||
           source === "openfoodfacts-barcode" ||
+          source === "ru-name-sku" ||
+          source === "custom-food" ||
           source === "ru-sku-cache" ||
           source === "ru-nutrition-table"
         );

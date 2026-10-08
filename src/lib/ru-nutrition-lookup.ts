@@ -68,7 +68,25 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   },
   { keys: ["яичница", "яйцо жареное"], dishName: "Яичница", calories: 220, protein: 14, fat: 18, carbs: 2, portionGrams: 120 },
   { keys: ["омлет"], dishName: "Омлет", calories: 260, protein: 16, fat: 20, carbs: 3, portionGrams: 150 },
-  { keys: ["творог", "творог 5%", "творог 9%"], dishName: "Творог 5%", calories: 180, protein: 28, fat: 8, carbs: 6, portionGrams: 150 },
+  { keys: ["творог", "творог 5%"], dishName: "Творог 5%", calories: 180, protein: 28, fat: 8, carbs: 6, portionGrams: 150 },
+  {
+    keys: ["творог 2%", "творог 2.0%", "творог 2,0%"],
+    dishName: "Творог 2%",
+    calories: 150,
+    protein: 30,
+    fat: 3,
+    carbs: 5,
+    portionGrams: 150,
+  },
+  {
+    keys: ["творог 9%", "творог жирный"],
+    dishName: "Творог 9%",
+    calories: 230,
+    protein: 24,
+    fat: 14,
+    carbs: 5,
+    portionGrams: 150,
+  },
   {
     keys: [
       "творог обезжиренный",
@@ -109,7 +127,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   { keys: ["суши", "ролл", "филадельфия"], dishName: "Ролл Филадельфия", calories: 320, protein: 14, fat: 12, carbs: 38, portionGrams: 120 },
   { keys: ["компот"], dishName: "Компот", calories: 80, protein: 0, fat: 0, carbs: 20, sugar: 18, portionGrams: 250 },
   {
-    keys: ["молоко", "молоко 2.5%", "молоко 2,5%", "молоко 3.2%", "молоко 3,2%", "молоко ультрапастеризованное"],
+    keys: ["молоко", "молоко 2.5%", "молоко 2,5%", "молоко ультрапастеризованное"],
     dishName: "Молоко 2,5%",
     calories: 120,
     protein: 3,
@@ -118,13 +136,80 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     sugar: 5,
     portionGrams: 250,
   },
+  {
+    keys: [
+      "молоко обезжиренное",
+      "обезжиренное молоко",
+      "молоко 0.5%",
+      "молоко 0,5%",
+      "молоко 1%",
+      "молоко 1.5%",
+      "молоко 1,5%",
+    ],
+    dishName: "Молоко обезжиренное",
+    calories: 90,
+    protein: 8,
+    fat: 1,
+    carbs: 12,
+    sugar: 12,
+    portionGrams: 250,
+  },
+  {
+    keys: ["молоко 3.2%", "молоко 3,2%", "молоко цельное"],
+    dishName: "Молоко 3,2%",
+    calories: 150,
+    protein: 7,
+    fat: 8,
+    carbs: 12,
+    sugar: 12,
+    portionGrams: 250,
+  },
   { keys: ["кофе", "кофе с молоком", "латte", "латте"], dishName: "Кофе латте", calories: 120, protein: 6, fat: 5, carbs: 12, sugar: 10, portionGrams: 250 },
   { keys: ["чай", "чай с сахаром"], dishName: "Чай с сахаром", calories: 40, protein: 0, fat: 0, carbs: 10, sugar: 10, portionGrams: 250 },
   { keys: ["квас"], dishName: "Квас", calories: 90, protein: 0, fat: 0, carbs: 22, sugar: 18, portionGrams: 330 },
   { keys: ["сок", "сок яблочный"], dishName: "Сок яблочный", calories: 110, protein: 0, fat: 0, carbs: 26, sugar: 24, portionGrams: 250 },
-  { keys: ["кефир"], dishName: "Кефир 2,5%", calories: 120, protein: 6, fat: 5, carbs: 9, portionGrams: 250 },
+  { keys: ["кефир", "кефир 2,5%", "кефир 2.5%"], dishName: "Кефир 2,5%", calories: 120, protein: 6, fat: 5, carbs: 9, portionGrams: 250 },
+  {
+    keys: ["кефир 1%", "кефир обезжиренный", "обезжиренный кефир"],
+    dishName: "Кефир 1%",
+    calories: 100,
+    protein: 7,
+    fat: 2.5,
+    carbs: 10,
+    sugar: 10,
+    portionGrams: 250,
+  },
+  {
+    keys: ["кефир 3.2%", "кефир 3,2%"],
+    dishName: "Кефир 3,2%",
+    calories: 140,
+    protein: 7,
+    fat: 8,
+    carbs: 10,
+    sugar: 10,
+    portionGrams: 250,
+  },
   { keys: ["йогурт", "греческий йогурт"], dishName: "Греческий йогурт", calories: 150, protein: 12, fat: 6, carbs: 10, portionGrams: 150 },
+  {
+    keys: ["йогурт натуральный", "натуральный йогурт", "йогурт 2%", "йогурт 2,5%"],
+    dishName: "Йогурт натуральный",
+    calories: 120,
+    protein: 6,
+    fat: 4,
+    carbs: 12,
+    sugar: 10,
+    portionGrams: 150,
+  },
   { keys: ["сметана", "сметана 20%"], dishName: "Сметана 20%", calories: 80, protein: 1, fat: 8, carbs: 2, portionGrams: 30 },
+  {
+    keys: ["сметана 10%", "сметана 15%"],
+    dishName: "Сметана 10%",
+    calories: 50,
+    protein: 1,
+    fat: 3,
+    carbs: 2,
+    portionGrams: 30,
+  },
   { keys: ["сыр", "сыр твёрдый"], dishName: "Сыр твёрдый", calories: 350, protein: 24, fat: 28, carbs: 0, portionGrams: 50 },
   { keys: ["колбаса", "колбаса докторская"], dishName: "Колбаса", calories: 280, protein: 12, fat: 24, carbs: 2, portionGrams: 100 },
   { keys: ["ветчина"], dishName: "Ветчина", calories: 180, protein: 18, fat: 10, carbs: 2, portionGrams: 80 },
@@ -664,6 +749,83 @@ function matchScore(query: string, key: string): number {
   }
 
   return 0;
+}
+
+function normalizeBrandLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .trim();
+}
+
+/** Branded RU table rows for a brand (ambiguous brand-only queries). */
+export function listRuNutritionByBrand(brand: string, limit = 5): PackNutrition[] {
+  const b = normalizeBrandLabel(brand);
+  if (!b) return [];
+  const out: PackNutrition[] = [];
+  for (const entry of RU_NUTRITION_ENTRIES) {
+    if (!entry.brand) continue;
+    if (normalizeBrandLabel(entry.brand) !== b) continue;
+    out.push({
+      dishName: entry.dishName,
+      calories: entry.calories,
+      protein: entry.protein,
+      fat: entry.fat,
+      carbs: entry.carbs,
+      fiber: entry.fiber,
+      sugar: entry.sugar,
+      portionGrams: entry.portionGrams,
+      explicitPackGrams: true,
+      brand: entry.brand,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+/** Prefer branded RU rows when the query names a brand + product. */
+export function lookupRuNutritionBranded(
+  product: string,
+  brand: string,
+): PackNutrition | null {
+  const b = normalizeBrandLabel(brand);
+  const query = [product, brand].filter(Boolean).join(" ").trim();
+  if (!query || !b) return null;
+
+  let best: { entry: RuNutritionEntry; score: number } | null = null;
+  for (const entry of RU_NUTRITION_ENTRIES) {
+    if (!entry.brand || normalizeBrandLabel(entry.brand) !== b) continue;
+    for (const key of entry.keys) {
+      const score = matchScore(query, key);
+      if (score >= 70 && (!best || score > best.score)) {
+        best = { entry, score };
+      }
+    }
+    // Also score against product-only if the entry keys omit the brand token.
+    if (product.trim()) {
+      for (const key of entry.keys) {
+        const score = matchScore(product, key);
+        if (score >= 80 && (!best || score > best.score)) {
+          best = { entry, score };
+        }
+      }
+    }
+  }
+  if (!best) return null;
+  const { entry } = best;
+  return {
+    dishName: entry.dishName,
+    calories: entry.calories,
+    protein: entry.protein,
+    fat: entry.fat,
+    carbs: entry.carbs,
+    fiber: entry.fiber,
+    sugar: entry.sugar,
+    portionGrams: entry.portionGrams,
+    explicitPackGrams: true,
+    brand: entry.brand,
+  };
 }
 
 /** Offline RU staples lookup — returns null when no confident match. */

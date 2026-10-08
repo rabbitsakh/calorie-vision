@@ -5,7 +5,7 @@ import { Chip } from "@/components/Chip";
 import { ConfidenceBadge, shouldSurfaceNutritionBasis } from "@/components/ConfirmConfidenceBadge";
 import type { DishDraft } from "@/lib/confirm-card-draft";
 import type { FoodRecognitionResult } from "@/lib/food-types";
-import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
+import { FOOD_LOOKUP_MODE_LABELS, RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import {
   confidenceShortLabel,
   formatConfidencePercent,
@@ -165,12 +165,20 @@ export function ConfirmDetailsFold({
             {recognition.photoKind === "barcode" ? " · штрихкод" : ""}
             {recognition.photoKind === "label" ? " · этикетка" : ""}
           </p>
+          {recognition.lookupMode ? (
+            <p>
+              {FOOD_LOOKUP_MODE_LABELS[recognition.lookupMode]}
+              {recognition.lookupMode === "branded" && recognition.brand
+                ? `: ${recognition.brand}`
+                : ""}
+            </p>
+          ) : null}
           <p>
             {multi
               ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
               : `Уверенность: ${formatConfidencePercent(recognition.confidence)}`}
             {recognition.barcode ? ` · ${recognition.barcode}` : ""}
-            {recognition.brand ? ` · ${recognition.brand}` : ""}
+            {!recognition.lookupMode && recognition.brand ? ` · ${recognition.brand}` : ""}
           </p>
         </div>
       </div>

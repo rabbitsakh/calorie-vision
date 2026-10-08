@@ -508,6 +508,26 @@ export function offCookingModifiersAgree(queryNorm: string, nameNorm: string): b
   return true;
 }
 
+function normalizeBrandToken(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .trim();
+}
+
+/** True when OFF brand matches the requested brand (or brand appears in the name). */
+export function offBrandAgrees(requestedBrand: string, hit: PackNutrition): boolean {
+  const want = normalizeBrandToken(requestedBrand);
+  if (!want) return true;
+  const got = normalizeBrandToken(hit.brand ?? "");
+  const name = normalizeBrandToken(hit.dishName);
+  if (got && (got === want || got.includes(want) || want.includes(got))) {
+    return true;
+  }
+  return name.includes(want);
+}
+
 /** Parallel OFF search — first matching query wins. Never returns unmatched hits. */
 export async function searchOpenFoodFactsBest(
   queries: string[],
@@ -531,6 +551,74 @@ export async function searchOpenFoodFactsBest(
   }
   // Never return an unmatched OFF hit — wrong product is worse than a miss.
   return null;
+}
+
+/**
+ * OFF search that prefers hits matching `brand`.
+ * Used for branded text lookup («творог Простоквашино»).
+ */
+export async function searchOpenFoodFactsBranded(
+  queries: string[],
+  brand: string,
+): Promise<PackNutrition | null> {
+  const unique = [...new Set(queries.map((q) => q.trim()).filter((q) => q.length >= 3))];
+  if (unique.length === 0) {
+    return null;
+  }
+
+  const results = await Promise.all(unique.map((query) => searchOpenFoodFacts(query)));
+  let fallback: PackNutrition | null = null;
+  for (let index = 0; index < unique.length; index += 1) {
+    const query = unique[index]!;
+    const hit = results[index];
+    if (!hit || !offMatchesQuery(query, hit.dishName, hit.brand)) {
+      continue;
+    }
+    if (offBrandAgrees(brand, hit)) {
+      return hit;
+    }
+    if (!fallback) {
+      fallback = hit;
+    }
+  }
+  // Do not return a differently branded pack when the user named a brand.
+  return null;
+}
+
+/** Up to `limit` matching OFF products for one query (ambiguous UI). */
+export async function searchOpenFoodFactsCandidates(
+  query: string,
+  limit = 3,
+): Promise<PackNutrition[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 3) {
+    return [];
+  }
+
+  const url = `${SEARCH_URL}?${new URLSearchParams({
+    search_terms: trimmed,
+    search_simple: "1",
+    action: "process",
+    json: "1",
+    page_size: String(Math.min(Math.max(limit * 2, 5), 12)),
+    lc: "ru",
+    cc: "ru",
+  }).toString()}`;
+
+  const data = (await offGetJson(url)) as { products?: OffProduct[] } | null;
+  if (!data?.products?.length) {
+    return [];
+  }
+
+  const out: PackNutrition[] = [];
+  for (const product of data.products) {
+    const nutrition = offProductToNutrition(product);
+    if (!nutrition) continue;
+    if (!offMatchesQuery(trimmed, nutrition.dishName, nutrition.brand)) continue;
+    out.push(nutrition);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export async function searchOpenFoodFacts(query: string): Promise<PackNutrition | null> {
