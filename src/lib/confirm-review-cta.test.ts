@@ -151,6 +151,18 @@ test("confirmSaveButtonLabel marks soft-save as как есть", () => {
   );
   assert.match(saveAsIsHint(), /поправить порцию позже/i);
   assert.match(saveAsIsHint({ anyMissingMacros: true }), /БЖУ не заполнены/i);
+  assert.match(
+    saveAsIsHint({
+      anyMissingMacros: true,
+      lookupMode: "branded",
+      brand: "Простоквашино",
+    }),
+    /По бренду Простоквашино/,
+  );
+  assert.match(
+    saveAsIsHint({ anyMissingMacros: true, lookupMode: "generic" }),
+    /Типичные значения/,
+  );
   assert.equal(photoKindShortLabel("label"), "этикетка");
   assert.match(formatPendingConfirmHint({ dishName: "Чай", calories: 1, photoKind: "meal" }), /Чай/);
 });

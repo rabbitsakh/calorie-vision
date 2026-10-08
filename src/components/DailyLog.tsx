@@ -420,6 +420,8 @@ export function DailyLog({
           fiber: patch.fiber ?? null,
           sugar: patch.sugar ?? null,
           portionGrams: patch.portionGrams ?? null,
+          brand: patch.brand !== undefined ? patch.brand : entry.brand,
+          lookupMode: patch.lookupMode !== undefined ? patch.lookupMode : entry.lookupMode,
           mealType:
             patch.mealType === undefined
               ? entry.mealType

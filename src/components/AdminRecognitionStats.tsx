@@ -347,31 +347,37 @@ export function AdminRecognitionStats() {
             <p className="text-lg font-semibold">{stats.savedCorrections} уникальных блюд в базе</p>
           </div>
 
-          {stats.textLookup &&
-          (stats.textLookup.telemetryGeneric > 0 ||
-            stats.textLookup.telemetryBranded > 0 ||
-            stats.textLookup.mealGeneric > 0 ||
-            stats.textLookup.mealBranded > 0) ? (
+          {stats.textLookup ? (
             <div className="rounded-2xl bg-teal-50/60 px-4 py-3">
               <p className="mb-2 text-sm font-semibold text-slate-700">Текстовый поиск: бренд vs среднее</p>
-              <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                <p>
-                  Telemetry · типичные:{" "}
-                  <span className="font-semibold">{stats.textLookup.telemetryGeneric}</span>
+              {stats.textLookup.telemetryGeneric > 0 ||
+              stats.textLookup.telemetryBranded > 0 ||
+              stats.textLookup.mealGeneric > 0 ||
+              stats.textLookup.mealBranded > 0 ? (
+                <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                  <p>
+                    Telemetry · типичные:{" "}
+                    <span className="font-semibold">{stats.textLookup.telemetryGeneric}</span>
+                  </p>
+                  <p>
+                    Telemetry · бренд:{" "}
+                    <span className="font-semibold">{stats.textLookup.telemetryBranded}</span>
+                  </p>
+                  <p>
+                    Записи · типичные:{" "}
+                    <span className="font-semibold">{stats.textLookup.mealGeneric}</span>
+                  </p>
+                  <p>
+                    Записи · бренд:{" "}
+                    <span className="font-semibold">{stats.textLookup.mealBranded}</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">
+                  Пока нет записей с lookupMode — появятся после текстового поиска (бренд /
+                  типичные).
                 </p>
-                <p>
-                  Telemetry · бренд:{" "}
-                  <span className="font-semibold">{stats.textLookup.telemetryBranded}</span>
-                </p>
-                <p>
-                  Записи · типичные:{" "}
-                  <span className="font-semibold">{stats.textLookup.mealGeneric}</span>
-                </p>
-                <p>
-                  Записи · бренд:{" "}
-                  <span className="font-semibold">{stats.textLookup.mealBranded}</span>
-                </p>
-              </div>
+              )}
             </div>
           ) : null}
 

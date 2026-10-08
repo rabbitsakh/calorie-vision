@@ -26,6 +26,8 @@ export type EditPatch = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
+  lookupMode?: string | null;
   mealType?: string | null;
   eatenAt?: string | null;
 };

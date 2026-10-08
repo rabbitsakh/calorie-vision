@@ -807,9 +807,13 @@ export function ConfirmationCard({
     multi,
     saveAsIs,
   });
+  const softSaveBasisDish =
+    dishes.find((d) => d.original.lookupMode || d.original.brand) ?? dishes[0];
   const softSaveHint = saveAsIsHint({
     anyMissingMacros,
     anyLowConfidence,
+    lookupMode: softSaveBasisDish?.original.lookupMode,
+    brand: softSaveBasisDish?.original.brand,
   });
   const skimTrustLine = confirmSkimTrustLine({
     enriching,
