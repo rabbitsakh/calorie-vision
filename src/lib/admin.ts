@@ -28,6 +28,10 @@ export type AdminStatsResponse = {
   mealCount: number;
   weightCount: number;
   photoCount: number;
+  /** All workout sessions (including open drafts). */
+  workoutSessionCount: number;
+  /** Sessions with endedAt set. */
+  workoutFinishedCount: number;
 };
 
 export function isAdminEmail(email: string | null | undefined): boolean {

@@ -39,6 +39,12 @@ type RecognitionStats = {
   misreadWindow?: "7d" | "all";
   savedCorrections: number;
   bySource?: Array<{ source: string; label: string; count: number }>;
+  textLookup?: {
+    telemetryGeneric: number;
+    telemetryBranded: number;
+    mealGeneric: number;
+    mealBranded: number;
+  };
   byPhotoKind?: Array<{
     photoKind: string;
     count: number;
@@ -340,6 +346,34 @@ export function AdminRecognitionStats() {
             <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">Память исправлений</p>
             <p className="text-lg font-semibold">{stats.savedCorrections} уникальных блюд в базе</p>
           </div>
+
+          {stats.textLookup &&
+          (stats.textLookup.telemetryGeneric > 0 ||
+            stats.textLookup.telemetryBranded > 0 ||
+            stats.textLookup.mealGeneric > 0 ||
+            stats.textLookup.mealBranded > 0) ? (
+            <div className="rounded-2xl bg-teal-50/60 px-4 py-3">
+              <p className="mb-2 text-sm font-semibold text-slate-700">Текстовый поиск: бренд vs среднее</p>
+              <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                <p>
+                  Telemetry · типичные:{" "}
+                  <span className="font-semibold">{stats.textLookup.telemetryGeneric}</span>
+                </p>
+                <p>
+                  Telemetry · бренд:{" "}
+                  <span className="font-semibold">{stats.textLookup.telemetryBranded}</span>
+                </p>
+                <p>
+                  Записи · типичные:{" "}
+                  <span className="font-semibold">{stats.textLookup.mealGeneric}</span>
+                </p>
+                <p>
+                  Записи · бренд:{" "}
+                  <span className="font-semibold">{stats.textLookup.mealBranded}</span>
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           {stats.bySource && stats.bySource.length > 0 ? (
             <div>

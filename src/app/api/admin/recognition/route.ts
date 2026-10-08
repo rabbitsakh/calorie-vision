@@ -99,6 +99,7 @@ export async function GET(request: Request) {
           specialistPass: true,
           promptVariant: true,
           enrichmentTimedOut: true,
+          source: true,
         },
         orderBy: { createdAt: "desc" },
         take: 5000,
@@ -111,6 +112,7 @@ export async function GET(request: Request) {
         select: {
           confidence: true,
           wasCorrected: true,
+          lookupMode: true,
         },
         take: 5000,
       }),
@@ -204,6 +206,22 @@ export async function GET(request: Request) {
       if (flags.nutrition) correctionKindTotals.nutrition += 1;
     }
 
+    // Text lookup branded vs generic (telemetry source: text:generic:… / text:branded:…).
+    let textGeneric = 0;
+    let textBranded = 0;
+    for (const row of telemetryRows) {
+      const src = row.source ?? "";
+      if (src.startsWith("text:generic")) textGeneric += 1;
+      else if (src.startsWith("text:branded")) textBranded += 1;
+    }
+    // Meals with persisted lookupMode (after migrate-food-brand-lookup).
+    let mealGeneric = 0;
+    let mealBranded = 0;
+    for (const row of confidenceRows) {
+      if (row.lookupMode === "generic") mealGeneric += 1;
+      else if (row.lookupMode === "branded") mealBranded += 1;
+    }
+
     return NextResponse.json({
       totalRecognitions,
       correctedCount,
@@ -243,6 +261,12 @@ export async function GET(request: Request) {
           "Неизвестно",
         count: row._count.id,
       })),
+      textLookup: {
+        telemetryGeneric: textGeneric,
+        telemetryBranded: textBranded,
+        mealGeneric,
+        mealBranded,
+      },
       byCorrectionKind: [
         { kind: "name", label: "Название", count: correctionKindTotals.name },
         { kind: "nutrition", label: "Ккал / БЖУ", count: correctionKindTotals.nutrition },

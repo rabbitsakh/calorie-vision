@@ -10,6 +10,8 @@ const ROWS: Array<{ key: keyof AdminStatsResponse; label: string }> = [
   { key: "mealCount", label: "Записанные блюда" },
   { key: "weightCount", label: "Измерения веса" },
   { key: "photoCount", label: "Загруженные фото" },
+  { key: "workoutSessionCount", label: "Тренировки (все)" },
+  { key: "workoutFinishedCount", label: "Тренировки завершённые" },
 ];
 
 export function AdminStatsSummary() {
