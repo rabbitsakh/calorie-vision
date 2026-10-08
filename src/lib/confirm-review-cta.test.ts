@@ -159,6 +159,10 @@ test("formatSavedMealToast includes kcal", () => {
   assert.equal(formatSavedMealToast({ savedCount: 1, totalCalories: 420.4 }), "Сохранено · 420 ккал");
   assert.match(formatSavedMealToast({ savedCount: 3, totalCalories: 840 }), /3 блюд · 840 ккал/);
   assert.match(formatSavedMealToast({ rememberedCorrection: true }), /Запомнили/);
+  assert.match(
+    formatSavedMealToast({ softSave: true, totalCalories: 350 }),
+    /как есть · 350 ккал/,
+  );
 });
 
 test("confirmSkimTrustLine surfaces macros / confidence / missing kcal on skim", () => {

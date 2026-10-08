@@ -443,12 +443,13 @@ export function FoodAddPanel({
           setTextQuery("");
           setBarcodeQuery("");
           setError(null);
-          if (meta?.savedCount || meta?.rememberedCorrection) {
+          if (meta?.savedCount || meta?.rememberedCorrection || meta?.softSave) {
             setSavedToast(
               formatSavedMealToast({
                 savedCount: meta.savedCount,
                 totalCalories: meta.totalCalories,
                 rememberedCorrection: meta.rememberedCorrection,
+                softSave: meta.softSave,
               }),
             );
           }

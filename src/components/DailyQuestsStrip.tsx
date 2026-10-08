@@ -15,7 +15,10 @@ import {
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
+import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
+import { withDateQuery } from "@/lib/use-selected-date";
+import Link from "next/link";
 
 type DailyQuestsStripProps = {
   selectedDate: string;
@@ -153,10 +156,22 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
               </span>
               {q.done ? (
                 <span className="shrink-0 text-[10px] font-medium text-teal-600">{q.doneHint}</span>
+              ) : q.id === "gym_today" && isFirstWeekQuiet() ? (
+                <Link
+                  href={withBasePath(withDateQuery("/workouts", selectedDate))}
+                  className="shrink-0 text-[10px] font-semibold text-teal-700 underline-offset-2 hover:underline"
+                >
+                  В зал
+                </Link>
               ) : null}
             </li>
           ))}
         </ul>
+        {isFirstWeekQuiet() && gymSessionCount === 0 ? (
+          <p className="mt-1.5 text-xs text-[var(--muted)]">
+            Бонус первой недели: короткая тренировка — и день ощущается полнее.
+          </p>
+        ) : null}
         {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}
         {progress.allDone && !hint && !celebrate ? (
           <p className="mt-1.5 text-xs text-teal-700">День закрыт мягко — так и надо.</p>

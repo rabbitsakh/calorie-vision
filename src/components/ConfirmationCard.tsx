@@ -99,6 +99,7 @@ type ConfirmationCardProps = {
     rememberedCorrection?: boolean;
     savedCount?: number;
     totalCalories?: number;
+    softSave?: boolean;
   }) => void;
   /** Fired when a save was queued offline after a network/API failure (#40). */
   onSaveQueued?: () => void;
@@ -700,6 +701,7 @@ export function ConfirmationCard({
           rememberedCorrection,
           savedCount: dishes.length,
           totalCalories: saveTotalCalories,
+          softSave,
         });
         return;
       }
@@ -723,6 +725,7 @@ export function ConfirmationCard({
         rememberedCorrection,
         savedCount: 1,
         totalCalories: Number(payloads[0]!.calories) || 0,
+        softSave,
       });
     } catch (err) {
       if (queuedBody) {

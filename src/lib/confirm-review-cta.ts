@@ -237,6 +237,8 @@ export function formatSavedMealToast(input: {
   savedCount?: number;
   totalCalories?: number;
   rememberedCorrection?: boolean;
+  /** Soft save-as-is (low confidence / incomplete macros, but kcal present). */
+  softSave?: boolean;
 }): string {
   if (input.rememberedCorrection) {
     return "Запомнили исправление — в следующий раз подставим автоматически";
@@ -245,6 +247,11 @@ export function formatSavedMealToast(input: {
     input.totalCalories != null && input.totalCalories > 0
       ? Math.round(input.totalCalories)
       : null;
+  if (input.softSave) {
+    return kcal != null
+      ? `Сохранено как есть · ${kcal} ккал — можно уточнить позже`
+      : "Сохранено как есть — можно уточнить позже";
+  }
   if (input.savedCount && input.savedCount > 1) {
     return kcal != null
       ? `Сохранено ${input.savedCount} блюд · ${kcal} ккал`
