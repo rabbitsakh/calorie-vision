@@ -5,6 +5,7 @@ import {
   hasFreshPostWorkoutNudge,
   markPostWorkoutNudge,
   POST_WORKOUT_AT_KEY,
+  shouldClearPostWorkoutNudge,
 } from "./post-workout-nudge.ts";
 
 function mockStorage() {
@@ -82,4 +83,10 @@ test("migrates legacy sessionStorage nudge into localStorage", () => {
   assert.equal(hasFreshPostWorkoutNudge(now + 1_000), true);
   assert.equal(localMap.get(POST_WORKOUT_AT_KEY), String(now));
   assert.equal(sessionMap.has(POST_WORKOUT_AT_KEY), false);
+});
+
+test("shouldClearPostWorkoutNudge when protein reaches soft target", () => {
+  assert.equal(shouldClearPostWorkoutNudge({ protein: 90, proteinTarget: 120 }), true);
+  assert.equal(shouldClearPostWorkoutNudge({ protein: 80, proteinTarget: 120 }), false);
+  assert.equal(shouldClearPostWorkoutNudge({ protein: 100, proteinTarget: 0 }), false);
 });
