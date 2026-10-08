@@ -328,6 +328,7 @@ export function DailyLog({
           source === "openfoodfacts-barcode" ||
           source === "ru-name-sku" ||
           source === "custom-food" ||
+          source === "off-staple-average" ||
           source === "ru-sku-cache" ||
           source === "ru-nutrition-table"
         );

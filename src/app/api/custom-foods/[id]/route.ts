@@ -16,6 +16,7 @@ type PatchBody = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
 };
 
 function optionalMacro(value: unknown): number | null | undefined {
@@ -53,6 +54,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       fiber?: number | null;
       sugar?: number | null;
       portionGrams?: number | null;
+      brand?: string | null;
     } = {};
 
     if (body.name !== undefined) {
@@ -87,6 +89,13 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         }
         data.portionGrams = Math.round(grams);
       }
+    }
+
+    if (body.brand !== undefined) {
+      data.brand =
+        body.brand === null || body.brand === ""
+          ? null
+          : String(body.brand).trim().slice(0, 80) || null;
     }
 
     if (Object.keys(data).length === 0) {

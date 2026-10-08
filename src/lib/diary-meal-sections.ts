@@ -65,6 +65,7 @@ const TEXT_RECOGNITION_SOURCES = new Set([
   "ru-nutrition-table",
   "ru-name-sku",
   "custom-food",
+  "off-staple-average",
 ]);
 
 /** Barcode scan / typed barcode — treat as photo-adjacent (scanner), not name text. */

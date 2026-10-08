@@ -36,6 +36,7 @@ async function loadCorrectionRows(userId: string) {
       fiber: true,
       sugar: true,
       portionGrams: true,
+      brand: true,
       useCount: true,
     },
   });
@@ -133,6 +134,7 @@ export async function rememberFoodCorrection(
       fiber: true,
       sugar: true,
       portionGrams: true,
+      brand: true,
       useCount: true,
     },
   });
@@ -154,6 +156,7 @@ export async function rememberFoodCorrection(
       fiber: merged.fiber,
       sugar: merged.sugar,
       portionGrams: merged.portionGrams,
+      brand: merged.brand,
       useCount: merged.useCount,
     },
     update: {
@@ -165,6 +168,7 @@ export async function rememberFoodCorrection(
       fiber: merged.fiber,
       sugar: merged.sugar,
       portionGrams: merged.portionGrams,
+      brand: merged.brand,
       useCount: merged.useCount,
     },
   });

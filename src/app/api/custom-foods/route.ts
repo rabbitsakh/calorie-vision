@@ -34,6 +34,7 @@ type CustomFoodInput = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
 };
 
 function normalizeFoodInput(body: CustomFoodInput) {
@@ -49,6 +50,7 @@ function normalizeFoodInput(body: CustomFoodInput) {
     fiber: body.fiber ?? null,
     sugar: body.sugar ?? null,
     portionGrams: body.portionGrams ?? null,
+    brand: typeof body.brand === "string" && body.brand.trim() ? body.brand.trim().slice(0, 80) : null,
   };
 }
 

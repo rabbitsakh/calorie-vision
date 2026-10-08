@@ -59,6 +59,7 @@ import {
   lookupRuNameSkuCache,
 } from "@/lib/ru-name-sku-cache";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
+import { averageOpenFoodFactsStaple } from "@/lib/off-staple-average";
 import {
   lookupOpenFoodFactsByBarcodeWithRepair,
   nutritionFromPer100g,
@@ -1056,10 +1057,21 @@ async function lookupGenericByName(
     }
   }
 
-  // Generic: only accept OFF hits that look unbranded / match the staple phrase.
+  // Generic: median of several OFF hits (typical values), then single unbranded hit.
+  const avg = await averageOpenFoodFactsStaple(phrase, { portionGrams: 100, minHits: 2 });
+  if (avg) {
+    const result = await packToRecognitionResult(
+      { ...avg, dishName: preferUserDishName(dishName, avg.dishName), brand: undefined },
+      "off-staple-average",
+      "meal",
+      dishName,
+      0.7,
+    );
+    return { result: withLookupMode(result, parsed), offMatch: avg };
+  }
+
   const off = await searchOpenFoodFactsBest(queries);
   if (off && offMatchesQuery(phrase, off.dishName, off.brand)) {
-    // Reject strong foreign brands when the user asked for a plain staple.
     const brand = (off.brand ?? "").trim();
     if (!brand || brand.length < 2) {
       const result = await packToRecognitionResult(
@@ -1067,7 +1079,7 @@ async function lookupGenericByName(
         "openfoodfacts-search",
         "package",
         dishName,
-        0.7,
+        0.68,
       );
       return { result: withLookupMode({ ...result, brand: undefined }, parsed), offMatch: off };
     }

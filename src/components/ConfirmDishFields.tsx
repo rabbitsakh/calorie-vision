@@ -109,7 +109,13 @@ export function DishFields({
 
   const alternativesSection = dish.original.alternatives?.length ? (
     <div>
-      <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">Возможные варианты</p>
+      <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">
+        {dish.original.lookupMode === "branded"
+          ? dish.original.brand
+            ? `Варианты ${dish.original.brand}`
+            : "Варианты бренда"
+          : "Возможные варианты"}
+      </p>
       <div className="flex flex-wrap gap-2">
         {dish.original.alternatives.map((item) => {
           const altName = decodeHtmlEntities(item.dishName);
@@ -263,9 +269,8 @@ export function DishFields({
               Уточнить по названию
             </button>
           ) : null}
-          {showReviewCta && alternativesSection ? (
-            <div className="mt-3">{alternativesSection}</div>
-          ) : null}
+          {/* Always show SKU/name alternatives in skim — branded lookup depends on this. */}
+          {alternativesSection ? <div className="mt-3">{alternativesSection}</div> : null}
         </div>
 
         <div className="field">
@@ -367,8 +372,6 @@ export function DishFields({
                 Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
               </p>
             ) : null}
-
-            {!showReviewCta ? alternativesSection : null}
 
             <div className="field">
               <label htmlFor={fieldId("protein")}>Белки, г</label>
