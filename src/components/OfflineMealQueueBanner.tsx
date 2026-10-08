@@ -31,6 +31,7 @@ import {
 } from "@/lib/workout-set-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
+import { subscribeConnectivity } from "@/lib/connectivity";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
@@ -52,9 +53,8 @@ export function OfflineMealQueueBanner({
   const [weightCount, setWeightCount] = useState(0);
   const [workoutSetCount, setWorkoutSetCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
-  const [online, setOnline] = useState(
-    () => (typeof navigator === "undefined" ? true : navigator.onLine),
-  );
+  // Optimistic online — Android WebView lies about navigator.onLine.
+  const [online, setOnline] = useState(true);
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
@@ -77,20 +77,7 @@ export function OfflineMealQueueBanner({
     };
   }, [refreshCounts]);
 
-  useEffect(() => {
-    function onOnline() {
-      setOnline(true);
-    }
-    function onOffline() {
-      setOnline(false);
-    }
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
-  }, []);
+  useEffect(() => subscribeConnectivity(setOnline), []);
 
   const flush = useCallback(async () => {
     const pending = listPendingRecognitions();
@@ -232,32 +219,32 @@ export function OfflineMealQueueBanner({
   if (recognitionCount > 0) {
     lines.push(
       recognitionCount === 1
-        ? "1 фото ждёт сеть — распознаем при появлении интернета"
-        : `${recognitionCount} фото ждут сеть — распознаем при появлении интернета`,
+        ? "1 фото ждёт отправку — распознаем при связи с сервером"
+        : `${recognitionCount} фото ждут отправку — распознаем при связи с сервером`,
     );
   }
   if (failedCount > 0) {
     lines.push(
       failedCount === 1
-        ? "1 блюдо ждёт сеть — отправим в дневник"
-        : `${failedCount} блюда ждут сеть — отправим в дневник`,
+        ? "1 блюдо ждёт отправку — отправим в дневник"
+        : `${failedCount} блюда ждут отправку — отправим в дневник`,
     );
   }
   if (waterCount > 0) {
     lines.push(
-      waterCount === 1 ? "1 запись воды ждёт сеть" : `${waterCount} записи воды ждут сеть`,
+      waterCount === 1 ? "1 запись воды ждёт отправку" : `${waterCount} записи воды ждут отправку`,
     );
   }
   if (weightCount > 0) {
     lines.push(
-      weightCount === 1 ? "1 запись веса ждёт сеть" : `${weightCount} записи веса ждут сеть`,
+      weightCount === 1 ? "1 запись веса ждёт отправку" : `${weightCount} записи веса ждут отправку`,
     );
   }
   if (workoutSetCount > 0) {
     lines.push(
       workoutSetCount === 1
-        ? "1 подход в зале ждёт сеть"
-        : `${workoutSetCount} подхода в зале ждут сеть`,
+        ? "1 подход в зале ждёт отправку"
+        : `${workoutSetCount} подхода в зале ждут отправку`,
     );
   }
 
@@ -280,18 +267,18 @@ export function OfflineMealQueueBanner({
           {!flushing ? (
             <p className="mt-1 text-[11px] text-amber-800/80">
               {online
-                ? "Нажмите «Отправить» — фото уйдут в проверку, блюда и подходы в приложение. Или дождитесь появления сети."
-                : "Черновики на телефоне. Когда появится сеть — нажмите «Отправить» или откройте рацион снова."}
+                ? "Нажмите «Отправить» — фото уйдут в проверку, блюда и подходы в приложение."
+                : "Черновики на телефоне. Нажмите «Отправить» — попробуем связаться с сервером."}
             </p>
           ) : null}
         </div>
         <button
           type="button"
           className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
-          disabled={flushing || !online}
+          disabled={flushing}
           onClick={() => void flush()}
         >
-          {flushing ? "Отправка…" : online ? "Отправить" : "Ждём сеть"}
+          {flushing ? "Отправка…" : "Отправить"}
         </button>
       </div>
     </div>

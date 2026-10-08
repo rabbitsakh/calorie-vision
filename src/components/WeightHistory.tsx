@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { formatDateWords, formatTimeShort } from "@/lib/dates";
 import { formatSignedKg } from "@/lib/diet";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
@@ -115,14 +116,6 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     const note = noteInput.trim() || null;
 
     try {
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note });
-        setWeightInput("");
-        setNoteInput("");
-        setError("Нет сети — вес сохранён в офлайн-очередь");
-        return;
-      }
-
       const response = await fetch(withBasePath("/api/weights"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -144,12 +137,11 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
       notifyDietTargetsChanged();
       onChanged?.();
     } catch (err) {
-      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
-      if (offline || (err instanceof TypeError && /fetch|network|failed/i.test(err.message))) {
+      if (isLikelyOfflineError(err)) {
         enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note });
         setWeightInput("");
         setNoteInput("");
-        setError("Нет сети — вес сохранён в офлайн-очередь");
+        setError("Не удалось отправить — вес сохранён в очередь на устройстве");
       } else {
         setError(err instanceof Error ? err.message : "Ошибка сохранения");
       }

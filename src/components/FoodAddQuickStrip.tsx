@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
@@ -28,13 +29,6 @@ type FoodAddQuickStripProps = {
   mealType?: string;
   onLogged: () => void;
 };
-
-function isLikelyOfflineError(err: unknown): boolean {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
-  if (err instanceof TypeError) return true;
-  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
-  return false;
-}
 
 /**
  * Compact «Повторить» / «Избранное» chips inside the «+» picker (Wave P1).
@@ -161,15 +155,10 @@ export function FoodAddQuickStrip({ selectedDate, mealType, onLogged }: FoodAddQ
         onLogged();
         return;
       }
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueFailedSave(selectedDate, body);
-        setNotice("Офлайн — в очереди");
-        onLogged();
-      }
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueFailedSave(selectedDate, body);
-        setNotice("Офлайн — в очереди");
+        setNotice("В очереди на устройстве");
         onLogged();
       }
     } finally {

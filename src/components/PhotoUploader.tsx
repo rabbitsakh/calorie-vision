@@ -179,11 +179,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       return;
     }
 
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      await queueOfflinePhoto(file);
-      return;
-    }
-
+    // Never gate on navigator.onLine — Android WebView often lies; try recognize first.
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
     setLoading(true);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { toDateKeyTz } from "@/lib/dates";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { trackWeightLoggedGoal } from "@/lib/metrika-funnel";
@@ -60,14 +61,6 @@ export function WeightQuickSheet() {
     const measuredAt = now.toISOString();
 
     try {
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note: null });
-        setDoneMsg("Нет сети — вес в офлайн-очереди");
-        setWeightInput("");
-        notifyDietTargetsChanged();
-        return;
-      }
-
       const response = await fetch(withBasePath("/api/weights"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,10 +76,9 @@ export function WeightQuickSheet() {
       setDoneMsg(`Сохранено: ${weightKg} кг`);
       window.setTimeout(() => setOpen(false), 700);
     } catch (err) {
-      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
-      if (offline || (err instanceof TypeError && /fetch|network|failed/i.test(err.message))) {
+      if (isLikelyOfflineError(err)) {
         enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note: null });
-        setDoneMsg("Нет сети — вес в офлайн-очереди");
+        setDoneMsg("Не удалось отправить — вес в очереди на устройстве");
         setWeightInput("");
         notifyDietTargetsChanged();
       } else {

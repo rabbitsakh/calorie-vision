@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
@@ -68,13 +69,6 @@ function readFavoritesCache(): FavoriteFood[] {
   } catch {
     return [];
   }
-}
-
-function isLikelyOfflineError(err: unknown): boolean {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
-  if (err instanceof TypeError) return true;
-  if (err instanceof Error && /failed to fetch|network|offline/i.test(err.message)) return true;
-  return false;
 }
 
 /**
@@ -183,15 +177,10 @@ export function QuickLogStrip({
         onSaved();
         return;
       }
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueueFailedSave(selectedDate, body);
-        setNotice("Офлайн: в очереди");
-        onSaved();
-      }
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueFailedSave(selectedDate, body);
-        setNotice("Офлайн: в очереди");
+        setNotice("В очереди на устройстве");
         onSaved();
       }
     } finally {

@@ -1079,7 +1079,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
-      if (isNetworkFetchError(err) || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      if (isNetworkFetchError(err)) {
         enqueueWorkoutSetDraft({
           sessionId: detail.id,
           exerciseId,
