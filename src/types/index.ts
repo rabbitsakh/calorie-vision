@@ -47,6 +47,10 @@ export type MealEntry = {
   recognitionSource?: string | null;
   photoKind?: string | null;
   barcode?: string | null;
+  /** Pack brand from text/barcode lookup. */
+  brand?: string | null;
+  /** Text-lookup mode: generic | branded. */
+  lookupMode?: string | null;
   eatenAt?: string | null;
   createdAt: string;
 };

@@ -4017,6 +4017,9 @@ select {
 
 /* —— Marketing landing (guests on /) —— */
 .landing {
+  /* Alias root self-hosted fonts — no second next/font/google fetch on build. */
+  --font-landing-body: var(--font-body);
+  --font-landing-display: var(--font-display);
   --landing-scroll-y: 0px;
   --landing-scroll-p: 0;
   --landing-ink: #071a17;

@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Chip } from "@/components/Chip";
 import { portionChipOptions } from "@/lib/confirm-portion-chips";
 import type { ConfirmDishDraft } from "@/lib/confirm-dish-merge";
-import type { FoodRecognitionResult } from "@/lib/food-types";
+import { FOOD_LOOKUP_MODE_LABELS, type FoodRecognitionResult } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { formatMacro } from "@/lib/nutrition";
 import { withBasePath } from "@/lib/paths";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
 import { formatConfidencePercent } from "@/lib/recognition-confidence-ui";
+import { describeNutritionBasis } from "@/lib/recognition-nutrition";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
 
 type DishDraft = ConfirmDishDraft;
@@ -106,6 +107,16 @@ export function DishFields({
       input.select();
     }
   }
+
+  const nutritionBasisLine = (() => {
+    const basis = describeNutritionBasis(dish.original);
+    if (basis) return basis;
+    const mode = dish.original.lookupMode;
+    if (!mode) return null;
+    const brand = dish.original.brand?.trim();
+    if (mode === "branded" && brand) return `${FOOD_LOOKUP_MODE_LABELS.branded} ${brand}`;
+    return FOOD_LOOKUP_MODE_LABELS[mode];
+  })();
 
   const alternativesSection = dish.original.alternatives?.length ? (
     <div>
@@ -228,7 +239,7 @@ export function DishFields({
               )}
             </button>
           </div>
-                    {(() => {
+          {(() => {
             const recognizedName = decodeHtmlEntities(dish.original.dishName).trim();
             const currentName = dish.dishName.trim();
             if (
@@ -253,6 +264,9 @@ export function DishFields({
             }
             return null;
           })()}
+          {nutritionBasisLine ? (
+            <p className="mt-1 text-xs text-[var(--muted)]">{nutritionBasisLine}</p>
+          ) : null}
           {wrongDishHint ? (
             <p className="mt-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
               Исправьте название и сохраните — приложение запомнит исправление и подставит его в
