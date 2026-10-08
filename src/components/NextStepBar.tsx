@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
@@ -8,6 +8,7 @@ import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import {
   clearPostWorkoutNudge,
   hasFreshPostWorkoutNudge,
+  shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
 import { dismissWeekNudge, isWeekNudgeDismissed } from "@/lib/week-nudge-dismiss";
 
@@ -29,6 +30,18 @@ type SoftStep = {
 export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
   const day = useOptionalRationDay();
   const [, bump] = useState(0);
+
+  // Protein already ok after gym — clear durable nudge without a CTA click.
+  useEffect(() => {
+    if (selectedDate !== today) return;
+    if (!hasFreshPostWorkoutNudge()) return;
+    const proteinTarget = day?.data?.meals?.target?.protein ?? 0;
+    const protein = day?.data?.meals?.totalProtein ?? 0;
+    if (shouldClearPostWorkoutNudge({ protein, proteinTarget })) {
+      clearPostWorkoutNudge();
+      bump((n) => n + 1);
+    }
+  }, [selectedDate, today, day?.data?.meals?.totalProtein, day?.data?.meals?.target?.protein]);
 
   const step = useMemo<SoftStep | null>(() => {
     if (selectedDate !== today) return null;

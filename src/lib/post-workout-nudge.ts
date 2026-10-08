@@ -73,3 +73,16 @@ export function clearPostWorkoutNudge(): void {
     // ignore
   }
 }
+
+/** Protein already at/above soft target — nudge is done without a CTA click. */
+export function shouldClearPostWorkoutNudge(input: {
+  protein: number;
+  proteinTarget: number;
+  /** Fraction of target that counts as enough (default 0.7). */
+  ratio?: number;
+}): boolean {
+  const target = input.proteinTarget;
+  if (!(target > 0)) return false;
+  const ratio = input.ratio ?? 0.7;
+  return input.protein >= target * ratio;
+}

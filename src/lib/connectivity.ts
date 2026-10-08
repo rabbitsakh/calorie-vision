@@ -8,6 +8,7 @@ import { isNetworkFetchError } from "@/lib/read-api-json";
 
 const DEFAULT_PROBE_MS = 4000;
 const DEFAULT_OFFLINE_DEBOUNCE_MS = 1500;
+const DEFAULT_PROBE_CACHE_MS = 12_000;
 
 /** True when a real fetch failure suggests the device cannot reach the API. */
 export function isLikelyOfflineError(error: unknown): boolean {
@@ -19,12 +20,29 @@ export function isLikelyOfflineError(error: unknown): boolean {
   return false;
 }
 
+type ProbeCache = { at: number; ok: boolean };
+let probeCache: ProbeCache | null = null;
+
+/** Test helper — drop short TTL so the next probe hits the network. */
+export function clearProbeOnlineCache(): void {
+  probeCache = null;
+}
+
 /**
  * Probe same-origin /api/health. Resolves true when the API answers {ok:true}.
  * Optimistic: callers should treat unknown/pending as online.
+ * Short TTL cache avoids double probes from gym + ration banner.
  */
-export async function probeOnline(timeoutMs = DEFAULT_PROBE_MS): Promise<boolean> {
+export async function probeOnline(
+  timeoutMs = DEFAULT_PROBE_MS,
+  options?: { bypassCache?: boolean; cacheMs?: number },
+): Promise<boolean> {
   if (typeof window === "undefined") return true;
+
+  const cacheMs = options?.cacheMs ?? DEFAULT_PROBE_CACHE_MS;
+  if (!options?.bypassCache && probeCache && Date.now() - probeCache.at < cacheMs) {
+    return probeCache.ok;
+  }
 
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -37,10 +55,16 @@ export async function probeOnline(timeoutMs = DEFAULT_PROBE_MS): Promise<boolean
       credentials: "omit",
       signal: controller.signal,
     });
-    if (!resp.ok) return false;
+    if (!resp.ok) {
+      probeCache = { at: Date.now(), ok: false };
+      return false;
+    }
     const data = (await resp.json()) as { ok?: boolean };
-    return data?.ok === true;
+    const ok = data?.ok === true;
+    probeCache = { at: Date.now(), ok };
+    return ok;
   } catch {
+    probeCache = { at: Date.now(), ok: false };
     return false;
   } finally {
     window.clearTimeout(timer);
@@ -103,7 +127,7 @@ export function subscribeConnectivity(
     offlineTimer = window.setTimeout(() => {
       offlineTimer = null;
       // Brief blips: re-check before showing offline chrome.
-      void probeOnline().then((ok) => {
+      void probeOnline(DEFAULT_PROBE_MS, { bypassCache: true }).then((ok) => {
         if (!disposed) emit(ok);
       });
     }, debounceMs);

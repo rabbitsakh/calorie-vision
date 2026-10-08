@@ -72,7 +72,7 @@ import {
   removeWorkoutSetDraft,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
-import { isNetworkFetchError } from "@/lib/read-api-json";
+import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import {
   computeExercisePrs,
   describePrBeat,
@@ -849,11 +849,13 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   }, [detail?.id, loadList, refreshDetail]);
 
   useEffect(() => {
-    function onOnline() {
-      void flushQueuedSets();
-    }
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
+    let wasOnline = true;
+    return subscribeConnectivity((next) => {
+      if (next && !wasOnline) {
+        void flushQueuedSets();
+      }
+      wasOnline = next;
+    });
   }, [flushQueuedSets]);
 
   const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
@@ -1079,7 +1081,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
-      if (isNetworkFetchError(err)) {
+      if (isLikelyOfflineError(err)) {
         enqueueWorkoutSetDraft({
           sessionId: detail.id,
           exerciseId,
@@ -1095,7 +1097,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
           },
         }));
         clearDraftError(exerciseId);
-        const queued = "Подход сохранён на устройстве — ждёт сеть";
+        const queued = "Подход сохранён на устройстве — отправим при связи с сервером";
         setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
         setError(queued);
         return;

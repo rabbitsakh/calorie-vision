@@ -30,8 +30,8 @@ import {
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
+import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
-import { subscribeConnectivity } from "@/lib/connectivity";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
@@ -185,7 +185,9 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeWorkoutSetDraft(item.id);
           savedAny = true;
-        } catch {
+        } catch (err) {
+          // Network flake — stop so we don't spin remaining drafts.
+          if (isLikelyOfflineError(err)) break;
           // stay queued
         }
       }
