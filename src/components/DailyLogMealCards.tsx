@@ -25,7 +25,7 @@ import {
 } from "@/components/DailyLogInlineEdit";
 import { FOOD_LOOKUP_MODE_LABELS, type FoodLookupMode } from "@/lib/food-types";
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
-import { buildMacrosRepairPatch } from "@/lib/meal-macros-lookup";
+import { buildMacrosRepairPatch, buildMacrosRepairQuery } from "@/lib/meal-macros-lookup";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
 
 function mealLookupSubtitle(entry: Pick<MealEntry, "brand" | "lookupMode">): string | null {
@@ -146,7 +146,10 @@ async function lookupAndRepairMacros(
   entry: MealEntry,
   onEdit: (id: string, patch: EditPatch) => Promise<void>,
 ): Promise<string | null> {
-  const query = decodeHtmlEntities(entry.dishName).trim();
+  const query = buildMacrosRepairQuery({
+    dishName: decodeHtmlEntities(entry.dishName),
+    brand: entry.brand,
+  });
   if (!query) return "Нет названия для поиска";
   try {
     const response = await fetch(withBasePath("/api/food/lookup"), {
@@ -164,6 +167,8 @@ async function lookupAndRepairMacros(
         fiber?: number | null;
         sugar?: number | null;
         portionGrams?: number | null;
+        brand?: string | null;
+        lookupMode?: string | null;
       };
       error?: string;
     };

@@ -166,12 +166,32 @@ export function confirmSaveButtonLabel(input: {
 export function saveAsIsHint(input?: {
   anyMissingMacros?: boolean;
   anyLowConfidence?: boolean;
+  /** Text-lookup mode from recognition (generic | branded). */
+  lookupMode?: string | null;
+  brand?: string | null;
 }): string {
+  const brand = input?.brand?.trim();
+  const basis =
+    input?.lookupMode === "branded"
+      ? brand
+        ? `По бренду ${brand}`
+        : "По бренду"
+      : input?.lookupMode === "generic"
+        ? "Типичные значения"
+        : null;
+
   if (input?.anyMissingMacros && !input.anyLowConfidence) {
-    return "БЖУ не заполнены — можно сохранить ккал как есть и уточнить белки/жиры/углеводы позже.";
+    return basis
+      ? `${basis} — ккал ок, БЖУ можно уточнить в дневнике.`
+      : "БЖУ не заполнены — можно сохранить ккал как есть и уточнить белки/жиры/углеводы позже.";
   }
   if (input?.anyMissingMacros && input.anyLowConfidence) {
-    return "Оценка приблизительная, БЖУ пустые — можно сохранить как есть и поправить в дневнике.";
+    return basis
+      ? `${basis}, оценка приблизительная — можно сохранить как есть и поправить в дневнике.`
+      : "Оценка приблизительная, БЖУ пустые — можно сохранить как есть и поправить в дневнике.";
+  }
+  if (basis) {
+    return `${basis} — можно сохранить как есть и поправить порцию позже в дневнике.`;
   }
   return "Оценка приблизительная — можно сохранить как есть и поправить порцию позже в дневнике.";
 }

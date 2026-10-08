@@ -13,6 +13,8 @@ export type MealLookupSource = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
+  lookupMode?: string | null;
 };
 
 export type FoodLookupRecognition = {
@@ -24,6 +26,8 @@ export type FoodLookupRecognition = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
+  lookupMode?: string | null;
 };
 
 export type MealMacrosPatch = {
@@ -35,7 +39,22 @@ export type MealMacrosPatch = {
   fiber?: number | null;
   sugar?: number | null;
   portionGrams?: number | null;
+  brand?: string | null;
+  lookupMode?: string | null;
 };
+
+/** Query for /api/food/lookup — append brand so branded soft-saves don't repair as generic. */
+export function buildMacrosRepairQuery(
+  meal: Pick<MealLookupSource, "dishName" | "brand">,
+): string {
+  const name = meal.dishName.trim();
+  const brand = meal.brand?.trim();
+  if (!name) return "";
+  if (!brand) return name;
+  // Avoid "Brand Brand Product" when the name already starts with the brand.
+  if (name.toLowerCase().startsWith(brand.toLowerCase())) return name;
+  return `${name} ${brand}`;
+}
 
 /** Merge lookup macros onto the meal, keeping the user's portion when possible. */
 export function buildMacrosRepairPatch(
@@ -82,6 +101,14 @@ export function buildMacrosRepairPatch(
 
   const scaled = scaleNutritionByPortion(baseline, targetPortion) ?? baseline;
   const dishName = (looked.dishName ?? meal.dishName).trim() || meal.dishName;
+  const brand =
+    looked.brand !== undefined
+      ? looked.brand?.trim() || null
+      : meal.brand?.trim() || null;
+  const lookupMode =
+    looked.lookupMode !== undefined
+      ? looked.lookupMode?.trim() || null
+      : meal.lookupMode?.trim() || null;
 
   return {
     dishName,
@@ -92,5 +119,7 @@ export function buildMacrosRepairPatch(
     fiber: scaled.fiber ?? null,
     sugar: scaled.sugar ?? null,
     portionGrams: targetPortion,
+    brand,
+    lookupMode,
   };
 }

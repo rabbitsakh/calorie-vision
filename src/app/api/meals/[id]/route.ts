@@ -24,6 +24,8 @@ export async function PATCH(
       fiber?: number | null;
       sugar?: number | null;
       portionGrams?: number | null;
+      brand?: string | null;
+      lookupMode?: string | null;
       mealType?: string | null;
       eatenAt?: string | null;
     };
@@ -60,6 +62,12 @@ export async function PATCH(
         ...(body.fiber !== undefined ? { fiber: body.fiber } : {}),
         ...(body.sugar !== undefined ? { sugar: body.sugar } : {}),
         ...(body.portionGrams !== undefined ? { portionGrams: body.portionGrams } : {}),
+        ...(body.brand !== undefined
+          ? { brand: body.brand?.trim().slice(0, 80) || null }
+          : {}),
+        ...(body.lookupMode !== undefined
+          ? { lookupMode: body.lookupMode?.trim().slice(0, 16) || null }
+          : {}),
         ...(mealType !== undefined ? { mealType } : {}),
         ...(eatenAt !== undefined ? { eatenAt } : {}),
       },
