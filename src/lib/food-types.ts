@@ -11,8 +11,18 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   label: "Считано с этикетки",
   "correction-memory": "Уточнено по прошлым исправлениям",
   "gigachat-plate": "Несколько блюд на тарелке",
-  "ru-nutrition-table": "Справочник типичных порций",
+  "ru-nutrition-table": "Типичные значения (справочник)",
   "ru-sku-cache": "Офлайн-подсказка по штрихкоду (RU)",
+  "ru-name-sku": "Офлайн-подсказка по бренду (RU)",
+  "custom-food": "Из ваших сохранённых продуктов",
+};
+
+/** Text-lookup routing: average staple vs branded pack. */
+export type FoodLookupMode = "generic" | "branded";
+
+export const FOOD_LOOKUP_MODE_LABELS: Record<FoodLookupMode, string> = {
+  generic: "Типичные значения",
+  branded: "По бренду",
 };
 
 export type FoodRecognitionResult = {
@@ -42,6 +52,8 @@ export type FoodRecognitionResult = {
   enrichmentTimedOut?: boolean;
   barcode?: string;
   brand?: string;
+  /** Set on text lookup: generic average vs branded SKU. */
+  lookupMode?: FoodLookupMode;
   imageUrl?: string;
   per100g?: {
     calories: number;

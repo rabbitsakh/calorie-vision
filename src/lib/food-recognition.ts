@@ -42,13 +42,30 @@ import {
   shouldSkipSlowPostVisionEnrichment,
   simplifyDishNameForLookup,
 } from "@/lib/recognition-nutrition";
-import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { lookupCustomFoodByName } from "@/lib/custom-food-lookup";
+import {
+  brandedLookupQueries,
+  parseFoodQuery,
+  productLookupPhrase,
+  type ParsedFoodQuery,
+} from "@/lib/food-query-parse";
+import {
+  listRuNutritionByBrand,
+  lookupRuNutritionBranded,
+  lookupRuNutritionTable,
+} from "@/lib/ru-nutrition-lookup";
+import {
+  listRuNameSkuByBrand,
+  lookupRuNameSkuCache,
+} from "@/lib/ru-name-sku-cache";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
 import {
   lookupOpenFoodFactsByBarcodeWithRepair,
   nutritionFromPer100g,
   offMatchesQuery,
   searchOpenFoodFactsBest,
+  searchOpenFoodFactsBranded,
+  searchOpenFoodFactsCandidates,
   type PackNutrition,
 } from "@/lib/open-food-facts";
 
@@ -968,14 +985,13 @@ export async function lookupFoodByBarcode(
   return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
 }
 
-/** Branded / fat-% / multi-word queries — prefer OFF before the RU staple table. */
+/** Kept for barcode web-name path: prefer OFF/RU branded over bare staples. */
 function looksLikeSpecificFoodQuery(name: string): boolean {
-  const trimmed = name.trim();
-  if (!trimmed) return false;
-  if (/[A-Za-z]{3,}/.test(trimmed)) return true;
-  if (/\d+([.,]\d+)?\s*%/.test(trimmed)) return true;
-  if (/обезжир|маложир|протеин|protein|bobbbar|боббар/i.test(trimmed)) return true;
-  return trimmed.split(/\s+/).filter(Boolean).length >= 3;
+  const parsed = parseFoodQuery(name);
+  if (parsed.mode === "branded") return true;
+  if (parsed.flags.fatFree || parsed.flags.highProtein) return true;
+  if (parsed.fatPercents.length > 0) return true;
+  return name.trim().split(/\s+/).filter(Boolean).length >= 3;
 }
 
 function preferUserDishName(userQuery: string, packName: string): string {
@@ -994,6 +1010,172 @@ function preferUserDishName(userQuery: string, packName: string): string {
   return user;
 }
 
+function packToAlt(pack: PackNutrition): NonNullable<FoodRecognitionResult["alternatives"]>[number] {
+  return {
+    dishName: pack.dishName,
+    calories: pack.calories,
+    protein: pack.protein,
+    fat: pack.fat,
+    carbs: pack.carbs,
+    fiber: pack.fiber,
+    sugar: pack.sugar,
+    portionGrams: pack.portionGrams,
+  };
+}
+
+function withLookupMode(
+  result: FoodRecognitionResult,
+  parsed: ParsedFoodQuery,
+): FoodRecognitionResult {
+  return {
+    ...result,
+    lookupMode: parsed.mode,
+    brand: result.brand || parsed.brand || undefined,
+  };
+}
+
+async function lookupGenericByName(
+  dishName: string,
+  parsed: ParsedFoodQuery,
+): Promise<{ result: FoodRecognitionResult | null; offMatch: PackNutrition | null }> {
+  const phrase = productLookupPhrase(parsed);
+  const simplified = simplifyDishNameForLookup(phrase);
+  const queries = lookupQueriesForName(phrase, simplified, 3);
+
+  for (const query of queries) {
+    const ru = lookupRuNutritionTable(query);
+    if (ru) {
+      const result = await packToRecognitionResult(
+        { ...ru, dishName: preferUserDishName(dishName, ru.dishName), brand: undefined },
+        "ru-nutrition-table",
+        "meal",
+        dishName,
+        0.74,
+      );
+      return { result: withLookupMode(result, parsed), offMatch: null };
+    }
+  }
+
+  // Generic: only accept OFF hits that look unbranded / match the staple phrase.
+  const off = await searchOpenFoodFactsBest(queries);
+  if (off && offMatchesQuery(phrase, off.dishName, off.brand)) {
+    // Reject strong foreign brands when the user asked for a plain staple.
+    const brand = (off.brand ?? "").trim();
+    if (!brand || brand.length < 2) {
+      const result = await packToRecognitionResult(
+        off,
+        "openfoodfacts-search",
+        "package",
+        dishName,
+        0.7,
+      );
+      return { result: withLookupMode({ ...result, brand: undefined }, parsed), offMatch: off };
+    }
+  }
+
+  return { result: null, offMatch: null };
+}
+
+async function lookupBrandedByName(
+  dishName: string,
+  parsed: ParsedFoodQuery,
+  userId?: string | null,
+): Promise<{ result: FoodRecognitionResult | null; offMatch: PackNutrition | null }> {
+  const brand = parsed.brand!;
+  const queries = brandedLookupQueries(parsed, 4);
+
+  // 1) User favorites (personal SKUs)
+  const custom = await lookupCustomFoodByName(dishName, userId);
+  if (custom) {
+    return { result: withLookupMode(custom, parsed), offMatch: null };
+  }
+
+  // 2) Brand-only → pick a default + expose alternatives (W4)
+  if (parsed.brandOnly) {
+    const ruCandidates = listRuNutritionByBrand(brand, 5);
+    const skuCandidates = listRuNameSkuByBrand(brand, 5);
+    const candidates = [...ruCandidates, ...skuCandidates];
+    if (candidates.length > 0) {
+      const primary = candidates[0]!;
+      const result = await packToRecognitionResult(
+        primary,
+        primary.barcode ? "ru-name-sku" : "ru-nutrition-table",
+        "package",
+        dishName,
+        0.68,
+      );
+      const alts = candidates.slice(1, 4).map(packToAlt);
+      return {
+        result: withLookupMode({ ...result, alternatives: alts.length ? alts : result.alternatives }, parsed),
+        offMatch: null,
+      };
+    }
+  }
+
+  // 3) OFF with brand filter
+  const off = await searchOpenFoodFactsBranded(queries, brand);
+  if (off) {
+    let result = await packToRecognitionResult(
+      off,
+      "openfoodfacts-search",
+      "package",
+      dishName,
+      0.84,
+    );
+    // Ambiguous: offer a couple more OFF candidates
+    const more = await searchOpenFoodFactsCandidates(queries[0] ?? dishName, 4);
+    const alts = more
+      .filter((item) => item.dishName !== off.dishName)
+      .slice(0, 3)
+      .map(packToAlt);
+    if (alts.length) {
+      result = { ...result, alternatives: alts };
+    }
+    return { result: withLookupMode(result, parsed), offMatch: off };
+  }
+
+  // 4) Curated RU brand rows
+  const ruBrand = lookupRuNutritionBranded(parsed.product, brand);
+  if (ruBrand) {
+    const result = await packToRecognitionResult(
+      { ...ruBrand, dishName: preferUserDishName(dishName, ruBrand.dishName) },
+      "ru-nutrition-table",
+      "package",
+      dishName,
+      0.8,
+    );
+    return { result: withLookupMode(result, parsed), offMatch: null };
+  }
+
+  // 5) Name SKU cache (from barcode catalog)
+  const sku = lookupRuNameSkuCache(brand, parsed.product || dishName);
+  if (sku) {
+    const result = await packToRecognitionResult(sku, "ru-name-sku", "package", dishName, 0.78);
+    return { result: withLookupMode(result, parsed), offMatch: null };
+  }
+
+  // 6) Soft fallback: RU table on product phrase only (still mark branded intent)
+  if (parsed.product) {
+    const ru = lookupRuNutritionTable(parsed.product);
+    if (ru) {
+      const result = await packToRecognitionResult(
+        {
+          ...ru,
+          dishName: preferUserDishName(dishName, `${brand} ${ru.dishName}`),
+          brand,
+        },
+        "ru-nutrition-table",
+        "package",
+        dishName,
+        0.62,
+      );
+      return { result: withLookupMode(result, parsed), offMatch: null };
+    }
+  }
+
+  return { result: null, offMatch: null };
+}
+
 export async function lookupFoodByName(
   dishName: string,
   userId?: string | null,
@@ -1002,75 +1184,57 @@ export async function lookupFoodByName(
     throw new Error("Укажите название блюда");
   }
 
+  const t0 = Date.now();
+  const parsed = parseFoodQuery(dishName);
+
   const remembered = await lookupStoredFoodCorrection(dishName, userId);
   if (remembered) {
     let result = normalizeRecognitionNutrition(
-      await withFoodImage(remembered, dishName),
+      await withFoodImage(
+        { ...remembered, lookupMode: parsed.mode, brand: remembered.brand || parsed.brand || undefined },
+        dishName,
+      ),
     );
     result = await enrichMissingFiberSugar(result, dishName);
+    logRecognitionPass({
+      pass: "accepted",
+      photoKind: "meal",
+      itemCount: 1,
+      calories: result.calories,
+      confidence: result.confidence,
+      dishName,
+      source: `text:${parsed.mode}:${result.source ?? "correction-memory"}`,
+      latencyMs: Date.now() - t0,
+    });
     return result;
   }
 
-  const simplified = simplifyDishNameForLookup(dishName);
-  const queries = lookupQueriesForName(dishName, simplified, 3);
-  const specific = looksLikeSpecificFoodQuery(dishName);
+  // Custom foods also help generic typos of saved names
+  if (parsed.mode === "generic") {
+    const custom = await lookupCustomFoodByName(dishName, userId);
+    if (custom) {
+      const result = withLookupMode(custom, parsed);
+      logRecognitionPass({
+        pass: "accepted",
+        photoKind: "meal",
+        itemCount: 1,
+        calories: result.calories,
+        confidence: result.confidence,
+        dishName,
+        source: `text:generic:custom-food`,
+        latencyMs: Date.now() - t0,
+      });
+      return result;
+    }
+  }
 
   let result: FoodRecognitionResult | null = null;
   let offMatch: PackNutrition | null = null;
 
-  const searchOff = async (): Promise<PackNutrition | null> => {
-    const off = await searchOpenFoodFactsBest(queries);
-    if (off && offMatchesQuery(dishName, off.dishName, off.brand)) {
-      return off;
-    }
-    return null;
-  };
-
-  const searchRu = async (): Promise<FoodRecognitionResult | null> => {
-    // Home staples (борщ, вареное яйцо…) — pack search often returns a wrong product
-    // that only shares one token («яйцо» → «яйцо в мешочек»).
-    for (const query of queries) {
-      const ru = lookupRuNutritionTable(query);
-      if (ru) {
-        return packToRecognitionResult(
-          { ...ru, dishName: preferUserDishName(dishName, ru.dishName) },
-          "ru-nutrition-table",
-          "meal",
-          dishName,
-          0.72,
-        );
-      }
-    }
-    return null;
-  };
-
-  // Branded / % / long names: OFF first so «молоко Bobbbar» ≠ generic «Молоко 2,5%».
-  // Bare staples: RU first (pack search often mismatches on one shared token).
-  if (specific) {
-    offMatch = await searchOff();
-    if (offMatch) {
-      result = await packToRecognitionResult(
-        offMatch,
-        "openfoodfacts-search",
-        "package",
-        dishName,
-        0.8,
-      );
-    } else {
-      result = await searchRu();
-    }
+  if (parsed.mode === "branded") {
+    ({ result, offMatch } = await lookupBrandedByName(dishName, parsed, userId));
   } else {
-    result = await searchRu();
-    offMatch = await searchOff();
-    if (!result && offMatch) {
-      result = await packToRecognitionResult(
-        offMatch,
-        "openfoodfacts-search",
-        "package",
-        dishName,
-        0.8,
-      );
-    }
+    ({ result, offMatch } = await lookupGenericByName(dishName, parsed));
   }
 
   if (!result) {
@@ -1081,17 +1245,37 @@ export async function lookupFoodByName(
     }
 
     const ai = await lookupFoodWithGigaChat(dishName);
-    result = normalizeRecognitionNutrition(
-      await withFoodImage(
-        { ...ai, source: "gigachat-lookup", photoKind: "meal" },
-        dishName,
+    result = withLookupMode(
+      normalizeRecognitionNutrition(
+        await withFoodImage(
+          {
+            ...ai,
+            source: "gigachat-lookup",
+            photoKind: parsed.mode === "branded" ? "package" : "meal",
+            brand: ai.brand || parsed.brand || undefined,
+          },
+          dishName,
+        ),
       ),
+      parsed,
     );
   }
 
   result = await enrichMissingFiberSugar(result, dishName, offMatch);
+  result = withLookupMode(normalizeRecognitionNutrition(result), parsed);
 
-  return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
+  logRecognitionPass({
+    pass: "accepted",
+    photoKind: result.photoKind,
+    itemCount: 1,
+    calories: result.calories,
+    confidence: result.confidence,
+    dishName,
+    source: `text:${parsed.mode}:${result.source ?? "unknown"}`,
+    latencyMs: Date.now() - t0,
+  });
+
+  return applyStoredFoodCorrection(result, userId);
 }
 
 /**

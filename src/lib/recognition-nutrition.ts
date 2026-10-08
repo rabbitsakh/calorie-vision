@@ -735,7 +735,14 @@ export function resolveDisplayPortionGrams(
 export function describeNutritionBasis(
   item: Pick<
     FoodRecognitionResult,
-    "dishName" | "brand" | "portionGrams" | "calories" | "photoKind" | "source" | "per100g"
+    | "dishName"
+    | "brand"
+    | "portionGrams"
+    | "calories"
+    | "photoKind"
+    | "source"
+    | "per100g"
+    | "lookupMode"
   >,
 ): string | null {
   const per100 = resolvePer100gForScaling(item);
@@ -750,6 +757,20 @@ export function describeNutritionBasis(
     looksLikePreparedFoodName(item.dishName, item.brand) &&
     (item.photoKind === "label" || item.photoKind === "package") &&
     !(item.per100g && item.per100g.calories > 0);
+
+  if (item.lookupMode === "generic") {
+    if (portion && portion > 0) {
+      return `Типичные значения: среднее КБЖУ для этого продукта · порция ${portion} ${unit}`;
+    }
+    return "Типичные значения: среднее КБЖУ для этого продукта";
+  }
+  if (item.lookupMode === "branded") {
+    const brand = item.brand?.trim();
+    if (brand) {
+      return `По бренду ${brand}: данные упакованного продукта`;
+    }
+    return "По бренду: данные упакованного продукта";
+  }
 
   if (barcodeSource && per100) {
     if (portion && portion !== PER100G_REFERENCE_GRAMS) {

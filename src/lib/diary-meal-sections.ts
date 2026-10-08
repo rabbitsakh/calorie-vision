@@ -63,6 +63,8 @@ const TEXT_RECOGNITION_SOURCES = new Set([
   "gigachat-lookup",
   "openfoodfacts-search",
   "ru-nutrition-table",
+  "ru-name-sku",
+  "custom-food",
 ]);
 
 /** Barcode scan / typed barcode — treat as photo-adjacent (scanner), not name text. */
