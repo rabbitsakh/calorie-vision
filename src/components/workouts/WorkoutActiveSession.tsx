@@ -34,6 +34,7 @@ import {
   type ProgressionAdvice,
 } from "@/lib/workouts/progression";
 import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import { buildNextSessionTargets } from "@/lib/workouts/next-session-targets";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
   WorkoutRestTimerBanner,
@@ -494,6 +495,43 @@ export function WorkoutActiveSession({
     };
   });
 
+  const nextTargets = buildNextSessionTargets(
+    detail.exercises.map((ex) => {
+      const hist = historyByName[ex.name];
+      const lastKg = pickLastWorkingWeight([
+        ...(ex.lastTime?.sets ?? []).map((s) => ({
+          weightKg: s.weightKg,
+          setType: "working" as const,
+          completed: true,
+        })),
+        ...ex.sets,
+      ]);
+      const prevCardioPace =
+        hist?.points
+          .map((p) => p.bestPaceSecPerKm)
+          .filter((p): p is number => p != null && p > 0)
+          .sort((a, b) => a - b)[0] ?? ex.cardioBestPaceSecPerKm;
+      return {
+        name: ex.name,
+        kind: ex.kind,
+        lastWorkingKg: lastKg,
+        points: (hist?.points ?? []).map((p) => ({
+          date: p.date,
+          topWeightKg: p.topWeightKg,
+          topReps: p.topReps,
+          totalLoad: p.totalLoad,
+        })),
+        load: ex.load,
+        completedCount: ex.sets.filter((s) => s.completed).length,
+        cardioDistanceKm: ex.cardioDistanceKm,
+        cardioDurationSec: ex.cardioDurationSec,
+        previousBestPaceSecPerKm: prevCardioPace ?? null,
+      };
+    }),
+    detail.progressRate,
+    3,
+  );
+
   return (
   <div
     className={`flex flex-col gap-4 ${
@@ -520,6 +558,7 @@ export function WorkoutActiveSession({
         previousLoad={progress?.previousLoad ?? 0}
         targetLoad={progress?.targetLoad ?? 0}
         exercises={summaryExercises}
+        nextTargets={nextTargets}
         onClose={() => setShowSummary(false)}
         onBackToList={onSummaryBackToList}
         onGoToRation={onSummaryGoToRation}
