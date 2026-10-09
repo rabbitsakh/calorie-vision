@@ -159,6 +159,11 @@ test("generic dairy fat variants", () => {
   assert.match(lookupRuNutritionTable("кефир 1%")!.dishName, /1%/);
   assert.match(lookupRuNutritionTable("кефир 0%")!.dishName, /1%/);
   assert.match(lookupRuNutritionTable("молоко обезжиренное")!.dishName, /обезжир/i);
+  const milk25 = lookupRuNutritionTable("молоко 2,5%", { unbrandedOnly: true });
+  assert.ok(milk25);
+  assert.match(milk25!.dishName, /Молоко 2[,.]5%/i);
+  assert.doesNotMatch(milk25!.dishName, /безлактоз|1[,.]5%/i);
+  assert.equal(milk25!.fat, 2.5);
 });
 
 test("generic dairy staples stay unbranded", () => {

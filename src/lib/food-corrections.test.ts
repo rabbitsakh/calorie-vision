@@ -236,3 +236,51 @@ test("ignores unsafe seafood/cottage/bombbar remaps", () => {
     null,
   );
 });
+
+test("milk 2,5% is not remapped to lactose-free 1,5% via bare-milk memory", () => {
+  const bareMilkRemap = {
+    originalKey: "молоко",
+    correctedName: "Молоко безлактозное 1,5%",
+    calories: 90,
+    protein: null as number | null,
+    fat: null as number | null,
+    carbs: null as number | null,
+    portionGrams: 250,
+    useCount: 5,
+  };
+  assert.equal(pickFoodCorrection("молоко 2,5%", [bareMilkRemap]), null);
+  assert.equal(pickFoodCorrection("молоко 2.5%", [bareMilkRemap]), null);
+
+  assert.equal(
+    pickFoodCorrection("молоко 2,5%", [
+      {
+        originalKey: "молоко 2,5%",
+        correctedName: "Молоко безлактозное 1,5%",
+        calories: 90,
+        protein: null,
+        fat: null,
+        carbs: null,
+        portionGrams: 250,
+        useCount: 3,
+      },
+    ]),
+    null,
+  );
+
+  // Same fat, brand polish — still allowed.
+  const branded = pickFoodCorrection("молоко 2,5%", [
+    {
+      originalKey: "молоко 2,5%",
+      correctedName: "Молоко Простоквашино 2,5%",
+      calories: 120,
+      protein: null,
+      fat: null,
+      carbs: null,
+      portionGrams: 250,
+      brand: "Простоквашино",
+      useCount: 2,
+    },
+  ]);
+  assert.ok(branded);
+  assert.match(branded!.correctedName, /2[,.]5%/);
+});

@@ -89,6 +89,55 @@ function looksLikeGenericMilkName(name: string): boolean {
   return /^молоко(\s*2[.,]5\s*%|\s*3[.,]2\s*%)?$/i.test(name.trim());
 }
 
+function looksLikeLactoseFreeMilkName(name: string): boolean {
+  return /молоко/i.test(name) && /безлактоз|без\s*лактоз|lactose\s*[- ]?free/i.test(name);
+}
+
+/** Cow-milk staple (not rice/oat/almond drinks). */
+function looksLikeCowMilkName(name: string): boolean {
+  const key = foodCorrectionKey(name);
+  if (!key) return false;
+  if (/^(рисовое|овсяное|миндальное|соевое|кокосовое)\s+молоко/.test(key)) return false;
+  return /^молоко\b/.test(key);
+}
+
+function extractFatPercentNumbers(text: string): number[] {
+  const out: number[] = [];
+  const re = /(\d+[.,]?\d*)\s*%/g;
+  for (const match of text.matchAll(re)) {
+    const n = Number(String(match[1]).replace(",", "."));
+    if (Number.isFinite(n)) out.push(n);
+  }
+  return out;
+}
+
+/** When the user named a fat %, the correction must not swap in a different %. */
+export function correctionFatPercentsAgree(query: string, correctedName: string): boolean {
+  const qFats = extractFatPercentNumbers(query);
+  if (qFats.length === 0) return true;
+  const cFats = extractFatPercentNumbers(correctedName);
+  if (cFats.length === 0) return true;
+  return qFats.some((fat) => cFats.some((other) => Math.abs(other - fat) < 0.05));
+}
+
+/**
+ * Fuzzy/substring corrections: if the typed query has fat %, the stored original
+ * key must share that fat — otherwise bare «молоко» remaps hijack «молоко 2,5%».
+ */
+export function correctionOriginalKeyFatCompatible(
+  query: string,
+  originalKey: string,
+): boolean {
+  const qFats = extractFatPercentNumbers(query);
+  if (qFats.length === 0) return true;
+  const keyFats = extractFatPercentNumbers(originalKey);
+  if (keyFats.length === 0) {
+    // Bare staple key must not cover a fat-qualified query via includes/overlap.
+    return foodCorrectionKey(query) === foodCorrectionKey(originalKey);
+  }
+  return qFats.some((fat) => keyFats.some((other) => Math.abs(other - fat) < 0.05));
+}
+
 /** Block corrections that remap grain cups/packs to soup names (bad memory or mis-save). */
 export function isUnsafeFoodCorrection(
   dishName: string,
@@ -128,6 +177,22 @@ export function isUnsafeFoodCorrection(
   ) {
     return true;
   }
+  // Explicit fat % must not be rewritten to a different % (молоко 2,5% → 1,5%).
+  if (
+    !correctionFatPercentsAgree(original, correction.correctedName) ||
+    !correctionFatPercentsAgree(dishName, correction.correctedName)
+  ) {
+    return true;
+  }
+  // Plain cow milk must not become lactose-free (or vice versa) via memory.
+  if (
+    (looksLikeCowMilkName(original) || looksLikeCowMilkName(dishName)) &&
+    !looksLikeLactoseFreeMilkName(original) &&
+    !looksLikeLactoseFreeMilkName(dishName) &&
+    looksLikeLactoseFreeMilkName(correction.correctedName)
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -150,6 +215,9 @@ export function pickFoodCorrection(
 
   for (const row of records) {
     if (row.originalKey.length < 4) {
+      continue;
+    }
+    if (!correctionOriginalKeyFatCompatible(dishName, row.originalKey)) {
       continue;
     }
     if (key.includes(row.originalKey) || row.originalKey.includes(key)) {
