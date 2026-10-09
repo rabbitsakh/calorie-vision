@@ -6,8 +6,8 @@ const appVersion = readPackageVersion();
 
 console.info(`Calorie Vision v${appVersion}`);
 
-/** Parallel webpack workers spike RSS on small VPS and get SIGKILL'd by the OOM killer. */
-const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "1", 10);
+/** Parallel webpack workers — default 2 fits ~4c/8 GB; override with NEXT_BUILD_CPUS=1 on tight VPS. */
+const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "2", 10);
 
 /** Build into a side dir (deploy zero-downtime), then atomically swap onto `.next`. */
 const distDir = process.env.NEXT_DIST_DIR?.trim() || ".next";

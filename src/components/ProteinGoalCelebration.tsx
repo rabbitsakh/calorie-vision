@@ -5,6 +5,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { SoftCelebration } from "@/components/SoftCelebration";
 import { isWeightGoal, type WeightGoal } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
+import { hasFreshPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
   isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
@@ -56,6 +57,7 @@ export function ProteinGoalCelebration({
       if (
         prevHit.current === false &&
         hit &&
+        !hasFreshPostWorkoutNudge() &&
         !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("protein-goal", today)
       ) {

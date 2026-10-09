@@ -66,38 +66,26 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
     const protein = meals?.totalProtein ?? 0;
     const proteinLow = proteinTarget > 0 && protein < proteinTarget * 0.4;
 
-    // After gym → protein/meal (even before first meal — first-week habit).
+    // After gym → protein/meal. Clear only when protein soft-met (useEffect), not on CTA.
     if (postWorkout && !logged) {
       return {
         label: "После тренировки — запишите приём с белком",
         actionLabel: "Добавить",
-        onClick: () => {
-          clearPostWorkoutNudge();
-          bump((n) => n + 1);
-          requestOpenFoodAddPicker();
-        },
+        onClick: () => requestOpenFoodAddPicker(),
       };
     }
     if (postWorkout && logged && proteinLow) {
       return {
         label: "После тренировки — белок",
         actionLabel: "Добавить",
-        onClick: () => {
-          clearPostWorkoutNudge();
-          bump((n) => n + 1);
-          requestOpenFoodAddPicker();
-        },
+        onClick: () => requestOpenFoodAddPicker(),
       };
     }
     if (postWorkout && logged && proteinTarget > 0 && protein < proteinTarget * 0.7) {
       return {
         label: "После тренировки — доберите белок",
         actionLabel: "Добавить",
-        onClick: () => {
-          clearPostWorkoutNudge();
-          bump((n) => n + 1);
-          requestOpenFoodAddPicker();
-        },
+        onClick: () => requestOpenFoodAddPicker(),
       };
     }
 

@@ -6,6 +6,7 @@ import {
   markPostWorkoutNudge,
   POST_WORKOUT_AT_KEY,
   shouldClearPostWorkoutNudge,
+  shouldDeferQuestChestForPostWorkout,
 } from "./post-workout-nudge.ts";
 
 function mockStorage() {
@@ -89,4 +90,24 @@ test("shouldClearPostWorkoutNudge when protein reaches soft target", () => {
   assert.equal(shouldClearPostWorkoutNudge({ protein: 90, proteinTarget: 120 }), true);
   assert.equal(shouldClearPostWorkoutNudge({ protein: 80, proteinTarget: 120 }), false);
   assert.equal(shouldClearPostWorkoutNudge({ protein: 100, proteinTarget: 0 }), false);
+});
+
+test("shouldDeferQuestChestForPostWorkout while protein soft-short", () => {
+  const map = mockStorage();
+  const now = 1_700_000_000_000;
+  markPostWorkoutNudge(now);
+  assert.equal(
+    shouldDeferQuestChestForPostWorkout({ protein: 40, proteinTarget: 120, now }),
+    true,
+  );
+  assert.equal(
+    shouldDeferQuestChestForPostWorkout({ protein: 90, proteinTarget: 120, now }),
+    false,
+  );
+  clearPostWorkoutNudge();
+  assert.equal(
+    shouldDeferQuestChestForPostWorkout({ protein: 40, proteinTarget: 120, now }),
+    false,
+  );
+  assert.ok(map);
 });

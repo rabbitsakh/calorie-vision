@@ -7,6 +7,10 @@ import { buildDayHeroCopy } from "@/lib/day-hero-copy";
 import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
+import {
+  hasFreshPostWorkoutNudge,
+  shouldClearPostWorkoutNudge,
+} from "@/lib/post-workout-nudge";
 import { useTimezone } from "@/lib/use-timezone";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import {
@@ -206,6 +210,21 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const holiday = isHolidayBufferOn(selectedDate);
   const isToday = selectedDate === today;
 
+  const postWorkoutProteinNeeded = useMemo(() => {
+    if (!isToday) return false;
+    const protein = data?.protein ?? 0;
+    const proteinTarget = data?.proteinTarget ?? 0;
+    if (hasFreshPostWorkoutNudge()) {
+      if (!(proteinTarget > 0)) return true;
+      return !shouldClearPostWorkoutNudge({ protein, proteinTarget });
+    }
+    // Gym today, nudge expired — keep soft hero line only while protein soft-short.
+    if (workoutSessionCount > 0 && proteinTarget > 0) {
+      return !shouldClearPostWorkoutNudge({ protein, proteinTarget });
+    }
+    return false;
+  }, [isToday, workoutSessionCount, data?.protein, data?.proteinTarget]);
+
   const copy = useMemo(
     () =>
       buildDayHeroCopy({
@@ -216,8 +235,18 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
         loggedToday,
         isToday,
         holiday,
+        postWorkoutProteinNeeded,
       }),
-    [data?.calories, effectiveTarget, caloriePct, streak, loggedToday, isToday, holiday],
+    [
+      data?.calories,
+      effectiveTarget,
+      caloriePct,
+      streak,
+      loggedToday,
+      isToday,
+      holiday,
+      postWorkoutProteinNeeded,
+    ],
   );
 
   if (waitingForData) {
