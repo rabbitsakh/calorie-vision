@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
 import { WeeklyPlan } from "@/components/WeeklyPlan";
+import { WeeklyGymRationTipCard } from "@/components/WeeklyGymRationTipCard";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { WeightGoalCard } from "@/components/WeightGoalCard";
 import { toDateKeyTz } from "@/lib/dates";
@@ -70,7 +71,7 @@ export default function PlanPage() {
                 <span className="min-w-0">
                   <span className="block font-semibold text-[var(--foreground)]">Итог недели</span>
                   <span className="mt-0.5 block text-xs text-[var(--muted)]">
-                    Средние, лучший день, шаринг
+                    Зал + рацион, шаги на неделю
                   </span>
                 </span>
                 <span
@@ -81,6 +82,7 @@ export default function PlanPage() {
                 </span>
               </summary>
               <div className="plan-week__fold-body">
+                <WeeklyGymRationTipCard endDate={date} embedded />
                 <WeeklyReportCard endDate={date} today={today} embedded />
               </div>
             </details>
