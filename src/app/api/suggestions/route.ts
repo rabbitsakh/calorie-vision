@@ -3,8 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { DIET_PROFILE_SELECT, isSex, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
+import { shiftDateKey } from "@/lib/dates";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import {
+  aggregateMealHistory,
+  mergeSuggestions,
+  shouldPinPostWorkoutProtein,
+  type HistoryMealCandidate,
+  type RankedSuggestion,
+} from "@/lib/suggestion-history";
 
 export const dynamic = "force-dynamic";
 
@@ -137,8 +145,12 @@ export async function GET(request: NextRequest) {
     if (response) return response;
 
     const date = request.nextUrl.searchParams.get("date") ?? "";
+    const postWorkoutParam =
+      request.nextUrl.searchParams.get("postWorkout") === "1" ||
+      request.nextUrl.searchParams.get("postWorkout") === "true";
+    const historyStart = date ? shiftDateKey(date, -90) : "";
 
-    const [entries, user, weight] = await Promise.all([
+    const [entries, user, weight, historyRows, customFoods, gymTodayCount] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date },
         select: { dishName: true, calories: true, protein: true, fat: true, carbs: true, mealType: true },
@@ -152,6 +164,43 @@ export async function GET(request: NextRequest) {
         where: { userId: session.user.id },
         orderBy: weightEntryOrderNewestFirst,
       }),
+      date
+        ? prisma.mealEntry.findMany({
+            where: {
+              userId: session.user.id,
+              date: { gte: historyStart, lte: date },
+            },
+            select: {
+              dishName: true,
+              calories: true,
+              protein: true,
+              fat: true,
+              carbs: true,
+              portionGrams: true,
+            },
+            orderBy: { createdAt: "desc" },
+            take: 500,
+          })
+        : Promise.resolve([]),
+      prisma.customFood.findMany({
+        where: { userId: session.user.id },
+        select: {
+          name: true,
+          calories: true,
+          protein: true,
+          fat: true,
+          carbs: true,
+          portionGrams: true,
+          useCount: true,
+        },
+        orderBy: [{ useCount: "desc" }, { updatedAt: "desc" }],
+        take: 20,
+      }),
+      date
+        ? prisma.workoutSession.count({
+            where: { userId: session.user.id, date },
+          })
+        : Promise.resolve(0),
     ]);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
@@ -201,10 +250,47 @@ export async function GET(request: NextRequest) {
 
     const tip = buildTip(pctCalories, deficits, eaten, target);
 
+    const historyFromMeals = aggregateMealHistory(
+      historyRows.map((row) => ({
+        dishName: decodeHtmlEntities(row.dishName),
+        calories: row.calories,
+        protein: row.protein,
+        fat: row.fat,
+        carbs: row.carbs,
+        portionGrams: row.portionGrams,
+      })),
+      2,
+    );
+    const favorites: HistoryMealCandidate[] = customFoods.map((food) => ({
+      name: decodeHtmlEntities(food.name),
+      calories: food.calories,
+      protein: food.protein ?? 0,
+      fat: food.fat ?? 0,
+      carbs: food.carbs ?? 0,
+      portionGrams: food.portionGrams ?? 0,
+      count: Math.max(1, food.useCount),
+      source: "favorite" as const,
+    }));
+    const historyCandidates = [...historyFromMeals, ...favorites];
+    const pinProtein = shouldPinPostWorkoutProtein({
+      postWorkoutParam,
+      gymToday: gymTodayCount > 0,
+      eatenProtein: eaten.protein,
+      proteinTarget: target.protein,
+    });
+
+    const finalize = (others: RankedSuggestion[]) =>
+      mergeSuggestions({
+        history: historyCandidates,
+        others,
+        remaining,
+        pinProteinFirst: pinProtein,
+        limit: 3,
+      });
+
     if (!process.env.GIGACHAT_CREDENTIALS) {
-      const fallback = buildFallbackSuggestions(remaining);
       return NextResponse.json({
-        suggestions: fallback,
+        suggestions: finalize(buildFallbackSuggestions(remaining)),
         eaten,
         target,
         remaining,
@@ -227,6 +313,17 @@ export async function GET(request: NextRequest) {
         }).join("\n  ")
       : "ещё ничего не ели";
 
+    const historyHint =
+      historyCandidates.length > 0
+        ? `Часто ели / избранное (предпочитай эти блюда, если закрывают дефицит):\n  ${historyCandidates
+            .slice(0, 8)
+            .map(
+              (h) =>
+                `${h.name} (${h.calories} ккал, Б${h.protein}г, ${h.count}×, ${h.source === "favorite" ? "избранное" : "дневник"})`,
+            )
+            .join("\n  ")}`
+        : "";
+
     const systemPrompt = `Ты опытный диетолог. Ты отвечаешь ТОЛЬКО валидным JSON-массивом из 3 элементов, без пояснений, без markdown.`;
 
     const userPrompt = `Пользователь: ${sexRu ? `${sexRu}, ` : ""}вес ${weight.weightKg} кг, цель — ${goalRu}.
@@ -239,8 +336,11 @@ export async function GET(request: NextRequest) {
 
 Остаток: ${remaining.calories} ккал | Б ${remaining.protein} г | Ж ${remaining.fat} г | У ${remaining.carbs} г
 ${deficits.length ? `Главный дефицит: ${deficits.join(", ")}` : ""}
+${pinProtein ? "Сегодня была тренировка — первый совет должен быть с белком." : ""}
+${historyHint}
 
 Предложи РОВНО 3 конкретных блюда/продукта:
+- По возможности из списка «часто ели / избранное»
 - Подходящих для России и времени суток (${timeOfDay})
 - Покрывающих дефицит макронутриентов
 - Реалистичных по приготовлению
@@ -289,18 +389,13 @@ category: protein | carbs | fat | balanced | light`;
       // suggestions stays []
     }
 
-    if (suggestions.length < 3) {
-      const fallback = buildFallbackSuggestions(remaining);
-      const names = new Set(suggestions.map((s) => s.name.toLowerCase()));
-      for (const idea of fallback) {
-        if (suggestions.length >= 3) break;
-        if (names.has(idea.name.toLowerCase())) continue;
-        suggestions.push(idea);
-      }
-    }
+    const merged = finalize([
+      ...suggestions,
+      ...buildFallbackSuggestions(remaining),
+    ]);
 
     return NextResponse.json({
-      suggestions: suggestions.slice(0, 3),
+      suggestions: merged.slice(0, 3),
       eaten,
       target,
       remaining,

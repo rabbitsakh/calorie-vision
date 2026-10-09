@@ -7,6 +7,7 @@ import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
+import { hasFreshPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import { useTimezone } from "@/lib/use-timezone";
 
 const PANEL_ID = "suggestions";
@@ -117,7 +118,9 @@ export function MealSuggestions({
     setLoading(true);
     setAddError(null);
     try {
-      const resp = await fetch(withBasePath(`/api/suggestions?date=${selectedDate}`));
+      const params = new URLSearchParams({ date: selectedDate });
+      if (hasFreshPostWorkoutNudge()) params.set("postWorkout", "1");
+      const resp = await fetch(withBasePath(`/api/suggestions?${params}`));
       const json = (await resp.json()) as ApiResponse;
       setData(json);
     } finally {
