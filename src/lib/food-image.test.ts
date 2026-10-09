@@ -102,6 +102,17 @@ test("wiki queries always add food/product context for brands", () => {
   assert.ok(!qs.includes("Маска"));
 });
 
+test("generic wiki queries omit packaging bias", () => {
+  const qs = buildFoodImageWikiQueries("кефир 1%");
+  assert.ok(qs.some((q) => /еда|продукт|порция|блюдо/i.test(q)));
+  assert.ok(!qs.some((q) => /упаковка/i.test(q)));
+});
+
+test("branded wiki queries may include packaging", () => {
+  const qs = buildFoodImageWikiQueries("кефир", "Простоквашино");
+  assert.ok(qs.some((q) => /упаковка/i.test(q)));
+});
+
 test("auto findFoodImage prefers OFF product url when present", async () => {
   const off = await findFoodImage({
     query: "Bombbar",

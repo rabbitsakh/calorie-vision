@@ -157,7 +157,30 @@ test("generic dairy fat variants", () => {
   assert.match(lookupRuNutritionTable("творог 9%")!.dishName, /9%/);
   assert.match(lookupRuNutritionTable("творог 2%")!.dishName, /2%/);
   assert.match(lookupRuNutritionTable("кефир 1%")!.dishName, /1%/);
+  assert.match(lookupRuNutritionTable("кефир 0%")!.dishName, /1%/);
   assert.match(lookupRuNutritionTable("молоко обезжиренное")!.dishName, /обезжир/i);
+});
+
+test("generic dairy staples stay unbranded", () => {
+  for (const q of [
+    "кефир",
+    "кефир 1%",
+    "молоко 2,5%",
+    "сметана",
+    "йогурт",
+    "ряженка",
+    "варенец",
+    "айран",
+    "тан",
+    "мацони",
+    "питьевой йогурт",
+  ]) {
+    const hit = lookupRuNutritionTable(q, { unbrandedOnly: true });
+    assert.ok(hit, `expected unbranded hit for ${q}`);
+    assert.equal(hit!.brand, undefined, q);
+  }
+  assert.match(lookupRuNutritionTable("йогурт")!.dishName, /натуральн/i);
+  assert.match(lookupRuNutritionTable("греческий йогурт")!.dishName, /Греческ/i);
 });
 
 test("lookupRuNutritionTable and dishLooksLikeAlcohol for drinks", () => {

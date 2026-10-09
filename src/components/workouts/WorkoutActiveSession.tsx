@@ -687,7 +687,8 @@ export function WorkoutActiveSession({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {detail.clockStatus === "idle" || !detail.startedAt ? (
+            {detail.exercises.length > 0 &&
+            (detail.clockStatus === "idle" || !detail.startedAt) ? (
               <button
                 type="button"
                 className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
@@ -861,6 +862,12 @@ export function WorkoutActiveSession({
     {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
     {/* List is always a vertical stack. One-exercise paging lives only in «К подходам» stage. */}
+    {detail.exercises.length === 0 && detail.clockStatus !== "finished" ? (
+      <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] bg-[var(--accent-soft)]/40 px-4 py-3 text-sm text-[var(--muted-strong)]">
+        Пока нет упражнений. Добавьте первое ниже — потом «Старт» таймера или «К
+        подходам» для записи весов.
+      </p>
+    ) : null}
     <div className="flex flex-col gap-3">
       {detail.exercises.map((ex, exIndex) => {
         const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
@@ -1406,7 +1413,7 @@ export function WorkoutActiveSession({
           className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
           onClick={() => void addExercise()}
         >
-          Добавить
+          Добавить упражнение
         </button>
         {libraryHits.length > 0 ? (
           <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-[rgba(13,115,119,0.14)] bg-white py-1 shadow-md">

@@ -849,11 +849,17 @@ async function withFoodImage(
   result: FoodRecognitionResult,
   query: string,
 ): Promise<FoodRecognitionResult> {
-  const name = result.dishName || query;
+  // Generic / unbranded: search the user phrase (or stripped dish), never a pack title.
+  const brand = result.brand?.trim() || undefined;
+  const rawName = (brand ? result.dishName || query : query || result.dishName).trim();
+  const name = brand
+    ? rawName
+    : stripKnownBrandFromDishName(rawName).dishName || rawName;
   let imageUrl = await findFoodImage({
     query: name,
-    brand: result.brand,
-    productImageUrl: result.imageUrl,
+    brand,
+    // Branded OFF product photos are fine; generic staples must not inherit a pack shot.
+    productImageUrl: brand ? result.imageUrl : undefined,
   });
 
   if (!imageUrl && looksLikeProduceName(name)) {

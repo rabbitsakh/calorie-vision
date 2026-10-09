@@ -71,3 +71,11 @@ test("parseFoodQuery: fat-free cottage with 0% stays generic", () => {
   assert.equal(q.brand, null);
   assert.ok(q.flags.fatFree);
 });
+
+test("parseFoodQuery: dairy staples stay generic without brand", () => {
+  for (const raw of ["кефир 1%", "ряженка", "йогурт", "сметана 15%", "варенец"]) {
+    const q = parseFoodQuery(raw);
+    assert.equal(q.mode, "generic", raw);
+    assert.equal(q.brand, null, raw);
+  }
+});
