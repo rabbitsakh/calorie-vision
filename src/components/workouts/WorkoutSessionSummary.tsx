@@ -1,11 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import {
   buildSessionSummary,
   formatSummaryLoadLine,
   type SummaryExercise,
 } from "@/lib/workouts/session-summary";
+import {
+  ruleNextSessionTip,
+  type NextSessionTargetsCard,
+} from "@/lib/workouts/next-session-targets";
 
 type Props = {
   date: string;
@@ -19,6 +24,8 @@ type Props = {
   previousLoad: number;
   targetLoad: number;
   exercises: SummaryExercise[];
+  /** Rule-based next-session targets (Wave L). */
+  nextTargets?: NextSessionTargetsCard | null;
   onClose: () => void;
   onBackToList: () => void;
   /** Primary CTA after finish — default list; ration is preferred post-gym flow. */
@@ -37,6 +44,7 @@ export function WorkoutSessionSummary({
   previousLoad,
   targetLoad,
   exercises,
+  nextTargets = null,
   onClose,
   onBackToList,
   onGoToRation,
@@ -54,6 +62,58 @@ export function WorkoutSessionSummary({
     targetLoad,
     exercises,
   });
+
+  const targets = nextTargets?.targets ?? [];
+  const targetsKey = targets.map((t) => `${t.adviceKind}:${t.line}`).join("|");
+  const [tip, setTip] = useState<string | null>(() =>
+    targets.length > 0 ? ruleNextSessionTip(targets) : null,
+  );
+
+  useEffect(() => {
+    if (!targetsKey) {
+      setTip(null);
+      return;
+    }
+    const snapshot = nextTargets?.targets ?? [];
+    if (snapshot.length === 0) {
+      setTip(null);
+      return;
+    }
+    setTip(ruleNextSessionTip(snapshot));
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/workouts/next-tip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targets: snapshot.map((t) => ({
+              name: t.name,
+              adviceKind: t.adviceKind,
+              line: t.line,
+              suggestedKg: t.suggestedKg,
+            })),
+          }),
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { tip?: unknown };
+        if (
+          !cancelled &&
+          typeof data.tip === "string" &&
+          data.tip.trim().length >= 12
+        ) {
+          setTip(data.tip.trim());
+        }
+      } catch {
+        // keep rule tip
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // targetsKey encodes advice + lines; nextTargets is rebuilt each parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
+  }, [targetsKey]);
 
   const metrics: StageMetric[] = [
     {
@@ -123,6 +183,30 @@ export function WorkoutSessionSummary({
           </li>
         ))}
       </ul>
+
+      {targets.length > 0 ? (
+        <section
+          className="mt-5 rounded-2xl border border-teal-400/25 bg-teal-500/10 px-3.5 py-3"
+          aria-label={nextTargets?.title ?? "Следующий раз"}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-teal-200/90">
+            {nextTargets?.title ?? "Следующий раз"}
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {targets.map((t) => (
+              <li
+                key={t.line}
+                className="text-sm font-medium leading-snug text-white/90"
+              >
+                {t.line}
+              </li>
+            ))}
+          </ul>
+          {tip ? (
+            <p className="mt-2.5 text-xs leading-relaxed text-teal-100/80">{tip}</p>
+          ) : null}
+        </section>
+      ) : null}
     </StageScreen>
   );
 }
