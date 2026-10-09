@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   WORKOUT_SET_DRAFT_QUEUE_KEY,
+  countWorkoutFinishDrafts,
+  countWorkoutOfflineDrafts,
   countWorkoutSetDrafts,
+  enqueueWorkoutFinishDraft,
   enqueueWorkoutSetDraft,
+  listWorkoutFinishDrafts,
   listWorkoutSetDrafts,
+  listWorkoutSetDraftsForSession,
+  removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
 } from "./workout-set-draft-queue.ts";
 
@@ -36,7 +42,26 @@ test("enqueueWorkoutSetDraft and removeWorkoutSetDraft", () => {
   });
   assert.equal(countWorkoutSetDrafts(), 1);
   assert.equal(listWorkoutSetDrafts()[0]?.exerciseId, "e1");
+  assert.equal(listWorkoutSetDraftsForSession("s1").length, 1);
+  assert.equal(listWorkoutSetDraftsForSession("other").length, 0);
   assert.ok(localStorage.getItem(WORKOUT_SET_DRAFT_QUEUE_KEY));
   removeWorkoutSetDraft(id);
   assert.equal(countWorkoutSetDrafts(), 0);
+});
+
+test("enqueueWorkoutFinishDraft dedupes per session", () => {
+  mockStorage();
+  const a = enqueueWorkoutFinishDraft("s1");
+  const b = enqueueWorkoutFinishDraft("s1");
+  assert.equal(a, b);
+  assert.equal(countWorkoutFinishDrafts(), 1);
+  assert.equal(listWorkoutFinishDrafts()[0]?.sessionId, "s1");
+  enqueueWorkoutSetDraft({
+    sessionId: "s1",
+    exerciseId: "e1",
+    body: { reps: 5, weightKg: 40, completed: true },
+  });
+  assert.equal(countWorkoutOfflineDrafts(), 2);
+  removeWorkoutFinishDraft(a);
+  assert.equal(countWorkoutFinishDrafts(), 0);
 });

@@ -29,6 +29,8 @@ export type InlineSet = {
   completed: boolean;
   rpe: number | null;
   load: number;
+  /** Offline draft awaiting sync. */
+  pendingLocal?: boolean;
 };
 
 type Props = {
@@ -146,17 +148,29 @@ export function WorkoutInlineSetRow({
     }
   }, [kg, reps, km, time, rpe, spec, onSave]);
 
+  const pending = Boolean(set.pendingLocal);
+
   return (
     <li
       className={`rounded-lg px-2 py-2 ${
-        set.completed ? "bg-[var(--surface-mist)]" : "bg-amber-50/80"
+        pending
+          ? "bg-amber-50/90 ring-1 ring-amber-200/80"
+          : set.completed
+            ? "bg-[var(--surface-mist)]"
+            : "bg-amber-50/80"
       }`}
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
-          title={set.completed ? "Снять ✓" : "Отметить выполненным"}
-          disabled={busy}
+          title={
+            pending
+              ? "На устройстве — отправим при связи"
+              : set.completed
+                ? "Снять ✓"
+                : "Отметить выполненным"
+          }
+          disabled={busy || pending}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold ${
             set.completed
               ? "border-teal-600 bg-teal-600 text-white"
@@ -170,7 +184,8 @@ export function WorkoutInlineSetRow({
           <button
             type="button"
             title={`${SET_TYPE_LABELS[set.setType]} — сменить тип`}
-            className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--muted-strong)]"
+            disabled={pending}
+            className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--muted-strong)] disabled:opacity-50"
             onClick={onCycleType}
           >
             {SET_TYPE_SHORT[set.setType]}
@@ -181,7 +196,9 @@ export function WorkoutInlineSetRow({
           className={`min-w-0 flex-1 text-left tabular-nums ${
             set.completed ? "text-[var(--foreground)]" : "text-[var(--muted)]"
           }`}
-          onClick={() => setEditing((v) => !v)}
+          onClick={() => {
+            if (!pending) setEditing((v) => !v);
+          }}
         >
           <span className="text-[var(--muted)]">№{index + 1} · </span>
           {summary}
@@ -189,6 +206,11 @@ export function WorkoutInlineSetRow({
           {set.rpe != null ? (
             <span className="ml-1 text-xs text-[var(--muted)]">
               {EFFORT_FIELD_LABEL} {set.rpe}
+            </span>
+          ) : null}
+          {pending ? (
+            <span className="ml-1.5 rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-950">
+              на устройстве
             </span>
           ) : null}
         </button>

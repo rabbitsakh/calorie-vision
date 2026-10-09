@@ -137,6 +137,7 @@ type SessionExercise = {
     rpe: number | null;
     paceSecPerKm: number | null;
     load: number;
+    pendingLocal?: boolean;
   }>;
   lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
