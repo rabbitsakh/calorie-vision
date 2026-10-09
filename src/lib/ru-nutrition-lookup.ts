@@ -91,6 +91,7 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     keys: [
       "творог обезжиренный",
       "обезжиренный творог",
+      "творог обезжиренный 0%",
       "творог 0%",
       "творог 0.1%",
       "творог 0,1%",
@@ -708,7 +709,7 @@ const DAIRY_STAPLE_KEYS = new Set([
 function isHardDairyExtra(token: string): boolean {
   return (
     /[a-z]{3,}/i.test(token) ||
-    /обезжир|маложир|протеин|protein|серышев|bobb|боббар|\d/.test(token)
+    /обезжир|маложир|протеин|protein|серышев|чернышев|bobb|боббар|\d/.test(token)
   );
 }
 
@@ -875,7 +876,10 @@ export function lookupRuNutritionBranded(
 }
 
 /** Offline RU staples lookup — returns null when no confident match. */
-export function lookupRuNutritionTable(dishName: string): PackNutrition | null {
+export function lookupRuNutritionTable(
+  dishName: string,
+  options?: { /** Prefer rows without pack brand (generic text lookup). */ unbrandedOnly?: boolean },
+): PackNutrition | null {
   const query = dishName.trim();
   if (query.length < 3) {
     return null;
@@ -884,6 +888,9 @@ export function lookupRuNutritionTable(dishName: string): PackNutrition | null {
   let best: { entry: RuNutritionEntry; score: number } | null = null;
 
   for (const entry of RU_NUTRITION_ENTRIES) {
+    if (options?.unbrandedOnly && entry.brand) {
+      continue;
+    }
     for (const key of entry.keys) {
       const score = matchScore(query, key);
       if (score >= 70 && (!best || score > best.score)) {

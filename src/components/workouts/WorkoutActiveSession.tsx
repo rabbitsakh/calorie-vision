@@ -702,18 +702,16 @@ export function WorkoutActiveSession({
                 className="rounded-lg bg-[var(--accent-ink)] px-3 py-2 text-sm font-semibold text-white"
                 onClick={() => {
                   if (!detail.startedAt) void patchClock("start");
-                  else {
-                    setStageOpen(true);
-                    if (focusExerciseId && !historyByName[focusExForStage?.name ?? ""]) {
-                      void toggleExerciseHistory(
-                        focusExForStage!.name,
-                        focusExForStage!.kind,
-                      );
-                    }
+                  setStageOpen(true);
+                  if (focusExerciseId && !historyByName[focusExForStage?.name ?? ""]) {
+                    void toggleExerciseHistory(
+                      focusExForStage!.name,
+                      focusExForStage!.kind,
+                    );
                   }
                 }}
               >
-                В зал
+                К подходам
               </button>
             ) : null}
             {detail.clockStatus === "finished" ? (
@@ -862,7 +860,7 @@ export function WorkoutActiveSession({
     ) : null}
     {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-    {/* List is always a vertical stack. One-exercise paging lives only in «В зал» stage. */}
+    {/* List is always a vertical stack. One-exercise paging lives only in «К подходам» stage. */}
     <div className="flex flex-col gap-3">
       {detail.exercises.map((ex, exIndex) => {
         const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;

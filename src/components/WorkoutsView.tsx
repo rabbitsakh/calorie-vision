@@ -461,7 +461,11 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       setDetail(data.session);
       setProgress(data.progress);
       setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-      const enterStage = Boolean(opts?.enterStage) && data.session.clockStatus !== "finished";
+      // Fullscreen logger only when resuming a live clock — never on create / idle open.
+      const enterStage =
+        Boolean(opts?.enterStage) &&
+        data.session.clockStatus !== "finished" &&
+        data.session.exercises.length > 0;
       setStageOpen(enterStage);
       setShowSummary(false);
       setCircuitRound(1);
@@ -512,9 +516,6 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         }
         return next;
       });
-      if (enterStage && data.session.clockStatus === "idle") {
-        // Clock starts when user taps Зал / Продолжить в зале — keep idle until start.
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
@@ -624,9 +625,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         setShowSummary(true);
         markPostWorkoutNudge();
       }
-      if (clock === "start") {
-        setStageOpen(true);
-      }
+      // «Старт» only starts the clock — fullscreen «К подходам» is a separate tap.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось обновить таймер");
     }
@@ -685,8 +684,8 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         setNewGroups([]);
         await loadList();
         await loadCalendar();
-        // From «+»: land in live stage (parity with food save → diary).
-        await openSession(data.session.id, { enterStage: true });
+        // Land on session list — add/check exercises, then «Старт» / «К подходам».
+        await openSession(data.session.id);
         return;
       }
 
@@ -705,7 +704,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       setFromPlusMenu(false);
       setNewGroups([]);
       await loadList();
-      await openSession(data.session.id, { enterStage: true });
+      await openSession(data.session.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось создать");
     } finally {
@@ -745,8 +744,8 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         }),
       );
       await loadList();
+      // Template → session sheet (exercises visible). Fullscreen only via «К подходам».
       await openSession(data.session.id);
-      setStageOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось начать шаблон");
     } finally {
@@ -1815,14 +1814,12 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
           onOpenSession={(id) => {
             void (async () => {
               const s = sessions.find((x) => x.id === id);
-              // Running/paused → live stage by default (Wave 3).
+              // Resume live logger only for an in-progress clock.
               if (s?.clockStatus === "running" || s?.clockStatus === "paused") {
                 await openSession(id, { enterStage: true });
                 return;
               }
-              await openSession(id, {
-                enterStage: s?.clockStatus === "idle" && (s.exerciseCount ?? 0) > 0,
-              });
+              await openSession(id);
               if (s?.clockStatus === "finished") setShowSummary(true);
             })();
           }}

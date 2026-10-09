@@ -46,6 +46,7 @@ import { lookupCustomFoodByName } from "@/lib/custom-food-lookup";
 import {
   brandedLookupQueries,
   parseFoodQuery,
+  stripKnownBrandFromDishName,
   productLookupPhrase,
   type ParsedFoodQuery,
 } from "@/lib/food-query-parse";
@@ -1028,6 +1029,16 @@ function withLookupMode(
   result: FoodRecognitionResult,
   parsed: ParsedFoodQuery,
 ): FoodRecognitionResult {
+  if (parsed.mode === "generic") {
+    // Never keep an invented pack brand on a generic staple query.
+    const stripped = stripKnownBrandFromDishName(result.dishName);
+    return {
+      ...result,
+      dishName: preferUserDishName(parsed.raw, stripped.dishName),
+      lookupMode: "generic",
+      brand: undefined,
+    };
+  }
   return {
     ...result,
     lookupMode: parsed.mode,
@@ -1044,7 +1055,7 @@ async function lookupGenericByName(
   const queries = lookupQueriesForName(phrase, simplified, 3);
 
   for (const query of queries) {
-    const ru = lookupRuNutritionTable(query);
+    const ru = lookupRuNutritionTable(query, { unbrandedOnly: true });
     if (ru) {
       const result = await packToRecognitionResult(
         { ...ru, dishName: preferUserDishName(dishName, ru.dishName), brand: undefined },
@@ -1257,14 +1268,30 @@ export async function lookupFoodByName(
     }
 
     const ai = await lookupFoodWithGigaChat(dishName);
+    // Generic staples: never let GigaChat invent a pack brand into image search
+    // (that pulls «Серышевский» packaging for «творог обезжиренный»).
+    const aiForImage =
+      parsed.mode === "generic"
+        ? {
+            ...ai,
+            dishName: preferUserDishName(
+              dishName,
+              stripKnownBrandFromDishName(ai.dishName).dishName,
+            ),
+            brand: undefined,
+            photoKind: "meal" as const,
+          }
+        : {
+            ...ai,
+            brand: ai.brand || parsed.brand || undefined,
+            photoKind: "package" as const,
+          };
     result = withLookupMode(
       normalizeRecognitionNutrition(
         await withFoodImage(
           {
-            ...ai,
+            ...aiForImage,
             source: "gigachat-lookup",
-            photoKind: parsed.mode === "branded" ? "package" : "meal",
-            brand: ai.brand || parsed.brand || undefined,
           },
           dishName,
         ),

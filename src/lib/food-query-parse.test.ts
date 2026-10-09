@@ -4,6 +4,7 @@ import {
   brandedLookupQueries,
   parseFoodQuery,
   productLookupPhrase,
+  stripKnownBrandFromDishName,
 } from "./food-query-parse.ts";
 
 test("parseFoodQuery: generic cottage cheese", () => {
@@ -51,4 +52,22 @@ test("productLookupPhrase and brandedLookupQueries", () => {
   const queries = brandedLookupQueries(branded);
   assert.ok(queries.some((q) => /простоквашино/i.test(q)));
   assert.ok(queries.some((q) => /творог/i.test(q)));
+});
+
+test("stripKnownBrandFromDishName removes invented pack brands", () => {
+  const a = stripKnownBrandFromDishName("Серышевский творог обезжиренный");
+  assert.equal(a.strippedBrand, "Серышевский");
+  assert.match(a.dishName, /творог/i);
+  assert.doesNotMatch(a.dishName, /серышев/i);
+
+  const b = stripKnownBrandFromDishName("творог обезжиренный 0%");
+  assert.equal(b.strippedBrand, null);
+  assert.match(b.dishName, /творог/i);
+});
+
+test("parseFoodQuery: fat-free cottage with 0% stays generic", () => {
+  const q = parseFoodQuery("творог обезжиренный 0%");
+  assert.equal(q.mode, "generic");
+  assert.equal(q.brand, null);
+  assert.ok(q.flags.fatFree);
 });

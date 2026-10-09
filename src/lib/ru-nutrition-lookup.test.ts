@@ -95,6 +95,11 @@ test("soup / cottage / branded milk are not rewritten to wrong staples", () => {
 
   assert.match(lookupRuNutritionTable("творог")!.dishName, /Творог 5%/i);
   assert.match(lookupRuNutritionTable("творог обезжиренный")!.dishName, /обезжирен/i);
+  assert.match(lookupRuNutritionTable("творог обезжиренный 0%")!.dishName, /обезжирен/i);
+  assert.equal(
+    lookupRuNutritionTable("творог обезжиренный 0%", { unbrandedOnly: true })!.brand,
+    undefined,
+  );
   assert.match(
     lookupRuNutritionTable("серышевский творог обезжиренный")!.dishName,
     /обезжирен/i,
