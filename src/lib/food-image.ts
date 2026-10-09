@@ -115,13 +115,18 @@ export function buildFoodImageWikiQueries(query: string, brand?: string): string
   // Prefer food-context forms first.
   push(`${core} продукт`);
   push(`${core} еда`);
-  push(`${core} упаковка`);
   push(`${core} блюдо`);
   push(`${core} food`);
-  push(`${core} food product`);
-
-  if (brand?.trim() && core.toLowerCase() !== brand.trim().toLowerCase()) {
-    push(`${brand.trim()} ${core} продукт`);
+  // Pack photos only when the user named a brand — otherwise DDG/wiki
+  // surfaces Простоквашино / Активиа for bare «кефир» / «йогурт».
+  if (brand?.trim()) {
+    push(`${core} упаковка`);
+    push(`${core} food product`);
+    if (core.toLowerCase() !== brand.trim().toLowerCase()) {
+      push(`${brand.trim()} ${core} продукт`);
+    }
+  } else {
+    push(`${core} порция`);
   }
 
   // Only allow unsuffixed core when it already looks like a dish description.

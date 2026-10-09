@@ -22,6 +22,8 @@ test("buildProductWebImageQueries includes Bombbar packaging forms", () => {
 test("isUnexpectedBrandPackHit drops pack brands on generic queries", () => {
   assert.equal(isUnexpectedBrandPackHit("Творог Серышевский 0%", undefined), true);
   assert.equal(isUnexpectedBrandPackHit("Творог Чернышевский обезжиренный", undefined), true);
+  assert.equal(isUnexpectedBrandPackHit("Кефир Простоквашино 1%", undefined), true);
+  assert.equal(isUnexpectedBrandPackHit("Йогурт Активиа", undefined), true);
   assert.equal(isUnexpectedBrandPackHit("Творог в миске", undefined), false);
   assert.equal(isUnexpectedBrandPackHit("Творог Серышевский", "Серышевский"), false);
 });
