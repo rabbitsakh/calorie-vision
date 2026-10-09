@@ -559,8 +559,9 @@ else
   HEAP_MB="$(pick_node_heap_mb "$KEEP_LIVE")"
   export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
 fi
-export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-1}"
-export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
+# Defaults sized for ~4 CPU / 8 GB VPS; override down on tight boxes.
+export NEXT_BUILD_CPUS="${NEXT_BUILD_CPUS:-2}"
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-4}"
 # Side output so live `next start` keeps reading the old `.next` until swap.
 export NEXT_DIST_DIR="${NEXT_DIST_DIR:-.next-build}"
 rm -rf "$NEXT_DIST_DIR" >>"$DEPLOY_LOG" 2>&1 || true

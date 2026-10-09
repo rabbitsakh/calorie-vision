@@ -1635,7 +1635,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
           void loadList();
         }}
         onSummaryGoToRation={() => {
-          markPostWorkoutNudge();
+          // Nudge already marked on finish — just open ration.
           setShowSummary(false);
           setActiveId(null);
           setDetail(null);

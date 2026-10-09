@@ -1,6 +1,8 @@
 /** Soft post-workout → ration protein nudge (localStorage, ~6h; migrates from sessionStorage). */
 
 export const POST_WORKOUT_AT_KEY = "cv-post-workout-at";
+/** Soft protein fraction that retires the post-workout nudge. */
+export const POST_WORKOUT_PROTEIN_RATIO = 0.7;
 const MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 function readStore(): Storage | null {
@@ -78,11 +80,25 @@ export function clearPostWorkoutNudge(): void {
 export function shouldClearPostWorkoutNudge(input: {
   protein: number;
   proteinTarget: number;
-  /** Fraction of target that counts as enough (default 0.7). */
+  /** Fraction of target that counts as enough (default POST_WORKOUT_PROTEIN_RATIO). */
   ratio?: number;
 }): boolean {
   const target = input.proteinTarget;
   if (!(target > 0)) return false;
-  const ratio = input.ratio ?? 0.7;
+  const ratio = input.ratio ?? POST_WORKOUT_PROTEIN_RATIO;
   return input.protein >= target * ratio;
+}
+
+/**
+ * Defer quest-chest auto-claim while the post-workout protein step is still open
+ * (avoids stacking chest + NextStepBar for the same moment).
+ */
+export function shouldDeferQuestChestForPostWorkout(input: {
+  protein: number;
+  proteinTarget: number;
+  now?: number;
+}): boolean {
+  if (!hasFreshPostWorkoutNudge(input.now)) return false;
+  if (!(input.proteinTarget > 0)) return false;
+  return !shouldClearPostWorkoutNudge(input);
 }

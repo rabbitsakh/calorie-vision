@@ -7,6 +7,7 @@ import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
+import { shouldDeferQuestChestForPostWorkout } from "@/lib/post-workout-nudge";
 import {
   isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
@@ -90,6 +91,15 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     if (isSoftCelebrationsMutedToday(todayKey)) return;
     if (isSoftCelebrationQuietBlocked()) return;
     if (isSoftCelebrationSeen("quest-chest", today)) return;
+    // Let NextStepBar own «после зала — белок» before stacking a chest.
+    if (
+      shouldDeferQuestChestForPostWorkout({
+        protein: day?.data?.meals?.totalProtein ?? 0,
+        proteinTarget: day?.data?.meals?.target?.protein ?? 0,
+      })
+    ) {
+      return;
+    }
 
     claimedRef.current = today;
     const result = await openChest({ source: "quest", date: today });
@@ -117,7 +127,14 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         : `Ещё ${nextIn} лёгких дня до сундука`,
     );
     markSoftCelebrationSeen("quest-chest", today);
-  }, [progress?.allDone, selectedDate, today, todayKey]);
+  }, [
+    progress?.allDone,
+    selectedDate,
+    today,
+    todayKey,
+    day?.data?.meals?.totalProtein,
+    day?.data?.meals?.target?.protein,
+  ]);
 
   useEffect(() => {
     void tryClaim();

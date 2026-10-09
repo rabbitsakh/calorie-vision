@@ -69,4 +69,47 @@ describe("day-hero-copy", () => {
     assert.equal(copy.pose, "cheer");
     assert.match(copy.headline, /^10%/);
   });
+
+  test("post-workout protein needed owns empty today headline", () => {
+    const copy = buildDayHeroCopy({
+      calories: 0,
+      calorieTarget: 2000,
+      caloriePct: 0,
+      streak: 0,
+      loggedToday: false,
+      isToday: true,
+      postWorkoutProteinNeeded: true,
+    });
+    assert.equal(copy.pose, "tip");
+    assert.match(copy.headline, /зала|белк/i);
+  });
+
+  test("post-workout protein needed on mid day leads with % and protein", () => {
+    const copy = buildDayHeroCopy({
+      calories: 800,
+      calorieTarget: 2000,
+      caloriePct: 40,
+      streak: 1,
+      loggedToday: true,
+      isToday: true,
+      postWorkoutProteinNeeded: true,
+    });
+    assert.equal(copy.pose, "tip");
+    assert.match(copy.headline, /^40%/);
+    assert.match(copy.headline, /белок/i);
+  });
+
+  test("near goal is not overridden by post-workout protein line", () => {
+    const copy = buildDayHeroCopy({
+      calories: 2000,
+      calorieTarget: 2000,
+      caloriePct: 100,
+      streak: 1,
+      loggedToday: true,
+      isToday: true,
+      postWorkoutProteinNeeded: true,
+    });
+    assert.equal(copy.pose, "goal");
+    assert.match(copy.headline, /цель|закрыт/i);
+  });
 });

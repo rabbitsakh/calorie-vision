@@ -14,6 +14,8 @@ export type DayHeroCopyContext = {
   loggedToday: boolean;
   isToday: boolean;
   holiday?: boolean;
+  /** Gym finished recently and protein still below soft target. */
+  postWorkoutProteinNeeded?: boolean;
 };
 
 export type DayHeroCopy = {
@@ -27,6 +29,24 @@ export function buildDayHeroCopy(ctx: DayHeroCopyContext): DayHeroCopy {
   const pct = Math.round(ctx.caloriePct);
   const hasTarget = ctx.calorieTarget != null && ctx.calorieTarget > 0;
   const streak = Math.max(0, ctx.streak);
+
+  // One clear loop: gym done → protein before generic empty/progress lines.
+  if (ctx.isToday && ctx.postWorkoutProteinNeeded) {
+    if (ctx.calories <= 0) {
+      return {
+        eyebrow,
+        headline: "После зала — запишите приём с белком.",
+        pose: "tip",
+      };
+    }
+    if (!(hasTarget && pct >= 95)) {
+      return {
+        eyebrow,
+        headline: hasTarget ? `${pct}% · после зала — белок.` : "После зала — доберите белок.",
+        pose: "tip",
+      };
+    }
+  }
 
   if (ctx.calories <= 0) {
     if (streak >= 2 && ctx.isToday) {

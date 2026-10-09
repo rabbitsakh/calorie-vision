@@ -351,7 +351,7 @@ bash deploy/deploy.sh
 - `DEPLOY_FORCE_LIVE=1` — всегда собирать рядом (риск OOM);
 - `DEPLOY_FORCE_STOP=1` — всегда останавливать pm2.
 
-Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): скрипт подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB), `experimental.cpus=1`. Принудительно: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него live-сборка обычно не проходит порог и уходит в stop-fallback.
+Если `next build` падает с OOM (`FATAL ERROR: … heap out of memory` или `SIGKILL`): скрипт подбирает `--max-old-space-size` по `MemAvailable + SwapFree` (минимум ~1536 MB). По умолчанию на ~4 ядра / 8 ГБ: `NEXT_BUILD_CPUS=2`, `UV_THREADPOOL_SIZE=4`. На тесном VPS: `DEPLOY_NODE_OPTIONS='--max-old-space-size=2048' NEXT_BUILD_CPUS=1 UV_THREADPOOL_SIZE=2 bash deploy/deploy.sh`. На VPS ≤2 ГБ RAM нужен swap (`fallocate -l 2G /swapfile …`) — без него live-сборка обычно не проходит порог и уходит в stop-fallback.
 
 **`cv-release`** (основной путь на VPS) — merge PR + тот же `deploy.sh`:
 
