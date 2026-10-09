@@ -11,7 +11,7 @@ import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-que
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
 import {
-  countWorkoutSetDrafts,
+  countWorkoutOfflineDrafts,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -37,7 +37,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
         countOfflineQueue() +
           countWaterDrafts() +
           countWeightDrafts() +
-          countWorkoutSetDrafts(),
+          countWorkoutOfflineDrafts(),
       );
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);

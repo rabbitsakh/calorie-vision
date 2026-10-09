@@ -1,6 +1,7 @@
-/** Offline queue for workout set POSTs (parity with meal/water/weight drafts). */
+/** Offline queue for workout set POSTs + finish PATCHes (parity with meal drafts). */
 
 export const WORKOUT_SET_DRAFT_QUEUE_KEY = "cv-workout-set-draft-queue-v1";
+export const WORKOUT_FINISH_DRAFT_QUEUE_KEY = "cv-workout-finish-draft-queue-v1";
 
 export type WorkoutSetDraftItem = {
   id: string;
@@ -10,6 +11,13 @@ export type WorkoutSetDraftItem = {
   exerciseId: string;
   /** POST body for `/api/workouts/exercises/:id/sets`. */
   body: Record<string, unknown>;
+};
+
+export type WorkoutFinishDraftItem = {
+  id: string;
+  kind: "failed-workout-finish";
+  createdAt: string;
+  sessionId: string;
 };
 
 type Listener = () => void;
@@ -70,8 +78,49 @@ function writeQueue(items: WorkoutSetDraftItem[]): void {
   }
 }
 
+function readFinishQueue(): WorkoutFinishDraftItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(WORKOUT_FINISH_DRAFT_QUEUE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is WorkoutFinishDraftItem =>
+        item != null &&
+        typeof item === "object" &&
+        typeof (item as WorkoutFinishDraftItem).id === "string" &&
+        (item as WorkoutFinishDraftItem).kind === "failed-workout-finish" &&
+        typeof (item as WorkoutFinishDraftItem).sessionId === "string",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeFinishQueue(items: WorkoutFinishDraftItem[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (items.length === 0) {
+      localStorage.removeItem(WORKOUT_FINISH_DRAFT_QUEUE_KEY);
+    } else {
+      localStorage.setItem(
+        WORKOUT_FINISH_DRAFT_QUEUE_KEY,
+        JSON.stringify(items.slice(-20)),
+      );
+    }
+    notify();
+  } catch {
+    // quota / private mode
+  }
+}
+
 export function listWorkoutSetDrafts(): WorkoutSetDraftItem[] {
   return readQueue();
+}
+
+export function listWorkoutSetDraftsForSession(sessionId: string): WorkoutSetDraftItem[] {
+  return readQueue().filter((item) => item.sessionId === sessionId);
 }
 
 export function countWorkoutSetDrafts(): number {
@@ -102,4 +151,39 @@ export function enqueueWorkoutSetDraft(input: {
 
 export function removeWorkoutSetDraft(id: string): void {
   writeQueue(readQueue().filter((item) => item.id !== id));
+}
+
+export function listWorkoutFinishDrafts(): WorkoutFinishDraftItem[] {
+  return readFinishQueue();
+}
+
+export function countWorkoutFinishDrafts(): number {
+  return readFinishQueue().length;
+}
+
+/** Total gym drafts (sets + finish) for tab badge / banner. */
+export function countWorkoutOfflineDrafts(): number {
+  return countWorkoutSetDrafts() + countWorkoutFinishDrafts();
+}
+
+export function enqueueWorkoutFinishDraft(sessionId: string): string {
+  const existing = readFinishQueue().find((item) => item.sessionId === sessionId);
+  if (existing) return existing.id;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `wfin-${Date.now()}`;
+  const items = readFinishQueue();
+  items.push({
+    id,
+    kind: "failed-workout-finish",
+    createdAt: new Date().toISOString(),
+    sessionId,
+  });
+  writeFinishQueue(items);
+  return id;
+}
+
+export function removeWorkoutFinishDraft(id: string): void {
+  writeFinishQueue(readFinishQueue().filter((item) => item.id !== id));
 }

@@ -66,12 +66,20 @@ import {
 } from "@/lib/workouts/progression";
 import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
-  countWorkoutSetDrafts,
+  countWorkoutOfflineDrafts,
+  enqueueWorkoutFinishDraft,
   enqueueWorkoutSetDraft,
+  listWorkoutFinishDrafts,
   listWorkoutSetDrafts,
+  listWorkoutSetDraftsForSession,
+  removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
+import {
+  draftIdFromLocalSetId,
+  mergeQueuedSetsIntoSession,
+} from "@/lib/workouts/merge-queued-sets";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import {
   computeExercisePrs,
@@ -180,6 +188,8 @@ type SessionExercise = {
     rpe: number | null;
     paceSecPerKm: number | null;
     load: number;
+    /** Optimistic offline draft — not yet on server. */
+    pendingLocal?: boolean;
   }>;
   lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
@@ -192,6 +202,8 @@ type WorkoutsViewProps = {
   todayKey: string;
   /** Diary date from ?date= — may differ from calendar today. */
   selectedDate?: string;
+  /** Bumped when OfflineMealQueueBanner flushes gym drafts. */
+  queueFlushKey?: number;
 };
 
 type InsightSuggestion = {
@@ -308,7 +320,11 @@ function nextSetType(current: SetType): SetType {
   return SET_TYPES[(idx + 1) % SET_TYPES.length]!;
 }
 
-export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
+export function WorkoutsView({
+  todayKey,
+  selectedDate,
+  queueFlushKey = 0,
+}: WorkoutsViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewDate = selectedDate && selectedDate.length >= 8 ? selectedDate : todayKey;
@@ -530,10 +546,19 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
 
   useEffect(() => {
-    const refresh = () => setQueuedSets(countWorkoutSetDrafts());
+    const refresh = () => setQueuedSets(countWorkoutOfflineDrafts());
     refresh();
     return subscribeWorkoutSetDraftQueue(refresh);
   }, []);
+
+  /** Server session + offline offline set drafts (Wave N). */
+  const displayDetail = useMemo(() => {
+    if (!detail) return null;
+    return mergeQueuedSetsIntoSession(
+      detail,
+      listWorkoutSetDraftsForSession(detail.id),
+    );
+  }, [detail, queuedSets]);
 
   useEffect(() => {
     if (!creating) return;
@@ -627,6 +652,20 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       }
       // «Старт» only starts the clock — fullscreen «К подходам» is a separate tap.
     } catch (err) {
+      if (clock === "finish" && isLikelyOfflineError(err)) {
+        enqueueWorkoutFinishDraft(detail.id);
+        setDetail({
+          ...detail,
+          clockStatus: "finished",
+          endedAt: new Date().toISOString(),
+          pausedAt: null,
+        });
+        setStageOpen(false);
+        setShowSummary(true);
+        markPostWorkoutNudge();
+        setError("Итог сохранён на устройстве — отправим при связи");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Не удалось обновить таймер");
     }
   };
@@ -818,7 +857,8 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
 
   const flushQueuedSets = useCallback(async () => {
     const items = listWorkoutSetDrafts();
-    if (items.length === 0) return;
+    const finishes = listWorkoutFinishDrafts();
+    if (items.length === 0 && finishes.length === 0) return;
     let saved = 0;
     let lastSession: SessionDetail | null = null;
     for (const item of items) {
@@ -833,6 +873,24 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
         removeWorkoutSetDraft(item.id);
         saved += 1;
         lastSession = data.session;
+      } catch {
+        break;
+      }
+    }
+    // Finish after sets so server tonnage includes offline approaches.
+    for (const item of finishes) {
+      try {
+        const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+          await fetch(withBasePath(`/api/workouts/${item.sessionId}`), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clock: "finish" }),
+          }),
+        );
+        removeWorkoutFinishDraft(item.id);
+        saved += 1;
+        lastSession = data.session;
+        setProgress(data.progress);
       } catch {
         break;
       }
@@ -856,6 +914,28 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
       wasOnline = next;
     });
   }, [flushQueuedSets]);
+
+  // Banner may have already POSTed drafts — reload active session from server.
+  useEffect(() => {
+    if (queueFlushKey <= 0) return;
+    void (async () => {
+      if (!activeId) {
+        void loadList();
+        return;
+      }
+      try {
+        const data = await readJson<{ session: SessionDetail; progress?: Progress }>(
+          await fetch(withBasePath(`/api/workouts/${activeId}`)),
+        );
+        await refreshDetail(data.session);
+        if (data.progress) setProgress(data.progress);
+      } catch {
+        void loadList();
+      }
+    })();
+    // intentionally only when banner bump changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- queueFlushKey drives reload
+  }, [queueFlushKey]);
 
   const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
     if (!detail) return;
@@ -1096,6 +1176,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
           },
         }));
         clearDraftError(exerciseId);
+        startRestForExercise(ex, draft.setType);
         const queued = "Подход сохранён на устройстве — отправим при связи с сервером";
         setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
         setError(queued);
@@ -1164,6 +1245,7 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
   };
 
   const toggleSetCompleted = async (set: SessionExercise["sets"][number]) => {
+    if (set.pendingLocal || draftIdFromLocalSetId(set.id)) return;
     const next = !set.completed;
     await patchSet(set.id, { completed: next }, false);
     if (next && detail) {
@@ -1515,6 +1597,12 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
 
   const deleteSet = async (setId: string) => {
     if (!detail) return;
+    const draftId = draftIdFromLocalSetId(setId);
+    if (draftId) {
+      removeWorkoutSetDraft(draftId);
+      setError(null);
+      return;
+    }
     try {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/sets/${setId}`), { method: "DELETE" }),
@@ -1577,10 +1665,10 @@ export function WorkoutsView({ todayKey, selectedDate }: WorkoutsViewProps) {
     return `Прошлая (${p.previousDate ? formatDateShort(p.previousDate) : "—"}): ${formatLoad(p.previousLoad)} · цель +${pct}% → ${formatLoad(p.targetLoad)}`;
   }, [progress, preview, detail]);
 
-  if (activeId && detail) {
+  if (activeId && detail && displayDetail) {
     return (
       <WorkoutActiveSession
-        detail={detail}
+        detail={displayDetail}
         progress={progress}
         todayKey={todayKey}
         progressLine={progressLine}
