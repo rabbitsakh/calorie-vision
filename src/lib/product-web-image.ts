@@ -1,7 +1,10 @@
 /**
  * Product image fallback via DuckDuckGo Images when Open Food Facts has no photo.
  * Always bias queries toward packaging / product; filter people & costumes.
+ * Generic staples (no brand) bias toward food-on-plate — not branded packs.
  */
+
+import { KNOWN_RU_BRANDS, normalizeFoodQueryKey } from "@/lib/food-query-parse";
 
 const USER_AGENT =
   "CalorieVision/1.0 (https://calorievision.ru; product image search)";
@@ -31,12 +34,18 @@ export function buildProductWebImageQueries(dishName: string, brand?: string): s
     out.push(next);
   };
 
-  push(`${name} упаковка`);
-  push(`${name} продукт`);
-  push(`${name} купить`);
-  push(`${name} packaging`);
   if (brand?.trim()) {
+    // Named pack — packaging photos are correct.
     push(`${brand.trim()} ${name} упаковка`);
+    push(`${name} упаковка`);
+    push(`${name} продукт`);
+    push(`${name} packaging`);
+  } else {
+    // Generic staple — avoid «упаковка» (pulls Серышевский / Простоквашино packs).
+    push(`${name} в миске`);
+    push(`${name} порция`);
+    push(`${name} еда`);
+    push(`${name} food`);
   }
 
   return out.slice(0, 4);
@@ -45,6 +54,23 @@ export function buildProductWebImageQueries(dishName: string, brand?: string): s
 export function isRejectedWebImageHit(title: string, url: string): boolean {
   const hay = `${title} ${url}`;
   return REJECT_HIT.test(hay);
+}
+
+/**
+ * When the user did not name a brand, drop hits whose title is clearly a pack brand
+ * (e.g. «Творог Серышевский 0%» for query «творог обезжиренный»).
+ */
+export function isUnexpectedBrandPackHit(title: string, queryBrand?: string): boolean {
+  if (queryBrand?.trim()) return false;
+  const t = normalizeFoodQueryKey(title);
+  if (!t) return false;
+  const brandKeys = Object.keys(KNOWN_RU_BRANDS).sort((a, b) => b.length - a.length);
+  for (const key of brandKeys) {
+    if (key.length < 4) continue;
+    // Substring match: titles often glue brand to product («творогсерышевский»).
+    if (t.includes(key)) return true;
+  }
+  return false;
 }
 
 /** HTTPS product CDN URLs we may download (not hotlink into the diary). */
@@ -82,10 +108,8 @@ async function fetchText(url: string, init?: RequestInit): Promise<string | null
       signal: controller.signal,
       headers: {
         "User-Agent": USER_AGENT,
-        Accept: "text/html,application/json,*/*",
         ...(init?.headers ?? {}),
       },
-      redirect: "follow",
     });
     if (!response.ok) return null;
     return await response.text();
@@ -96,45 +120,29 @@ async function fetchText(url: string, init?: RequestInit): Promise<string | null
   }
 }
 
-async function resolveVqd(query: string): Promise<string | null> {
-  const html = await fetchText(
-    `https://duckduckgo.com/?${new URLSearchParams({ q: query, ia: "images", iax: "images" }).toString()}`,
-  );
-  if (!html) return null;
-  const match = VQD_RE.exec(html);
-  return match?.[1] ?? null;
-}
-
-type DdgImageResult = {
-  image?: string;
-  thumbnail?: string;
-  title?: string;
-  url?: string;
-};
-
 function parseDdgImageJson(body: string): ProductWebImageHit[] {
   try {
-    const data = JSON.parse(body) as { results?: DdgImageResult[] };
-    const hits: ProductWebImageHit[] = [];
+    const data = JSON.parse(body) as {
+      results?: Array<{ image?: string; title?: string; thumbnail?: string }>;
+    };
+    const out: ProductWebImageHit[] = [];
     for (const row of data.results ?? []) {
-      const imageUrl = (row.image || row.thumbnail || "").trim();
-      const title = (row.title || "").trim();
-      if (!imageUrl || !isDownloadableProductImageUrl(imageUrl)) continue;
-      if (isRejectedWebImageHit(title, imageUrl)) continue;
-      hits.push({
-        url: imageUrl,
-        title: title || "product",
-        thumbnail: row.thumbnail,
-      });
+      const url = row.image?.trim();
+      if (!url || !isDownloadableProductImageUrl(url)) continue;
+      const title = row.title?.trim() ?? "";
+      if (isRejectedWebImageHit(title, url)) continue;
+      out.push({ url, title, thumbnail: row.thumbnail });
     }
-    return hits;
+    return out;
   } catch {
     return [];
   }
 }
 
 async function searchDdgImagesOnce(query: string, limit: number): Promise<ProductWebImageHit[]> {
-  const vqd = await resolveVqd(query);
+  const home = await fetchText(`https://duckduckgo.com/?q=${encodeURIComponent(query)}&iax=images&ia=images`);
+  if (!home) return [];
+  const vqd = home.match(VQD_RE)?.[1];
   if (!vqd) return [];
 
   const url = `https://duckduckgo.com/i.js?${new URLSearchParams({
@@ -157,7 +165,7 @@ async function searchDdgImagesOnce(query: string, limit: number): Promise<Produc
 }
 
 /**
- * Search the web for product packaging photos.
+ * Search the web for product / food photos.
  * Returns remote HTTPS image URLs (caller must cache via allowWebProduct).
  */
 export async function searchProductWebImages(
@@ -175,6 +183,7 @@ export async function searchProductWebImages(
     const hits = await searchDdgImagesOnce(query, limit);
     for (const hit of hits) {
       if (seen.has(hit.url)) continue;
+      if (isUnexpectedBrandPackHit(hit.title, options?.brand)) continue;
       seen.add(hit.url);
       out.push(hit);
       if (out.length >= limit) return out;

@@ -4,19 +4,26 @@ import {
   buildProductWebImageQueries,
   isDownloadableProductImageUrl,
   isRejectedWebImageHit,
+  isUnexpectedBrandPackHit,
 } from "./product-web-image.ts";
 
-test("buildProductWebImageQueries always adds packaging/product context", () => {
-  const qs = buildProductWebImageQueries("конфеты Маска");
-  assert.ok(qs.some((q) => /упаковка/i.test(q)));
-  assert.ok(qs.some((q) => /конфеты/i.test(q)));
-  assert.ok(!qs.some((q) => /^маска$/i.test(q.trim())));
+test("buildProductWebImageQueries: generic staple avoids packaging bias", () => {
+  const qs = buildProductWebImageQueries("творог обезжиренный 0%");
+  assert.ok(qs.some((q) => /миске|порция|еда|food/i.test(q)));
+  assert.ok(!qs.some((q) => /упаковка/i.test(q)));
 });
 
 test("buildProductWebImageQueries includes Bombbar packaging forms", () => {
   const qs = buildProductWebImageQueries("Bombbar Батончик глазированный", "Bombbar");
   assert.ok(qs.length >= 2);
   assert.ok(qs.every((q) => /bombbar|батончик|упаковка|продукт|купить|packaging/i.test(q)));
+});
+
+test("isUnexpectedBrandPackHit drops pack brands on generic queries", () => {
+  assert.equal(isUnexpectedBrandPackHit("Творог Серышевский 0%", undefined), true);
+  assert.equal(isUnexpectedBrandPackHit("Творог Чернышевский обезжиренный", undefined), true);
+  assert.equal(isUnexpectedBrandPackHit("Творог в миске", undefined), false);
+  assert.equal(isUnexpectedBrandPackHit("Творог Серышевский", "Серышевский"), false);
 });
 
 test("rejects portrait/costume web hits", () => {

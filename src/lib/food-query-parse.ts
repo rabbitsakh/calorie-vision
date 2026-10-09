@@ -57,6 +57,9 @@ export const KNOWN_RU_BRANDS: Record<string, string> = {
   greenfield: "Greenfield",
   серышевский: "Серышевский",
   серышевская: "Серышевский",
+  // Common mishear / OCR of Серышевский (pack titles & user reports).
+  чернышевский: "Серышевский",
+  чернышевская: "Серышевский",
   президент: "President",
   president: "President",
   valio: "Valio",
@@ -239,6 +242,32 @@ export function brandedLookupQueries(parsed: ParsedFoodQuery, limit = 4): string
     push(parsed.product);
   }
   return out.slice(0, limit);
+}
+
+/**
+ * Remove a known brand token from a dish name (generic staples must not keep
+ * «Серышевский творог» after AI / OFF invent a pack brand).
+ */
+export function stripKnownBrandFromDishName(dishName: string): {
+  dishName: string;
+  strippedBrand: string | null;
+} {
+  const normalized = normalizeFoodQueryKey(dishName);
+  const detected = detectBrand(normalized);
+  if (!detected) {
+    return { dishName: dishName.trim(), strippedBrand: null };
+  }
+  const product = stripBrandFromProduct(normalized, detected.brandKey)
+    .split(" ")
+    .filter((t) => t && !FILLER_TOKENS.has(t))
+    .join(" ")
+    .trim();
+  if (!product) {
+    return { dishName: dishName.trim(), strippedBrand: detected.brand };
+  }
+  // Preserve original casing loosely: capitalize first letter of product phrase.
+  const pretty = product.charAt(0).toUpperCase() + product.slice(1);
+  return { dishName: pretty, strippedBrand: detected.brand };
 }
 
 export function parseFoodQuery(rawInput: string): ParsedFoodQuery {
