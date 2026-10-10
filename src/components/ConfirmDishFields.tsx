@@ -9,6 +9,7 @@ import { decodeHtmlEntities } from "@/lib/html-text";
 import { formatMacro } from "@/lib/nutrition";
 import { withBasePath } from "@/lib/paths";
 import { looksLikeDrinkName } from "@/lib/portion-unit";
+import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
 import { formatConfidencePercent } from "@/lib/recognition-confidence-ui";
 import { describeNutritionBasis } from "@/lib/recognition-nutrition";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
@@ -108,6 +109,7 @@ export function DishFields({
     }
   }
 
+  const whyThese = explainWhyTheseCalories(dish.original);
   const nutritionBasisLine = (() => {
     const basis = describeNutritionBasis(dish.original);
     if (basis) return basis;
@@ -117,6 +119,11 @@ export function DishFields({
     if (mode === "branded" && brand) return `${FOOD_LOOKUP_MODE_LABELS.branded} ${brand}`;
     return FOOD_LOOKUP_MODE_LABELS[mode];
   })();
+  /** «Почему так» already includes basis — avoid a duplicate muted line. */
+  const showBasisOutside =
+    Boolean(nutritionBasisLine) &&
+    nutritionBasisLine !== whyThese.summary &&
+    !whyThese.summary.includes(nutritionBasisLine!);
 
   const alternativesSection = dish.original.alternatives?.length ? (
     <div>
@@ -264,9 +271,18 @@ export function DishFields({
             }
             return null;
           })()}
-          {nutritionBasisLine ? (
+          {showBasisOutside ? (
             <p className="mt-1 text-xs text-[var(--muted)]">{nutritionBasisLine}</p>
           ) : null}
+          <details className="confirm-why-so mt-1.5 group">
+            <summary className="cursor-pointer list-none text-xs font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden">
+              Почему так
+            </summary>
+            <p className="mt-1 text-xs leading-snug text-[var(--muted)]">{whyThese.summary}</p>
+            {whyThese.detail ? (
+              <p className="mt-0.5 text-xs leading-snug text-[var(--muted)]">{whyThese.detail}</p>
+            ) : null}
+          </details>
           {wrongDishHint ? (
             <p className="mt-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
               Исправьте название и сохраните — приложение запомнит исправление и подставит его в
