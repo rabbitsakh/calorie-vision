@@ -74,6 +74,7 @@ import {
   listWorkoutSetDraftsForSession,
   removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
+  removeWorkoutSetDraftsForExercise,
   subscribeWorkoutSetDraftQueue,
   updateWorkoutSetDraft,
 } from "@/lib/workout-set-draft-queue";
@@ -92,7 +93,16 @@ import {
 } from "@/lib/workout-local-session";
 import { flushLocalWorkoutSessions } from "@/lib/workout-local-session-flush";
 import {
+  countWorkoutExerciseDrafts,
+  enqueueWorkoutExerciseDraft,
+  listWorkoutExerciseDraftsForSession,
+  removeWorkoutExerciseDraft,
+  subscribeWorkoutExerciseDraftQueue,
+} from "@/lib/workout-exercise-draft-queue";
+import { flushWorkoutExerciseDrafts } from "@/lib/workout-exercise-draft-flush";
+import {
   draftIdFromLocalSetId,
+  mergeQueuedExercisesIntoSession,
   mergeQueuedSetsIntoSession,
 } from "@/lib/workouts/merge-queued-sets";
 import {
@@ -599,14 +609,20 @@ export function WorkoutsView({
 
   useEffect(() => {
     const refresh = () => {
-      setQueuedSets(countWorkoutOfflineDrafts() + countLocalWorkoutSessions());
+      setQueuedSets(
+        countWorkoutOfflineDrafts() +
+          countLocalWorkoutSessions() +
+          countWorkoutExerciseDrafts(),
+      );
       setQueueRev((n) => n + 1);
     };
     refresh();
     const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
+    const unsubEx = subscribeWorkoutExerciseDraftQueue(refresh);
     const unsubLocal = subscribeLocalWorkoutSessions(refresh);
     return () => {
       unsubSets();
+      unsubEx();
       unsubLocal();
     };
   }, []);
@@ -614,8 +630,12 @@ export function WorkoutsView({
   /** Server session + offline offline set drafts (Wave N). */
   const displayDetail = useMemo(() => {
     if (!detail) return null;
-    return mergeQueuedSetsIntoSession(
+    const withExercises = mergeQueuedExercisesIntoSession(
       detail,
+      listWorkoutExerciseDraftsForSession(detail.id),
+    );
+    return mergeQueuedSetsIntoSession(
+      withExercises,
       listWorkoutSetDraftsForSession(detail.id),
     );
   }, [detail, queueRev]);
@@ -999,6 +1019,12 @@ export function WorkoutsView({
         ? (localFlush.lastSession as SessionDetail)
         : null;
 
+    const exFlush = await flushWorkoutExerciseDrafts();
+    saved += exFlush.flushed;
+    if (exFlush.lastSession && typeof exFlush.lastSession === "object") {
+      lastSession = exFlush.lastSession as SessionDetail;
+    }
+
     const items = listWorkoutSetDrafts();
     const finishes = listWorkoutFinishDrafts();
     if (items.length === 0 && finishes.length === 0 && saved === 0) return;
@@ -1116,9 +1142,20 @@ export function WorkoutsView({
       setLibraryHits([]);
       await refreshDetail(data.session);
     } catch (err) {
-      if (isLikelyOfflineError(err) && isLocalSessionId(detail.id) === false) {
-        // Online session but offline network — cannot add server exercise without id.
-        setError("Нет сети — добавьте упражнение, когда появится связь");
+      if (isLikelyOfflineError(err) && !isLocalSessionId(detail.id)) {
+        const draftId = enqueueWorkoutExerciseDraft({
+          sessionId: detail.id,
+          name,
+          exerciseKind: kind,
+        });
+        if (!draftId) {
+          setError("Не удалось добавить упражнение на устройстве");
+          return;
+        }
+        setExerciseName("");
+        setLibraryHits([]);
+        setFocusExerciseId(draftId);
+        setError("Упражнение на устройстве — отправим при связи");
         return;
       }
       setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
@@ -1802,6 +1839,17 @@ export function WorkoutsView({
 
   const deleteExercise = async (exerciseId: string) => {
     if (!detail) return;
+    if (exerciseId.startsWith("local-ex-")) {
+      removeWorkoutExerciseDraft(exerciseId);
+      removeWorkoutSetDraftsForExercise(exerciseId);
+      setFocusExerciseId((prev) => {
+        if (prev !== exerciseId) return prev;
+        const remaining = (displayDetail ?? detail).exercises.filter((e) => e.id !== exerciseId);
+        return remaining[0]?.id ?? null;
+      });
+      setError(null);
+      return;
+    }
     try {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}`), { method: "DELETE" }),

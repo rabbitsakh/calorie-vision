@@ -3,7 +3,9 @@
  */
 
 import { setLoad, sessionTotalLoad } from "@/lib/workouts/load";
+import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
+import type { WorkoutExerciseDraftItem } from "@/lib/workout-exercise-draft-queue";
 import type { WorkoutSetDraftItem } from "@/lib/workout-set-draft-queue";
 
 export type PendingSetRow = {
@@ -80,11 +82,19 @@ type MergeSet = {
 
 type MergeExercise = {
   id: string;
+  name?: string;
   kind: string;
+  note?: string | null;
+  muscleGroup?: string | null;
+  muscleLabel?: string | null;
   load: number;
   cardioDistanceKm: number;
   cardioDurationSec: number;
+  cardioBestPaceSecPerKm?: number | null;
+  sortOrder?: number;
+  lastTime?: unknown;
   sets: MergeSet[];
+  pendingLocal?: boolean;
 };
 
 type MergeSession = {
@@ -95,6 +105,41 @@ type MergeSession = {
   cardioDurationSec: number;
   exercises: MergeExercise[];
 };
+
+/** Append offline exercise drafts (empty sets) onto a server session. */
+export function mergeQueuedExercisesIntoSession<T extends MergeSession>(
+  session: T,
+  drafts: readonly WorkoutExerciseDraftItem[],
+): T {
+  const extras = drafts.filter((d) => d.sessionId === session.id);
+  if (extras.length === 0) return session;
+  const known = new Set(session.exercises.map((e) => e.id));
+  const pending = extras
+    .filter((d) => !known.has(d.id))
+    .map((d, i) => ({
+      id: d.id,
+      name: d.name,
+      kind: parseExerciseKind(d.exerciseKind, "strength"),
+      note: null,
+      muscleGroup: null,
+      muscleLabel: null,
+      load: 0,
+      cardioDistanceKm: 0,
+      cardioDurationSec: 0,
+      cardioBestPaceSecPerKm: null,
+      sortOrder: session.exercises.length + i,
+      sets: [] as MergeSet[],
+      lastTime: null,
+      pendingLocal: true as const,
+    }));
+  if (pending.length === 0) return session;
+  const exercises = [...session.exercises, ...pending];
+  return {
+    ...session,
+    exercises,
+    setCount: exercises.reduce((n, e) => n + e.sets.length, 0),
+  };
+}
 
 /**
  * Append queued set drafts for this session onto matching exercises.

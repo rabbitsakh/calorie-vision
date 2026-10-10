@@ -29,6 +29,11 @@ import {
 } from "@/lib/workout-local-session";
 import { flushLocalWorkoutSessions } from "@/lib/workout-local-session-flush";
 import {
+  countWorkoutExerciseDrafts,
+  subscribeWorkoutExerciseDraftQueue,
+} from "@/lib/workout-exercise-draft-queue";
+import { flushWorkoutExerciseDrafts } from "@/lib/workout-exercise-draft-flush";
+import {
   countWorkoutFinishDrafts,
   countWorkoutSetDrafts,
   listWorkoutFinishDrafts,
@@ -62,6 +67,7 @@ export function OfflineMealQueueBanner({
   const [workoutSetCount, setWorkoutSetCount] = useState(0);
   const [workoutFinishCount, setWorkoutFinishCount] = useState(0);
   const [workoutLocalCount, setWorkoutLocalCount] = useState(0);
+  const [workoutExerciseCount, setWorkoutExerciseCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
   // Optimistic online — Android WebView lies about navigator.onLine.
   const [online, setOnline] = useState(true);
@@ -74,6 +80,7 @@ export function OfflineMealQueueBanner({
     setWorkoutSetCount(countWorkoutSetDrafts());
     setWorkoutFinishCount(countWorkoutFinishDrafts());
     setWorkoutLocalCount(countLocalWorkoutSessions());
+    setWorkoutExerciseCount(countWorkoutExerciseDrafts());
   }, []);
 
   useEffect(() => {
@@ -84,6 +91,7 @@ export function OfflineMealQueueBanner({
       subscribeWeightDraftQueue(refreshCounts),
       subscribeWorkoutSetDraftQueue(refreshCounts),
       subscribeLocalWorkoutSessions(refreshCounts),
+      subscribeWorkoutExerciseDraftQueue(refreshCounts),
     ];
     return () => {
       for (const unsub of unsubs) unsub();
@@ -98,6 +106,7 @@ export function OfflineMealQueueBanner({
     const workoutSets = listWorkoutSetDrafts();
     const workoutFinishes = listWorkoutFinishDrafts();
     const workoutLocals = countLocalWorkoutSessions();
+    const workoutExercises = countWorkoutExerciseDrafts();
     if (
       pending.length === 0 &&
       failed.length === 0 &&
@@ -105,7 +114,8 @@ export function OfflineMealQueueBanner({
       weights.length === 0 &&
       workoutSets.length === 0 &&
       workoutFinishes.length === 0 &&
-      workoutLocals === 0
+      workoutLocals === 0 &&
+      workoutExercises === 0
     ) {
       return;
     }
@@ -117,6 +127,8 @@ export function OfflineMealQueueBanner({
     try {
       const localFlush = await flushLocalWorkoutSessions();
       if (localFlush.flushed > 0) savedAny = true;
+      const exFlush = await flushWorkoutExerciseDrafts();
+      if (exFlush.flushed > 0) savedAny = true;
 
       for (const item of pending) {
         try {
@@ -257,7 +269,8 @@ export function OfflineMealQueueBanner({
     weightCount +
     workoutSetCount +
     workoutFinishCount +
-    workoutLocalCount;
+    workoutLocalCount +
+    workoutExerciseCount;
   if (totalCount <= 0) return null;
 
   const lines: string[] = [];
@@ -290,6 +303,13 @@ export function OfflineMealQueueBanner({
       workoutLocalCount === 1
         ? "1 тренировка создана на устройстве"
         : `${workoutLocalCount} тренировки на устройстве ждут отправку`,
+    );
+  }
+  if (workoutExerciseCount > 0) {
+    lines.push(
+      workoutExerciseCount === 1
+        ? "1 упражнение ждёт отправку"
+        : `${workoutExerciseCount} упражнения ждут отправку`,
     );
   }
   if (workoutSetCount > 0) {

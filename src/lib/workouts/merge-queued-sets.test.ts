@@ -4,8 +4,10 @@ import {
   draftBodyToPendingSet,
   draftIdFromLocalSetId,
   localDraftSetId,
+  mergeQueuedExercisesIntoSession,
   mergeQueuedSetsIntoSession,
 } from "./merge-queued-sets.ts";
+import type { WorkoutExerciseDraftItem } from "../workout-exercise-draft-queue.ts";
 import type { WorkoutSetDraftItem } from "../workout-set-draft-queue.ts";
 
 test("draftBodyToPendingSet maps weight×reps and load", () => {
@@ -68,6 +70,52 @@ test("mergeQueuedSetsIntoSession appends and bumps tonnage", () => {
   assert.equal(merged.exercises[0]!.sets[1]!.pendingLocal, true);
   assert.equal(merged.totalLoad, 400 + 82.5 * 5);
   assert.equal(merged.setCount, 2);
+});
+
+test("mergeQueuedExercisesIntoSession appends empty pending exercises", () => {
+  const session = {
+    id: "s1",
+    totalLoad: 0,
+    setCount: 0,
+    cardioDistanceKm: 0,
+    cardioDurationSec: 0,
+    exercises: [
+      {
+        id: "e1",
+        name: "Жим",
+        kind: "strength",
+        load: 0,
+        cardioDistanceKm: 0,
+        cardioDurationSec: 0,
+        sets: [],
+      },
+    ],
+  };
+  const drafts: WorkoutExerciseDraftItem[] = [
+    {
+      id: "local-ex-1",
+      kind: "failed-workout-exercise",
+      createdAt: "t",
+      sessionId: "s1",
+      name: "Тяга",
+      exerciseKind: "strength",
+    },
+  ];
+  const withEx = mergeQueuedExercisesIntoSession(session, drafts);
+  assert.equal(withEx.exercises.length, 2);
+  assert.equal(withEx.exercises[1]!.id, "local-ex-1");
+  const withSets = mergeQueuedSetsIntoSession(withEx, [
+    {
+      id: "d1",
+      kind: "failed-workout-set",
+      createdAt: "t",
+      sessionId: "s1",
+      exerciseId: "local-ex-1",
+      body: { weightKg: 50, reps: 8, completed: true },
+    },
+  ]);
+  assert.equal(withSets.exercises[1]!.sets.length, 1);
+  assert.equal(withSets.totalLoad, 400);
 });
 
 test("merge ignores drafts for other sessions", () => {
