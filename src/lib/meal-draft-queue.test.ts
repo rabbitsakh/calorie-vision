@@ -2,12 +2,18 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   clearPendingConfirmDraft,
+  countFailedDeletes,
+  countFailedPatches,
   countFailedSaves,
   countOfflineQueue,
   countPendingConfirms,
   countPendingRecognitions,
+  enqueueFailedDelete,
+  enqueueFailedPatch,
   enqueueFailedSave,
   getPendingConfirmDraft,
+  listFailedDeletes,
+  listFailedPatches,
   listFailedSaves,
   listMealDrafts,
   listPendingRecognitions,
@@ -217,4 +223,40 @@ test("clearPendingConfirmDraft after save leaves no draft for banner", () => {
   clearPendingConfirmDraft("2026-08-24");
   assert.equal(getPendingConfirmDraft("2026-08-24"), null);
   assert.equal(countPendingConfirms(), 0);
+});
+
+test("enqueueFailedPatch merges successive edits for the same meal", () => {
+  mockStorage();
+  const id1 = enqueueFailedPatch("2026-08-24", "meal-1", { calories: 300 });
+  const id2 = enqueueFailedPatch("2026-08-24", "meal-1", { mealType: "LUNCH" });
+  assert.equal(id1, id2);
+  assert.equal(countFailedPatches(), 1);
+  const patch = listFailedPatches()[0];
+  assert.equal(patch?.mealId, "meal-1");
+  assert.deepEqual(patch?.patch, { calories: 300, mealType: "LUNCH" });
+  assert.equal(countOfflineQueue(), 1);
+});
+
+test("enqueueFailedDelete drops pending patch for the same meal", () => {
+  mockStorage();
+  enqueueFailedPatch("2026-08-24", "meal-1", { calories: 300 });
+  enqueueFailedDelete("2026-08-24", "meal-1");
+  assert.equal(countFailedPatches(), 0);
+  assert.equal(countFailedDeletes(), 1);
+  assert.equal(listFailedDeletes()[0]?.mealId, "meal-1");
+  // Patch after delete is ignored.
+  assert.equal(enqueueFailedPatch("2026-08-24", "meal-1", { fat: 10 }), "");
+  assert.equal(countFailedPatches(), 0);
+  assert.equal(countOfflineQueue(), 1);
+});
+
+test("countOfflineQueue includes patches and deletes with saves", () => {
+  mockStorage();
+  enqueueFailedSave("2026-08-24", { date: "2026-08-24", dishName: "Каша", calories: 300 });
+  enqueueFailedPatch("2026-08-24", "meal-2", { dishName: "Борщ" });
+  enqueueFailedDelete("2026-08-24", "meal-3");
+  assert.equal(countFailedSaves(), 1);
+  assert.equal(countFailedPatches(), 1);
+  assert.equal(countFailedDeletes(), 1);
+  assert.equal(countOfflineQueue(), 3);
 });

@@ -7,15 +7,20 @@ import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploa
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import {
   clearPendingConfirmDraft,
+  countFailedDeletes,
+  countFailedPatches,
   countFailedSaves,
   countOfflineQueue,
   countPendingRecognitions,
   getPendingConfirmDraft,
+  listFailedDeletes,
+  listFailedPatches,
   listFailedSaves,
   removeMealDraft,
   subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import {
   barcodeFailureHint,
@@ -196,7 +201,9 @@ export function FoodAddPanel({
 
   const flushFailedSaves = useCallback(async () => {
     const failed = listFailedSaves();
-    if (failed.length === 0) return;
+    const patches = listFailedPatches();
+    const deletes = listFailedDeletes();
+    if (failed.length === 0 && patches.length === 0 && deletes.length === 0) return;
     setFlushing(true);
     let savedAny = false;
     try {
@@ -212,6 +219,37 @@ export function FoodAddPanel({
           savedAny = true;
         } catch {
           // stay queued
+        }
+      }
+      for (const item of patches) {
+        try {
+          const response = await fetch(withBasePath(`/api/meals/${item.mealId}`), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.patch),
+          });
+          if (response.status === 404) {
+            removeMealDraft(item.id);
+            continue;
+          }
+          if (!response.ok) continue;
+          removeMealDraft(item.id);
+          savedAny = true;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
+        }
+      }
+      for (const item of deletes) {
+        try {
+          const response = await fetch(withBasePath(`/api/meals/${item.mealId}`), {
+            method: "DELETE",
+          });
+          if (response.ok || response.status === 404) {
+            removeMealDraft(item.id);
+            savedAny = true;
+          }
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
         }
       }
     } finally {
@@ -514,13 +552,18 @@ export function FoodAddPanel({
             <p>
               В очереди офлайн: {queuedCount}{" "}
               {queuedCount === 1 ? "элемент" : "элемента"}
-              {countPendingRecognitions() > 0 && countFailedSaves() > 0
-                ? ` (${countPendingRecognitions()} фото, ${countFailedSaves()} сохранений)`
-                : countPendingRecognitions() > 0
-                  ? " (фото)"
-                  : countFailedSaves() > 0
-                    ? " (сохранения)"
-                    : ""}
+              {(() => {
+                const parts: string[] = [];
+                const photos = countPendingRecognitions();
+                const saves = countFailedSaves();
+                const patches = countFailedPatches();
+                const deletes = countFailedDeletes();
+                if (photos > 0) parts.push(`${photos} фото`);
+                if (saves > 0) parts.push(`${saves} сохранений`);
+                if (patches > 0) parts.push(`${patches} правок`);
+                if (deletes > 0) parts.push(`${deletes} удалений`);
+                return parts.length > 0 ? ` (${parts.join(", ")})` : "";
+              })()}
               {flushing ? " — отправляем…" : ""}
             </p>
             <button

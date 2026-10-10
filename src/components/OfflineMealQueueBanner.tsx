@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  countFailedDeletes,
+  countFailedPatches,
   countFailedSaves,
   countPendingRecognitions,
+  listFailedDeletes,
+  listFailedPatches,
   listFailedSaves,
   listPendingRecognitions,
   pendingRecognitionToFile,
@@ -61,6 +65,8 @@ export function OfflineMealQueueBanner({
   onRecognitionReady,
 }: OfflineMealQueueBannerProps) {
   const [failedCount, setFailedCount] = useState(0);
+  const [patchCount, setPatchCount] = useState(0);
+  const [deleteCount, setDeleteCount] = useState(0);
   const [recognitionCount, setRecognitionCount] = useState(0);
   const [waterCount, setWaterCount] = useState(0);
   const [weightCount, setWeightCount] = useState(0);
@@ -74,6 +80,8 @@ export function OfflineMealQueueBanner({
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
+    setPatchCount(countFailedPatches());
+    setDeleteCount(countFailedDeletes());
     setRecognitionCount(countPendingRecognitions());
     setWaterCount(countWaterDrafts());
     setWeightCount(countWeightDrafts());
@@ -101,6 +109,8 @@ export function OfflineMealQueueBanner({
   const flush = useCallback(async () => {
     const pending = listPendingRecognitions();
     const failed = listFailedSaves();
+    const patches = listFailedPatches();
+    const deletes = listFailedDeletes();
     const water = listWaterDrafts();
     const weights = listWeightDrafts();
     const workoutSets = listWorkoutSetDrafts();
@@ -110,6 +120,8 @@ export function OfflineMealQueueBanner({
     if (
       pending.length === 0 &&
       failed.length === 0 &&
+      patches.length === 0 &&
+      deletes.length === 0 &&
       water.length === 0 &&
       weights.length === 0 &&
       workoutSets.length === 0 &&
@@ -166,6 +178,40 @@ export function OfflineMealQueueBanner({
           savedAny = true;
         } catch {
           // stay queued
+        }
+      }
+
+      // Patches before deletes so a delete can supersede a racey patch on the server.
+      for (const item of patches) {
+        try {
+          const response = await fetch(withBasePath(`/api/meals/${item.mealId}`), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.patch),
+          });
+          if (response.status === 404) {
+            removeMealDraft(item.id);
+            continue;
+          }
+          if (!response.ok) continue;
+          removeMealDraft(item.id);
+          savedAny = true;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
+        }
+      }
+
+      for (const item of deletes) {
+        try {
+          const response = await fetch(withBasePath(`/api/meals/${item.mealId}`), {
+            method: "DELETE",
+          });
+          if (response.ok || response.status === 404) {
+            removeMealDraft(item.id);
+            savedAny = true;
+          }
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
         }
       }
 
@@ -264,6 +310,8 @@ export function OfflineMealQueueBanner({
 
   const totalCount =
     failedCount +
+    patchCount +
+    deleteCount +
     recognitionCount +
     waterCount +
     weightCount +
@@ -286,6 +334,20 @@ export function OfflineMealQueueBanner({
       failedCount === 1
         ? "1 блюдо ждёт отправку — отправим в дневник"
         : `${failedCount} блюда ждут отправку — отправим в дневник`,
+    );
+  }
+  if (patchCount > 0) {
+    lines.push(
+      patchCount === 1
+        ? "1 правка в дневнике ждёт отправку"
+        : `${patchCount} правки в дневнике ждут отправку`,
+    );
+  }
+  if (deleteCount > 0) {
+    lines.push(
+      deleteCount === 1
+        ? "1 удаление в дневнике ждёт отправку"
+        : `${deleteCount} удаления в дневнике ждут отправку`,
     );
   }
   if (waterCount > 0) {

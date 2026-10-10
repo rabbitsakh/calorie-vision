@@ -42,6 +42,16 @@ import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { groupMealEntries } from "@/lib/meal-groups";
 import { MealListRow, MealSectionHeader } from "@/components/DailyLogMealCards";
 import type { EditPatch } from "@/components/DailyLogInlineEdit";
+import { isLikelyOfflineError } from "@/lib/connectivity";
+import {
+  enqueueFailedDelete,
+  enqueueFailedPatch,
+  enqueueFailedSave,
+} from "@/lib/meal-draft-queue";
+import {
+  cachedYesterdayMealCount,
+  copyYesterdayEntriesFromCache,
+} from "@/lib/copy-yesterday-from-cache";
 
 /** Inline undo row — expiry handled by DailyLog parent timer (survives re-renders). */
 function UndoToast({
@@ -395,17 +405,6 @@ export function DailyLog({
   }, [loading, error, entries, selectedDate, loadEntries, dayRefresh]);
 
   async function handleEdit(id: string, patch: EditPatch) {
-    const response = await fetch(withBasePath(`/api/meals/${id}`), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-      cache: "no-store",
-    });
-    const data = (await response.json()) as { error?: string };
-    if (!response.ok) {
-      throw new Error(data.error ?? "Не удалось обновить запись");
-    }
-
     // Optimistic update so meal-type budget bars move immediately.
     setEntries((prev) =>
       prev.map((entry) => {
@@ -432,12 +431,32 @@ export function DailyLog({
         };
       }),
     );
-    // Allow photo backfill to retry after a rename.
     attemptedImageMealIds.current.delete(id);
 
-    await reloadDayAfterMutation(true);
-    onChanged?.();
-    emitMascotReaction("save");
+    try {
+      const response = await fetch(withBasePath(`/api/meals/${id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+        cache: "no-store",
+      });
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Не удалось обновить запись");
+      }
+      await reloadDayAfterMutation(true);
+      onChanged?.();
+      emitMascotReaction("save");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueFailedPatch(selectedDate, id, patch as unknown as Record<string, unknown>);
+        setActionError("Правка на устройстве — отправим при связи");
+        onChanged?.();
+        return;
+      }
+      await reloadDayAfterMutation(true);
+      throw err;
+    }
   }
 
   async function handleEatenAtChange(id: string, eatenAt: string) {
@@ -446,20 +465,31 @@ export function DailyLog({
       prev.map((entry) => (entry.id === id ? { ...entry, eatenAt } : entry)),
     );
 
-    const response = await fetch(withBasePath(`/api/meals/${id}`), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ eatenAt }),
-      cache: "no-store",
-    });
-    if (!response.ok) {
+    try {
+      const response = await fetch(withBasePath(`/api/meals/${id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eatenAt }),
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        await reloadDayAfterMutation(true);
+        setActionError("Не удалось изменить время — попробуйте ещё раз");
+        return;
+      }
+      await reloadDayAfterMutation(true);
+      onChanged?.();
+      emitMascotReaction("save");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueFailedPatch(selectedDate, id, { eatenAt });
+        setActionError("Время на устройстве — отправим при связи");
+        onChanged?.();
+        return;
+      }
       await reloadDayAfterMutation(true);
       setActionError("Не удалось изменить время — попробуйте ещё раз");
-      return;
     }
-    await reloadDayAfterMutation(true);
-    onChanged?.();
-    emitMascotReaction("save");
   }
 
   async function handleMealTypeChange(id: string, mealType: string | null) {
@@ -473,19 +503,30 @@ export function DailyLog({
       ),
     );
 
-    const response = await fetch(withBasePath(`/api/meals/${id}`), {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mealType }),
-      cache: "no-store",
-    });
-    if (!response.ok) {
+    try {
+      const response = await fetch(withBasePath(`/api/meals/${id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mealType }),
+        cache: "no-store",
+      });
+      if (!response.ok) {
+        await reloadDayAfterMutation(true);
+        setActionError("Не удалось сменить приём пищи — попробуйте ещё раз");
+        return;
+      }
+      await reloadDayAfterMutation(true);
+      onChanged?.();
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueFailedPatch(selectedDate, id, { mealType });
+        setActionError("Приём пищи на устройстве — отправим при связи");
+        onChanged?.();
+        return;
+      }
       await reloadDayAfterMutation(true);
       setActionError("Не удалось сменить приём пищи — попробуйте ещё раз");
-      return;
     }
-    await reloadDayAfterMutation(true);
-    onChanged?.();
   }
 
   async function handleDuplicate(id: string) {
@@ -535,7 +576,19 @@ export function DailyLog({
   }
 
   async function performDelete(ids: string[]) {
-    await deleteMealsOnServer(ids);
+    try {
+      await deleteMealsOnServer(ids);
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        for (const id of ids) {
+          enqueueFailedDelete(selectedDate, id);
+        }
+        setActionError("Удаление на устройстве — отправим при связи");
+        onChanged?.();
+        return;
+      }
+      throw err;
+    }
     if (dayRefresh) {
       void dayRefresh(true);
     } else {
@@ -670,13 +723,38 @@ export function DailyLog({
         setYesterdayHasBreakfast(entries.some((entry) => entry.mealType === "BREAKFAST"));
       } catch {
         if (!controller.signal.aborted) {
-          setYesterdayHasMeals(false);
-          setYesterdayHasBreakfast(false);
+          const cachedCount = cachedYesterdayMealCount(selectedDate);
+          const cachedBreakfast = cachedYesterdayMealCount(selectedDate, "BREAKFAST");
+          setYesterdayHasMeals(cachedCount > 0);
+          setYesterdayHasBreakfast(cachedBreakfast > 0);
         }
       }
     })();
     return () => controller.abort();
   }, [loading, error, entries.length, pendingDeletes.length, selectedDate]);
+
+  function queueCopyFromCache(mealType?: "BREAKFAST") {
+    const entries = copyYesterdayEntriesFromCache(selectedDate, mealType);
+    if (entries.length === 0) {
+      setCopyError(
+        mealType
+          ? "Вчерашний завтрак не найден в кэше на устройстве"
+          : "Вчерашний день не найден в кэше на устройстве",
+      );
+      return false;
+    }
+    // Chunk to stay under POST batch limit.
+    for (let i = 0; i < entries.length; i += 20) {
+      enqueueFailedSave(selectedDate, { entries: entries.slice(i, i + 20) });
+    }
+    setCopyError(
+      mealType
+        ? "Завтрак в очереди на устройстве — отправим при связи"
+        : "Вчерашний день в очереди на устройстве — отправим при связи",
+    );
+    onChanged?.();
+    return true;
+  }
 
   async function handleCopyYesterday() {
     setCopying(true);
@@ -695,8 +773,12 @@ export function DailyLog({
       } else {
         setCopyError(data.error ?? "Не удалось скопировать");
       }
-    } catch {
-      setCopyError("Не удалось скопировать — проверьте сеть и попробуйте снова");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        queueCopyFromCache();
+      } else {
+        setCopyError("Не удалось скопировать — проверьте сеть и попробуйте снова");
+      }
     } finally {
       setCopying(false);
     }
@@ -719,8 +801,12 @@ export function DailyLog({
       } else {
         setCopyError(data.error ?? "Не удалось скопировать завтрак");
       }
-    } catch {
-      setCopyError("Не удалось скопировать завтрак — проверьте сеть и попробуйте снова");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        queueCopyFromCache("BREAKFAST");
+      } else {
+        setCopyError("Не удалось скопировать завтрак — проверьте сеть и попробуйте снова");
+      }
     } finally {
       setCopying(false);
     }

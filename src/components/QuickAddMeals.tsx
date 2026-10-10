@@ -5,6 +5,10 @@ import { AllergenHint } from "@/components/AllergenHint";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
+import {
+  cachedYesterdayMealCount,
+  copyYesterdayEntriesFromCache,
+} from "@/lib/copy-yesterday-from-cache";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
@@ -167,7 +171,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   }
 
   async function copyYesterday(mealType?: MealType) {
-    if (!data?.yesterdayDate) return;
+    if (!data?.yesterdayDate && cachedYesterdayMealCount(selectedDate, mealType) === 0) return;
     setCopying(mealType ?? "all");
     setCopyError(null);
     try {
@@ -175,7 +179,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fromDate: data.yesterdayDate,
+          fromDate: data?.yesterdayDate ?? selectedDate,
           toDate: selectedDate,
           ...(mealType ? { mealType } : {}),
         }),
@@ -188,8 +192,21 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
       } else {
         setCopyError(payload.error ?? "Не удалось скопировать");
       }
-    } catch {
-      setCopyError("Нет сети — копирование недоступно офлайн");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        const entries = copyYesterdayEntriesFromCache(selectedDate, mealType);
+        if (entries.length === 0) {
+          setCopyError("Вчерашний день не найден в кэше на устройстве");
+        } else {
+          for (let i = 0; i < entries.length; i += 20) {
+            enqueueFailedSave(selectedDate, { entries: entries.slice(i, i + 20) });
+          }
+          setCopyError("Скопировано в очередь на устройстве — отправим при связи");
+          onSaved();
+        }
+      } else {
+        setCopyError("Нет сети — копирование недоступно офлайн");
+      }
     } finally {
       setCopying(null);
     }
@@ -197,14 +214,15 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
 
   if (!data) return null;
 
+  const cachedCount = cachedYesterdayMealCount(selectedDate);
   const bySlot = data.yesterdayByMealType ?? {
     BREAKFAST: 0,
     LUNCH: 0,
     DINNER: 0,
     SNACK: 0,
   };
-  const slotChips = SLOT_ORDER.filter((type) => (bySlot[type] ?? 0) > 0);
-  const showCopy = data.yesterdayCount > 0 && !fromCache;
+  const slotChips = SLOT_ORDER.filter((type) => (bySlot[type] ?? 0) > 0 || cachedYesterdayMealCount(selectedDate, type) > 0);
+  const showCopy = (data.yesterdayCount > 0 || cachedCount > 0);
   const showSuggestions = data.suggestions.length > 0;
   if (!showCopy && !showSuggestions) return null;
 

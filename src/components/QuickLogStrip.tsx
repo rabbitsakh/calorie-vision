@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { isLikelyOfflineError } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
+import { copyYesterdayEntriesFromCache } from "@/lib/copy-yesterday-from-cache";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
@@ -140,8 +141,21 @@ export function QuickLogStrip({
       } else {
         setNotice(payload.error ?? "Не удалось скопировать");
       }
-    } catch {
-      setNotice("Нет сети — копирование недоступно офлайн");
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        const entries = copyYesterdayEntriesFromCache(selectedDate);
+        if (entries.length === 0) {
+          setNotice("Вчерашний день не найден в кэше на устройстве");
+        } else {
+          for (let i = 0; i < entries.length; i += 20) {
+            enqueueFailedSave(selectedDate, { entries: entries.slice(i, i + 20) });
+          }
+          setNotice("Скопировано в очередь на устройстве — отправим при связи");
+          onSaved();
+        }
+      } else {
+        setNotice("Нет сети — копирование недоступно офлайн");
+      }
     } finally {
       setBusy(null);
     }
