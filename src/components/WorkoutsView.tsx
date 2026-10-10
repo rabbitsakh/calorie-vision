@@ -93,6 +93,13 @@ import {
 } from "@/lib/workout-local-session";
 import { flushLocalWorkoutSessions } from "@/lib/workout-local-session-flush";
 import {
+  getCachedWorkoutRoutine,
+  readWorkoutRoutinesCache,
+  writeWorkoutRoutinesCache,
+} from "@/lib/workout-routine-cache";
+import { startRoutineOffline } from "@/lib/workouts/start-routine-offline";
+import type { SerializedRoutine } from "@/lib/workouts/routines";
+import {
   countWorkoutExerciseDrafts,
   enqueueWorkoutExerciseDraft,
   listWorkoutExerciseDraftsForSession,
@@ -384,7 +391,7 @@ export function WorkoutsView({
   const [newExerciseKind, setNewExerciseKind] = useState<ExerciseKind>("strength");
   const [pasteText, setPasteText] = useState("");
   const [insights, setInsights] = useState<Insights | null>(null);
-  const [routines, setRoutines] = useState<RoutineSummary[]>([]);
+  const [routines, setRoutines] = useState<SerializedRoutine[]>(() => readWorkoutRoutinesCache());
   const [libraryHits, setLibraryHits] = useState<LibraryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState<Record<string, boolean>>({});
   const [historyByName, setHistoryByName] = useState<Record<string, HistoryBundle>>({});
@@ -480,12 +487,14 @@ export function WorkoutsView({
 
   const loadRoutines = useCallback(async () => {
     try {
-      const data = await readJson<{ routines: RoutineSummary[] }>(
+      const data = await readJson<{ routines: SerializedRoutine[] }>(
         await fetch(withBasePath("/api/workouts/routines")),
       );
       setRoutines(data.routines);
+      writeWorkoutRoutinesCache(data.routines);
     } catch {
-      /* non-fatal */
+      const cached = readWorkoutRoutinesCache();
+      if (cached.length > 0) setRoutines(cached);
     }
   }, []);
 
@@ -942,6 +951,27 @@ export function WorkoutsView({
       // Template → session sheet (exercises visible). Fullscreen only via «К подходам».
       await openSession(data.session.id);
     } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        const routine =
+          routines.find((r) => r.id === routineId) ?? getCachedWorkoutRoutine(routineId);
+        if (!routine) {
+          setError("Шаблон недоступен офлайн — откройте зал онлайн один раз");
+          return;
+        }
+        const local = startRoutineOffline({
+          routine,
+          date: viewDate,
+          progressRate,
+        });
+        if (!local) {
+          setError("Не удалось начать шаблон на устройстве");
+          return;
+        }
+        await loadList();
+        await openSession(local.sessionId);
+        setError("Шаблон запущен на устройстве — отправим при связи");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Не удалось начать шаблон");
     } finally {
       setBusy(false);
@@ -2130,6 +2160,7 @@ export function WorkoutsView({
           busy={busy}
           firstWorkout={sessions.length === 0}
           lastRepeat={lastRepeat}
+          routinesFallback={routines}
           sessions={sessions
             .filter((s) => s.date === viewDate)
             .map((s) => ({
