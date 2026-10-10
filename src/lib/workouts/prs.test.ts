@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   computeExercisePrs,
+  countPrsBySessionId,
   describePrBeat,
   estimated1Rm,
   formatPrSummary,
@@ -63,6 +64,52 @@ describe("merge + format", () => {
       assert.equal(m.heaviestKg, 90);
       assert.ok(formatPrSummary(m)?.includes("90"));
     }
+  });
+});
+
+describe("countPrsBySessionId", () => {
+  it("counts first session and later beats", () => {
+    const counts = countPrsBySessionId([
+      {
+        id: "s1",
+        date: "2026-01-01",
+        createdAt: "2026-01-01T10:00:00.000Z",
+        exercises: [
+          {
+            name: "Жим",
+            kind: "strength",
+            sets: [{ weightKg: 80, reps: 5, completed: true }],
+          },
+        ],
+      },
+      {
+        id: "s2",
+        date: "2026-01-08",
+        createdAt: "2026-01-08T10:00:00.000Z",
+        exercises: [
+          {
+            name: "Жим",
+            kind: "strength",
+            sets: [{ weightKg: 90, reps: 5, completed: true }],
+          },
+        ],
+      },
+      {
+        id: "s3",
+        date: "2026-01-15",
+        createdAt: "2026-01-15T10:00:00.000Z",
+        exercises: [
+          {
+            name: "Жим",
+            kind: "strength",
+            sets: [{ weightKg: 85, reps: 5, completed: true }],
+          },
+        ],
+      },
+    ]);
+    assert.equal(counts.get("s1"), 1);
+    assert.equal(counts.get("s2"), 1);
+    assert.equal(counts.get("s3"), 0);
   });
 });
 

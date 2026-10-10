@@ -24,6 +24,8 @@ export type HistorySessionRow = {
   cardioDistanceKm: number;
   cardioDurationSec: number;
   note?: string | null;
+  /** Exercises that set a new PR in this session (Wave V). */
+  prCount?: number;
 };
 
 export type HistoryInsights = {
@@ -357,7 +359,14 @@ export function WorkoutHistoryHub({
               onClick={() => onOpenSession(s.id)}
             >
               <div className="min-w-0">
-                <p className="font-semibold text-[var(--foreground)]">{formatDateWords(s.date)}</p>
+                <p className="font-semibold text-[var(--foreground)]">
+                  {formatDateWords(s.date)}
+                  {(s.prCount ?? 0) > 0 ? (
+                    <span className="ml-2 inline-flex rounded-md bg-teal-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-900">
+                      {s.prCount === 1 ? "1 PR" : `${s.prCount} PR`}
+                    </span>
+                  ) : null}
+                </p>
                 <p className="truncate text-sm text-[var(--muted-strong)]">{s.muscleLabels.join(" · ")}</p>
                 <p className="text-xs text-[var(--muted)]">
                   {s.exerciseCount} упр. · {s.setCount}{" "}

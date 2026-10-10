@@ -197,6 +197,8 @@ type SessionSummary = {
   elapsedSec?: number;
   elapsedLabel?: string;
   clockStatus?: "idle" | "running" | "paused" | "finished";
+  /** Exercises that set a new PR in this session. */
+  prCount?: number;
 };
 
 type SessionExercise = {
@@ -2268,7 +2270,14 @@ export function WorkoutsView({
             )
           }
           onFlushQueue={() => void flushQueuedSets()}
-          onOpenSession={(id) => void openSession(id)}
+          onOpenSession={(id) => {
+            void (async () => {
+              const s = sessions.find((x) => x.id === id);
+              await openSession(id);
+              // Finished sessions open the summary so PR lines stay visible (Wave V).
+              if (s?.clockStatus === "finished") setShowSummary(true);
+            })();
+          }}
           onRepeat={(id) => void repeatSession(id)}
           onSaveAsRoutine={(id, name) => void saveAsRoutine(id, name)}
         />

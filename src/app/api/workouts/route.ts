@@ -9,6 +9,7 @@ import {
   type SessionLikeForProgress,
 } from "@/lib/workouts/load";
 import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
+import { countPrsBySessionId } from "@/lib/workouts/prs";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -96,7 +97,30 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    let sessions = rows.map(serializeSessionSummary);
+    // Broader history so PR badges compare against prior sessions, not only the page window.
+    const prHistory = await prisma.workoutSession.findMany({
+      where: { userId: session.user.id },
+      include: sessionInclude,
+      orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      take: 120,
+    });
+    const prCounts = countPrsBySessionId(
+      prHistory.map((row) => ({
+        id: row.id,
+        date: row.date,
+        createdAt: row.createdAt,
+        exercises: row.exercises.map((ex) => ({
+          name: ex.name,
+          kind: ex.kind,
+          sets: ex.sets,
+        })),
+      })),
+    );
+
+    let sessions = rows.map((row) => ({
+      ...serializeSessionSummary(row),
+      prCount: prCounts.get(row.id) ?? 0,
+    }));
     if (cardioOnly) {
       sessions = sessions.filter((s) => s.cardioOnly || s.muscleKeys.includes("cardio"));
     }

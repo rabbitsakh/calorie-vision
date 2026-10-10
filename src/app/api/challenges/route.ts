@@ -45,13 +45,14 @@ async function weekHabitSnapshot(userId: string, weekStart: string, today: strin
   const diet = recommendDietForProfile(weight?.weightKg, user);
   const calorieTarget = diet?.calories ?? null;
 
-  const [breakfast, dinner, logDays, water, weigh, corridor] = await Promise.all([
+  const [breakfast, dinner, logDays, water, weigh, corridor, gym] = await Promise.all([
     computeProgress(userId, "breakfast_7", weekStart),
     computeProgress(userId, "dinner_5", weekStart),
     computeProgress(userId, "log_5", weekStart),
     computeProgress(userId, "water_5", weekStart),
     computeProgress(userId, "weigh_3", weekStart),
     computeProgress(userId, "corridor_4", weekStart, { calorieTarget, goal }),
+    computeProgress(userId, "gym_3", weekStart),
   ]);
 
   return {
@@ -61,6 +62,7 @@ async function weekHabitSnapshot(userId: string, weekStart: string, today: strin
     waterDays: water,
     weighDays: weigh,
     corridorDays: corridor,
+    gymSessions: gym,
     daysLeft: challengeOptionsForWeek(today, weekStart)[0]?.daysLeft ?? 7,
     calorieTarget,
     goal,

@@ -63,6 +63,18 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
     description: "4 дня недели в пределах калорийного коридора",
     target: 4,
   },
+  {
+    key: "gym_2",
+    title: "Две тренировки",
+    description: "Завершите 2 тренировки на этой неделе",
+    target: 2,
+  },
+  {
+    key: "gym_3",
+    title: "Три тренировки",
+    description: "Завершите 3 тренировки на этой неделе",
+    target: 3,
+  },
 ];
 
 export function normalizeChallengeKey(key: string): string {
@@ -93,6 +105,8 @@ export type ChallengeRecommendCtx = {
   dinnerDays: number;
   weighDays: number;
   corridorDays: number;
+  /** Finished gym sessions this week (Wave V). */
+  gymSessions?: number;
   daysLeft: number;
 };
 
@@ -109,6 +123,8 @@ export function recommendChallengeKey(ctx: ChallengeRecommendCtx): string {
     { key: "water_week_7", score: 7 - ctx.waterDays, target: 7 },
     { key: "weigh_3", score: 3 - ctx.weighDays, target: 3 },
     { key: "corridor_4", score: 4 - ctx.corridorDays, target: 4 },
+    { key: "gym_2", score: 2 - (ctx.gymSessions ?? 0), target: 2 },
+    { key: "gym_3", score: 3 - (ctx.gymSessions ?? 0), target: 3 },
   ];
 
   const feasible = candidates.filter((c) => c.target <= ctx.daysLeft && c.score > 0);
