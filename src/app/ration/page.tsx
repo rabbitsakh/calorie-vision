@@ -22,6 +22,7 @@ import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { DaySwipeRegion } from "@/components/DaySwipeRegion";
+import { MorningTodayCard } from "@/components/MorningTodayCard";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
@@ -269,6 +270,9 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+          <div className="pt-2">
+            <MorningTodayCard selectedDate={date} today={today} />
+          </div>
           <div className="pt-2">
             <NextStepBar selectedDate={date} today={today} />
           </div>
