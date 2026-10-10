@@ -67,5 +67,5 @@
 
 ## После релиза
 
-- [ ] Увеличить `appVersionCode` перед следующим билдом
+- [ ] Перед билдом: `npm run sync-version` (или уже свежий `package.json`) — `versionCode` = X*10000+Y*100+Z; `rustore:cap:build` сам проставит его в Gradle
 - [ ] При желании — альфа-тестирование в RuStore перед продом

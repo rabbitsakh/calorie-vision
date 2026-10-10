@@ -1175,6 +1175,65 @@ else:
 PY
 }
 
+# Sync applicationId + versionName/versionCode from package.json and rustore/twa-manifest.json.
+# RuStore rejects uploads when versionCode is unchanged — always call before assembleRelease.
+rustore_patch_capacitor_version() {
+  local root="${1:?repo root}"
+  local app_build="${2:-$root/android/app/build.gradle}"
+  [[ -f "$app_build" ]] || return 0
+  rustore_py - "$root" "$app_build" <<'PY'
+from pathlib import Path
+import json, re, sys
+
+root = Path(sys.argv[1])
+path = Path(sys.argv[2])
+text = path.read_text()
+text2 = re.sub(r'applicationId\s+"[^"]+"', 'applicationId "ru.calorievision.app"', text)
+text2 = re.sub(r'namespace\s+"[^"]+"', 'namespace "ru.calorievision.app"', text2)
+
+pkg = json.loads((root / "package.json").read_text())
+version = str(pkg.get("version", "1.12.28"))
+twa_code = 0
+twa_path = root / "rustore" / "twa-manifest.json"
+if twa_path.is_file():
+    try:
+        twa = json.loads(twa_path.read_text())
+        twa_code = int(twa.get("appVersionCode") or 0)
+        if twa.get("appVersionName"):
+            version = str(twa["appVersionName"])
+        # Prefer package.json versionName when newer/different product line.
+        pkg_v = str(pkg.get("version", version))
+        version = pkg_v
+    except Exception:
+        pass
+
+code_match = re.search(r"versionCode\s+(\d+)", text2)
+code = int(code_match.group(1)) if code_match else 1
+parts = version.split(".")
+try:
+    major, minor, patch = (int(parts[0]), int(parts[1]), int(parts[2]))
+    encoded = major * 10000 + minor * 100 + patch
+except Exception:
+    encoded = code
+code = max(code, encoded, twa_code, 6)
+text2 = re.sub(r"versionCode\s+\d+", f"versionCode {code}", text2, count=1)
+text2 = re.sub(r'versionName\s+"[^"]+"', f'versionName "{version}"', text2, count=1)
+path.write_text(text2)
+
+# Keep twa-manifest in sync so the next release checklist stays accurate.
+if twa_path.is_file():
+    try:
+        twa = json.loads(twa_path.read_text())
+        twa["appVersionName"] = version
+        twa["appVersionCode"] = code
+        twa_path.write_text(json.dumps(twa, ensure_ascii=False, indent=2) + "\n")
+    except Exception:
+        pass
+
+print(f"applicationId=ru.calorievision.app versionName={version} versionCode={code}")
+PY
+}
+
 # Keep session bridge after cap sync (same hook point as App Links).
 rustore_patch_capacitor_android() {
   local android_dir="${1:?android}"

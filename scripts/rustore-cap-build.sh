@@ -55,6 +55,10 @@ rustore_sync_capacitor_icons "$ANDROID" "$ICON_SRC"
 # CvSession bridge: write resume token from calorievision.ru (Cap JS is local-only).
 rustore_patch_capacitor_android "$ANDROID"
 
+# RuStore: versionCode must rise every upload (package.json + twa-manifest).
+echo "==> versionName / versionCode"
+rustore_patch_capacitor_version "$ROOT"
+
 rustore_prepare_android_sdk "$ANDROID"
 rustore_prepare_java21 "$ANDROID"
 

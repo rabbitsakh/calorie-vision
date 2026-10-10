@@ -112,7 +112,8 @@ bash scripts/rustore-build.sh  # → rustore/dist/app-release.apk
 7. Декларация данных / разрешения.
 8. Отправить на **модерацию**.
 
-Каждый следующий релиз: поднять `appVersionCode` в `twa-manifest.json`.
+Каждый следующий релиз: `npm run sync-version`, затем `npm run rustore:cap:build`
+(скрипт поднимает `versionCode` из `package.json` / `twa-manifest.json`).
 
 После смены логотипа: `bash scripts/rustore-build.sh` (локальный A2 → `ic_launcher`/`ic_maskable`, checksum lock) + залить APK и иконку витрины. На устройстве лучше удалить старое приложение — лаунчер кэширует ярлык.
 
