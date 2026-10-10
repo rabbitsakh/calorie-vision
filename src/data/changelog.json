@@ -1,5 +1,280 @@
 [
   {
+    "version": "2.8.6",
+    "date": "2026-10-10",
+    "summary": "feat(workouts): Wave Q — start planned routine offline",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave Q — start planned routine offline"
+      }
+    ]
+  },
+  {
+    "version": "2.8.5",
+    "date": "2026-10-10",
+    "summary": "feat(confirm): «Почему так» trust explanation",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(confirm): «Почему так» trust explanation"
+      }
+    ]
+  },
+  {
+    "version": "2.8.4",
+    "date": "2026-10-10",
+    "summary": "feat(ration): morning «Что сегодня» card",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ration): morning «Что сегодня» card"
+      }
+    ]
+  },
+  {
+    "version": "2.8.3",
+    "date": "2026-10-10",
+    "summary": "feat(ration): offline day from cache without blank screen",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ration): offline day from cache without blank screen"
+      }
+    ]
+  },
+  {
+    "version": "2.8.2",
+    "date": "2026-10-10",
+    "summary": "feat(auth): offline profile access via cached session",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(auth): offline profile access via cached session"
+      }
+    ]
+  },
+  {
+    "version": "2.8.1",
+    "date": "2026-10-09",
+    "summary": "feat(workouts): Wave N — offline sets in log + local finish",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave N — offline sets in log + local finish"
+      }
+    ]
+  },
+  {
+    "version": "2.8.0",
+    "date": "2026-10-09",
+    "summary": "feat(plan): Wave M — weekly gym+ration digest tip",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(plan): Wave M — weekly gym+ration digest tip"
+      }
+    ]
+  },
+  {
+    "version": "2.7.19",
+    "date": "2026-10-09",
+    "summary": "feat(workouts): Wave L — «Следующий раз» targets after finish",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(workouts): Wave L — «Следующий раз» targets after finish"
+      }
+    ]
+  },
+  {
+    "version": "2.7.18",
+    "date": "2026-10-09",
+    "summary": "fix(food): молоко 2,5% больше не становится безлактозным 1,5%",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(food): молоко 2,5% больше не становится безлактозным 1,5%"
+      }
+    ]
+  },
+  {
+    "version": "2.7.17",
+    "date": "2026-10-08",
+    "summary": "feat(trust): brand-aware diary repair + soft-save basis",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(trust): brand-aware diary repair + soft-save basis"
+      }
+    ]
+  },
+  {
+    "version": "2.7.16",
+    "date": "2026-10-08",
+    "summary": "feat(food): кандидаты бренда на confirm + brand в БД + среднее OFF",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(food): кандидаты бренда на confirm + brand в БД + среднее OFF"
+      }
+    ]
+  },
+  {
+    "version": "2.7.15",
+    "date": "2026-10-08",
+    "summary": "feat(food): бренд vs типичные значения при текстовом поиске",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(food): бренд vs типичные значения при текстовом поиске"
+      }
+    ]
+  },
+  {
+    "version": "2.7.14",
+    "date": "2026-10-07",
+    "summary": "docs(rustore): название «счётчик КБЖУ и тренировки» (лимит 50)",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "docs(rustore): название «счётчик КБЖУ и тренировки» (лимит 50)"
+      }
+    ]
+  },
+  {
+    "version": "2.7.13",
+    "date": "2026-10-07",
+    "summary": "feat: цветной деплой + статистика; название RuStore «счётчик КБЖУ»",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: цветной деплой + статистика; название RuStore «счётчик КБЖУ»"
+      }
+    ]
+  },
+  {
+    "version": "2.7.12",
+    "date": "2026-10-07",
+    "summary": "fix(rustore): restore prior shots — full 9-frame set",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): restore prior shots — full 9-frame set"
+      }
+    ]
+  },
+  {
+    "version": "2.7.11",
+    "date": "2026-10-07",
+    "summary": "feat(landing): hero answers CalZen/FatSecret question",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(landing): hero answers CalZen/FatSecret question"
+      }
+    ]
+  },
+  {
+    "version": "2.7.10",
+    "date": "2026-10-07",
+    "summary": "fix(rustore): full CTAs on gym-done store screenshot",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): full CTAs on gym-done store screenshot"
+      }
+    ]
+  },
+  {
+    "version": "2.7.9",
+    "date": "2026-10-07",
+    "summary": "feat(deploy): near zero-downtime build (A/B)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(deploy): near zero-downtime build (A/B)"
+      }
+    ]
+  },
+  {
+    "version": "2.7.8",
+    "date": "2026-10-07",
+    "summary": "chore(rustore): add-menu and gym screenshots for store listing",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(rustore): add-menu and gym screenshots for store listing"
+      }
+    ]
+  },
+  {
+    "version": "2.7.7",
+    "date": "2026-10-07",
+    "summary": "feat(landing): official RuStore badge in hero and install",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(landing): official RuStore badge in hero and install"
+      }
+    ]
+  },
+  {
+    "version": "2.7.6",
+    "date": "2026-10-07",
+    "summary": "chore(rustore): new store screenshots from v2.7.4 UI",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "chore(rustore): new store screenshots from v2.7.4 UI"
+      }
+    ]
+  },
+  {
+    "version": "2.7.5",
+    "date": "2026-10-07",
+    "summary": "feat(rustore): live catalog URL on landing and /install",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rustore): live catalog URL on landing and /install"
+      }
+    ]
+  },
+  {
+    "version": "2.7.4",
+    "date": "2026-10-07",
+    "summary": "fix(diary): long meal names wrap instead of truncating",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(diary): long meal names wrap instead of truncating"
+      }
+    ]
+  },
+  {
+    "version": "2.7.3",
+    "date": "2026-10-07",
+    "summary": "design: cohesive panel wash + readable barcode stage",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "design: cohesive panel wash + readable barcode stage"
+      }
+    ]
+  },
+  {
+    "version": "2.7.2",
+    "date": "2026-10-07",
+    "summary": "design D1: unify day scene — no nested frames; diary toolbar polish",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "design D1: unify day scene — no nested frames; diary toolbar polish"
+      }
+    ]
+  },
+  {
     "version": "2.7.1",
     "date": "2026-10-07",
     "summary": "design C1–C10: radical composition — day theater, dock, timeline, cover, console, stage",
