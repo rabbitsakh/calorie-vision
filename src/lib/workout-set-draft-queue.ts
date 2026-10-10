@@ -153,6 +153,28 @@ export function removeWorkoutSetDraft(id: string): void {
   writeQueue(readQueue().filter((item) => item.id !== id));
 }
 
+export function getWorkoutSetDraft(id: string): WorkoutSetDraftItem | null {
+  return readQueue().find((item) => item.id === id) ?? null;
+}
+
+/** Patch queued set body (offline edit before sync). */
+export function updateWorkoutSetDraft(
+  id: string,
+  patch: Record<string, unknown>,
+): WorkoutSetDraftItem | null {
+  const items = readQueue();
+  const idx = items.findIndex((item) => item.id === id);
+  if (idx < 0) return null;
+  const prev = items[idx]!;
+  const next: WorkoutSetDraftItem = {
+    ...prev,
+    body: { ...prev.body, ...patch },
+  };
+  items[idx] = next;
+  writeQueue(items);
+  return next;
+}
+
 export function listWorkoutFinishDrafts(): WorkoutFinishDraftItem[] {
   return readFinishQueue();
 }

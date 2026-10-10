@@ -75,6 +75,7 @@ import {
   removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
   subscribeWorkoutSetDraftQueue,
+  updateWorkoutSetDraft,
 } from "@/lib/workout-set-draft-queue";
 import {
   addLocalWorkoutExercise,
@@ -351,6 +352,8 @@ export function WorkoutsView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [queuedSets, setQueuedSets] = useState(0);
+  /** Bumps on any draft queue notify so edits re-merge even when count is unchanged. */
+  const [queueRev, setQueueRev] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -595,8 +598,10 @@ export function WorkoutsView({
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
 
   useEffect(() => {
-    const refresh = () =>
+    const refresh = () => {
       setQueuedSets(countWorkoutOfflineDrafts() + countLocalWorkoutSessions());
+      setQueueRev((n) => n + 1);
+    };
     refresh();
     const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
     const unsubLocal = subscribeLocalWorkoutSessions(refresh);
@@ -613,7 +618,7 @@ export function WorkoutsView({
       detail,
       listWorkoutSetDraftsForSession(detail.id),
     );
-  }, [detail, queuedSets]);
+  }, [detail, queueRev]);
 
   const lastRepeat = useMemo(() => {
     const picked = pickLastFinishedSession(sessions);
@@ -1362,6 +1367,17 @@ export function WorkoutsView({
   const patchSet = async (setId: string, body: Record<string, unknown>, startTimer = false) => {
     if (!detail) return;
     setError(null);
+    const draftId = draftIdFromLocalSetId(setId);
+    if (draftId) {
+      const updated = updateWorkoutSetDraft(draftId, body);
+      if (!updated) {
+        setError("Черновик подхода не найден");
+        return;
+      }
+      if (startTimer) startRest();
+      setError("Подход обновлён на устройстве — отправим при связи");
+      return;
+    }
     try {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/sets/${setId}`), {
@@ -1416,10 +1432,10 @@ export function WorkoutsView({
   };
 
   const toggleSetCompleted = async (set: SessionExercise["sets"][number]) => {
-    if (set.pendingLocal || draftIdFromLocalSetId(set.id)) return;
     const next = !set.completed;
+    const pending = Boolean(set.pendingLocal || draftIdFromLocalSetId(set.id));
     await patchSet(set.id, { completed: next }, false);
-    if (next && detail) {
+    if (next && detail && !pending) {
       const ex = detail.exercises.find((e) => e.sets.some((s) => s.id === set.id));
       if (ex) {
         startRestForExercise(ex, set.setType);
