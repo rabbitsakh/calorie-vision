@@ -7,6 +7,7 @@ import { AvatarFrame } from "@/components/AvatarFrame";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { clearCapacitorResumeToken } from "@/lib/capacitor-resume";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import {
   ACTIVITY_OPTIONS,
   SEX_OPTIONS,
@@ -17,6 +18,12 @@ import {
 } from "@/lib/diet";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
+import {
+  clearOfflineAccountCache,
+  readOfflineAccountCache,
+  writeOfflineAccountCache,
+} from "@/lib/offline-account-cache";
+import { clearOfflineSessionCache } from "@/lib/offline-session";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { withBasePath } from "@/lib/paths";
 import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
@@ -147,10 +154,33 @@ export function ProfileForm() {
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offlineView, setOfflineView] = useState(false);
+
+  const applyAccount = useCallback((data: AccountResponse) => {
+    setFirstName(data.firstName);
+    setLastName(data.lastName);
+    setEmail(data.email ?? "");
+    setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
+    setImage(data.image);
+    const savedTz = data.timezone?.trim() || "";
+    setTimezone(savedTz || detectDeviceTimezone() || "");
+    setSex(isSex(data.sex) ? data.sex : "");
+    setHeightCm(data.heightCm ? String(data.heightCm) : "");
+    setBirthYear(data.birthYear ? String(data.birthYear) : "");
+    setActivityLevel(isActivityLevel(data.activityLevel) ? data.activityLevel : "");
+    setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
+    setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
+    setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
+    setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
+    setAllergens(data.allergens ?? []);
+    setEmailLocked(data.emailLocked);
+    setReferralCode(data.referralCode?.trim() || "");
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setOfflineView(false);
 
     try {
       const response = await fetch(withBasePath("/api/account"));
@@ -159,30 +189,21 @@ export function ProfileForm() {
         throw new Error(data.error ?? "Не удалось загрузить профиль");
       }
 
-      setFirstName(data.firstName);
-      setLastName(data.lastName);
-      setEmail(data.email ?? "");
-      setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
-      setImage(data.image);
-      const savedTz = data.timezone?.trim() || "";
-      setTimezone(savedTz || detectDeviceTimezone() || "");
-      setSex(isSex(data.sex) ? data.sex : "");
-      setHeightCm(data.heightCm ? String(data.heightCm) : "");
-      setBirthYear(data.birthYear ? String(data.birthYear) : "");
-      setActivityLevel(isActivityLevel(data.activityLevel) ? data.activityLevel : "");
-      setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
-      setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
-      setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
-      setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
-      setAllergens(data.allergens ?? []);
-      setEmailLocked(data.emailLocked);
-      setReferralCode(data.referralCode?.trim() || "");
+      applyAccount(data);
+      writeOfflineAccountCache(data as unknown as Record<string, unknown>);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      const cached = readOfflineAccountCache<AccountResponse>();
+      if (cached && isLikelyOfflineError(err)) {
+        applyAccount(cached);
+        setOfflineView(true);
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [applyAccount]);
 
   useEffect(() => {
     void load();
@@ -190,6 +211,10 @@ export function ProfileForm() {
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
+    if (offlineView) {
+      setError("Нет сети — сохранение недоступно. Изменения появятся после связи.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setMessage(null);
@@ -230,21 +255,8 @@ export function ProfileForm() {
         throw new Error(data.error ?? "Не удалось сохранить");
       }
 
-      setFirstName(data.firstName);
-      setLastName(data.lastName);
-      setEmail(data.email ?? "");
-      setPhone(data.phone ? formatPhoneDisplay(data.phone) : "");
-      setImage(data.image);
-      setTimezone(data.timezone ?? "");
-      setSex(isSex(data.sex) ? data.sex : "");
-      setHeightCm(data.heightCm ? String(data.heightCm) : "");
-      setBirthYear(data.birthYear ? String(data.birthYear) : "");
-      setActivityLevel(isActivityLevel(data.activityLevel) ? data.activityLevel : "");
-      setFiberTargetG(data.fiberTargetG != null ? String(data.fiberTargetG) : "");
-      setSugarTargetG(data.sugarTargetG != null ? String(data.sugarTargetG) : "");
-      setWaterTargetMl(data.waterTargetMl != null ? String(data.waterTargetMl) : "");
-      setWeeklyDigestEmail(Boolean(data.weeklyDigestEmail));
-      setAllergens(data.allergens ?? []);
+      applyAccount(data);
+      writeOfflineAccountCache(data as unknown as Record<string, unknown>);
       setMessage("Профиль сохранён");
       clearTimezoneCache(data.timezone ?? null);
       await update();
@@ -334,6 +346,8 @@ export function ProfileForm() {
         throw new Error(data.error ?? "Не удалось удалить аккаунт");
       }
 
+      clearOfflineSessionCache();
+      clearOfflineAccountCache();
       await clearCapacitorResumeToken();
       await signOut({ callbackUrl: withBasePath("/login") });
     } catch (err) {
@@ -375,11 +389,21 @@ export function ProfileForm() {
         </section>
       ) : null}
 
+      {!loading && offlineView ? (
+        <p
+          className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          role="status"
+        >
+          Офлайн — показан последний сохранённый профиль. Редактирование и сохранение недоступны до
+          появления сети.
+        </p>
+      ) : null}
+
       {!loading ? (
         <form className="flex flex-col gap-3 md:gap-4" onSubmit={handleSave}>
           <section className="profile-settings__identity">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-              <label className="relative cursor-pointer">
+              <label className={`relative ${offlineView ? "pointer-events-none opacity-80" : "cursor-pointer"}`}>
                 <AvatarFrame>
                   <UserAvatar
                     image={image}
@@ -391,7 +415,13 @@ export function ProfileForm() {
                 <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/45 py-1 text-center text-xs text-white">
                   {uploading ? "..." : "Фото"}
                 </span>
-                <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={handleAvatarChange} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading || offlineView}
+                  onChange={handleAvatarChange}
+                />
               </label>
 
               <div>
@@ -419,8 +449,12 @@ export function ProfileForm() {
               <p className="mt-3 text-sm text-red-600">{error}</p>
             ) : null}
             <div className="mt-4">
-              <button type="submit" className="btn btn-primary" disabled={saving || uploading || deleting}>
-                {saving ? "Сохраняем..." : "Сохранить профиль"}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving || uploading || deleting || offlineView}
+              >
+                {saving ? "Сохраняем..." : offlineView ? "Нет сети" : "Сохранить профиль"}
               </button>
             </div>
           </section>
