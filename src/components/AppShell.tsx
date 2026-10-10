@@ -178,6 +178,18 @@ export function AppShell({
                   </Link>
                 );
               })}
+              {foodAddEnabled ? (
+                <Link
+                  href="/assistant"
+                  className={`app-chrome__nav-link${
+                    pathname === "/assistant" || pathname.startsWith("/assistant/")
+                      ? " app-chrome__nav-link--active"
+                      : ""
+                  }`}
+                >
+                  AI‑ассистент
+                </Link>
+              ) : null}
             </nav>
           </header>
 
