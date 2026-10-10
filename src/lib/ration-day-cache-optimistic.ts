@@ -236,3 +236,18 @@ export function applyOptimisticMealDelete(
   );
   return commit(next);
 }
+
+/** Wave U — evening mood check-in offline. */
+export function applyOptimisticDiaryMood(
+  date: string,
+  mood: number,
+  options?: { today?: string },
+): RationDayPayload | null {
+  if (!date || !Number.isFinite(mood) || mood < 1 || mood > 5) return null;
+  const base = ensureDay(date, options?.today);
+  const next: RationDayPayload = {
+    ...base,
+    diaryMood: String(Math.round(mood)),
+  };
+  return commit(next);
+}

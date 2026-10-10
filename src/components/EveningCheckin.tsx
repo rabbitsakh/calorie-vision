@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { isLikelyOfflineError } from "@/lib/connectivity";
+import { enqueueDiaryNoteDraft } from "@/lib/diary-note-draft-queue";
 import { withBasePath } from "@/lib/paths";
 import { quietHoursLocalHour, syncQuietHoursTimezone } from "@/lib/quiet-hours-prefs";
+import { applyOptimisticDiaryMood } from "@/lib/ration-day-cache-optimistic";
+import { readRationDayCache } from "@/lib/ration-day-cache";
 
 const SEEN_PREFIX = "evening-checkin-";
 
@@ -37,12 +41,13 @@ type EveningCheckinProps = {
   timezone?: string | null;
 };
 
-/** Short evening check-in: one mood tap by default (#38). */
+/** Short evening check-in: one mood tap by default (#38). Wave U — works offline. */
 export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckinProps) {
   const day = useOptionalRationDay();
   const [visible, setVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [queuedOffline, setQueuedOffline] = useState(false);
 
   useEffect(() => {
     if (selectedDate !== today) {
@@ -78,6 +83,14 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
       return;
     }
 
+    // Offline: trust ration-day cache for mood before hitting the network.
+    const cachedMood = readRationDayCache(today)?.diaryMood;
+    if (cachedMood != null) {
+      markSeen(today);
+      setVisible(false);
+      return;
+    }
+
     void (async () => {
       try {
         const resp = await fetch(withBasePath(`/api/diary-note?date=${today}`));
@@ -98,30 +111,62 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
     })();
   }, [today, selectedDate, timezone, day]);
 
+  function finishLocal(mood: number, offline: boolean) {
+    try {
+      applyOptimisticDiaryMood(today, mood);
+    } catch {
+      // ignore
+    }
+    markSeen(today);
+    setQueuedOffline(offline);
+    setDone(true);
+    setTimeout(() => setVisible(false), offline ? 1600 : 1200);
+  }
+
   async function chooseMood(mood: number) {
     setSaving(true);
+    setQueuedOffline(false);
+    const fallbackNote = "Вечерний чек-in: настроение";
     try {
-      const existingResp = await fetch(withBasePath(`/api/diary-note?date=${today}`));
       let existingNote = "";
-      if (existingResp.ok) {
-        const data = (await existingResp.json()) as { note: { note: string } | null };
-        existingNote = data.note?.note?.trim() ?? "";
+      try {
+        const existingResp = await fetch(withBasePath(`/api/diary-note?date=${today}`));
+        if (existingResp.ok) {
+          const data = (await existingResp.json()) as { note: { note: string } | null };
+          existingNote = data.note?.note?.trim() ?? "";
+        }
+      } catch (err) {
+        if (isLikelyOfflineError(err)) {
+          enqueueDiaryNoteDraft({ date: today, note: fallbackNote, mood });
+          finishLocal(mood, true);
+          return;
+        }
       }
 
       const note =
         existingNote && !existingNote.startsWith("Вечерний чек-in:")
           ? existingNote
-          : "Вечерний чек-in: настроение";
+          : fallbackNote;
 
-      await fetch(withBasePath("/api/diary-note"), {
+      const putResp = await fetch(withBasePath("/api/diary-note"), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ date: today, note, mood }),
       });
+      if (!putResp.ok) {
+        throw new Error("save failed");
+      }
 
-      markSeen(today);
-      setDone(true);
-      setTimeout(() => setVisible(false), 1200);
+      finishLocal(mood, false);
+    } catch (err) {
+      if (isLikelyOfflineError(err) || err instanceof TypeError) {
+        enqueueDiaryNoteDraft({ date: today, note: fallbackNote, mood });
+        finishLocal(mood, true);
+      } else {
+        // Soft fail — still close locally so the ritual isn't blocked.
+        enqueueDiaryNoteDraft({ date: today, note: fallbackNote, mood });
+        finishLocal(mood, true);
+      }
     } finally {
       setSaving(false);
     }
@@ -137,13 +182,20 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
   return (
     <div id="checkin" className="scroll-mt-3 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-4">
       {done ? (
-        <p className="text-center text-sm font-medium text-[var(--muted-strong)]">Спасибо! До завтра.</p>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-[var(--foreground)]">День закрыт</p>
+          <p className="mt-0.5 text-sm text-[var(--muted-strong)]">
+            {queuedOffline
+              ? "Настроение на устройстве — отправим при связи. До завтра."
+              : "Спасибо! До завтра."}
+          </p>
+        </div>
       ) : (
         <>
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-semibold text-[var(--foreground)]">Как настроение?</p>
-              <p className="text-xs text-[var(--muted)]">Один тап — и день закрыт</p>
+              <p className="text-xs text-[var(--muted)]">Один тап — мягко закрыть день</p>
             </div>
             <button type="button" className="btn-quiet text-xs text-[var(--muted)]" onClick={dismiss}>
               Позже
