@@ -30,15 +30,24 @@ export type TodaySessionCard = {
   elapsedLabel?: string;
 };
 
+export type LastWorkoutRepeat = {
+  id: string;
+  label: string;
+  hint: string;
+};
+
 type Props = {
   todayKey: string;
   sessions: TodaySessionCard[];
   /** No history at all — first-ever gym open. */
   firstWorkout?: boolean;
+  /** One-tap clone of the most recent finished session. */
+  lastRepeat?: LastWorkoutRepeat | null;
   /** Open the week fold (e.g. after saving a template). */
   preferWeekOpen?: boolean;
   onOpenSession: (id: string) => void;
   onStartBlank: () => void;
+  onRepeatLast?: (sessionId: string) => void;
   onStartRoutine: (routineId: string) => void;
   onEditRoutine: (routineId: string) => void;
   /** Create a new template, optionally prefilled for a weekday (0=Mon … 6=Sun). */
@@ -75,9 +84,11 @@ export function WorkoutWeekPlan({
   todayKey,
   sessions,
   firstWorkout = false,
+  lastRepeat = null,
   preferWeekOpen = false,
   onOpenSession,
   onStartBlank,
+  onRepeatLast,
   onStartRoutine,
   onEditRoutine,
   onCreatePlanDay,
@@ -128,6 +139,11 @@ export function WorkoutWeekPlan({
   const planned = data?.today ?? [];
   const isFirstEmpty =
     firstWorkout && !active && drafts.length === 0 && finished.length === 0;
+  const canRepeat =
+    Boolean(lastRepeat && onRepeatLast) && !active && drafts.length === 0;
+  /** Under «Новая» when nothing done yet today; beside «+ Ещё одна» after a finish. */
+  const showRepeatInStart = canRepeat && finished.length === 0;
+  const showRepeatInFinished = canRepeat && finished.length > 0;
 
   const sceneHeadline = active
     ? `${statusLabel(active.clockStatus)} · ${active.muscleLabels.join(" · ") || "Тренировка"}`
@@ -266,6 +282,22 @@ export function WorkoutWeekPlan({
               {isFirstEmpty ? "Начать тренировку" : "Новая тренировка"}
             </button>
 
+            {showRepeatInStart && lastRepeat && onRepeatLast ? (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="w-full rounded-[var(--radius-control)] border border-teal-200 bg-teal-50/80 py-3 text-base font-semibold text-teal-900 disabled:opacity-40"
+                  onClick={() => onRepeatLast(lastRepeat.id)}
+                >
+                  {busy ? "Копируем…" : lastRepeat.label}
+                </button>
+                <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
+                  {lastRepeat.hint}
+                </p>
+              </div>
+            ) : null}
+
             {isFirstEmpty ? null : loading ? (
               <p className="mt-4 text-sm text-[var(--muted)]">Загрузка плана…</p>
             ) : error ? (
@@ -352,14 +384,27 @@ export function WorkoutWeekPlan({
               ))}
             </ul>
             {active || drafts.length > 0 ? null : (
-              <button
-                type="button"
-                disabled={busy}
-                className="mt-3 text-sm font-medium text-teal-800 disabled:opacity-40"
-                onClick={onStartBlank}
-              >
-                + Ещё одна сегодня
-              </button>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="text-sm font-medium text-teal-800 disabled:opacity-40"
+                  onClick={onStartBlank}
+                >
+                  + Ещё одна сегодня
+                </button>
+                {showRepeatInFinished && lastRepeat && onRepeatLast ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="text-sm font-semibold text-teal-900 disabled:opacity-40"
+                    onClick={() => onRepeatLast(lastRepeat.id)}
+                    title={lastRepeat.hint}
+                  >
+                    {busy ? "Копируем…" : lastRepeat.label}
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         ) : null}
