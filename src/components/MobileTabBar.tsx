@@ -15,6 +15,10 @@ import {
   subscribeLocalWorkoutSessions,
 } from "@/lib/workout-local-session";
 import {
+  countWorkoutExerciseDrafts,
+  subscribeWorkoutExerciseDraftQueue,
+} from "@/lib/workout-exercise-draft-queue";
+import {
   countWorkoutOfflineDrafts,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
@@ -42,19 +46,22 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
           countWaterDrafts() +
           countWeightDrafts() +
           countWorkoutOfflineDrafts() +
-          countLocalWorkoutSessions(),
+          countLocalWorkoutSessions() +
+          countWorkoutExerciseDrafts(),
       );
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);
     const unsubWater = subscribeWaterDraftQueue(refresh);
     const unsubWeight = subscribeWeightDraftQueue(refresh);
     const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
+    const unsubEx = subscribeWorkoutExerciseDraftQueue(refresh);
     const unsubLocal = subscribeLocalWorkoutSessions(refresh);
     return () => {
       unsubMeal();
       unsubWater();
       unsubWeight();
       unsubLocal();
+      unsubEx();
       unsubSets();
     };
   }, []);

@@ -7,6 +7,7 @@ import {
   listLocalWorkoutSessions,
   removeLocalWorkoutSession,
 } from "@/lib/workout-local-session";
+import { remapWorkoutExerciseDraftSessionIds } from "@/lib/workout-exercise-draft-queue";
 import { remapWorkoutDraftIds } from "@/lib/workout-set-draft-queue";
 
 type FlushResult = {
@@ -77,6 +78,7 @@ export async function flushLocalWorkoutSessions(): Promise<FlushResult> {
         sessionIdMap: { [local.id]: serverSessionId },
         exerciseIdMap,
       });
+      remapWorkoutExerciseDraftSessionIds({ [local.id]: serverSessionId });
       removeLocalWorkoutSession(local.id);
       flushed += 1;
       lastSessionId = serverSessionId;

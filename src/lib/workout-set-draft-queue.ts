@@ -153,6 +153,10 @@ export function removeWorkoutSetDraft(id: string): void {
   writeQueue(readQueue().filter((item) => item.id !== id));
 }
 
+export function removeWorkoutSetDraftsForExercise(exerciseId: string): void {
+  writeQueue(readQueue().filter((item) => item.exerciseId !== exerciseId));
+}
+
 export function getWorkoutSetDraft(id: string): WorkoutSetDraftItem | null {
   return readQueue().find((item) => item.id === id) ?? null;
 }
