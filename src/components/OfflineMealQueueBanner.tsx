@@ -28,6 +28,12 @@ import {
   subscribeWeightDraftQueue,
 } from "@/lib/weight-draft-queue";
 import {
+  countDiaryNoteDrafts,
+  listDiaryNoteDrafts,
+  removeDiaryNoteDraft,
+  subscribeDiaryNoteDraftQueue,
+} from "@/lib/diary-note-draft-queue";
+import {
   countLocalWorkoutSessions,
   subscribeLocalWorkoutSessions,
 } from "@/lib/workout-local-session";
@@ -70,6 +76,7 @@ export function OfflineMealQueueBanner({
   const [recognitionCount, setRecognitionCount] = useState(0);
   const [waterCount, setWaterCount] = useState(0);
   const [weightCount, setWeightCount] = useState(0);
+  const [diaryNoteCount, setDiaryNoteCount] = useState(0);
   const [workoutSetCount, setWorkoutSetCount] = useState(0);
   const [workoutFinishCount, setWorkoutFinishCount] = useState(0);
   const [workoutLocalCount, setWorkoutLocalCount] = useState(0);
@@ -85,6 +92,7 @@ export function OfflineMealQueueBanner({
     setRecognitionCount(countPendingRecognitions());
     setWaterCount(countWaterDrafts());
     setWeightCount(countWeightDrafts());
+    setDiaryNoteCount(countDiaryNoteDrafts());
     setWorkoutSetCount(countWorkoutSetDrafts());
     setWorkoutFinishCount(countWorkoutFinishDrafts());
     setWorkoutLocalCount(countLocalWorkoutSessions());
@@ -97,6 +105,7 @@ export function OfflineMealQueueBanner({
       subscribeMealDraftQueue(refreshCounts),
       subscribeWaterDraftQueue(refreshCounts),
       subscribeWeightDraftQueue(refreshCounts),
+      subscribeDiaryNoteDraftQueue(refreshCounts),
       subscribeWorkoutSetDraftQueue(refreshCounts),
       subscribeLocalWorkoutSessions(refreshCounts),
       subscribeWorkoutExerciseDraftQueue(refreshCounts),
@@ -113,6 +122,7 @@ export function OfflineMealQueueBanner({
     const deletes = listFailedDeletes();
     const water = listWaterDrafts();
     const weights = listWeightDrafts();
+    const diaryNotes = listDiaryNoteDrafts();
     const workoutSets = listWorkoutSetDrafts();
     const workoutFinishes = listWorkoutFinishDrafts();
     const workoutLocals = countLocalWorkoutSessions();
@@ -124,6 +134,7 @@ export function OfflineMealQueueBanner({
       deletes.length === 0 &&
       water.length === 0 &&
       weights.length === 0 &&
+      diaryNotes.length === 0 &&
       workoutSets.length === 0 &&
       workoutFinishes.length === 0 &&
       workoutLocals === 0 &&
@@ -252,6 +263,25 @@ export function OfflineMealQueueBanner({
         }
       }
 
+      for (const item of diaryNotes) {
+        try {
+          const response = await fetch(withBasePath("/api/diary-note"), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              date: item.date,
+              note: item.note,
+              mood: item.mood,
+            }),
+          });
+          if (!response.ok) continue;
+          removeDiaryNoteDraft(item.id);
+          savedAny = true;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
+        }
+      }
+
       for (const item of workoutSets) {
         try {
           const response = await fetch(
@@ -317,6 +347,7 @@ export function OfflineMealQueueBanner({
     recognitionCount +
     waterCount +
     weightCount +
+    diaryNoteCount +
     workoutSetCount +
     workoutFinishCount +
     workoutLocalCount +
@@ -360,6 +391,13 @@ export function OfflineMealQueueBanner({
   if (weightCount > 0) {
     lines.push(
       weightCount === 1 ? "1 запись веса ждёт отправку" : `${weightCount} записи веса ждут отправку`,
+    );
+  }
+  if (diaryNoteCount > 0) {
+    lines.push(
+      diaryNoteCount === 1
+        ? "1 вечерний чек-ин ждёт отправку"
+        : `${diaryNoteCount} вечерних чек-ина ждут отправку`,
     );
   }
   if (workoutLocalCount > 0) {

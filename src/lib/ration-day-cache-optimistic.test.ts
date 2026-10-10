@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  applyOptimisticDiaryMood,
   applyOptimisticMealDelete,
   applyOptimisticMealPatch,
   applyOptimisticMeals,
@@ -175,6 +176,13 @@ test("applyOptimisticMeals appends entries and totals", () => {
   assert.equal(hit?.meals.totalCalories, 500);
   assert.equal(hit?.week.days.find((d) => d.date === "2026-08-24")?.calories, 500);
   assert.equal(hit?.streak.loggedToday, true);
+});
+
+test("applyOptimisticDiaryMood sets diaryMood", () => {
+  mockStorage();
+  seed("2026-08-24");
+  applyOptimisticDiaryMood("2026-08-24", 4);
+  assert.equal(readRationDayCache("2026-08-24")?.diaryMood, "4");
 });
 
 test("applyOptimisticMealPatch and delete", () => {
