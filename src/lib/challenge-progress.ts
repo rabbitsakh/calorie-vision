@@ -108,6 +108,19 @@ export async function computeChallengeProgress(
     return days;
   }
 
+  if (key === "gym_2" || key === "gym_3") {
+    // Finished sessions only — draft/local clocks don't count until synced+ended.
+    const rows = await prisma.workoutSession.findMany({
+      where: {
+        userId,
+        date: { in: dates },
+        endedAt: { not: null },
+      },
+      select: { id: true },
+    });
+    return rows.length;
+  }
+
   return 0;
 }
 

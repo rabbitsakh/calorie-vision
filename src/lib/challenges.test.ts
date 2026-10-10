@@ -38,9 +38,29 @@ test("recommendChallengeKey prefers weak feasible habit", () => {
     dinnerDays: 4,
     weighDays: 0,
     corridorDays: 3,
+    gymSessions: 3,
     daysLeft: 3,
   });
   assert.equal(key, "weigh_3");
+});
+
+test("recommendChallengeKey can pick gym_2 when gym is weak", () => {
+  const key = recommendChallengeKey({
+    breakfastDays: 6,
+    waterDays: 5,
+    logDays: 5,
+    dinnerDays: 5,
+    weighDays: 3,
+    corridorDays: 4,
+    gymSessions: 0,
+    daysLeft: 4,
+  });
+  assert.ok(key === "gym_2" || key === "gym_3");
+});
+
+test("challengeDef includes gym week challenges", () => {
+  assert.equal(challengeDef("gym_2")?.target, 2);
+  assert.equal(challengeDef("gym_3")?.target, 3);
 });
 
 test("normalizeChallengeKey maps legacy water_7", () => {

@@ -1,5 +1,6 @@
 import { paceSecPerKm } from "@/lib/workouts/cardio";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
+import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
 import { setCountsTowardLoad, parseSetType } from "@/lib/workouts/set-meta";
 
 export type PrSet = {
@@ -304,4 +305,52 @@ export function describePrBeat(
     default:
       return null;
   }
+}
+
+export type SessionForPrCount = {
+  id: string;
+  date: string;
+  createdAt: string | Date;
+  exercises: Array<{
+    name: string;
+    kind?: string | null;
+    sets: readonly PrSet[];
+  }>;
+};
+
+/**
+ * Walk sessions oldest→newest and count how many exercises set a new PR in each session.
+ * Returns a map of sessionId → prCount (Wave V history badge).
+ */
+export function countPrsBySessionId(
+  sessions: readonly SessionForPrCount[],
+): Map<string, number> {
+  const chronological = [...sessions].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    const ta = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+    const tb = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
+
+  const bestByExercise = new Map<string, ExercisePrs>();
+  const counts = new Map<string, number>();
+
+  for (const session of chronological) {
+    let prCount = 0;
+    for (const ex of session.exercises) {
+      const key = normalizeExerciseName(ex.name);
+      if (!key) continue;
+      const after = computeExercisePrs(ex.kind, ex.sets);
+      const before = bestByExercise.get(key) ?? null;
+      if (describePrBeat(before, after)) {
+        prCount += 1;
+      }
+      const merged = before ? mergeExercisePrs([before, after]) : after;
+      if (merged) bestByExercise.set(key, merged);
+    }
+    counts.set(session.id, prCount);
+  }
+
+  return counts;
 }
