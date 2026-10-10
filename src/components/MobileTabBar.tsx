@@ -11,6 +11,10 @@ import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-que
 import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
 import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
 import {
+  countLocalWorkoutSessions,
+  subscribeLocalWorkoutSessions,
+} from "@/lib/workout-local-session";
+import {
   countWorkoutOfflineDrafts,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
@@ -37,17 +41,20 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
         countOfflineQueue() +
           countWaterDrafts() +
           countWeightDrafts() +
-          countWorkoutOfflineDrafts(),
+          countWorkoutOfflineDrafts() +
+          countLocalWorkoutSessions(),
       );
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);
     const unsubWater = subscribeWaterDraftQueue(refresh);
     const unsubWeight = subscribeWeightDraftQueue(refresh);
     const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
+    const unsubLocal = subscribeLocalWorkoutSessions(refresh);
     return () => {
       unsubMeal();
       unsubWater();
       unsubWeight();
+      unsubLocal();
       unsubSets();
     };
   }, []);

@@ -10,6 +10,7 @@ import {
   listWorkoutFinishDrafts,
   listWorkoutSetDrafts,
   listWorkoutSetDraftsForSession,
+  remapWorkoutDraftIds,
   removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
 } from "./workout-set-draft-queue.ts";
@@ -64,4 +65,21 @@ test("enqueueWorkoutFinishDraft dedupes per session", () => {
   assert.equal(countWorkoutOfflineDrafts(), 2);
   removeWorkoutFinishDraft(a);
   assert.equal(countWorkoutFinishDrafts(), 0);
+});
+
+test("remapWorkoutDraftIds rewrites session and exercise ids", () => {
+  mockStorage();
+  enqueueWorkoutSetDraft({
+    sessionId: "local-sess-1",
+    exerciseId: "local-ex-1",
+    body: { reps: 5, weightKg: 40, completed: true },
+  });
+  enqueueWorkoutFinishDraft("local-sess-1");
+  remapWorkoutDraftIds({
+    sessionIdMap: { "local-sess-1": "srv-s" },
+    exerciseIdMap: { "local-ex-1": "srv-e" },
+  });
+  assert.equal(listWorkoutSetDrafts()[0]?.sessionId, "srv-s");
+  assert.equal(listWorkoutSetDrafts()[0]?.exerciseId, "srv-e");
+  assert.equal(listWorkoutFinishDrafts()[0]?.sessionId, "srv-s");
 });

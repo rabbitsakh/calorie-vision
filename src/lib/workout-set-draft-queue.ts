@@ -166,6 +166,13 @@ export function countWorkoutOfflineDrafts(): number {
   return countWorkoutSetDrafts() + countWorkoutFinishDrafts();
 }
 
+/** Include local offline sessions in badge count when helper is available. */
+export function countAllWorkoutOfflineDrafts(
+  localSessionCount = 0,
+): number {
+  return countWorkoutOfflineDrafts() + localSessionCount;
+}
+
 export function enqueueWorkoutFinishDraft(sessionId: string): string {
   const existing = readFinishQueue().find((item) => item.sessionId === sessionId);
   if (existing) return existing.id;
@@ -186,4 +193,29 @@ export function enqueueWorkoutFinishDraft(sessionId: string): string {
 
 export function removeWorkoutFinishDraft(id: string): void {
   writeFinishQueue(readFinishQueue().filter((item) => item.id !== id));
+}
+
+/** Remap local session/exercise ids after an offline session is synced. */
+export function remapWorkoutDraftIds(input: {
+  sessionIdMap?: Record<string, string>;
+  exerciseIdMap?: Record<string, string>;
+}): void {
+  const sessionMap = input.sessionIdMap ?? {};
+  const exerciseMap = input.exerciseIdMap ?? {};
+  if (Object.keys(sessionMap).length === 0 && Object.keys(exerciseMap).length === 0) {
+    return;
+  }
+
+  const sets = readQueue().map((item) => ({
+    ...item,
+    sessionId: sessionMap[item.sessionId] ?? item.sessionId,
+    exerciseId: exerciseMap[item.exerciseId] ?? item.exerciseId,
+  }));
+  writeQueue(sets);
+
+  const finishes = readFinishQueue().map((item) => ({
+    ...item,
+    sessionId: sessionMap[item.sessionId] ?? item.sessionId,
+  }));
+  writeFinishQueue(finishes);
 }
