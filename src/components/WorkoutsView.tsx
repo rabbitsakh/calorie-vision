@@ -94,6 +94,11 @@ import {
   draftIdFromLocalSetId,
   mergeQueuedSetsIntoSession,
 } from "@/lib/workouts/merge-queued-sets";
+import {
+  lastSessionRepeatHint,
+  lastSessionRepeatLabel,
+  pickLastFinishedSession,
+} from "@/lib/workouts/last-finished-session";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import {
   computeExercisePrs,
@@ -609,6 +614,16 @@ export function WorkoutsView({
       listWorkoutSetDraftsForSession(detail.id),
     );
   }, [detail, queuedSets]);
+
+  const lastRepeat = useMemo(() => {
+    const picked = pickLastFinishedSession(sessions);
+    if (!picked) return null;
+    return {
+      id: picked.id,
+      label: lastSessionRepeatLabel(picked),
+      hint: lastSessionRepeatHint(picked),
+    };
+  }, [sessions]);
 
   useEffect(() => {
     if (!creating) return;
@@ -2050,6 +2065,7 @@ export function WorkoutsView({
           todayKey={viewDate}
           busy={busy}
           firstWorkout={sessions.length === 0}
+          lastRepeat={lastRepeat}
           sessions={sessions
             .filter((s) => s.date === viewDate)
             .map((s) => ({
@@ -2080,6 +2096,7 @@ export function WorkoutsView({
             setCreating(true);
             setNewDate(viewDate);
           }}
+          onRepeatLast={(id) => void repeatSession(id)}
           onStartRoutine={(id) => void startRoutine(id)}
           preferWeekOpen={preferWeekOpen}
           onEditRoutine={(id) => setEditingRoutineId(id)}
