@@ -24,9 +24,26 @@ import {
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
 import { FOOD_LOOKUP_MODE_LABELS, type FoodLookupMode } from "@/lib/food-types";
+import { explainWhyDiaryEntry } from "@/lib/confirm-why-explanation";
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
 import { buildMacrosRepairPatch, buildMacrosRepairQuery } from "@/lib/meal-macros-lookup";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
+
+function DiaryWhyTrail({ entry }: { entry: MealEntry }) {
+  const why = explainWhyDiaryEntry(entry);
+  if (!why) return null;
+  return (
+    <details className="mt-1 group">
+      <summary className="cursor-pointer list-none text-[11px] font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden">
+        Почему так
+      </summary>
+      <p className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{why.summary}</p>
+      {why.detail ? (
+        <p className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{why.detail}</p>
+      ) : null}
+    </details>
+  );
+}
 
 function mealLookupSubtitle(entry: Pick<MealEntry, "brand" | "lookupMode">): string | null {
   const brand = entry.brand?.trim();
@@ -367,6 +384,7 @@ function GroupedMealCard({
                     allergens={userAllergens}
                   />
                   <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+                  <DiaryWhyTrail entry={entry} />
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                     {mealNeedsMacrosRepair(entry) ? (
                       <button
@@ -605,6 +623,7 @@ function SingleMealCard({
             allergens={userAllergens}
           />
           <MealEntryDetails entry={entry} timezone={timezone} hideTime />
+          <DiaryWhyTrail entry={entry} />
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {mealNeedsMacrosRepair(entry) ? (
               <button

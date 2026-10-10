@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { explainWhyTheseCalories } from "./confirm-why-explanation.ts";
+import {
+  explainWhyDiaryEntry,
+  explainWhyTheseCalories,
+} from "./confirm-why-explanation.ts";
 
 test("photo meal: source + portion basis", () => {
   const why = explainWhyTheseCalories({
@@ -101,4 +104,27 @@ test("low confidence adds detail", () => {
   });
   assert.ok(why.detail);
   assert.match(why.detail!, /провер|неуверен|неоднознач/i);
+});
+
+test("explainWhyDiaryEntry null without source/photo/lookup", () => {
+  assert.equal(
+    explainWhyDiaryEntry({
+      dishName: "Ручной ввод",
+      calories: 100,
+    }),
+    null,
+  );
+});
+
+test("explainWhyDiaryEntry maps saved recognitionSource", () => {
+  const why = explainWhyDiaryEntry({
+    dishName: "Борщ",
+    calories: 320,
+    confidence: 0.82,
+    recognitionSource: "gigachat",
+    photoKind: "meal",
+    portionGrams: 280,
+  });
+  assert.ok(why);
+  assert.match(why!.summary, /фото|порци/i);
 });
