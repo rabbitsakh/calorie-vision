@@ -94,3 +94,47 @@ export function explainWhyTheseCalories(
 
   return { summary: clip(summary), detail };
 }
+
+type DiaryWhyEntry = {
+  dishName: string;
+  calories: number;
+  portionGrams?: number | null;
+  confidence?: number | null;
+  recognitionSource?: string | null;
+  photoKind?: string | null;
+  brand?: string | null;
+  lookupMode?: string | null;
+  imagePath?: string | null;
+};
+
+/**
+ * Wave W — short «Почему так» for a saved diary row (no second dashboard).
+ * Returns null when there's nothing useful to say.
+ */
+export function explainWhyDiaryEntry(
+  entry: DiaryWhyEntry,
+  opts?: { lowConfidenceThreshold?: number },
+): WhyTheseCalories | null {
+  const source = entry.recognitionSource?.trim() || undefined;
+  const photoKind = entry.photoKind?.trim() || undefined;
+  const lookupMode =
+    entry.lookupMode === "generic" || entry.lookupMode === "branded"
+      ? entry.lookupMode
+      : undefined;
+  if (!source && !photoKind && !lookupMode && !entry.imagePath) {
+    return null;
+  }
+  return explainWhyTheseCalories(
+    {
+      dishName: entry.dishName,
+      brand: entry.brand ?? undefined,
+      portionGrams: entry.portionGrams ?? undefined,
+      calories: entry.calories,
+      photoKind: photoKind as FoodRecognitionResult["photoKind"],
+      source,
+      lookupMode,
+      confidence: typeof entry.confidence === "number" ? entry.confidence : 1,
+    },
+    opts,
+  );
+}
