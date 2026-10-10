@@ -25,9 +25,10 @@ export function isAppNavPath(pathname: string): boolean {
   return APP_NAV.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
 }
 
-/** Shell pages that keep the center «+» (tabs + food week plan). */
+/** Shell pages that keep the center dock (tabs + food week plan + AI assistant). */
 export function isFoodAddPath(pathname: string): boolean {
   if (isAppNavPath(pathname)) return true;
+  if (pathname === "/assistant" || pathname.startsWith("/assistant/")) return true;
   return pathname === "/plan" || pathname.startsWith("/plan/");
 }
 

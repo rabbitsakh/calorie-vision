@@ -26,6 +26,7 @@ test("isAppNavPath covers workouts and not plan/weight", () => {
 test("isFoodAddPath keeps plan shell with +", () => {
   assert.equal(isFoodAddPath("/workouts"), true);
   assert.equal(isFoodAddPath("/plan"), true);
+  assert.equal(isFoodAddPath("/assistant"), true);
   assert.equal(isFoodAddPath("/weight"), false);
 });
 
