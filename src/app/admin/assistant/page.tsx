@@ -10,7 +10,7 @@ export default function AdminAssistantPage() {
   return (
     <AppShell
       title="AI‑ассистент"
-      description="Чат по твоему рациону и тренировкам."
+      description="Рацион, зал, недельные планы и покупки — с живым контекстом."
       headerExtra={<BackButton />}
     >
       <AuthGate>
