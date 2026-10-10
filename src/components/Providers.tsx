@@ -2,6 +2,7 @@
 
 import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, type ReactNode } from "react";
+import { CapacitorQueueBadgeHost } from "@/components/CapacitorQueueBadgeHost";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { markCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
@@ -83,6 +84,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <CapacitorOAuthDeepLink />
       <CapacitorSessionPersist />
       <CapacitorNativeViewport />
+      <CapacitorQueueBadgeHost />
       <MetrikaFunnel />
       {children}
     </SessionProvider>
