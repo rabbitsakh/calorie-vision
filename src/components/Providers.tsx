@@ -7,6 +7,7 @@ import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge
 import { markCapacitorLoggedIn } from "@/lib/capacitor-login-flag";
 import { ensureCapacitorOAuthDeepLink } from "@/lib/capacitor-oauth";
 import { isApkWebView, refreshCapacitorResumeToken } from "@/lib/capacitor-resume";
+import { writeOfflineSessionCache } from "@/lib/offline-session";
 import { withBasePath } from "@/lib/paths";
 
 function CapacitorOAuthDeepLink() {
@@ -19,17 +20,19 @@ function CapacitorOAuthDeepLink() {
 /**
  * Persist resume token while authenticated in the APK WebView.
  * Uses CvSession on calorievision.ru (Capacitor JS is local-shell only).
+ * Also mirrors session into localStorage for offline AuthGate soft-pass.
  */
 function CapacitorSessionPersist() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (status !== "authenticated" || !session) return;
+    writeOfflineSessionCache(session);
     if (!isApkWebView()) return;
     void (async () => {
       await markCapacitorLoggedIn();
       await refreshCapacitorResumeToken();
     })();
-  }, [status]);
+  }, [status, session]);
   return null;
 }
 
@@ -72,7 +75,11 @@ function CapacitorNativeViewport() {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider basePath={withBasePath("/api/auth")}>
+    <SessionProvider
+      basePath={withBasePath("/api/auth")}
+      // APK often lies about navigator.onLine; avoid wiping session on flaky refetch.
+      refetchWhenOffline={false}
+    >
       <CapacitorOAuthDeepLink />
       <CapacitorSessionPersist />
       <CapacitorNativeViewport />

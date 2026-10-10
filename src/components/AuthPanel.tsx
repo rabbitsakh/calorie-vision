@@ -164,6 +164,10 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
                 setOpen(false);
                 void (async () => {
                   const { clearCapacitorResumeToken } = await import("@/lib/capacitor-resume");
+                  const { clearOfflineSessionCache } = await import("@/lib/offline-session");
+                  const { clearOfflineAccountCache } = await import("@/lib/offline-account-cache");
+                  clearOfflineSessionCache();
+                  clearOfflineAccountCache();
                   await clearCapacitorResumeToken();
                   await signOut({ callbackUrl: withBasePath("/login") });
                 })();

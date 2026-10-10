@@ -172,6 +172,14 @@ export function capacitorResumeConsumeUrl(token: string, origin = "https://calor
 export async function resumeCapacitorSessionInPlace(): Promise<boolean> {
   const token = await getCapacitorResumeToken();
   if (!token) return false;
+  // Never navigate to the resume URL offline — WebView would land on offline.html.
+  try {
+    const { probeOnline } = await import("@/lib/connectivity");
+    const online = await probeOnline(2500);
+    if (!online) return false;
+  } catch {
+    return false;
+  }
   const origin =
     typeof window !== "undefined" && window.location.hostname.includes("calorievision")
       ? window.location.origin
