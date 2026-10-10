@@ -7,25 +7,14 @@ import { useFoodAddUi } from "@/components/FoodAddHost";
 import { LongPressAddButton } from "@/components/FoodAddQuickMenu";
 import { NavIcon } from "@/components/NavIcons";
 import { APP_NAV, navKeepsDate } from "@/lib/navigation";
-import { countOfflineQueue, subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
-import { countWaterDrafts, subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
-import { countWeightDrafts, subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
-import {
-  countDiaryNoteDrafts,
-  subscribeDiaryNoteDraftQueue,
-} from "@/lib/diary-note-draft-queue";
-import {
-  countLocalWorkoutSessions,
-  subscribeLocalWorkoutSessions,
-} from "@/lib/workout-local-session";
-import {
-  countWorkoutExerciseDrafts,
-  subscribeWorkoutExerciseDraftQueue,
-} from "@/lib/workout-exercise-draft-queue";
-import {
-  countWorkoutOfflineDrafts,
-  subscribeWorkoutSetDraftQueue,
-} from "@/lib/workout-set-draft-queue";
+import { countAllOfflineDrafts } from "@/lib/offline-draft-count";
+import { subscribeMealDraftQueue } from "@/lib/meal-draft-queue";
+import { subscribeWaterDraftQueue } from "@/lib/water-draft-queue";
+import { subscribeWeightDraftQueue } from "@/lib/weight-draft-queue";
+import { subscribeDiaryNoteDraftQueue } from "@/lib/diary-note-draft-queue";
+import { subscribeLocalWorkoutSessions } from "@/lib/workout-local-session";
+import { subscribeWorkoutExerciseDraftQueue } from "@/lib/workout-exercise-draft-queue";
+import { subscribeWorkoutSetDraftQueue } from "@/lib/workout-set-draft-queue";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 type MobileTabBarProps = {
@@ -44,16 +33,7 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
   const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
-    const refresh = () =>
-      setQueueCount(
-        countOfflineQueue() +
-          countWaterDrafts() +
-          countWeightDrafts() +
-          countDiaryNoteDrafts() +
-          countWorkoutOfflineDrafts() +
-          countLocalWorkoutSessions() +
-          countWorkoutExerciseDrafts(),
-      );
+    const refresh = () => setQueueCount(countAllOfflineDrafts());
     refresh();
     const unsubMeal = subscribeMealDraftQueue(refresh);
     const unsubWater = subscribeWaterDraftQueue(refresh);
