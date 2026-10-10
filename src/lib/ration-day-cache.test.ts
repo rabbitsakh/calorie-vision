@@ -43,3 +43,15 @@ test("readRationDayCache returns null for unknown date", () => {
   mockStorage();
   assert.equal(readRationDayCache("2026-01-01"), null);
 });
+
+test("writeRationDayCache keeps last 8 days", () => {
+  mockStorage();
+  for (let i = 1; i <= 10; i++) {
+    const d = `2026-09-${String(i).padStart(2, "0")}`;
+    writeRationDayCache(stubPayload(d));
+  }
+  assert.equal(readRationDayCache("2026-09-01"), null);
+  assert.equal(readRationDayCache("2026-09-02"), null);
+  assert.ok(readRationDayCache("2026-09-03"));
+  assert.ok(readRationDayCache("2026-09-10"));
+});
