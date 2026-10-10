@@ -77,6 +77,20 @@ import {
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
 import {
+  addLocalWorkoutExercise,
+  countLocalWorkoutSessions,
+  createLocalWorkoutSession,
+  getLocalWorkoutSession,
+  isLocalSessionId,
+  listLocalWorkoutSessions,
+  localSessionToDetail,
+  localSessionToSummary,
+  removeLocalWorkoutSession,
+  subscribeLocalWorkoutSessions,
+  updateLocalWorkoutSession,
+} from "@/lib/workout-local-session";
+import { flushLocalWorkoutSessions } from "@/lib/workout-local-session-flush";
+import {
   draftIdFromLocalSetId,
   mergeQueuedSetsIntoSession,
 } from "@/lib/workouts/merge-queued-sets";
@@ -399,6 +413,7 @@ export function WorkoutsView({
   const loadList = useCallback(async () => {
     setLoading(true);
     setError(null);
+    const locals = listLocalWorkoutSessions().map(localSessionToSummary) as SessionSummary[];
     try {
       const q = new URLSearchParams({ limit: "60" });
       if (filterGroups.length) q.set("groups", filterGroups.join(","));
@@ -417,9 +432,14 @@ export function WorkoutsView({
       const data = await readJson<{ sessions: SessionSummary[] }>(
         await fetch(withBasePath(`/api/workouts?${q}`)),
       );
-      setSessions(data.sessions);
+      setSessions([...locals, ...data.sessions]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      if (locals.length > 0) {
+        setSessions(locals);
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+      }
     } finally {
       setLoading(false);
     }
@@ -470,6 +490,30 @@ export function WorkoutsView({
   const openSession = useCallback(async (id: string, opts?: { enterStage?: boolean }) => {
     setError(null);
     setActiveId(id);
+
+    if (isLocalSessionId(id)) {
+      const local = getLocalWorkoutSession(id);
+      if (!local) {
+        setError("Локальная тренировка не найдена");
+        setActiveId(null);
+        return;
+      }
+      const session = localSessionToDetail(local) as SessionDetail;
+      setDetail(session);
+      setProgress(null);
+      setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
+      const enterStage =
+        Boolean(opts?.enterStage) &&
+        session.clockStatus !== "finished" &&
+        session.exercises.length > 0;
+      setStageOpen(enterStage);
+      setShowSummary(session.clockStatus === "finished");
+      setCircuitRound(1);
+      setFocusExerciseId(session.exercises[0]?.id ?? null);
+      setError("Тренировка на устройстве — отправим при связи");
+      return;
+    }
+
     try {
       const data = await readJson<{ session: SessionDetail; progress: Progress }>(
         await fetch(withBasePath(`/api/workouts/${id}`)),
@@ -546,9 +590,15 @@ export function WorkoutsView({
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
 
   useEffect(() => {
-    const refresh = () => setQueuedSets(countWorkoutOfflineDrafts());
+    const refresh = () =>
+      setQueuedSets(countWorkoutOfflineDrafts() + countLocalWorkoutSessions());
     refresh();
-    return subscribeWorkoutSetDraftQueue(refresh);
+    const unsubSets = subscribeWorkoutSetDraftQueue(refresh);
+    const unsubLocal = subscribeLocalWorkoutSessions(refresh);
+    return () => {
+      unsubSets();
+      unsubLocal();
+    };
   }, []);
 
   /** Server session + offline offline set drafts (Wave N). */
@@ -635,6 +685,58 @@ export function WorkoutsView({
   const patchClock = async (clock: "start" | "pause" | "resume" | "finish") => {
     if (!detail) return;
     setError(null);
+
+    if (isLocalSessionId(detail.id)) {
+      const now = new Date().toISOString();
+      if (clock === "finish") {
+        updateLocalWorkoutSession(detail.id, {
+          clockStatus: "finished",
+          endedAt: now,
+          pausedAt: null,
+        });
+        enqueueWorkoutFinishDraft(detail.id);
+        setDetail({
+          ...detail,
+          clockStatus: "finished",
+          endedAt: now,
+          pausedAt: null,
+        });
+        setStageOpen(false);
+        setShowSummary(true);
+        markPostWorkoutNudge();
+        setError("Итог на устройстве — отправим при связи");
+        return;
+      }
+      if (clock === "start") {
+        updateLocalWorkoutSession(detail.id, {
+          clockStatus: "running",
+          startedAt: detail.startedAt ?? now,
+        });
+        setDetail({
+          ...detail,
+          clockStatus: "running",
+          startedAt: detail.startedAt ?? now,
+        });
+        return;
+      }
+      if (clock === "pause") {
+        updateLocalWorkoutSession(detail.id, {
+          clockStatus: "paused",
+          pausedAt: now,
+        });
+        setDetail({ ...detail, clockStatus: "paused", pausedAt: now });
+        return;
+      }
+      if (clock === "resume") {
+        updateLocalWorkoutSession(detail.id, {
+          clockStatus: "running",
+          pausedAt: null,
+        });
+        setDetail({ ...detail, clockStatus: "running", pausedAt: null });
+      }
+      return;
+    }
+
     try {
       const data = await readJson<{ session: SessionDetail; progress: Progress }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}`), {
@@ -745,6 +847,20 @@ export function WorkoutsView({
       await loadList();
       await openSession(data.session.id);
     } catch (err) {
+      if (isLikelyOfflineError(err) && newGroups.length > 0) {
+        const local = createLocalWorkoutSession({
+          date: newDate,
+          muscleKeys: newGroups,
+          progressRate,
+        });
+        setCreating(false);
+        setFromPlusMenu(false);
+        setNewGroups([]);
+        await loadList();
+        await openSession(local.id);
+        setError("Тренировка создана на устройстве — отправим при связи");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Не удалось создать");
     } finally {
       setBusy(false);
@@ -856,11 +972,16 @@ export function WorkoutsView({
   );
 
   const flushQueuedSets = useCallback(async () => {
+    const localFlush = await flushLocalWorkoutSessions();
+    let saved = localFlush.flushed;
+    let lastSession: SessionDetail | null =
+      localFlush.lastSession && typeof localFlush.lastSession === "object"
+        ? (localFlush.lastSession as SessionDetail)
+        : null;
+
     const items = listWorkoutSetDrafts();
     const finishes = listWorkoutFinishDrafts();
-    if (items.length === 0 && finishes.length === 0) return;
-    let saved = 0;
-    let lastSession: SessionDetail | null = null;
+    if (items.length === 0 && finishes.length === 0 && saved === 0) return;
     for (const item of items) {
       try {
         const data = await readJson<{ session: SessionDetail }>(
@@ -897,13 +1018,19 @@ export function WorkoutsView({
     }
     if (saved > 0) {
       setError(null);
-      if (lastSession && detail?.id === lastSession.id) {
+      if (
+        localFlush.lastSessionId &&
+        detail &&
+        isLocalSessionId(detail.id)
+      ) {
+        await openSession(localFlush.lastSessionId);
+      } else if (lastSession && detail?.id === lastSession.id) {
         await refreshDetail(lastSession);
       } else {
         void loadList();
       }
     }
-  }, [detail?.id, loadList, refreshDetail]);
+  }, [detail, loadList, openSession, refreshDetail]);
 
   useEffect(() => {
     let wasOnline = true;
@@ -919,8 +1046,8 @@ export function WorkoutsView({
   useEffect(() => {
     if (queueFlushKey <= 0) return;
     void (async () => {
-      if (!activeId) {
-        void loadList();
+      if (!activeId || isLocalSessionId(activeId)) {
+        void flushQueuedSets();
         return;
       }
       try {
@@ -942,8 +1069,22 @@ export function WorkoutsView({
     const name = (nameOverride ?? exerciseName).trim();
     if (!name) return;
     setError(null);
+    const kind = kindOverride ?? newExerciseKind;
+
+    if (isLocalSessionId(detail.id)) {
+      const next = addLocalWorkoutExercise(detail.id, { name, kind });
+      if (!next) {
+        setError("Не удалось добавить упражнение на устройстве");
+        return;
+      }
+      setExerciseName("");
+      setLibraryHits([]);
+      setDetail(localSessionToDetail(next) as SessionDetail);
+      setFocusExerciseId(next.exercises.at(-1)?.id ?? null);
+      return;
+    }
+
     try {
-      const kind = kindOverride ?? newExerciseKind;
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
           method: "POST",
@@ -955,6 +1096,11 @@ export function WorkoutsView({
       setLibraryHits([]);
       await refreshDetail(data.session);
     } catch (err) {
+      if (isLikelyOfflineError(err) && isLocalSessionId(detail.id) === false) {
+        // Online session but offline network — cannot add server exercise without id.
+        setError("Нет сети — добавьте упражнение, когда появится связь");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
     }
   };
@@ -1134,6 +1280,34 @@ export function WorkoutsView({
       return;
     }
     const body: Record<string, unknown> = { ...meta, ...validated.body };
+
+    const queueSetLocally = () => {
+      enqueueWorkoutSetDraft({
+        sessionId: detail.id,
+        exerciseId,
+        body,
+      });
+      setSetDrafts((prev) => ({
+        ...prev,
+        [exerciseId]: {
+          ...EMPTY_DRAFT,
+          kg: spec.usesWeight ? draft.kg : "",
+          km: spec.usesDistance ? draft.km : "",
+          setType: draft.setType === "rest_pause" ? "working" : draft.setType,
+        },
+      }));
+      clearDraftError(exerciseId);
+      startRestForExercise(ex, draft.setType);
+      const queued = "Подход сохранён на устройстве — отправим при связи с сервером";
+      setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
+      setError(queued);
+    };
+
+    if (isLocalSessionId(detail.id)) {
+      queueSetLocally();
+      return;
+    }
+
     try {
       const data = await readJson<{ session: SessionDetail }>(
         await fetch(withBasePath(`/api/workouts/exercises/${exerciseId}/sets`), {
@@ -1161,25 +1335,7 @@ export function WorkoutsView({
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
       if (isLikelyOfflineError(err)) {
-        enqueueWorkoutSetDraft({
-          sessionId: detail.id,
-          exerciseId,
-          body,
-        });
-        setSetDrafts((prev) => ({
-          ...prev,
-          [exerciseId]: {
-            ...EMPTY_DRAFT,
-            kg: spec.usesWeight ? draft.kg : "",
-            km: spec.usesDistance ? draft.km : "",
-            setType: draft.setType === "rest_pause" ? "working" : draft.setType,
-          },
-        }));
-        clearDraftError(exerciseId);
-        startRestForExercise(ex, draft.setType);
-        const queued = "Подход сохранён на устройстве — отправим при связи с сервером";
-        setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
-        setError(queued);
+        queueSetLocally();
         return;
       }
       const message = err instanceof Error ? err.message : "Не удалось добавить подход";
@@ -1633,6 +1789,15 @@ export function WorkoutsView({
   const deleteSession = async () => {
     if (!detail) return;
     if (!confirm("Удалить эту тренировку?")) return;
+    if (isLocalSessionId(detail.id)) {
+      removeLocalWorkoutSession(detail.id);
+      setDetail(null);
+      setActiveId(null);
+      setProgress(null);
+      clearRest();
+      await loadList();
+      return;
+    }
     try {
       await readJson(await fetch(withBasePath(`/api/workouts/${detail.id}`), { method: "DELETE" }));
       setDetail(null);
