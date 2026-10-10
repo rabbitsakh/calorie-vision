@@ -1,3 +1,5 @@
+import { applyOptimisticWeight } from "@/lib/ration-day-cache-optimistic";
+
 export const WEIGHT_DRAFT_QUEUE_KEY = "cv-weight-draft-queue-v1";
 
 export type WeightDraftItem = {
@@ -96,6 +98,12 @@ export function enqueueWeightDraft(input: {
     note: input.note ?? null,
   });
   writeQueue(items);
+  // Wave S — keep ration-day cache in sync for offline reloads.
+  try {
+    applyOptimisticWeight(input.date, input.weightKg);
+  } catch {
+    // ignore
+  }
   return id;
 }
 

@@ -2,6 +2,11 @@ import type { RecognitionResponse } from "@/types";
 import type { NutritionValues } from "@/lib/nutrition";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { deleteOfflinePhoto, loadOfflinePhoto, saveOfflinePhoto } from "@/lib/offline-photo-store";
+import {
+  applyOptimisticMealDelete,
+  applyOptimisticMealPatch,
+  applyOptimisticMeals,
+} from "@/lib/ration-day-cache-optimistic";
 
 export const MEAL_DRAFT_QUEUE_KEY = "cv-meal-draft-queue-v1";
 
@@ -243,6 +248,12 @@ export function enqueueFailedSave(
     body,
   });
   writeQueue(items);
+  // Wave S — keep ration-day cache in sync for offline reloads.
+  try {
+    applyOptimisticMeals(selectedDate, body);
+  } catch {
+    // ignore
+  }
   return id;
 }
 
@@ -309,6 +320,7 @@ export function enqueueFailedPatch(
     (typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
       : `patch-${Date.now()}`);
+  const merged = { ...(existing?.patch ?? {}), ...patch };
   items.push({
     id,
     kind: "failed-patch",
@@ -316,9 +328,14 @@ export function enqueueFailedPatch(
     selectedDate,
     mealId,
     // Merge successive offline edits for the same meal.
-    patch: { ...(existing?.patch ?? {}), ...patch },
+    patch: merged,
   });
   writeQueue(items);
+  try {
+    applyOptimisticMealPatch(selectedDate, mealId, merged);
+  } catch {
+    // ignore
+  }
   return id;
 }
 
@@ -342,6 +359,11 @@ export function enqueueFailedDelete(selectedDate: string, mealId: string): strin
     mealId,
   });
   writeQueue(items);
+  try {
+    applyOptimisticMealDelete(selectedDate, mealId);
+  } catch {
+    // ignore
+  }
   return id;
 }
 

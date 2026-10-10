@@ -14,6 +14,7 @@ import { isLikelyOfflineError } from "@/lib/connectivity";
 import { buildEmptyOfflineRationDay } from "@/lib/offline-ration-day";
 import { withBasePath } from "@/lib/paths";
 import { readRationDayCache, writeRationDayCache } from "@/lib/ration-day-cache";
+import { RATION_DAY_CACHE_UPDATED_EVENT } from "@/lib/ration-day-cache-optimistic";
 import type { DayMealsResponse } from "@/types";
 
 export type RationDayStreak = {
@@ -193,6 +194,23 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
       void refresh(false);
     }
   }, [date, refresh, refreshKey, markReady]);
+
+  // Wave S — offline enqueue patches localStorage; pull into live provider state.
+  useEffect(() => {
+    function onCacheUpdated(event: Event) {
+      const detail = (event as CustomEvent<{ date?: string }>).detail;
+      if (detail?.date && detail.date !== dateRef.current) return;
+      const cached = readRationDayCache(dateRef.current);
+      if (!cached) return;
+      setData(cached);
+      setFromCache(true);
+      setError(null);
+      setLoading(false);
+      markReady();
+    }
+    window.addEventListener(RATION_DAY_CACHE_UPDATED_EVENT, onCacheUpdated);
+    return () => window.removeEventListener(RATION_DAY_CACHE_UPDATED_EVENT, onCacheUpdated);
+  }, [markReady]);
 
   const bump = useCallback(() => setRefreshKey((v) => v + 1), []);
 

@@ -1,3 +1,5 @@
+import { applyOptimisticWater } from "@/lib/ration-day-cache-optimistic";
+
 export const WATER_DRAFT_QUEUE_KEY = "cv-water-draft-queue-v1";
 
 export type WaterDraftItem = {
@@ -86,6 +88,12 @@ export function enqueueWaterDraft(selectedDate: string, ml: number): string {
     ml,
   });
   writeQueue(items);
+  // Wave S — keep ration-day cache in sync for offline reloads.
+  try {
+    applyOptimisticWater(selectedDate, ml);
+  } catch {
+    // ignore
+  }
   return id;
 }
 
