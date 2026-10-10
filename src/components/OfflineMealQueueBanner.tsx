@@ -240,6 +240,8 @@ export function OfflineMealQueueBanner({
               weightKg: item.weightKg,
               measuredAt: item.measuredAt,
               note: item.note,
+              // Draft already represents an explicit user intent to overwrite.
+              confirmReplace: true,
             }),
           });
           if (!response.ok) break;

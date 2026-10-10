@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { weightsDiffer } from "@/lib/weight-day-conflict";
 import {
   computeWeightChangeKg,
   weightEntryOrderNewestFirst,
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest) {
       weightKg?: number;
       measuredAt?: string;
       note?: string | null;
+      /** Explicit overwrite of an existing same-day entry (Wave T). */
+      confirmReplace?: boolean;
     };
     const date = requireDateKey(body.date);
     if (!date || !isValidWeight(Number(body.weightKg))) {
@@ -88,11 +91,28 @@ export async function POST(request: NextRequest) {
       typeof body.note === "string" && body.note.trim()
         ? body.note.trim().slice(0, 200)
         : null;
+    const confirmReplace = body.confirmReplace === true;
 
     const existing = await prisma.weightEntry.findFirst({
       where: { userId: session.user.id, date },
       orderBy: weightEntryOrderOldestFirst,
     });
+
+    if (existing && weightsDiffer(existing.weightKg, weightKg) && !confirmReplace) {
+      return NextResponse.json(
+        {
+          error: "На этот день уже есть запись веса",
+          conflict: {
+            id: existing.id,
+            date: existing.date,
+            weightKg: existing.weightKg,
+            measuredAt: existing.measuredAt.toISOString(),
+            note: existing.note ?? null,
+          },
+        },
+        { status: 409 },
+      );
+    }
 
     const entry = existing
       ? await prisma.weightEntry.update({
@@ -115,6 +135,7 @@ export async function POST(request: NextRequest) {
       weightKg: entry.weightKg,
       note: entry.note ?? null,
       measuredAt: entry.measuredAt.toISOString(),
+      replaced: Boolean(existing),
     });
   } catch (error) {
     console.error(error);

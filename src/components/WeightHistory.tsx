@@ -8,6 +8,10 @@ import { notifyDietTargetsChanged } from "@/lib/diet-refresh";
 import { withBasePath } from "@/lib/paths";
 import { groupWeightEntriesByDate } from "@/lib/weight-entries";
 import { trackWeightLoggedGoal } from "@/lib/metrika-funnel";
+import {
+  formatWeightDayConflictPrompt,
+  isWeightDayConflictPayload,
+} from "@/lib/weight-day-conflict";
 import { enqueueWeightDraft } from "@/lib/weight-draft-queue";
 import { Mascot } from "@/components/Mascot";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
@@ -70,6 +74,13 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState(20);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; label: string } | null>(null);
+  const [pendingConflict, setPendingConflict] = useState<{
+    existingKg: number;
+    nextKg: number;
+    dateKey: string;
+    measuredAt: string;
+    note: string | null;
+  } | null>(null);
 
   const load = useCallback(async (currentLimit = limit) => {
     setLoading(true);
@@ -93,10 +104,43 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     void load(limit);
   }, [refreshKey, limit, load]);
 
+  async function postWeight(options: {
+    dateKey: string;
+    weightKg: number;
+    measuredAt: string;
+    note: string | null;
+    confirmReplace?: boolean;
+  }) {
+    const response = await fetch(withBasePath("/api/weights"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date: options.dateKey,
+        weightKg: options.weightKg,
+        measuredAt: options.measuredAt,
+        note: options.note,
+        confirmReplace: options.confirmReplace === true,
+      }),
+    });
+    const payload = (await response.json()) as { error?: string };
+    return { response, payload };
+  }
+
+  async function finishSaveOk() {
+    setWeightInput("");
+    setNoteInput("");
+    setPendingConflict(null);
+    trackWeightLoggedGoal();
+    await load();
+    notifyDietTargetsChanged();
+    onChanged?.();
+  }
+
   async function saveWeight(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true);
     setError(null);
+    setPendingConflict(null);
 
     const now = new Date();
     const dateKey = timezone
@@ -116,31 +160,63 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     const note = noteInput.trim() || null;
 
     try {
-      const response = await fetch(withBasePath("/api/weights"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: dateKey,
-          weightKg,
+      const { response, payload } = await postWeight({
+        dateKey,
+        weightKg,
+        measuredAt,
+        note,
+      });
+      if (response.status === 409 && isWeightDayConflictPayload(payload)) {
+        setPendingConflict({
+          existingKg: payload.conflict.weightKg,
+          nextKg: weightKg,
+          dateKey,
           measuredAt,
           note,
-        }),
-      });
-      const payload = (await response.json()) as { error?: string };
+        });
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось сохранить вес");
       }
-      setWeightInput("");
-      setNoteInput("");
-      trackWeightLoggedGoal();
-      await load();
-      notifyDietTargetsChanged();
-      onChanged?.();
+      await finishSaveOk();
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note });
         setWeightInput("");
         setNoteInput("");
+        setError("Не удалось отправить — вес сохранён в очередь на устройстве");
+      } else {
+        setError(err instanceof Error ? err.message : "Ошибка сохранения");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function confirmReplaceWeight() {
+    if (!pendingConflict) return;
+    setSaving(true);
+    setError(null);
+    const { dateKey, nextKg, measuredAt, note } = pendingConflict;
+    try {
+      const { response, payload } = await postWeight({
+        dateKey,
+        weightKg: nextKg,
+        measuredAt,
+        note,
+        confirmReplace: true,
+      });
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Не удалось сохранить вес");
+      }
+      await finishSaveOk();
+    } catch (err) {
+      if (isLikelyOfflineError(err)) {
+        enqueueWeightDraft({ date: dateKey, weightKg: nextKg, measuredAt, note });
+        setWeightInput("");
+        setNoteInput("");
+        setPendingConflict(null);
         setError("Не удалось отправить — вес сохранён в очередь на устройстве");
       } else {
         setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -242,6 +318,37 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
               onChange={(event) => setNoteInput(event.target.value)}
             />
           </div>
+          {pendingConflict ? (
+            <div
+              className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+              role="status"
+            >
+              <p className="font-medium">
+                {formatWeightDayConflictPrompt(
+                  pendingConflict.existingKg,
+                  pendingConflict.nextKg,
+                )}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn btn-primary text-sm"
+                  disabled={saving}
+                  onClick={() => void confirmReplaceWeight()}
+                >
+                  {saving ? "Сохраняем…" : "Заменить"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-quiet text-sm"
+                  disabled={saving}
+                  onClick={() => setPendingConflict(null)}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          ) : null}
         </form>
 
         <div className="rounded-2xl bg-teal-50 px-4 py-4">
