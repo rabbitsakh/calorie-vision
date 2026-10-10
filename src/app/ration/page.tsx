@@ -276,6 +276,42 @@ function RationBody({
             <PendingConfirmBanner selectedDate={date} />
           </div>
 
+          {/* Offline / error — above the meal feed so the day is usable without scrolling */}
+          {day.error ? (
+            <div className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
+              <p className="min-w-0 flex-1 font-medium">
+                Не удалось загрузить день. {day.error}
+              </p>
+              <button
+                type="button"
+                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                disabled={day.loading}
+                onClick={() => void day.refresh()}
+              >
+                Обновить
+              </button>
+            </div>
+          ) : day.fromCache ? (
+            <div
+              className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+              role="status"
+            >
+              <p className="min-w-0 flex-1 font-medium">
+                {day.data?.meals.entries?.length
+                  ? "Офлайн: день с устройства — запись еды уйдёт в очередь"
+                  : "Офлайн: день ещё не синхронизирован — можно листать интерфейс"}
+              </p>
+              <button
+                type="button"
+                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                disabled={day.loading}
+                onClick={() => void day.refresh(false)}
+              >
+                Обновить
+              </button>
+            </div>
+          ) : null}
+
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">
             <DailyLog
@@ -307,36 +343,6 @@ function RationBody({
             }}
           />
           <FastingWindowBanner isToday={date === today} />
-
-          {day.error ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
-              <p className="min-w-0 flex-1 font-medium">
-                Не удалось загрузить день. {day.error}
-              </p>
-              <button
-                type="button"
-                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-                disabled={day.loading}
-                onClick={() => void day.refresh()}
-              >
-                Обновить
-              </button>
-            </div>
-          ) : day.fromCache ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-              <p className="min-w-0 flex-1 font-medium">
-                Офлайн: показываем сохранённый день с устройства
-              </p>
-              <button
-                type="button"
-                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-                disabled={day.loading}
-                onClick={() => void day.refresh()}
-              >
-                Обновить
-              </button>
-            </div>
-          ) : null}
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}
           <WaterTracker selectedDate={date} onChanged={bump} compact />

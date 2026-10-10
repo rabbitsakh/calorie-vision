@@ -1,7 +1,8 @@
 import type { RationDayPayload } from "@/components/RationDayProvider";
 
 export const RATION_DAY_CACHE_KEY = "cv-ration-day-cache-v1";
-const MAX_CACHED_DAYS = 4;
+/** Keep a full week + today so offline date swipes still hit cache. */
+const MAX_CACHED_DAYS = 8;
 
 type CacheStore = Record<string, RationDayPayload>;
 

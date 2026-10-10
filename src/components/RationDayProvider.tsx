@@ -10,6 +10,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isLikelyOfflineError } from "@/lib/connectivity";
+import { buildEmptyOfflineRationDay } from "@/lib/offline-ration-day";
 import { withBasePath } from "@/lib/paths";
 import { readRationDayCache, writeRationDayCache } from "@/lib/ration-day-cache";
 import type { DayMealsResponse } from "@/types";
@@ -77,7 +79,7 @@ type RationDayContextValue = {
   data: RationDayPayload | null;
   loading: boolean;
   error: string | null;
-  /** True when `data` came from localStorage after a network failure. */
+  /** True when `data` came from localStorage (or empty offline shell). */
   fromCache: boolean;
   refresh: (quiet?: boolean) => Promise<void>;
   bump: () => void;
@@ -95,10 +97,14 @@ type RationDayProviderProps = {
 };
 
 export function RationDayProvider({ date, today, children, onReady }: RationDayProviderProps) {
-  const [data, setData] = useState<RationDayPayload | null>(null);
+  const [data, setData] = useState<RationDayPayload | null>(() =>
+    typeof window !== "undefined" ? readRationDayCache(date) : null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fromCache, setFromCache] = useState(false);
+  const [fromCache, setFromCache] = useState(
+    () => typeof window !== "undefined" && readRationDayCache(date) != null,
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -107,59 +113,86 @@ export function RationDayProvider({ date, today, children, onReady }: RationDayP
   const dateRef = useRef(date);
   dateRef.current = date;
 
-  const refresh = useCallback(async (quiet = false) => {
-    const gen = ++fetchGenRef.current;
-    const requestDate = dateRef.current;
-    if (!quiet) {
-      setLoading(true);
-      setError(null);
+  const markReady = useCallback(() => {
+    if (!readyOnce.current) {
+      readyOnce.current = true;
+      onReadyRef.current?.();
     }
-    try {
-      const resp = await fetch(
-        withBasePath(`/api/ration-day?date=${requestDate}&today=${today}`),
-        { cache: "no-store" },
-      );
-      const json = (await resp.json()) as RationDayPayload & { error?: string };
-      if (!resp.ok) throw new Error(json.error ?? "Не удалось загрузить день");
-      if (gen !== fetchGenRef.current) return;
-      if (dateRef.current !== requestDate) return;
-      setData(json);
-      setFromCache(false);
-      writeRationDayCache(json);
-      void import("@/lib/capacitor-local-reminders")
-        .then((m) => m.refreshCapacitorReminderCopyFromDiary(json.today || json.date))
-        .catch(() => {
-          // APK-only; ignore on web
-        });
-      if (!readyOnce.current) {
-        readyOnce.current = true;
-        onReadyRef.current?.();
-      }
-    } catch (err) {
-      if (gen !== fetchGenRef.current) return;
-      if (dateRef.current !== requestDate) return;
-      const cached = readRationDayCache(requestDate);
-      if (cached) {
-        setData(cached);
-        setFromCache(true);
+  }, []);
+
+  const refresh = useCallback(
+    async (quiet = false) => {
+      const gen = ++fetchGenRef.current;
+      const requestDate = dateRef.current;
+      if (!quiet) {
+        setLoading(true);
         setError(null);
-        if (!readyOnce.current) {
-          readyOnce.current = true;
-          onReadyRef.current?.();
-        }
-      } else if (!quiet) {
-        setError(err instanceof Error ? err.message : "Ошибка загрузки");
       }
-    } finally {
-      if (!quiet) setLoading(false);
-    }
-  }, [today]);
+      try {
+        const resp = await fetch(
+          withBasePath(`/api/ration-day?date=${requestDate}&today=${today}`),
+          { cache: "no-store" },
+        );
+        const json = (await resp.json()) as RationDayPayload & { error?: string };
+        if (!resp.ok) throw new Error(json.error ?? "Не удалось загрузить день");
+        if (gen !== fetchGenRef.current) return;
+        if (dateRef.current !== requestDate) return;
+        setData(json);
+        setFromCache(false);
+        setError(null);
+        writeRationDayCache(json);
+        void import("@/lib/capacitor-local-reminders")
+          .then((m) => m.refreshCapacitorReminderCopyFromDiary(json.today || json.date))
+          .catch(() => {
+            // APK-only; ignore on web
+          });
+        markReady();
+      } catch (err) {
+        if (gen !== fetchGenRef.current) return;
+        if (dateRef.current !== requestDate) return;
+        const cached = readRationDayCache(requestDate);
+        if (cached) {
+          setData(cached);
+          setFromCache(true);
+          setError(null);
+          markReady();
+        } else if (isLikelyOfflineError(err)) {
+          // Soft empty shell so hero/feed still render offline.
+          setData(buildEmptyOfflineRationDay(requestDate, today));
+          setFromCache(true);
+          setError(null);
+          markReady();
+        } else if (!quiet) {
+          setError(err instanceof Error ? err.message : "Ошибка загрузки");
+        }
+      } finally {
+        if (gen === fetchGenRef.current && !quiet) {
+          setLoading(false);
+        } else if (gen === fetchGenRef.current && quiet) {
+          setLoading(false);
+        }
+      }
+    },
+    [today, markReady],
+  );
 
   useEffect(() => {
     readyOnce.current = false;
-    setFromCache(false);
-    void refresh(false);
-  }, [date, refresh, refreshKey]);
+    const cached = readRationDayCache(date);
+    if (cached) {
+      setData(cached);
+      setFromCache(true);
+      setError(null);
+      setLoading(false);
+      markReady();
+      // Background revalidate — keep cached UI until network answers.
+      void refresh(true);
+    } else {
+      setData(null);
+      setFromCache(false);
+      void refresh(false);
+    }
+  }, [date, refresh, refreshKey, markReady]);
 
   const bump = useCallback(() => setRefreshKey((v) => v + 1), []);
 
