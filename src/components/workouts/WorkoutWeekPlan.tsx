@@ -6,7 +6,7 @@ import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
 import { useTimezone } from "@/lib/use-timezone";
 import { formatDistanceKm, formatDurationMinutes } from "@/lib/workouts/cardio";
-import { WEEKDAY_LABELS_RU } from "@/lib/workouts/weekdays";
+import { planWeekdayFromDateKey, WEEKDAY_LABELS_RU } from "@/lib/workouts/weekdays";
 import type { SerializedRoutine } from "@/lib/workouts/routines";
 
 type PlanResponse = {
@@ -43,6 +43,8 @@ type Props = {
   firstWorkout?: boolean;
   /** One-tap clone of the most recent finished session. */
   lastRepeat?: LastWorkoutRepeat | null;
+  /** Cached routines for offline plan (Wave Q). */
+  routinesFallback?: SerializedRoutine[];
   /** Open the week fold (e.g. after saving a template). */
   preferWeekOpen?: boolean;
   onOpenSession: (id: string) => void;
@@ -85,6 +87,7 @@ export function WorkoutWeekPlan({
   sessions,
   firstWorkout = false,
   lastRepeat = null,
+  routinesFallback = [],
   preferWeekOpen = false,
   onOpenSession,
   onStartBlank,
@@ -110,6 +113,24 @@ export function WorkoutWeekPlan({
     [timezone],
   );
 
+  const planFromFallback = useCallback((): PlanResponse | null => {
+    if (routinesFallback.length === 0) return null;
+    const weekday = planWeekdayFromDateKey(todayKey);
+    if (weekday == null) return null;
+    const week = WEEKDAY_LABELS_RU.map((label, day) => ({
+      weekday: day,
+      label,
+      routines: routinesFallback.filter((r) => r.weekdays.includes(day)),
+    }));
+    return {
+      date: todayKey,
+      weekday,
+      weekdayLabel: WEEKDAY_LABELS_RU[weekday] ?? "",
+      today: routinesFallback.filter((r) => r.weekdays.includes(weekday)),
+      week,
+    };
+  }, [routinesFallback, todayKey]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -119,11 +140,17 @@ export function WorkoutWeekPlan({
       if (!resp.ok) throw new Error(json.error || "Ошибка");
       setData(json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Не загрузилось");
+      const fallback = planFromFallback();
+      if (fallback) {
+        setData(fallback);
+        setError(null);
+      } else {
+        setError(err instanceof Error ? err.message : "Не загрузилось");
+      }
     } finally {
       setLoading(false);
     }
-  }, [todayKey]);
+  }, [todayKey, planFromFallback]);
 
   useEffect(() => {
     void load();
