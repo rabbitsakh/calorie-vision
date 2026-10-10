@@ -107,9 +107,10 @@ test("normalizeAssistantActions filters junk", () => {
   assert.equal(ok?.meals?.[0]?.name, "Суп");
 });
 
-test("buildAssistantSystemPrompt includes mode + fence", () => {
-  const prompt = buildAssistantSystemPrompt("Вес: 80 кг.", "food");
+test("buildAssistantSystemPrompt includes mode + fence + prefs", () => {
+  const prompt = buildAssistantSystemPrompt("Вес: 80 кг.", "food", "Не предлагает: творог");
   assert.match(prompt, /Фокус на питании/);
   assert.match(prompt, /cv-actions/);
   assert.match(prompt, /Вес: 80 кг/);
+  assert.match(prompt, /творог/);
 });

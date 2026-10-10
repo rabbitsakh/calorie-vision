@@ -76,6 +76,8 @@ model User {
   pushReminderPrefs Json?
   /** Workout UI prefs: default rest + per-exercise rest map (synced). */
   workoutPrefsJson Json?
+  /** AI assistant prefs: likes / dislikes / free-text notes (JSON). */
+  assistantPrefsJson Json?
   /** Equipped collection frame key (synced across devices). */
   equippedFrameKey   String? @db.VarChar(64)
   /** Equipped diary sticker key (synced across devices). */

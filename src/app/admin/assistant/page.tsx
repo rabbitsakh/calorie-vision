@@ -1,21 +1,24 @@
 "use client";
 
-import { AdminAssistantChat } from "@/components/AdminAssistantChat";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { AdminGate } from "@/components/AdminGate";
 import { AppShell } from "@/components/AppShell";
 import { AuthGate } from "@/components/AuthGate";
-import { BackButton } from "@/components/BackButton";
+import { withBasePath } from "@/lib/paths";
 
-export default function AdminAssistantPage() {
+/** Legacy admin URL → public assistant. */
+export default function AdminAssistantRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace(withBasePath("/assistant"));
+  }, [router]);
+
   return (
-    <AppShell
-      title="AI‑ассистент"
-      description="Рацион, зал, недельные планы и покупки — с живым контекстом."
-      headerExtra={<BackButton />}
-    >
+    <AppShell title="AI‑ассистент" description="Переход…">
       <AuthGate>
         <AdminGate>
-          <AdminAssistantChat />
+          <p className="text-sm text-[var(--muted)]">Открываю ассистента…</p>
         </AdminGate>
       </AuthGate>
     </AppShell>
