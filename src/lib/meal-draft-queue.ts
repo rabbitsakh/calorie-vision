@@ -57,7 +57,31 @@ export type FailedSaveDraft = {
   body: SaveMealInput | { entries: SaveMealInput[] };
 };
 
-export type MealDraftItem = PendingConfirmDraft | PendingRecognitionDraft | FailedSaveDraft;
+/** Offline PATCH /api/meals/:id (Wave R). */
+export type FailedPatchDraft = {
+  id: string;
+  kind: "failed-patch";
+  createdAt: string;
+  selectedDate: string;
+  mealId: string;
+  patch: Record<string, unknown>;
+};
+
+/** Offline DELETE /api/meals/:id (Wave R). */
+export type FailedDeleteDraft = {
+  id: string;
+  kind: "failed-delete";
+  createdAt: string;
+  selectedDate: string;
+  mealId: string;
+};
+
+export type MealDraftItem =
+  | PendingConfirmDraft
+  | PendingRecognitionDraft
+  | FailedSaveDraft
+  | FailedPatchDraft
+  | FailedDeleteDraft;
 
 type Listener = () => void;
 
@@ -94,7 +118,9 @@ function readQueue(): MealDraftItem[] {
         typeof (item as MealDraftItem).id === "string" &&
         ((item as MealDraftItem).kind === "pending-confirm" ||
           (item as MealDraftItem).kind === "pending-recognition" ||
-          (item as MealDraftItem).kind === "failed-save"),
+          (item as MealDraftItem).kind === "failed-save" ||
+          (item as MealDraftItem).kind === "failed-patch" ||
+          (item as MealDraftItem).kind === "failed-delete"),
     );
   } catch {
     return [];
@@ -107,7 +133,7 @@ function writeQueue(items: MealDraftItem[]): void {
     if (items.length === 0) {
       localStorage.removeItem(MEAL_DRAFT_QUEUE_KEY);
     } else {
-      localStorage.setItem(MEAL_DRAFT_QUEUE_KEY, JSON.stringify(items.slice(-20)));
+      localStorage.setItem(MEAL_DRAFT_QUEUE_KEY, JSON.stringify(items.slice(-40)));
     }
     notifyMealDraftQueue();
   } catch {
@@ -262,8 +288,86 @@ export function countPendingRecognitions(): number {
   return listPendingRecognitions().length;
 }
 
+export function enqueueFailedPatch(
+  selectedDate: string,
+  mealId: string,
+  patch: Record<string, unknown>,
+): string {
+  const existing = readQueue().find(
+    (item): item is FailedPatchDraft => item.kind === "failed-patch" && item.mealId === mealId,
+  );
+  const items = readQueue().filter(
+    (item) => !(item.kind === "failed-patch" && item.mealId === mealId),
+  );
+  // A later delete wins — don't keep a patch for a meal about to be deleted.
+  if (items.some((item) => item.kind === "failed-delete" && item.mealId === mealId)) {
+    writeQueue(items);
+    return "";
+  }
+  const id =
+    existing?.id ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `patch-${Date.now()}`);
+  items.push({
+    id,
+    kind: "failed-patch",
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    selectedDate,
+    mealId,
+    // Merge successive offline edits for the same meal.
+    patch: { ...(existing?.patch ?? {}), ...patch },
+  });
+  writeQueue(items);
+  return id;
+}
+
+export function enqueueFailedDelete(selectedDate: string, mealId: string): string {
+  const items = readQueue().filter(
+    (item) =>
+      !(
+        (item.kind === "failed-patch" || item.kind === "failed-delete") &&
+        item.mealId === mealId
+      ),
+  );
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `del-${Date.now()}`;
+  items.push({
+    id,
+    kind: "failed-delete",
+    createdAt: new Date().toISOString(),
+    selectedDate,
+    mealId,
+  });
+  writeQueue(items);
+  return id;
+}
+
+export function listFailedPatches(): FailedPatchDraft[] {
+  return readQueue().filter((item): item is FailedPatchDraft => item.kind === "failed-patch");
+}
+
+export function listFailedDeletes(): FailedDeleteDraft[] {
+  return readQueue().filter((item): item is FailedDeleteDraft => item.kind === "failed-delete");
+}
+
+export function countFailedPatches(): number {
+  return listFailedPatches().length;
+}
+
+export function countFailedDeletes(): number {
+  return listFailedDeletes().length;
+}
+
 export function countOfflineQueue(): number {
-  return countFailedSaves() + countPendingRecognitions();
+  return (
+    countFailedSaves() +
+    countPendingRecognitions() +
+    countFailedPatches() +
+    countFailedDeletes()
+  );
 }
 
 export async function pendingRecognitionToFile(item: PendingRecognitionDraft): Promise<File | null> {
