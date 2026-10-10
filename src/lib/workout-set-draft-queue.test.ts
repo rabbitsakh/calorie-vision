@@ -13,6 +13,7 @@ import {
   remapWorkoutDraftIds,
   removeWorkoutFinishDraft,
   removeWorkoutSetDraft,
+  updateWorkoutSetDraft,
 } from "./workout-set-draft-queue.ts";
 
 function mockStorage() {
@@ -82,4 +83,20 @@ test("remapWorkoutDraftIds rewrites session and exercise ids", () => {
   assert.equal(listWorkoutSetDrafts()[0]?.sessionId, "srv-s");
   assert.equal(listWorkoutSetDrafts()[0]?.exerciseId, "srv-e");
   assert.equal(listWorkoutFinishDrafts()[0]?.sessionId, "srv-s");
+});
+
+test("updateWorkoutSetDraft patches body in place", () => {
+  mockStorage();
+  const id = enqueueWorkoutSetDraft({
+    sessionId: "s1",
+    exerciseId: "e1",
+    body: { reps: 8, weightKg: 60, completed: true, setType: "working" },
+  });
+  const updated = updateWorkoutSetDraft(id, { weightKg: 62.5, completed: false });
+  assert.ok(updated);
+  assert.equal(updated!.body.weightKg, 62.5);
+  assert.equal(updated!.body.reps, 8);
+  assert.equal(updated!.body.completed, false);
+  assert.equal(countWorkoutSetDrafts(), 1);
+  assert.equal(updateWorkoutSetDraft("missing", { reps: 1 }), null);
 });

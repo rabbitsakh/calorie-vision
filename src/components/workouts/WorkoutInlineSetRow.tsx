@@ -165,12 +165,14 @@ export function WorkoutInlineSetRow({
           type="button"
           title={
             pending
-              ? "На устройстве — отправим при связи"
+              ? set.completed
+                ? "Снять ✓ (черновик на устройстве)"
+                : "Отметить выполненным (черновик на устройстве)"
               : set.completed
                 ? "Снять ✓"
                 : "Отметить выполненным"
           }
-          disabled={busy || pending}
+          disabled={busy}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold ${
             set.completed
               ? "border-teal-600 bg-teal-600 text-white"
@@ -184,7 +186,7 @@ export function WorkoutInlineSetRow({
           <button
             type="button"
             title={`${SET_TYPE_LABELS[set.setType]} — сменить тип`}
-            disabled={pending}
+            disabled={busy}
             className="shrink-0 rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--muted-strong)] disabled:opacity-50"
             onClick={onCycleType}
           >
@@ -196,9 +198,7 @@ export function WorkoutInlineSetRow({
           className={`min-w-0 flex-1 text-left tabular-nums ${
             set.completed ? "text-[var(--foreground)]" : "text-[var(--muted)]"
           }`}
-          onClick={() => {
-            if (!pending) setEditing((v) => !v);
-          }}
+          onClick={() => setEditing((v) => !v)}
         >
           <span className="text-[var(--muted)]">№{index + 1} · </span>
           {summary}
