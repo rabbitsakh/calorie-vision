@@ -15,6 +15,11 @@ import {
   type AssistantContextInput,
   type AssistantContextSnapshot,
 } from "@/lib/admin-assistant";
+import {
+  formatAssistantPrefsBlock,
+  parseAssistantPrefs,
+  type AssistantPrefs,
+} from "@/lib/assistant-prefs";
 
 function parseWeekdays(raw: unknown): number[] | null {
   if (!Array.isArray(raw)) return null;
@@ -26,7 +31,13 @@ export async function loadAdminAssistantContextPack(
   userId: string,
   date: string,
   today: string,
-): Promise<{ text: string; snapshot: AssistantContextSnapshot; input: AssistantContextInput }> {
+): Promise<{
+  text: string;
+  snapshot: AssistantContextSnapshot;
+  input: AssistantContextInput;
+  prefs: AssistantPrefs;
+  prefsBlock: string;
+}> {
   const weekStart = weekStartMonday(date, null);
   const weekEnd = shiftDateKeyUtc(weekStart, 6);
   const recentFrom = shiftDateKeyUtc(date, -6);
@@ -37,6 +48,7 @@ export async function loadAdminAssistantContextPack(
       ...DIET_PROFILE_SELECT,
       timezone: true,
       waterTargetMl: true,
+      assistantPrefsJson: true,
     },
   });
 
@@ -198,10 +210,15 @@ export async function loadAdminAssistantContextPack(
     })),
   };
 
+  const prefs = parseAssistantPrefs(account?.assistantPrefsJson);
+  const prefsBlock = formatAssistantPrefsBlock(prefs);
+
   return {
     text: formatAssistantContext(input),
     snapshot: buildContextSnapshot(input),
     input,
+    prefs,
+    prefsBlock,
   };
 }
 

@@ -363,6 +363,101 @@ export async function completeChat(
   }, attempts);
 }
 
+/**
+ * Stream chat tokens from GigaChat (OpenAI-compatible SSE).
+ * Falls back to completeChat + chunked yield if stream endpoint fails.
+ */
+export async function* streamCompleteChat(
+  messages: Array<{ role: string; content: string; attachments?: string[] }>,
+  temperature = 0.35,
+): AsyncGenerator<string, void, unknown> {
+  const token = await getAccessToken();
+  const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
+  const payload = JSON.stringify({
+    model,
+    temperature,
+    stream: true,
+    messages,
+  });
+
+  try {
+    const parsed = new URL(`${API_BASE}/chat/completions`);
+    const stream = await new Promise<import("http").IncomingMessage>((resolve, reject) => {
+      const req = https.request(
+        {
+          hostname: parsed.hostname,
+          port: parsed.port || 443,
+          path: `${parsed.pathname}${parsed.search}`,
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+            "Content-Length": String(Buffer.byteLength(payload)),
+          },
+          rejectUnauthorized: false,
+          timeout: 90_000,
+          agent: httpsAgent,
+        },
+        (res) => resolve(res),
+      );
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new GigaChatApiError("Таймаут стрима GigaChat", 504));
+      });
+      req.on("error", reject);
+      req.write(payload);
+      req.end();
+    });
+
+    if ((stream.statusCode ?? 500) >= 400) {
+      throw new GigaChatApiError(`GigaChat stream HTTP ${stream.statusCode}`, stream.statusCode ?? 502);
+    }
+
+    let buffer = "";
+    let yielded = false;
+    for await (const chunk of stream) {
+      buffer += chunk.toString("utf8");
+      const parts = buffer.split("\n");
+      buffer = parts.pop() ?? "";
+      for (const line of parts) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (!data || data === "[DONE]") continue;
+        try {
+          const json = JSON.parse(data) as {
+            choices?: Array<{ delta?: { content?: string }; message?: { content?: string } }>;
+          };
+          const piece =
+            json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+          if (piece) {
+            yielded = true;
+            yield piece;
+          }
+        } catch {
+          // skip malformed chunk
+        }
+      }
+    }
+    if (!yielded) {
+      const full = await completeChat(messages, temperature, { retries: 1 });
+      for (const piece of chunkText(full, 48)) yield piece;
+    }
+  } catch {
+    const full = await completeChat(messages, temperature, { retries: 1 });
+    for (const piece of chunkText(full, 48)) yield piece;
+  }
+}
+
+function chunkText(text: string, size: number): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < text.length; i += size) {
+    out.push(text.slice(i, i + size));
+  }
+  return out.length ? out : [text];
+}
+
 export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodRecognitionResult> {
   const text = await completeChat([
     {

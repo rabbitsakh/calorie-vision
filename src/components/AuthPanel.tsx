@@ -128,16 +128,16 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
             >
               Тренировки
             </Link>
+            <Link
+              href="/assistant"
+              role="menuitem"
+              className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
+              onClick={() => setOpen(false)}
+            >
+              AI‑ассистент
+            </Link>
             {session.user.isAdmin ? (
               <>
-                <Link
-                  href="/admin/assistant"
-                  role="menuitem"
-                  className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
-                  onClick={() => setOpen(false)}
-                >
-                  AI‑ассистент
-                </Link>
                 <Link
                   href="/admin/users"
                   role="menuitem"
