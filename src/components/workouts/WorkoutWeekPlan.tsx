@@ -6,12 +6,48 @@ import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
 import { useTimezone } from "@/lib/use-timezone";
 import { formatDistanceKm, formatDurationMinutes } from "@/lib/workouts/cardio";
+import { resolveTodayPrimary } from "@/lib/workouts/today-primary";
 import {
   planWeekdayFromDateKey,
   removeWeekdayFromList,
   WEEKDAY_LABELS_RU,
 } from "@/lib/workouts/weekdays";
 import type { SerializedRoutine } from "@/lib/workouts/routines";
+
+type PlanRemoveUndo = {
+  routineId: string;
+  name: string;
+  weekday: number;
+  previousWeekdays: number[];
+  dayLabel: string;
+};
+
+function PlanUndoToast({
+  label,
+  onUndo,
+  onExpired,
+}: {
+  label: string;
+  onUndo: () => void;
+  onExpired: () => void;
+}) {
+  useEffect(() => {
+    const t = window.setTimeout(onExpired, 4500);
+    return () => window.clearTimeout(t);
+  }, [onExpired]);
+  return (
+    <div className="fixed inset-x-0 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-xl bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">
+      <span className="min-w-0 truncate">Убрано: {label}</span>
+      <button
+        type="button"
+        className="shrink-0 rounded-lg bg-white/20 px-3 py-1 text-xs font-semibold hover:bg-white/30"
+        onClick={onUndo}
+      >
+        Отменить
+      </button>
+    </div>
+  );
+}
 
 type PlanResponse = {
   date: string;
@@ -109,8 +145,9 @@ export function WorkoutWeekPlan({
   const [data, setData] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [weekOpen, setWeekOpen] = useState(true);
+  const [weekOpen, setWeekOpen] = useState(false);
   const [removingKey, setRemovingKey] = useState<string | null>(null);
+  const [planUndo, setPlanUndo] = useState<PlanRemoveUndo | null>(null);
 
   useEffect(() => {
     if (preferWeekOpen) setWeekOpen(true);
@@ -164,22 +201,33 @@ export function WorkoutWeekPlan({
     void load();
   }, [load]);
 
+  const patchWeekdays = useCallback(async (routineId: string, weekdays: number[]) => {
+    const resp = await fetch(withBasePath(`/api/workouts/routines/${routineId}`), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekdays }),
+    });
+    const json = (await resp.json().catch(() => null)) as { error?: string } | null;
+    if (!resp.ok) throw new Error(json?.error || "Не удалось обновить план");
+  }, []);
+
   const removeFromDay = useCallback(
     async (routine: SerializedRoutine, weekday: number) => {
       const dayLabel = WEEKDAY_LABELS_RU[weekday] ?? String(weekday);
-      if (!window.confirm(`Убрать «${routine.name}» из плана на ${dayLabel}?`)) return;
+      const previousWeekdays = [...routine.weekdays];
       const nextWeekdays = removeWeekdayFromList(routine.weekdays, weekday);
       const key = `${routine.id}:${weekday}`;
       setRemovingKey(key);
       setError(null);
       try {
-        const resp = await fetch(withBasePath(`/api/workouts/routines/${routine.id}`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ weekdays: nextWeekdays }),
+        await patchWeekdays(routine.id, nextWeekdays);
+        setPlanUndo({
+          routineId: routine.id,
+          name: routine.name,
+          weekday,
+          previousWeekdays,
+          dayLabel,
         });
-        const json = (await resp.json().catch(() => null)) as { error?: string } | null;
-        if (!resp.ok) throw new Error(json?.error || "Не удалось убрать из плана");
         await load();
         onPlanChanged?.();
       } catch (err) {
@@ -188,8 +236,23 @@ export function WorkoutWeekPlan({
         setRemovingKey(null);
       }
     },
-    [load, onPlanChanged],
+    [load, onPlanChanged, patchWeekdays],
   );
+
+  const undoPlanRemove = useCallback(async () => {
+    if (!planUndo) return;
+    const snapshot = planUndo;
+    setPlanUndo(null);
+    setError(null);
+    try {
+      await patchWeekdays(snapshot.routineId, snapshot.previousWeekdays);
+      await load();
+      onPlanChanged?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось вернуть в план");
+      setPlanUndo(snapshot);
+    }
+  }, [planUndo, patchWeekdays, load, onPlanChanged]);
 
   const active = sessions.find(
     (s) => s.clockStatus === "running" || s.clockStatus === "paused",
@@ -207,15 +270,27 @@ export function WorkoutWeekPlan({
   const showRepeatInStart = canRepeat && finished.length === 0;
   const showRepeatInFinished = canRepeat && finished.length > 0;
 
+  const primary = resolveTodayPrimary({
+    hasActive: Boolean(active),
+    draftCount: drafts.length,
+    finishedCount: finished.length,
+    plannedCount: planned.length,
+    firstEmpty: Boolean(isFirstEmpty),
+  });
+
   const sceneHeadline = active
     ? `${statusLabel(active.clockStatus)} · ${active.muscleLabels.join(" · ") || "Тренировка"}`
     : drafts.length > 0
       ? "Есть незавершённая"
       : finished.length > 0
         ? "Уже потренировались"
-        : isFirstEmpty
-          ? "Первая тренировка"
-          : "Начать сегодня";
+        : primary === "rest"
+          ? "День отдыха"
+          : isFirstEmpty
+            ? "Первая тренировка"
+            : planned.length > 0
+              ? "По плану сегодня"
+              : "Начать сегодня";
 
   const sceneMeta = active
     ? [
@@ -225,12 +300,21 @@ export function WorkoutWeekPlan({
       ]
         .filter(Boolean)
         .join(" · ")
-    : data
-      ? data.weekdayLabel
-      : "Зал";
+    : primary === "rest"
+      ? "В плане нет тренировки — можно восстановиться или потренироваться вне плана"
+      : data
+        ? data.weekdayLabel
+        : "Зал";
 
   return (
     <div className="gym-day">
+      {planUndo ? (
+        <PlanUndoToast
+          label={`«${planUndo.name}» · ${planUndo.dayLabel}`}
+          onUndo={() => void undoPlanRemove()}
+          onExpired={() => setPlanUndo(null)}
+        />
+      ) : null}
       <section
         className={`day-hero day-hero--scene ${atmosphere}${active ? " day-hero--live" : ""}`}
         aria-label="Сводка зала на сегодня"
@@ -239,7 +323,7 @@ export function WorkoutWeekPlan({
         <div className={`relative flex items-center gap-4 px-5 py-7 md:px-7 md:py-8 ${active ? "gym-console-active" : ""}`}>
           <div className="min-w-0 flex-1">
             <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.22em] ${active ? "gym-live-pulse text-teal-100/90" : "text-[var(--accent-ink)]/70"}`}>
-              {active ? "Сейчас" : "Сегодня"}
+              {active ? "Сейчас" : primary === "rest" ? "Отдых" : "Сегодня"}
               {data ? ` · ${data.weekdayLabel}` : ""}
             </p>
             <p className={`font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight sm:text-[1.7rem] ${active ? "text-white" : "text-[var(--foreground)]"}`}>
@@ -256,7 +340,7 @@ export function WorkoutWeekPlan({
               className="shrink-0 rounded-[1rem] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.18)] disabled:opacity-40"
               onClick={() => onOpenSession(active.id)}
             >
-              В зал
+              Продолжить
             </button>
           ) : null}
         </div>
@@ -274,16 +358,9 @@ export function WorkoutWeekPlan({
               </p>
               <p className="text-sm text-[var(--muted-strong)]">
                 {active.exerciseCount} упр. · {sessionMetric(active)}
+                {active.elapsedLabel ? ` · ${active.elapsedLabel}` : ""}
               </p>
             </div>
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-              onClick={() => onOpenSession(active.id)}
-            >
-              Продолжить
-            </button>
           </div>
         ) : null}
 
@@ -327,49 +404,32 @@ export function WorkoutWeekPlan({
 
         {!active && drafts.length === 0 ? (
           <div className="gym-today-block">
-            <p className="text-sm font-semibold text-[var(--foreground)]">
-              {isFirstEmpty ? "Первая тренировка" : "Начать тренировку"}
-            </p>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {isFirstEmpty
-                ? "Один тап — и вы в зале. Подходы и кардио можно добавить сразу."
-                : "Пустая сессия на сегодня — упражнения добавите сами."}
-            </p>
-            <button
-              type="button"
-              disabled={busy}
-              className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
-              onClick={onStartBlank}
-            >
-              {isFirstEmpty ? "Начать тренировку" : "Новая тренировка"}
-            </button>
-
-            {showRepeatInStart && lastRepeat && onRepeatLast ? (
-              <div className="mt-3">
+            {isFirstEmpty ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Первая тренировка</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Один тап — и вы в зале. Подходы и кардио можно добавить сразу.
+                </p>
                 <button
                   type="button"
                   disabled={busy}
-                  className="w-full rounded-[var(--radius-control)] border border-teal-200 bg-teal-50/80 py-3 text-base font-semibold text-teal-900 disabled:opacity-40"
-                  onClick={() => onRepeatLast(lastRepeat.id)}
+                  className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
+                  onClick={onStartBlank}
                 >
-                  {busy ? "Копируем…" : lastRepeat.label}
+                  Начать тренировку
                 </button>
-                <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
-                  {lastRepeat.hint}
-                </p>
-              </div>
-            ) : null}
-
-            {isFirstEmpty ? null : loading ? (
-              <p className="mt-4 text-sm text-[var(--muted)]">Загрузка плана…</p>
+              </>
+            ) : loading ? (
+              <p className="text-sm text-[var(--muted)]">Загрузка плана…</p>
             ) : error ? (
-              <p className="mt-4 text-sm text-red-600">{error}</p>
-            ) : planned.length > 0 ? (
-              <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                  Или по плану на сегодня
+              <p className="text-sm text-red-600">{error}</p>
+            ) : primary === "start_plan" && planned.length > 0 ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--foreground)]">По плану на сегодня</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Один тап — старт шаблона. Неделю можно открыть ниже.
                 </p>
-                <ul className="mt-2 space-y-2">
+                <ul className="mt-3 space-y-2">
                   {planned.map((r) => {
                     const removeKey =
                       data?.weekday != null ? `${r.id}:${data.weekday}` : null;
@@ -408,7 +468,7 @@ export function WorkoutWeekPlan({
                           <button
                             type="button"
                             disabled={busy || removing}
-                            className="rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                            className="rounded-[var(--radius-control)] bg-teal-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-40"
                             onClick={() => onStartRoutine(r.id)}
                           >
                             Старт
@@ -418,24 +478,94 @@ export function WorkoutWeekPlan({
                     );
                   })}
                 </ul>
-              </div>
-            ) : (
-              <div className="mt-4 border-t border-[var(--border-hairline)] pt-4">
-                <p className="text-sm text-[var(--muted-strong)]">
-                  На сегодня в плане пусто. Составьте шаблон и отметьте дни недели — он появится здесь.
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="mt-3 text-sm font-medium text-teal-800 disabled:opacity-40"
+                  onClick={onStartBlank}
+                >
+                  Тренировка вне плана
+                </button>
+                {showRepeatInStart && lastRepeat && onRepeatLast ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="mt-2 block text-sm font-medium text-[var(--muted-strong)] disabled:opacity-40"
+                    onClick={() => onRepeatLast(lastRepeat.id)}
+                  >
+                    {busy ? "Копируем…" : lastRepeat.label}
+                  </button>
+                ) : null}
+              </>
+            ) : primary === "rest" ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--foreground)]">День отдыха</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  В плане на сегодня пусто. Можно восстановиться или потренироваться вне плана.
                 </p>
                 <button
                   type="button"
-                  className="mt-2 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+                  disabled={busy}
+                  className="mt-3 w-full rounded-[var(--radius-control)] border border-teal-200 bg-teal-50/80 py-3 text-base font-semibold text-teal-900 disabled:opacity-40"
+                  onClick={onStartBlank}
+                >
+                  Тренировка вне плана
+                </button>
+                {showRepeatInStart && lastRepeat && onRepeatLast ? (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="w-full rounded-[var(--radius-control)] border border-[var(--line)] bg-white py-3 text-base font-semibold text-[var(--foreground)] disabled:opacity-40"
+                      onClick={() => onRepeatLast(lastRepeat.id)}
+                    >
+                      {busy ? "Копируем…" : lastRepeat.label}
+                    </button>
+                    <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
+                      {lastRepeat.hint}
+                    </p>
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="mt-3 text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
                   onClick={() =>
-                    onCreatePlanDay
-                      ? onCreatePlanDay(data?.weekday)
-                      : onGoTemplates()
+                    onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
                   }
                 >
-                  Составить план на неделю
+                  Назначить план на сегодня
                 </button>
-              </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Начать тренировку</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Пустая сессия на сегодня — упражнения добавите сами.
+                </p>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
+                  onClick={onStartBlank}
+                >
+                  Новая тренировка
+                </button>
+                {showRepeatInStart && lastRepeat && onRepeatLast ? (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="w-full rounded-[var(--radius-control)] border border-teal-200 bg-teal-50/80 py-3 text-base font-semibold text-teal-900 disabled:opacity-40"
+                      onClick={() => onRepeatLast(lastRepeat.id)}
+                    >
+                      {busy ? "Копируем…" : lastRepeat.label}
+                    </button>
+                    <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
+                      {lastRepeat.hint}
+                    </p>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         ) : null}
