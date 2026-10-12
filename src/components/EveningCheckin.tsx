@@ -195,7 +195,9 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="font-semibold text-[var(--foreground)]">Как настроение?</p>
-              <p className="text-xs text-[var(--muted)]">Один тап — мягко закрыть день</p>
+              <p className="text-xs text-[var(--muted)]">
+                Один тап — мягко закрыть день. Если в рационе сомнения — «Почему так» в карточке еды.
+              </p>
             </div>
             <button type="button" className="btn-quiet text-xs text-[var(--muted)]" onClick={dismiss}>
               Позже

@@ -10,6 +10,10 @@ import {
 } from "@/lib/morning-today";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { withBasePath } from "@/lib/paths";
+import {
+  hydrateQuietHoursFromAccount,
+  quietHoursLocalHour,
+} from "@/lib/quiet-hours-prefs";
 import { withDateQuery } from "@/lib/use-selected-date";
 
 const PANEL_ID = "morning-today";
@@ -32,10 +36,11 @@ export function MorningTodayCard({ selectedDate, today }: MorningTodayCardProps)
   const [routines, setRoutines] = useState<MorningTodayRoutine[]>([]);
   const [gymDone, setGymDone] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [hour, setHour] = useState(() => new Date().getHours());
+  const [hour, setHour] = useState(() => quietHoursLocalHour());
 
   useEffect(() => {
-    setHour(new Date().getHours());
+    hydrateQuietHoursFromAccount();
+    setHour(quietHoursLocalHour());
     setHidden(isPanelHiddenToday(PANEL_ID, selectedDate));
   }, [selectedDate]);
 

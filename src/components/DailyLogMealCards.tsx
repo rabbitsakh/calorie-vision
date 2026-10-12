@@ -24,23 +24,36 @@ import {
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
 import { FOOD_LOOKUP_MODE_LABELS, type FoodLookupMode } from "@/lib/food-types";
-import { explainWhyDiaryEntry } from "@/lib/confirm-why-explanation";
+import {
+  diaryWhyFixCopy,
+  diaryWhyFixHints,
+  explainWhyDiaryEntry,
+} from "@/lib/confirm-why-explanation";
+import { buildBrandRepairPatch, mealNeedsBrandRepair } from "@/lib/meal-brand-repair";
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
 import { buildMacrosRepairPatch, buildMacrosRepairQuery } from "@/lib/meal-macros-lookup";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
 
 function DiaryWhyTrail({ entry }: { entry: MealEntry }) {
   const why = explainWhyDiaryEntry(entry);
-  if (!why) return null;
+  const fixes = diaryWhyFixHints(entry);
+  if (!why && fixes.length === 0) return null;
   return (
-    <details className="mt-1 group">
+    <details className="mt-1 group" open={fixes.length > 0}>
       <summary className="cursor-pointer list-none text-[11px] font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden">
-        Почему так
+        Почему так{fixes.length > 0 ? " · поправить" : ""}
       </summary>
-      <p className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{why.summary}</p>
-      {why.detail ? (
+      {why ? (
+        <p className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{why.summary}</p>
+      ) : null}
+      {why?.detail ? (
         <p className="mt-0.5 text-[11px] leading-snug text-[var(--muted)]">{why.detail}</p>
       ) : null}
+      {fixes.map((hint) => (
+        <p key={hint} className="mt-0.5 text-[11px] leading-snug text-amber-900/90">
+          {diaryWhyFixCopy(hint)}
+        </p>
+      ))}
     </details>
   );
 }
@@ -56,6 +69,10 @@ function mealLookupSubtitle(entry: Pick<MealEntry, "brand" | "lookupMode">): str
 
 function macrosRepairLabel(busy: boolean): string {
   return busy ? "Уточняем…" : "Сохранили как есть — уточнить БЖУ";
+}
+
+function brandRepairLabel(busy: boolean): string {
+  return busy ? "Ищем бренд…" : "Уточнить бренд";
 }
 
 function formatMacros(
@@ -159,6 +176,30 @@ function PhotoSearchIcon() {
   );
 }
 
+async function fetchFoodLookup(query: string) {
+  const response = await fetch(withBasePath("/api/food/lookup"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dishName: query }),
+  });
+  const data = (await response.json()) as {
+    recognition?: {
+      dishName?: string;
+      calories?: number;
+      protein?: number | null;
+      fat?: number | null;
+      carbs?: number | null;
+      fiber?: number | null;
+      sugar?: number | null;
+      portionGrams?: number | null;
+      brand?: string | null;
+      lookupMode?: string | null;
+    };
+    error?: string;
+  };
+  return { ok: response.ok, data };
+}
+
 async function lookupAndRepairMacros(
   entry: MealEntry,
   onEdit: (id: string, patch: EditPatch) => Promise<void>,
@@ -169,27 +210,8 @@ async function lookupAndRepairMacros(
   });
   if (!query) return "Нет названия для поиска";
   try {
-    const response = await fetch(withBasePath("/api/food/lookup"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dishName: query }),
-    });
-    const data = (await response.json()) as {
-      recognition?: {
-        dishName?: string;
-        calories?: number;
-        protein?: number | null;
-        fat?: number | null;
-        carbs?: number | null;
-        fiber?: number | null;
-        sugar?: number | null;
-        portionGrams?: number | null;
-        brand?: string | null;
-        lookupMode?: string | null;
-      };
-      error?: string;
-    };
-    if (!response.ok || !data.recognition) {
+    const { ok, data } = await fetchFoodLookup(query);
+    if (!ok || !data.recognition) {
       return data.error ?? "Не удалось уточнить БЖУ";
     }
     const patch = buildMacrosRepairPatch(entry, data.recognition);
@@ -200,6 +222,45 @@ async function lookupAndRepairMacros(
       eatenAt: entry.eatenAt ?? entry.createdAt,
     });
     return null;
+  } catch {
+    return "Не удалось связаться с сервером";
+  }
+}
+
+async function lookupAndRepairBrand(
+  entry: MealEntry,
+  onEdit: (id: string, patch: EditPatch) => Promise<void>,
+): Promise<string | null> {
+  const query = buildMacrosRepairQuery({
+    dishName: decodeHtmlEntities(entry.dishName),
+    brand: entry.brand,
+  });
+  if (!query) return "Нет названия для поиска";
+  try {
+    const { ok, data } = await fetchFoodLookup(query);
+    if (!ok || !data.recognition) {
+      return data.error ?? "Не удалось найти бренд";
+    }
+    const brandPatch = buildBrandRepairPatch(entry, data.recognition);
+    if (brandPatch) {
+      await onEdit(entry.id, {
+        ...brandPatch,
+        mealType: entry.mealType,
+        eatenAt: entry.eatenAt ?? entry.createdAt,
+      });
+      return null;
+    }
+    // Fallback: if lookup filled macros for a soft-save, apply that instead.
+    const macrosPatch = buildMacrosRepairPatch(entry, data.recognition);
+    if (macrosPatch?.brand || macrosPatch?.lookupMode === "branded") {
+      await onEdit(entry.id, {
+        ...macrosPatch,
+        mealType: entry.mealType,
+        eatenAt: entry.eatenAt ?? entry.createdAt,
+      });
+      return null;
+    }
+    return "Бренд в базе не нашёлся — поправьте название вручную";
   } catch {
     return "Не удалось связаться с сервером";
   }
@@ -401,6 +462,23 @@ function GroupedMealCard({
                         }}
                       >
                         {macrosRepairLabel(repairBusyId === entry.id)}
+                      </button>
+                    ) : null}
+                    {mealNeedsBrandRepair(entry) ? (
+                      <button
+                        type="button"
+                        className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                        disabled={repairBusyId === entry.id}
+                        onClick={() => {
+                          setRepairError(null);
+                          setRepairBusyId(entry.id);
+                          void lookupAndRepairBrand(entry, onEdit).then((err) => {
+                            setRepairBusyId(null);
+                            if (err) setRepairError(err);
+                          });
+                        }}
+                      >
+                        {brandRepairLabel(repairBusyId === entry.id)}
                       </button>
                     ) : null}
                     <button
@@ -640,6 +718,23 @@ function SingleMealCard({
                 }}
               >
                 {macrosRepairLabel(repairBusy)}
+              </button>
+            ) : null}
+            {mealNeedsBrandRepair(entry) ? (
+              <button
+                type="button"
+                className="text-left text-[11px] font-semibold text-amber-800 underline-offset-2 hover:underline disabled:opacity-60"
+                disabled={repairBusy}
+                onClick={() => {
+                  setRepairError(null);
+                  setRepairBusy(true);
+                  void lookupAndRepairBrand(entry, onEdit).then((err) => {
+                    setRepairBusy(false);
+                    if (err) setRepairError(err);
+                  });
+                }}
+              >
+                {brandRepairLabel(repairBusy)}
               </button>
             ) : null}
             <button

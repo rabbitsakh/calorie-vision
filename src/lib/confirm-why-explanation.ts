@@ -138,3 +138,40 @@ export function explainWhyDiaryEntry(
     opts,
   );
 }
+
+export type DiaryWhyFixHint = "macros" | "brand" | "portion";
+
+/**
+ * Wave C — how to fix after save (shown under «Почему так»).
+ */
+export function diaryWhyFixHints(
+  entry: DiaryWhyEntry & {
+    protein?: number | null;
+    fat?: number | null;
+    carbs?: number | null;
+  },
+  opts?: { lowConfidenceThreshold?: number },
+): DiaryWhyFixHint[] {
+  const hints: DiaryWhyFixHint[] = [];
+  const kcal = Number(entry.calories) || 0;
+  const protein = Number(entry.protein) || 0;
+  const fat = Number(entry.fat) || 0;
+  const carbs = Number(entry.carbs) || 0;
+  if (kcal > 0 && protein <= 0 && fat <= 0 && carbs <= 0) {
+    hints.push("macros");
+  }
+  if (entry.lookupMode === "generic" && !entry.brand?.trim()) {
+    hints.push("brand");
+  }
+  const threshold = opts?.lowConfidenceThreshold ?? DEFAULT_LOW_CONFIDENCE;
+  if (typeof entry.confidence === "number" && entry.confidence < threshold) {
+    hints.push("portion");
+  }
+  return hints;
+}
+
+export function diaryWhyFixCopy(hint: DiaryWhyFixHint): string {
+  if (hint === "macros") return "Можно уточнить БЖУ одним тапом ниже.";
+  if (hint === "brand") return "Типовые значения — уточните бренд, если знаете.";
+  return "Низкая уверенность — проверьте порцию или название.";
+}
