@@ -8,11 +8,21 @@ import {
   parseAssistantMessages,
   parseAssistantMode,
   splitAssistantReply,
+  type AssistantActions,
 } from "@/lib/admin-assistant";
 import { loadAdminAssistantContextPack } from "@/lib/admin-assistant-context";
+import {
+  decodeImageBase64,
+  executeAssistantWriteTools,
+  formatToolResultsForReply,
+  resolveAssistantDate,
+  toolRecognizeAndSaveMeal,
+  type AssistantToolResult,
+  type ExecutableActions,
+} from "@/lib/assistant-tools";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 /** GET ?date= — snapshot chips for any signed-in user. */
 export async function GET(request: NextRequest) {
@@ -38,7 +48,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST { messages, date?, mode? } — non-streaming reply. */
+/** POST { messages, date?, mode?, imageBase64?, imageMime? } — reply + auto-write tools. */
 export async function POST(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
@@ -48,6 +58,8 @@ export async function POST(request: NextRequest) {
       messages?: unknown;
       date?: unknown;
       mode?: unknown;
+      imageBase64?: unknown;
+      imageMime?: unknown;
     } | null;
     if (!body) {
       return NextResponse.json({ error: "Некорректный JSON" }, { status: 400 });
@@ -70,7 +82,24 @@ export async function POST(request: NextRequest) {
     const date = requireDateKey(typeof body.date === "string" ? body.date : null) ?? today;
 
     const pack = await loadAdminAssistantContextPack(session.user.id, date, today);
-    const system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
+    const toolResults: AssistantToolResult[] = [];
+
+    const image = decodeImageBase64(body.imageBase64, body.imageMime);
+    if (image) {
+      const photoResult = await toolRecognizeAndSaveMeal({
+        userId: session.user.id,
+        date,
+        buffer: image.buffer,
+        filename: image.filename,
+        mimeType: image.mimeType,
+      });
+      toolResults.push(photoResult);
+    }
+
+    let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
+    if (toolResults.length) {
+      system += `\n\n=== Уже выполнено сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это в ответе; не дублируй запись тех же блюд.`;
+    }
 
     let rawReply: string;
     try {
@@ -81,6 +110,18 @@ export async function POST(request: NextRequest) {
       );
     } catch (error) {
       console.error("assistant gigachat", error);
+      if (toolResults.some((t) => t.ok)) {
+        return NextResponse.json({
+          reply: formatToolResultsForReply(toolResults),
+          actions: null,
+          tools: toolResults,
+          date,
+          mode,
+          snapshot: pack.snapshot,
+          prefs: pack.prefs,
+          source: "tools" as const,
+        });
+      }
       return NextResponse.json(
         { error: "Ассистент сейчас недоступен. Попробуйте чуть позже." },
         { status: 502 },
@@ -88,10 +129,23 @@ export async function POST(request: NextRequest) {
     }
 
     const { reply, actions } = splitAssistantReply(rawReply.trim());
+    const lastUser = messages[messages.length - 1]?.content ?? "";
+    const writeResults = await executeAssistantWriteTools({
+      userId: session.user.id,
+      today,
+      date: resolveAssistantDate((actions as ExecutableActions | null)?.targetDate, today) ?? date,
+      actions: (actions ?? {}) as ExecutableActions,
+      lastUserMessage: lastUser,
+    });
+    toolResults.push(...writeResults);
+
+    const toolNote = formatToolResultsForReply(writeResults.length ? writeResults : []);
+    const finalReply = [reply, toolNote].filter(Boolean).join("\n\n").trim() || reply;
 
     return NextResponse.json({
-      reply,
-      actions,
+      reply: finalReply,
+      actions: actions as AssistantActions | null,
+      tools: toolResults,
       date,
       mode,
       snapshot: pack.snapshot,

@@ -16,6 +16,12 @@ import {
 import { validateSaveMealInput, buildMealCreateData } from "@/lib/save-meal";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
 import { plannedSetsToJson, routineInclude, serializeRoutine } from "@/lib/workouts/routines";
+import {
+  planWeekdayFromDateKey,
+  parseWeekdays,
+  WEEKDAY_LABELS_RU,
+} from "@/lib/workouts/weekdays";
+import { weekdayIndexFromLabel } from "@/lib/assistant-tools";
 
 export const dynamic = "force-dynamic";
 
@@ -93,6 +99,16 @@ export async function POST(request: NextRequest) {
       if (!payload) {
         return NextResponse.json({ error: "Нет дней тренировок в плане" }, { status: 400 });
       }
+      const weekdaySet = new Set<number>();
+      for (const day of actions.workoutDays ?? []) {
+        const idx = weekdayIndexFromLabel(day.day);
+        if (idx != null) weekdaySet.add(idx);
+      }
+      if (!weekdaySet.size) {
+        const fromDate = planWeekdayFromDateKey(date);
+        if (fromDate != null) weekdaySet.add(fromDate);
+      }
+      const weekdays = parseWeekdays([...weekdaySet]);
       const maxOrder = await prisma.workoutRoutine.aggregate({
         where: { userId: session.user.id },
         _max: { sortOrder: true },
@@ -104,6 +120,9 @@ export async function POST(request: NextRequest) {
             name: payload.name,
             note: payload.note,
             sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+            weekdays: weekdays.length
+              ? (weekdays as unknown as Prisma.InputJsonValue)
+              : undefined,
             muscles: {
               create: payload.muscleGroups.map((groupKey) => ({ groupKey })),
             },
@@ -125,7 +144,12 @@ export async function POST(request: NextRequest) {
         );
         return row;
       });
-      return NextResponse.json({ ok: true, routine: serializeRoutine(created) });
+      const serialized = serializeRoutine(created);
+      return NextResponse.json({
+        ok: true,
+        routine: serialized,
+        weekdays: weekdays.map((d) => WEEKDAY_LABELS_RU[d]),
+      });
     }
 
     return NextResponse.json({ error: "Неизвестный kind" }, { status: 400 });
