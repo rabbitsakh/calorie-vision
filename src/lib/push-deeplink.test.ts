@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  assistantWeekLink,
   mealTypeForReminder,
   parseMealQueryParam,
   rationMealLink,
@@ -19,8 +20,17 @@ test("reminderDeepLink includes meal query for breakfast", () => {
   assert.equal(reminderDeepLink("lunch"), "/ration?meal=LUNCH");
   assert.equal(reminderDeepLink("dinner"), "/ration?meal=DINNER");
   assert.equal(reminderDeepLink("checkin"), "/ration#checkin");
-  assert.equal(reminderDeepLink("weekly"), "/plan#shopping");
+  assert.equal(reminderDeepLink("weekly"), "/plan#week-digest");
   assert.equal(reminderDeepLink("calories"), "/stats");
+  assert.match(reminderDeepLink("reactivation"), /\/assistant\?mode=week/);
+});
+
+test("assistantWeekLink sets mode and optional prefill", () => {
+  assert.equal(assistantWeekLink(), "/assistant?mode=week");
+  assert.match(
+    assistantWeekLink({ prefill: "Составь неделю" }),
+    /mode=week.*q=|q=.*mode=week/,
+  );
 });
 
 test("rationMealLink", () => {

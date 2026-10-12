@@ -2,8 +2,14 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AssistantActions, AssistantContextSnapshot, AssistantMode } from "@/lib/admin-assistant";
+import type {
+  AssistantActions,
+  AssistantContextSnapshot,
+  AssistantMode,
+} from "@/lib/admin-assistant";
+import { parseAssistantMode } from "@/lib/admin-assistant";
 import {
   ASSISTANT_MODE_PILLS,
   ASSISTANT_ONBOARD_KEY,
@@ -481,11 +487,13 @@ function ActionCard({
 
 export function AssistantChat() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const userId = session?.user?.id;
   const [hydrated, setHydrated] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([welcomeTurn()]);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [draft, setDraft] = useState("");
+  const [mode, setMode] = useState<AssistantMode>("all");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -493,7 +501,6 @@ export function AssistantChat() {
   const [snapshot, setSnapshot] = useState<AssistantContextSnapshot | null>(null);
   const [prefs, setPrefs] = useState<AssistantPrefs>({ likes: [], dislikes: [], notes: [] });
   const [undoStack, setUndoStack] = useState<UndoPayload[]>([]);
-  const [mode, setMode] = useState<AssistantMode>("all");
   const [online, setOnline] = useState(true);
   const [showOnboard, setShowOnboard] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
@@ -510,8 +517,12 @@ export function AssistantChat() {
       setUndoStack(stored.undoStack);
     }
     setShowOnboard(!loadOnboarded(userId));
+    const modeParam = searchParams.get("mode");
+    if (modeParam) setMode(parseAssistantMode(modeParam));
+    const q = searchParams.get("q")?.trim();
+    if (q) setDraft(q.slice(0, 6000));
     setHydrated(true);
-  }, [userId]);
+  }, [userId, searchParams]);
 
   useEffect(() => {
     if (!hydrated) return;

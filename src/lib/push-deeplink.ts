@@ -24,16 +24,37 @@ export function rationMealLink(meal?: MealType | null): string {
   return meal ? `${base}?meal=${meal}` : base;
 }
 
+/** AI assistant in week mode (digest → coach). */
+export function assistantWeekLink(opts?: { prefill?: string }): string {
+  const base = withBasePath("/assistant");
+  const params = new URLSearchParams({ mode: "week" });
+  if (opts?.prefill?.trim()) {
+    params.set("q", opts.prefill.trim().slice(0, 400));
+  }
+  return `${base}?${params.toString()}`;
+}
+
+/** Gym hub deep link. */
+export function workoutsDeepLink(): string {
+  return withBasePath("/workouts");
+}
+
 /** Build client path for a push notification tap. */
 export function reminderDeepLink(kind: ReminderKind): string {
   if (kind === "weekly") {
-    return `${withBasePath("/plan")}#shopping`;
+    // Wave E — land on week digest fold, not shopping.
+    return `${withBasePath("/plan")}#week-digest`;
   }
   if (kind === "calories") {
     return withBasePath("/stats");
   }
   if (kind === "checkin") {
     return `${withBasePath("/ration")}#checkin`;
+  }
+  if (kind === "reactivation") {
+    return assistantWeekLink({
+      prefill: "Помоги спланировать неделю: рацион и 2–3 тренировки",
+    });
   }
   const meal = mealTypeForReminder(kind);
   return rationMealLink(meal);

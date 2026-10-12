@@ -22,9 +22,11 @@ API: `/api/assistant`, `/api/assistant/stream`, `/api/assistant/apply` — `requ
 
 Рацион (фото всегда с confirm + правка КБЖУ/порции), план зала по дням, покупки, вода, вес, старт сегодняшней; undo-стек; режимы Еда/Зал/Неделя; retry если «Добавляю» без записи; офлайн-баннер; rate-limit на chat/apply.
 
-## Дальше (продукт)
+## Deep links
 
-1. Deep-link из пуша → `/assistant`.
+- `/assistant?mode=week&q=…` — недельный режим + префилл (Wave E)
+- Пуш `weekly` → `/plan#week-digest`
+- Пуш `reactivation` → `/assistant?mode=week`
 
 ## Не делать
 
