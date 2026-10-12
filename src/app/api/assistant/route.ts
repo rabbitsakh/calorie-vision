@@ -153,7 +153,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let { reply, actions } = splitAssistantReply(rawReply.trim());
+    const split = splitAssistantReply(rawReply.trim());
+    const reply = split.reply;
+    let actions = split.actions;
     if (needsWriteRepair(lastUser, actions)) {
       const repaired = await repairAssistantWriteActions({
         userMessage: lastUser,
