@@ -425,6 +425,8 @@ export async function toolLogWeight(opts: {
   userId: string;
   date: string;
   weightKg: number;
+  /** When false/omit — refuse overwrite and ask UI to confirm. */
+  overwrite?: boolean;
 }): Promise<AssistantToolResult> {
   const weightKg = Math.round(Number(opts.weightKg) * 10) / 10;
   if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 300) {
@@ -435,6 +437,20 @@ export async function toolLogWeight(opts: {
     orderBy: [{ date: "asc" }, { measuredAt: "asc" }, { createdAt: "asc" }],
   });
   if (existing) {
+    if (!opts.overwrite) {
+      return {
+        ok: false,
+        tool: "log_weight",
+        message: `На ${opts.date} уже ${existing.weightKg} кг. Подтверди замену на ${weightKg} кг.`,
+        data: {
+          needsConfirm: true,
+          existingKg: existing.weightKg,
+          weightKg,
+          date: opts.date,
+          weightId: existing.id,
+        },
+      };
+    }
     const updated = await prisma.weightEntry.update({
       where: { id: existing.id },
       data: { weightKg, measuredAt: new Date() },
@@ -442,7 +458,7 @@ export async function toolLogWeight(opts: {
     return {
       ok: true,
       tool: "log_weight",
-      message: `Вес ${opts.date}: ${weightKg} кг (обновил)`,
+      message: `Вес ${opts.date}: ${weightKg} кг (заменил ${existing.weightKg} → ${weightKg})`,
       data: { weightId: updated.id, weightKg, date: opts.date, replaced: true },
     };
   }
@@ -459,6 +475,100 @@ export async function toolLogWeight(opts: {
     tool: "log_weight",
     message: `Вес ${opts.date}: ${weightKg} кг`,
     data: { weightId: created.id, weightKg, date: opts.date },
+  };
+}
+
+function mealMatchKey(name: string): string {
+  return name.trim().replace(/\s+/g, " ").toLowerCase().replace(/ё/g, "е");
+}
+
+function mealMatchesQuery(dishName: string, match: string): boolean {
+  const a = mealMatchKey(dishName);
+  const b = mealMatchKey(match);
+  if (!a || !b) return false;
+  return a.includes(b) || b.includes(a);
+}
+
+export async function toolDeleteMeals(opts: {
+  userId: string;
+  date: string;
+  matches: Array<{ match: string }>;
+}): Promise<AssistantToolResult> {
+  const queries = opts.matches.map((m) => m.match.trim()).filter(Boolean).slice(0, 20);
+  if (!queries.length) {
+    return { ok: false, tool: "delete_meals", message: "Нет блюд для удаления" };
+  }
+  const rows = await prisma.mealEntry.findMany({
+    where: { userId: opts.userId, date: opts.date },
+    orderBy: { createdAt: "asc" },
+  });
+  const toDelete = rows.filter((r) => queries.some((q) => mealMatchesQuery(r.dishName, q)));
+  if (!toDelete.length) {
+    return {
+      ok: false,
+      tool: "delete_meals",
+      message: `Не нашёл в рационе ${opts.date}: ${queries.join(", ")}`,
+    };
+  }
+  const ids = toDelete.map((r) => r.id);
+  await prisma.mealEntry.deleteMany({
+    where: { userId: opts.userId, id: { in: ids } },
+  });
+  const names = toDelete.map((r) => r.dishName).join(", ");
+  return {
+    ok: true,
+    tool: "delete_meals",
+    message: `Удалил из рациона ${opts.date}: ${names}`,
+    data: { mealIds: ids, date: opts.date },
+  };
+}
+
+export async function toolPatchMeals(opts: {
+  userId: string;
+  date: string;
+  patches: NonNullable<AssistantActions["patchMeals"]>;
+}): Promise<AssistantToolResult> {
+  const patches = opts.patches.slice(0, 20);
+  if (!patches.length) {
+    return { ok: false, tool: "patch_meals", message: "Нет правок" };
+  }
+  const rows = await prisma.mealEntry.findMany({
+    where: { userId: opts.userId, date: opts.date },
+    orderBy: { createdAt: "asc" },
+  });
+  const updated: Array<{ id: string; dishName: string; calories: number }> = [];
+  for (const patch of patches) {
+    const row = rows.find((r) => mealMatchesQuery(r.dishName, patch.match));
+    if (!row) continue;
+    const nextName = patch.name?.trim() || row.dishName;
+    const nextKcal =
+      typeof patch.kcal === "number" && Number.isFinite(patch.kcal)
+        ? Math.round(patch.kcal)
+        : row.calories;
+    const data: Prisma.MealEntryUpdateInput = {
+      dishName: nextName.slice(0, 120),
+      calories: nextKcal,
+    };
+    if (typeof patch.protein === "number") data.protein = patch.protein;
+    if (typeof patch.fat === "number") data.fat = patch.fat;
+    if (typeof patch.carbs === "number") data.carbs = patch.carbs;
+    if (typeof patch.portionGrams === "number") data.portionGrams = patch.portionGrams;
+    const saved = await prisma.mealEntry.update({ where: { id: row.id }, data });
+    updated.push({ id: saved.id, dishName: saved.dishName, calories: saved.calories });
+  }
+  if (!updated.length) {
+    return {
+      ok: false,
+      tool: "patch_meals",
+      message: `Не нашёл блюда для правки на ${opts.date}`,
+    };
+  }
+  const names = updated.map((m) => `${m.dishName} (${m.calories} ккал)`).join(", ");
+  return {
+    ok: true,
+    tool: "patch_meals",
+    message: `Обновил в рационе ${opts.date}: ${names}`,
+    data: { meals: updated, date: opts.date },
   };
 }
 
@@ -801,6 +911,8 @@ export function shouldAutoApply(
   }
   return Boolean(
     actions.meals?.length ||
+      actions.deleteMeals?.length ||
+      actions.patchMeals?.length ||
       actions.workoutDays?.length ||
       actions.shopping?.length ||
       actions.waterMl != null ||
@@ -830,6 +942,26 @@ export async function executeAssistantWriteTools(opts: {
         userId: opts.userId,
         date: target,
         actions: opts.actions,
+      }),
+    );
+  }
+
+  if (opts.actions.deleteMeals?.length) {
+    results.push(
+      await toolDeleteMeals({
+        userId: opts.userId,
+        date: target,
+        matches: opts.actions.deleteMeals,
+      }),
+    );
+  }
+
+  if (opts.actions.patchMeals?.length) {
+    results.push(
+      await toolPatchMeals({
+        userId: opts.userId,
+        date: target,
+        patches: opts.actions.patchMeals,
       }),
     );
   }
@@ -871,6 +1003,7 @@ export async function executeAssistantWriteTools(opts: {
         userId: opts.userId,
         date: target,
         weightKg: opts.actions.weightKg,
+        overwrite: opts.actions.overwriteWeight === true,
       }),
     );
   }

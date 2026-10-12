@@ -13,6 +13,8 @@ export function actionsHaveWritablePayload(actions: AssistantActions | null | un
   if (!actions) return false;
   return Boolean(
     actions.meals?.length ||
+      actions.deleteMeals?.length ||
+      actions.patchMeals?.length ||
       actions.workoutDays?.length ||
       actions.shopping?.length ||
       actions.waterMl != null ||

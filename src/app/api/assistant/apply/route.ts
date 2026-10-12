@@ -14,7 +14,9 @@ import {
   parseAssistantPrefs,
 } from "@/lib/assistant-prefs";
 import {
+  resolveAssistantDate,
   toolCreateWorkoutPlan,
+  toolLogWeight,
   toolSaveMeals,
   toolSavePhotoDrafts,
   toolUndoWrites,
@@ -175,6 +177,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
       return NextResponse.json({ ok: true, ...(result.data as object), tools: [result] });
+    }
+
+    if (body.kind === "weight") {
+      const kg = actions.weightKg;
+      if (typeof kg !== "number") {
+        return NextResponse.json({ error: "Нет веса" }, { status: 400 });
+      }
+      const weightDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolLogWeight({
+        userId: session.user.id,
+        date: weightDate,
+        weightKg: kg,
+        overwrite: true,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
     }
 
     if (body.kind === "routine") {
