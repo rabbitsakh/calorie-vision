@@ -217,7 +217,8 @@ export function WorkoutLiveStage({
             ) : null}
             <h2 className="truncate text-2xl font-semibold leading-tight">{focus.name}</h2>
             <p className="mt-1 text-sm text-white/55">
-              {doneCount}/{focus.sets.length || "—"} подходов
+              Подход {Math.min(doneCount + 1, focus.sets.length || 1)}/
+              {focus.sets.length || "—"}
               {showSetMeta && currentSet ? ` · ${SET_TYPE_SHORT[currentSet.setType]}` : ""}
             </p>
           </div>
@@ -225,6 +226,34 @@ export function WorkoutLiveStage({
             →
           </button>
         </div>
+
+        {(() => {
+          const targetParts: string[] = [];
+          if (currentSet && !currentSet.completed) {
+            if (spec.usesWeight && currentSet.weightKg != null) {
+              targetParts.push(`${currentSet.weightKg} кг`);
+            }
+            if (spec.usesReps && currentSet.reps != null) {
+              targetParts.push(`${currentSet.reps} повт`);
+            }
+            if (spec.usesDistance && currentSet.distanceKm != null) {
+              targetParts.push(`${currentSet.distanceKm} км`);
+            }
+            if (spec.usesDuration && currentSet.durationSec != null) {
+              const mins = Math.round(currentSet.durationSec / 60);
+              targetParts.push(`${mins} мин`);
+            }
+          }
+          if (targetParts.length === 0 && suggestedKg != null && spec.usesWeight) {
+            targetParts.push(`${formatSuggestedKg(suggestedKg)} кг`);
+          }
+          if (targetParts.length === 0) return null;
+          return (
+            <p className="mt-3 text-center text-lg font-semibold tracking-tight text-teal-200">
+              Цель: {targetParts.join(" × ")}
+            </p>
+          );
+        })()}
 
         {group.length > 1 ? (
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
@@ -243,10 +272,8 @@ export function WorkoutLiveStage({
 
         {advice ? (
           <p
-            className={`mt-3 rounded-xl px-3 py-2 text-center text-sm ${
-              advice.kind === "stall"
-                ? "bg-amber-500/20 text-amber-100"
-                : "bg-white/5 text-white/80"
+            className={`mt-2 px-2 text-center text-xs leading-snug ${
+              advice.kind === "stall" ? "text-amber-200/90" : "text-white/45"
             }`}
           >
             <span className="font-semibold">{advice.title}.</span> {advice.detail}

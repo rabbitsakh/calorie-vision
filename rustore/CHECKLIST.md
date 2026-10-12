@@ -26,7 +26,8 @@
 
 ## Витрина
 
-Подробный гайд: [`PUBLISH.md`](PUBLISH.md). Тексты: [`listing.ru.md`](listing.ru.md).
+Подробный гайд: [`PUBLISH.md`](PUBLISH.md). Тексты: [`listing.ru.md`](listing.ru.md).  
+**Wave F (вместе):** [`WAVE-F-TOGETHER.md`](WAVE-F-TOGETHER.md) — что сделать в Консоли после merge A–E.
 
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`

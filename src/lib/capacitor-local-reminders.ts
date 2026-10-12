@@ -9,14 +9,17 @@
 
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
 import { isApkWebView } from "@/lib/capacitor-resume";
+import { reminderDeepLink } from "@/lib/push-deeplink";
 import {
   effectiveReminderSchedule,
+  isReminderKind,
   type PushReminderPrefs,
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { getQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import { readRationDayCache } from "@/lib/ration-day-cache";
+import { withBasePath } from "@/lib/paths";
 
 type CvSessionBridge = {
   get: (key: string) => string | null;
@@ -775,5 +778,34 @@ export async function fireCapacitorTestReminder(): Promise<EnableCapRemindersRes
   } catch (error) {
     const message = error instanceof Error ? error.message : "Не удалось отправить тест";
     return { ok: false, error: message };
+  }
+}
+
+/**
+ * Wave E — tap on APK local reminder → same deep links as Web Push.
+ * Returns unsubscribe; no-op outside Capacitor LocalNotifications.
+ */
+export async function subscribeLocalReminderDeepLinks(): Promise<() => void> {
+  if (typeof window === "undefined") return () => {};
+  if (!(await hasCapLocalNotificationsPlugin())) return () => {};
+  try {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const handle = await LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      (event) => {
+        const kindRaw = (event.notification?.extra as { kind?: string } | undefined)?.kind;
+        if (!kindRaw || !isReminderKind(kindRaw)) return;
+        const target = reminderDeepLink(kindRaw);
+        const path = target.startsWith("http")
+          ? target
+          : withBasePath(target.startsWith("/") ? target : `/${target}`);
+        window.location.assign(path);
+      },
+    );
+    return () => {
+      void handle.remove();
+    };
+  } catch {
+    return () => {};
   }
 }
