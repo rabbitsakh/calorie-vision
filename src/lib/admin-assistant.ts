@@ -78,15 +78,16 @@ export function buildAssistantSystemPrompt(
     "Не ставь диагнозов. Не предлагай удалять всё подряд и не пиши SQL/код.",
     "",
     "ТЫ УМЕЕШЬ ЗАПИСЫВАТЬ: блюда (с БЖУ), план зала по дням, покупки, воду (мл), вес (кг), старт сегодняшней тренировки.",
-    "Если просят составить/добавить/сохранить/запиши/выпил/взвесился/начни — cv-actions с \"apply\": true.",
-    "В тексте сразу говори, что уже делаешь («Добавляю…», «Стартую…»). Совет без записи — без apply.",
-    "meals: name, kcal, protein/fat/carbs если знаешь, note=завтрак|обед|ужин|перекус.",
-    "workoutDays.day = Пн/Вт/… или завтра; notes = упражнения через запятую.",
+    "КРИТИЧНО: если пользователь просит добавить/записать/сохранить/съел+добавь — НЕЛЬЗЯ только текстом «Добавляю».",
+    "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
+    "Несколько блюд = несколько объектов в meals[]. Оцени kcal/БЖУ, если не указали.",
+    "Совет без просьбы записать — без apply / без блока.",
+    "meals.note = завтрак|обед|ужин|перекус. workoutDays.day = Пн/Вт/… или сегодня/завтра.",
     "waterMl, weightKg, startWorkout:true, shopping:[], targetDate.",
     "",
-    "Пример блока:",
+    "Пример (обязательный хвост при записи):",
     "```cv-actions",
-    '{"apply":true,"targetDate":"завтра","meals":[{"name":"Омлет","kcal":320,"protein":24,"fat":22,"carbs":4,"note":"завтрак"}],"workoutDays":[{"day":"завтра","focus":"Грудь","notes":"жим, разведения"}],"shopping":["яйца"],"waterMl":250,"startWorkout":false,"summary":"кратко"}',
+    '{"apply":true,"targetDate":"сегодня","meals":[{"name":"Булочка с изюмом","kcal":300,"protein":6,"fat":10,"carbs":40,"note":"перекус"},{"name":"Финиковая паста","kcal":350,"protein":3,"fat":1,"carbs":80,"note":"перекус"}],"summary":"добавил в рацион"}',
     "```",
     "",
     "=== Данные пользователя ===",
@@ -98,22 +99,47 @@ export function buildAssistantSystemPrompt(
     .join("\n");
 }
 
-/** Strip ```cv-actions ... ``` and return clean reply + parsed actions. */
+/** Strip ```cv-actions / ```json ... ``` (or trailing {…}) and return clean reply + actions. */
 export function splitAssistantReply(raw: string): {
   reply: string;
   actions: AssistantActions | null;
 } {
   const text = raw.trim();
-  const match = /```cv-actions\s*([\s\S]*?)```/i.exec(text);
-  if (!match) return { reply: text, actions: null };
-  const reply = `${text.slice(0, match.index).trim()}\n${text.slice(match.index + match[0].length).trim()}`.trim();
-  try {
-    const parsed = JSON.parse(match[1]!.trim()) as unknown;
-    const actions = normalizeAssistantActions(parsed);
-    return { reply: reply || text.replace(match[0], "").trim(), actions };
-  } catch {
-    return { reply: text.replace(match[0], "").trim() || text, actions: null };
+  const match =
+    /```cv-actions\s*([\s\S]*?)```/i.exec(text) ??
+    /```json\s*([\s\S]*?)```/i.exec(text);
+
+  if (match) {
+    const reply =
+      `${text.slice(0, match.index).trim()}\n${text.slice(match.index + match[0].length).trim()}`.trim();
+    try {
+      const parsed = JSON.parse(match[1]!.trim()) as unknown;
+      const actions = normalizeAssistantActions(parsed);
+      return { reply: reply || text.replace(match[0], "").trim(), actions };
+    } catch {
+      return { reply: text.replace(match[0], "").trim() || text, actions: null };
+    }
   }
+
+  // Fallback: last JSON object in the reply (models sometimes omit the fence).
+  const start = text.lastIndexOf('{"apply"');
+  const startAlt = start >= 0 ? start : text.lastIndexOf('{"meals"');
+  if (startAlt >= 0) {
+    const end = text.lastIndexOf("}");
+    if (end > startAlt) {
+      try {
+        const parsed = JSON.parse(text.slice(startAlt, end + 1)) as unknown;
+        const actions = normalizeAssistantActions(parsed);
+        if (actions) {
+          return { reply: text.slice(0, startAlt).trim() || text, actions };
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return { reply: text, actions: null };
 }
 
 export function normalizeAssistantActions(raw: unknown): AssistantActions | null {

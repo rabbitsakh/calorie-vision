@@ -101,6 +101,19 @@ test("splitAssistantReply extracts cv-actions", () => {
   assert.equal(actions!.workoutDays?.[0]?.focus, "Ноги");
 });
 
+test("splitAssistantReply accepts json fence and trailing apply object", () => {
+  const jsonFence = splitAssistantReply(
+    'Ок\n```json\n{"apply":true,"meals":[{"name":"Булочка","kcal":300}]}\n```',
+  );
+  assert.equal(jsonFence.actions?.meals?.[0]?.name, "Булочка");
+
+  const trailing = splitAssistantReply(
+    'Добавляю.\n{"apply":true,"meals":[{"name":"Паста","kcal":350}]}',
+  );
+  assert.match(trailing.reply, /Добавляю/);
+  assert.equal(trailing.actions?.meals?.[0]?.name, "Паста");
+});
+
 test("normalizeAssistantActions filters junk", () => {
   assert.equal(normalizeAssistantActions({ shopping: [1, ""] }), null);
   const ok = normalizeAssistantActions({ meals: [{ name: "Суп", kcal: 300 }] });
