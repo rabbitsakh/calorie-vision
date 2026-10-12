@@ -6,7 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AssistantActions, AssistantContextSnapshot } from "@/lib/admin-assistant";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
 import { withBasePath } from "@/lib/paths";
-import { addItemsFromDishNames } from "@/lib/shopping-list";
 
 type ChatRole = "user" | "assistant";
 
@@ -14,6 +13,30 @@ type ToolResult = {
   ok: boolean;
   tool: string;
   message: string;
+  data?: unknown;
+};
+
+type UndoPayload = {
+  mealIds: string[];
+  routineIds: string[];
+  waterIds: string[];
+  weightIds: string[];
+};
+
+type PhotoDraft = {
+  dishName: string;
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  fiber?: number;
+  sugar?: number;
+  portionGrams?: number;
+  confidence?: number;
+  photoKind?: string;
+  barcode?: string;
+  brand?: string;
+  recognitionSource?: string;
 };
 
 type ChatTurn = {
@@ -22,16 +45,17 @@ type ChatTurn = {
   content: string;
   actions?: AssistantActions | null;
   tools?: ToolResult[];
+  undo?: UndoPayload | null;
   imagePreview?: string | null;
 };
 
-const STORAGE_KEY = "cv-assistant-chat-v4";
+const STORAGE_KEY = "cv-assistant-chat-v5";
 
 const STARTERS = [
-  "Составь план тренировки на завтра и добавь в план",
-  "Собери рацион на сегодня и запиши в дневник",
-  "Что ещё съесть по остатку КБЖУ?",
-  "План зала на 3 дня на неделю",
+  "Составь план на завтра и добавь в план",
+  "Запиши ужин: курица с рисом ~550 ккал",
+  "Начни сегодняшнюю тренировку",
+  "Выпил 300 мл воды",
 ];
 
 function newId(): string {
@@ -43,8 +67,17 @@ function welcomeTurn(): ChatTurn {
     id: "welcome",
     role: "assistant",
     content:
-      "Напиши, что сделать — я сам запишу. Например: «план тренировки на завтра» или пришли фото еды.",
+      "Привет! Могу сам записать рацион, план зала, воду, вес — или стартовать тренировку. Кинь фото еды: сначала покажу, что увидел, ты подтвердишь.",
   };
+}
+
+function emptyUndo(): UndoPayload {
+  return { mealIds: [], routineIds: [], waterIds: [], weightIds: [] };
+}
+
+function undoHasItems(u: UndoPayload | null | undefined): boolean {
+  if (!u) return false;
+  return u.mealIds.length + u.routineIds.length + u.waterIds.length + u.weightIds.length > 0;
 }
 
 function loadStored(userId: string | undefined) {
@@ -115,14 +148,12 @@ function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
 function ToolChips({ tools }: { tools: ToolResult[] }) {
   if (!tools.length) return null;
   return (
-    <div className="mt-2 space-y-1">
+    <div className="mt-1.5 space-y-0.5">
       {tools.map((t, i) => (
         <p
           key={`${t.tool}-${i}`}
-          className={`rounded-lg px-2 py-1 text-[11px] font-medium ${
-            t.ok
-              ? "bg-teal-100 text-teal-950"
-              : "bg-rose-50 text-rose-900"
+          className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-snug ${
+            t.ok ? "bg-teal-100 text-teal-950" : "bg-rose-50 text-rose-900"
           }`}
         >
           {t.ok ? "✓ " : "✗ "}
@@ -133,24 +164,87 @@ function ToolChips({ tools }: { tools: ToolResult[] }) {
   );
 }
 
+function PhotoConfirm({
+  tool,
+  date,
+  busy,
+  onDone,
+  onFlash,
+}: {
+  tool: ToolResult;
+  date: string;
+  busy: boolean;
+  onDone: (result: ToolResult, undo: UndoPayload) => void;
+  onFlash: (msg: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const data = (tool.data ?? {}) as {
+    pending?: boolean;
+    imagePath?: string;
+    drafts?: PhotoDraft[];
+    date?: string;
+  };
+  if (!data.pending || !data.imagePath || !data.drafts?.length) return null;
+
+  async function confirm() {
+    setPending(true);
+    try {
+      const resp = await fetch(withBasePath("/api/assistant/apply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "photo",
+          date: data.date || date,
+          imagePath: data.imagePath,
+          drafts: data.drafts,
+        }),
+      });
+      const json = (await resp.json().catch(() => null)) as {
+        error?: string;
+        result?: ToolResult;
+      } | null;
+      if (!resp.ok || !json?.result) throw new Error(json?.error || "Не удалось");
+      const meals = (json.result.data as { meals?: Array<{ id: string }> } | undefined)?.meals ?? [];
+      onDone(json.result, {
+        ...emptyUndo(),
+        mealIds: meals.map((m) => m.id).filter(Boolean),
+      });
+      onFlash("Добавил в рацион");
+    } catch (err) {
+      onFlash(err instanceof Error ? err.message : "Ошибка");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        disabled={busy || pending}
+        className="rounded-md bg-teal-700 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-50"
+        onClick={() => void confirm()}
+      >
+        {pending ? "Пишу…" : "Добавить в рацион"}
+      </button>
+    </div>
+  );
+}
+
 function ActionCard({
   actions,
-  userId,
   date,
   alreadyApplied,
   onFlash,
+  onApplied,
 }: {
   actions: AssistantActions;
-  userId?: string;
   date: string;
   alreadyApplied: boolean;
   onFlash: (msg: string) => void;
+  onApplied: (undo: UndoPayload) => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
-  const shopping = [
-    ...(actions.shopping ?? []),
-    ...(actions.meals ?? []).map((m) => m.name),
-  ].filter(Boolean);
 
   async function apply(kind: "meals" | "routine") {
     setBusy(kind);
@@ -162,11 +256,23 @@ function ActionCard({
       });
       const data = (await resp.json().catch(() => null)) as {
         error?: string;
-        meals?: unknown[];
+        meals?: Array<{ id: string }>;
+        routines?: Array<{ id: string }>;
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
-      if (kind === "meals") onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
-      else onFlash("Шаблон создан в Зале");
+      if (kind === "meals") {
+        onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
+        onApplied({
+          ...emptyUndo(),
+          mealIds: (data?.meals ?? []).map((m) => m.id).filter(Boolean),
+        });
+      } else {
+        onFlash("В план зала");
+        onApplied({
+          ...emptyUndo(),
+          routineIds: (data?.routines ?? []).map((r) => r.id).filter(Boolean),
+        });
+      }
     } catch (err) {
       onFlash(err instanceof Error ? err.message : "Ошибка");
     } finally {
@@ -175,7 +281,7 @@ function ActionCard({
   }
 
   return (
-    <div className="mt-2 space-y-2 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-2 text-xs text-teal-950">
+    <div className="mt-1.5 space-y-1 rounded-lg border border-teal-200 bg-teal-50/80 px-2 py-1.5 text-[11px] leading-snug text-teal-950">
       {actions.summary ? <p className="font-semibold">{actions.summary}</p> : null}
       {actions.meals?.length ? (
         <ul className="space-y-0.5">
@@ -183,7 +289,10 @@ function ActionCard({
             <li key={m.name}>
               • {m.name}
               {m.kcal != null ? ` — ${m.kcal} ккал` : ""}
-              {m.note ? ` (${m.note})` : ""}
+              {m.protein != null || m.fat != null || m.carbs != null
+                ? ` (Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"})`
+                : ""}
+              {m.note ? ` · ${m.note}` : ""}
             </li>
           ))}
         </ul>
@@ -198,73 +307,49 @@ function ActionCard({
           ))}
         </ul>
       ) : null}
-      {alreadyApplied ? (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {actions.workoutDays?.length ? (
+      <div className="flex flex-wrap gap-1.5 pt-0.5">
+        {alreadyApplied ? (
+          actions.workoutDays?.length ? (
             <Link
               href="/workouts"
-              className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100"
+              className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900"
             >
               Открыть зал
             </Link>
-          ) : null}
-          {shopping.length ? (
-            <button
-              type="button"
-              className="rounded-lg bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800"
-              onClick={() => {
-                addItemsFromDishNames(shopping, date, { userId });
-                onFlash(`В покупках: ${shopping.length}`);
-              }}
-            >
-              В покупки ({shopping.length})
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {shopping.length ? (
-            <button
-              type="button"
-              className="rounded-lg bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800"
-              onClick={() => {
-                addItemsFromDishNames(shopping, date, { userId });
-                onFlash(`В покупках: ${shopping.length}`);
-              }}
-            >
-              В покупки ({shopping.length})
-            </button>
-          ) : null}
-          {actions.meals?.length ? (
-            <button
-              type="button"
-              className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
-              disabled={busy === "meals"}
-              onClick={() => void apply("meals")}
-            >
-              {busy === "meals" ? "Пишу…" : "В дневник"}
-            </button>
-          ) : null}
-          {actions.workoutDays?.length ? (
-            <>
+          ) : null
+        ) : (
+          <>
+            {actions.meals?.length ? (
               <button
                 type="button"
-                className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
-                disabled={busy === "routine"}
-                onClick={() => void apply("routine")}
+                className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
+                disabled={busy === "meals"}
+                onClick={() => void apply("meals")}
               >
-                {busy === "routine" ? "Создаю…" : "В план зала"}
+                {busy === "meals" ? "…" : "В дневник"}
               </button>
-              <Link
-                href="/workouts"
-                className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100"
-              >
-                Открыть зал
-              </Link>
-            </>
-          ) : null}
-        </div>
-      )}
+            ) : null}
+            {actions.workoutDays?.length ? (
+              <>
+                <button
+                  type="button"
+                  className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
+                  disabled={busy === "routine"}
+                  onClick={() => void apply("routine")}
+                >
+                  {busy === "routine" ? "…" : "В план зала"}
+                </button>
+                <Link
+                  href="/workouts"
+                  className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900"
+                >
+                  Зал
+                </Link>
+              </>
+            ) : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -282,6 +367,7 @@ export function AssistantChat() {
   const [flash, setFlash] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<AssistantContextSnapshot | null>(null);
   const [prefs, setPrefs] = useState<AssistantPrefs>({ likes: [], dislikes: [], notes: [] });
+  const [lastUndo, setLastUndo] = useState<UndoPayload | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -353,9 +439,44 @@ export function AssistantChat() {
     if (data?.prefs) setPrefs(data.prefs);
   }
 
-  async function send(text: string) {
-    const content = text.trim() || (photo ? "Добавь это фото в рацион" : "");
-    if ((!content && !photo) || busy) return;
+  async function undoLast() {
+    if (!lastUndo || !undoHasItems(lastUndo) || busy) return;
+    setBusy(true);
+    try {
+      const resp = await fetch(withBasePath("/api/assistant/apply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "undo", undo: lastUndo }),
+      });
+      const data = (await resp.json().catch(() => null)) as {
+        error?: string;
+        result?: ToolResult;
+      } | null;
+      if (!resp.ok) throw new Error(data?.error || "Не удалось отменить");
+      setLastUndo(null);
+      setTurns((prev) => [
+        ...prev,
+        {
+          id: newId(),
+          role: "assistant",
+          content: data?.result?.message || "Отменил последнюю запись.",
+          tools: data?.result ? [data.result] : [],
+        },
+      ]);
+      void refreshSnapshot(date);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка отмены");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function send(text: string, opts?: { savePhoto?: boolean }) {
+    const hasPhoto = Boolean(photo);
+    const content =
+      text.trim() ||
+      (hasPhoto ? (opts?.savePhoto ? "Добавь фото в рацион" : "Что на фото?") : "");
+    if ((!content && !hasPhoto) || busy) return;
 
     const dislikeMatch = /(?:не\s+(?:предлагай|люблю|ем)|без)\s+(.+)$/i.exec(content);
     if (dislikeMatch?.[1]) {
@@ -413,11 +534,21 @@ export function AssistantChat() {
     const assistantId = newId();
     setTurns((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
+    const writePhoto =
+      opts?.savePhoto === true ||
+      (/добав|сохран|запиш|в\s*рацион/i.test(content) && content !== "Что на фото?");
     const payload = {
       messages: history,
       date,
       mode: "all" as const,
-      ...(imageBase64 ? { imageBase64, imageMime } : {}),
+      ...(imageBase64
+        ? {
+            imageBase64,
+            imageMime,
+            // Default preview; save if user explicitly asks to add.
+            savePhoto: writePhoto,
+          }
+        : {}),
     };
 
     try {
@@ -436,6 +567,7 @@ export function AssistantChat() {
           reply?: string;
           actions?: AssistantActions | null;
           tools?: ToolResult[];
+          undo?: UndoPayload;
           snapshot?: AssistantContextSnapshot;
           prefs?: AssistantPrefs;
           error?: string;
@@ -443,6 +575,7 @@ export function AssistantChat() {
         if (!fallback.ok) throw new Error(data?.error || "Не удалось получить ответ");
         if (data?.snapshot) setSnapshot(data.snapshot);
         if (data?.prefs) setPrefs(data.prefs);
+        if (data?.undo && undoHasItems(data.undo)) setLastUndo(data.undo);
         setTurns((prev) =>
           prev.map((t) =>
             t.id === assistantId
@@ -451,6 +584,7 @@ export function AssistantChat() {
                   content: data?.reply?.trim() || "…",
                   actions: data?.actions ?? null,
                   tools: data?.tools ?? [],
+                  undo: data?.undo ?? null,
                 }
               : t,
           ),
@@ -492,6 +626,7 @@ export function AssistantChat() {
               ok: Boolean(json.ok),
               tool: String(json.tool || "tool"),
               message: String(json.message || ""),
+              data: json.data,
             });
             setTurns((prev) =>
               prev.map((t) => (t.id === assistantId ? { ...t, tools: [...liveTools] } : t)),
@@ -504,6 +639,8 @@ export function AssistantChat() {
           if (ev.event === "done") {
             if (json.snapshot) setSnapshot(json.snapshot as AssistantContextSnapshot);
             if (json.prefs) setPrefs(json.prefs as AssistantPrefs);
+            const undo = (json.undo as UndoPayload | undefined) ?? null;
+            if (undo && undoHasItems(undo)) setLastUndo(undo);
             setTurns((prev) =>
               prev.map((t) =>
                 t.id === assistantId
@@ -512,6 +649,7 @@ export function AssistantChat() {
                       content: String(json.reply || acc).trim() || "…",
                       actions: (json.actions as AssistantActions | null) ?? null,
                       tools: (json.tools as ToolResult[] | undefined) ?? liveTools,
+                      undo,
                     }
                   : t,
               ),
@@ -540,29 +678,40 @@ export function AssistantChat() {
         : null;
 
   return (
-    <section className="flex min-h-[75vh] flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs font-medium text-[var(--muted-strong)]">
+    <section className="flex min-h-[75vh] flex-col gap-2 text-[13px] leading-snug">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <label className="text-[11px] font-medium text-[var(--muted-strong)]">
           День{" "}
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="ml-1 rounded-lg border border-[var(--line)] bg-white px-2 py-1 text-sm"
+            className="ml-1 rounded-md border border-[var(--line)] bg-white px-1.5 py-0.5 text-[12px]"
             disabled={busy}
           />
         </label>
         {remainLabel ? (
-          <span className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]">
+          <span className="rounded-full border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]">
             {remainLabel}
           </span>
         ) : null}
+        {undoHasItems(lastUndo) ? (
+          <button
+            type="button"
+            className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-950 disabled:opacity-50"
+            disabled={busy}
+            onClick={() => void undoLast()}
+          >
+            Отменить запись
+          </button>
+        ) : null}
         <button
           type="button"
-          className="ml-auto text-[11px] font-semibold text-[var(--muted)] underline-offset-2 hover:underline"
+          className="ml-auto text-[10px] font-semibold text-[var(--muted)] underline-offset-2 hover:underline"
           disabled={busy}
           onClick={() => {
             setTurns([welcomeTurn()]);
+            setLastUndo(null);
             setError(null);
           }}
         >
@@ -570,13 +719,29 @@ export function AssistantChat() {
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 sm:p-4">
+      <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--surface)] p-2 sm:p-2.5">
         {turns.map((turn) => {
-          const applied = Boolean(turn.tools?.some((t) => t.ok));
+          const applied = Boolean(
+            turn.tools?.some(
+              (t) =>
+                t.ok &&
+                t.tool !== "recognize_meal_preview" &&
+                (t.tool.includes("save") ||
+                  t.tool.includes("plan") ||
+                  t.tool.includes("shopping") ||
+                  t.tool.includes("water") ||
+                  t.tool.includes("weight") ||
+                  t.tool.includes("start") ||
+                  t.tool.includes("photo")),
+            ),
+          );
+          const photoPreviewTool = turn.tools?.find(
+            (t) => t.tool === "recognize_meal_preview" && t.ok,
+          );
           return (
             <div
               key={turn.id}
-              className={`max-w-[94%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+              className={`max-w-[96%] rounded-xl px-2.5 py-1.5 text-[12px] leading-snug ${
                 turn.role === "user"
                   ? "ml-auto bg-[var(--accent)] text-white"
                   : "mr-auto bg-[var(--surface-mist)] text-[var(--ink)]"
@@ -587,43 +752,71 @@ export function AssistantChat() {
                 <img
                   src={turn.imagePreview}
                   alt="Фото"
-                  className="mb-2 max-h-40 rounded-lg object-cover"
+                  className="mb-1.5 max-h-32 rounded-md object-cover"
                 />
               ) : null}
               <div className="whitespace-pre-wrap">{turn.content || (busy ? "…" : "")}</div>
               {turn.role === "assistant" && turn.tools?.length ? (
                 <ToolChips tools={turn.tools} />
               ) : null}
+              {turn.role === "assistant" && photoPreviewTool ? (
+                <PhotoConfirm
+                  tool={photoPreviewTool}
+                  date={date}
+                  busy={busy}
+                  onFlash={showFlash}
+                  onDone={(result, undo) => {
+                    setLastUndo(undo);
+                    setTurns((prev) =>
+                      prev.map((t) =>
+                        t.id === turn.id
+                          ? {
+                              ...t,
+                              tools: [
+                                ...(t.tools ?? []).filter((x) => x.tool !== "recognize_meal_preview"),
+                                result,
+                              ],
+                              undo,
+                            }
+                          : t,
+                      ),
+                    );
+                    void refreshSnapshot(date);
+                  }}
+                />
+              ) : null}
               {turn.role === "assistant" && turn.actions ? (
                 <ActionCard
                   actions={turn.actions}
-                  userId={userId}
                   date={date}
                   alreadyApplied={applied}
                   onFlash={showFlash}
+                  onApplied={(undo) => {
+                    if (undoHasItems(undo)) setLastUndo(undo);
+                  }}
                 />
               ) : null}
             </div>
           );
         })}
         {busy ? (
-          <p className="mr-auto text-xs font-medium text-[var(--muted)]">
+          <p className="mr-auto text-[11px] font-medium text-[var(--muted)]">
             {status || "Думаю…"}
           </p>
         ) : null}
         <div ref={bottomRef} />
       </div>
 
-      {flash ? <p className="text-sm font-medium text-teal-800">{flash}</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {flash ? <p className="text-[12px] font-medium text-teal-800">{flash}</p> : null}
+      {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 
       {!busy && turns.length <= 2 ? (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1">
           {STARTERS.map((hint) => (
             <button
               key={hint}
               type="button"
-              className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
+              className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
               disabled={busy}
               onClick={() => void send(hint)}
             >
@@ -634,13 +827,15 @@ export function AssistantChat() {
       ) : null}
 
       {photoPreview ? (
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-2 py-1.5">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--line)] bg-white px-2 py-1">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photoPreview} alt="Превью" className="h-12 w-12 rounded-lg object-cover" />
-          <span className="flex-1 text-xs text-[var(--muted-strong)]">Фото добавится в рацион</span>
+          <img src={photoPreview} alt="Превью" className="h-10 w-10 rounded-md object-cover" />
+          <span className="flex-1 text-[11px] text-[var(--muted-strong)]">
+            Сначала распознаю — потом подтвердишь запись
+          </span>
           <button
             type="button"
-            className="text-xs font-semibold text-[var(--muted)] underline"
+            className="text-[11px] font-semibold text-[var(--muted)] underline"
             onClick={clearPhoto}
             disabled={busy}
           >
@@ -650,7 +845,7 @@ export function AssistantChat() {
       ) : null}
 
       <form
-        className="flex gap-2"
+        className="flex gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           void send(draft);
@@ -672,7 +867,7 @@ export function AssistantChat() {
         />
         <button
           type="button"
-          className="btn btn-secondary min-h-11 self-end px-3 text-xs"
+          className="btn btn-secondary min-h-[4.5rem] self-stretch px-2.5 text-[11px]"
           disabled={busy}
           title="Фото еды"
           onClick={() => fileRef.current?.click()}
@@ -682,11 +877,11 @@ export function AssistantChat() {
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="План на завтра, рацион, или прикрепи фото…"
-          className="input min-h-11 flex-1 resize-y py-2"
+          placeholder="План, рацион, вода, вес, «начни тренировку»…"
+          className="input min-h-[4.5rem] flex-1 resize-y py-2.5 text-[13px] leading-snug"
           disabled={busy}
           maxLength={6000}
-          rows={2}
+          rows={4}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -696,10 +891,10 @@ export function AssistantChat() {
         />
         <button
           type="submit"
-          className="btn btn-primary min-h-11 self-end px-4"
+          className="btn btn-primary min-h-[4.5rem] self-stretch px-3 text-[12px]"
           disabled={busy || (!draft.trim() && !photo)}
         >
-          Отправить
+          →
         </button>
       </form>
     </section>

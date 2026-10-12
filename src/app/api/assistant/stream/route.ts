@@ -11,11 +11,17 @@ import {
 } from "@/lib/admin-assistant";
 import { loadAdminAssistantContextPack } from "@/lib/admin-assistant-context";
 import {
+  checkAssistantChatLimit,
+  rateLimitResponse,
+} from "@/lib/assistant-rate-limit";
+import {
+  collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
   formatToolResultsForReply,
   resolveAssistantDate,
   toolRecognizeAndSaveMeal,
+  userWantsWrite,
   type AssistantToolResult,
   type ExecutableActions,
 } from "@/lib/assistant-tools";
@@ -32,12 +38,25 @@ export async function POST(request: NextRequest) {
   const { session, response } = await requireSession();
   if (response) return response;
 
+  const rate = await checkAssistantChatLimit(session!.user.id);
+  if (!rate.allowed) {
+    const body = rateLimitResponse(rate.retryAfterSec);
+    return new Response(JSON.stringify(body), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(rate.retryAfterSec),
+      },
+    });
+  }
+
   const body = (await request.json().catch(() => null)) as {
     messages?: unknown;
     date?: unknown;
     mode?: unknown;
     imageBase64?: unknown;
     imageMime?: unknown;
+    savePhoto?: unknown;
   } | null;
   if (!body) {
     return new Response(JSON.stringify({ error: "Некорректный JSON" }), { status: 400 });
@@ -56,6 +75,7 @@ export async function POST(request: NextRequest) {
   const today = toDateKeyTz(new Date(), user?.timezone);
   const date = requireDateKey(typeof body.date === "string" ? body.date : null) ?? today;
   const pack = await loadAdminAssistantContextPack(session!.user.id, date, today);
+  const lastUser = messages[messages.length - 1]?.content ?? "";
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -69,13 +89,24 @@ export async function POST(request: NextRequest) {
 
         const image = decodeImageBase64(body.imageBase64, body.imageMime);
         if (image) {
-          send("status", { text: "Распознаю фото и добавляю в рацион…" });
+          const savePhoto =
+            body.savePhoto === true ||
+            (body.savePhoto !== false && userWantsWrite(lastUser));
+          send(
+            "status",
+            {
+              text: savePhoto
+                ? "Распознаю фото и добавляю в рацион…"
+                : "Смотрю фото — подтверди добавление…",
+            },
+          );
           const photoResult = await toolRecognizeAndSaveMeal({
             userId: session!.user.id,
             date,
             buffer: image.buffer,
             filename: image.filename,
             mimeType: image.mimeType,
+            save: savePhoto,
           });
           toolResults.push(photoResult);
           send("tool", photoResult);
@@ -83,25 +114,32 @@ export async function POST(request: NextRequest) {
 
         let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
         if (toolResults.length) {
-          system += `\n\n=== Уже выполнено сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это в ответе; не дублируй запись тех же блюд.`;
+          system += `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
         }
 
         let raw = "";
         for await (const piece of streamCompleteChat(
           [{ role: "system", content: system }, ...messages],
-          0.45,
+          0.5,
         )) {
           raw += piece;
           send("token", { text: piece });
         }
 
         const { reply, actions } = splitAssistantReply(raw.trim());
-        const lastUser = messages[messages.length - 1]?.content ?? "";
         const targetDate =
           resolveAssistantDate((actions as ExecutableActions | null)?.targetDate, today) ?? date;
 
-        if (actions && (actions.meals?.length || actions.workoutDays?.length)) {
-          send("status", { text: "Записываю в дневник и план…" });
+        if (
+          actions &&
+          (actions.meals?.length ||
+            actions.workoutDays?.length ||
+            actions.shopping?.length ||
+            actions.waterMl != null ||
+            actions.weightKg != null ||
+            actions.startWorkout)
+        ) {
+          send("status", { text: "Записываю…" });
         }
 
         const writeResults = await executeAssistantWriteTools({
@@ -118,11 +156,13 @@ export async function POST(request: NextRequest) {
 
         const toolNote = formatToolResultsForReply(writeResults);
         const finalReply = [reply, toolNote].filter(Boolean).join("\n\n").trim() || reply;
+        const undo = collectUndoFromTools(toolResults);
 
         send("done", {
           reply: finalReply,
           actions,
           tools: toolResults,
+          undo,
           date,
           mode,
           snapshot: pack.snapshot,
@@ -136,6 +176,7 @@ export async function POST(request: NextRequest) {
             reply: formatToolResultsForReply(toolResults),
             actions: null,
             tools: toolResults,
+            undo: collectUndoFromTools(toolResults),
             date,
             mode,
             snapshot: pack.snapshot,

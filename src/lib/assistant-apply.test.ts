@@ -25,12 +25,17 @@ test("buildRoutinePayloadFromActions builds exercises", () => {
   assert.ok(payload!.muscleGroups.includes("chest"));
 });
 
-test("mealsPayloadFromActions maps kcal", () => {
+test("mealsPayloadFromActions maps kcal and macros", () => {
   const meals = mealsPayloadFromActions(
-    { meals: [{ name: "Омлет", kcal: 320, note: "завтрак" }] },
+    {
+      meals: [{ name: "Омлет", kcal: 320, protein: 24, fat: 22, carbs: 4, note: "завтрак" }],
+    },
     "2026-10-10",
   );
   assert.equal(meals[0]?.dishName, "Омлет");
   assert.equal(meals[0]?.calories, 320);
+  assert.equal(meals[0]?.protein, 24);
+  assert.equal(meals[0]?.fat, 22);
+  assert.equal(meals[0]?.carbs, 4);
   assert.equal(meals[0]?.recognitionSource, "assistant");
 });

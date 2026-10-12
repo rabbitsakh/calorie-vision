@@ -102,6 +102,9 @@ export function mealsPayloadFromActions(
   date: string;
   dishName: string;
   calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
   recognitionSource: string;
 }> {
   const meals = actions.meals ?? [];
@@ -111,7 +114,15 @@ export function mealsPayloadFromActions(
     .map((m) => ({
       date,
       dishName: m.name.trim().slice(0, 200),
-      calories: typeof m.kcal === "number" && Number.isFinite(m.kcal) ? Math.max(1, Math.round(m.kcal)) : 200,
+      calories:
+        typeof m.kcal === "number" && Number.isFinite(m.kcal) ? Math.max(1, Math.round(m.kcal)) : 200,
+      ...(typeof m.protein === "number" && Number.isFinite(m.protein)
+        ? { protein: Math.max(0, m.protein) }
+        : {}),
+      ...(typeof m.fat === "number" && Number.isFinite(m.fat) ? { fat: Math.max(0, m.fat) } : {}),
+      ...(typeof m.carbs === "number" && Number.isFinite(m.carbs)
+        ? { carbs: Math.max(0, m.carbs) }
+        : {}),
       recognitionSource: "assistant",
     }));
 }
