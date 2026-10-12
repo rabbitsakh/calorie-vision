@@ -652,10 +652,20 @@ if (( ! HEALTH_OK )); then
   deploy_warn "health check failed — сайт может быть недоступен (pm2 logs calorie-vision)"
 fi
 
+# Incremental only: full backfill+recompress can hang deploy for many minutes
+# (remote OFF/web lookups × every unique dish + sharp over all /uploads).
+# Manual full run: npm run images:backfill (no env caps).
+DEPLOY_IMAGES_TIMEOUT="${DEPLOY_IMAGES_TIMEOUT:-90}"
+DEPLOY_IMAGES_LIMIT="${DEPLOY_IMAGES_LIMIT:-12}"
 progress 97 "Картинки"
-if ! run_soft "images:backfill" npm run images:backfill; then
-  deploy_warn "image backfill пропущен"
+export BACKFILL_LIMIT="$DEPLOY_IMAGES_LIMIT"
+export BACKFILL_SKIP_RECOMPRESS=1
+export BACKFILL_NEWEST_FIRST=1
+if ! run_long soft "Картинки" "$DEPLOY_IMAGES_TIMEOUT" 99 \
+  npm run images:backfill; then
+  deploy_warn "image backfill пропущен (лимит ${DEPLOY_IMAGES_LIMIT} / таймаут ${DEPLOY_IMAGES_TIMEOUT}с)"
 fi
+unset BACKFILL_LIMIT BACKFILL_SKIP_RECOMPRESS BACKFILL_NEWEST_FIRST || true
 
 restore_generated_version_files
 
