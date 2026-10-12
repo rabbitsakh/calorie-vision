@@ -18,11 +18,14 @@ API: `/api/assistant`, `/api/assistant/stream`, `/api/assistant/apply` — `requ
 2. «+» остаётся на том же месте по привычке (правая половина).
 3. Чат — отдельный экран; добавление еды — прежний sheet.
 
+## Умеет писать
+
+Рацион (в т.ч. фото с confirm), план зала по дням, покупки, вода, вес, старт сегодняшней; undo последней записи; rate-limit на chat/apply.
+
 ## Дальше (продукт)
 
 1. Короткий онбординг при первом заходе.
-2. Лимиты rate-limit на `/api/assistant*` per user.
-3. Deep-link из пуша → `/assistant?mode=food`.
+2. Deep-link из пуша → `/assistant`.
 
 ## Не делать
 
