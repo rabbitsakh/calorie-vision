@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { assistantWeekLink } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
 import {
   hidePanelForWeek,
@@ -116,6 +118,15 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
       {showTip ? (
         <p className="mt-2.5 text-xs leading-relaxed text-teal-900/75">{data.tip}</p>
       ) : null}
+
+      <Link
+        href={assistantWeekLink({
+          prefill: `По итогам недели: ${headline}. Помоги спланировать следующую: рацион + зал.`,
+        })}
+        className="mt-3 inline-flex rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800"
+      >
+        Разобрать с AI
+      </Link>
     </section>
   );
 }

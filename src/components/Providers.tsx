@@ -74,6 +74,23 @@ function CapacitorNativeViewport() {
   return null;
 }
 
+function CapacitorReminderDeepLink() {
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    void import("@/lib/capacitor-local-reminders").then(async (mod) => {
+      const stop = await mod.subscribeLocalReminderDeepLinks();
+      if (cancelled) stop();
+      else unsub = stop;
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, []);
+  return null;
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider
@@ -85,6 +102,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <CapacitorSessionPersist />
       <CapacitorNativeViewport />
       <CapacitorQueueBadgeHost />
+      <CapacitorReminderDeepLink />
       <MetrikaFunnel />
       {children}
     </SessionProvider>

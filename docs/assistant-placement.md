@@ -25,7 +25,12 @@ API: `/api/assistant`, `/api/assistant/stream`, `/api/assistant/apply` — `requ
 ## Дальше (продукт)
 
 1. Короткий онбординг при первом заходе.
-2. Deep-link из пуша → `/assistant`.
+
+## Deep links
+
+- `/assistant?mode=week&q=…` — недельный режим + префилл (Wave E)
+- Пуш `weekly` → `/plan#week-digest`
+- Пуш `reactivation` → `/assistant?mode=week`
 
 ## Не делать
 

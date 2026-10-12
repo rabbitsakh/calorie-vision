@@ -2,8 +2,14 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AssistantActions, AssistantContextSnapshot } from "@/lib/admin-assistant";
+import type {
+  AssistantActions,
+  AssistantContextSnapshot,
+  AssistantMode,
+} from "@/lib/admin-assistant";
+import { parseAssistantMode } from "@/lib/admin-assistant";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
 import { withBasePath } from "@/lib/paths";
 
@@ -356,11 +362,13 @@ function ActionCard({
 
 export function AssistantChat() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const userId = session?.user?.id;
   const [hydrated, setHydrated] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([welcomeTurn()]);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [draft, setDraft] = useState("");
+  const [mode, setMode] = useState<AssistantMode>("all");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -379,8 +387,12 @@ export function AssistantChat() {
       setTurns(stored.turns);
       if (stored.date) setDate(stored.date);
     }
+    const modeParam = searchParams.get("mode");
+    if (modeParam) setMode(parseAssistantMode(modeParam));
+    const q = searchParams.get("q")?.trim();
+    if (q) setDraft(q.slice(0, 6000));
     setHydrated(true);
-  }, [userId]);
+  }, [userId, searchParams]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -540,7 +552,7 @@ export function AssistantChat() {
     const payload = {
       messages: history,
       date,
-      mode: "all" as const,
+      mode,
       ...(imageBase64
         ? {
             imageBase64,

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { AssistantChat } from "@/components/AssistantChat";
 import { AuthGate } from "@/components/AuthGate";
@@ -13,7 +14,9 @@ export default function AssistantPage() {
       headerExtra={<BackButton />}
     >
       <AuthGate>
-        <AssistantChat />
+        <Suspense fallback={<p className="text-sm text-[var(--muted)]">Загрузка…</p>}>
+          <AssistantChat />
+        </Suspense>
       </AuthGate>
     </AppShell>
   );
