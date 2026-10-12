@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  diaryWhyFixHints,
   explainWhyDiaryEntry,
   explainWhyTheseCalories,
 } from "./confirm-why-explanation.ts";
@@ -127,4 +128,32 @@ test("explainWhyDiaryEntry maps saved recognitionSource", () => {
   });
   assert.ok(why);
   assert.match(why!.summary, /фото|порци/i);
+});
+
+test("diaryWhyFixHints macros brand portion", () => {
+  assert.deepEqual(
+    diaryWhyFixHints({
+      dishName: "Йогурт",
+      calories: 120,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+      lookupMode: "generic",
+      confidence: 0.4,
+    }),
+    ["macros", "brand", "portion"],
+  );
+  assert.deepEqual(
+    diaryWhyFixHints({
+      dishName: "Йогурт Activia",
+      calories: 120,
+      protein: 5,
+      fat: 3,
+      carbs: 12,
+      brand: "Activia",
+      lookupMode: "branded",
+      confidence: 0.9,
+    }),
+    [],
+  );
 });
