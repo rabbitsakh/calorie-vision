@@ -7,7 +7,7 @@ import {
   normalizeAssistantActions,
   type AssistantActions,
 } from "@/lib/admin-assistant";
-import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-tools";
+import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-intent";
 
 export function actionsHaveWritablePayload(actions: AssistantActions | null | undefined): boolean {
   if (!actions) return false;
