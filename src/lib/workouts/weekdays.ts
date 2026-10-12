@@ -12,6 +12,11 @@ export function parseWeekdays(raw: unknown): number[] {
   return out.sort((a, b) => a - b);
 }
 
+/** Drop one weekday from a plan schedule (template kept). */
+export function removeWeekdayFromList(weekdays: readonly number[], day: number): number[] {
+  return parseWeekdays(weekdays.filter((d) => d !== day));
+}
+
 export function weekdaysToJson(days: number[]): number[] {
   return parseWeekdays(days);
 }

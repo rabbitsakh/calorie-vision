@@ -6,7 +6,11 @@ import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
 import { useTimezone } from "@/lib/use-timezone";
 import { formatDistanceKm, formatDurationMinutes } from "@/lib/workouts/cardio";
-import { planWeekdayFromDateKey, WEEKDAY_LABELS_RU } from "@/lib/workouts/weekdays";
+import {
+  planWeekdayFromDateKey,
+  removeWeekdayFromList,
+  WEEKDAY_LABELS_RU,
+} from "@/lib/workouts/weekdays";
 import type { SerializedRoutine } from "@/lib/workouts/routines";
 
 type PlanResponse = {
@@ -54,6 +58,8 @@ type Props = {
   onEditRoutine: (routineId: string) => void;
   /** Create a new template, optionally prefilled for a weekday (0=Mon … 6=Sun). */
   onCreatePlanDay?: (weekday?: number) => void;
+  /** After removing a day from a routine schedule (reload templates cache). */
+  onPlanChanged?: () => void;
   onGoTemplates: () => void;
   busy?: boolean;
 };
@@ -95,6 +101,7 @@ export function WorkoutWeekPlan({
   onStartRoutine,
   onEditRoutine,
   onCreatePlanDay,
+  onPlanChanged,
   onGoTemplates,
   busy,
 }: Props) {
@@ -103,6 +110,7 @@ export function WorkoutWeekPlan({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [weekOpen, setWeekOpen] = useState(true);
+  const [removingKey, setRemovingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (preferWeekOpen) setWeekOpen(true);
@@ -155,6 +163,33 @@ export function WorkoutWeekPlan({
   useEffect(() => {
     void load();
   }, [load]);
+
+  const removeFromDay = useCallback(
+    async (routine: SerializedRoutine, weekday: number) => {
+      const dayLabel = WEEKDAY_LABELS_RU[weekday] ?? String(weekday);
+      if (!window.confirm(`Убрать «${routine.name}» из плана на ${dayLabel}?`)) return;
+      const nextWeekdays = removeWeekdayFromList(routine.weekdays, weekday);
+      const key = `${routine.id}:${weekday}`;
+      setRemovingKey(key);
+      setError(null);
+      try {
+        const resp = await fetch(withBasePath(`/api/workouts/routines/${routine.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weekdays: nextWeekdays }),
+        });
+        const json = (await resp.json().catch(() => null)) as { error?: string } | null;
+        if (!resp.ok) throw new Error(json?.error || "Не удалось убрать из плана");
+        await load();
+        onPlanChanged?.();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Не удалось убрать из плана");
+      } finally {
+        setRemovingKey(null);
+      }
+    },
+    [load, onPlanChanged],
+  );
 
   const active = sessions.find(
     (s) => s.clockStatus === "running" || s.clockStatus === "paused",
@@ -335,34 +370,53 @@ export function WorkoutWeekPlan({
                   Или по плану на сегодня
                 </p>
                 <ul className="mt-2 space-y-2">
-                  {planned.map((r) => (
-                    <li
-                      key={r.id}
-                      className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-mist)]/80 px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-[var(--foreground)]">
-                          {r.planLabel ? (
-                            <span className="mr-1.5 rounded bg-teal-700 px-1.5 py-0.5 text-xs text-white">
-                              {r.planLabel}
-                            </span>
-                          ) : null}
-                          {r.name}
-                        </p>
-                        <p className="truncate text-xs text-[var(--muted)]">
-                          {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        className="shrink-0 rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                        onClick={() => onStartRoutine(r.id)}
+                  {planned.map((r) => {
+                    const removeKey =
+                      data?.weekday != null ? `${r.id}:${data.weekday}` : null;
+                    const removing = removeKey != null && removingKey === removeKey;
+                    return (
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-mist)]/80 px-3 py-2"
                       >
-                        Старт
-                      </button>
-                    </li>
-                  ))}
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-[var(--foreground)]">
+                            {r.planLabel ? (
+                              <span className="mr-1.5 rounded bg-teal-700 px-1.5 py-0.5 text-xs text-white">
+                                {r.planLabel}
+                              </span>
+                            ) : null}
+                            {r.name}
+                          </p>
+                          <p className="truncate text-xs text-[var(--muted)]">
+                            {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {data?.weekday != null ? (
+                            <button
+                              type="button"
+                              disabled={busy || removing}
+                              className="rounded-[var(--radius-control)] px-2 py-2 text-sm font-semibold text-[var(--muted)] hover:bg-white hover:text-rose-700 disabled:opacity-40"
+                              title="Убрать из плана на сегодня"
+                              aria-label={`Убрать ${r.name} из плана на сегодня`}
+                              onClick={() => void removeFromDay(r, data.weekday)}
+                            >
+                              {removing ? "…" : "×"}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            disabled={busy || removing}
+                            className="rounded-[var(--radius-control)] bg-teal-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                            onClick={() => onStartRoutine(r.id)}
+                          >
+                            Старт
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : (
@@ -464,9 +518,10 @@ export function WorkoutWeekPlan({
             </summary>
             <div className="gym-today-fold-body space-y-3">
               <p className="text-sm text-[var(--muted-strong)]">
-                План = шаблоны с отмеченными днями. Нажмите день без записи — создадите шаблон;
-                нажмите название — отредактируете.
+                План = шаблоны с отмеченными днями. «×» убирает день (шаблон остаётся), название —
+                редактирование.
               </p>
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
               {loading || !data ? (
                 <p className="text-sm text-[var(--muted)]">…</p>
               ) : (
@@ -499,17 +554,37 @@ export function WorkoutWeekPlan({
                             <span className="text-[var(--muted)]">—</span>
                           )
                         ) : (
-                          day.routines.map((r) => (
-                            <button
-                              key={r.id}
-                              type="button"
-                              className="mr-2 text-left font-medium text-teal-900 underline-offset-2 hover:underline"
-                              onClick={() => onEditRoutine(r.id)}
-                            >
-                              {r.planLabel ? `${r.planLabel}: ` : ""}
-                              {r.name}
-                            </button>
-                          ))
+                          <ul className="space-y-1">
+                            {day.routines.map((r) => {
+                              const key = `${r.id}:${day.weekday}`;
+                              const removing = removingKey === key;
+                              return (
+                                <li
+                                  key={r.id}
+                                  className="flex items-center justify-between gap-2"
+                                >
+                                  <button
+                                    type="button"
+                                    className="min-w-0 truncate text-left font-medium text-teal-900 underline-offset-2 hover:underline"
+                                    onClick={() => onEditRoutine(r.id)}
+                                  >
+                                    {r.planLabel ? `${r.planLabel}: ` : ""}
+                                    {r.name}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={busy || removing}
+                                    className="shrink-0 rounded px-2 py-0.5 text-sm font-semibold text-[var(--muted)] hover:bg-white hover:text-rose-700 disabled:opacity-40"
+                                    title={`Убрать из плана на ${WEEKDAY_LABELS_RU[day.weekday]}`}
+                                    aria-label={`Убрать ${r.name} из плана на ${WEEKDAY_LABELS_RU[day.weekday]}`}
+                                    onClick={() => void removeFromDay(r, day.weekday)}
+                                  >
+                                    {removing ? "…" : "×"}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
                         )}
                       </div>
                     </li>

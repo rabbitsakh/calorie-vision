@@ -2203,6 +2203,9 @@ export function WorkoutsView({
             );
             setEditingRoutineId("new");
           }}
+          onPlanChanged={() => {
+            void loadRoutines();
+          }}
           onGoTemplates={() => setHubTab("templates")}
         />
       ) : null}
