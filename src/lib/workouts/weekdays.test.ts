@@ -5,11 +5,18 @@ import {
   parsePlanLabel,
   parseWeekdays,
   planWeekdayFromDateKey,
+  removeWeekdayFromList,
 } from "./weekdays.ts";
 
 test("parseWeekdays", () => {
   assert.deepEqual(parseWeekdays([0, 2, 2, 9, "4"]), [0, 2, 4]);
   assert.deepEqual(parseWeekdays(null), []);
+});
+
+test("removeWeekdayFromList drops one day and keeps order", () => {
+  assert.deepEqual(removeWeekdayFromList([0, 2, 4], 2), [0, 4]);
+  assert.deepEqual(removeWeekdayFromList([1], 1), []);
+  assert.deepEqual(removeWeekdayFromList([0, 2], 5), [0, 2]);
 });
 
 test("planWeekdayFromDateKey Monday=0", () => {
