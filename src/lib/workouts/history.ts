@@ -1,4 +1,4 @@
-import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { normalizeExerciseName, pickBestNameMatch } from "@/lib/workouts/exercise-name";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 
 export type HistorySet = {
@@ -82,5 +82,10 @@ export function historyForExerciseName(
   byNorm: Map<string, ExerciseHistoryEntry>,
   name: string,
 ): ExerciseHistoryEntry | null {
-  return byNorm.get(normalizeExerciseName(name)) ?? null;
+  const key = normalizeExerciseName(name);
+  if (!key) return null;
+  const exact = byNorm.get(key);
+  if (exact) return exact;
+  const rows = [...byNorm.entries()].map(([nameNorm, entry]) => ({ nameNorm, entry }));
+  return pickBestNameMatch(rows, name)?.entry ?? null;
 }
