@@ -130,21 +130,36 @@ export function MorningTodayCard({ selectedDate, today }: MorningTodayCardProps)
     );
   }
 
+  const ctaHref = brief.cta
+    ? brief.cta.href.startsWith("/assistant")
+      ? withBasePath(brief.cta.href)
+      : withBasePath(withDateQuery(brief.cta.href, selectedDate))
+    : null;
+
   return (
     <div
       className="morning-today-card ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-white/80 px-3.5 py-2.5 shadow-[var(--shadow-card)]"
       aria-label={brief.eyebrow}
     >
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-          {brief.eyebrow}
-        </p>
-        <p className="mt-0.5 text-sm font-medium text-[var(--foreground)]">{brief.line}</p>
-      </div>
+      {ctaHref ? (
+        <Link href={ctaHref} className="min-w-0 flex-1 rounded-[var(--radius-sm)] outline-offset-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            {brief.eyebrow}
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-[var(--foreground)]">{brief.line}</p>
+        </Link>
+      ) : (
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            {brief.eyebrow}
+          </p>
+          <p className="mt-0.5 text-sm font-medium text-[var(--foreground)]">{brief.line}</p>
+        </div>
+      )}
       <div className="flex shrink-0 items-center gap-2">
-        {brief.cta ? (
+        {brief.cta && ctaHref ? (
           <Link
-            href={withBasePath(withDateQuery(brief.cta.href, selectedDate))}
+            href={ctaHref}
             className="rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
           >
             {brief.cta.label}

@@ -38,7 +38,8 @@ test("empty morning + rest day", () => {
   assert.equal(brief.eyebrow, "Что сегодня");
   assert.match(brief.line, /Первый приём/);
   assert.match(brief.line, /Отдых/);
-  assert.equal(brief.cta, null);
+  assert.equal(brief.cta?.label, "С AI");
+  assert.match(brief.cta?.href ?? "", /\/assistant\?mode=week/);
 });
 
 test("planned gym gets CTA", () => {

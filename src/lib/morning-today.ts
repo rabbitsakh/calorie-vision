@@ -77,6 +77,10 @@ export function buildMorningTodayBrief(input: MorningTodayInput): MorningTodayBr
     cta = { label: "В зал", href: "/workouts" };
   } else {
     gym = "Отдых";
+    cta = {
+      label: "С AI",
+      href: "/assistant?mode=week&q=" + encodeURIComponent("Спланируй тренировку на сегодня или день отдыха"),
+    };
   }
 
   // After first meal + gym done, DayHero already tells the story — step aside.
