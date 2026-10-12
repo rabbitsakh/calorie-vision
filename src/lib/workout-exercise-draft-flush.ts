@@ -3,6 +3,7 @@
  */
 
 import { withBasePath } from "@/lib/paths";
+import { exerciseDraftMapped } from "@/lib/workout-flush-guards";
 import {
   listWorkoutExerciseDrafts,
   removeWorkoutExerciseDraft,
@@ -38,11 +39,13 @@ export async function flushWorkoutExerciseDrafts(): Promise<FlushResult> {
       const match =
         data.session?.exercises?.find((e) => e.name === draft.name && e.id) ??
         data.session?.exercises?.at(-1);
-      if (match) {
-        remapWorkoutDraftIds({
-          exerciseIdMap: { [draft.id]: match.id },
-        });
+      if (!match || !exerciseDraftMapped(draft.id, match.id)) {
+        // Keep draft queued — set drafts still reference local-ex-*.
+        break;
       }
+      remapWorkoutDraftIds({
+        exerciseIdMap: { [draft.id]: match.id },
+      });
       removeWorkoutExerciseDraft(draft.id);
       flushed += 1;
     } catch {

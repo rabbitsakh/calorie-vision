@@ -3,6 +3,7 @@
  */
 
 import { withBasePath } from "@/lib/paths";
+import { localSessionExercisesFullyMapped } from "@/lib/workout-flush-guards";
 import {
   listLocalWorkoutSessions,
   removeLocalWorkoutSession,
@@ -47,6 +48,7 @@ export async function flushLocalWorkoutSessions(): Promise<FlushResult> {
       const exerciseIdMap: Record<string, string> = {};
       let sessionPayload: unknown = created.session;
 
+      let exercisesOk = true;
       for (const ex of local.exercises) {
         const exResp = await fetch(
           withBasePath(`/api/workouts/${serverSessionId}/exercises`),
@@ -56,7 +58,10 @@ export async function flushLocalWorkoutSessions(): Promise<FlushResult> {
             body: JSON.stringify({ name: ex.name, kind: ex.kind }),
           },
         );
-        if (!exResp.ok) break;
+        if (!exResp.ok) {
+          exercisesOk = false;
+          break;
+        }
         const exData = (await exResp.json()) as {
           session?: {
             exercises?: Array<{ id: string; name: string }>;
@@ -71,14 +76,31 @@ export async function flushLocalWorkoutSessions(): Promise<FlushResult> {
           exData.session?.exercises?.filter((e) => !known.has(e.id)).at(-1);
         if (match) {
           exerciseIdMap[ex.id] = match.id;
+        } else {
+          exercisesOk = false;
+          break;
         }
       }
 
-      remapWorkoutDraftIds({
-        sessionIdMap: { [local.id]: serverSessionId },
-        exerciseIdMap,
-      });
-      remapWorkoutExerciseDraftSessionIds({ [local.id]: serverSessionId });
+      const localExIds = local.exercises.map((e) => e.id);
+      const fullyMapped =
+        exercisesOk && localSessionExercisesFullyMapped(localExIds, exerciseIdMap);
+
+      // Always remap what we know so set drafts can advance; never drop local
+      // session until every exercise id is mapped (avoids orphan local-ex-*).
+      if (Object.keys(exerciseIdMap).length > 0 || fullyMapped) {
+        remapWorkoutDraftIds({
+          sessionIdMap: { [local.id]: serverSessionId },
+          exerciseIdMap,
+        });
+        remapWorkoutExerciseDraftSessionIds({ [local.id]: serverSessionId });
+      }
+
+      if (!fullyMapped) {
+        // Keep local session queued for retry; stop the loop so user sees leftovers.
+        break;
+      }
+
       removeLocalWorkoutSession(local.id);
       flushed += 1;
       lastSessionId = serverSessionId;
