@@ -2691,14 +2691,21 @@ select {
   min-height: 6.5rem;
 }
 
-/* C4 — stats as magazine cover */
+/* Stats insight: readable body, not a billboard headline */
 .stats-insight-body {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  font-size: 1.45rem;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
   font-weight: 600;
   color: var(--foreground);
+}
+
+@media (min-width: 640px) {
+  .stats-insight-body {
+    font-size: 1.15rem;
+    line-height: 1.38;
+  }
 }
 
 .stats-page-scene {

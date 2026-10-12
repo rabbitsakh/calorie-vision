@@ -138,14 +138,14 @@ export function ChromePreviewClient() {
       <div className="stats-page-scene mt-6">
         <section className="day-hero day-hero--scene stats-insight-scene" aria-label="Статистика (превью)">
           <div className="day-hero-glow" aria-hidden />
-          <div className="relative px-5 py-7 md:px-7 md:py-8">
+          <div className="relative px-5 py-5 md:px-6 md:py-6">
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-[var(--accent-ink)]/70">
               Главный вывод
             </p>
-            <p className="stats-insight-body mt-3 text-[1.45rem] sm:text-[1.7rem]">
+            <p className="stats-insight-body mt-2">
               Среднее 1 840 ккал — близко к цели.
             </p>
-            <p className="mt-2.5 text-[0.95rem] font-medium text-[var(--muted-strong)]">7 дней · цель 2 000</p>
+            <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">7 дней · цель 2 000</p>
           </div>
         </section>
       </div>
