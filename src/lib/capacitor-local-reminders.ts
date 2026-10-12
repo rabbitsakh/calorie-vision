@@ -91,6 +91,7 @@ export const CAP_REMINDER_IDS: Record<ReminderKind, number> = {
   calories: 9108,
   streak: 9109,
   checkin: 9110,
+  gym: 9111,
 };
 
 const ALL_REMINDER_IDS = Object.values(CAP_REMINDER_IDS);
@@ -329,6 +330,11 @@ export function localReminderCopy(
       return { title: "Итог недели", body: "Понедельник — короткий взгляд на прошлую неделю." };
     case "reactivation":
       return { title: "Мы рядом", body: "Без давления: можно просто открыть дневник." };
+    case "gym":
+      return {
+        title: "Сегодня зал?",
+        body: "Открой Зал — один следующий шаг: продолжить, старт или отдых.",
+      };
     default:
       return { title: "Calorie Vision", body: "Напоминание из дневника." };
   }
