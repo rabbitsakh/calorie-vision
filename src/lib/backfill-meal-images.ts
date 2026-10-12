@@ -13,7 +13,15 @@ import { cacheRemoteImage, recompressStoredImages } from "./upload";
 export type BackfillMealImagesOptions = {
   userId?: string;
   date?: string;
+  /** Max remote image lookups (copy-from-known still runs for all scanned rows). */
   limit?: number;
+  /**
+   * When a limit is set, prefer newest meals first so deploy/incremental runs
+   * fill the diary the user still sees.
+   */
+  newestFirst?: boolean;
+  /** Skip walking /uploads for recompress (deploy should set this). */
+  skipRecompress?: boolean;
 };
 
 export type BackfillMealImagesResult = {
@@ -156,6 +164,7 @@ export async function backfillMealImages(
 
   result.repaired = await repairLookupMealImages(options);
 
+  const newestFirst = options.newestFirst ?? options.limit !== undefined;
   const meals = await prisma.mealEntry.findMany({
     where: {
       ...(options.userId ? { userId: options.userId } : {}),
@@ -166,7 +175,7 @@ export async function backfillMealImages(
       dishName: true,
       imagePath: true,
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: newestFirst ? "desc" : "asc" },
   });
 
   result.scanned = meals.length;
@@ -258,7 +267,9 @@ export async function backfillMealImages(
 export async function backfillMealImagesAndCompress(
   options: BackfillMealImagesOptions = {},
 ): Promise<BackfillMealImagesResult & { recompressed: number }> {
-  const recompressed = await recompressStoredImages();
+  const recompressed = options.skipRecompress
+    ? 0
+    : await recompressStoredImages();
   const filled = await backfillMealImages(options);
   return { ...filled, recompressed };
 }
