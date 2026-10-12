@@ -10,6 +10,10 @@ export type WeightDraftItem = {
   weightKg: number;
   measuredAt: string;
   note: string | null;
+  /** User already confirmed overwrite (QuickSheet conflict or sheet CTA). */
+  confirmReplace?: boolean;
+  /** Server kg that conflicted on last flush (Wave D). */
+  conflictExistingKg?: number | null;
 };
 
 type Listener = () => void;
@@ -82,6 +86,7 @@ export function enqueueWeightDraft(input: {
   weightKg: number;
   measuredAt: string;
   note?: string | null;
+  confirmReplace?: boolean;
 }): string {
   const id =
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -96,6 +101,7 @@ export function enqueueWeightDraft(input: {
     weightKg: input.weightKg,
     measuredAt: input.measuredAt,
     note: input.note ?? null,
+    confirmReplace: input.confirmReplace === true ? true : undefined,
   });
   writeQueue(items);
   // Wave S — keep ration-day cache in sync for offline reloads.
@@ -109,4 +115,13 @@ export function enqueueWeightDraft(input: {
 
 export function removeWeightDraft(id: string): void {
   writeQueue(readQueue().filter((item) => item.id !== id));
+}
+
+export function patchWeightDraft(
+  id: string,
+  patch: Partial<Pick<WeightDraftItem, "confirmReplace" | "conflictExistingKg">>,
+): void {
+  writeQueue(
+    readQueue().map((item) => (item.id === id ? { ...item, ...patch } : item)),
+  );
 }

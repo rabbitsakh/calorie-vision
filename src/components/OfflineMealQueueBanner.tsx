@@ -24,9 +24,11 @@ import {
 import {
   countWeightDrafts,
   listWeightDrafts,
+  patchWeightDraft,
   removeWeightDraft,
   subscribeWeightDraftQueue,
 } from "@/lib/weight-draft-queue";
+import { OfflineQueueSheet } from "@/components/OfflineQueueSheet";
 import {
   countDiaryNoteDrafts,
   listDiaryNoteDrafts,
@@ -82,6 +84,7 @@ export function OfflineMealQueueBanner({
   const [workoutLocalCount, setWorkoutLocalCount] = useState(0);
   const [workoutExerciseCount, setWorkoutExerciseCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   // Optimistic online — Android WebView lies about navigator.onLine.
   const [online, setOnline] = useState(true);
 
@@ -251,10 +254,21 @@ export function OfflineMealQueueBanner({
               weightKg: item.weightKg,
               measuredAt: item.measuredAt,
               note: item.note,
-              // Draft already represents an explicit user intent to overwrite.
-              confirmReplace: true,
+              confirmReplace: item.confirmReplace === true,
             }),
           });
+          if (response.status === 409) {
+            const conflict = (await response.json().catch(() => null)) as {
+              conflict?: { weightKg?: number };
+            } | null;
+            const existingKg = conflict?.conflict?.weightKg;
+            patchWeightDraft(item.id, {
+              conflictExistingKg:
+                typeof existingKg === "number" ? existingKg : item.weightKg,
+            });
+            // Keep draft — surface in queue sheet; do not silent-overwrite.
+            continue;
+          }
           if (!response.ok) break;
           removeWeightDraft(item.id);
           savedAny = true;
@@ -438,7 +452,11 @@ export function OfflineMealQueueBanner({
   return (
     <div className="flex flex-col gap-2" role="status">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
-        <div className="min-w-0 flex-1">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={() => setSheetOpen(true)}
+        >
           <p className="font-semibold">{queueTitle}</p>
           <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
             {lines.map((line) => (
@@ -448,20 +466,37 @@ export function OfflineMealQueueBanner({
           {!flushing ? (
             <p className="mt-1 text-[11px] text-amber-800/80">
               {online
-                ? "Нажмите «Отправить» — фото уйдут в проверку, блюда и подходы в приложение."
-                : "Черновики на телефоне. Нажмите «Отправить» — попробуем связаться с сервером."}
+                ? "Нажмите очередь — список и отмена; «Отправить» — синхронизация."
+                : "Черновики на телефоне. Откройте очередь или нажмите «Отправить»."}
             </p>
           ) : null}
-        </div>
-        <button
-          type="button"
-          className="shrink-0 rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
-          disabled={flushing}
-          onClick={() => void flush()}
-        >
-          {flushing ? "Отправка…" : "Отправить"}
         </button>
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <button
+            type="button"
+            className="rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
+            disabled={flushing}
+            onClick={() => void flush()}
+          >
+            {flushing ? "Отправка…" : "Отправить"}
+          </button>
+          <button
+            type="button"
+            className="rounded-lg px-3 py-1 text-[11px] font-semibold text-amber-900 underline-offset-2 hover:underline"
+            onClick={() => setSheetOpen(true)}
+          >
+            Очередь
+          </button>
+        </div>
       </div>
+      {sheetOpen ? (
+        <OfflineQueueSheet
+          flushing={flushing}
+          onClose={() => setSheetOpen(false)}
+          onFlush={() => void flush()}
+          onChanged={refreshCounts}
+        />
+      ) : null}
     </div>
   );
 }
