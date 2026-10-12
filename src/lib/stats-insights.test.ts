@@ -124,6 +124,26 @@ test("buildPrimaryStatsInsight falls back to week headline with one detail", () 
   assert.match(insight!.detail ?? "", /Ближе всего к цели/);
 });
 
+test("buildPrimaryStatsInsight prefers protein gap over plain week summary", () => {
+  const insight = buildPrimaryStatsInsight({
+    weekSummary: {
+      daysLogged: 5,
+      daysInCorridor: 4,
+      avgCalories: 1950,
+      calorieTarget: 2000,
+      weightChangeKg: null,
+      bestDay: null,
+      headline: "За 7 дней: среднее 1950 ккал",
+    },
+    proteinGap: { avgProteinG: 90, proteinTargetG: 160 },
+    gym: { sessionCount: 2 },
+  });
+  assert.ok(insight);
+  assert.equal(insight!.title, "Белка маловато");
+  assert.match(insight!.body, /90/);
+  assert.match(insight!.detail ?? "", /Зал/);
+});
+
 test("buildPrimaryStatsInsight uses WoW one-liner when no week summary", () => {
   const insight = buildPrimaryStatsInsight({
     weekOverWeek: { deltaAvgCalories: -120 },

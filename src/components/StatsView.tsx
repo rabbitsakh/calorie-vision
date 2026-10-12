@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { assistantWeekLink } from "@/lib/push-deeplink";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
@@ -31,6 +32,8 @@ type StatsResponse = {
   period: "week" | "month" | "quarter";
   days: StatsDay[];
   calorieTarget: number | null;
+  proteinTarget?: number | null;
+  avgProtein?: number;
   fiberTarget?: number | null;
   sugarTarget?: number | null;
   waterTarget?: number | null;
@@ -674,6 +677,10 @@ const INSIGHT_SCENE_CLASS: Record<PrimaryStatsInsight["tone"], string> = {
 
 /** D6: insight as day scene — not a bordered tone tile. */
 function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
+  const prefill = `${insight.title}. ${insight.body}${insight.detail ? ` (${insight.detail})` : ""}`.slice(
+    0,
+    400,
+  );
   return (
     <section
       className={`day-hero day-hero--scene stats-insight-scene ${INSIGHT_SCENE_CLASS[insight.tone]}`}
@@ -691,6 +698,14 @@ function PrimaryInsightCard({ insight }: { insight: PrimaryStatsInsight }) {
         {insight.detail ? (
           <p className="mt-2 text-sm font-medium text-[var(--muted-strong)]">{insight.detail}</p>
         ) : null}
+        <Link
+          href={assistantWeekLink({
+            prefill: `По статистике: ${prefill} Помоги спланировать следующую неделю: рацион + зал.`,
+          })}
+          className="mt-3 inline-flex rounded-lg bg-[var(--accent-ink)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
+        >
+          Разобрать с AI
+        </Link>
       </div>
     </section>
   );
@@ -855,6 +870,14 @@ export function StatsView({ endDate }: StatsViewProps) {
   const weekSummary =
     data && period === "week" ? buildWeekSummary(data.days, data.calorieTarget) : null;
 
+  const proteinGap =
+    data &&
+    data.proteinTarget != null &&
+    data.proteinTarget > 0 &&
+    typeof data.avgProtein === "number"
+      ? { avgProteinG: data.avgProtein, proteinTargetG: data.proteinTarget }
+      : null;
+
   const primaryInsight =
     data && data.summary.totalMealDays > 0
       ? buildPrimaryStatsInsight({
@@ -863,6 +886,8 @@ export function StatsView({ endDate }: StatsViewProps) {
           // Week rollup already covers the story — mood/WoW stay for month/90 or as fallback.
           moodInsight: period === "week" && weekSummary ? null : data.moodInsight,
           weekOverWeek: period === "week" && weekSummary ? null : wow,
+          proteinGap,
+          gym: gymSignal,
         })
       : null;
 

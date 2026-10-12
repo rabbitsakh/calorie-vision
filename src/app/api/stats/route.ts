@@ -169,6 +169,11 @@ export async function GET(request: NextRequest) {
         })
       : null;
     const calorieTarget = withFiberSugar?.calories ?? null;
+    const proteinTarget = withFiberSugar?.protein ?? null;
+    const avgProtein =
+      daysWithMeals.length > 0
+        ? round1(daysWithMeals.reduce((sum, day) => sum + day.protein, 0) / daysWithMeals.length)
+        : 0;
     const fiberTarget =
       user?.fiberTargetG != null && Number.isFinite(user.fiberTargetG)
         ? round1(user.fiberTargetG)
@@ -287,6 +292,8 @@ export async function GET(request: NextRequest) {
       end,
       days,
       calorieTarget,
+      proteinTarget,
+      avgProtein,
       fiberTarget,
       sugarTarget,
       waterTarget,

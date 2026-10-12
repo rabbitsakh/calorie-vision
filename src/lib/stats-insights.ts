@@ -150,40 +150,86 @@ export type WeekOverWeekBrief = {
   deltaAvgCalories: number | null;
 };
 
+export type ProteinGapBrief = {
+  avgProteinG: number;
+  proteinTargetG: number;
+};
+
+export type GymPeriodBrief = {
+  sessionCount: number;
+};
+
+function proteinGapG(brief: ProteinGapBrief): number {
+  return Math.round(brief.proteinTargetG - brief.avgProteinG);
+}
+
 /**
  * One clear insight for Stats first viewport (1.11.2).
- * Priority: corridor streak → week headline → WoW one-liner → mood tip.
+ * Priority: corridor → protein gap → week headline → WoW → mood.
  */
 export function buildPrimaryStatsInsight(input: {
   corridorAlert?: CorridorStreakAlert | null;
   weekSummary?: WeekSummary | null;
   moodInsight?: string | null;
   weekOverWeek?: WeekOverWeekBrief | null;
+  proteinGap?: ProteinGapBrief | null;
+  gym?: GymPeriodBrief | null;
 }): PrimaryStatsInsight | null {
-  const { corridorAlert, weekSummary, moodInsight, weekOverWeek } = input;
+  const { corridorAlert, weekSummary, moodInsight, weekOverWeek, proteinGap, gym } = input;
 
   if (corridorAlert) {
+    const extras: string[] = [];
+    if (proteinGap && proteinGapG(proteinGap) >= 15) {
+      extras.push(`белок −${proteinGapG(proteinGap)} г к цели`);
+    }
+    if (gym && gym.sessionCount > 0) {
+      extras.push(`зал ${gym.sessionCount}`);
+    }
     return {
       title:
         corridorAlert.direction === "above" ? "Выше цели 3+ дня" : "Ниже цели 3+ дня",
       body: corridorAlert.message,
       tone: corridorAlert.direction === "above" ? "amber" : "sky",
+      detail: extras.length > 0 ? extras.join(" · ") : undefined,
+    };
+  }
+
+  if (proteinGap && proteinGapG(proteinGap) >= 20 && weekSummary) {
+    const gap = proteinGapG(proteinGap);
+    return {
+      title: "Белка маловато",
+      body: `В среднем ${Math.round(proteinGap.avgProteinG)} г белка при цели ${Math.round(proteinGap.proteinTargetG)} г (−${gap} г/день). Добавьте белковый приём после зала или на завтрак.`,
+      tone: "sky",
+      detail:
+        gym && gym.sessionCount > 0
+          ? `Зал за период: ${gym.sessionCount}`
+          : weekSummary.bestDay
+            ? `Ближе к ккал: ${formatDateShort(weekSummary.bestDay.date)}`
+            : undefined,
     };
   }
 
   if (weekSummary) {
-    let detail: string | undefined;
+    const bits: string[] = [];
     if (weekSummary.bestDay) {
-      detail = `Ближе всего к цели: ${formatDateShort(weekSummary.bestDay.date)} · ${weekSummary.bestDay.calories} ккал`;
+      bits.push(
+        `Ближе всего к цели: ${formatDateShort(weekSummary.bestDay.date)} · ${weekSummary.bestDay.calories} ккал`,
+      );
     } else if (weekSummary.weightChangeKg != null) {
       const delta = weekSummary.weightChangeKg;
-      detail = `Вес за неделю: ${delta > 0 ? "+" : ""}${delta} кг`;
+      bits.push(`Вес за неделю: ${delta > 0 ? "+" : ""}${delta} кг`);
+    }
+    if (gym && gym.sessionCount > 0) {
+      bits.push(`Зал: ${gym.sessionCount}`);
+    }
+    if (proteinGap && proteinGapG(proteinGap) >= 12) {
+      bits.push(`белок −${proteinGapG(proteinGap)} г`);
     }
     return {
       title: "Итоги недели",
       body: weekSummary.headline,
       tone: "teal",
-      detail,
+      detail: bits.length > 0 ? bits.join(" · ") : undefined,
     };
   }
 
