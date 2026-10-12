@@ -33,6 +33,10 @@ import { buildBrandRepairPatch, mealNeedsBrandRepair } from "@/lib/meal-brand-re
 import { mealNeedsMacrosRepair } from "@/lib/meal-macros-repair";
 import { buildMacrosRepairPatch, buildMacrosRepairQuery } from "@/lib/meal-macros-lookup";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
+import {
+  clearShoppingSyncDirty,
+  markShoppingSyncDirty,
+} from "@/lib/shopping-sync-draft";
 
 function DiaryWhyTrail({ entry }: { entry: MealEntry }) {
   const why = explainWhyDiaryEntry(entry);
@@ -276,9 +280,17 @@ function useAddDishToShopping() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: next }),
-      }).catch(() => {
-        // local copy kept
-      });
+      })
+        .then((resp) => {
+          if (!resp.ok) {
+            markShoppingSyncDirty();
+            return;
+          }
+          clearShoppingSyncDirty();
+        })
+        .catch(() => {
+          markShoppingSyncDirty();
+        });
     }
   };
 }
