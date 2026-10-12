@@ -9,7 +9,7 @@ export default function AssistantPage() {
   return (
     <AppShell
       title="AI‑ассистент"
-      description="Скажи что сделать или пришли фото — ассистент сам запишет в дневник и план."
+      description="Живой чат: рацион, зал, вода, вес, фото — с записью и отменой."
       headerExtra={<BackButton />}
     >
       <AuthGate>

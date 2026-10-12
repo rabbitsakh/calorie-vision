@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  collectUndoFromTools,
   decodeImageBase64,
   formatToolResultsForReply,
   resolveAssistantDate,
   shouldAutoApply,
+  undoPayloadHasItems,
+  userWantsStartWorkout,
   userWantsWrite,
   weekdayIndexFromLabel,
 } from "./assistant-tools.ts";
@@ -12,7 +15,13 @@ import {
 test("userWantsWrite detects Russian write intents", () => {
   assert.equal(userWantsWrite("Составь план тренировки на завтра"), true);
   assert.equal(userWantsWrite("Добавь омлет в рацион"), true);
+  assert.equal(userWantsWrite("Выпил 250 мл воды"), true);
   assert.equal(userWantsWrite("Что ещё съесть сегодня?"), false);
+});
+
+test("userWantsStartWorkout", () => {
+  assert.equal(userWantsStartWorkout("Начни сегодняшнюю тренировку"), true);
+  assert.equal(userWantsStartWorkout("Что поесть?"), false);
 });
 
 test("resolveAssistantDate handles relative and weekday labels", () => {
@@ -71,4 +80,31 @@ test("formatToolResultsForReply", () => {
   ]);
   assert.match(text, /✓ ок/);
   assert.match(text, /✗ fail/);
+});
+
+test("collectUndoFromTools gathers meal and routine ids", () => {
+  const undo = collectUndoFromTools([
+    {
+      ok: true,
+      tool: "save_meals",
+      message: "ok",
+      data: { meals: [{ id: "m1" }, { id: "m2" }] },
+    },
+    {
+      ok: true,
+      tool: "create_workout_plan",
+      message: "ok",
+      data: { routines: [{ id: "r1" }] },
+    },
+    { ok: false, tool: "x", message: "no", data: { meals: [{ id: "nope" }] } },
+  ]);
+  assert.deepEqual(undo.mealIds, ["m1", "m2"]);
+  assert.deepEqual(undo.routineIds, ["r1"]);
+  assert.equal(undoPayloadHasItems(undo), true);
+  assert.equal(undoPayloadHasItems({ mealIds: [], routineIds: [], waterIds: [], weightIds: [] }), false);
+});
+
+test("shouldAutoApply for water and start", () => {
+  assert.equal(shouldAutoApply({ apply: true, waterMl: 250 }, "ок"), true);
+  assert.equal(shouldAutoApply({ startWorkout: true }, "начни"), true);
 });

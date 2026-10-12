@@ -14,13 +14,24 @@ export type AssistantMode = "all" | "food" | "gym" | "week";
 
 export type AssistantActions = {
   shopping?: string[];
-  meals?: Array<{ name: string; kcal?: number; note?: string }>;
+  meals?: Array<{
+    name: string;
+    kcal?: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    note?: string;
+  }>;
   workoutDays?: Array<{ day: string; focus: string; notes?: string }>;
   summary?: string;
   /** When true (or user asked to save), server writes meals/plan automatically. */
   apply?: boolean;
   /** Target day: YYYY-MM-DD / сегодня / завтра / Пн… */
   targetDate?: string;
+  waterMl?: number;
+  weightKg?: number;
+  /** Start today's planned routine as a live session. */
+  startWorkout?: boolean;
 };
 
 export function parseAssistantMode(raw: unknown): AssistantMode {
@@ -59,26 +70,24 @@ export function buildAssistantSystemPrompt(
   prefsBlock?: string | null,
 ): string {
   return [
-    "Ты персональный AI-ассистент Calorie Vision. Ты можешь САМ записывать данные в дневник и план зала.",
-    "Помогаешь с рационом (КБЖУ, вода, вес) и планом тренировок.",
+    "Ты живой персональный AI-компаньон Calorie Vision — тёплый, конкретный, без канцелярита.",
+    "Говори по-русски как умный друг в зале/на кухне: коротко, по делу, с лёгкой энергией.",
+    "Сначала 1 фраза-вывод («Ок, кидаю в план», «По остатку лучше белок»), потом 2–5 пунктов.",
     MODE_HINT[mode],
-    "Отвечай по-русски кратко: 1–2 фразы + короткий список.",
-    "Опирайся только на данные пользователя ниже. Не выдумывай прошлые записи.",
-    "Учитывай предпочтения — не предлагай то, что в «Не предлагает».",
-    "Не ставь диагнозов. Не предлагай удалять данные и не пиши SQL/код.",
+    "Опирайся только на данные ниже. Не выдумывай прошлые записи. Учитывай «Не предлагает».",
+    "Не ставь диагнозов. Не предлагай удалять всё подряд и не пиши SQL/код.",
     "",
-    "ЗАПИСЬ ДАННЫХ (важно):",
-    "Если пользователь просит составить/добавить/сохранить/запланировать — ты ДОЛЖЕН выдать блок cv-actions с \"apply\": true.",
-    "Сервер сам запишет блюда в рацион и тренировки в план зала. В тексте скажи, что уже добавляешь.",
-    "Если только совет «что съесть?» без просьбы записать — apply: false или без apply.",
-    "targetDate: «сегодня», «завтра» или YYYY-MM-DD. Для дня недели в workoutDays.day пиши Пн/Вт/… или «завтра».",
-    "В workoutDays.notes — упражнения через запятую. В meals.note — завтрак/обед/ужин/перекус.",
+    "ТЫ УМЕЕШЬ ЗАПИСЫВАТЬ: блюда (с БЖУ), план зала по дням, покупки, воду (мл), вес (кг), старт сегодняшней тренировки.",
+    "Если просят составить/добавить/сохранить/запиши/выпил/взвесился/начни — cv-actions с \"apply\": true.",
+    "В тексте сразу говори, что уже делаешь («Добавляю…», «Стартую…»). Совет без записи — без apply.",
+    "meals: name, kcal, protein/fat/carbs если знаешь, note=завтрак|обед|ужин|перекус.",
+    "workoutDays.day = Пн/Вт/… или завтра; notes = упражнения через запятую.",
+    "waterMl, weightKg, startWorkout:true, shopping:[], targetDate.",
     "",
-    "В КОНЦЕ ответа, когда есть блюда или тренировки, добавь:",
+    "Пример блока:",
     "```cv-actions",
-    '{"apply":true,"targetDate":"завтра","meals":[{"name":"Блюдо","kcal":400,"note":"ужин"}],"workoutDays":[{"day":"завтра","focus":"Грудь/трицепс","notes":"жим лёжа, разведения, трицепс"}],"shopping":["яйца"],"summary":"кратко"}',
+    '{"apply":true,"targetDate":"завтра","meals":[{"name":"Омлет","kcal":320,"protein":24,"fat":22,"carbs":4,"note":"завтрак"}],"workoutDays":[{"day":"завтра","focus":"Грудь","notes":"жим, разведения"}],"shopping":["яйца"],"waterMl":250,"startWorkout":false,"summary":"кратко"}',
     "```",
-    "Блок обязателен при конкретных блюдах или днях тренировок.",
     "",
     "=== Данные пользователя ===",
     contextBlock.trim() || "(контекст пуст)",
@@ -125,14 +134,19 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
     const meals: NonNullable<AssistantActions["meals"]> = [];
     for (const item of obj.meals.slice(0, 20)) {
       if (!item || typeof item !== "object") continue;
-      const name = (item as { name?: unknown }).name;
+      const row = item as Record<string, unknown>;
+      const name = row.name;
       if (typeof name !== "string" || !name.trim()) continue;
-      const kcal = (item as { kcal?: unknown }).kcal;
-      const note = (item as { note?: unknown }).note;
+      const num = (v: unknown) =>
+        typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : undefined;
+      const kcal = row.kcal;
       meals.push({
         name: name.trim().slice(0, 120),
         kcal: typeof kcal === "number" && Number.isFinite(kcal) ? Math.round(kcal) : undefined,
-        note: typeof note === "string" ? note.trim().slice(0, 120) : undefined,
+        protein: num(row.protein),
+        fat: num(row.fat),
+        carbs: num(row.carbs),
+        note: typeof row.note === "string" ? row.note.trim().slice(0, 120) : undefined,
       });
     }
     if (meals.length) out.meals = meals;
@@ -164,6 +178,13 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
   if (typeof obj.targetDate === "string" && obj.targetDate.trim()) {
     out.targetDate = obj.targetDate.trim().slice(0, 32);
   }
+  if (typeof obj.waterMl === "number" && Number.isFinite(obj.waterMl)) {
+    out.waterMl = Math.round(obj.waterMl);
+  }
+  if (typeof obj.weightKg === "number" && Number.isFinite(obj.weightKg)) {
+    out.weightKg = Math.round(obj.weightKg * 10) / 10;
+  }
+  if (obj.startWorkout === true) out.startWorkout = true;
 
   return Object.keys(out).length ? out : null;
 }

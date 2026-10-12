@@ -12,11 +12,17 @@ import {
 } from "@/lib/admin-assistant";
 import { loadAdminAssistantContextPack } from "@/lib/admin-assistant-context";
 import {
+  checkAssistantChatLimit,
+  rateLimitResponse,
+} from "@/lib/assistant-rate-limit";
+import {
+  collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
   formatToolResultsForReply,
   resolveAssistantDate,
   toolRecognizeAndSaveMeal,
+  userWantsWrite,
   type AssistantToolResult,
   type ExecutableActions,
 } from "@/lib/assistant-tools";
@@ -48,11 +54,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** POST { messages, date?, mode?, imageBase64?, imageMime? } — reply + auto-write tools. */
+/** POST { messages, date?, mode?, imageBase64?, imageMime?, savePhoto? } */
 export async function POST(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) return response;
+
+    const rate = await checkAssistantChatLimit(session.user.id);
+    if (!rate.allowed) {
+      const body = rateLimitResponse(rate.retryAfterSec);
+      return NextResponse.json(body, {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      });
+    }
 
     const body = (await request.json().catch(() => null)) as {
       messages?: unknown;
@@ -60,6 +75,7 @@ export async function POST(request: NextRequest) {
       mode?: unknown;
       imageBase64?: unknown;
       imageMime?: unknown;
+      savePhoto?: unknown;
     } | null;
     if (!body) {
       return NextResponse.json({ error: "Некорректный JSON" }, { status: 400 });
@@ -83,29 +99,33 @@ export async function POST(request: NextRequest) {
 
     const pack = await loadAdminAssistantContextPack(session.user.id, date, today);
     const toolResults: AssistantToolResult[] = [];
+    const lastUser = messages[messages.length - 1]?.content ?? "";
 
     const image = decodeImageBase64(body.imageBase64, body.imageMime);
     if (image) {
+      const savePhoto =
+        body.savePhoto === true || (body.savePhoto !== false && userWantsWrite(lastUser));
       const photoResult = await toolRecognizeAndSaveMeal({
         userId: session.user.id,
         date,
         buffer: image.buffer,
         filename: image.filename,
         mimeType: image.mimeType,
+        save: savePhoto,
       });
       toolResults.push(photoResult);
     }
 
     let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
     if (toolResults.length) {
-      system += `\n\n=== Уже выполнено сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это в ответе; не дублируй запись тех же блюд.`;
+      system += `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
     }
 
     let rawReply: string;
     try {
       rawReply = await completeChat(
         [{ role: "system", content: system }, ...messages],
-        0.45,
+        0.5,
         { retries: 2 },
       );
     } catch (error) {
@@ -115,6 +135,7 @@ export async function POST(request: NextRequest) {
           reply: formatToolResultsForReply(toolResults),
           actions: null,
           tools: toolResults,
+          undo: collectUndoFromTools(toolResults),
           date,
           mode,
           snapshot: pack.snapshot,
@@ -129,7 +150,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { reply, actions } = splitAssistantReply(rawReply.trim());
-    const lastUser = messages[messages.length - 1]?.content ?? "";
     const writeResults = await executeAssistantWriteTools({
       userId: session.user.id,
       today,
@@ -139,13 +159,14 @@ export async function POST(request: NextRequest) {
     });
     toolResults.push(...writeResults);
 
-    const toolNote = formatToolResultsForReply(writeResults.length ? writeResults : []);
+    const toolNote = formatToolResultsForReply(writeResults);
     const finalReply = [reply, toolNote].filter(Boolean).join("\n\n").trim() || reply;
 
     return NextResponse.json({
       reply: finalReply,
       actions: actions as AssistantActions | null,
       tools: toolResults,
+      undo: collectUndoFromTools(toolResults),
       date,
       mode,
       snapshot: pack.snapshot,
