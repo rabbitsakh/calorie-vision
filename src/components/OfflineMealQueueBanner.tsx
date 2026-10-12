@@ -66,7 +66,6 @@ import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { withBasePath } from "@/lib/paths";
-import { useSession } from "next-auth/react";
 
 type OfflineMealQueueBannerProps = {
   selectedDate?: string;
