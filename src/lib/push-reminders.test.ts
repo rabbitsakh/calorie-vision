@@ -81,8 +81,8 @@ test("quiet defaults keep dinner but skip water_evening", () => {
   assert.deepEqual(remindersForLocalTime(18, 1), ["dinner"]);
 });
 
-test("schedule has 10 reminder slots", () => {
-  assert.equal(REMINDER_SCHEDULE.length, 10);
+test("schedule has 11 reminder slots", () => {
+  assert.equal(REMINDER_SCHEDULE.length, 11);
 });
 
 test("dinner reminder skipped when already logged", () => {
@@ -104,8 +104,12 @@ test("remindersForLocalTime respects disabled prefs", () => {
 });
 
 test("remindersForLocalTime respects custom hour prefs", () => {
-  assert.deepEqual(remindersForLocalTime(10, 1, { breakfast: { hour: 10 } }), ["breakfast"]);
+  assert.deepEqual(
+    remindersForLocalTime(10, 1, { breakfast: { hour: 10 }, gym: { enabled: false } }),
+    ["breakfast"],
+  );
   assert.deepEqual(remindersForLocalTime(8, 1, { breakfast: { hour: 10 } }), []);
+  assert.deepEqual(remindersForLocalTime(10, 1, ALL_ON), ["gym"]);
 });
 
 test("Sakhalin local hour is +8 from Moscow schedule slots", () => {
@@ -286,6 +290,7 @@ test("pickPushCopyVariant covers both buckets across users", () => {
     "checkin",
     "weekly",
     "reactivation",
+    "gym",
   ];
   const seen = new Set<string>();
   for (let i = 0; i < 40; i += 1) {

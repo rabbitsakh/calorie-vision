@@ -1,5 +1,5 @@
 import type { PushPayload } from "@/lib/push";
-import { rationMealLink, reminderDeepLink } from "@/lib/push-deeplink";
+import { rationMealLink, reminderDeepLink, workoutsDeepLink } from "@/lib/push-deeplink";
 import { recommendDietForProfile, type DietProfileFields } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
@@ -412,6 +412,15 @@ export function buildReminderPayload(
         tag: "cv-reactivation",
       };
 
+    case "gym":
+      return {
+        title: isB ? "Сегодня зал?" : "Время для зала",
+        body: isB
+          ? "Открой Today — один следующий шаг: продолжить, старт или день отдыха."
+          : "Загляни в Зал: продолжить тренировку, стартовать по плану или отметить отдых.",
+        url: workoutsDeepLink(),
+        tag: "cv-gym",
+      };
 
     default:
       return null;

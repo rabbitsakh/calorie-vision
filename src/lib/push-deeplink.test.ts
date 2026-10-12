@@ -23,6 +23,7 @@ test("reminderDeepLink includes meal query for breakfast", () => {
   assert.equal(reminderDeepLink("weekly"), "/plan#week-digest");
   assert.equal(reminderDeepLink("calories"), "/stats");
   assert.match(reminderDeepLink("reactivation"), /\/assistant\?mode=week/);
+  assert.equal(reminderDeepLink("gym"), "/workouts");
 });
 
 test("assistantWeekLink sets mode and optional prefill", () => {

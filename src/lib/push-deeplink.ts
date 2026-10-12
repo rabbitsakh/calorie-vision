@@ -56,6 +56,9 @@ export function reminderDeepLink(kind: ReminderKind): string {
       prefill: "Помоги спланировать неделю: рацион и 2–3 тренировки",
     });
   }
+  if (kind === "gym") {
+    return workoutsDeepLink();
+  }
   const meal = mealTypeForReminder(kind);
   return rationMealLink(meal);
 }
