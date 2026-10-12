@@ -15,6 +15,10 @@ import {
   rateLimitResponse,
 } from "@/lib/assistant-rate-limit";
 import {
+  needsWriteRepair,
+  repairAssistantWriteActions,
+} from "@/lib/assistant-repair";
+import {
   collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
@@ -126,7 +130,19 @@ export async function POST(request: NextRequest) {
           send("token", { text: piece });
         }
 
-        const { reply, actions } = splitAssistantReply(raw.trim());
+        let { reply, actions } = splitAssistantReply(raw.trim());
+
+        if (needsWriteRepair(lastUser, actions)) {
+          send("status", { text: "Уточняю запись в дневник…" });
+          const repaired = await repairAssistantWriteActions({
+            userMessage: lastUser,
+            assistantReply: reply,
+            today,
+            date,
+          });
+          if (repaired) actions = repaired;
+        }
+
         const targetDate =
           resolveAssistantDate((actions as ExecutableActions | null)?.targetDate, today) ?? date;
 
@@ -154,8 +170,14 @@ export async function POST(request: NextRequest) {
           send("tool", r);
         }
 
+        const wroteOk = writeResults.some((r) => r.ok);
         const toolNote = formatToolResultsForReply(writeResults);
-        const finalReply = [reply, toolNote].filter(Boolean).join("\n\n").trim() || reply;
+        const missNote =
+          !wroteOk && needsWriteRepair(lastUser, null)
+            ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
+            : "";
+        const finalReply =
+          [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;
         const undo = collectUndoFromTools(toolResults);
 
         send("done", {
@@ -163,6 +185,7 @@ export async function POST(request: NextRequest) {
           actions,
           tools: toolResults,
           undo,
+          wrote: wroteOk,
           date,
           mode,
           snapshot: pack.snapshot,

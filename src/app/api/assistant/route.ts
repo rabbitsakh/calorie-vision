@@ -16,6 +16,10 @@ import {
   rateLimitResponse,
 } from "@/lib/assistant-rate-limit";
 import {
+  needsWriteRepair,
+  repairAssistantWriteActions,
+} from "@/lib/assistant-repair";
+import {
   collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
@@ -149,7 +153,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { reply, actions } = splitAssistantReply(rawReply.trim());
+    let { reply, actions } = splitAssistantReply(rawReply.trim());
+    if (needsWriteRepair(lastUser, actions)) {
+      const repaired = await repairAssistantWriteActions({
+        userMessage: lastUser,
+        assistantReply: reply,
+        today,
+        date,
+      });
+      if (repaired) actions = repaired;
+    }
+
     const writeResults = await executeAssistantWriteTools({
       userId: session.user.id,
       today,
@@ -159,14 +173,21 @@ export async function POST(request: NextRequest) {
     });
     toolResults.push(...writeResults);
 
+    const wroteOk = writeResults.some((r) => r.ok);
     const toolNote = formatToolResultsForReply(writeResults);
-    const finalReply = [reply, toolNote].filter(Boolean).join("\n\n").trim() || reply;
+    const missNote =
+      !wroteOk && needsWriteRepair(lastUser, null)
+        ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
+        : "";
+    const finalReply =
+      [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;
 
     return NextResponse.json({
       reply: finalReply,
       actions: actions as AssistantActions | null,
       tools: toolResults,
       undo: collectUndoFromTools(toolResults),
+      wrote: wroteOk,
       date,
       mode,
       snapshot: pack.snapshot,
