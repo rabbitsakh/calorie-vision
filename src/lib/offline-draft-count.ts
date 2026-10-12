@@ -9,6 +9,7 @@ import { countDiaryNoteDrafts } from "@/lib/diary-note-draft-queue";
 import { countLocalWorkoutSessions } from "@/lib/workout-local-session";
 import { countWorkoutExerciseDrafts } from "@/lib/workout-exercise-draft-queue";
 import { countWorkoutOfflineDrafts } from "@/lib/workout-set-draft-queue";
+import { countShoppingSyncDrafts } from "@/lib/shopping-sync-draft";
 
 export function countAllOfflineDrafts(): number {
   return (
@@ -18,6 +19,7 @@ export function countAllOfflineDrafts(): number {
     countDiaryNoteDrafts() +
     countWorkoutOfflineDrafts() +
     countLocalWorkoutSessions() +
-    countWorkoutExerciseDrafts()
+    countWorkoutExerciseDrafts() +
+    countShoppingSyncDrafts()
   );
 }

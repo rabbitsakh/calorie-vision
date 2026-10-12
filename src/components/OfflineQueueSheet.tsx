@@ -43,6 +43,11 @@ import {
   removeWorkoutSetDraft,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
+import {
+  clearShoppingSyncDirty,
+  isShoppingSyncDirty,
+  subscribeShoppingSyncDraft,
+} from "@/lib/shopping-sync-draft";
 
 type QueueRow = {
   id: string;
@@ -204,6 +209,19 @@ function buildRows(onChanged: () => void): QueueRow[] {
       },
     });
   }
+  if (isShoppingSyncDirty()) {
+    rows.push({
+      id: "shopping-sync",
+      kind: "shopping",
+      label: "Список покупок",
+      detail: "локальные правки ещё не на сервере",
+      onDiscard: () => {
+        // Keep the local list — only drop the sync debt marker.
+        clearShoppingSyncDirty();
+        onChanged();
+      },
+    });
+  }
 
   return rows;
 }
@@ -223,6 +241,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
       subscribeLocalWorkoutSessions(bump),
       subscribeWorkoutExerciseDraftQueue(bump),
       subscribeWorkoutSetDraftQueue(bump),
+      subscribeShoppingSyncDraft(bump),
     ];
     return () => {
       for (const u of unsubs) u();

@@ -21,6 +21,11 @@ import {
   toggleItem,
   type ShoppingListItem,
 } from "@/lib/shopping-list";
+import {
+  clearShoppingSyncDirty,
+  isShoppingSyncDirty,
+  markShoppingSyncDirty,
+} from "@/lib/shopping-sync-draft";
 import { withBasePath } from "@/lib/paths";
 import type { MealEntry } from "@/types";
 
@@ -84,13 +89,18 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
     async (next: ShoppingListItem[]) => {
       if (!userId) return;
       try {
-        await fetch(withBasePath("/api/shopping-list"), {
+        const resp = await fetch(withBasePath("/api/shopping-list"), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ items: next }),
         });
+        if (!resp.ok) {
+          markShoppingSyncDirty();
+          return;
+        }
+        clearShoppingSyncDirty();
       } catch {
-        // keep local copy
+        markShoppingSyncDirty();
       }
     },
     [userId],
@@ -106,6 +116,21 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
         if (!cancelled) setHydrated(true);
         return;
       }
+      // Never overwrite local with remote while a sync is still owed.
+      if (isShoppingSyncDirty()) {
+        try {
+          const resp = await fetch(withBasePath("/api/shopping-list"), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items: local }),
+          });
+          if (resp.ok) clearShoppingSyncDirty();
+        } catch {
+          // stay dirty
+        }
+        if (!cancelled) setHydrated(true);
+        return;
+      }
       try {
         const resp = await fetch(withBasePath("/api/shopping-list"), { cache: "no-store" });
         if (!resp.ok) {
@@ -116,11 +141,13 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
         const remote = Array.isArray(data.items) ? data.items : [];
         if (cancelled) return;
         if (remote.length === 0 && local.length > 0) {
-          await fetch(withBasePath("/api/shopping-list"), {
+          const put = await fetch(withBasePath("/api/shopping-list"), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items: local }),
           });
+          if (!put.ok) markShoppingSyncDirty();
+          else clearShoppingSyncDirty();
           if (!cancelled) setHydrated(true);
           return;
         }

@@ -11,6 +11,7 @@ import { subscribeDiaryNoteDraftQueue } from "@/lib/diary-note-draft-queue";
 import { subscribeLocalWorkoutSessions } from "@/lib/workout-local-session";
 import { subscribeWorkoutExerciseDraftQueue } from "@/lib/workout-exercise-draft-queue";
 import { subscribeWorkoutSetDraftQueue } from "@/lib/workout-set-draft-queue";
+import { subscribeShoppingSyncDraft } from "@/lib/shopping-sync-draft";
 
 /**
  * Wave X — keep APK icon/notification badge in sync with offline drafts,
@@ -33,6 +34,7 @@ export function CapacitorQueueBadgeHost() {
       subscribeLocalWorkoutSessions(sync),
       subscribeWorkoutExerciseDraftQueue(sync),
       subscribeWorkoutSetDraftQueue(sync),
+      subscribeShoppingSyncDraft(sync),
     ];
 
     let removeAppListener: (() => void) | undefined;

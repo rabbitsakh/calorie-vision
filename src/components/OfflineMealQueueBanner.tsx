@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   countFailedDeletes,
   countFailedPatches,
@@ -54,6 +55,13 @@ import {
   removeWorkoutSetDraft,
   subscribeWorkoutSetDraftQueue,
 } from "@/lib/workout-set-draft-queue";
+import {
+  clearShoppingSyncDirty,
+  countShoppingSyncDrafts,
+  isShoppingSyncDirty,
+  subscribeShoppingSyncDraft,
+} from "@/lib/shopping-sync-draft";
+import { loadList } from "@/lib/shopping-list";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
@@ -83,10 +91,13 @@ export function OfflineMealQueueBanner({
   const [workoutFinishCount, setWorkoutFinishCount] = useState(0);
   const [workoutLocalCount, setWorkoutLocalCount] = useState(0);
   const [workoutExerciseCount, setWorkoutExerciseCount] = useState(0);
+  const [shoppingSyncCount, setShoppingSyncCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Optimistic online — Android WebView lies about navigator.onLine.
   const [online, setOnline] = useState(true);
+  const { data: session } = useSession();
+  const shoppingUserId = session?.user?.id ?? null;
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
@@ -100,6 +111,7 @@ export function OfflineMealQueueBanner({
     setWorkoutFinishCount(countWorkoutFinishDrafts());
     setWorkoutLocalCount(countLocalWorkoutSessions());
     setWorkoutExerciseCount(countWorkoutExerciseDrafts());
+    setShoppingSyncCount(countShoppingSyncDrafts());
   }, []);
 
   useEffect(() => {
@@ -112,6 +124,7 @@ export function OfflineMealQueueBanner({
       subscribeWorkoutSetDraftQueue(refreshCounts),
       subscribeLocalWorkoutSessions(refreshCounts),
       subscribeWorkoutExerciseDraftQueue(refreshCounts),
+      subscribeShoppingSyncDraft(refreshCounts),
     ];
     return () => {
       for (const unsub of unsubs) unsub();
@@ -130,6 +143,7 @@ export function OfflineMealQueueBanner({
     const workoutFinishes = listWorkoutFinishDrafts();
     const workoutLocals = countLocalWorkoutSessions();
     const workoutExercises = countWorkoutExerciseDrafts();
+    const shoppingDirty = isShoppingSyncDirty();
     if (
       pending.length === 0 &&
       failed.length === 0 &&
@@ -141,7 +155,8 @@ export function OfflineMealQueueBanner({
       workoutSets.length === 0 &&
       workoutFinishes.length === 0 &&
       workoutLocals === 0 &&
-      workoutExercises === 0
+      workoutExercises === 0 &&
+      !shoppingDirty
     ) {
       return;
     }
@@ -330,6 +345,25 @@ export function OfflineMealQueueBanner({
           if (isLikelyOfflineError(err)) break;
         }
       }
+
+      if (shoppingDirty && shoppingUserId) {
+        try {
+          const items = loadList({ userId: shoppingUserId });
+          const response = await fetch(withBasePath("/api/shopping-list"), {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
+          });
+          if (response.ok) {
+            clearShoppingSyncDirty();
+            savedAny = true;
+          }
+        } catch (err) {
+          if (isLikelyOfflineError(err)) {
+            // stay dirty
+          }
+        }
+      }
     } finally {
       setFlushing(false);
       refreshCounts();
@@ -340,7 +374,7 @@ export function OfflineMealQueueBanner({
         onFlushed?.();
       }
     }
-  }, [onFlushed, onRecognitionReady, refreshCounts]);
+  }, [onFlushed, onRecognitionReady, refreshCounts, shoppingUserId]);
 
   useEffect(() => {
     let wasOnline = true;
@@ -365,7 +399,8 @@ export function OfflineMealQueueBanner({
     workoutSetCount +
     workoutFinishCount +
     workoutLocalCount +
-    workoutExerciseCount;
+    workoutExerciseCount +
+    shoppingSyncCount;
   if (totalCount <= 0) return null;
 
   const lines: string[] = [];
@@ -441,6 +476,9 @@ export function OfflineMealQueueBanner({
         ? "1 завершение тренировки ждёт отправку"
         : `${workoutFinishCount} завершения тренировок ждут отправку`,
     );
+  }
+  if (shoppingSyncCount > 0) {
+    lines.push("Список покупок ждёт синхронизацию");
   }
 
   const queueTitle = flushing
