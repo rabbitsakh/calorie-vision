@@ -16,6 +16,7 @@
     "rustore:init": "bash scripts/rustore-init.sh",
     "rustore:build": "bash scripts/rustore-build.sh",
     "images:backfill": "tsx scripts/backfill-meal-images.ts",
+    "images:recompress": "tsx scripts/recompress-stored-images.ts",
     "db:generate": "prisma generate",
     "db:migrate-sql": "node --experimental-strip-types --no-warnings scripts/apply-sql-migration.ts",
     "db:push": "prisma db push --skip-generate",
