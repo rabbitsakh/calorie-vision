@@ -235,14 +235,14 @@ test("weekly skipped when last week was strong", () => {
   );
 });
 
-test("weekly deep link opens Plan tab", () => {
+test("weekly deep link opens Plan digest fold", () => {
   const payload = buildReminderPayload("weekly", {
     ...baseCtx,
     daysLoggedLastWeek: 2,
     daysInLastWeek: 7,
   });
   assert.ok(payload);
-  assert.equal(payload.url, "/plan#shopping");
+  assert.equal(payload.url, "/plan#week-digest");
 });
 
 test("computeStreakStats respects freezes", () => {
@@ -354,7 +354,7 @@ test("reactivation soft nudge after idle days", () => {
   const payload = buildReminderPayload("reactivation", { ...baseCtx, daysSinceLastMeal: 5 });
   assert.ok(payload);
   assert.match(payload.title, /скучали|рядом/i);
-  assert.equal(payload.url, "/ration");
+  assert.match(payload.url, /\/assistant\?mode=week/);
 });
 
 test("remindersForLocalTime returns reactivation at 11 when enabled", () => {
