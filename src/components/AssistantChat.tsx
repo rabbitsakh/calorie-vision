@@ -3,54 +3,35 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AssistantActions, AssistantContextSnapshot, AssistantMode } from "@/lib/admin-assistant";
+import type { AssistantActions, AssistantContextSnapshot } from "@/lib/admin-assistant";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
 import { withBasePath } from "@/lib/paths";
 import { addItemsFromDishNames } from "@/lib/shopping-list";
 
 type ChatRole = "user" | "assistant";
 
+type ToolResult = {
+  ok: boolean;
+  tool: string;
+  message: string;
+};
+
 type ChatTurn = {
   id: string;
   role: ChatRole;
   content: string;
   actions?: AssistantActions | null;
+  tools?: ToolResult[];
+  imagePreview?: string | null;
 };
 
-const STORAGE_KEY = "cv-assistant-chat-v3";
+const STORAGE_KEY = "cv-assistant-chat-v4";
 
-const STARTERS: Record<AssistantMode, string[]> = {
-  all: [
-    "Что ещё съесть сегодня по остатку КБЖУ?",
-    "Собери рацион на завтра под мою цель",
-    "Какую тренировку сделать завтра?",
-    "План зала на неделю: 3 дня + покупки",
-  ],
-  food: [
-    "Остаток КБЖУ и 3 идеи на ужин",
-    "Рацион на завтра с клетчаткой",
-    "Список покупок на 2 дня",
-    "Запомни: не предлагай творог",
-  ],
-  gym: [
-    "Тренировка завтра с учётом недавних",
-    "Сплит на 4 дня без пересечения групп",
-    "Лёгкая сессия / deload",
-    "Кардио: сколько минут на этой неделе?",
-  ],
-  week: [
-    "Недельный план: еда + 3 тренировки",
-    "Пн–Пт рацион и зал кратко",
-    "Список покупок под недельный рацион",
-    "Где слабое место недели?",
-  ],
-};
-
-const MODES: Array<{ id: AssistantMode; label: string }> = [
-  { id: "all", label: "Всё" },
-  { id: "food", label: "Еда" },
-  { id: "gym", label: "Зал" },
-  { id: "week", label: "Неделя" },
+const STARTERS = [
+  "Составь план тренировки на завтра и добавь в план",
+  "Собери рацион на сегодня и запиши в дневник",
+  "Что ещё съесть по остатку КБЖУ?",
+  "План зала на 3 дня на неделю",
 ];
 
 function newId(): string {
@@ -62,7 +43,7 @@ function welcomeTurn(): ChatTurn {
     id: "welcome",
     role: "assistant",
     content:
-      "Привет. Я вижу твой рацион и зал. Можно сохранить блюда в дневник, создать шаблон тренировки и список покупок — и запомнить предпочтения («не люблю …»).",
+      "Напиши, что сделать — я сам запишу. Например: «план тренировки на завтра» или пришли фото еды.",
   };
 }
 
@@ -71,18 +52,13 @@ function loadStored(userId: string | undefined) {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY}:${userId}`);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as {
-      turns?: ChatTurn[];
-      mode?: AssistantMode;
-      date?: string;
-    };
+    const parsed = JSON.parse(raw) as { turns?: ChatTurn[]; date?: string };
     if (!Array.isArray(parsed.turns) || parsed.turns.length === 0) return null;
     return {
-      turns: parsed.turns.slice(-80),
-      mode:
-        parsed.mode === "food" || parsed.mode === "gym" || parsed.mode === "week"
-          ? parsed.mode
-          : "all",
+      turns: parsed.turns.slice(-80).map((t) => ({
+        ...t,
+        imagePreview: undefined,
+      })),
       date: typeof parsed.date === "string" ? parsed.date : null,
     };
   } catch {
@@ -90,17 +66,13 @@ function loadStored(userId: string | undefined) {
   }
 }
 
-function saveStored(
-  userId: string | undefined,
-  turns: ChatTurn[],
-  mode: AssistantMode,
-  date: string,
-) {
+function saveStored(userId: string | undefined, turns: ChatTurn[], date: string) {
   if (typeof window === "undefined" || !userId) return;
   try {
+    const slim = turns.slice(-80).map(({ imagePreview: _p, ...rest }) => rest);
     localStorage.setItem(
       `${STORAGE_KEY}:${userId}`,
-      JSON.stringify({ turns: turns.slice(-80), mode, date, savedAt: Date.now() }),
+      JSON.stringify({ turns: slim, date, savedAt: Date.now() }),
     );
   } catch {
     // quota
@@ -123,29 +95,39 @@ function parseSseChunk(buffer: string): { events: Array<{ event: string; data: s
   return { events, rest };
 }
 
-function SnapshotChips({ snapshot }: { snapshot: AssistantContextSnapshot | null }) {
-  if (!snapshot) return null;
-  const chips: string[] = [];
-  if (snapshot.remainingCalories != null && snapshot.targetCalories != null) {
-    chips.push(`остаток ${snapshot.remainingCalories} / ${snapshot.targetCalories} ккал`);
-  } else {
-    chips.push(`${snapshot.calories} ккал`);
-  }
-  if (snapshot.targetProtein != null) chips.push(`Б ${snapshot.protein}/${snapshot.targetProtein}`);
-  chips.push(`вода ${snapshot.waterMl}/${snapshot.waterTargetMl}`);
-  if (snapshot.weightKg != null) chips.push(`${snapshot.weightKg} кг`);
-  if (snapshot.streakDays != null) chips.push(`серия ${snapshot.streakDays}`);
-  if (snapshot.challenge) chips.push(snapshot.challenge);
-  if (snapshot.recentWorkoutLabel) chips.push(snapshot.recentWorkoutLabel);
+function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      const m = /^data:([^;]+);base64,(.+)$/.exec(result);
+      if (!m) {
+        reject(new Error("Не удалось прочитать фото"));
+        return;
+      }
+      resolve({ mime: m[1]!, base64: m[2]! });
+    };
+    reader.onerror = () => reject(new Error("Не удалось прочитать фото"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ToolChips({ tools }: { tools: ToolResult[] }) {
+  if (!tools.length) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {chips.map((c) => (
-        <span
-          key={c}
-          className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]"
+    <div className="mt-2 space-y-1">
+      {tools.map((t, i) => (
+        <p
+          key={`${t.tool}-${i}`}
+          className={`rounded-lg px-2 py-1 text-[11px] font-medium ${
+            t.ok
+              ? "bg-teal-100 text-teal-950"
+              : "bg-rose-50 text-rose-900"
+          }`}
         >
-          {c}
-        </span>
+          {t.ok ? "✓ " : "✗ "}
+          {t.message}
+        </p>
       ))}
     </div>
   );
@@ -155,11 +137,13 @@ function ActionCard({
   actions,
   userId,
   date,
+  alreadyApplied,
   onFlash,
 }: {
   actions: AssistantActions;
   userId?: string;
   date: string;
+  alreadyApplied: boolean;
   onFlash: (msg: string) => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -176,7 +160,10 @@ function ActionCard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind, date, actions }),
       });
-      const data = (await resp.json().catch(() => null)) as { error?: string; meals?: unknown[]; routine?: { id?: string } } | null;
+      const data = (await resp.json().catch(() => null)) as {
+        error?: string;
+        meals?: unknown[];
+      } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
       if (kind === "meals") onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
       else onFlash("Шаблон создан в Зале");
@@ -211,48 +198,73 @@ function ActionCard({
           ))}
         </ul>
       ) : null}
-      <div className="flex flex-wrap gap-2 pt-1">
-        {shopping.length ? (
-          <button
-            type="button"
-            className="rounded-lg bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800"
-            onClick={() => {
-              addItemsFromDishNames(shopping, date, { userId });
-              onFlash(`В покупках: ${shopping.length}`);
-            }}
-          >
-            В покупки ({shopping.length})
-          </button>
-        ) : null}
-        {actions.meals?.length ? (
-          <button
-            type="button"
-            className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
-            disabled={busy === "meals"}
-            onClick={() => void apply("meals")}
-          >
-            {busy === "meals" ? "Пишу…" : "В дневник"}
-          </button>
-        ) : null}
-        {actions.workoutDays?.length ? (
-          <>
-            <button
-              type="button"
-              className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
-              disabled={busy === "routine"}
-              onClick={() => void apply("routine")}
-            >
-              {busy === "routine" ? "Создаю…" : "Шаблон в зал"}
-            </button>
+      {alreadyApplied ? (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {actions.workoutDays?.length ? (
             <Link
               href="/workouts"
               className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100"
             >
               Открыть зал
             </Link>
-          </>
-        ) : null}
-      </div>
+          ) : null}
+          {shopping.length ? (
+            <button
+              type="button"
+              className="rounded-lg bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800"
+              onClick={() => {
+                addItemsFromDishNames(shopping, date, { userId });
+                onFlash(`В покупках: ${shopping.length}`);
+              }}
+            >
+              В покупки ({shopping.length})
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {shopping.length ? (
+            <button
+              type="button"
+              className="rounded-lg bg-teal-700 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-teal-800"
+              onClick={() => {
+                addItemsFromDishNames(shopping, date, { userId });
+                onFlash(`В покупках: ${shopping.length}`);
+              }}
+            >
+              В покупки ({shopping.length})
+            </button>
+          ) : null}
+          {actions.meals?.length ? (
+            <button
+              type="button"
+              className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
+              disabled={busy === "meals"}
+              onClick={() => void apply("meals")}
+            >
+              {busy === "meals" ? "Пишу…" : "В дневник"}
+            </button>
+          ) : null}
+          {actions.workoutDays?.length ? (
+            <>
+              <button
+                type="button"
+                className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 disabled:opacity-50"
+                disabled={busy === "routine"}
+                onClick={() => void apply("routine")}
+              >
+                {busy === "routine" ? "Создаю…" : "В план зала"}
+              </button>
+              <Link
+                href="/workouts"
+                className="rounded-lg border border-teal-700/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-teal-900 hover:bg-teal-100"
+              >
+                Открыть зал
+              </Link>
+            </>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
@@ -262,22 +274,23 @@ export function AssistantChat() {
   const userId = session?.user?.id;
   const [hydrated, setHydrated] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([welcomeTurn()]);
-  const [mode, setMode] = useState<AssistantMode>("all");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<AssistantContextSnapshot | null>(null);
   const [prefs, setPrefs] = useState<AssistantPrefs>({ likes: [], dislikes: [], notes: [] });
-  const [dislikeDraft, setDislikeDraft] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const stored = loadStored(userId);
     if (stored) {
       setTurns(stored.turns);
-      setMode(stored.mode as AssistantMode);
       if (stored.date) setDate(stored.date);
     }
     setHydrated(true);
@@ -285,8 +298,8 @@ export function AssistantChat() {
 
   useEffect(() => {
     if (!hydrated) return;
-    saveStored(userId, turns, mode, date);
-  }, [hydrated, userId, turns, mode, date]);
+    saveStored(userId, turns, date);
+  }, [hydrated, userId, turns, date]);
 
   const refreshSnapshot = useCallback(async (day: string) => {
     try {
@@ -309,11 +322,24 @@ export function AssistantChat() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns, busy]);
+  }, [turns, busy, status]);
+
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
 
   function showFlash(msg: string) {
     setFlash(msg);
     window.setTimeout(() => setFlash(null), 2200);
+  }
+
+  function clearPhoto() {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhoto(null);
+    setPhotoPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   async function savePrefs(next: AssistantPrefs) {
@@ -328,10 +354,9 @@ export function AssistantChat() {
   }
 
   async function send(text: string) {
-    const content = text.trim();
-    if (!content || busy) return;
+    const content = text.trim() || (photo ? "Добавь это фото в рацион" : "");
+    if ((!content && !photo) || busy) return;
 
-    // Soft preference capture: «не предлагай X» / «не люблю X»
     const dislikeMatch = /(?:не\s+(?:предлагай|люблю|ем)|без)\s+(.+)$/i.exec(content);
     if (dislikeMatch?.[1]) {
       const item = dislikeMatch[1].replace(/[.!?]+$/, "").trim().slice(0, 80);
@@ -347,16 +372,38 @@ export function AssistantChat() {
           await savePrefs(next);
           showFlash(`Запомнил: не предлагать «${item}»`);
         } catch {
-          // continue to ask AI anyway
+          // continue
         }
       }
     }
 
     setError(null);
     setDraft("");
-    const userTurn: ChatTurn = { id: newId(), role: "user", content };
+    setStatus(null);
+
+    let imageBase64: string | undefined;
+    let imageMime: string | undefined;
+    let preview: string | null = photoPreview;
+    if (photo) {
+      try {
+        const encoded = await fileToBase64(photo);
+        imageBase64 = encoded.base64;
+        imageMime = encoded.mime;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Фото не прочиталось");
+        return;
+      }
+    }
+
+    const userTurn: ChatTurn = {
+      id: newId(),
+      role: "user",
+      content,
+      imagePreview: preview,
+    };
     const nextTurns = [...turns, userTurn];
     setTurns(nextTurns);
+    clearPhoto();
     setBusy(true);
 
     const history = nextTurns
@@ -366,21 +413,29 @@ export function AssistantChat() {
     const assistantId = newId();
     setTurns((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
+    const payload = {
+      messages: history,
+      date,
+      mode: "all" as const,
+      ...(imageBase64 ? { imageBase64, imageMime } : {}),
+    };
+
     try {
       const resp = await fetch(withBasePath("/api/assistant/stream"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history, date, mode }),
+        body: JSON.stringify(payload),
       });
       if (!resp.ok || !resp.body) {
         const fallback = await fetch(withBasePath("/api/assistant"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, date, mode }),
+          body: JSON.stringify(payload),
         });
         const data = (await fallback.json().catch(() => null)) as {
           reply?: string;
           actions?: AssistantActions | null;
+          tools?: ToolResult[];
           snapshot?: AssistantContextSnapshot;
           prefs?: AssistantPrefs;
           error?: string;
@@ -391,10 +446,16 @@ export function AssistantChat() {
         setTurns((prev) =>
           prev.map((t) =>
             t.id === assistantId
-              ? { ...t, content: data?.reply?.trim() || "…", actions: data?.actions ?? null }
+              ? {
+                  ...t,
+                  content: data?.reply?.trim() || "…",
+                  actions: data?.actions ?? null,
+                  tools: data?.tools ?? [],
+                }
               : t,
           ),
         );
+        void refreshSnapshot(date);
         return;
       }
 
@@ -402,6 +463,7 @@ export function AssistantChat() {
       const decoder = new TextDecoder();
       let buf = "";
       let acc = "";
+      const liveTools: ToolResult[] = [];
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -422,6 +484,19 @@ export function AssistantChat() {
               prev.map((t) => (t.id === assistantId ? { ...t, content: live || "…" } : t)),
             );
           }
+          if (ev.event === "status" && typeof json.text === "string") {
+            setStatus(json.text);
+          }
+          if (ev.event === "tool") {
+            liveTools.push({
+              ok: Boolean(json.ok),
+              tool: String(json.tool || "tool"),
+              message: String(json.message || ""),
+            });
+            setTurns((prev) =>
+              prev.map((t) => (t.id === assistantId ? { ...t, tools: [...liveTools] } : t)),
+            );
+          }
           if (ev.event === "meta") {
             if (json.snapshot) setSnapshot(json.snapshot as AssistantContextSnapshot);
             if (json.prefs) setPrefs(json.prefs as AssistantPrefs);
@@ -436,6 +511,7 @@ export function AssistantChat() {
                       ...t,
                       content: String(json.reply || acc).trim() || "…",
                       actions: (json.actions as AssistantActions | null) ?? null,
+                      tools: (json.tools as ToolResult[] | undefined) ?? liveTools,
                     }
                   : t,
               ),
@@ -446,13 +522,22 @@ export function AssistantChat() {
           }
         }
       }
+      void refreshSnapshot(date);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
-      setTurns((prev) => prev.filter((t) => t.id !== assistantId || t.content));
+      setTurns((prev) => prev.filter((t) => t.id !== assistantId || t.content || t.tools?.length));
     } finally {
       setBusy(false);
+      setStatus(null);
     }
   }
+
+  const remainLabel =
+    snapshot?.remainingCalories != null && snapshot.targetCalories != null
+      ? `остаток ${snapshot.remainingCalories} ккал`
+      : snapshot
+        ? `${snapshot.calories} ккал`
+        : null;
 
   return (
     <section className="flex min-h-[75vh] flex-col gap-3">
@@ -467,23 +552,11 @@ export function AssistantChat() {
             disabled={busy}
           />
         </label>
-        <div className="flex flex-wrap gap-1">
-          {MODES.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                mode === m.id
-                  ? "bg-[var(--accent)] text-white"
-                  : "border border-[var(--line)] bg-white text-[var(--muted-strong)]"
-              }`}
-              disabled={busy}
-              onClick={() => setMode(m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        {remainLabel ? (
+          <span className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]">
+            {remainLabel}
+          </span>
+        ) : null}
         <button
           type="button"
           className="ml-auto text-[11px] font-semibold text-[var(--muted)] underline-offset-2 hover:underline"
@@ -493,94 +566,50 @@ export function AssistantChat() {
             setError(null);
           }}
         >
-          Очистить чат
+          Очистить
         </button>
       </div>
 
-      <SnapshotChips snapshot={snapshot} />
-
-      {(prefs.dislikes.length > 0 || prefs.likes.length > 0) && (
-        <div className="flex flex-wrap gap-1.5 text-[10px]">
-          {prefs.dislikes.map((d) => (
-            <button
-              key={`d-${d}`}
-              type="button"
-              className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 font-medium text-rose-800"
-              title="Убрать"
-              onClick={() => {
-                void savePrefs({
-                  ...prefs,
-                  dislikes: prefs.dislikes.filter((x) => x !== d),
-                }).then(() => showFlash("Убрал из запретов"));
-              }}
-            >
-              не: {d} ×
-            </button>
-          ))}
-          {prefs.likes.map((d) => (
-            <span
-              key={`l-${d}`}
-              className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800"
-            >
-              ок: {d}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <form
-        className="flex flex-wrap items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const item = dislikeDraft.trim();
-          if (!item) return;
-          void savePrefs({
-            ...prefs,
-            dislikes: [...prefs.dislikes.filter((d) => d.toLowerCase() !== item.toLowerCase()), item].slice(
-              0,
-              24,
-            ),
-          }).then(() => {
-            setDislikeDraft("");
-            showFlash(`Запомнил: не предлагать «${item}»`);
-          });
-        }}
-      >
-        <input
-          value={dislikeDraft}
-          onChange={(e) => setDislikeDraft(e.target.value)}
-          placeholder="Не предлагать (например: творог)"
-          className="input min-h-9 flex-1 text-sm"
-          maxLength={80}
-        />
-        <button type="submit" className="btn btn-secondary min-h-9 px-3 text-xs">
-          Запомнить
-        </button>
-      </form>
-
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-3 sm:p-4">
-        {turns.map((turn) => (
-          <div
-            key={turn.id}
-            className={`max-w-[94%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
-              turn.role === "user"
-                ? "ml-auto bg-[var(--accent)] text-white"
-                : "mr-auto bg-[var(--surface-mist)] text-[var(--ink)]"
-            }`}
-          >
-            <div className="whitespace-pre-wrap">{turn.content || (busy ? "…" : "")}</div>
-            {turn.role === "assistant" && turn.actions ? (
-              <ActionCard
-                actions={turn.actions}
-                userId={userId}
-                date={date}
-                onFlash={showFlash}
-              />
-            ) : null}
-          </div>
-        ))}
+        {turns.map((turn) => {
+          const applied = Boolean(turn.tools?.some((t) => t.ok));
+          return (
+            <div
+              key={turn.id}
+              className={`max-w-[94%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                turn.role === "user"
+                  ? "ml-auto bg-[var(--accent)] text-white"
+                  : "mr-auto bg-[var(--surface-mist)] text-[var(--ink)]"
+              }`}
+            >
+              {turn.imagePreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={turn.imagePreview}
+                  alt="Фото"
+                  className="mb-2 max-h-40 rounded-lg object-cover"
+                />
+              ) : null}
+              <div className="whitespace-pre-wrap">{turn.content || (busy ? "…" : "")}</div>
+              {turn.role === "assistant" && turn.tools?.length ? (
+                <ToolChips tools={turn.tools} />
+              ) : null}
+              {turn.role === "assistant" && turn.actions ? (
+                <ActionCard
+                  actions={turn.actions}
+                  userId={userId}
+                  date={date}
+                  alreadyApplied={applied}
+                  onFlash={showFlash}
+                />
+              ) : null}
+            </div>
+          );
+        })}
         {busy ? (
-          <p className="mr-auto text-xs font-medium text-[var(--muted)]">Пишет ответ…</p>
+          <p className="mr-auto text-xs font-medium text-[var(--muted)]">
+            {status || "Думаю…"}
+          </p>
         ) : null}
         <div ref={bottomRef} />
       </div>
@@ -588,19 +617,37 @@ export function AssistantChat() {
       {flash ? <p className="text-sm font-medium text-teal-800">{flash}</p> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      <div className="flex flex-wrap gap-1.5">
-        {STARTERS[mode].map((hint) => (
+      {!busy && turns.length <= 2 ? (
+        <div className="flex flex-wrap gap-1.5">
+          {STARTERS.map((hint) => (
+            <button
+              key={hint}
+              type="button"
+              className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
+              disabled={busy}
+              onClick={() => void send(hint)}
+            >
+              {hint}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {photoPreview ? (
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-2 py-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photoPreview} alt="Превью" className="h-12 w-12 rounded-lg object-cover" />
+          <span className="flex-1 text-xs text-[var(--muted-strong)]">Фото добавится в рацион</span>
           <button
-            key={hint}
             type="button"
-            className="rounded-full border border-[var(--line)] bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
+            className="text-xs font-semibold text-[var(--muted)] underline"
+            onClick={clearPhoto}
             disabled={busy}
-            onClick={() => void send(hint)}
           >
-            {hint}
+            Убрать
           </button>
-        ))}
-      </div>
+        </div>
+      ) : null}
 
       <form
         className="flex gap-2"
@@ -609,10 +656,33 @@ export function AssistantChat() {
           void send(draft);
         }}
       >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            if (!file) return;
+            if (photoPreview) URL.revokeObjectURL(photoPreview);
+            setPhoto(file);
+            setPhotoPreview(URL.createObjectURL(file));
+          }}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary min-h-11 self-end px-3 text-xs"
+          disabled={busy}
+          title="Фото еды"
+          onClick={() => fileRef.current?.click()}
+        >
+          Фото
+        </button>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Вопрос про еду, зал или неделю…"
+          placeholder="План на завтра, рацион, или прикрепи фото…"
           className="input min-h-11 flex-1 resize-y py-2"
           disabled={busy}
           maxLength={6000}
@@ -627,7 +697,7 @@ export function AssistantChat() {
         <button
           type="submit"
           className="btn btn-primary min-h-11 self-end px-4"
-          disabled={busy || !draft.trim()}
+          disabled={busy || (!draft.trim() && !photo)}
         >
           Отправить
         </button>

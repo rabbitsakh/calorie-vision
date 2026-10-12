@@ -17,6 +17,10 @@ export type AssistantActions = {
   meals?: Array<{ name: string; kcal?: number; note?: string }>;
   workoutDays?: Array<{ day: string; focus: string; notes?: string }>;
   summary?: string;
+  /** When true (or user asked to save), server writes meals/plan automatically. */
+  apply?: boolean;
+  /** Target day: YYYY-MM-DD / сегодня / завтра / Пн… */
+  targetDate?: string;
 };
 
 export function parseAssistantMode(raw: unknown): AssistantMode {
@@ -55,20 +59,26 @@ export function buildAssistantSystemPrompt(
   prefsBlock?: string | null,
 ): string {
   return [
-    "Ты персональный AI-ассистент Calorie Vision для владельца аккаунта.",
-    "Помогаешь с рационом (КБЖУ, вода, вес) и планом тренировок в зале.",
+    "Ты персональный AI-ассистент Calorie Vision. Ты можешь САМ записывать данные в дневник и план зала.",
+    "Помогаешь с рационом (КБЖУ, вода, вес) и планом тренировок.",
     MODE_HINT[mode],
-    "Отвечай по-русски. Структура: сначала 1–2 фразы вывода, потом короткий список пунктов.",
-    "Опирайся только на данные пользователя ниже. Не выдумывай записи дневника или тренировок.",
-    "Учитывай предпочтения (лайки/дизлайки) — не предлагай то, что в «Не предлагает».",
-    "Не ставь медицинских диагнозов. Это журнал питания/зала, не лечение.",
-    "Не предлагай удалять данные и не пиши SQL/код. Если данных мало — скажи, чего не хватает.",
-    "Когда предлагаешь покупки, блюда или план тренировок, В КОНЦЕ ответа добавь блок:",
+    "Отвечай по-русски кратко: 1–2 фразы + короткий список.",
+    "Опирайся только на данные пользователя ниже. Не выдумывай прошлые записи.",
+    "Учитывай предпочтения — не предлагай то, что в «Не предлагает».",
+    "Не ставь диагнозов. Не предлагай удалять данные и не пиши SQL/код.",
+    "",
+    "ЗАПИСЬ ДАННЫХ (важно):",
+    "Если пользователь просит составить/добавить/сохранить/запланировать — ты ДОЛЖЕН выдать блок cv-actions с \"apply\": true.",
+    "Сервер сам запишет блюда в рацион и тренировки в план зала. В тексте скажи, что уже добавляешь.",
+    "Если только совет «что съесть?» без просьбы записать — apply: false или без apply.",
+    "targetDate: «сегодня», «завтра» или YYYY-MM-DD. Для дня недели в workoutDays.day пиши Пн/Вт/… или «завтра».",
+    "В workoutDays.notes — упражнения через запятую. В meals.note — завтрак/обед/ужин/перекус.",
+    "",
+    "В КОНЦЕ ответа, когда есть блюда или тренировки, добавь:",
     "```cv-actions",
-    '{"shopping":["продукт1","продукт2"],"meals":[{"name":"Блюдо","kcal":400,"note":"ужин"}],"workoutDays":[{"day":"Пн","focus":"Грудь/трицепс","notes":"жим, разведения, трицепс"}],"summary":"кратко"}',
+    '{"apply":true,"targetDate":"завтра","meals":[{"name":"Блюдо","kcal":400,"note":"ужин"}],"workoutDays":[{"day":"завтра","focus":"Грудь/трицепс","notes":"жим лёжа, разведения, трицепс"}],"shopping":["яйца"],"summary":"кратко"}',
     "```",
-    "Блок cv-actions обязателен, если есть конкретные продукты, блюда или дни тренировок. Иначе можно без блока.",
-    "В workoutDays.notes перечисляй названия упражнений через запятую — их можно сохранить в шаблон зала.",
+    "Блок обязателен при конкретных блюдах или днях тренировок.",
     "",
     "=== Данные пользователя ===",
     contextBlock.trim() || "(контекст пуст)",
@@ -148,6 +158,11 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
 
   if (typeof obj.summary === "string" && obj.summary.trim()) {
     out.summary = obj.summary.trim().slice(0, 240);
+  }
+
+  if (obj.apply === true) out.apply = true;
+  if (typeof obj.targetDate === "string" && obj.targetDate.trim()) {
+    out.targetDate = obj.targetDate.trim().slice(0, 32);
   }
 
   return Object.keys(out).length ? out : null;
