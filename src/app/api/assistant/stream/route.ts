@@ -151,6 +151,8 @@ export async function POST(request: NextRequest) {
         if (
           actions &&
           (actions.meals?.length ||
+            actions.deleteMeals?.length ||
+            actions.patchMeals?.length ||
             actions.workoutDays?.length ||
             actions.shopping?.length ||
             actions.waterMl != null ||
@@ -173,9 +175,19 @@ export async function POST(request: NextRequest) {
         }
 
         const wroteOk = writeResults.some((r) => r.ok);
+        const awaitingWeightConfirm = writeResults.some(
+          (r) =>
+            r.tool === "log_weight" &&
+            !r.ok &&
+            Boolean(
+              r.data &&
+                typeof r.data === "object" &&
+                (r.data as { needsConfirm?: unknown }).needsConfirm,
+            ),
+        );
         const toolNote = formatToolResultsForReply(writeResults);
         const missNote =
-          !wroteOk && needsWriteRepair(lastUser, null)
+          !wroteOk && !awaitingWeightConfirm && needsWriteRepair(lastUser, null)
             ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
             : "";
         const finalReply =

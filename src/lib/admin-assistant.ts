@@ -22,6 +22,18 @@ export type AssistantActions = {
     carbs?: number;
     note?: string;
   }>;
+  /** Delete meals on targetDate matching dish name (substring). */
+  deleteMeals?: Array<{ match: string }>;
+  /** Patch meals on targetDate matching dish name. */
+  patchMeals?: Array<{
+    match: string;
+    name?: string;
+    kcal?: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    portionGrams?: number;
+  }>;
   workoutDays?: Array<{ day: string; focus: string; notes?: string }>;
   summary?: string;
   /** When true (or user asked to save), server writes meals/plan automatically. */
@@ -30,6 +42,8 @@ export type AssistantActions = {
   targetDate?: string;
   waterMl?: number;
   weightKg?: number;
+  /** Replace existing weight for the day without confirm gate. */
+  overwriteWeight?: boolean;
   /** Start today's planned routine as a live session. */
   startWorkout?: boolean;
 };
@@ -77,13 +91,15 @@ export function buildAssistantSystemPrompt(
     "Опирайся только на данные ниже. Не выдумывай прошлые записи. Учитывай «Не предлагает».",
     "Не ставь диагнозов. Не предлагай удалять всё подряд и не пиши SQL/код.",
     "",
-    "ТЫ УМЕЕШЬ ЗАПИСЫВАТЬ: блюда (с БЖУ), план зала по дням, покупки, воду (мл), вес (кг), старт сегодняшней тренировки.",
-    "КРИТИЧНО: если пользователь просит добавить/записать/сохранить/съел+добавь — НЕЛЬЗЯ только текстом «Добавляю».",
+    "ТЫ УМЕЕШЬ ЗАПИСЫВАТЬ: блюда (с БЖУ), правки/удаление блюд, план зала по дням, покупки, воду (мл), вес (кг), старт сегодняшней тренировки.",
+    "КРИТИЧНО: если пользователь просит добавить/записать/сохранить/съел+добавь/удали/исправь — НЕЛЬЗЯ только текстом «Добавляю».",
     "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
     "Несколько блюд = несколько объектов в meals[]. Оцени kcal/БЖУ, если не указали.",
+    "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280}].",
+    "Вес: weightKg. Если на день уже есть вес — сервер спросит подтверждение; не ставь overwriteWeight сам.",
     "Совет без просьбы записать — без apply / без блока.",
     "meals.note = завтрак|обед|ужин|перекус. workoutDays.day = Пн/Вт/… или сегодня/завтра.",
-    "waterMl, weightKg, startWorkout:true, shopping:[], targetDate.",
+    "waterMl, weightKg, startWorkout:true, shopping:[], deleteMeals, patchMeals, targetDate.",
     "",
     "Пример (обязательный хвост при записи):",
     "```cv-actions",
@@ -210,7 +226,41 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
   if (typeof obj.weightKg === "number" && Number.isFinite(obj.weightKg)) {
     out.weightKg = Math.round(obj.weightKg * 10) / 10;
   }
+  if (obj.overwriteWeight === true) out.overwriteWeight = true;
   if (obj.startWorkout === true) out.startWorkout = true;
+
+  if (Array.isArray(obj.deleteMeals)) {
+    const deleteMeals: NonNullable<AssistantActions["deleteMeals"]> = [];
+    for (const item of obj.deleteMeals.slice(0, 20)) {
+      if (!item || typeof item !== "object") continue;
+      const match = (item as { match?: unknown }).match;
+      if (typeof match !== "string" || !match.trim()) continue;
+      deleteMeals.push({ match: match.trim().slice(0, 120) });
+    }
+    if (deleteMeals.length) out.deleteMeals = deleteMeals;
+  }
+
+  if (Array.isArray(obj.patchMeals)) {
+    const patchMeals: NonNullable<AssistantActions["patchMeals"]> = [];
+    const num = (v: unknown) =>
+      typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : undefined;
+    for (const item of obj.patchMeals.slice(0, 20)) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      if (typeof row.match !== "string" || !row.match.trim()) continue;
+      const kcal = row.kcal;
+      patchMeals.push({
+        match: row.match.trim().slice(0, 120),
+        name: typeof row.name === "string" ? row.name.trim().slice(0, 120) : undefined,
+        kcal: typeof kcal === "number" && Number.isFinite(kcal) ? Math.round(kcal) : undefined,
+        protein: num(row.protein),
+        fat: num(row.fat),
+        carbs: num(row.carbs),
+        portionGrams: num(row.portionGrams),
+      });
+    }
+    if (patchMeals.length) out.patchMeals = patchMeals;
+  }
 
   return Object.keys(out).length ? out : null;
 }

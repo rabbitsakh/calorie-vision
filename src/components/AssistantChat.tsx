@@ -593,6 +593,66 @@ export function AssistantChat() {
     if (data?.prefs) setPrefs(data.prefs);
   }
 
+  async function confirmWeightOverwrite(tool: ToolResult) {
+    const data =
+      tool.data && typeof tool.data === "object" ? (tool.data as Record<string, unknown>) : null;
+    if (!data?.needsConfirm || typeof data.weightKg !== "number") return;
+    if (busy || !online) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const resp = await fetch(withBasePath("/api/assistant/apply"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "weight",
+          date: typeof data.date === "string" ? data.date : date,
+          actions: {
+            apply: true,
+            weightKg: data.weightKg,
+            targetDate: typeof data.date === "string" ? data.date : date,
+            overwriteWeight: true,
+          },
+        }),
+      });
+      const payload = (await resp.json().catch(() => null)) as {
+        error?: string;
+        result?: ToolResult;
+        tools?: ToolResult[];
+      } | null;
+      if (!resp.ok) throw new Error(payload?.error || "Не удалось заменить вес");
+      const result = payload?.result ?? payload?.tools?.[0];
+      if (result) {
+        const rd =
+          result.data && typeof result.data === "object"
+            ? (result.data as Record<string, unknown>)
+            : null;
+        if (result.ok && typeof rd?.weightId === "string") {
+          rememberUndo({
+            ...emptyUndo(),
+            weightIds: [rd.weightId],
+          });
+        }
+        setTurns((prev) => [
+          ...prev,
+          {
+            id: newId(),
+            role: "assistant",
+            content: result.message,
+            tools: [result],
+            wrote: result.ok,
+          },
+        ]);
+        showFlash(result.ok ? "Вес обновлён" : result.message);
+        if (result.ok) void refreshSnapshot(date);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function undoLast() {
     const { stack, popped } = popUndoStack(undoStack);
     if (!popped || !undoHasItems(popped) || busy || !online) return;
@@ -963,9 +1023,21 @@ export function AssistantChat() {
                   t.tool.includes("shopping") ||
                   t.tool.includes("water") ||
                   t.tool.includes("weight") ||
+                  t.tool.includes("patch") ||
+                  t.tool.includes("delete") ||
                   t.tool.includes("start") ||
                   t.tool.includes("photo")),
             ),
+          );
+          const weightConfirm = turn.tools?.find(
+            (t) =>
+              t.tool === "log_weight" &&
+              !t.ok &&
+              Boolean(
+                t.data &&
+                  typeof t.data === "object" &&
+                  (t.data as { needsConfirm?: unknown }).needsConfirm,
+              ),
           );
           const photoPreviewTool = turn.tools?.find(
             (t) => t.tool === "recognize_meal_preview" && t.ok,
@@ -1010,6 +1082,19 @@ export function AssistantChat() {
                     onClick={() => void retryWrite(turn.id)}
                   >
                     Повторить запись
+                  </button>
+                </div>
+              ) : null}
+              {weightConfirm ? (
+                <div className="mt-1.5 space-y-1">
+                  <p className="text-[10px] font-medium text-amber-900">{weightConfirm.message}</p>
+                  <button
+                    type="button"
+                    className="rounded-md border border-amber-400 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-950 disabled:opacity-50"
+                    disabled={busy || !online}
+                    onClick={() => void confirmWeightOverwrite(weightConfirm)}
+                  >
+                    Заменить вес
                   </button>
                 </div>
               ) : null}
