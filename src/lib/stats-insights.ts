@@ -63,8 +63,8 @@ export function detectCalorieCorridorStreak(
   const direction = first;
   const message =
     direction === "above"
-      ? `Уже ${streak} ${pluralDays(streak)} подряд выше цели примерно на ${avgDiff} ккал. Попробуйте чуть меньшую порцию ужина или заменить перекус на белковый.`
-      : `Уже ${streak} ${pluralDays(streak)} подряд ниже цели примерно на ${avgDiff} ккал. Добавьте плотный приём или перекус, чтобы не уходить в жёсткий недобор.`;
+      ? `Уже ${streak} ${pluralDays(streak)} подряд выше цели (~${avgDiff} ккал). Чуть меньше ужин или белковый перекус вместо сладкого.`
+      : `Уже ${streak} ${pluralDays(streak)} подряд ниже цели (~${avgDiff} ккал). Добавьте плотный приём или перекус.`;
 
   return { direction, days: streak, avgDiff, message };
 }
