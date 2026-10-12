@@ -130,7 +130,9 @@ export async function POST(request: NextRequest) {
           send("token", { text: piece });
         }
 
-        let { reply, actions } = splitAssistantReply(raw.trim());
+        const split = splitAssistantReply(raw.trim());
+        const reply = split.reply;
+        let actions = split.actions;
 
         if (needsWriteRepair(lastUser, actions)) {
           send("status", { text: "Уточняю запись в дневник…" });
