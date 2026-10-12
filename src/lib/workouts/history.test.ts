@@ -3,8 +3,28 @@ import { test } from "node:test";
 import { buildExerciseHistoryByNormName, historyForExerciseName } from "./history.ts";
 import { normalizeExerciseName } from "./exercise-name.ts";
 
-test("normalizeExerciseName collapses spaces and case", () => {
-  assert.equal(normalizeExerciseName("  Жим  лёжа "), "жим лёжа");
+test("normalizeExerciseName collapses spaces, case, ё→е", () => {
+  assert.equal(normalizeExerciseName("  Жим  лёжа "), "жим лежа");
+});
+
+test("historyForExerciseName soft-matches typo machine names", () => {
+  const byNorm = buildExerciseHistoryByNormName([
+    {
+      id: "s1",
+      date: "2026-10-01",
+      createdAt: "2026-10-01T10:00:00Z",
+      exercises: [
+        {
+          id: "e1",
+          name: "Сгибание в тренажере",
+          sets: [{ weightKg: 40, reps: 12, sortOrder: 0 }],
+        },
+      ],
+    },
+  ]);
+  const hit = historyForExerciseName(byNorm, "Сгибание в тиенажере");
+  assert.ok(hit);
+  assert.equal(hit.date, "2026-10-01");
 });
 
 test("buildExerciseHistoryByNormName picks latest prior sets per name", () => {

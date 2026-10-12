@@ -1,6 +1,6 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
-import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { normalizeExerciseName, pickBestNameMatch } from "@/lib/workouts/exercise-name";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -11,23 +11,43 @@ export type LibraryEntryInput = {
   muscleGroup?: string | null;
 };
 
-/** Upsert library row and bump useCount / lastUsedAt. */
+/** Upsert library row and bump useCount / lastUsedAt. Returns nameNorm of the row. */
 export async function touchExerciseLibrary(
   db: Db,
   userId: string,
   input: LibraryEntryInput,
-): Promise<void> {
+): Promise<{ nameNorm: string } | null> {
   const name = input.name.trim().slice(0, 120);
   const nameNorm = normalizeExerciseName(name);
-  if (!nameNorm) return;
+  if (!nameNorm) return null;
 
   const kind = parseExerciseKind(input.kind, "strength");
   const defaultMuscleGroup =
     input.muscleGroup && isMuscleGroupKey(input.muscleGroup) ? input.muscleGroup : null;
 
-  const existing = await db.workoutExerciseLibrary.findUnique({
+  let existing = await db.workoutExerciseLibrary.findUnique({
     where: { userId_nameNorm: { userId, nameNorm } },
   });
+
+  if (!existing) {
+    const candidates = await db.workoutExerciseLibrary.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        nameNorm: true,
+        name: true,
+        kind: true,
+        defaultMuscleGroup: true,
+        useCount: true,
+        lastUsedAt: true,
+      },
+      take: 200,
+    });
+    const soft = pickBestNameMatch(candidates, nameNorm);
+    if (soft) {
+      existing = await db.workoutExerciseLibrary.findUnique({ where: { id: soft.id } });
+    }
+  }
 
   if (!existing) {
     await db.workoutExerciseLibrary.create({
@@ -41,9 +61,10 @@ export async function touchExerciseLibrary(
         lastUsedAt: new Date(),
       },
     });
-    return;
+    return { nameNorm };
   }
 
+  // Keep existing.nameNorm (unique key) so soft-matched typos do not fork rows.
   await db.workoutExerciseLibrary.update({
     where: { id: existing.id },
     data: {
@@ -54,6 +75,7 @@ export async function touchExerciseLibrary(
       lastUsedAt: new Date(),
     },
   });
+  return { nameNorm: existing.nameNorm };
 }
 
 export async function touchExerciseLibraryMany(

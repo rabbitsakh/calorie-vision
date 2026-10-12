@@ -4,8 +4,8 @@ import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
 import { parsePlannedSets, plannedSetsToJson } from "@/lib/workouts/routines";
 
 describe("normalizeExerciseName", () => {
-  it("collapses spaces and lowercases", () => {
-    assert.equal(normalizeExerciseName("  Жим  лёжа "), "жим лёжа");
+  it("collapses spaces, lowercases, maps ё→е", () => {
+    assert.equal(normalizeExerciseName("  Жим  лёжа "), "жим лежа");
   });
 });
 

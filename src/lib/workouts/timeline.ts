@@ -1,5 +1,5 @@
 import { cardioSetTotals, paceSecPerKm } from "@/lib/workouts/cardio";
-import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { exerciseNamesMatch, normalizeExerciseName } from "@/lib/workouts/exercise-name";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { exerciseLoad, roundLoad } from "@/lib/workouts/load";
 
@@ -54,7 +54,7 @@ export function buildExerciseTimeline(
   });
 
   for (const session of sorted) {
-    const match = session.exercises.find((ex) => normalizeExerciseName(ex.name) === key);
+    const match = session.exercises.find((ex) => exerciseNamesMatch(ex.name, key));
     if (!match || match.sets.length === 0) continue;
 
     const kind = parseExerciseKind(match.kind);

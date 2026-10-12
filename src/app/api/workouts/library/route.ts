@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
 
     await seedLibraryFromHistory(prisma, session.user.id);
 
-    const q = (request.nextUrl.searchParams.get("q") ?? "").trim().toLowerCase();
+    const qRaw = (request.nextUrl.searchParams.get("q") ?? "").trim();
+    const q = qRaw.toLowerCase();
+    const qNorm = normalizeExerciseName(qRaw);
     const limitParam = request.nextUrl.searchParams.get("limit");
     const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 80) : 40;
 
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
               OR: [
                 { name: { contains: q } },
                 { nameNorm: { contains: q } },
+                ...(qNorm && qNorm !== q ? [{ nameNorm: { contains: qNorm } }] : []),
               ],
             }
           : {}),
@@ -70,17 +73,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Некорректная группа мышц" }, { status: 400 });
     }
 
-    await touchExerciseLibrary(prisma, session.user.id, {
+    const touched = await touchExerciseLibrary(prisma, session.user.id, {
       name,
       kind: parseExerciseKind(body.kind, "strength"),
       muscleGroup,
     });
+    if (!touched) {
+      return NextResponse.json({ error: "Укажите название" }, { status: 400 });
+    }
 
     const row = await prisma.workoutExerciseLibrary.findUniqueOrThrow({
       where: {
         userId_nameNorm: {
           userId: session.user.id,
-          nameNorm: normalizeExerciseName(name),
+          nameNorm: touched.nameNorm,
         },
       },
     });
