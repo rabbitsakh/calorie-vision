@@ -383,7 +383,7 @@ export function AssistantChat() {
 
     let imageBase64: string | undefined;
     let imageMime: string | undefined;
-    let preview: string | null = photoPreview;
+    const preview: string | null = photoPreview;
     if (photo) {
       try {
         const encoded = await fileToBase64(photo);
