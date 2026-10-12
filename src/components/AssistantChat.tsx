@@ -3,9 +3,22 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AssistantActions, AssistantContextSnapshot } from "@/lib/admin-assistant";
+import type { AssistantActions, AssistantContextSnapshot, AssistantMode } from "@/lib/admin-assistant";
+import {
+  ASSISTANT_MODE_PILLS,
+  ASSISTANT_ONBOARD_KEY,
+  ASSISTANT_ONBOARD_STARTERS,
+  emptyUndo,
+  popUndoStack,
+  pushUndoStack,
+  shouldOfferWriteRetry,
+  undoHasItems,
+  type UndoPayload,
+} from "@/lib/assistant-chat-ux";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
-import { withBasePath } from "@/lib/paths";
+import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
+import { subscribeConnectivity } from "@/lib/connectivity";
+import { getImageUrl, withBasePath } from "@/lib/paths";
 
 type ChatRole = "user" | "assistant";
 
@@ -14,13 +27,6 @@ type ToolResult = {
   tool: string;
   message: string;
   data?: unknown;
-};
-
-type UndoPayload = {
-  mealIds: string[];
-  routineIds: string[];
-  waterIds: string[];
-  weightIds: string[];
 };
 
 type PhotoDraft = {
@@ -47,9 +53,11 @@ type ChatTurn = {
   tools?: ToolResult[];
   undo?: UndoPayload | null;
   imagePreview?: string | null;
+  /** Server reported a successful write tool run. */
+  wrote?: boolean | null;
 };
 
-const STORAGE_KEY = "cv-assistant-chat-v5";
+const STORAGE_KEY = "cv-assistant-chat-v6";
 
 const STARTERS = [
   "Составь план на завтра и добавь в план",
@@ -71,13 +79,22 @@ function welcomeTurn(): ChatTurn {
   };
 }
 
-function emptyUndo(): UndoPayload {
-  return { mealIds: [], routineIds: [], waterIds: [], weightIds: [] };
+function loadOnboarded(userId: string | undefined): boolean {
+  if (typeof window === "undefined" || !userId) return true;
+  try {
+    return localStorage.getItem(`${ASSISTANT_ONBOARD_KEY}:${userId}`) === "1";
+  } catch {
+    return true;
+  }
 }
 
-function undoHasItems(u: UndoPayload | null | undefined): boolean {
-  if (!u) return false;
-  return u.mealIds.length + u.routineIds.length + u.waterIds.length + u.weightIds.length > 0;
+function saveOnboarded(userId: string | undefined) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(`${ASSISTANT_ONBOARD_KEY}:${userId}`, "1");
+  } catch {
+    // quota
+  }
 }
 
 function loadStored(userId: string | undefined) {
@@ -85,7 +102,12 @@ function loadStored(userId: string | undefined) {
   try {
     const raw = localStorage.getItem(`${STORAGE_KEY}:${userId}`);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { turns?: ChatTurn[]; date?: string };
+    const parsed = JSON.parse(raw) as {
+      turns?: ChatTurn[];
+      date?: string;
+      mode?: AssistantMode;
+      undoStack?: UndoPayload[];
+    };
     if (!Array.isArray(parsed.turns) || parsed.turns.length === 0) return null;
     return {
       turns: parsed.turns.slice(-80).map((t) => ({
@@ -93,19 +115,38 @@ function loadStored(userId: string | undefined) {
         imagePreview: undefined,
       })),
       date: typeof parsed.date === "string" ? parsed.date : null,
+      mode:
+        parsed.mode === "food" || parsed.mode === "gym" || parsed.mode === "week" || parsed.mode === "all"
+          ? parsed.mode
+          : "all",
+      undoStack: Array.isArray(parsed.undoStack)
+        ? parsed.undoStack.filter((u) => undoHasItems(u)).slice(-8)
+        : [],
     };
   } catch {
     return null;
   }
 }
 
-function saveStored(userId: string | undefined, turns: ChatTurn[], date: string) {
+function saveStored(
+  userId: string | undefined,
+  turns: ChatTurn[],
+  date: string,
+  mode: AssistantMode,
+  undoStack: UndoPayload[],
+) {
   if (typeof window === "undefined" || !userId) return;
   try {
     const slim = turns.slice(-80).map(({ imagePreview: _p, ...rest }) => rest);
     localStorage.setItem(
       `${STORAGE_KEY}:${userId}`,
-      JSON.stringify({ turns: slim, date, savedAt: Date.now() }),
+      JSON.stringify({
+        turns: slim,
+        date,
+        mode,
+        undoStack: undoStack.slice(-8),
+        savedAt: Date.now(),
+      }),
     );
   } catch {
     // quota
@@ -145,6 +186,15 @@ function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
   });
 }
 
+function lastUserContentBefore(turns: ChatTurn[], assistantId: string): string | null {
+  const idx = turns.findIndex((t) => t.id === assistantId);
+  if (idx <= 0) return null;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (turns[i]?.role === "user") return turns[i]!.content;
+  }
+  return null;
+}
+
 function ToolChips({ tools }: { tools: ToolResult[] }) {
   if (!tools.length) return null;
   return (
@@ -168,23 +218,33 @@ function PhotoConfirm({
   tool,
   date,
   busy,
+  online,
   onDone,
   onFlash,
 }: {
   tool: ToolResult;
   date: string;
   busy: boolean;
+  online: boolean;
   onDone: (result: ToolResult, undo: UndoPayload) => void;
   onFlash: (msg: string) => void;
 }) {
-  const [pending, setPending] = useState(false);
   const data = (tool.data ?? {}) as {
     pending?: boolean;
     imagePath?: string;
     drafts?: PhotoDraft[];
     date?: string;
   };
+  const [pending, setPending] = useState(false);
+  const [drafts, setDrafts] = useState<PhotoDraft[]>(() =>
+    (data.drafts ?? []).map((d) => ({ ...d })),
+  );
+
   if (!data.pending || !data.imagePath || !data.drafts?.length) return null;
+
+  function updateDraft(index: number, patch: Partial<PhotoDraft>) {
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  }
 
   async function confirm() {
     setPending(true);
@@ -196,7 +256,7 @@ function PhotoConfirm({
           kind: "photo",
           date: data.date || date,
           imagePath: data.imagePath,
-          drafts: data.drafts,
+          drafts,
         }),
       });
       const json = (await resp.json().catch(() => null)) as {
@@ -218,10 +278,73 @@ function PhotoConfirm({
   }
 
   return (
-    <div className="mt-1.5 flex flex-wrap gap-1.5">
+    <div className="mt-1.5 space-y-1.5 rounded-lg border border-teal-200 bg-white/90 p-1.5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={getImageUrl(data.imagePath, { w: 256 })}
+        alt="Распознанное фото"
+        className="max-h-28 w-full rounded-md object-cover"
+      />
+      <div className="space-y-2">
+        {drafts.map((d, i) => (
+          <div key={`${d.dishName}-${i}`} className="space-y-1 rounded-md bg-teal-50/70 px-1.5 py-1">
+            <input
+              type="text"
+              value={d.dishName}
+              disabled={busy || pending || !online}
+              onChange={(e) => updateDraft(i, { dishName: e.target.value })}
+              className="w-full rounded border border-teal-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-teal-950"
+              aria-label="Название блюда"
+            />
+            <div className="grid grid-cols-4 gap-1">
+              {(
+                [
+                  ["calories", "ккал"],
+                  ["protein", "Б"],
+                  ["fat", "Ж"],
+                  ["carbs", "У"],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="text-[9px] text-teal-900/80">
+                  {label}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={d[key] ?? ""}
+                    disabled={busy || pending || !online}
+                    onChange={(e) => {
+                      const n = e.target.value === "" ? undefined : Number(e.target.value);
+                      updateDraft(i, {
+                        [key]: n != null && Number.isFinite(n) ? n : undefined,
+                      } as Partial<PhotoDraft>);
+                    }}
+                    className="mt-0.5 w-full rounded border border-teal-200 bg-white px-1 py-0.5 text-[11px]"
+                  />
+                </label>
+              ))}
+            </div>
+            <label className="block text-[9px] text-teal-900/80">
+              Порция, г
+              <input
+                type="number"
+                inputMode="numeric"
+                value={d.portionGrams ?? ""}
+                disabled={busy || pending || !online}
+                onChange={(e) => {
+                  const n = e.target.value === "" ? undefined : Number(e.target.value);
+                  updateDraft(i, {
+                    portionGrams: n != null && Number.isFinite(n) ? n : undefined,
+                  });
+                }}
+                className="mt-0.5 w-24 rounded border border-teal-200 bg-white px-1 py-0.5 text-[11px]"
+              />
+            </label>
+          </div>
+        ))}
+      </div>
       <button
         type="button"
-        disabled={busy || pending}
+        disabled={busy || pending || !online}
         className="rounded-md bg-teal-700 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-50"
         onClick={() => void confirm()}
       >
@@ -235,12 +358,14 @@ function ActionCard({
   actions,
   date,
   alreadyApplied,
+  online,
   onFlash,
   onApplied,
 }: {
   actions: AssistantActions;
   date: string;
   alreadyApplied: boolean;
+  online: boolean;
   onFlash: (msg: string) => void;
   onApplied: (undo: UndoPayload) => void;
 }) {
@@ -323,7 +448,7 @@ function ActionCard({
               <button
                 type="button"
                 className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
-                disabled={busy === "meals"}
+                disabled={busy === "meals" || !online}
                 onClick={() => void apply("meals")}
               >
                 {busy === "meals" ? "…" : "В дневник"}
@@ -334,7 +459,7 @@ function ActionCard({
                 <button
                   type="button"
                   className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
-                  disabled={busy === "routine"}
+                  disabled={busy === "routine" || !online}
                   onClick={() => void apply("routine")}
                 >
                   {busy === "routine" ? "…" : "В план зала"}
@@ -367,7 +492,10 @@ export function AssistantChat() {
   const [flash, setFlash] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<AssistantContextSnapshot | null>(null);
   const [prefs, setPrefs] = useState<AssistantPrefs>({ likes: [], dislikes: [], notes: [] });
-  const [lastUndo, setLastUndo] = useState<UndoPayload | null>(null);
+  const [undoStack, setUndoStack] = useState<UndoPayload[]>([]);
+  const [mode, setMode] = useState<AssistantMode>("all");
+  const [online, setOnline] = useState(true);
+  const [showOnboard, setShowOnboard] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -378,14 +506,19 @@ export function AssistantChat() {
     if (stored) {
       setTurns(stored.turns);
       if (stored.date) setDate(stored.date);
+      setMode(stored.mode);
+      setUndoStack(stored.undoStack);
     }
+    setShowOnboard(!loadOnboarded(userId));
     setHydrated(true);
   }, [userId]);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveStored(userId, turns, date);
-  }, [hydrated, userId, turns, date]);
+    saveStored(userId, turns, date, mode, undoStack);
+  }, [hydrated, userId, turns, date, mode, undoStack]);
+
+  useEffect(() => subscribeConnectivity(setOnline), []);
 
   const refreshSnapshot = useCallback(async (day: string) => {
     try {
@@ -428,6 +561,16 @@ export function AssistantChat() {
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function dismissOnboard() {
+    saveOnboarded(userId);
+    setShowOnboard(false);
+  }
+
+  function rememberUndo(undo: UndoPayload | null | undefined) {
+    if (!undo || !undoHasItems(undo)) return;
+    setUndoStack((prev) => pushUndoStack(prev, undo));
+  }
+
   async function savePrefs(next: AssistantPrefs) {
     const resp = await fetch(withBasePath("/api/assistant/apply"), {
       method: "POST",
@@ -440,20 +583,21 @@ export function AssistantChat() {
   }
 
   async function undoLast() {
-    if (!lastUndo || !undoHasItems(lastUndo) || busy) return;
+    const { stack, popped } = popUndoStack(undoStack);
+    if (!popped || !undoHasItems(popped) || busy || !online) return;
     setBusy(true);
+    setUndoStack(stack);
     try {
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "undo", undo: lastUndo }),
+        body: JSON.stringify({ kind: "undo", undo: popped }),
       });
       const data = (await resp.json().catch(() => null)) as {
         error?: string;
         result?: ToolResult;
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось отменить");
-      setLastUndo(null);
       setTurns((prev) => [
         ...prev,
         {
@@ -465,18 +609,23 @@ export function AssistantChat() {
       ]);
       void refreshSnapshot(date);
     } catch (err) {
+      setUndoStack((prev) => pushUndoStack(prev, popped));
       setError(err instanceof Error ? err.message : "Ошибка отмены");
     } finally {
       setBusy(false);
     }
   }
 
-  async function send(text: string, opts?: { savePhoto?: boolean }) {
+  async function send(text: string) {
+    if (!online) {
+      setError("Нет сети — ассистент недоступен офлайн");
+      return;
+    }
     const hasPhoto = Boolean(photo);
-    const content =
-      text.trim() ||
-      (hasPhoto ? (opts?.savePhoto ? "Добавь фото в рацион" : "Что на фото?") : "");
+    const content = text.trim() || (hasPhoto ? "Что на фото?" : "");
     if ((!content && !hasPhoto) || busy) return;
+
+    dismissOnboard();
 
     const dislikeMatch = /(?:не\s+(?:предлагай|люблю|ем)|без)\s+(.+)$/i.exec(content);
     if (dislikeMatch?.[1]) {
@@ -534,19 +683,16 @@ export function AssistantChat() {
     const assistantId = newId();
     setTurns((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
 
-    const writePhoto =
-      opts?.savePhoto === true ||
-      (/добав|сохран|запиш|в\s*рацион/i.test(content) && content !== "Что на фото?");
+    // Always preview photos first — user confirms via PhotoConfirm.
     const payload = {
       messages: history,
       date,
-      mode: "all" as const,
+      mode,
       ...(imageBase64
         ? {
             imageBase64,
             imageMime,
-            // Default preview; save if user explicitly asks to add.
-            savePhoto: writePhoto,
+            savePhoto: false,
           }
         : {}),
     };
@@ -568,6 +714,7 @@ export function AssistantChat() {
           actions?: AssistantActions | null;
           tools?: ToolResult[];
           undo?: UndoPayload;
+          wrote?: boolean;
           snapshot?: AssistantContextSnapshot;
           prefs?: AssistantPrefs;
           error?: string;
@@ -575,7 +722,7 @@ export function AssistantChat() {
         if (!fallback.ok) throw new Error(data?.error || "Не удалось получить ответ");
         if (data?.snapshot) setSnapshot(data.snapshot);
         if (data?.prefs) setPrefs(data.prefs);
-        if (data?.undo && undoHasItems(data.undo)) setLastUndo(data.undo);
+        rememberUndo(data?.undo);
         setTurns((prev) =>
           prev.map((t) =>
             t.id === assistantId
@@ -585,6 +732,7 @@ export function AssistantChat() {
                   actions: data?.actions ?? null,
                   tools: data?.tools ?? [],
                   undo: data?.undo ?? null,
+                  wrote: typeof data?.wrote === "boolean" ? data.wrote : null,
                 }
               : t,
           ),
@@ -640,7 +788,8 @@ export function AssistantChat() {
             if (json.snapshot) setSnapshot(json.snapshot as AssistantContextSnapshot);
             if (json.prefs) setPrefs(json.prefs as AssistantPrefs);
             const undo = (json.undo as UndoPayload | undefined) ?? null;
-            if (undo && undoHasItems(undo)) setLastUndo(undo);
+            rememberUndo(undo);
+            const wrote = typeof json.wrote === "boolean" ? json.wrote : null;
             setTurns((prev) =>
               prev.map((t) =>
                 t.id === assistantId
@@ -650,6 +799,7 @@ export function AssistantChat() {
                       actions: (json.actions as AssistantActions | null) ?? null,
                       tools: (json.tools as ToolResult[] | undefined) ?? liveTools,
                       undo,
+                      wrote,
                     }
                   : t,
               ),
@@ -670,6 +820,12 @@ export function AssistantChat() {
     }
   }
 
+  async function retryWrite(assistantTurnId: string) {
+    const userText = lastUserContentBefore(turns, assistantTurnId);
+    if (!userText || busy || !online) return;
+    await send(userText);
+  }
+
   const remainLabel =
     snapshot?.remainingCalories != null && snapshot.targetCalories != null
       ? `остаток ${snapshot.remainingCalories} ккал`
@@ -677,8 +833,53 @@ export function AssistantChat() {
         ? `${snapshot.calories} ккал`
         : null;
 
+  const canUndo = undoStack.some((u) => undoHasItems(u));
+
   return (
     <section className="flex min-h-[75vh] flex-col gap-2 text-[13px] leading-snug">
+      {!online ? (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[12px] font-medium text-amber-950">
+          Нет сети — чат и запись недоступны. Проверьте соединение.
+        </p>
+      ) : null}
+
+      {showOnboard ? (
+        <div className="rounded-xl border border-teal-200 bg-teal-50/90 px-2.5 py-2 text-[12px] text-teal-950">
+          <p className="font-semibold">Коротко про AI</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-teal-900/90">
+            Пиши обычным языком — я сам добавлю в рацион или план зала. Фото сначала покажу на
+            подтверждение. Можно отменить последнюю запись.
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {ASSISTANT_ONBOARD_STARTERS.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                className="rounded-full border border-teal-700/30 bg-white px-2 py-0.5 text-[10px] font-medium text-teal-900 disabled:opacity-50"
+                disabled={busy || !online}
+                onClick={() => {
+                  if (s.label === "Фото") {
+                    dismissOnboard();
+                    fileRef.current?.click();
+                    return;
+                  }
+                  void send(s.text);
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+              onClick={dismissOnboard}
+            >
+              Понятно
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-1.5">
         <label className="text-[11px] font-medium text-[var(--muted-strong)]">
           День{" "}
@@ -695,14 +896,14 @@ export function AssistantChat() {
             {remainLabel}
           </span>
         ) : null}
-        {undoHasItems(lastUndo) ? (
+        {canUndo ? (
           <button
             type="button"
             className="rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-950 disabled:opacity-50"
-            disabled={busy}
+            disabled={busy || !online}
             onClick={() => void undoLast()}
           >
-            Отменить запись
+            Отменить запись{undoStack.length > 1 ? ` (${undoStack.length})` : ""}
           </button>
         ) : null}
         <button
@@ -711,12 +912,32 @@ export function AssistantChat() {
           disabled={busy}
           onClick={() => {
             setTurns([welcomeTurn()]);
-            setLastUndo(null);
+            setUndoStack([]);
             setError(null);
           }}
         >
           Очистить
         </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1" role="tablist" aria-label="Режим ассистента">
+        {ASSISTANT_MODE_PILLS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === p.id}
+            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 ${
+              mode === p.id
+                ? "bg-teal-700 text-white"
+                : "border border-[var(--line)] bg-white text-[var(--muted-strong)]"
+            }`}
+            disabled={busy}
+            onClick={() => setMode(p.id)}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--surface)] p-2 sm:p-2.5">
@@ -738,6 +959,13 @@ export function AssistantChat() {
           const photoPreviewTool = turn.tools?.find(
             (t) => t.tool === "recognize_meal_preview" && t.ok,
           );
+          const prevUser = lastUserContentBefore(turns, turn.id) || "";
+          const offerRetry =
+            turn.role === "assistant" &&
+            shouldOfferWriteRetry({
+              wrote: turn.wrote,
+              wantsWrite: userWantsWrite(prevUser) || userWantsStartWorkout(prevUser),
+            });
           return (
             <div
               key={turn.id}
@@ -759,14 +987,30 @@ export function AssistantChat() {
               {turn.role === "assistant" && turn.tools?.length ? (
                 <ToolChips tools={turn.tools} />
               ) : null}
+              {offerRetry ? (
+                <div className="mt-1.5 space-y-1">
+                  <p className="text-[10px] font-medium text-amber-900">
+                    В чате ответил, но в дневник/план не записал.
+                  </p>
+                  <button
+                    type="button"
+                    className="rounded-md border border-amber-400 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-950 disabled:opacity-50"
+                    disabled={busy || !online}
+                    onClick={() => void retryWrite(turn.id)}
+                  >
+                    Повторить запись
+                  </button>
+                </div>
+              ) : null}
               {turn.role === "assistant" && photoPreviewTool ? (
                 <PhotoConfirm
                   tool={photoPreviewTool}
                   date={date}
                   busy={busy}
+                  online={online}
                   onFlash={showFlash}
                   onDone={(result, undo) => {
-                    setLastUndo(undo);
+                    rememberUndo(undo);
                     setTurns((prev) =>
                       prev.map((t) =>
                         t.id === turn.id
@@ -777,6 +1021,7 @@ export function AssistantChat() {
                                 result,
                               ],
                               undo,
+                              wrote: true,
                             }
                           : t,
                       ),
@@ -790,10 +1035,9 @@ export function AssistantChat() {
                   actions={turn.actions}
                   date={date}
                   alreadyApplied={applied}
+                  online={online}
                   onFlash={showFlash}
-                  onApplied={(undo) => {
-                    if (undoHasItems(undo)) setLastUndo(undo);
-                  }}
+                  onApplied={(undo) => rememberUndo(undo)}
                 />
               ) : null}
             </div>
@@ -810,14 +1054,14 @@ export function AssistantChat() {
       {flash ? <p className="text-[12px] font-medium text-teal-800">{flash}</p> : null}
       {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 
-      {!busy && turns.length <= 2 ? (
+      {!busy && !showOnboard && turns.length <= 2 ? (
         <div className="flex flex-wrap gap-1">
           {STARTERS.map((hint) => (
             <button
               key={hint}
               type="button"
               className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
-              disabled={busy}
+              disabled={busy || !online}
               onClick={() => void send(hint)}
             >
               {hint}
@@ -868,7 +1112,7 @@ export function AssistantChat() {
         <button
           type="button"
           className="btn btn-secondary min-h-[4.5rem] self-stretch px-2.5 text-[11px]"
-          disabled={busy}
+          disabled={busy || !online}
           title="Фото еды"
           onClick={() => fileRef.current?.click()}
         >
@@ -877,9 +1121,13 @@ export function AssistantChat() {
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="План, рацион, вода, вес, «начни тренировку»…"
+          placeholder={
+            online
+              ? "План, рацион, вода, вес, «начни тренировку»…"
+              : "Нет сети — отправка отключена"
+          }
           className="input min-h-[4.5rem] flex-1 resize-y py-2.5 text-[13px] leading-snug"
-          disabled={busy}
+          disabled={busy || !online}
           maxLength={6000}
           rows={4}
           onKeyDown={(e) => {
@@ -892,7 +1140,7 @@ export function AssistantChat() {
         <button
           type="submit"
           className="btn btn-primary min-h-[4.5rem] self-stretch px-3 text-[12px]"
-          disabled={busy || (!draft.trim() && !photo)}
+          disabled={busy || !online || (!draft.trim() && !photo)}
         >
           →
         </button>
