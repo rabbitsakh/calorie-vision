@@ -25,6 +25,7 @@ import type { AssistantPrefs } from "@/lib/assistant-prefs";
 import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
 import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
+import { formatDateInput, requireDateKey } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
 type ChatRole = "user" | "assistant";
@@ -252,7 +253,9 @@ function PhotoConfirm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "photo",
-          date: data.date || date,
+          // Always the day currently selected in the chat — not a stale
+          // recognition payload date (UTC / yesterday from storage).
+          date,
           imagePath: data.imagePath,
           drafts,
         }),
@@ -483,7 +486,11 @@ export function AssistantChat() {
   const userId = session?.user?.id;
   const [hydrated, setHydrated] = useState(false);
   const [turns, setTurns] = useState<ChatTurn[]>([welcomeTurn()]);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Local calendar day — never UTC via toISOString (writes landed on the wrong date).
+  const [date, setDate] = useState(() => formatDateInput(new Date()));
+  const [serverToday, setServerToday] = useState<string | null>(null);
+  /** User (or ?date=) pinned a day — don't overwrite with server today. */
+  const [datePinned, setDatePinned] = useState(false);
   const [draft, setDraft] = useState("");
   const [mode, setMode] = useState<AssistantMode>("all");
   const [busy, setBusy] = useState(false);
@@ -504,7 +511,6 @@ export function AssistantChat() {
     const stored = loadStored(userId);
     if (stored) {
       setTurns(stored.turns);
-      if (stored.date) setDate(stored.date);
       setMode(stored.mode);
       setUndoStack(stored.undoStack);
     }
@@ -513,6 +519,16 @@ export function AssistantChat() {
     if (modeParam) setMode(parseAssistantMode(modeParam));
     const q = searchParams.get("q")?.trim();
     if (q) setDraft(q.slice(0, 6000));
+    const urlDate = requireDateKey(searchParams.get("date"));
+    const localToday = formatDateInput(new Date());
+    if (urlDate) {
+      setDate(urlDate);
+      setDatePinned(true);
+    } else {
+      // Do not restore yesterday's stored date — default to local today.
+      setDate(localToday);
+      setDatePinned(false);
+    }
     setHydrated(true);
   }, [userId, searchParams]);
 
@@ -523,19 +539,31 @@ export function AssistantChat() {
 
   useEffect(() => subscribeConnectivity(setOnline), []);
 
-  const refreshSnapshot = useCallback(async (day: string) => {
-    try {
-      const resp = await fetch(withBasePath(`/api/assistant?date=${encodeURIComponent(day)}`));
-      const data = (await resp.json().catch(() => null)) as {
-        snapshot?: AssistantContextSnapshot;
-        prefs?: AssistantPrefs;
-      } | null;
-      if (resp.ok && data?.snapshot) setSnapshot(data.snapshot);
-      if (resp.ok && data?.prefs) setPrefs(data.prefs);
-    } catch {
-      // ignore
-    }
-  }, []);
+  const refreshSnapshot = useCallback(
+    async (day: string) => {
+      try {
+        const resp = await fetch(withBasePath(`/api/assistant?date=${encodeURIComponent(day)}`));
+        const data = (await resp.json().catch(() => null)) as {
+          snapshot?: AssistantContextSnapshot;
+          prefs?: AssistantPrefs;
+          today?: string;
+        } | null;
+        if (resp.ok && data?.snapshot) setSnapshot(data.snapshot);
+        if (resp.ok && data?.prefs) setPrefs(data.prefs);
+        const today = requireDateKey(data?.today ?? null);
+        if (today) {
+          setServerToday(today);
+          // Align to profile timezone "today" unless the user picked another day.
+          if (!datePinned && day !== today) {
+            setDate(today);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    },
+    [datePinned],
+  );
 
   useEffect(() => {
     if (!hydrated) return;
@@ -975,11 +1003,28 @@ export function AssistantChat() {
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              setDate(next);
+              setDatePinned(true);
+            }}
             className="ml-1 rounded-md border border-[var(--line)] bg-white px-1.5 py-0.5 text-[12px]"
             disabled={busy}
           />
         </label>
+        {serverToday && date !== serverToday ? (
+          <button
+            type="button"
+            className="rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-950"
+            disabled={busy}
+            onClick={() => {
+              setDate(serverToday);
+              setDatePinned(false);
+            }}
+          >
+            Сегодня {serverToday.slice(5)}
+          </button>
+        ) : null}
         {remainLabel ? (
           <span className="rounded-full border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]">
             {remainLabel}
