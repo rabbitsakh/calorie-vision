@@ -91,8 +91,21 @@ export async function POST(request: NextRequest) {
       try {
         send("meta", { date, mode, snapshot: pack.snapshot, prefs: pack.prefs });
 
+        const imageRaw =
+          typeof body.imageBase64 === "string" && body.imageBase64.trim()
+            ? body.imageBase64
+            : null;
         const image = decodeImageBase64(body.imageBase64, body.imageMime);
-        if (image) {
+        if (imageRaw && !image) {
+          const bad: AssistantToolResult = {
+            ok: false,
+            tool: "recognize_meal_preview",
+            message:
+              "Фото не удалось прочитать (слишком большое или битое). Попробуй ещё раз — мы сжимаем его перед отправкой.",
+          };
+          toolResults.push(bad);
+          send("tool", bad);
+        } else if (image) {
           const savePhoto =
             body.savePhoto === true ||
             (body.savePhoto !== false && userWantsWrite(lastUser));
@@ -101,19 +114,47 @@ export async function POST(request: NextRequest) {
             {
               text: savePhoto
                 ? "Распознаю фото и добавляю в рацион…"
-                : "Смотрю фото — подтверди добавление…",
+                : "Смотрю фото — сейчас покажу карточку…",
             },
           );
-          const photoResult = await toolRecognizeAndSaveMeal({
-            userId: session!.user.id,
-            date,
-            buffer: image.buffer,
-            filename: image.filename,
-            mimeType: image.mimeType,
-            save: savePhoto,
-          });
+          // Keep proxies from buffering the whole recognition wait.
+          controller.enqueue(encoder.encode(": ping\n\n"));
+          let tick = 0;
+          const heartbeat = setInterval(() => {
+            tick += 1;
+            send("status", {
+              text:
+                tick % 2 === 0
+                  ? "Ещё распознаю фото…"
+                  : "Смотрю состав и калории…",
+            });
+            controller.enqueue(encoder.encode(": ping\n\n"));
+          }, 4000);
+          let photoResult: AssistantToolResult;
+          try {
+            photoResult = await toolRecognizeAndSaveMeal({
+              userId: session!.user.id,
+              date,
+              buffer: image.buffer,
+              filename: image.filename,
+              mimeType: image.mimeType,
+              save: savePhoto,
+            });
+          } finally {
+            clearInterval(heartbeat);
+          }
           toolResults.push(photoResult);
           send("tool", photoResult);
+          send(
+            "status",
+            {
+              text: photoResult.ok
+                ? savePhoto
+                  ? "Записал. Дописываю ответ…"
+                  : "Готово — подтверди карточку ниже…"
+                : "Не разобрал фото. Дописываю ответ…",
+            },
+          );
         }
 
         let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
@@ -234,6 +275,8 @@ export async function POST(request: NextRequest) {
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      // nginx: flush SSE instead of buffering until recognition finishes
+      "X-Accel-Buffering": "no",
     },
   });
 }
