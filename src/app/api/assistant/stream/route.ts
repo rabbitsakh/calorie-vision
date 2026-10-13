@@ -19,6 +19,11 @@ import {
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
 import {
+  hasPhotoPreviewPending,
+  photoPreviewSystemAppendix,
+  sanitizePhotoPreviewReply,
+} from "@/lib/assistant-honesty";
+import {
   collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
@@ -158,8 +163,11 @@ export async function POST(request: NextRequest) {
         }
 
         let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
+        const previewPending = hasPhotoPreviewPending(toolResults);
         if (toolResults.length) {
-          system += `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
+          system += previewPending
+            ? `\n\n${photoPreviewSystemAppendix(formatToolResultsForReply(toolResults))}`
+            : `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
         }
 
         let raw = "";
@@ -172,10 +180,16 @@ export async function POST(request: NextRequest) {
         }
 
         const split = splitAssistantReply(raw.trim());
-        const reply = split.reply;
+        let reply = split.reply;
         let actions = split.actions;
 
-        if (needsWriteRepair(lastUser, actions)) {
+        // Photo confirm owns the meal write — don't let the LLM auto-apply the same plate.
+        if (previewPending && actions?.meals?.length) {
+          const { meals: _drop, ...rest } = actions;
+          actions = rest;
+        }
+
+        if (!previewPending && needsWriteRepair(lastUser, actions)) {
           send("status", { text: "Уточняю запись в дневник…" });
           const repaired = await repairAssistantWriteActions({
             userMessage: lastUser,
@@ -226,9 +240,15 @@ export async function POST(request: NextRequest) {
                 (r.data as { needsConfirm?: unknown }).needsConfirm,
             ),
         );
+        if (previewPending) {
+          reply = sanitizePhotoPreviewReply(reply);
+        }
         const toolNote = formatToolResultsForReply(writeResults);
         const missNote =
-          !wroteOk && !awaitingWeightConfirm && needsWriteRepair(lastUser, null)
+          !previewPending &&
+          !wroteOk &&
+          !awaitingWeightConfirm &&
+          needsWriteRepair(lastUser, null)
             ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
             : "";
         const finalReply =

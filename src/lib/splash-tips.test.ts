@@ -5,8 +5,14 @@ import {
   dayPartFromHour,
   greetingForDayPart,
   pickSplashTip,
+  shouldSkipRationBrandSplash,
+  splashHoldAfterReadyMs,
+  SPLASH_BRAND_MIN_MS,
   SPLASH_MIN_VISIBLE_MS,
+  SPLASH_OUTRO_MS,
   SPLASH_TIPS,
+  BOOT_SPLASH_SESSION_KEY,
+  markBootSplashShown,
 } from "./splash-tips.ts";
 
 describe("splash-tips", () => {
@@ -22,8 +28,41 @@ describe("splash-tips", () => {
     assert.equal(pickSplashTip(3), SPLASH_TIPS[3 % SPLASH_TIPS.length]);
   });
 
-  test("splash stays visible for at least ~3 seconds by default", () => {
-    assert.ok(SPLASH_MIN_VISIBLE_MS >= 2800);
+  test("brand splash min is a short beat, not a 3s hold", () => {
+    assert.equal(SPLASH_MIN_VISIBLE_MS, SPLASH_BRAND_MIN_MS);
+    assert.ok(SPLASH_BRAND_MIN_MS >= 600 && SPLASH_BRAND_MIN_MS <= 1500);
+    assert.ok(SPLASH_OUTRO_MS >= 200 && SPLASH_OUTRO_MS <= 800);
+  });
+
+  test("splashHoldAfterReadyMs shortens once brand beat elapsed", () => {
+    assert.equal(splashHoldAfterReadyMs(0), SPLASH_BRAND_MIN_MS);
+    assert.equal(splashHoldAfterReadyMs(SPLASH_BRAND_MIN_MS), SPLASH_OUTRO_MS);
+    assert.equal(splashHoldAfterReadyMs(SPLASH_BRAND_MIN_MS + 500), SPLASH_OUTRO_MS);
+  });
+
+  test("shouldSkipRationBrandSplash after AuthGate mark", () => {
+    const map = new Map<string, string>();
+    const storage = {
+      getItem(key: string) {
+        return map.has(key) ? map.get(key)! : null;
+      },
+      setItem(key: string, value: string) {
+        map.set(key, value);
+      },
+      removeItem(key: string) {
+        map.delete(key);
+      },
+    };
+    Object.defineProperty(globalThis, "sessionStorage", {
+      value: storage,
+      configurable: true,
+    });
+    map.clear();
+    assert.equal(shouldSkipRationBrandSplash(10_000), false);
+    markBootSplashShown(10_000);
+    assert.equal(map.get(BOOT_SPLASH_SESSION_KEY), "10000");
+    assert.equal(shouldSkipRationBrandSplash(12_000), true);
+    assert.equal(shouldSkipRationBrandSplash(30_000), false);
   });
 
   test("dayPartFromHour maps morning day evening night", () => {

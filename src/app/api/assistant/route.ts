@@ -20,6 +20,11 @@ import {
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
 import {
+  hasPhotoPreviewPending,
+  photoPreviewSystemAppendix,
+  sanitizePhotoPreviewReply,
+} from "@/lib/assistant-honesty";
+import {
   collectUndoFromTools,
   decodeImageBase64,
   executeAssistantWriteTools,
@@ -132,8 +137,11 @@ export async function POST(request: NextRequest) {
     }
 
     let system = buildAssistantSystemPrompt(pack.text, mode, pack.prefsBlock);
+    const previewPending = hasPhotoPreviewPending(toolResults);
     if (toolResults.length) {
-      system += `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
+      system += previewPending
+        ? `\n\n${photoPreviewSystemAppendix(formatToolResultsForReply(toolResults))}`
+        : `\n\n=== Уже выполнено / распознано сервером ===\n${formatToolResultsForReply(toolResults)}\nУчти это; не дублируй запись тех же блюд.`;
     }
 
     let rawReply: string;
@@ -147,7 +155,9 @@ export async function POST(request: NextRequest) {
       console.error("assistant gigachat", error);
       if (toolResults.some((t) => t.ok)) {
         return NextResponse.json({
-          reply: formatToolResultsForReply(toolResults),
+          reply: previewPending
+            ? sanitizePhotoPreviewReply(formatToolResultsForReply(toolResults))
+            : formatToolResultsForReply(toolResults),
           actions: null,
           tools: toolResults,
           undo: collectUndoFromTools(toolResults),
@@ -165,9 +175,13 @@ export async function POST(request: NextRequest) {
     }
 
     const split = splitAssistantReply(rawReply.trim());
-    const reply = split.reply;
+    let reply = split.reply;
     let actions = split.actions;
-    if (needsWriteRepair(lastUser, actions)) {
+    if (previewPending && actions?.meals?.length) {
+      const { meals: _drop, ...rest } = actions;
+      actions = rest;
+    }
+    if (!previewPending && needsWriteRepair(lastUser, actions)) {
       const repaired = await repairAssistantWriteActions({
         userMessage: lastUser,
         assistantReply: reply,
@@ -185,6 +199,10 @@ export async function POST(request: NextRequest) {
       lastUserMessage: lastUser,
     });
     toolResults.push(...writeResults);
+
+    if (previewPending) {
+      reply = sanitizePhotoPreviewReply(reply);
+    }
 
     const wroteOk = writeResults.some((r) => r.ok);
     const awaitingWeightConfirm = writeResults.some(
