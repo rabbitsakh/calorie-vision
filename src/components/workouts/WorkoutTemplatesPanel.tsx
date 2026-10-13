@@ -27,7 +27,7 @@ export function WorkoutTemplatesPanel({
   onDelete,
 }: Props) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="gym-hub-scene gap-3">
       <button
         type="button"
         className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"

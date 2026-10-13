@@ -296,7 +296,7 @@ export function WorkoutLiveStage({
               {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
-                className="w-14 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-teal-400"
+                className="w-14 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-[var(--accent-hover)]"
                 value={draftRpe}
                 onChange={(e) => onDraftRpe(e.target.value)}
                 placeholder="—"
@@ -322,7 +322,7 @@ export function WorkoutLiveStage({
                   <input
                     data-draft-field={`${focus.id}-kg`}
                     inputMode="decimal"
-                    className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                    className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
                       draftError && !draftKg.trim()
                         ? "border-red-400"
                         : "border-white/20"
@@ -346,7 +346,7 @@ export function WorkoutLiveStage({
                 <input
                   data-draft-field={`${focus.id}-reps`}
                   inputMode="numeric"
-                  className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                  className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
                     draftError && !draftReps.trim()
                       ? "border-red-400"
                       : "border-white/20"
@@ -362,7 +362,7 @@ export function WorkoutLiveStage({
                 <input
                   data-draft-field={`${focus.id}-km`}
                   inputMode="decimal"
-                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
                     draftError && !draftKm.trim()
                       ? "border-red-400"
                       : "border-white/20"
@@ -378,7 +378,7 @@ export function WorkoutLiveStage({
                 <input
                   data-draft-field={`${focus.id}-time`}
                   inputMode="decimal"
-                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-teal-400 ${
+                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
                     draftError && !draftTime.trim()
                       ? "border-red-400"
                       : "border-white/20"

@@ -2598,6 +2598,7 @@ select {
 
 /* B6 — Gym live scene */
 /* C6 — gym console: deep teal stage when live */
+/* D4 — deeper gym atmosphere (layered wash, one plane) */
 .gym-day {
   display: flex;
   flex-direction: column;
@@ -2608,9 +2609,57 @@ select {
   padding: 0.65rem 0.75rem 0.85rem;
   border-radius: var(--radius-panel);
   border: 1px solid var(--border-quiet);
-  background: var(--panel-wash);
+  background:
+    radial-gradient(ellipse 100% 70% at 100% 0%, rgba(13, 115, 119, 0.12), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 0% 100%, rgba(20, 145, 155, 0.08), transparent 50%),
+    var(--panel-wash);
   box-shadow: var(--shadow-card);
   animation: plan-week-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  isolation: isolate;
+}
+
+/* Active session + hub “Ещё” — same depth language as today */
+.gym-session-scene,
+.gym-hub-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.7rem 0.8rem 1rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-quiet);
+  background:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(13, 115, 119, 0.1), transparent 52%),
+    var(--panel-wash);
+  box-shadow: var(--shadow-card);
+  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gym-session-scene {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .gym-session-scene,
+  .gym-hub-scene {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+.gym-plane {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-hairline);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 0.85rem 0.9rem;
+  box-shadow: none;
+}
+
+.gym-session-scene .gym-plane,
+.gym-hub-scene .gym-plane,
+.gym-day .gym-plane {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .gym-day .day-hero--scene {
@@ -7011,10 +7060,20 @@ select {
   }
 }
 
-/* Wave C3 — one scene: soften nested card cascade on stats / gym / plan */
+/* Wave C3 / D4 — one scene: soften nested card cascade on stats / gym / plan */
 .stats-page-scene .card,
 .gym-day .card,
+.gym-session-scene .card,
+.gym-hub-scene .card,
 .plan-week .card {
+  box-shadow: none;
+  border-color: var(--border-hairline);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.gym-session-scene > section.rounded-2xl,
+.gym-hub-scene > section.rounded-2xl,
+.gym-hub-scene section.rounded-2xl {
   box-shadow: none;
   border-color: var(--border-hairline);
   background: rgba(255, 255, 255, 0.55);
