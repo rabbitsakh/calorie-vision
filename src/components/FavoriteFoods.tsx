@@ -420,7 +420,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       </div>
 
       {showForm ? (
-        <div className="mt-3 grid gap-2 rounded-2xl border border-teal-100 bg-teal-50/30 p-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/30 p-3 sm:grid-cols-2">
           <div className="field sm:col-span-2">
             <label className="text-xs">Название</label>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Омлет домашний" />
@@ -456,7 +456,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
           <div className="sm:col-span-2">
             <button
               type="button"
-              className="btn btn-on-tint text-sm text-teal-800"
+              className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
               disabled={adding || !name.trim() || !calories}
               onClick={() => void handleAdd()}
             >
@@ -492,14 +492,14 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       {loading ? <div className="mt-3"><SceneSkeleton inline label="Загрузка избранного…" /></div> : null}
 
       {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
-        <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
-          <p className="text-sm font-medium text-teal-900">Избранное пока пусто</p>
+        <div className="mt-3 rounded-xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 px-3 py-4 text-center">
+          <p className="text-sm font-medium text-[var(--accent-ink)]">Избранное пока пусто</p>
           <p className="mt-1 text-xs text-[var(--muted)]">
             Сохраните частые блюда — потом добавляйте в дневник в один тап.
           </p>
           <button
             type="button"
-            className="btn btn-on-tint mt-3 text-sm text-teal-800"
+            className="btn btn-on-tint mt-3 text-sm text-[var(--accent-ink)]"
             onClick={() => setShowForm(true)}
           >
             + Добавить продукт
@@ -525,7 +525,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                   </div>
                   <button
                     type="button"
-                    className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                    className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
                     onClick={() => openPortionPicker(food)}
                   >
                     + В дневник
@@ -562,7 +562,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                     </label>
                     <button
                       type="button"
-                      className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+                      className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
                       onClick={() => {
                         const grams = Number(portionGramsInput.replace(",", "."));
                         if (!Number.isFinite(grams) || grams <= 0) {
@@ -577,7 +577,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
                     {food.portionGrams && food.portionGrams > 0 ? (
                       <button
                         type="button"
-                        className="rounded-lg px-2 py-1.5 text-xs font-medium text-teal-800"
+                        className="rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--accent-ink)]"
                         onClick={() => void logFavoriteFood(food, food.portionGrams!)}
                       >
                         Вся порция ({food.portionGrams} г)

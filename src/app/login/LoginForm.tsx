@@ -245,7 +245,7 @@ export default function LoginForm() {
         </p>
 
         {verifyRequest ? (
-          <p className="mt-4 rounded-xl bg-teal-50 px-4 py-3 text-sm text-teal-900">
+          <p className="mt-4 rounded-xl bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-ink)]">
             Проверьте почту — мы отправили ссылку для входа.
           </p>
         ) : null}
@@ -272,7 +272,7 @@ export default function LoginForm() {
                 {ready.google ? (
                   <button
                     type="button"
-                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-4 py-3 font-medium text-[var(--foreground)] transition hover:border-teal-300 hover:bg-teal-50"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-4 py-3 font-medium text-[var(--foreground)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]"
                     disabled={loading}
                     onClick={() => handleOauthLogin("google")}
                   >
@@ -327,7 +327,7 @@ export default function LoginForm() {
                 {hasSocial ? (
                   <button
                     type="button"
-                    className="text-sm font-semibold text-teal-800 hover:underline"
+                    className="text-sm font-semibold text-[var(--accent-ink)] hover:underline"
                     onClick={() => setShowEmail((value) => !value)}
                   >
                     {showEmail ? "Скрыть вход по email" : "Войти по email"}
@@ -378,13 +378,13 @@ export default function LoginForm() {
           </>
         )}
 
-        {message ? <p className="mt-4 text-sm text-teal-700">{message}</p> : null}
+        {message ? <p className="mt-4 text-sm text-[var(--accent)]">{message}</p> : null}
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
         {/* Web only — APK must not look like a site with «На главную». */}
         {!capacitorShell ? (
           <p className="capacitor-web-only mt-6 text-center text-sm text-[var(--muted)]">
-            <Link href="/" className="text-teal-700 hover:underline">
+            <Link href="/" className="text-[var(--accent)] hover:underline">
               На главную
             </Link>
           </p>

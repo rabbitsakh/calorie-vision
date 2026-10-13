@@ -230,8 +230,8 @@ function BarChart({
                 ? targetValue && value && value > targetValue
                   ? "bg-rose-500"
                   : targetValue && value && value >= targetValue * 0.9
-                    ? "bg-teal-500"
-                    : "bg-teal-600"
+                    ? "bg-[var(--accent)]"
+                    : "bg-[var(--accent)]"
                 : "bg-sky-600";
               const labelValue = value && value > 0 && valueLabelIdx.has(index);
 
@@ -504,7 +504,7 @@ function MacroChart({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-3 text-xs text-[var(--muted-strong)]">
-        {[{ label: "Белки", color: "bg-teal-500" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-cyan-500" }].map((m) => (
+        {[{ label: "Белки", color: "bg-[var(--accent)]" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-cyan-500" }].map((m) => (
           <span key={m.label} className="flex items-center gap-1">
             <span className={`h-2.5 w-2.5 rounded-sm ${m.color}`} />
             {m.label}
@@ -521,7 +521,7 @@ function MacroChart({
               <div className="flex w-full flex-col justify-end overflow-hidden rounded-t-sm" style={{ height: "80px" }}>
                 {total > 0 ? (
                   <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · клетчатка ${day.fiber ?? 0} г · сахар ${day.sugar ?? 0} г`}>
-                    <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-teal-500" />
+                    <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-[var(--accent)]" />
                     <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
                     <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-cyan-500" />
                   </div>
@@ -559,7 +559,7 @@ function TimingChart({ hourlyCalories }: { hourlyCalories: number[] }) {
             <div className="flex w-full flex-col justify-end" style={{ height: "64px" }}>
               {val > 0 ? (
                 <div
-                  className="w-full rounded-t-sm bg-teal-500 opacity-80"
+                  className="w-full rounded-t-sm bg-[var(--accent)] opacity-80"
                   style={{ height: `${h}%` }}
                   title={`${String(hour).padStart(2, "0")}:00 — ${val} ккал`}
                 />
@@ -623,7 +623,7 @@ function MonthHeatmap({
             <Link
               key={dateKey}
               href={withBasePath(withDateQuery("/ration", dateKey))}
-              className={`flex aspect-square items-center justify-center rounded-md text-xs font-semibold transition-transform hover:scale-[1.04] hover:ring-2 hover:ring-teal-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${HEATMAP_TONE_CLASS[tone]}`}
+              className={`flex aspect-square items-center justify-center rounded-md text-xs font-semibold transition-transform hover:scale-[1.04] hover:ring-2 hover:ring-[var(--accent-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${HEATMAP_TONE_CLASS[tone]}`}
               title={
                 kcal > 0
                   ? `${formatDateShort(dateKey)}: ${kcal} ккал — открыть рацион`
@@ -1029,8 +1029,8 @@ export function StatsView({ endDate }: StatsViewProps) {
                 under="Средние ккал в дни с записями — без оценок «хорошо/плохо», просто ориентир."
               />
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-teal-50 px-4 py-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-teal-700">Эта неделя</p>
+                <div className="rounded-xl bg-[var(--accent-soft)] px-4 py-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--accent)]">Эта неделя</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--foreground)]">
                     {wow.thisWeek.daysLogged > 0 ? wow.thisWeek.avgCalories : "—"}
                   </p>
@@ -1060,7 +1060,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                         : wow.deltaAvgCalories > 0
                           ? "text-amber-700"
                           : wow.deltaAvgCalories < 0
-                            ? "text-teal-700"
+                            ? "text-[var(--accent)]"
                             : "text-[var(--foreground)]"
                     }`}
                   >
@@ -1151,7 +1151,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                 meta={
                   <button
                     type="button"
-                    className="btn-quiet text-sm text-teal-800"
+                    className="btn-quiet text-sm text-[var(--accent-ink)]"
                     disabled={photoBackfillBusy}
                     onClick={() => void backfillTopFoodPhotos()}
                   >
@@ -1169,7 +1169,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                       <p className="truncate text-sm font-medium">{decodeHtmlEntities(food.dishName)}</p>
                       <p className="text-xs text-[var(--muted)]">~{food.avgCalories} ккал</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
+                    <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--accent)]">
                       {food.count}×
                     </span>
                   </li>

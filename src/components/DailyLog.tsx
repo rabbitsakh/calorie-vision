@@ -899,13 +899,13 @@ export function DailyLog({
 
           {!compact ? (
             <div className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-white">
-              <div className="text-[10px] uppercase tracking-wide text-teal-50">Итого за день</div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--on-ink)]">Итого за день</div>
               <div className="text-2xl font-bold">{totals.calories} ккал</div>
-              <div className="text-[11px] text-teal-50">
+              <div className="text-[11px] text-[var(--on-ink)]">
                 Б {totals.protein} · Ж {totals.fat} · У {totals.carbs}
               </div>
               {(totals.fiber > 0 || totals.sugar > 0) ? (
-                <div className="mt-0.5 text-[11px] text-teal-100">
+                <div className="mt-0.5 text-[11px] text-[var(--on-ink)]/90">
                   {totals.fiber > 0 ? `Клетч. ${totals.fiber}` : null}
                   {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
                   {totals.sugar > 0 ? `Сахар ${totals.sugar}` : null}
@@ -974,7 +974,7 @@ export function DailyLog({
                                 <span className={over ? "text-rose-600" : "text-[var(--muted)]"}>{used}/{alloc}</span>
                               </div>
                               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
-                                <div className={`h-1.5 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-teal-500"}`} style={{ width: `${pct}%` }} />
+                                <div className={`h-1.5 rounded-full transition-all duration-500 ${over ? "bg-rose-500" : "bg-[var(--accent)]"}`} style={{ width: `${pct}%` }} />
                               </div>
                             </div>
                           );
