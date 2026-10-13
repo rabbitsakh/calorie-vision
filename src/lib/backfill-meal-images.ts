@@ -8,7 +8,7 @@ import {
 } from "./meal-image";
 import { searchOpenFoodFactsBest } from "./open-food-facts";
 import { prisma } from "./prisma";
-import { cacheRemoteImage, recompressStoredImages } from "./upload";
+import { cacheRemoteImage } from "./upload";
 
 export type BackfillMealImagesOptions = {
   userId?: string;
@@ -16,12 +16,10 @@ export type BackfillMealImagesOptions = {
   /** Max remote image lookups (copy-from-known still runs for all scanned rows). */
   limit?: number;
   /**
-   * When a limit is set, prefer newest meals first so deploy/incremental runs
+   * When a limit is set, prefer newest meals first so incremental runs
    * fill the diary the user still sees.
    */
   newestFirst?: boolean;
-  /** Skip walking /uploads for recompress (deploy should set this). */
-  skipRecompress?: boolean;
 };
 
 export type BackfillMealImagesResult = {
@@ -262,14 +260,4 @@ export async function backfillMealImages(
   }
 
   return result;
-}
-
-export async function backfillMealImagesAndCompress(
-  options: BackfillMealImagesOptions = {},
-): Promise<BackfillMealImagesResult & { recompressed: number }> {
-  const recompressed = options.skipRecompress
-    ? 0
-    : await recompressStoredImages();
-  const filled = await backfillMealImages(options);
-  return { ...filled, recompressed };
 }

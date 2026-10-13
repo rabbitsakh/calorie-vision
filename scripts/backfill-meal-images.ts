@@ -1,4 +1,4 @@
-import { backfillMealImagesAndCompress } from "../src/lib/backfill-meal-images.ts";
+import { backfillMealImages } from "../src/lib/backfill-meal-images.ts";
 
 function envInt(name: string): number | undefined {
   const raw = process.env[name]?.trim();
@@ -14,21 +14,22 @@ function envFlag(name: string): boolean {
   return raw === "1" || raw === "true" || raw === "yes";
 }
 
+/**
+ * Lookup-only backfill (no /uploads recompress).
+ * Optional: BACKFILL_LIMIT=25 BACKFILL_NEWEST_FIRST=1
+ */
 async function main() {
   const limit = envInt("BACKFILL_LIMIT");
-  const skipRecompress = envFlag("BACKFILL_SKIP_RECOMPRESS");
   const newestFirst = envFlag("BACKFILL_NEWEST_FIRST") || limit !== undefined;
 
-  const result = await backfillMealImagesAndCompress({
+  const result = await backfillMealImages({
     ...(limit !== undefined ? { limit } : {}),
-    skipRecompress,
     newestFirst,
   });
 
   console.info(
-    `Meal images: scanned=${result.scanned} updated=${result.updated} skipped=${result.skipped} failed=${result.failed} recompressed=${result.recompressed}` +
-      (limit !== undefined ? ` limit=${limit}` : "") +
-      (skipRecompress ? " skipRecompress" : ""),
+    `Meal images: scanned=${result.scanned} updated=${result.updated} skipped=${result.skipped} failed=${result.failed} repaired=${result.repaired}` +
+      (limit !== undefined ? ` limit=${limit}` : ""),
   );
   if (result.failedDishNames.length > 0) {
     console.info(`Failed dishes: ${result.failedDishNames.join(" · ")}`);
