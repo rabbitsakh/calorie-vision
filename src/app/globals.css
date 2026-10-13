@@ -38,6 +38,12 @@
   --warn: #d97706;
   --danger: #dc2626;
 
+  /* Offline chrome — same glass family as assistant banner (Wave D3) */
+  --offline-glass-bg: rgba(255, 248, 230, 0.72);
+  --offline-glass-border: rgba(180, 120, 40, 0.35);
+  --offline-glass-ink: #5c3d12;
+  --offline-glass-muted: rgba(92, 61, 18, 0.82);
+
   --radius-lg: 1.25rem;
   --radius-md: 0.875rem;
   --radius-sm: 0.625rem;
@@ -6866,16 +6872,76 @@ select {
   font-weight: 650;
 }
 
+/* Wave D3 — shared offline glass (queue banner + assistant) */
+.offline-chrome {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--offline-glass-border);
+  background: var(--offline-glass-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--offline-glass-ink);
+  box-shadow: var(--shadow-card);
+}
+
+.offline-chrome-pad {
+  padding: 0.65rem 0.75rem;
+}
+
+.offline-chrome-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--offline-glass-border);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--offline-glass-ink);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.offline-chrome-cta:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.offline-chrome-cta:disabled {
+  opacity: 0.55;
+}
+
+.offline-chrome-link {
+  font-size: 0.68rem;
+  font-weight: 650;
+  color: var(--offline-glass-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Wave A4/A5/A6 + C4 — day voice, memory, offline glass, apply flash */
 .assistant-offline-glass {
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(180, 120, 40, 0.35);
-  background: rgba(255, 248, 230, 0.72);
+  border: 1px solid var(--offline-glass-border);
+  background: var(--offline-glass-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 0.65rem 0.75rem;
-  color: #5c3d12;
+  color: var(--offline-glass-ink);
   font-size: 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+/* Offline queue sheet — confirm-family plane */
+.offline-queue-sheet {
+  background: var(--panel-wash);
+  border-top: 1px solid var(--border-quiet);
+  box-shadow: var(--shadow-card);
+}
+
+.offline-queue-row {
+  border-radius: calc(var(--radius-lg) - 4px);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border-hairline);
+  padding: 0.55rem 0.65rem;
 }
 
 .assistant-memory-row {

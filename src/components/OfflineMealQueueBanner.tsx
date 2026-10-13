@@ -489,20 +489,20 @@ export function OfflineMealQueueBanner({
 
   return (
     <div className="flex flex-col gap-2" role="status">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+      <div className="offline-chrome offline-chrome-pad flex flex-wrap items-center justify-between gap-2 text-sm">
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
           onClick={() => setSheetOpen(true)}
         >
           <p className="font-semibold">{queueTitle}</p>
-          <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-amber-900/90">
+          <ul className="mt-0.5 list-none space-y-0.5 text-xs font-medium text-[var(--offline-glass-muted)]">
             {lines.map((line) => (
               <li key={line}>{line}</li>
             ))}
           </ul>
           {!flushing ? (
-            <p className="mt-1 text-[11px] text-amber-800/80">
+            <p className="mt-1 text-[11px] text-[var(--offline-glass-muted)]">
               {online
                 ? "Нажмите очередь — список и отмена; «Отправить» — синхронизация."
                 : "Черновики на телефоне. Откройте очередь или нажмите «Отправить»."}
@@ -512,7 +512,7 @@ export function OfflineMealQueueBanner({
         <div className="flex shrink-0 flex-col gap-1.5">
           <button
             type="button"
-            className="rounded-lg bg-amber-900/10 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-900/15 disabled:opacity-60"
+            className="offline-chrome-cta"
             disabled={flushing}
             onClick={() => void flush()}
           >
@@ -520,7 +520,7 @@ export function OfflineMealQueueBanner({
           </button>
           <button
             type="button"
-            className="rounded-lg px-3 py-1 text-[11px] font-semibold text-amber-900 underline-offset-2 hover:underline"
+            className="offline-chrome-link px-1 py-0.5 text-left"
             onClick={() => setSheetOpen(true)}
           >
             Очередь

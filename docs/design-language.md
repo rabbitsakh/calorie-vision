@@ -12,7 +12,8 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Composition
 - One job per section; one composition in the first viewport (not a dashboard).
 - Cards only when they wrap an interaction. Prefer hairlines / wash planes.
-- Confirm flows (photo, macros, AI apply) are one family: hero → facts → sticky action.
+- Confirm flows (photo, macros, AI apply) are one family: hero → facts → sticky action (`.confirm-family` / `.confirm-card-section`).
+- Offline queue banner + assistant offline share `.offline-chrome` glass tokens; queue sheet rows use confirm-family CTAs (Wave D3).
 
 ## Loading
 - Boot: one branded `AppSplash` per cold start (AuthGate may mark session; ration skips a second fullscreen).

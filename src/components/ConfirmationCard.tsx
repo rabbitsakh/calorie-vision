@@ -849,10 +849,13 @@ export function ConfirmationCard({
     ),
   );
   return (
-    <section id="food-add-panel" className="confirm-card-section card overflow-hidden p-0 md:p-6">
+    <section
+      id="food-add-panel"
+      className="confirm-card-section confirm-family !p-0 card overflow-hidden md:p-6"
+    >
       <div className="flex flex-col gap-5 p-4 md:p-0">
         {hasImage ? (
-          <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-[1.35rem]">
+          <div className="confirm-hero confirm-family-hero !max-h-none -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-[1.35rem]">
             {!imageLoaded ? (
               <div className="absolute inset-0 min-h-64 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
             ) : null}
