@@ -953,7 +953,7 @@ export function AssistantChat() {
   const canUndo = undoStack.some((u) => undoHasItems(u));
 
   return (
-    <section className="flex min-h-[75vh] flex-col gap-2 text-[13px] leading-snug">
+    <section className="assistant-scene flex flex-col gap-2.5 text-[14px] leading-snug">
       {!online ? (
         <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[12px] font-medium text-amber-950">
           Нет сети — чат и запись недоступны. Проверьте соединение.
@@ -961,9 +961,11 @@ export function AssistantChat() {
       ) : null}
 
       {showOnboard ? (
-        <div className="rounded-xl border border-teal-200 bg-teal-50/90 px-2.5 py-2 text-[12px] text-teal-950">
-          <p className="font-semibold">Коротко про AI</p>
-          <p className="mt-0.5 text-[11px] leading-snug text-teal-900/90">
+        <div className="rounded-xl border border-[var(--border-quiet)] bg-white/70 px-3 py-2.5 text-[13px] text-[var(--ink)]">
+          <p className="font-display text-[13px] font-semibold tracking-wide text-teal-900">
+            Коротко про AI
+          </p>
+          <p className="mt-1 text-[12px] leading-snug text-[var(--muted-strong)]">
             Пиши обычным языком — я сам добавлю в рацион или план зала. Фото сначала покажу на
             подтверждение. Можно отменить последнюю запись.
           </p>
@@ -997,8 +999,8 @@ export function AssistantChat() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <label className="text-[11px] font-medium text-[var(--muted-strong)]">
+      <div className="assistant-scene-toolbar">
+        <label className="text-[12px] font-semibold text-[var(--muted-strong)]">
           День{" "}
           <input
             type="date"
@@ -1008,7 +1010,7 @@ export function AssistantChat() {
               setDate(next);
               setDatePinned(true);
             }}
-            className="ml-1 rounded-md border border-[var(--line)] bg-white px-1.5 py-0.5 text-[12px]"
+            className="ml-1 rounded-md border border-[var(--line)] bg-white px-1.5 py-0.5 text-[13px]"
             disabled={busy}
           />
         </label>
@@ -1074,7 +1076,7 @@ export function AssistantChat() {
         ))}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--surface)] p-2 sm:p-2.5">
+      <div className="assistant-scene-thread flex flex-1 flex-col gap-2 overflow-y-auto p-0.5 sm:p-1">
         {turns.map((turn) => {
           const applied = Boolean(
             turn.tools?.some(
@@ -1115,10 +1117,10 @@ export function AssistantChat() {
           return (
             <div
               key={turn.id}
-              className={`max-w-[96%] rounded-xl px-2.5 py-1.5 text-[12px] leading-snug ${
+              className={`max-w-[96%] ${
                 turn.role === "user"
-                  ? "ml-auto bg-[var(--accent)] text-white"
-                  : "mr-auto bg-[var(--surface-mist)] text-[var(--ink)]"
+                  ? "assistant-scene-bubble-user ml-auto"
+                  : "assistant-scene-bubble-assistant mr-auto"
               }`}
             >
               {turn.imagePreview ? (
@@ -1248,7 +1250,7 @@ export function AssistantChat() {
       ) : null}
 
       <form
-        className="flex gap-1.5"
+        className="assistant-scene-composer flex gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           void send(draft);

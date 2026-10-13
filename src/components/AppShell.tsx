@@ -8,6 +8,7 @@ import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { ReferralChestToast } from "@/components/ReferralChestToast";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { WeightQuickSheet } from "@/components/WeightQuickSheet";
 import { WaterQuickSheet } from "@/components/WaterQuickSheet";
 import { APP_NAV, isFoodAddPath, navKeepsDate } from "@/lib/navigation";
@@ -213,11 +214,7 @@ export function PageFallback() {
         <div className="skeleton-line w-40" />
         <div className="mt-3 skeleton-line w-24" />
       </header>
-      <section className="space-y-2 pt-1">
-        <div className="skeleton-line w-3/4" />
-        <div className="h-24 animate-pulse rounded-[var(--radius-lg)] bg-teal-100/60" />
-        <div className="h-16 animate-pulse rounded-[var(--radius-lg)] bg-[var(--accent-soft)]/70" />
-      </section>
+      <SceneSkeleton label="Загрузка экрана…" />
     </main>
   );
 }

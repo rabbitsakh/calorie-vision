@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { AssistantChat } from "@/components/AssistantChat";
 import { AuthGate } from "@/components/AuthGate";
 import { BackButton } from "@/components/BackButton";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 
 export default function AssistantPage() {
   return (
@@ -14,7 +15,7 @@ export default function AssistantPage() {
       headerExtra={<BackButton />}
     >
       <AuthGate>
-        <Suspense fallback={<p className="text-sm text-[var(--muted)]">Загрузка…</p>}>
+        <Suspense fallback={<SceneSkeleton compact label="Открываем ассистента…" />}>
           <AssistantChat />
         </Suspense>
       </AuthGate>

@@ -6671,6 +6671,80 @@ select {
   color: #0f766e;
 }
 
+/* Wave B3 — shared scene skeleton */
+.scene-skeleton {
+  background: var(--panel-wash);
+  border: 1px solid var(--border-quiet);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-card);
+  padding: 0.85rem 0.95rem 1.1rem;
+  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scene-skeleton--compact {
+  padding: 0.75rem 0.85rem;
+  box-shadow: none;
+}
+
+.scene-skeleton-band {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+/* Wave A1/C1 — assistant as product scene */
+.assistant-scene {
+  background: var(--panel-wash);
+  border: 1px solid var(--border-quiet);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-card);
+  padding: 0.85rem 0.85rem 1rem;
+  min-height: 75vh;
+  animation: ration-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.assistant-scene-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.assistant-scene-thread {
+  background: transparent;
+  border: none;
+  flex: 1;
+  min-height: 12rem;
+}
+
+.assistant-scene-bubble-user {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-radius: 1.1rem 1.1rem 0.35rem 1.1rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+  padding: 0.65rem 0.85rem !important;
+}
+
+.assistant-scene-bubble-assistant {
+  background: rgba(255, 255, 255, 0.72) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border-quiet) !important;
+  border-radius: 1.1rem 1.1rem 1.1rem 0.35rem !important;
+  font-size: 0.9rem !important;
+  line-height: 1.45 !important;
+  padding: 0.7rem 0.9rem !important;
+}
+
+.assistant-scene-composer {
+  margin-top: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border-hairline);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
