@@ -128,7 +128,23 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
       };
     }
 
-    return null;
+    // Wave A4 — evening voice: one soft step when the day is empty.
+    if (!logged && hour >= 18) {
+      return {
+        label: "День почти без записей — быстрый лог",
+        actionLabel: "Добавить",
+        onClick: () => requestOpenFoodAddPicker(),
+      };
+    }
+    if (logged && hour >= 19 && waterTarget > 0 && waterMl < waterTarget * 0.5) {
+      return {
+        label: "До вечера воды мало — один стакан",
+        actionLabel: "Вода",
+        onClick: () => requestOpenWaterQuick(),
+      };
+    }
+
+    return null
   }, [selectedDate, today, day, bump]);
 
   if (!step) return null;

@@ -4,6 +4,7 @@
   /* Surfaces — one warm luminous system (cream + teal) */
   --background: #f5f3ee;
   --foreground: #14181f;
+  --ink: #14181f;
   --card: #ffffff;
   --surface-chrome: rgba(255, 252, 248, 0.96);
   --surface-elevated: #ffffff;
@@ -4107,15 +4108,16 @@ select {
   --font-landing-display: var(--font-display);
   --landing-scroll-y: 0px;
   --landing-scroll-p: 0;
-  --landing-ink: #071a17;
-  --landing-muted: #3a564f;
-  --landing-deep: #0a5c52;
-  --landing-accent: #1aa88f;
-  --landing-line: rgba(10, 92, 82, 0.16);
-  --landing-surface: #e8f6f1;
-  --landing-band: #d4ebe3;
-  --landing-phone-shell: #0f2f2a;
-  --landing-glow: rgba(26, 168, 143, 0.35);
+  /* Wave C5 — landing accents share product teal, not a second “mint world” */
+  --landing-ink: var(--foreground, #14181f);
+  --landing-muted: var(--muted-strong, #2c3530);
+  --landing-deep: var(--accent-ink, #0a5c52);
+  --landing-accent: var(--accent, #0d7377);
+  --landing-line: rgba(13, 115, 119, 0.16);
+  --landing-surface: #e8f3f1;
+  --landing-band: #d4e6e3;
+  --landing-phone-shell: #0f2a28;
+  --landing-glow: rgba(13, 115, 119, 0.28);
   color: var(--landing-ink);
   font-family: var(--font-landing-body), "Segoe UI", sans-serif;
   min-height: 100vh;
@@ -6832,6 +6834,107 @@ select {
   padding: 0.35rem 0.75rem;
   font-size: 0.72rem;
   font-weight: 650;
+}
+
+/* Wave A4/A5/A6 + C4 — day voice, memory, offline glass, apply flash */
+.assistant-offline-glass {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(180, 120, 40, 0.35);
+  background: rgba(255, 248, 230, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 0.65rem 0.75rem;
+  color: #5c3d12;
+  font-size: 0.75rem;
+}
+
+.assistant-memory-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.assistant-memory-chip {
+  align-self: flex-start;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--border-hairline);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 0.25rem 0.65rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-strong);
+  text-align: left;
+}
+
+.assistant-memory-panel {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-quiet);
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.55rem 0.65rem 0.65rem;
+}
+
+.assistant-day-voice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hairline);
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.45rem 0.55rem 0.45rem 0.7rem;
+  animation: assistant-day-voice-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes assistant-day-voice-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.assistant-apply-flash {
+  animation: assistant-apply-flash-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes assistant-apply-flash-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  40% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Wave C3 — one scene: soften nested card cascade on stats / gym / plan */
+.stats-page-scene .card,
+.gym-day .card,
+.plan-week .card {
+  box-shadow: none;
+  border-color: var(--border-hairline);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.stats-page-scene > .card + .card,
+.plan-week__rail > * + * {
+  margin-top: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-day-voice,
+  .assistant-apply-flash,
+  .assistant-scene {
+    animation: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

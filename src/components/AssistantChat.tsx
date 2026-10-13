@@ -22,6 +22,15 @@ import {
   type UndoPayload,
 } from "@/lib/assistant-chat-ux";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
+import { summarizeAssistantPrefsForHeader } from "@/lib/assistant-prefs";
+import { buildAssistantDayVoice } from "@/lib/assistant-day-voice";
+import {
+  countAssistantApplyQueue,
+  enqueueAssistantApply,
+  listAssistantApplyQueue,
+  removeAssistantApply,
+  subscribeAssistantApplyQueue,
+} from "@/lib/assistant-apply-queue";
 import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
 import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
@@ -254,17 +263,24 @@ function PhotoConfirm({
   async function confirm() {
     setPending(true);
     try {
+      const body = {
+        kind: "photo" as const,
+        // Always the day currently selected in the chat — not a stale
+        // recognition payload date (UTC / yesterday from storage).
+        date,
+        imagePath: data.imagePath,
+        drafts,
+      };
+      // Wave A6 — already recognized: queue apply offline (no LLM).
+      if (!online) {
+        enqueueAssistantApply("photo", body);
+        onFlash("Офлайн — добавлю в рацион, когда появится сеть");
+        return;
+      }
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "photo",
-          // Always the day currently selected in the chat — not a stale
-          // recognition payload date (UTC / yesterday from storage).
-          date,
-          imagePath: data.imagePath,
-          drafts,
-        }),
+        body: JSON.stringify(body),
       });
       const json = (await resp.json().catch(() => null)) as {
         error?: string;
@@ -307,7 +323,7 @@ function PhotoConfirm({
                 <input
                   type="text"
                   value={d.dishName}
-                  disabled={busy || pending || !online}
+                  disabled={busy || pending}
                   onChange={(e) => updateDraft(i, { dishName: e.target.value })}
                   className="confirm-family-input min-w-0 flex-1 font-semibold"
                   aria-label="Название блюда"
@@ -337,7 +353,7 @@ function PhotoConfirm({
                       type="number"
                       inputMode="decimal"
                       value={d[key] ?? ""}
-                      disabled={busy || pending || !online}
+                      disabled={busy || pending}
                       onChange={(e) => {
                         const n = e.target.value === "" ? undefined : Number(e.target.value);
                         updateDraft(i, {
@@ -355,7 +371,7 @@ function PhotoConfirm({
                   type="number"
                   inputMode="numeric"
                   value={d.portionGrams ?? ""}
-                  disabled={busy || pending || !online}
+                  disabled={busy || pending}
                   onChange={(e) => {
                     const n = e.target.value === "" ? undefined : Number(e.target.value);
                     updateDraft(i, {
@@ -372,11 +388,11 @@ function PhotoConfirm({
       <div className="confirm-family-actions">
         <button
           type="button"
-          disabled={busy || pending || !online}
+          disabled={busy || pending}
           className="confirm-family-cta"
           onClick={() => void confirm()}
         >
-          {pending ? "Пишу…" : "Добавить в рацион"}
+          {pending ? "Пишу…" : online ? "Добавить в рацион" : "В очередь офлайн"}
         </button>
       </div>
     </div>
@@ -403,10 +419,20 @@ function ActionCard({
   async function apply(kind: "meals" | "routine") {
     setBusy(kind);
     try {
+      const body = { kind, date, actions };
+      if (!online) {
+        enqueueAssistantApply(kind, body);
+        onFlash(
+          kind === "meals"
+            ? "Офлайн — запись в дневник в очереди"
+            : "Офлайн — план зала в очереди",
+        );
+        return;
+      }
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, date, actions }),
+        body: JSON.stringify(body),
       });
       const data = (await resp.json().catch(() => null)) as {
         error?: string;
@@ -482,10 +508,10 @@ function ActionCard({
               <button
                 type="button"
                 className="confirm-family-cta"
-                disabled={busy === "meals" || !online}
+                disabled={busy === "meals"}
                 onClick={() => void apply("meals")}
               >
-                {busy === "meals" ? "…" : "В дневник"}
+                {busy === "meals" ? "…" : online ? "В дневник" : "В очередь"}
               </button>
             ) : null}
             {actions.workoutDays?.length ? (
@@ -493,10 +519,10 @@ function ActionCard({
                 <button
                   type="button"
                   className="confirm-family-cta"
-                  disabled={busy === "routine" || !online}
+                  disabled={busy === "routine"}
                   onClick={() => void apply("routine")}
                 >
-                  {busy === "routine" ? "…" : "В план зала"}
+                  {busy === "routine" ? "…" : online ? "В план зала" : "В очередь"}
                 </button>
                 <Link href="/workouts" className="confirm-family-secondary">
                   Зал
@@ -531,11 +557,15 @@ export function AssistantChat() {
   const [prefs, setPrefs] = useState<AssistantPrefs>({ likes: [], dislikes: [], notes: [] });
   const [undoStack, setUndoStack] = useState<UndoPayload[]>([]);
   const [online, setOnline] = useState(true);
+  const [applyQueued, setApplyQueued] = useState(0);
   const [showOnboard, setShowOnboard] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const [dislikeDraft, setDislikeDraft] = useState("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const flushingApply = useRef(false);
 
   useEffect(() => {
     const stored = loadStored(userId);
@@ -568,6 +598,14 @@ export function AssistantChat() {
   }, [hydrated, userId, turns, date, mode, undoStack]);
 
   useEffect(() => subscribeConnectivity(setOnline), []);
+  useEffect(
+    () =>
+      subscribeAssistantApplyQueue(() => setApplyQueued(countAssistantApplyQueue())),
+    [],
+  );
+  useEffect(() => {
+    setApplyQueued(countAssistantApplyQueue());
+  }, []);
 
   const refreshSnapshot = useCallback(
     async (day: string) => {
@@ -614,6 +652,42 @@ export function AssistantChat() {
     setFlash(msg);
     window.setTimeout(() => setFlash(null), 2200);
   }
+
+  /** Wave A6 — flush queued photo/meals/routine applies when online. */
+  const flushApplyQueue = useCallback(async () => {
+    if (!online || flushingApply.current) return;
+    const items = listAssistantApplyQueue();
+    if (items.length === 0) return;
+    flushingApply.current = true;
+    try {
+      for (const item of items) {
+        try {
+          const resp = await fetch(withBasePath("/api/assistant/apply"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.body),
+          });
+          if (!resp.ok) continue;
+          removeAssistantApply(item.id);
+          showFlash(
+            item.kind === "photo" || item.kind === "meals"
+              ? "Офлайн-очередь: добавил в рацион"
+              : "Офлайн-очередь: план зала",
+          );
+          void refreshSnapshot(date);
+        } catch {
+          // keep item for next online
+        }
+      }
+    } finally {
+      flushingApply.current = false;
+      setApplyQueued(countAssistantApplyQueue());
+    }
+  }, [online, date, refreshSnapshot]);
+
+  useEffect(() => {
+    if (online) void flushApplyQueue();
+  }, [online, flushApplyQueue]);
 
   function clearPhoto() {
     if (photoPreview) URL.revokeObjectURL(photoPreview);
@@ -981,12 +1055,28 @@ export function AssistantChat() {
         : null;
 
   const canUndo = undoStack.some((u) => undoHasItems(u));
+  const todayKey = serverToday ?? formatDateInput(new Date());
+  const dayVoice = buildAssistantDayVoice({
+    hour: new Date().getHours(),
+    isToday: date === todayKey,
+    snapshot,
+  });
+  const prefsSummary = summarizeAssistantPrefsForHeader(prefs);
 
   return (
     <section className="assistant-scene flex flex-col gap-2.5 text-[14px] leading-snug">
       {!online ? (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[12px] font-medium text-amber-950">
-          Нет сети — чат и запись недоступны. Проверьте соединение.
+        <div className="assistant-offline-glass" role="status">
+          <p className="font-semibold">Нет сети</p>
+          <p className="mt-0.5 text-[11px] opacity-90">
+            Чат с AI недоступен. Уже распознанные карточки можно поставить в очередь — доедут
+            сами.
+            {applyQueued > 0 ? ` В очереди: ${applyQueued}.` : ""}
+          </p>
+        </div>
+      ) : applyQueued > 0 ? (
+        <p className="rounded-lg border border-teal-200 bg-teal-50/90 px-2.5 py-1.5 text-[12px] font-medium text-teal-950">
+          Офлайн-очередь: {applyQueued} — отправляю…
         </p>
       ) : null}
 
@@ -1085,6 +1175,101 @@ export function AssistantChat() {
           Очистить
         </button>
       </div>
+
+      {/* Wave A5 — honest memory chip (empty = nothing claimed) */}
+      <div className="assistant-memory-row">
+        <button
+          type="button"
+          className="assistant-memory-chip"
+          onClick={() => setPrefsOpen((v) => !v)}
+          aria-expanded={prefsOpen}
+        >
+          {prefsSummary
+            ? `Что я о тебе знаю: ${prefsSummary}`
+            : "Что я о тебе знаю — пока пусто · нажми"}
+        </button>
+        {prefsOpen ? (
+          <div className="assistant-memory-panel">
+            <p className="text-[11px] text-[var(--muted-strong)]">
+              Только то, что ты сказал(а). Без догадок.
+            </p>
+            {prefs.dislikes.length ? (
+              <p className="mt-1 text-[12px]">
+                <span className="font-semibold">Не предлагаю:</span>{" "}
+                {prefs.dislikes.join(", ")}
+              </p>
+            ) : null}
+            {prefs.likes.length ? (
+              <p className="mt-1 text-[12px]">
+                <span className="font-semibold">Ок:</span> {prefs.likes.join(", ")}
+              </p>
+            ) : null}
+            <form
+              className="mt-2 flex flex-wrap items-end gap-1.5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const item = dislikeDraft.trim().slice(0, 80);
+                if (!item) return;
+                const next = {
+                  ...prefs,
+                  dislikes: [
+                    ...prefs.dislikes.filter((d) => d.toLowerCase() !== item.toLowerCase()),
+                    item,
+                  ].slice(0, 24),
+                };
+                setDislikeDraft("");
+                void savePrefs(next);
+              }}
+            >
+              <label className="confirm-family-label grow">
+                Не предлагай
+                <input
+                  value={dislikeDraft}
+                  onChange={(e) => setDislikeDraft(e.target.value)}
+                  className="confirm-family-input"
+                  placeholder="например: творог"
+                  disabled={busy || !online}
+                />
+              </label>
+              <button
+                type="submit"
+                className="confirm-family-secondary"
+                disabled={busy || !online || !dislikeDraft.trim()}
+              >
+                Сохранить
+              </button>
+            </form>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Wave A4 — one next step from day context */}
+      {dayVoice && !showOnboard ? (
+        <div className="assistant-day-voice">
+          <p className="min-w-0 text-[12px] font-medium text-[var(--ink)]">{dayVoice.label}</p>
+          <button
+            type="button"
+            className="confirm-family-cta shrink-0 !min-h-8 !px-2.5 !text-[11px]"
+            disabled={busy || (!online && !dayVoice.openPhoto)}
+            onClick={() => {
+              if (dayVoice.openPhoto) {
+                fileRef.current?.click();
+                return;
+              }
+              if (dayVoice.href && !dayVoice.draft) {
+                window.location.assign(withBasePath(dayVoice.href));
+                return;
+              }
+              if (dayVoice.draft) {
+                if (online) void send(dayVoice.draft);
+                else setDraft(dayVoice.draft);
+              }
+            }}
+          >
+            {dayVoice.actionLabel}
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="Режим ассистента">
         {ASSISTANT_MODE_PILLS.map((p) => (
@@ -1242,7 +1427,9 @@ export function AssistantChat() {
         <div ref={bottomRef} />
       </div>
 
-      {flash ? <p className="text-[12px] font-medium text-teal-800">{flash}</p> : null}
+      {flash ? (
+        <p className="assistant-apply-flash text-[12px] font-medium text-teal-800">{flash}</p>
+      ) : null}
       {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 
       {!busy && !showOnboard && turns.length <= 2 ? (
