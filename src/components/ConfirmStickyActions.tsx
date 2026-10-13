@@ -1,5 +1,6 @@
 "use client";
 
+import { SceneBusy } from "@/components/SceneSkeleton";
 import { trackConfirmLookupGoal } from "@/lib/metrika-funnel";
 import type { ConfirmReviewCta } from "@/lib/confirm-review-cta";
 import type { DishDraft } from "@/lib/confirm-card-draft";
@@ -101,9 +102,7 @@ export function ConfirmStickyActions({
       >
         {saving ? (
           <>
-            <span className="daisy-loading daisy-loading-sm" aria-hidden>
-              <span /><span /><span />
-            </span>
+            <SceneBusy />
             Сохраняем...
           </>
         ) : (

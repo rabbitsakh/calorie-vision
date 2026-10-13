@@ -1,6 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import {
   formatDateShort,
   formatDateWords,
@@ -1081,7 +1082,7 @@ export function WorkoutActiveSession({
             {historyOpen[ex.name] ? (
               <div className="mt-2 rounded-lg bg-[var(--surface-mist)] px-3 py-2 text-xs text-[var(--muted-strong)]">
                 {!historyByName[ex.name] ? (
-                  <p>Загрузка…</p>
+                  <SceneSkeleton inline label="Загрузка сессии…" />
                 ) : historyByName[ex.name]!.points.length === 0 ? (
                   <p>Пока нет прошлых записей.</p>
                 ) : (

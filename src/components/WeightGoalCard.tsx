@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   GOAL_OPTIONS,
@@ -262,7 +263,7 @@ export function WeightGoalCard({
   return (
     <section className={embedded ? "px-1 py-1" : "card p-6"}>
       <div className="flex flex-col gap-5">
-        {loading ? <p className="text-sm text-[var(--muted)]">Загрузка...</p> : null}
+        {loading ? <SceneSkeleton inline label="Загрузка цели…" /> : null}
 
         {!loading && showCurrentWeight ? (
           <div className="flex flex-col gap-3">

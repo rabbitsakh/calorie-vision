@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { withBasePath } from "@/lib/paths";
 import {
   EXERCISE_KINDS,
@@ -156,7 +157,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
       </section>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {loading ? <p className="text-sm text-[var(--muted)]">Загрузка…</p> : null}
+      {loading ? <SceneSkeleton inline label="Загрузка библиотеки…" /> : null}
 
       <ul className="space-y-2">
         {entries.map((e) => (

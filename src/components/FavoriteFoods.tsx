@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AllergenHint } from "@/components/AllergenHint";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { isLikelyOfflineError } from "@/lib/connectivity";
@@ -488,7 +489,7 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         </div>
       ) : null}
 
-      {loading ? <p className="mt-3 text-sm text-[var(--muted)]">Загрузка...</p> : null}
+      {loading ? <div className="mt-3"><SceneSkeleton inline label="Загрузка избранного…" /></div> : null}
 
       {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
         <div className="mt-3 rounded-xl border border-dashed border-teal-200 bg-teal-50/40 px-3 py-4 text-center">
