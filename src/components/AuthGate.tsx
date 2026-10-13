@@ -10,6 +10,7 @@ import {
   hasOfflineSessionCache,
   writeOfflineSessionCache,
 } from "@/lib/offline-session";
+import { markBootSplashShown } from "@/lib/splash-tips";
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
@@ -67,6 +68,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [status, session]);
+
+  useEffect(() => {
+    if (status === "loading" || resuming || checkingOffline) {
+      // Wave B2: mark so /ration skips a second fullscreen brand splash.
+      markBootSplashShown();
+    }
+  }, [status, resuming, checkingOffline]);
 
   if (status === "loading" || resuming || checkingOffline) {
     return <AppSplash status="Входим…" tipContext={{}} />;

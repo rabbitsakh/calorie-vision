@@ -1,11 +1,65 @@
 /**
  * Splash tips + day-part copy — rotated / personalized while the app boots.
+ *
+ * B0 inventory (loading surfaces):
+ * - AppSplash fullscreen — ration brand boot (this file)
+ * - AppSplash inline — AuthGate “Входим…” (no second fullscreen)
+ * - Capacitor SplashScreen — native shell (~350ms)
+ * - AppShell.PageFallback / app/loading.tsx — route Suspense skeleton
+ * - DayHero / DailyLog skeletons — in-scene
+ * - DaisyLoading — admin only
+ * - Plain «Загрузка…» — stats/gym/assistant (Wave B3 will unify)
  */
 
 import { pluralDays } from "@/lib/russian-text";
 
-/** How long the branded splash stays visible at minimum (ration bootstrap). */
-export const SPLASH_MIN_VISIBLE_MS = 3000;
+/**
+ * Brand beat once data is ready — short enough to feel fast, long enough
+ * for the mascot/tip to read (Wave B1). Legacy name kept for imports.
+ */
+export const SPLASH_BRAND_MIN_MS = 900;
+/** Extra hold after ready so the “Готово” bar can finish. */
+export const SPLASH_OUTRO_MS = 400;
+/** @deprecated Use SPLASH_BRAND_MIN_MS — kept as alias for older callers/tests. */
+export const SPLASH_MIN_VISIBLE_MS = SPLASH_BRAND_MIN_MS;
+
+/** Session flag: AuthGate already showed boot chrome this tab. */
+export const BOOT_SPLASH_SESSION_KEY = "cv-boot-splash-at";
+
+export function markBootSplashShown(now = Date.now()): void {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+    sessionStorage.setItem(BOOT_SPLASH_SESSION_KEY, String(now));
+  } catch {
+    // private mode
+  }
+}
+
+export function recentBootSplashAgeMs(now = Date.now()): number | null {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    const raw = sessionStorage.getItem(BOOT_SPLASH_SESSION_KEY);
+    if (!raw) return null;
+    const at = Number(raw);
+    if (!Number.isFinite(at)) return null;
+    return Math.max(0, now - at);
+  } catch {
+    return null;
+  }
+}
+
+/** Skip fullscreen brand splash if AuthGate just showed boot UI. */
+export function shouldSkipRationBrandSplash(now = Date.now()): boolean {
+  const age = recentBootSplashAgeMs(now);
+  return age != null && age < 12_000;
+}
+
+/** Ms to keep splash after bootstrap becomes ready. */
+export function splashHoldAfterReadyMs(elapsedMs: number): number {
+  const elapsed = Math.max(0, elapsedMs);
+  if (elapsed >= SPLASH_BRAND_MIN_MS) return SPLASH_OUTRO_MS;
+  return SPLASH_BRAND_MIN_MS - elapsed;
+}
 
 export const SPLASH_TIPS = [
   "Сфотографируйте тарелку целиком — так распознавание точнее.",

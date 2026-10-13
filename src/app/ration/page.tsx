@@ -47,7 +47,10 @@ import {
 import { WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { parseMealQueryParam } from "@/lib/push-deeplink";
 import { withBasePath } from "@/lib/paths";
-import { SPLASH_MIN_VISIBLE_MS } from "@/lib/splash-tips";
+import {
+  shouldSkipRationBrandSplash,
+  splashHoldAfterReadyMs,
+} from "@/lib/splash-tips";
 import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
 
@@ -174,6 +177,14 @@ function RationBody({
   }, []);
 
   useEffect(() => {
+    // Wave B2: AuthGate already showed boot → skip fullscreen brand splash.
+    if (shouldSkipRationBrandSplash()) {
+      if (!day.loading && (day.data || day.error)) {
+        setSplashDone(true);
+        splashStartedAt.current = null;
+      }
+      return;
+    }
     // Date change / first paint: arm splash until bootstrap finishes.
     if (day.loading && !day.data) {
       if (splashStartedAt.current == null) {
@@ -183,8 +194,9 @@ function RationBody({
       return;
     }
     if (!day.loading && (day.data || day.error)) {
+      // Wave B1: short brand beat + outro when ready (not a fixed 3s hold).
       const started = splashStartedAt.current ?? Date.now();
-      const remaining = Math.max(0, SPLASH_MIN_VISIBLE_MS - (Date.now() - started));
+      const remaining = splashHoldAfterReadyMs(Date.now() - started);
       const t = window.setTimeout(() => {
         setSplashDone(true);
         splashStartedAt.current = null;
