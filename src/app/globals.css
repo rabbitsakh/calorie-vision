@@ -6745,6 +6745,95 @@ select {
   border-top: 1px solid var(--border-hairline);
 }
 
+/* Wave A2/A3/C2 — confirm family (AI photo + action cards ≈ ConfirmationCard) */
+.confirm-family {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border-quiet);
+  border-radius: var(--radius-lg);
+  padding: 0.65rem 0.7rem 0.75rem;
+  box-shadow: var(--shadow-card);
+}
+
+.confirm-family-hero {
+  display: block;
+  width: 100%;
+  max-height: 11rem;
+  object-fit: cover;
+  border-radius: calc(var(--radius-lg) - 2px);
+  margin-bottom: 0.55rem;
+}
+
+.confirm-family-skim {
+  margin: 0 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+}
+
+.confirm-family-dish {
+  border-radius: calc(var(--radius-lg) - 4px);
+  background: var(--panel-wash);
+  border: 1px solid var(--border-hairline);
+  padding: 0.55rem 0.6rem;
+}
+
+.confirm-family-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-strong);
+}
+
+.confirm-family-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border-quiet);
+  background: #fff;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.75rem;
+  color: var(--ink);
+}
+
+.confirm-family-actions {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.confirm-family-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  border-radius: 0.65rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+}
+
+.confirm-family-cta:disabled {
+  opacity: 0.5;
+}
+
+.confirm-family-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-quiet);
+  background: #fff;
+  color: var(--ink);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

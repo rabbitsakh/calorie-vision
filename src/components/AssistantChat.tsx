@@ -27,6 +27,12 @@ import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import { formatDateInput, requireDateKey } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import {
+  formatConfidencePercent,
+  getConfidenceTone,
+  confidenceToneClasses,
+} from "@/lib/recognition-confidence-ui";
+import { DEFAULT_LOW_CONFIDENCE } from "@/lib/confirm-card-draft";
 
 type ChatRole = "user" | "assistant";
 
@@ -279,78 +285,100 @@ function PhotoConfirm({
   }
 
   return (
-    <div className="mt-1.5 space-y-1.5 rounded-lg border border-teal-200 bg-white/90 p-1.5">
+    <div className="confirm-family mt-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={getImageUrl(data.imagePath, { w: 256 })}
+        src={getImageUrl(data.imagePath, { w: 480 })}
         alt="Распознанное фото"
-        className="max-h-28 w-full rounded-md object-cover"
+        className="confirm-family-hero"
       />
-      <div className="space-y-2">
-        {drafts.map((d, i) => (
-          <div key={`${d.dishName}-${i}`} className="space-y-1 rounded-md bg-teal-50/70 px-1.5 py-1">
-            <input
-              type="text"
-              value={d.dishName}
-              disabled={busy || pending || !online}
-              onChange={(e) => updateDraft(i, { dishName: e.target.value })}
-              className="w-full rounded border border-teal-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-teal-950"
-              aria-label="Название блюда"
-            />
-            <div className="grid grid-cols-4 gap-1">
-              {(
-                [
-                  ["calories", "ккал"],
-                  ["protein", "Б"],
-                  ["fat", "Ж"],
-                  ["carbs", "У"],
-                ] as const
-              ).map(([key, label]) => (
-                <label key={key} className="text-[9px] text-teal-900/80">
-                  {label}
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={d[key] ?? ""}
-                    disabled={busy || pending || !online}
-                    onChange={(e) => {
-                      const n = e.target.value === "" ? undefined : Number(e.target.value);
-                      updateDraft(i, {
-                        [key]: n != null && Number.isFinite(n) ? n : undefined,
-                      } as Partial<PhotoDraft>);
-                    }}
-                    className="mt-0.5 w-full rounded border border-teal-200 bg-white px-1 py-0.5 text-[11px]"
-                  />
-                </label>
-              ))}
+      <p className="confirm-family-skim">
+        День {date} · проверь и подтверди — пока не в дневнике
+      </p>
+      <div className="space-y-2.5">
+        {drafts.map((d, i) => {
+          const tone =
+            typeof d.confidence === "number"
+              ? getConfidenceTone(d.confidence, DEFAULT_LOW_CONFIDENCE)
+              : null;
+          return (
+            <div key={`${d.dishName}-${i}`} className="confirm-family-dish">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <input
+                  type="text"
+                  value={d.dishName}
+                  disabled={busy || pending || !online}
+                  onChange={(e) => updateDraft(i, { dishName: e.target.value })}
+                  className="confirm-family-input min-w-0 flex-1 font-semibold"
+                  aria-label="Название блюда"
+                />
+                {tone && d.confidence != null ? (
+                  <span
+                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${confidenceToneClasses(tone)}`}
+                  >
+                    {formatConfidencePercent(d.confidence)}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-1.5 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                {(
+                  [
+                    ["calories", "ккал"],
+                    ["protein", "Б"],
+                    ["fat", "Ж"],
+                    ["carbs", "У"],
+                    ["fiber", "Клетч."],
+                    ["sugar", "Сахар"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="confirm-family-label">
+                    {label}
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={d[key] ?? ""}
+                      disabled={busy || pending || !online}
+                      onChange={(e) => {
+                        const n = e.target.value === "" ? undefined : Number(e.target.value);
+                        updateDraft(i, {
+                          [key]: n != null && Number.isFinite(n) ? n : undefined,
+                        } as Partial<PhotoDraft>);
+                      }}
+                      className="confirm-family-input"
+                    />
+                  </label>
+                ))}
+              </div>
+              <label className="confirm-family-label mt-1.5 inline-block">
+                Порция, г
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={d.portionGrams ?? ""}
+                  disabled={busy || pending || !online}
+                  onChange={(e) => {
+                    const n = e.target.value === "" ? undefined : Number(e.target.value);
+                    updateDraft(i, {
+                      portionGrams: n != null && Number.isFinite(n) ? n : undefined,
+                    });
+                  }}
+                  className="confirm-family-input w-24"
+                />
+              </label>
             </div>
-            <label className="block text-[9px] text-teal-900/80">
-              Порция, г
-              <input
-                type="number"
-                inputMode="numeric"
-                value={d.portionGrams ?? ""}
-                disabled={busy || pending || !online}
-                onChange={(e) => {
-                  const n = e.target.value === "" ? undefined : Number(e.target.value);
-                  updateDraft(i, {
-                    portionGrams: n != null && Number.isFinite(n) ? n : undefined,
-                  });
-                }}
-                className="mt-0.5 w-24 rounded border border-teal-200 bg-white px-1 py-0.5 text-[11px]"
-              />
-            </label>
-          </div>
-        ))}
+          );
+        })}
       </div>
-      <button
-        type="button"
-        disabled={busy || pending || !online}
-        className="rounded-md bg-teal-700 px-2 py-1 text-[10px] font-semibold text-white disabled:opacity-50"
-        onClick={() => void confirm()}
-      >
-        {pending ? "Пишу…" : "Добавить в рацион"}
-      </button>
+      <div className="confirm-family-actions">
+        <button
+          type="button"
+          disabled={busy || pending || !online}
+          className="confirm-family-cta"
+          onClick={() => void confirm()}
+        >
+          {pending ? "Пишу…" : "Добавить в рацион"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -407,16 +435,24 @@ function ActionCard({
   }
 
   return (
-    <div className="mt-1.5 space-y-1 rounded-lg border border-teal-200 bg-teal-50/80 px-2 py-1.5 text-[11px] leading-snug text-teal-950">
-      {actions.summary ? <p className="font-semibold">{actions.summary}</p> : null}
+    <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
+      <p className="confirm-family-skim">
+        День {date}
+        {alreadyApplied ? " · уже записано" : " · подтверди запись"}
+      </p>
+      {actions.summary ? (
+        <p className="mb-1.5 font-display text-[13px] font-semibold text-teal-950">
+          {actions.summary}
+        </p>
+      ) : null}
       {actions.meals?.length ? (
-        <ul className="space-y-0.5">
+        <ul className="confirm-family-dish space-y-1">
           {actions.meals.map((m) => (
             <li key={m.name}>
-              • {m.name}
+              <span className="font-semibold">{m.name}</span>
               {m.kcal != null ? ` — ${m.kcal} ккал` : ""}
               {m.protein != null || m.fat != null || m.carbs != null
-                ? ` (Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"})`
+                ? ` · Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"}`
                 : ""}
               {m.note ? ` · ${m.note}` : ""}
             </li>
@@ -424,22 +460,19 @@ function ActionCard({
         </ul>
       ) : null}
       {actions.workoutDays?.length ? (
-        <ul className="space-y-0.5">
+        <ul className="confirm-family-dish mt-1.5 space-y-1">
           {actions.workoutDays.map((w) => (
             <li key={`${w.day}-${w.focus}`}>
-              • {w.day}: {w.focus}
+              <span className="font-semibold">{w.day}</span>: {w.focus}
               {w.notes ? ` — ${w.notes}` : ""}
             </li>
           ))}
         </ul>
       ) : null}
-      <div className="flex flex-wrap gap-1.5 pt-0.5">
+      <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
           actions.workoutDays?.length ? (
-            <Link
-              href="/workouts"
-              className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900"
-            >
+            <Link href="/workouts" className="confirm-family-secondary">
               Открыть зал
             </Link>
           ) : null
@@ -448,7 +481,7 @@ function ActionCard({
             {actions.meals?.length ? (
               <button
                 type="button"
-                className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
+                className="confirm-family-cta"
                 disabled={busy === "meals" || !online}
                 onClick={() => void apply("meals")}
               >
@@ -459,16 +492,13 @@ function ActionCard({
               <>
                 <button
                   type="button"
-                  className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900 disabled:opacity-50"
+                  className="confirm-family-cta"
                   disabled={busy === "routine" || !online}
                   onClick={() => void apply("routine")}
                 >
                   {busy === "routine" ? "…" : "В план зала"}
                 </button>
-                <Link
-                  href="/workouts"
-                  className="rounded-md border border-teal-700/40 bg-white px-2 py-0.5 text-[10px] font-semibold text-teal-900"
-                >
+                <Link href="/workouts" className="confirm-family-secondary">
                   Зал
                 </Link>
               </>
