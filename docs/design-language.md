@@ -7,6 +7,7 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Shared plane wash: `--panel-wash` on day/gym/assistant scenes.
 - Display: Unbounded; body: Manrope. No Inter/Roboto/system stacks on hero text.
 - No purple/indigo themes, no glow stacks, no emoji decoration.
+- Accent on product UI: prefer `var(--accent)` / `--accent-soft` / `--accent-ink` / `--border-quiet` / `--on-ink` over Tailwind `teal-*` (Wave D2).
 
 ## Composition
 - One job per section; one composition in the first viewport (not a dashboard).

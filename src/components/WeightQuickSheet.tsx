@@ -241,7 +241,7 @@ export function WeightQuickSheet() {
             </div>
             <Link
               href={withBasePath("/weight")}
-              className="mt-2 inline-flex text-sm font-medium text-teal-800 underline-offset-2 hover:underline"
+              className="mt-2 inline-flex text-sm font-medium text-[var(--accent-ink)] underline-offset-2 hover:underline"
               onClick={close}
             >
               Открыть журнал веса
@@ -281,7 +281,7 @@ export function WeightQuickSheet() {
           ) : null}
 
           {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-          {doneMsg ? <p className="text-sm text-teal-700">{doneMsg}</p> : null}
+          {doneMsg ? <p className="text-sm text-[var(--accent)]">{doneMsg}</p> : null}
 
           {!pendingConflict ? (
             <button type="submit" className="btn btn-primary w-full" disabled={saving}>

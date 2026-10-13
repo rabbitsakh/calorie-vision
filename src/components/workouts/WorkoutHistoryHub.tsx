@@ -170,9 +170,9 @@ export function WorkoutHistoryHub({
                 type="button"
                 className={`relative rounded-lg py-1.5 text-sm tabular-nums ${
                   selected
-                    ? "bg-teal-700 font-semibold text-white"
+                    ? "bg-[var(--accent)] font-semibold text-white"
                     : count > 0
-                      ? "bg-teal-50 font-medium text-teal-900 hover:bg-teal-100"
+                      ? "bg-[var(--accent-soft)] font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
                       : "text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => onPickDay(day)}
@@ -181,7 +181,7 @@ export function WorkoutHistoryHub({
                 {count > 0 ? (
                   <span
                     className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                      selected ? "bg-white" : "bg-teal-600"
+                      selected ? "bg-white" : "bg-[var(--accent)]"
                     }`}
                   />
                 ) : null}
@@ -208,7 +208,7 @@ export function WorkoutHistoryHub({
               key={key}
               type="button"
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                filterPeriod === key ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                filterPeriod === key ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
               }`}
               onClick={() => onSetFilterPeriod(key)}
             >
@@ -218,7 +218,7 @@ export function WorkoutHistoryHub({
           <button
             type="button"
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-              filterCardio ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+              filterCardio ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
             }`}
             onClick={onToggleCardio}
           >
@@ -233,7 +233,7 @@ export function WorkoutHistoryHub({
                 key={g.key}
                 type="button"
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-[var(--surface-mist)] text-[var(--muted-strong)]"
+                  on ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-mist)] text-[var(--muted-strong)]"
                 }`}
                 onClick={() => onToggleGroup(g.key)}
               >
@@ -253,7 +253,7 @@ export function WorkoutHistoryHub({
             {formatWorkoutLoad(insights.weeklyTotal)}{" "}
             <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
             {formatWorkoutTrend(insights.weekTrendPct) ? (
-              <span className="ml-2 text-sm font-medium text-teal-800">
+              <span className="ml-2 text-sm font-medium text-[var(--accent-ink)]">
                 {formatWorkoutTrend(insights.weekTrendPct)} к пред.
               </span>
             ) : null}
@@ -262,7 +262,7 @@ export function WorkoutHistoryHub({
             <p className="text-sm tabular-nums text-[var(--muted-strong)]">
               Кардио {formatDistanceKm(insights.weeklyCardioKm!)} км
               {formatWorkoutTrend(insights.weekCardioTrendPct) ? (
-                <span className="ml-2 text-xs text-teal-800">
+                <span className="ml-2 text-xs text-[var(--accent-ink)]">
                   {formatWorkoutTrend(insights.weekCardioTrendPct)}
                 </span>
               ) : null}
@@ -290,7 +290,7 @@ export function WorkoutHistoryHub({
                 {formatWorkoutLoad(insights.monthlyTotal ?? 0)}{" "}
                 <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
                 {formatWorkoutTrend(insights.monthTrendPct) ? (
-                  <span className="ml-2 text-sm font-medium text-teal-800">
+                  <span className="ml-2 text-sm font-medium text-[var(--accent-ink)]">
                     {formatWorkoutTrend(insights.monthTrendPct)}
                   </span>
                 ) : null}
@@ -338,7 +338,7 @@ export function WorkoutHistoryHub({
               {" "}
               <button
                 type="button"
-                className="font-semibold text-teal-800"
+                className="font-semibold text-[var(--accent-ink)]"
                 onClick={() => onNewSession(filterDate)}
               >
                 Создать на {formatDateShort(filterDate)}
@@ -363,7 +363,7 @@ export function WorkoutHistoryHub({
                 <p className="font-semibold text-[var(--foreground)]">
                   {formatDateWords(s.date)}
                   {(s.prCount ?? 0) > 0 ? (
-                    <span className="ml-2 inline-flex rounded-md bg-teal-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-teal-900">
+                    <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
                       {s.prCount === 1 ? "1 PR" : `${s.prCount} PR`}
                     </span>
                   ) : null}
@@ -385,7 +385,7 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-teal-800 hover:bg-teal-50 disabled:opacity-40"
+              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--accent-ink)] hover:bg-[var(--accent-soft)] disabled:opacity-40"
               onClick={() => onRepeat(s.id)}
             >
               Повторить

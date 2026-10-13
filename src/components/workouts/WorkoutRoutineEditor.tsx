@@ -262,7 +262,7 @@ export function WorkoutRoutineEditor({
                 type="button"
                 onClick={() => toggleDay(day)}
                 className={`rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                  on ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {label}
@@ -283,7 +283,7 @@ export function WorkoutRoutineEditor({
                 type="button"
                 onClick={() => toggleGroup(g.key)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium ${
-                  on ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                  on ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {g.label}
@@ -299,11 +299,11 @@ export function WorkoutRoutineEditor({
           <div
             key={ex.key}
             className={`rounded-xl border p-3 ${
-              ex.supersetGroup ? "border-teal-300 bg-teal-50/40" : "border-[rgba(13,115,119,0.14)] bg-white"
+              ex.supersetGroup ? "border-[var(--accent)] bg-[var(--accent-soft)]/40" : "border-[rgba(13,115,119,0.14)] bg-white"
             }`}
           >
             {ex.supersetGroup ? (
-              <p className="mb-2 text-xs font-semibold text-teal-800">
+              <p className="mb-2 text-xs font-semibold text-[var(--accent-ink)]">
                 Суперсет {ex.supersetGroup}
               </p>
             ) : null}
@@ -332,7 +332,7 @@ export function WorkoutRoutineEditor({
                     })
                   }
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    ex.kind === k ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                    ex.kind === k ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                   }`}
                 >
                   {EXERCISE_KIND_LABELS[k]}
@@ -356,7 +356,7 @@ export function WorkoutRoutineEditor({
                     })
                   }
                   className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                    ex.blockMode === mode ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                    ex.blockMode === mode ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                   }`}
                 >
                   {BLOCK_MODE_LABELS[mode]}
@@ -430,7 +430,7 @@ export function WorkoutRoutineEditor({
               {idx > 0 ? (
                 <button
                   type="button"
-                  className="font-medium text-teal-800"
+                  className="font-medium text-[var(--accent-ink)]"
                   onClick={() => linkSuperset(idx)}
                 >
                   + Суперсет с предыдущим
@@ -457,7 +457,7 @@ export function WorkoutRoutineEditor({
         ))}
         <button
           type="button"
-          className="text-sm font-medium text-teal-800"
+          className="text-sm font-medium text-[var(--accent-ink)]"
           onClick={() => setExercises((prev) => [...prev, emptyEx()])}
         >
           + Упражнение

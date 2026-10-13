@@ -708,10 +708,10 @@ export function WorkoutActiveSession({
     </div>
 
     {detail.date === todayKey || detail.startedAt ? (
-      <section className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
+      <section className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/60 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
               Таймер тренировки
             </p>
             <p className="mt-1 text-3xl font-semibold tabular-nums text-[var(--foreground)]">
@@ -759,7 +759,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "finished" ? (
               <button
                 type="button"
-                className="rounded-lg border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900"
+                className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]"
                 onClick={() => setShowSummary(true)}
               >
                 Итог
@@ -777,7 +777,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "paused" ? (
               <button
                 type="button"
-                className="rounded-lg bg-teal-700 px-3 py-2 text-sm font-semibold text-white"
+                className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
                 onClick={() => void patchClock("resume")}
               >
                 Продолжить
@@ -852,7 +852,7 @@ export function WorkoutActiveSession({
               <span
                 className={
                   progress && (progress.deltaPctVsPrevious ?? 0) >= 0
-                    ? "text-teal-700"
+                    ? "text-[var(--accent)]"
                     : "text-[var(--muted-strong)]"
                 }
               >
@@ -953,14 +953,14 @@ export function WorkoutActiveSession({
           <section
             key={ex.id}
             className={`rounded-[var(--radius-lg)] border bg-white p-4 ${
-              ex.supersetGroup ? "border-teal-300" : "border-[var(--border-hairline)]"
+              ex.supersetGroup ? "border-[var(--accent)]" : "border-[var(--border-hairline)]"
             }`}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1">
                   {ex.supersetGroup ? (
-                    <span className="rounded bg-teal-700 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <span className="rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-bold text-white">
                       SS {ex.supersetGroup}
                     </span>
                   ) : null}
@@ -1004,9 +1004,9 @@ export function WorkoutActiveSession({
                         .filter(Boolean)
                         .join(" · ") || EXERCISE_KIND_LABELS[ex.kind]}
                 </p>
-                {hint ? <p className="mt-1 text-xs text-teal-800">{hint}</p> : null}
+                {hint ? <p className="mt-1 text-xs text-[var(--accent-ink)]">{hint}</p> : null}
                 {suggestedKg != null && spec.usesWeight ? (
-                  <p className="mt-1 text-xs font-medium text-teal-900">
+                  <p className="mt-1 text-xs font-medium text-[var(--accent-ink)]">
                     Цель подхода: {formatSuggestedKg(
                       progression?.suggestedKg ?? suggestedKg,
                     )}{" "}
@@ -1035,7 +1035,7 @@ export function WorkoutActiveSession({
                       type="button"
                       className={`rounded-full px-2 py-0.5 font-semibold ${
                         parseBlockMode(ex.blockMode) === mode
-                          ? "bg-teal-700 text-white"
+                          ? "bg-[var(--accent)] text-white"
                           : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                       }`}
                       onClick={() => void setExerciseBlockMode(ex.id, mode)}
@@ -1046,7 +1046,7 @@ export function WorkoutActiveSession({
                   {prevEx ? (
                     <button
                       type="button"
-                      className="font-medium text-teal-800"
+                      className="font-medium text-[var(--accent-ink)]"
                       onClick={() => void linkExerciseSuperset(ex.id, prevEx.id)}
                     >
                       + Суперсет с предыдущим
@@ -1064,7 +1064,7 @@ export function WorkoutActiveSession({
                 </div>
                 <button
                   type="button"
-                  className="mt-1 text-xs font-medium text-teal-800"
+                  className="mt-1 text-xs font-medium text-[var(--accent-ink)]"
                   onClick={() => void toggleExerciseHistory(ex.name, ex.kind)}
                 >
                   {historyOpen[ex.name] ? "Скрыть прогресс" : "Прогресс и PR"}
@@ -1088,7 +1088,7 @@ export function WorkoutActiveSession({
                 ) : (
                   <>
                     {historyByName[ex.name]!.prSummary ? (
-                      <p className="mb-2 font-semibold text-teal-900">
+                      <p className="mb-2 font-semibold text-[var(--accent-ink)]">
                         {historyByName[ex.name]!.prSummary}
                       </p>
                     ) : null}
@@ -1106,7 +1106,7 @@ export function WorkoutActiveSession({
                           type="button"
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                             historyByName[ex.name]!.metric === m
-                              ? "bg-teal-700 text-white"
+                              ? "bg-[var(--accent)] text-white"
                               : "bg-white text-[var(--muted-strong)]"
                           }`}
                           onClick={() =>
@@ -1170,7 +1170,7 @@ export function WorkoutActiveSession({
                       ))}
                     </ul>
                     {isCardio && historyByName[ex.name]!.bestPaceDeltaSec != null ? (
-                      <p className="mt-1 text-teal-800">
+                      <p className="mt-1 text-[var(--accent-ink)]">
                         Темп к прошлой:{" "}
                         {historyByName[ex.name]!.bestPaceDeltaSec! > 0 ? "+" : ""}
                         {formatPaceClock(Math.abs(historyByName[ex.name]!.bestPaceDeltaSec!))}
@@ -1181,7 +1181,7 @@ export function WorkoutActiveSession({
                     {!isCardio &&
                     spec.countsTowardLoad &&
                     historyByName[ex.name]!.topWeightDeltaKg != null ? (
-                      <p className="mt-1 text-teal-800">
+                      <p className="mt-1 text-[var(--accent-ink)]">
                         Топ-вес к прошлой:{" "}
                         {historyByName[ex.name]!.topWeightDeltaKg! > 0 ? "+" : ""}
                         {historyByName[ex.name]!.topWeightDeltaKg} кг
@@ -1248,7 +1248,7 @@ export function WorkoutActiveSession({
                   <button
                     key={`${ex.id}-last-${i}`}
                     type="button"
-                    className="rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-900"
+                    className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--accent-ink)]"
                     onClick={() => applyLastSet(ex.id, s, ex.kind)}
                   >
                     было {formatHistoryChip(s, ex.lastTime?.kind === "cardio" ? "cardio" : ex.kind)}
@@ -1359,7 +1359,7 @@ export function WorkoutActiveSession({
                 {suggestedKg != null && spec.usesWeight ? (
                   <button
                     type="button"
-                    className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-2 text-xs font-semibold text-teal-900"
+                    className="rounded-lg border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-2 py-2 text-xs font-semibold text-[var(--accent-ink)]"
                     onClick={() =>
                       patchDraft(ex.id, { kg: formatSuggestedKg(suggestedKg) })
                     }
@@ -1406,7 +1406,7 @@ export function WorkoutActiveSession({
           <button
             key={s.name}
             type="button"
-            className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted-strong)] hover:bg-teal-50 hover:text-teal-900"
+            className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted-strong)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)]"
             onClick={() => void addExercise(s.name)}
           >
             {s.name}
@@ -1424,7 +1424,7 @@ export function WorkoutActiveSession({
             onClick={() => setNewExerciseKind(key)}
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
               newExerciseKind === key
-                ? "bg-teal-700 text-white"
+                ? "bg-[var(--accent)] text-white"
                 : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
             }`}
           >
@@ -1462,7 +1462,7 @@ export function WorkoutActiveSession({
               <li key={hit.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-teal-50"
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)]"
                   onClick={() => {
                     setNewExerciseKind(hit.kind);
                     void addExercise(hit.name, hit.kind);

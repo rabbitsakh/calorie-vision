@@ -924,7 +924,7 @@ export function ConfirmationCard({
 
         {/* Soft status only while enriching — keeps skim free of trust wall. */}
         {enriching ? (
-          <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-950">
+          <p className="rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]">
             {totalCalories > 0
               ? `${totalCalories} ккал — можно сохранить`
               : "Уточняем по базе — можно сохранить"}
