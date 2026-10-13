@@ -536,7 +536,7 @@ export function WorkoutActiveSession({
 
   return (
   <div
-    className={`flex flex-col gap-4 ${
+    className={`gym-session-scene ${
       restEndsAt && !stageOpen ? "pt-24" : ""
     }`}
   >
@@ -708,7 +708,7 @@ export function WorkoutActiveSession({
     </div>
 
     {detail.date === todayKey || detail.startedAt ? (
-      <section className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/60 p-4">
+      <section className="gym-plane border-[var(--border-quiet)] bg-[var(--accent-soft)]/60">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
@@ -825,7 +825,7 @@ export function WorkoutActiveSession({
       </div>
     ) : null}
 
-    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+    <section className="gym-plane">
       {detail.cardioOnly ? (
         <>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -867,7 +867,7 @@ export function WorkoutActiveSession({
       )}
     </section>
 
-    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+    <section className="gym-plane">
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Заметка к тренировке
         <input
@@ -952,8 +952,8 @@ export function WorkoutActiveSession({
         return (
           <section
             key={ex.id}
-            className={`rounded-[var(--radius-lg)] border bg-white p-4 ${
-              ex.supersetGroup ? "border-[var(--accent)]" : "border-[var(--border-hairline)]"
+            className={`gym-plane ${
+              ex.supersetGroup ? "!border-[var(--accent)]" : ""
             }`}
           >
             <div className="flex items-start justify-between gap-2">
@@ -1480,7 +1480,7 @@ export function WorkoutActiveSession({
       </div>
     </div>
 
-    <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+    <section className="gym-plane">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
         Вставить текстом
       </p>

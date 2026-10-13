@@ -110,7 +110,7 @@ export function WorkoutHistoryHub({
   onSaveAsRoutine,
 }: Props) {
   return (
-    <>
+    <div className="gym-hub-scene">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-[var(--muted-strong)]">
           Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
@@ -124,7 +124,7 @@ export function WorkoutHistoryHub({
         </button>
       </div>
 
-      <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+      <section className="gym-plane">
         <div className="mb-2 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -191,7 +191,7 @@ export function WorkoutHistoryHub({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3">
+      <section className="gym-plane !p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Фильтр списка
         </p>
@@ -245,7 +245,7 @@ export function WorkoutHistoryHub({
       </section>
 
       {insights ? (
-        <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+        <section className="gym-plane">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
             Неделя {formatDateShort(insights.weekStart)}–{formatDateShort(insights.weekEnd)}
           </p>
@@ -352,7 +352,7 @@ export function WorkoutHistoryHub({
         {sessions.map((s) => (
           <li
             key={s.id}
-            className="flex items-stretch gap-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white"
+            className="gym-plane flex items-stretch gap-2 !p-0 overflow-hidden"
           >
             <button
               type="button"
@@ -404,6 +404,6 @@ export function WorkoutHistoryHub({
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

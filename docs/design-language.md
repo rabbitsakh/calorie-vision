@@ -5,6 +5,7 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Brand & surface
 - Cream surfaces (`--background`, `--surface-*`), teal accent (`--accent` / `#0d7377`).
 - Shared plane wash: `--panel-wash` on day/gym/assistant scenes.
+- Gym depth (Wave D4): `.gym-day` / `.gym-session-scene` / `.gym-hub-scene` as one atmospheric plane; nested blocks use `.gym-plane` (hairline, no card cascade).
 - Display: Unbounded; body: Manrope. No Inter/Roboto/system stacks on hero text.
 - No purple/indigo themes, no glow stacks, no emoji decoration.
 - Accent on product UI: prefer `var(--accent)` / `--accent-soft` / `--accent-ink` / `--border-quiet` / `--on-ink` over Tailwind `teal-*` (Wave D2).
