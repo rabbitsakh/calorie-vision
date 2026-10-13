@@ -23,6 +23,7 @@ import {
 } from "@/lib/assistant-chat-ux";
 import type { AssistantPrefs } from "@/lib/assistant-prefs";
 import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
+import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 
@@ -175,22 +176,6 @@ function parseSseChunk(buffer: string): { events: Array<{ event: string; data: s
   return { events, rest };
 }
 
-function fileToBase64(file: File): Promise<{ base64: string; mime: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = String(reader.result || "");
-      const m = /^data:([^;]+);base64,(.+)$/.exec(result);
-      if (!m) {
-        reject(new Error("Не удалось прочитать фото"));
-        return;
-      }
-      resolve({ mime: m[1]!, base64: m[2]! });
-    };
-    reader.onerror = () => reject(new Error("Не удалось прочитать фото"));
-    reader.readAsDataURL(file);
-  });
-}
 
 function lastUserContentBefore(turns: ChatTurn[], assistantId: string): string | null {
   const idx = turns.findIndex((t) => t.id === assistantId);
@@ -246,6 +231,13 @@ function PhotoConfirm({
     (data.drafts ?? []).map((d) => ({ ...d })),
   );
 
+  if (!tool.ok) {
+    return (
+      <p className="mt-1.5 rounded-md bg-rose-50 px-1.5 py-1 text-[10px] font-medium text-rose-900">
+        {tool.message || "Не удалось разобрать фото"}
+      </p>
+    );
+  }
   if (!data.pending || !data.imagePath || !data.drafts?.length) return null;
 
   function updateDraft(index: number, patch: Partial<PhotoDraft>) {
@@ -720,17 +712,18 @@ export function AssistantChat() {
 
     setError(null);
     setDraft("");
-    setStatus(null);
+    setStatus(hasPhoto ? "Готовлю фото…" : null);
 
     let imageBase64: string | undefined;
     let imageMime: string | undefined;
     const preview: string | null = photoPreview;
     if (photo) {
       try {
-        const encoded = await fileToBase64(photo);
+        const encoded = await prepareAssistantImage(photo);
         imageBase64 = encoded.base64;
         imageMime = encoded.mime;
       } catch (err) {
+        setStatus(null);
         setError(err instanceof Error ? err.message : "Фото не прочиталось");
         return;
       }
@@ -746,6 +739,9 @@ export function AssistantChat() {
     setTurns(nextTurns);
     clearPhoto();
     setBusy(true);
+    if (imageBase64) {
+      setStatus("Смотрю фото — сейчас покажу, что увидел…");
+    }
 
     const history = nextTurns
       .filter((t) => t.id !== "welcome")
@@ -816,6 +812,7 @@ export function AssistantChat() {
       const decoder = new TextDecoder();
       let buf = "";
       let acc = "";
+      let sawDone = false;
       const liveTools: ToolResult[] = [];
       while (true) {
         const { done, value } = await reader.read();
@@ -856,6 +853,7 @@ export function AssistantChat() {
             if (json.prefs) setPrefs(json.prefs as AssistantPrefs);
           }
           if (ev.event === "done") {
+            sawDone = true;
             if (json.snapshot) setSnapshot(json.snapshot as AssistantContextSnapshot);
             if (json.prefs) setPrefs(json.prefs as AssistantPrefs);
             const undo = (json.undo as UndoPayload | undefined) ?? null;
@@ -880,6 +878,26 @@ export function AssistantChat() {
             throw new Error(String(json.error || "Ошибка стрима"));
           }
         }
+      }
+      if (!sawDone && !acc.trim() && liveTools.length === 0) {
+        throw new Error(
+          imageBase64
+            ? "Распознавание фото прервалось. Попробуй ещё раз — лучше при хорошей связи."
+            : "Ответ ассистента прервался. Попробуй ещё раз.",
+        );
+      }
+      if (!sawDone && liveTools.length > 0) {
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === assistantId
+              ? {
+                  ...t,
+                  content: acc.trim() || t.content || "Распознал фото — подтверди ниже.",
+                  tools: liveTools,
+                }
+              : t,
+          ),
+        );
       }
       void refreshSnapshot(date);
     } catch (err) {
@@ -1040,7 +1058,7 @@ export function AssistantChat() {
               ),
           );
           const photoPreviewTool = turn.tools?.find(
-            (t) => t.tool === "recognize_meal_preview" && t.ok,
+            (t) => t.tool === "recognize_meal_preview",
           );
           const prevUser = lastUserContentBefore(turns, turn.id) || "";
           const offerRetry =
@@ -1171,7 +1189,7 @@ export function AssistantChat() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photoPreview} alt="Превью" className="h-10 w-10 rounded-md object-cover" />
           <span className="flex-1 text-[11px] text-[var(--muted-strong)]">
-            Сначала распознаю — потом подтвердишь запись
+            Нажми → — распознаю и покажу карточку для подтверждения
           </span>
           <button
             type="button"

@@ -105,8 +105,19 @@ export async function POST(request: NextRequest) {
     const toolResults: AssistantToolResult[] = [];
     const lastUser = messages[messages.length - 1]?.content ?? "";
 
+    const imageRaw =
+      typeof body.imageBase64 === "string" && body.imageBase64.trim()
+        ? body.imageBase64
+        : null;
     const image = decodeImageBase64(body.imageBase64, body.imageMime);
-    if (image) {
+    if (imageRaw && !image) {
+      toolResults.push({
+        ok: false,
+        tool: "recognize_meal_preview",
+        message:
+          "Фото не удалось прочитать (слишком большое или битое). Попробуй ещё раз.",
+      });
+    } else if (image) {
       const savePhoto =
         body.savePhoto === true || (body.savePhoto !== false && userWantsWrite(lastUser));
       const photoResult = await toolRecognizeAndSaveMeal({
