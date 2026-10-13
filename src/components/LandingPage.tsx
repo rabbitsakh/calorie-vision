@@ -84,8 +84,8 @@ function HeroAtmosphere() {
         <defs>
           <linearGradient id="lpPlate" x1="180" y1="120" x2="720" y2="560" gradientUnits="userSpaceOnUse">
             <stop stopColor="#dff7ef" />
-            <stop offset="0.55" stopColor="#5ec4b0" />
-            <stop offset="1" stopColor="#0b5f57" />
+            <stop offset="0.55" stopColor="var(--landing-accent, #0d7377)" />
+            <stop offset="1" stopColor="var(--landing-deep, #0f5c5e)" />
           </linearGradient>
           <linearGradient id="lpFood" x1="320" y1="220" x2="560" y2="420" gradientUnits="userSpaceOnUse">
             <stop stopColor="#ffe8c7" />
@@ -99,7 +99,7 @@ function HeroAtmosphere() {
             <feGaussianBlur stdDeviation="8" />
           </filter>
         </defs>
-        <ellipse cx="450" cy="560" rx="310" ry="48" fill="#0b5f57" opacity="0.16" />
+        <ellipse cx="450" cy="560" rx="310" ry="48" fill="var(--landing-deep, #0f5c5e)" opacity="0.16" />
         <ellipse cx="450" cy="340" rx="250" ry="180" fill="url(#lpPlate)" />
         <ellipse cx="450" cy="340" rx="198" ry="140" fill="#f7fffc" opacity="0.42" />
         <ellipse cx="420" cy="318" rx="108" ry="82" fill="url(#lpFood)" opacity="0.95" />

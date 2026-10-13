@@ -4,6 +4,7 @@ import {
   formatAssistantPrefsBlock,
   mergeAssistantPrefs,
   parseAssistantPrefs,
+  summarizeAssistantPrefsForHeader,
 } from "./assistant-prefs.ts";
 
 test("parseAssistantPrefs clips and dedupes", () => {
@@ -23,4 +24,16 @@ test("merge + format", () => {
   });
   assert.deepEqual(merged.dislikes, ["B"]);
   assert.match(formatAssistantPrefsBlock(merged), /Не предлагает: B/);
+});
+
+test("summarizeAssistantPrefsForHeader honest + empty", () => {
+  assert.equal(
+    summarizeAssistantPrefsForHeader(parseAssistantPrefs({})),
+    null,
+  );
+  const s = summarizeAssistantPrefsForHeader(
+    parseAssistantPrefs({ dislikes: ["творог"], likes: ["курица"] }),
+  );
+  assert.match(s ?? "", /не предлагаю: творог/);
+  assert.match(s ?? "", /ок: курица/);
 });

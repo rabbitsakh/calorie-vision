@@ -67,3 +67,24 @@ export function formatAssistantPrefsBlock(prefs: AssistantPrefs): string {
   if (prefs.notes.length) lines.push(`Заметки: ${prefs.notes.join("; ")}`);
   return lines.join("\n");
 }
+
+/** Wave A5 — short honest chip for assistant header (no filler if empty). */
+export function summarizeAssistantPrefsForHeader(
+  prefs: AssistantPrefs,
+  maxLen = 72,
+): string | null {
+  const parts: string[] = [];
+  if (prefs.dislikes.length) {
+    parts.push(`не предлагаю: ${prefs.dislikes.slice(0, 3).join(", ")}`);
+  }
+  if (prefs.likes.length) {
+    parts.push(`ок: ${prefs.likes.slice(0, 2).join(", ")}`);
+  }
+  if (prefs.notes.length && parts.length < 2) {
+    parts.push(prefs.notes[0]!);
+  }
+  if (parts.length === 0) return null;
+  const joined = parts.join(" · ");
+  if (joined.length <= maxLen) return joined;
+  return `${joined.slice(0, maxLen - 1)}…`;
+}

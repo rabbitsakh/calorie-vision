@@ -21,3 +21,10 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Same visual language as ration/gym (`assistant-scene`), not an admin chat denseness.
 - Never claim a diary write without a tool/confirm card.
 - Photo + text apply cards use `.confirm-family` (hero → skim → facts → sticky CTA), same family as `ConfirmationCard`.
+- Day voice: at most **one** soft next step from snapshot (morning/evening); no LLM inventing todos.
+- Memory chip shows only saved prefs («не предлагаю» / likes) — empty means empty, never filler.
+- Offline: glass banner; chat blocked; already-recognized confirms may queue apply (no LLM offline).
+
+## Motion & brand
+- Prefer existing `ration-scene-in` / `meal-row-in` / day-voice / apply-flash — not decorative noise.
+- Landing accents alias product `--accent` (C5) so install → app is one teal family.
