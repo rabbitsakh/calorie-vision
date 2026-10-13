@@ -20,3 +20,4 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Assistant
 - Same visual language as ration/gym (`assistant-scene`), not an admin chat denseness.
 - Never claim a diary write without a tool/confirm card.
+- Photo + text apply cards use `.confirm-family` (hero → skim → facts → sticky CTA), same family as `ConfirmationCard`.
