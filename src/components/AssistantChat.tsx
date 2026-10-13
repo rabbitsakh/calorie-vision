@@ -288,7 +288,7 @@ function PhotoConfirm({
     <div className="confirm-family mt-2">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={getImageUrl(data.imagePath, { w: 480 })}
+        src={getImageUrl(data.imagePath, { w: 256 })}
         alt="Распознанное фото"
         className="confirm-family-hero"
       />
