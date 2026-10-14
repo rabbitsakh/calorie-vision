@@ -31,3 +31,4 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Motion & brand
 - Prefer existing `ration-scene-in` / `meal-row-in` / day-voice / apply-flash — not decorative noise.
 - Landing accents alias product `--accent` (C5) so install → app is one teal family.
+- Boot chrome (Wave D5): `AppSplash` wordmark is Unbounded hero on accent-token stage; tip swap + ready beat; AuthGate → product uses `.boot-enter`; skeletons fade with the same language.

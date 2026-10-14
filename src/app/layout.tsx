@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   // at runtime (see CapacitorNativeViewport) so focus on portion/set fields
   // never auto-zooms inside the APK WebView.
   viewportFit: "cover",
-  themeColor: "#0f766e",
+  themeColor: "#0d7377",
 };
 
 export default function RootLayout({

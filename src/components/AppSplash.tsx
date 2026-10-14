@@ -34,6 +34,8 @@ type AppSplashProps = {
  *
  * Fullscreen mode is portaled to <html>: `.cv-app-frame` is position:fixed
  * and would otherwise clip fixed overlays so the tab bar showed through.
+ *
+ * Wave D5 — Unbounded wordmark hero, accent-token stage, tip/ready motion.
  */
 export function AppSplash({
   tip,
@@ -93,14 +95,12 @@ export function AppSplash({
 
   const inner = (
     <div className="app-splash-inner relative z-10 flex w-full max-w-sm flex-col items-center px-6 text-center">
-      <div className="app-splash-brand flex items-center gap-2.5">
-        <BrandMark size={64} />
-        <span className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-teal-50">
-          Calorie Vision
-        </span>
+      <div className="app-splash-brand flex flex-col items-center gap-3">
+        <BrandMark size={72} />
+        <span className="app-splash-wordmark">Calorie Vision</span>
       </div>
 
-      <div className="app-splash-mascot relative mt-9" key={`${pose}-${skin}`}>
+      <div className="app-splash-mascot relative mt-8" key={`${pose}-${skin}`}>
         <span className="app-splash-mascot-glow" aria-hidden />
         <LiveMascot
           pose={pose}
@@ -120,8 +120,8 @@ export function AppSplash({
         {localTip}
       </p>
       <p
-        className={`mt-3 text-xs font-semibold uppercase tracking-wide transition-colors duration-300 ${
-          phase === "ready" ? "text-emerald-200" : "text-teal-100/85"
+        className={`app-splash-status mt-3 text-xs font-semibold uppercase ${
+          phase === "ready" ? "app-splash-status--ready" : "text-[var(--on-ink)]/80"
         }`}
       >
         {statusLabel}
@@ -139,7 +139,7 @@ export function AppSplash({
 
   if (!fullscreen) {
     return (
-      <div className="app-splash app-splash-inline relative flex justify-center overflow-hidden rounded-2xl bg-gradient-to-b from-teal-700 via-teal-800 to-teal-950 py-12">
+      <div className="app-splash app-splash-inline relative flex justify-center overflow-hidden rounded-2xl py-12">
         <div className="app-splash-atmosphere" aria-hidden />
         {inner}
       </div>
@@ -148,7 +148,7 @@ export function AppSplash({
 
   const overlay = (
     <div
-      className="app-splash app-splash-full fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-gradient-to-b from-teal-600 via-teal-800 to-teal-950"
+      className="app-splash app-splash-full fixed inset-0 z-[90] flex items-center justify-center overflow-hidden"
       role="status"
       aria-live="polite"
       aria-busy={!ready}

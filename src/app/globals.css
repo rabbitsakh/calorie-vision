@@ -1988,7 +1988,19 @@ select {
   color: #0f172a;
 }
 
-/* App splash (session / day bootstrap) */
+/* App splash (session / day bootstrap) — Wave D5 type + motion */
+.app-splash {
+  background:
+    linear-gradient(
+      165deg,
+      var(--accent-hover) 0%,
+      var(--accent) 42%,
+      var(--accent-ink) 78%,
+      #083d40 100%
+    );
+  color: var(--on-ink);
+}
+
 .app-splash-atmosphere {
   pointer-events: none;
   position: absolute;
@@ -2003,6 +2015,16 @@ select {
 
 .app-splash-brand {
   animation: app-splash-fade-up 0.55s ease-out both;
+}
+
+.app-splash-wordmark {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--on-ink);
 }
 
 .app-splash-mascot {
@@ -2028,7 +2050,19 @@ select {
 }
 
 .app-splash-tip {
-  animation: app-splash-fade-up 0.55s ease-out both;
+  font-family: var(--font-body), sans-serif;
+  animation: app-splash-tip-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-splash-status {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  letter-spacing: 0.08em;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.app-splash-status--ready {
+  color: #a7f3d0;
+  animation: app-splash-ready-beat 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-splash-bar-fill {
@@ -2037,6 +2071,16 @@ select {
 
 .app-splash-bar-done {
   animation: none;
+}
+
+/* Boot → first product paint */
+.boot-enter {
+  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scene-skeleton,
+.scene-skeleton-inline {
+  animation: app-splash-fade-up 0.35s ease-out both;
 }
 
 @keyframes app-splash-atmosphere-drift {
@@ -2068,6 +2112,32 @@ select {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes app-splash-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes app-splash-ready-beat {
+  0% {
+    opacity: 0.55;
+    transform: translateY(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -2927,7 +2997,11 @@ select {
   .app-splash-mascot-glow,
   .app-splash-atmosphere,
   .app-splash-tip,
+  .app-splash-status--ready,
   .app-splash-bar-fill,
+  .boot-enter,
+  .scene-skeleton,
+  .scene-skeleton-inline,
   .day-hero,
   .day-hero-mascot,
   .day-hero-ring,
@@ -2937,6 +3011,9 @@ select {
   .ration-empty-day,
   .stats-page-scene,
   .confirm-card-section,
+  .gym-day,
+  .gym-session-scene,
+  .gym-hub-scene,
   .gym-live-pulse::before {
     animation: none;
   }
