@@ -92,6 +92,13 @@ export function WorkoutSessionSummary({
               adviceKind: t.adviceKind,
               line: t.line,
               suggestedKg: t.suggestedKg,
+              basisKg: t.basisKg,
+              primaryLever: t.primaryLever,
+              options: t.options.map((o) => ({
+                lever: o.lever,
+                label: o.label,
+                line: o.line,
+              })),
             })),
           }),
         });
@@ -186,24 +193,56 @@ export function WorkoutSessionSummary({
 
       {targets.length > 0 ? (
         <section
-          className="mt-5 rounded-2xl border border-teal-400/25 bg-teal-500/10 px-3.5 py-3"
+          className="mt-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3.5 py-3"
           aria-label={nextTargets?.title ?? "Следующий раз"}
         >
-          <p className="text-xs font-semibold uppercase tracking-widest text-teal-200/90">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--on-ink)]/80">
             {nextTargets?.title ?? "Следующий раз"}
           </p>
-          <ul className="mt-2 space-y-1.5">
+          <p className="mt-1 text-[11px] leading-snug text-white/55">
+            От макс. рабочего веса (без дроп-сетов). Выберите один рычаг.
+          </p>
+          <ul className="mt-2.5 space-y-3">
             {targets.map((t) => (
-              <li
-                key={t.line}
-                className="text-sm font-medium leading-snug text-white/90"
-              >
-                {t.line}
+              <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
+                <p className="font-semibold">
+                  {t.name}
+                  {t.basisKg != null && t.basisKg > 0 ? (
+                    <span className="ml-1.5 font-medium text-white/50">
+                      макс {Number.isInteger(t.basisKg) ? t.basisKg : t.basisKg} кг
+                    </span>
+                  ) : null}
+                </p>
+                {t.options.length > 0 ? (
+                  <ul className="mt-1.5 space-y-1">
+                    {t.options.map((opt) => {
+                      const primary = opt.lever === t.primaryLever;
+                      return (
+                        <li
+                          key={opt.lever}
+                          className={`flex gap-2 text-[13px] ${
+                            primary ? "font-semibold text-white" : "text-white/70"
+                          }`}
+                        >
+                          <span className="w-16 shrink-0 text-white/45">{opt.label}</span>
+                          <span>{opt.line}</span>
+                          {primary ? (
+                            <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
+                              фокус
+                            </span>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-[13px] text-white/75">{t.line}</p>
+                )}
               </li>
             ))}
           </ul>
           {tip ? (
-            <p className="mt-2.5 text-xs leading-relaxed text-teal-100/80">{tip}</p>
+            <p className="mt-3 text-xs leading-relaxed text-white/65">{tip}</p>
           ) : null}
         </section>
       ) : null}
