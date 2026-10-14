@@ -37,6 +37,8 @@ export type NextSessionTarget = {
   suggestedKg: number | null;
   basisKg: number | null;
   primaryLever: ProgressionLever | null;
+  /** True when primary came from saved user choice (G1). */
+  leverRemembered?: boolean;
   options: ProgressionOption[];
 };
 
@@ -99,30 +101,44 @@ function adviceForExercise(
 function toTarget(
   ex: NextSessionTargetInput,
   advice: ProgressionAdvice,
+  preferredLever?: ProgressionLever | null,
 ): NextSessionTarget {
   const isCardio = ex.kind === "cardio";
+  const options = isCardio ? [] : advice.options ?? [];
+  let primaryLever = advice.primaryLever ?? null;
+  let leverRemembered = false;
+  if (preferredLever && options.some((o) => o.lever === preferredLever)) {
+    primaryLever = preferredLever;
+    leverRemembered = true;
+  }
+  const withPrimary: ProgressionAdvice = { ...advice, primaryLever: primaryLever ?? undefined };
+  const primaryOpt =
+    options.find((o) => o.lever === primaryLever) ?? options[0] ?? null;
   return {
     name: ex.name,
     adviceKind: advice.kind,
     title: advice.title,
     line: isCardio
       ? formatCardioLine(ex.name, advice)
-      : formatStrengthLine(ex.name, advice),
-    suggestedKg: advice.suggestedKg,
+      : formatStrengthLine(ex.name, withPrimary),
+    suggestedKg: primaryOpt?.suggestedKg ?? advice.suggestedKg,
     basisKg: advice.basisKg ?? ex.lastWorkingKg,
-    primaryLever: advice.primaryLever ?? null,
-    options: isCardio ? [] : advice.options ?? [],
+    primaryLever,
+    leverRemembered,
+    options,
   };
 }
 
 /**
  * Pick up to `max` exercises with actionable next-session lines.
  * Prefers completed work by load, then completed set count.
+ * `preferredLevers` (G1) overrides rule primary when the lever exists in options.
  */
 export function buildNextSessionTargets(
   exercises: readonly NextSessionTargetInput[],
   progressRate: number,
   max = 3,
+  preferredLevers?: Readonly<Record<string, ProgressionLever | null | undefined>>,
 ): NextSessionTargetsCard {
   const ranked = [...exercises]
     .filter((ex) => ex.completedCount > 0 || ex.load > 0)
@@ -136,13 +152,15 @@ export function buildNextSessionTargets(
   for (const ex of ranked) {
     if (targets.length >= max) break;
     const advice = adviceForExercise(ex, progressRate);
+    const prefKey = ex.name.trim().toLowerCase().replace(/\s+/g, " ");
+    const preferred = preferredLevers?.[prefKey] ?? preferredLevers?.[ex.name] ?? null;
     if (advice.kind === "base" && advice.suggestedKg == null) {
       if (ranked.length === 1 || targets.length === 0) {
-        targets.push(toTarget(ex, advice));
+        targets.push(toTarget(ex, advice, preferred));
       }
       continue;
     }
-    targets.push(toTarget(ex, advice));
+    targets.push(toTarget(ex, advice, preferred));
   }
 
   return {

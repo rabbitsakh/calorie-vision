@@ -12,9 +12,10 @@ test("buildNextSessionTargets suggests kg bump for top load exercise", () => {
         name: "Жим",
         kind: "barbell",
         lastWorkingKg: 80,
+        lastWorkingReps: 8,
         points: [
           { date: "a", topWeightKg: 77.5, topReps: 5, totalLoad: 400 },
-          { date: "b", topWeightKg: 80, topReps: 5, totalLoad: 400 },
+          { date: "b", topWeightKg: 80, topReps: 8, totalLoad: 400 },
         ],
         load: 2000,
         completedCount: 3,
@@ -104,6 +105,32 @@ test("buildNextSessionTargets skips empty unfinished exercises", () => {
     0.05,
   );
   assert.equal(card.targets.length, 0);
+});
+
+test("buildNextSessionTargets preferredLevers overrides primary", () => {
+  const card = buildNextSessionTargets(
+    [
+      {
+        name: "Жим",
+        kind: "barbell",
+        lastWorkingKg: 80,
+        lastWorkingReps: 5,
+        points: [
+          { date: "a", topWeightKg: 77.5, topReps: 5, totalLoad: 400 },
+          { date: "b", topWeightKg: 80, topReps: 5, totalLoad: 400 },
+        ],
+        load: 2000,
+        completedCount: 3,
+      },
+    ],
+    0.05,
+    3,
+    { "жим": "volume" },
+  );
+  assert.equal(card.targets[0]!.primaryLever, "volume");
+  assert.equal(card.targets[0]!.leverRemembered, true);
+  assert.equal(card.targets[0]!.suggestedKg, 80);
+  assert.match(card.targets[0]!.line, /Тоннаж|подход/i);
 });
 
 test("ruleNextSessionTip highlights stall", () => {

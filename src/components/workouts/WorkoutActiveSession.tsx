@@ -41,6 +41,10 @@ import {
   formatSuggestedKg,
 } from "@/lib/workouts/suggested-load";
 import { buildNextSessionTargets } from "@/lib/workouts/next-session-targets";
+import {
+  adviceWithPreferredLever,
+  collectPreferredLevers,
+} from "@/lib/workouts/progression-lever-memory";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
   WorkoutRestTimerBanner,
@@ -502,6 +506,9 @@ export function WorkoutActiveSession({
     };
   });
 
+  const preferredLevers = collectPreferredLevers(
+    detail.exercises.map((ex) => ex.name),
+  );
   const nextTargets = buildNextSessionTargets(
     detail.exercises.map((ex) => {
       const hist = historyByName[ex.name];
@@ -541,6 +548,7 @@ export function WorkoutActiveSession({
     }),
     detail.progressRate,
     3,
+    preferredLevers,
   );
 
   return (
@@ -957,6 +965,12 @@ export function WorkoutActiveSession({
                 lastKg,
               )
             : null;
+        const preferred = !isCardio && progression
+          ? adviceWithPreferredLever(progression, ex.name)
+          : null;
+        const goalKg =
+          preferred?.suggestedKg ?? progression?.suggestedKg ?? suggestedKg;
+        const goalOpt = preferred?.option ?? null;
         const prevEx = detail.exercises[exIndex - 1];
         return (
           <section
@@ -1014,16 +1028,20 @@ export function WorkoutActiveSession({
                         .join(" · ") || EXERCISE_KIND_LABELS[ex.kind]}
                 </p>
                 {hint ? <p className="mt-1 text-xs text-[var(--accent-ink)]">{hint}</p> : null}
-                {suggestedKg != null && spec.usesWeight ? (
+                {goalKg != null && spec.usesWeight ? (
                   <p className="mt-1 text-xs font-medium text-[var(--accent-ink)]">
-                    Цель подхода: {formatSuggestedKg(
-                      progression?.suggestedKg ?? suggestedKg,
-                    )}{" "}
-                    кг
-                    {lastKg != null ? ` · было ${formatSuggestedKg(lastKg)}` : ""}
-                    {progression?.kind === "stall"
+                    Цель
+                    {goalOpt ? ` · ${goalOpt.label}` : ""}
+                    {preferred?.leverRemembered ? " (ваш рычаг)" : ""}
+                    :{" "}
+                    {goalOpt?.line ??
+                      `${formatSuggestedKg(goalKg)} кг`}
+                    {lastKg != null ? ` · макс ${formatSuggestedKg(lastKg)}` : ""}
+                    {progression?.kind === "stall" && !goalOpt
                       ? " · deload"
-                      : ` (+${Math.round(detail.progressRate * 1000) / 10}%)`}
+                      : !goalOpt
+                        ? ` (+${Math.round(detail.progressRate * 1000) / 10}%)`
+                        : ""}
                   </p>
                 ) : null}
                 {progression && (progression.kind === "stall" || isCardio) ? (

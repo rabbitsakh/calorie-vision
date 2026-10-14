@@ -11,6 +11,11 @@ import {
   ruleNextSessionTip,
   type NextSessionTargetsCard,
 } from "@/lib/workouts/next-session-targets";
+import {
+  getLeverMemory,
+  setLeverMemory,
+} from "@/lib/workouts/progression-lever-memory";
+import type { ProgressionLever } from "@/lib/workouts/progression";
 
 type Props = {
   date: string;
@@ -31,6 +36,23 @@ type Props = {
   /** Primary CTA after finish — default list; ration is preferred post-gym flow. */
   onGoToRation?: () => void;
 };
+
+function initialChosen(
+  targets: NextSessionTargetsCard["targets"],
+): Record<string, ProgressionLever> {
+  const out: Record<string, ProgressionLever> = {};
+  for (const t of targets) {
+    if (t.options.length === 0) continue;
+    const mem = getLeverMemory(t.name)?.lever;
+    const pick =
+      (mem && t.options.some((o) => o.lever === mem) ? mem : null) ??
+      t.primaryLever ??
+      t.options[0]?.lever ??
+      null;
+    if (pick) out[t.name] = pick;
+  }
+  return out;
+}
 
 export function WorkoutSessionSummary({
   date,
@@ -65,9 +87,17 @@ export function WorkoutSessionSummary({
 
   const targets = nextTargets?.targets ?? [];
   const targetsKey = targets.map((t) => `${t.adviceKind}:${t.line}`).join("|");
+  const [chosen, setChosen] = useState<Record<string, ProgressionLever>>(() =>
+    initialChosen(targets),
+  );
   const [tip, setTip] = useState<string | null>(() =>
     targets.length > 0 ? ruleNextSessionTip(targets) : null,
   );
+
+  useEffect(() => {
+    setChosen(initialChosen(targets));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
+  }, [targetsKey]);
 
   useEffect(() => {
     if (!targetsKey) {
@@ -93,11 +123,17 @@ export function WorkoutSessionSummary({
               line: t.line,
               suggestedKg: t.suggestedKg,
               basisKg: t.basisKg,
-              primaryLever: t.primaryLever,
+              primaryLever: chosen[t.name] ?? t.primaryLever,
+              leverRemembered: Boolean(
+                chosen[t.name] &&
+                  (t.leverRemembered || chosen[t.name] !== t.primaryLever),
+              ),
               options: t.options.map((o) => ({
                 lever: o.lever,
                 label: o.label,
                 line: o.line,
+                suggestedKg: o.suggestedKg,
+                suggestedReps: o.suggestedReps,
               })),
             })),
           }),
@@ -118,9 +154,26 @@ export function WorkoutSessionSummary({
     return () => {
       cancelled = true;
     };
-    // targetsKey encodes advice + lines; nextTargets is rebuilt each parent render.
+    // targetsKey encodes advice + lines; tip refresh on lever pick is G3.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
   }, [targetsKey]);
+
+  const pickLever = (
+    name: string,
+    lever: ProgressionLever,
+    basisKg: number | null,
+    opt: { suggestedKg: number | null; suggestedReps: number | null },
+  ) => {
+    setLeverMemory({
+      name,
+      lever,
+      basisKg,
+      targetKg: opt.suggestedKg,
+      targetReps: opt.suggestedReps,
+      at: date,
+    });
+    setChosen((prev) => ({ ...prev, [name]: lever }));
+  };
 
   const metrics: StageMetric[] = [
     {
@@ -200,46 +253,62 @@ export function WorkoutSessionSummary({
             {nextTargets?.title ?? "Следующий раз"}
           </p>
           <p className="mt-1 text-[11px] leading-snug text-white/55">
-            От макс. рабочего веса (без дроп-сетов). Выберите один рычаг.
+            От макс. рабочего веса (без дроп-сетов). Нажмите рычаг — запомним до
+            следующей.
           </p>
           <ul className="mt-2.5 space-y-3">
-            {targets.map((t) => (
-              <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
-                <p className="font-semibold">
-                  {t.name}
-                  {t.basisKg != null && t.basisKg > 0 ? (
-                    <span className="ml-1.5 font-medium text-white/50">
-                      макс {Number.isInteger(t.basisKg) ? t.basisKg : t.basisKg} кг
-                    </span>
-                  ) : null}
-                </p>
-                {t.options.length > 0 ? (
-                  <ul className="mt-1.5 space-y-1">
-                    {t.options.map((opt) => {
-                      const primary = opt.lever === t.primaryLever;
-                      return (
-                        <li
-                          key={opt.lever}
-                          className={`flex gap-2 text-[13px] ${
-                            primary ? "font-semibold text-white" : "text-white/70"
-                          }`}
-                        >
-                          <span className="w-16 shrink-0 text-white/45">{opt.label}</span>
-                          <span>{opt.line}</span>
-                          {primary ? (
-                            <span className="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
-                              фокус
-                            </span>
-                          ) : null}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="mt-1 text-[13px] text-white/75">{t.line}</p>
-                )}
-              </li>
-            ))}
+            {targets.map((t) => {
+              const selected = chosen[t.name] ?? t.primaryLever;
+              return (
+                <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
+                  <p className="font-semibold">
+                    {t.name}
+                    {t.basisKg != null && t.basisKg > 0 ? (
+                      <span className="ml-1.5 font-medium text-white/50">
+                        макс {Number.isInteger(t.basisKg) ? t.basisKg : t.basisKg} кг
+                      </span>
+                    ) : null}
+                  </p>
+                  {t.options.length > 0 ? (
+                    <ul className="mt-1.5 space-y-1" role="listbox" aria-label={`Рычаг для ${t.name}`}>
+                      {t.options.map((opt) => {
+                        const primary = opt.lever === selected;
+                        return (
+                          <li key={opt.lever}>
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected={primary}
+                              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors ${
+                                primary
+                                  ? "bg-white/12 font-semibold text-white"
+                                  : "text-white/70 hover:bg-white/6"
+                              }`}
+                              onClick={() =>
+                                pickLever(t.name, opt.lever, t.basisKg, {
+                                  suggestedKg: opt.suggestedKg,
+                                  suggestedReps: opt.suggestedReps,
+                                })
+                              }
+                            >
+                              <span className="w-16 shrink-0 text-white/45">{opt.label}</span>
+                              <span className="min-w-0 flex-1">{opt.line}</span>
+                              {primary ? (
+                                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
+                                  {t.leverRemembered || chosen[t.name] ? "ваш" : "фокус"}
+                                </span>
+                              ) : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-[13px] text-white/75">{t.line}</p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {tip ? (
             <p className="mt-3 text-xs leading-relaxed text-white/65">{tip}</p>
