@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { FoodAddIcon } from "@/components/FoodAddIcons";
 import { FoodAddQuickStrip } from "@/components/FoodAddQuickStrip";
@@ -48,6 +49,8 @@ function mealTypeCaption(mealType?: string): string | null {
  * Center «+» choice sheet — grid of modes + water/weight/workout + quick repeat/favorites.
  * Photo opens a camera vs gallery sub-step (never jumps straight to the camera).
  * P3: soft day-part highlight among photo / water / weight.
+ * Portaled to <html>: AuthGate `.boot-enter` transform + mobile `.cv-app-frame`
+ * would otherwise zero-size or clip the fixed overlay so «+» looks dead.
  */
 export function FoodAddModePicker({
   selectedDate,
@@ -62,7 +65,12 @@ export function FoodAddModePicker({
   const router = useRouter();
   const timezone = useTimezone();
   const [step, setStep] = useState<PickerStep>("root");
+  const [mounted, setMounted] = useState(false);
   const slotLabel = mealTypeCaption(mealType);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const suggested = useMemo(
     () => suggestFoodAddAction(hourInTimezone(new Date(), timezone)),
@@ -116,7 +124,7 @@ export function FoodAddModePicker({
         ? `Слот: ${slotLabel} · ${suggestedHint}`
         : suggestedHint;
 
-  return (
+  const overlay = (
     <div
       className="food-add-overlay food-add-overlay--in fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
       role="dialog"
@@ -252,4 +260,10 @@ export function FoodAddModePicker({
       </div>
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") {
+    return overlay;
+  }
+
+  return createPortal(overlay, document.documentElement);
 }

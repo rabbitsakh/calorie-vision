@@ -711,7 +711,8 @@ select {
   .mobile-tab-bar {
     flex-shrink: 0;
     position: relative;
-    z-index: 40;
+    /* Above .app-chrome (z-50): FAB margin-top overlaps main; chrome must not steal taps. */
+    z-index: 55;
   }
 }
 
@@ -2075,9 +2076,21 @@ select {
   animation: none;
 }
 
-/* Boot → first product paint */
+/* Boot → first product paint.
+ * Opacity-only: transform on this wrapper (AuthGate) makes it a fixed containing
+ * block while cv-app-frame is position:fixed (out of flow) → height 0 → «+»
+ * overlays with inset:0 collapse until/unless they portal to <html>. */
 .boot-enter {
-  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: boot-enter-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes boot-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .scene-skeleton,
@@ -6707,13 +6720,21 @@ select {
 }
 
 .cookie-consent {
-  bottom: 0;
+  /* Sit above the mobile tab dock so «+» stays tappable until consent is chosen. */
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   left: 0;
-  padding: max(0.75rem, env(safe-area-inset-bottom)) 0.75rem 0.75rem;
+  padding: 0.75rem;
   pointer-events: none;
   position: fixed;
   right: 0;
   z-index: 80;
+}
+
+@media (min-width: 768px) {
+  .cookie-consent {
+    bottom: 0;
+    padding: max(0.75rem, env(safe-area-inset-bottom)) 0.75rem 0.75rem;
+  }
 }
 
 .cookie-consent-inner {

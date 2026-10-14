@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { FoodAddModePicker } from "@/components/FoodAddModePicker";
 import { FoodAddPanel } from "@/components/FoodAddPanel";
 import { toDateKeyTz } from "@/lib/dates";
@@ -64,6 +65,11 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [launchKey, setLaunchKey] = useState(0);
   const [resumeKey, setResumeKey] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const closeAll = useCallback(() => {
     if (confirmOpen) return;
@@ -143,71 +149,79 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
     [confirmOpen, sheetOpen],
   );
 
+  /* Keep panel mounted (hidden) so offline drafts can auto-open confirm.
+   * Portal visible overlays to <html> — same reason as FoodAddModePicker. */
+  const sheetOverlay = (
+    <div
+      className={
+        sheetVisible
+          ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
+          : "hidden"
+      }
+      role={sheetVisible ? "dialog" : undefined}
+      aria-modal={sheetVisible ? true : undefined}
+      aria-labelledby={sheetVisible ? "food-add-sheet-title" : undefined}
+      aria-hidden={!sheetVisible}
+      onClick={() => {
+        if (!confirmOpen) closeAll();
+      }}
+    >
+      <div
+        className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
+          <p id="food-add-sheet-title" className="font-semibold text-[var(--foreground)]">
+            {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
+          </p>
+          {confirmOpen ? (
+            <span className="text-xs text-[var(--muted)]">Сохраните или отмените</span>
+          ) : (
+            <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={closeAll}>
+              Закрыть
+            </button>
+          )}
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:p-4">
+          <FoodAddPanel
+            selectedDate={selectedDate}
+            initialMealType={mealType}
+            initialMode={mode}
+            autoOpenCamera={openCameraOnce}
+            autoOpenGallery={openGalleryOnce}
+            launchKey={launchKey}
+            resumeKey={resumeKey}
+            layout="plain"
+            disabled={!sheetVisible}
+            onSaved={finishSaved}
+            onPendingChange={setConfirmOpen}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const hostUi = enabled ? (
+    <>
+      {phase === "picker" ? (
+        <FoodAddModePicker
+          selectedDate={selectedDate}
+          mealType={mealType}
+          onSelect={(next, opts) => openSheet(next, opts)}
+          onClose={closeAll}
+          onQuickLogged={finishSaved}
+        />
+      ) : null}
+      {mounted && typeof document !== "undefined"
+        ? createPortal(sheetOverlay, document.documentElement)
+        : sheetOverlay}
+    </>
+  ) : null;
+
   return (
     <FoodAddUiContext.Provider value={value}>
       {children}
-      {enabled ? (
-        <>
-          {phase === "picker" ? (
-            <FoodAddModePicker
-              selectedDate={selectedDate}
-              mealType={mealType}
-              onSelect={(next, opts) => openSheet(next, opts)}
-              onClose={closeAll}
-              onQuickLogged={finishSaved}
-            />
-          ) : null}
-
-          {/* Keep panel mounted (hidden) so offline drafts can auto-open confirm. */}
-          <div
-            className={
-              sheetVisible
-                ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
-                : "hidden"
-            }
-            role={sheetVisible ? "dialog" : undefined}
-            aria-modal={sheetVisible ? true : undefined}
-            aria-labelledby={sheetVisible ? "food-add-sheet-title" : undefined}
-            aria-hidden={!sheetVisible}
-            onClick={() => {
-              if (!confirmOpen) closeAll();
-            }}
-          >
-            <div
-              className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
-                <p id="food-add-sheet-title" className="font-semibold text-[var(--foreground)]">
-                  {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
-                </p>
-                {confirmOpen ? (
-                  <span className="text-xs text-[var(--muted)]">Сохраните или отмените</span>
-                ) : (
-                  <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={closeAll}>
-                    Закрыть
-                  </button>
-                )}
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:p-4">
-                <FoodAddPanel
-                  selectedDate={selectedDate}
-                  initialMealType={mealType}
-                  initialMode={mode}
-                  autoOpenCamera={openCameraOnce}
-                  autoOpenGallery={openGalleryOnce}
-                  launchKey={launchKey}
-                  resumeKey={resumeKey}
-                  layout="plain"
-                  disabled={!sheetVisible}
-                  onSaved={finishSaved}
-                  onPendingChange={setConfirmOpen}
-                />
-              </div>
-            </div>
-          </div>
-        </>
-      ) : null}
+      {hostUi}
     </FoodAddUiContext.Provider>
   );
 }
