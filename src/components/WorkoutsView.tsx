@@ -64,6 +64,7 @@ import {
   autofillNextDraft,
   bumpKg,
 } from "@/lib/workouts/progression";
+import { adviceWithPreferredLever } from "@/lib/workouts/progression-lever-memory";
 import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
   countWorkoutOfflineDrafts,
@@ -136,7 +137,12 @@ import {
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
-import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import {
+  pickLastWorkingWeight,
+  pickTopWorkingSet,
+  suggestNextWeightKg,
+  formatSuggestedKg,
+} from "@/lib/workouts/suggested-load";
 import { requestScreenWakeLock } from "@/lib/workouts/wake-lock";
 
 type Progress = {
@@ -1559,7 +1565,33 @@ export function WorkoutsView({
       })),
       ...focusExForStage.sets,
     ]);
-    return adviseProgression(points, detail.progressRate, lastKg);
+    const top = pickTopWorkingSet([
+      ...(focusExForStage.lastTime?.sets ?? []).map((s) => ({
+        weightKg: s.weightKg,
+        reps: s.reps,
+        setType: "working" as const,
+        completed: true,
+      })),
+      ...focusExForStage.sets,
+    ]);
+    const raw = adviseProgression(
+      points,
+      detail.progressRate,
+      lastKg,
+      top?.reps ?? null,
+    );
+    const preferred = adviceWithPreferredLever(raw, focusExForStage.name);
+    if (!preferred.option) return raw;
+    return {
+      ...raw,
+      primaryLever: preferred.primaryLever ?? raw.primaryLever,
+      suggestedKg: preferred.suggestedKg,
+      detail: preferred.leverRemembered && preferred.option
+        ? `${preferred.option.label}: ${preferred.option.line}${
+            raw.basisKg != null ? ` · макс ${formatSuggestedKg(raw.basisKg)} кг` : ""
+          }`
+        : raw.detail,
+    };
   }, [detail, focusExForStage, historyByName]);
 
   const stageSuggestedKg =

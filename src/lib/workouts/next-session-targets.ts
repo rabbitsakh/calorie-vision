@@ -12,6 +12,7 @@ import {
   type ProgressionPoint,
 } from "@/lib/workouts/progression";
 import { formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import { pickTipFocus, ruleTipForFocus } from "@/lib/workouts/tip-lever";
 
 export type NextSessionTargetInput = {
   name: string;
@@ -37,6 +38,8 @@ export type NextSessionTarget = {
   suggestedKg: number | null;
   basisKg: number | null;
   primaryLever: ProgressionLever | null;
+  /** True when primary came from saved user choice (G1). */
+  leverRemembered?: boolean;
   options: ProgressionOption[];
 };
 
@@ -99,30 +102,44 @@ function adviceForExercise(
 function toTarget(
   ex: NextSessionTargetInput,
   advice: ProgressionAdvice,
+  preferredLever?: ProgressionLever | null,
 ): NextSessionTarget {
   const isCardio = ex.kind === "cardio";
+  const options = isCardio ? [] : advice.options ?? [];
+  let primaryLever = advice.primaryLever ?? null;
+  let leverRemembered = false;
+  if (preferredLever && options.some((o) => o.lever === preferredLever)) {
+    primaryLever = preferredLever;
+    leverRemembered = true;
+  }
+  const withPrimary: ProgressionAdvice = { ...advice, primaryLever: primaryLever ?? undefined };
+  const primaryOpt =
+    options.find((o) => o.lever === primaryLever) ?? options[0] ?? null;
   return {
     name: ex.name,
     adviceKind: advice.kind,
     title: advice.title,
     line: isCardio
       ? formatCardioLine(ex.name, advice)
-      : formatStrengthLine(ex.name, advice),
-    suggestedKg: advice.suggestedKg,
+      : formatStrengthLine(ex.name, withPrimary),
+    suggestedKg: primaryOpt?.suggestedKg ?? advice.suggestedKg,
     basisKg: advice.basisKg ?? ex.lastWorkingKg,
-    primaryLever: advice.primaryLever ?? null,
-    options: isCardio ? [] : advice.options ?? [],
+    primaryLever,
+    leverRemembered,
+    options,
   };
 }
 
 /**
  * Pick up to `max` exercises with actionable next-session lines.
  * Prefers completed work by load, then completed set count.
+ * `preferredLevers` (G1) overrides rule primary when the lever exists in options.
  */
 export function buildNextSessionTargets(
   exercises: readonly NextSessionTargetInput[],
   progressRate: number,
   max = 3,
+  preferredLevers?: Readonly<Record<string, ProgressionLever | null | undefined>>,
 ): NextSessionTargetsCard {
   const ranked = [...exercises]
     .filter((ex) => ex.completedCount > 0 || ex.load > 0)
@@ -136,13 +153,15 @@ export function buildNextSessionTargets(
   for (const ex of ranked) {
     if (targets.length >= max) break;
     const advice = adviceForExercise(ex, progressRate);
+    const prefKey = ex.name.trim().toLowerCase().replace(/\s+/g, " ");
+    const preferred = preferredLevers?.[prefKey] ?? preferredLevers?.[ex.name] ?? null;
     if (advice.kind === "base" && advice.suggestedKg == null) {
       if (ranked.length === 1 || targets.length === 0) {
-        targets.push(toTarget(ex, advice));
+        targets.push(toTarget(ex, advice, preferred));
       }
       continue;
     }
-    targets.push(toTarget(ex, advice));
+    targets.push(toTarget(ex, advice, preferred));
   }
 
   return {
@@ -151,28 +170,15 @@ export function buildNextSessionTargets(
   };
 }
 
-/** Compact rule tip when GigaChat is unavailable. */
+/** Compact rule tip when GigaChat is unavailable — always one lever (G3). */
 export function ruleNextSessionTip(targets: readonly NextSessionTarget[]): string {
   if (targets.length === 0) {
     return "В следующий раз зафиксируйте рабочие веса — подскажем прогрессию.";
   }
-  const stall = targets.find((t) => t.adviceKind === "stall" || t.adviceKind === "deload");
-  if (stall) {
-    return `Есть плато на «${stall.name}» — soft deload, или тоннаж/повторы без нового веса.`;
+  const pick = pickTipFocus(targets);
+  if (!pick) {
+    const name = targets[0]!.name;
+    return `Варианты на следующую для «${name}» — выберите один рычаг.`;
   }
-  const withOptions = targets.find((t) => t.options.length > 0);
-  if (withOptions?.primaryLever === "reps") {
-    return `Сначала повторы на максе, потом вес: ${withOptions.name}.`;
-  }
-  if (withOptions?.primaryLever === "volume") {
-    return `Добавьте подход на текущем весе: ${withOptions.name}.`;
-  }
-  const progress = targets.filter((t) => t.adviceKind === "progress");
-  if (progress.length > 0) {
-    return `Фокус — вес или объём: ${progress
-      .slice(0, 2)
-      .map((t) => t.name)
-      .join(", ")}.`;
-  }
-  return `Варианты на следующую: вес, тоннаж или повторы — выберите один рычаг.`;
+  return ruleTipForFocus(pick);
 }

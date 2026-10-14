@@ -6,6 +6,13 @@ import {
   type NextSessionTarget,
 } from "@/lib/workouts/next-session-targets";
 import type { ProgressionLever, ProgressionOption } from "@/lib/workouts/progression";
+import {
+  buildTipPrompt,
+  detectLeverInTip,
+  pickTipFocus,
+  ruleTipForFocus,
+  stripLeverAnnotation,
+} from "@/lib/workouts/tip-lever";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +80,7 @@ function parseTargets(raw: unknown): NextSessionTarget[] {
       suggestedKg: kg,
       basisKg,
       primaryLever,
+      leverRemembered: t.leverRemembered === true,
       options: parseOptions(t.options),
     });
   }
@@ -81,8 +89,7 @@ function parseTargets(raw: unknown): NextSessionTarget[] {
 
 /**
  * POST { targets: NextSessionTarget[] }
- * → short tip (rule-based; optional GigaChat one-liner).
- * Does not touch parse-log.
+ * → short tip locked to ONE lever (prefs / primary). Optional GigaChat phrasing.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -93,8 +100,12 @@ export async function POST(request: NextRequest) {
       targets?: unknown;
     };
     const targets = parseTargets(body.targets);
-    let tip = ruleNextSessionTip(targets);
+    const focus = pickTipFocus(targets);
+    let tip = focus ? ruleTipForFocus(focus) : ruleNextSessionTip(targets);
     let source: "gigachat" | "rules" = "rules";
+    let lever: ProgressionLever | null = focus?.lever ?? null;
+    const exerciseName: string | null = focus?.exerciseName ?? null;
+    const fromPreference = Boolean(focus?.fromPreference);
 
     const hasCreds = Boolean(
       process.env.GIGACHAT_CREDENTIALS?.trim() ||
@@ -102,38 +113,47 @@ export async function POST(request: NextRequest) {
           process.env.GIGACHAT_CLIENT_SECRET?.trim()),
     );
 
-    if (hasCreds && targets.length > 0) {
+    if (hasCreds && focus) {
       try {
-        const lines = targets
-          .map((t) => {
-            const opts = t.options
-              .map((o) => `${o.label}: ${o.line}`)
-              .join(" | ");
-            return opts
-              ? `- ${t.name}: ${opts} (фокус по правилам: ${t.primaryLever ?? t.adviceKind})`
-              : `- ${t.line} (${t.adviceKind})`;
-          })
-          .join("\n");
-        const prompt = [
-          "Ты — краткий тренер по силовой/кардио. Ответь ОДНИМ коротким предложением на русском (макс 140 символов).",
-          "Без списков, без медицины, без стыда. Выбери ОДИН рычаг: вес, тоннаж (+подход) или повторы — не предлагай всё сразу.",
-          "Опирайся на макс. рабочий вес (не дроп-сет) и варианты ниже — не выдумывай упражнения и веса.",
-          `Варианты:\n${lines}`,
-        ].join("\n");
-        const ai = await completeChat([{ role: "user", content: prompt }], 0.5, {
+        const prompt = buildTipPrompt(focus);
+        const ai = await completeChat([{ role: "user", content: prompt }], 0.4, {
           retries: 1,
         });
         const cleaned = ai.replace(/^["«]|["»]$/g, "").trim();
         if (cleaned.length >= 16 && cleaned.length <= 200) {
-          tip = cleaned;
-          source = "gigachat";
+          const stripped = stripLeverAnnotation(cleaned);
+          const allowed = focus.options.map((o) => o.lever);
+          // Preference is locked — ignore AI lever codes that disagree.
+          if (focus.fromPreference) {
+            tip = stripped.tip;
+            lever = focus.lever;
+            source = "gigachat";
+          } else {
+            const detected =
+              stripped.lever && allowed.includes(stripped.lever)
+                ? stripped.lever
+                : detectLeverInTip(stripped.tip, allowed);
+            // Only accept AI tip if it clearly talks about one allowed lever.
+            if (detected && allowed.includes(detected)) {
+              tip = stripped.tip;
+              lever = detected;
+              source = "gigachat";
+            }
+            // else keep rule tip for the primary lever
+          }
         }
       } catch {
         // keep rule tip
       }
     }
 
-    return NextResponse.json({ tip, source });
+    return NextResponse.json({
+      tip,
+      source,
+      lever,
+      exerciseName,
+      fromPreference,
+    });
   } catch (error) {
     console.error("POST /api/workouts/next-tip", error);
     return NextResponse.json({ error: "Не удалось получить совет" }, { status: 500 });
