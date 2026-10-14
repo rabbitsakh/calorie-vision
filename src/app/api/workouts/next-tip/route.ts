@@ -104,8 +104,8 @@ export async function POST(request: NextRequest) {
     let tip = focus ? ruleTipForFocus(focus) : ruleNextSessionTip(targets);
     let source: "gigachat" | "rules" = "rules";
     let lever: ProgressionLever | null = focus?.lever ?? null;
-    let exerciseName: string | null = focus?.exerciseName ?? null;
-    let fromPreference = Boolean(focus?.fromPreference);
+    const exerciseName: string | null = focus?.exerciseName ?? null;
+    const fromPreference = Boolean(focus?.fromPreference);
 
     const hasCreds = Boolean(
       process.env.GIGACHAT_CREDENTIALS?.trim() ||
