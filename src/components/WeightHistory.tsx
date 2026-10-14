@@ -14,6 +14,7 @@ import {
 } from "@/lib/weight-day-conflict";
 import { enqueueWeightDraft } from "@/lib/weight-draft-queue";
 import { Mascot } from "@/components/Mascot";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { MASCOT_COPY } from "@/lib/mascot-copy";
 
 type WeightEntryRow = {
@@ -387,7 +388,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
 
         <div>
           <h2 className="text-lg font-bold">Последние измерения</h2>
-          {loading ? <p className="mt-3 text-sm text-[var(--muted)]">Загрузка…</p> : null}
+          {loading ? <div className="mt-3"><SceneSkeleton inline label="Загрузка веса…" /></div> : null}
 
           {!loading && grouped.length === 0 && !pendingDelete ? (
             <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-8 text-center text-[var(--muted)]">

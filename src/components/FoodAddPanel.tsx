@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { SceneBusy } from "@/components/SceneSkeleton";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -713,7 +714,7 @@ export function FoodAddPanel({
               ) : null}
             </div>
             <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>
-              {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти калорийность"}
+              {loading ? <><SceneBusy /> Ищем...</> : "Найти калорийность"}
             </button>
           </form>
         ) : null}
@@ -757,7 +758,7 @@ export function FoodAddPanel({
               />
             </div>
             <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>
-              {loading ? <><span className="daisy-loading daisy-loading-sm" aria-hidden><span /><span /><span /></span> Ищем...</> : "Найти по штрихкоду"}
+              {loading ? <><SceneBusy /> Ищем...</> : "Найти по штрихкоду"}
             </button>
           </form>
         ) : null}

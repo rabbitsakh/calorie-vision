@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvatarFrame } from "@/components/AvatarFrame";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { clearCapacitorResumeToken } from "@/lib/capacitor-resume";
@@ -385,7 +386,7 @@ export function ProfileForm() {
     <>
       {loading ? (
         <section className="px-1 py-2">
-          <p className="text-sm text-[var(--muted)]">Загрузка...</p>
+          <SceneSkeleton compact label="Загрузка профиля…" />
         </section>
       ) : null}
 

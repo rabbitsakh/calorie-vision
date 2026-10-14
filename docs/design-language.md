@@ -15,7 +15,7 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 
 ## Loading
 - Boot: one branded `AppSplash` per cold start (AuthGate may mark session; ration skips a second fullscreen).
-- In-scene: `SceneSkeleton` / existing hero skeletons — not DaisyLoading or bare «Загрузка…» on product routes.
+- In-scene: `SceneSkeleton` (full / compact / inline) and `SceneBusy` in buttons — not DaisyLoading or bare «Загрузка…» on product routes. DaisyLoading stays admin-only.
 
 ## Assistant
 - Same visual language as ration/gym (`assistant-scene`), not an admin chat denseness.

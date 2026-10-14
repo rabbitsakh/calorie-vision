@@ -1,5 +1,6 @@
 "use client";
 
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import {
   formatDateShort,
   formatDateWords,
@@ -325,7 +326,7 @@ export function WorkoutHistoryHub({
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-      {loading ? <p className="text-sm text-[var(--muted)]">Загрузка…</p> : null}
+      {loading ? <SceneSkeleton inline label="Загрузка истории…" /> : null}
 
       {!loading && sessions.length === 0 && !creating ? (
         <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-6 text-center text-sm text-[var(--muted-strong)]">

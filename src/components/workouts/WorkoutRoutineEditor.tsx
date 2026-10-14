@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { withBasePath } from "@/lib/paths";
 import {
   EXERCISE_KINDS,
@@ -193,7 +194,7 @@ export function WorkoutRoutineEditor({
   }, [name, note, planLabel, weekdays, groups, exercises, routineId, onSaved]);
 
   if (loading) {
-    return <p className="text-sm text-[var(--muted)]">Загрузка шаблона…</p>;
+    return <SceneSkeleton compact label="Загрузка шаблона…" />;
   }
 
   return (

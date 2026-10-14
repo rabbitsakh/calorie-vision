@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AllergenHint } from "@/components/AllergenHint";
+import { SceneBusy } from "@/components/SceneSkeleton";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
@@ -252,7 +253,7 @@ export function MealSuggestions({
       {/* Loading */}
       {loading ? (
         <div className="flex items-center gap-2 px-4 py-4 text-sm text-[var(--muted)] md:px-6">
-          <span className="daisy-loading"><span /><span /><span /></span>
+          <SceneBusy />
           Анализируем рацион и подбираем блюда...
         </div>
       ) : null}

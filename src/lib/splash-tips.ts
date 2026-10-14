@@ -8,7 +8,7 @@
  * - AppShell.PageFallback / app/loading.tsx — route Suspense skeleton
  * - DayHero / DailyLog skeletons — in-scene
  * - DaisyLoading — admin only
- * - Plain «Загрузка…» — stats/gym/assistant (Wave B3 will unify)
+ * - SceneSkeleton / SceneBusy — product routes (Wave D1)
  */
 
 import { pluralDays } from "@/lib/russian-text";

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -920,11 +921,7 @@ export function StatsView({ endDate }: StatsViewProps) {
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-          <span className="daisy-loading"><span /><span /><span /></span> Загрузка...
-        </div>
-      ) : null}
+      {loading ? <SceneSkeleton compact label="Загрузка статистики…" /> : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {data && data.summary.totalMealDays === 0 ? (

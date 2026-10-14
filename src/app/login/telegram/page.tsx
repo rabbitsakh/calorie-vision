@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { withBasePath } from "@/lib/paths";
 import { parseTelegramLoginCallback } from "@/lib/telegram-oauth-result";
 
@@ -116,7 +117,7 @@ export default function TelegramCallbackPage() {
     <Suspense
       fallback={
         <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
-          <p className="text-center text-sm text-[var(--muted)]">Загрузка…</p>
+          <SceneSkeleton compact label="Загрузка…" />
         </main>
       }
     >

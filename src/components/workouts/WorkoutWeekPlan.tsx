@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
@@ -420,7 +421,7 @@ export function WorkoutWeekPlan({
                 </button>
               </>
             ) : loading ? (
-              <p className="text-sm text-[var(--muted)]">Загрузка плана…</p>
+              <SceneSkeleton inline label="Загрузка плана…" />
             ) : error ? (
               <p className="text-sm text-red-600">{error}</p>
             ) : primary === "start_plan" && planned.length > 0 ? (

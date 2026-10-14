@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { SceneBusy, SceneSkeleton } from "@/components/SceneSkeleton";
 import { TelegramLoginButton } from "@/components/TelegramLoginButton";
 import { detectCapacitorShell, isCapacitorNative, markCapacitorShell } from "@/lib/capacitor-bridge";
 import { ensureCapacitorOAuthDeepLink, startCapacitorOAuth } from "@/lib/capacitor-oauth";
@@ -250,7 +251,7 @@ export default function LoginForm() {
         ) : null}
 
         {options === null ? (
-          <p className="mt-6 text-sm text-[var(--muted)]">Загрузка способов входа…</p>
+          <div className="mt-6"><SceneSkeleton inline label="Загрузка способов входа…" /></div>
         ) : (
           <>
             {hasSocial ? (
@@ -357,11 +358,7 @@ export default function LoginForm() {
                     >
                       {loading ? (
                         <>
-                          <span className="daisy-loading daisy-loading-sm" aria-hidden>
-                            <span />
-                            <span />
-                            <span />
-                          </span>
+                          <SceneBusy />
                           Отправляем…
                         </>
                       ) : (
