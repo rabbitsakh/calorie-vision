@@ -711,7 +711,8 @@ select {
   .mobile-tab-bar {
     flex-shrink: 0;
     position: relative;
-    z-index: 40;
+    /* Above .app-chrome (z-50): FAB margin-top overlaps main; chrome must not steal taps. */
+    z-index: 55;
   }
 }
 
@@ -2075,9 +2076,21 @@ select {
   animation: none;
 }
 
-/* Boot → first product paint */
+/* Boot → first product paint.
+ * Opacity-only: transform on this wrapper (AuthGate) makes it a fixed containing
+ * block while cv-app-frame is position:fixed (out of flow) → height 0 → «+»
+ * overlays with inset:0 collapse until/unless they portal to <html>. */
 .boot-enter {
-  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: boot-enter-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes boot-enter-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .scene-skeleton,
