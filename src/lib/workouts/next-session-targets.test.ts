@@ -34,8 +34,13 @@ test("buildNextSessionTargets suggests kg bump for top load exercise", () => {
   assert.equal(card.title, "Следующий раз");
   assert.equal(card.targets.length, 2);
   assert.equal(card.targets[0]!.name, "Жим");
-  assert.match(card.targets[0]!.line, /Жим → 84 кг/);
+  assert.equal(card.targets[0]!.basisKg, 80);
   assert.equal(card.targets[0]!.suggestedKg, 84);
+  assert.equal(card.targets[0]!.options.length, 3);
+  assert.ok(card.targets[0]!.options.some((o) => o.lever === "weight" && o.suggestedKg === 84));
+  assert.ok(card.targets[0]!.options.some((o) => o.lever === "volume"));
+  assert.ok(card.targets[0]!.options.some((o) => o.lever === "reps"));
+  assert.match(card.targets[0]!.line, /Жим/);
 });
 
 test("buildNextSessionTargets stall → deload line", () => {
@@ -58,7 +63,8 @@ test("buildNextSessionTargets stall → deload line", () => {
     0.05,
   );
   assert.equal(card.targets[0]!.adviceKind, "stall");
-  assert.match(card.targets[0]!.line, /deload 90 кг/);
+  assert.equal(card.targets[0]!.suggestedKg, 90);
+  assert.ok(card.targets[0]!.options.some((o) => /deload 90/.test(o.line)));
 });
 
 test("buildNextSessionTargets cardio distance bump", () => {
@@ -108,6 +114,9 @@ test("ruleNextSessionTip highlights stall", () => {
       title: "Плато",
       line: "Присед → deload 90 кг",
       suggestedKg: 90,
+      basisKg: 100,
+      primaryLever: "weight",
+      options: [],
     },
   ]);
   assert.match(tip, /плато/i);

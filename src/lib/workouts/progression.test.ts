@@ -33,7 +33,7 @@ test("suggestDeloadKg and bumpKg", () => {
   assert.equal(bumpKg(80, 2.5), 82.5);
 });
 
-test("adviseProgression stall → deload", () => {
+test("adviseProgression stall → deload + three levers", () => {
   const advice = adviseProgression(
     [
       { date: "a", topWeightKg: 100, topReps: 5, totalLoad: 500 },
@@ -42,9 +42,24 @@ test("adviseProgression stall → deload", () => {
     ],
     0.05,
     100,
+    5,
   );
   assert.equal(advice.kind, "stall");
   assert.equal(advice.suggestedKg, 90);
+  assert.equal(advice.basisKg, 100);
+  assert.equal(advice.options?.length, 3);
+});
+
+test("adviseProgression progress prefers reps when top set is low-rep", () => {
+  const advice = adviseProgression(
+    [{ date: "a", topWeightKg: 80, topReps: 5, totalLoad: 400 }],
+    0.05,
+    80,
+    5,
+  );
+  assert.equal(advice.kind, "progress");
+  assert.equal(advice.primaryLever, "reps");
+  assert.equal(advice.suggestedKg, 84);
 });
 
 test("adviseCardioProgression suggests distance bump", () => {

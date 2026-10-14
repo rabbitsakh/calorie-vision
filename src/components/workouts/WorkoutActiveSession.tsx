@@ -34,7 +34,12 @@ import {
   bumpKg,
   type ProgressionAdvice,
 } from "@/lib/workouts/progression";
-import { pickLastWorkingWeight, suggestNextWeightKg, formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import {
+  pickLastWorkingWeight,
+  pickTopWorkingSet,
+  suggestNextWeightKg,
+  formatSuggestedKg,
+} from "@/lib/workouts/suggested-load";
 import { buildNextSessionTargets } from "@/lib/workouts/next-session-targets";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
@@ -500,14 +505,17 @@ export function WorkoutActiveSession({
   const nextTargets = buildNextSessionTargets(
     detail.exercises.map((ex) => {
       const hist = historyByName[ex.name];
-      const lastKg = pickLastWorkingWeight([
-        ...(ex.lastTime?.sets ?? []).map((s) => ({
-          weightKg: s.weightKg,
-          setType: "working" as const,
-          completed: true,
-        })),
-        ...ex.sets,
-      ]);
+      // Prefer this session's top working set (skip drop). Fall back to last-time working.
+      const top =
+        pickTopWorkingSet(ex.sets) ??
+        pickTopWorkingSet(
+          (ex.lastTime?.sets ?? []).map((s) => ({
+            weightKg: s.weightKg,
+            reps: s.reps,
+            setType: "working" as const,
+            completed: true,
+          })),
+        );
       const prevCardioPace =
         hist?.points
           .map((p) => p.bestPaceSecPerKm)
@@ -516,7 +524,8 @@ export function WorkoutActiveSession({
       return {
         name: ex.name,
         kind: ex.kind,
-        lastWorkingKg: lastKg,
+        lastWorkingKg: top?.weightKg ?? null,
+        lastWorkingReps: top?.reps ?? null,
         points: (hist?.points ?? []).map((p) => ({
           date: p.date,
           topWeightKg: p.topWeightKg,

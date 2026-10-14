@@ -1,6 +1,9 @@
 /**
  * Per-exercise progression helpers: stall detection, deload, next-set autofill.
+ * Strength progress is three levers — weight / volume (tonnage) / reps — not only kg.
  */
+
+import { formatSuggestedKg, suggestNextWeightKg } from "@/lib/workouts/suggested-load";
 
 export type ProgressionPoint = {
   date: string;
@@ -9,11 +12,28 @@ export type ProgressionPoint = {
   totalLoad: number;
 };
 
+/** How to progress next session for a strength move. */
+export type ProgressionLever = "weight" | "volume" | "reps";
+
+export type ProgressionOption = {
+  lever: ProgressionLever;
+  label: string;
+  line: string;
+  suggestedKg: number | null;
+  suggestedReps: number | null;
+};
+
 export type ProgressionAdvice = {
   kind: "progress" | "hold" | "stall" | "deload" | "base";
   title: string;
   detail: string;
+  /** Primary kg target (weight lever or deload). */
   suggestedKg: number | null;
+  /** Top working kg this session (for display «макс»). */
+  basisKg?: number | null;
+  basisReps?: number | null;
+  primaryLever?: ProgressionLever;
+  options?: ProgressionOption[];
 };
 
 /** True when last `window` sessions share the same top weight (±0.25 kg). */
@@ -37,47 +57,120 @@ export function bumpKg(kg: number, delta: number): number {
   return Math.round((kg + delta) * 2) / 2;
 }
 
+function buildStrengthOptions(input: {
+  basisKg: number;
+  basisReps: number | null;
+  progressRate: number;
+  stalled: boolean;
+}): ProgressionOption[] {
+  const { basisKg, basisReps, progressRate, stalled } = input;
+  const kgLabel = formatSuggestedKg(basisKg);
+  const nextKg =
+    stalled
+      ? suggestDeloadKg(basisKg)
+      : suggestNextWeightKg(basisKg, progressRate) ?? basisKg;
+  const nextReps =
+    basisReps != null && basisReps > 0 ? basisReps + 1 : null;
+
+  const weight: ProgressionOption = {
+    lever: "weight",
+    label: stalled ? "Deload" : "Вес",
+    line: stalled
+      ? `deload ${formatSuggestedKg(nextKg)} кг`
+      : `${formatSuggestedKg(nextKg)} кг`,
+    suggestedKg: nextKg,
+    suggestedReps: basisReps,
+  };
+  const volume: ProgressionOption = {
+    lever: "volume",
+    label: "Тоннаж",
+    line: `те же ${kgLabel} кг · +1 подход`,
+    suggestedKg: basisKg,
+    suggestedReps: basisReps,
+  };
+  const reps: ProgressionOption = {
+    lever: "reps",
+    label: "Повторы",
+    line:
+      nextReps != null
+        ? `${kgLabel} кг × ${nextReps}`
+        : `те же ${kgLabel} кг · +1–2 повтора`,
+    suggestedKg: basisKg,
+    suggestedReps: nextReps,
+  };
+  return [weight, volume, reps];
+}
+
 /**
  * Advice from recent timeline + session progress rate.
  * Stall (≥3 flat tops) → propose deload; else progress or hold.
+ * Always attaches weight / volume / reps levers when a top working kg exists.
+ *
+ * `topWorkingKg` must be the session max among working sets — not the last drop.
  */
 export function adviseProgression(
   points: readonly ProgressionPoint[],
   progressRate: number,
-  lastWorkingKg: number | null,
+  topWorkingKg: number | null,
+  topWorkingReps: number | null = null,
 ): ProgressionAdvice {
-  if (lastWorkingKg == null || lastWorkingKg <= 0) {
+  if (topWorkingKg == null || topWorkingKg <= 0) {
     return {
       kind: "base",
       title: "База",
       detail: "Зафиксируйте рабочий вес — дальше подскажем прогрессию.",
       suggestedKg: null,
+      basisKg: null,
+      basisReps: null,
+      options: [],
     };
   }
-  if (isStalled(points, 3)) {
-    const deload = suggestDeloadKg(lastWorkingKg);
+  const stalled = isStalled(points, 3);
+  const options = buildStrengthOptions({
+    basisKg: topWorkingKg,
+    basisReps: topWorkingReps,
+    progressRate,
+    stalled,
+  });
+  if (stalled) {
+    const deload = suggestDeloadKg(topWorkingKg);
     return {
       kind: "stall",
       title: "Плато",
-      detail: `Вес не рос ${Math.min(points.length, 3)} сессии. Deload → ${deload} кг, потом снова вверх.`,
+      detail: `Макс ${formatSuggestedKg(topWorkingKg)} кг не рос ${Math.min(points.length, 3)} сессии. Deload → ${formatSuggestedKg(deload)} кг — или тоннаж/повторы на текущем весе.`,
       suggestedKg: deload,
+      basisKg: topWorkingKg,
+      basisReps: topWorkingReps,
+      primaryLever: "weight",
+      options,
     };
   }
   const rate = Number.isFinite(progressRate) ? Math.max(0, progressRate) : 0.05;
-  const next = Math.round(lastWorkingKg * (1 + rate) * 2) / 2;
+  const next = suggestNextWeightKg(topWorkingKg, rate) ?? topWorkingKg;
   if (rate <= 0) {
     return {
       kind: "hold",
       title: "Держим",
-      detail: `Повторите ${lastWorkingKg} кг.`,
-      suggestedKg: lastWorkingKg,
+      detail: `Повторите макс ${formatSuggestedKg(topWorkingKg)} кг — или добавьте подход/повторы.`,
+      suggestedKg: topWorkingKg,
+      basisKg: topWorkingKg,
+      basisReps: topWorkingReps,
+      primaryLever: "volume",
+      options,
     };
   }
+  // Prefer weight when last top set already hit a solid rep band; else nudge reps first.
+  const primaryLever: ProgressionLever =
+    topWorkingReps != null && topWorkingReps >= 8 ? "weight" : "reps";
   return {
     kind: "progress",
     title: "Прогрессия",
-    detail: `Цель +${Math.round(rate * 1000) / 10}% → ${next} кг.`,
+    detail: `Макс ${formatSuggestedKg(topWorkingKg)} кг → можно вес (${formatSuggestedKg(next)}), тоннаж или повторы.`,
     suggestedKg: next,
+    basisKg: topWorkingKg,
+    basisReps: topWorkingReps,
+    primaryLever,
+    options,
   };
 }
 
@@ -171,7 +264,16 @@ export function autofillNextDraft(
   }
   const completed = [...sets].reverse().find((s) => s.completed !== false);
   if (!completed) return null;
+  // Never clone a drop as the next working draft — use top working kg when bumping.
+  const setType =
+    completed.setType === "warmup" || completed.setType === "drop"
+      ? "working"
+      : (completed.setType ?? "working");
   let kg = completed.weightKg;
+  if (completed.setType === "drop") {
+    const top = pickTopWorkingFromSets(sets);
+    if (top != null) kg = top;
+  }
   if (
     options?.bumpAfterComplete &&
     kg != null &&
@@ -183,6 +285,25 @@ export function autofillNextDraft(
   return {
     weightKg: kg,
     reps: completed.reps,
-    setType: completed.setType === "warmup" ? "working" : (completed.setType ?? "working"),
+    setType,
   };
+}
+
+function pickTopWorkingFromSets(
+  sets: ReadonlyArray<{
+    weightKg: number | null;
+    setType?: string | null;
+    completed?: boolean | null;
+  }>,
+): number | null {
+  let top: number | null = null;
+  for (const s of sets) {
+    if (s.completed === false) continue;
+    const t = s.setType ?? "working";
+    if (t === "warmup" || t === "drop") continue;
+    const w = s.weightKg;
+    if (w == null || !Number.isFinite(w) || w < 0) continue;
+    if (top == null || w > top) top = w;
+  }
+  return top;
 }

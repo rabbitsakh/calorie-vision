@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   formatSuggestedKg,
   pickLastWorkingWeight,
+  pickTopWorkingSet,
+  pickTopWorkingWeight,
   suggestNextWeightKg,
 } from "./suggested-load.ts";
 
@@ -13,17 +15,35 @@ test("suggestNextWeightKg adds progress and rounds to 0.5", () => {
   assert.equal(suggestNextWeightKg(null), null);
 });
 
-test("pickLastWorkingWeight skips warmup", () => {
+test("pickTopWorkingWeight skips warmup and drop — uses max working", () => {
   assert.equal(
-    pickLastWorkingWeight([
+    pickTopWorkingWeight([
       { weightKg: 60, setType: "warmup", completed: true },
       { weightKg: 80, setType: "working", completed: true },
-      { weightKg: 40, setType: "warmup", completed: true },
+      { weightKg: 82.5, setType: "working", completed: true },
+      { weightKg: 52.5, setType: "drop", completed: true },
     ]),
-    80,
+    82.5,
   );
-  assert.equal(pickLastWorkingWeight([{ weightKg: 20, setType: "working" }]), 20);
-  assert.equal(pickLastWorkingWeight([]), null);
+  assert.equal(
+    pickLastWorkingWeight([
+      { weightKg: 70, setType: "working", completed: true },
+      { weightKg: 40, setType: "drop", completed: true },
+    ]),
+    70,
+  );
+  assert.equal(pickTopWorkingWeight([{ weightKg: 20, setType: "working" }]), 20);
+  assert.equal(pickTopWorkingWeight([]), null);
+});
+
+test("pickTopWorkingSet keeps best reps at top kg", () => {
+  const top = pickTopWorkingSet([
+    { weightKg: 70, reps: 8, setType: "working", completed: true },
+    { weightKg: 70, reps: 6, setType: "working", completed: true },
+    { weightKg: 52.5, reps: 12, setType: "drop", completed: true },
+  ]);
+  assert.equal(top?.weightKg, 70);
+  assert.equal(top?.reps, 8);
 });
 
 test("formatSuggestedKg", () => {
