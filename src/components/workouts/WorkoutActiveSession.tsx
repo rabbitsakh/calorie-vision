@@ -45,6 +45,7 @@ import {
   adviceWithPreferredLever,
   collectPreferredLevers,
 } from "@/lib/workouts/progression-lever-memory";
+import { buildLiveGoalChrome } from "@/lib/workouts/live-goal-chrome";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
   WorkoutRestTimerBanner,
@@ -506,6 +507,13 @@ export function WorkoutActiveSession({
     };
   });
 
+  const stageLiveGoal =
+    focusExForStage && stageAdvice
+      ? buildLiveGoalChrome(stageAdvice, focusExForStage.name, stageSuggestedKg)
+      : focusExForStage
+        ? buildLiveGoalChrome(null, focusExForStage.name, stageSuggestedKg)
+        : null;
+
   const preferredLevers = collectPreferredLevers(
     detail.exercises.map((ex) => ex.name),
   );
@@ -610,7 +618,8 @@ export function WorkoutActiveSession({
         restEndsAt={restEndsAt}
         restLeft={restLeft}
         advice={stageAdvice}
-        suggestedKg={stageSuggestedKg}
+        suggestedKg={stageLiveGoal?.suggestedKg ?? stageSuggestedKg}
+        liveGoal={stageLiveGoal}
         draftKg={stageDraft.kg}
         draftReps={stageDraft.reps}
         draftKm={stageDraft.km}
@@ -633,10 +642,18 @@ export function WorkoutActiveSession({
           patchDraft(focusExForStage.id, { kg: String(bumpKg(cur, delta)) });
         }}
         onApplySuggested={() => {
-          if (stageSuggestedKg == null) return;
-          patchDraft(focusExForStage.id, {
-            kg: formatSuggestedKg(stageSuggestedKg),
-          });
+          const kg = stageLiveGoal?.suggestedKg ?? stageSuggestedKg;
+          if (kg == null) return;
+          const patch: { kg: string; reps?: string } = {
+            kg: formatSuggestedKg(kg),
+          };
+          if (
+            stageLiveGoal?.suggestedReps != null &&
+            stageLiveGoal.suggestedReps > 0
+          ) {
+            patch.reps = String(stageLiveGoal.suggestedReps);
+          }
+          patchDraft(focusExForStage.id, patch);
         }}
         onCompleteCurrent={() => void completeCurrentOnStage()}
         onAddAndComplete={() => void addAndCompleteOnStage()}

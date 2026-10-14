@@ -9,6 +9,7 @@ import {
 import { fieldsForKind, kindUsesSetTypes, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { type ProgressionAdvice } from "@/lib/workouts/progression";
 import { formatSuggestedKg } from "@/lib/workouts/suggested-load";
+import type { LiveGoalChrome } from "@/lib/workouts/live-goal-chrome";
 import {
   EFFORT_FIELD_ARIA,
   EFFORT_FIELD_LABEL,
@@ -46,6 +47,8 @@ type Props = {
   restLeft: number;
   advice: ProgressionAdvice | null;
   suggestedKg: number | null;
+  /** G2 — max / lever / target chrome above the logger. */
+  liveGoal?: LiveGoalChrome | null;
   draftKg: string;
   draftReps: string;
   draftKm: string;
@@ -94,6 +97,7 @@ export function WorkoutLiveStage({
   restLeft,
   advice,
   suggestedKg,
+  liveGoal = null,
   draftKg,
   draftReps,
   draftKm,
@@ -228,30 +232,48 @@ export function WorkoutLiveStage({
         </div>
 
         {(() => {
-          const targetParts: string[] = [];
+          // Planned incomplete set still wins as the immediate logger target.
+          const plannedParts: string[] = [];
           if (currentSet && !currentSet.completed) {
             if (spec.usesWeight && currentSet.weightKg != null) {
-              targetParts.push(`${currentSet.weightKg} кг`);
+              plannedParts.push(`${currentSet.weightKg} кг`);
             }
             if (spec.usesReps && currentSet.reps != null) {
-              targetParts.push(`${currentSet.reps} повт`);
+              plannedParts.push(`${currentSet.reps} повт`);
             }
             if (spec.usesDistance && currentSet.distanceKm != null) {
-              targetParts.push(`${currentSet.distanceKm} км`);
+              plannedParts.push(`${currentSet.distanceKm} км`);
             }
             if (spec.usesDuration && currentSet.durationSec != null) {
               const mins = Math.round(currentSet.durationSec / 60);
-              targetParts.push(`${mins} мин`);
+              plannedParts.push(`${mins} мин`);
             }
           }
-          if (targetParts.length === 0 && suggestedKg != null && spec.usesWeight) {
-            targetParts.push(`${formatSuggestedKg(suggestedKg)} кг`);
-          }
-          if (targetParts.length === 0) return null;
+          const hasPlanned = plannedParts.length > 0;
+          const chromeTarget =
+            liveGoal?.targetLine ??
+            (suggestedKg != null && spec.usesWeight
+              ? `${formatSuggestedKg(suggestedKg)} кг`
+              : null);
+          if (!hasPlanned && !chromeTarget && !liveGoal) return null;
           return (
-            <p className="mt-3 text-center text-lg font-semibold tracking-tight text-teal-200">
-              Цель: {targetParts.join(" × ")}
-            </p>
+            <div className="mt-3 text-center" aria-label="Цель подхода">
+              {liveGoal && (liveGoal.basisKg != null || liveGoal.leverLabel) ? (
+                <p className="text-[11px] font-medium uppercase tracking-wider text-white/45">
+                  {liveGoal.basisKg != null && liveGoal.basisKg > 0
+                    ? `макс ${formatSuggestedKg(liveGoal.basisKg)} кг`
+                    : null}
+                  {liveGoal.basisKg != null && liveGoal.leverLabel ? " · " : null}
+                  {liveGoal.leverLabel
+                    ? `${liveGoal.leverLabel}${liveGoal.leverRemembered ? " · ваш" : ""}`
+                    : null}
+                  {liveGoal.extraSet ? " · +1 подход" : null}
+                </p>
+              ) : null}
+              <p className="mt-1 text-lg font-semibold tracking-tight text-teal-200">
+                Цель: {hasPlanned ? plannedParts.join(" × ") : chromeTarget}
+              </p>
+            </div>
           );
         })()}
 
@@ -270,13 +292,18 @@ export function WorkoutLiveStage({
           </div>
         ) : null}
 
-        {advice ? (
+        {advice && !liveGoal?.targetLine ? (
           <p
             className={`mt-2 px-2 text-center text-xs leading-snug ${
               advice.kind === "stall" ? "text-amber-200/90" : "text-white/45"
             }`}
           >
             <span className="font-semibold">{advice.title}.</span> {advice.detail}
+          </p>
+        ) : advice?.kind === "stall" ? (
+          <p className="mt-2 px-2 text-center text-xs leading-snug text-amber-200/90">
+            <span className="font-semibold">{advice.title}.</span> Плато — soft deload или
+            тоннаж/повторы на текущем весе.
           </p>
         ) : null}
 
@@ -393,13 +420,15 @@ export function WorkoutLiveStage({
                 {draftError}
               </p>
             ) : null}
-            {suggestedKg != null && spec.usesWeight ? (
+            {(liveGoal?.suggestedKg ?? suggestedKg) != null && spec.usesWeight ? (
               <button
                 type="button"
                 className="text-sm font-semibold text-teal-300"
                 onClick={onApplySuggested}
               >
-                Взять {formatSuggestedKg(suggestedKg)} кг
+                Взять{" "}
+                {liveGoal?.targetLine ??
+                  `${formatSuggestedKg(liveGoal?.suggestedKg ?? suggestedKg!)} кг`}
               </button>
             ) : null}
           </div>
