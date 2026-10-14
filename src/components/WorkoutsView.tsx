@@ -65,6 +65,12 @@ import {
   bumpKg,
 } from "@/lib/workouts/progression";
 import { adviceWithPreferredLever } from "@/lib/workouts/progression-lever-memory";
+import {
+  mergeDraftWithLeverGoal,
+  needsVolumeExtraSet,
+  resolveLeverSessionGoal,
+  volumeExtraSetBody,
+} from "@/lib/workouts/lever-session-apply";
 import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
   countWorkoutOfflineDrafts,
@@ -522,6 +528,152 @@ export function WorkoutsView({
     [todayKey],
   );
 
+  const fillDraftsFromSession = useCallback((session: SessionDetail) => {
+    setSetDrafts((prev) => {
+      const next = { ...prev };
+      for (const ex of session.exercises) {
+        const cur = next[ex.id];
+        if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
+        let draft: SetDraft | null = null;
+        const fill = autofillNextDraft(ex.sets, {
+          progressRate: session.progressRate,
+        });
+        if (fill) {
+          draft = {
+            ...EMPTY_DRAFT,
+            kg: fill.weightKg != null ? String(fill.weightKg) : "",
+            reps: fill.reps != null ? String(fill.reps) : "",
+            setType: (SET_TYPES.includes(fill.setType as SetType)
+              ? fill.setType
+              : "working") as SetType,
+          };
+        } else {
+          const incomplete = ex.sets.find((s) => !s.completed);
+          if (incomplete) {
+            const spec = fieldsForKind(ex.kind);
+            draft = {
+              ...EMPTY_DRAFT,
+              kg:
+                spec.usesWeight && incomplete.weightKg != null
+                  ? String(incomplete.weightKg)
+                  : "",
+              reps:
+                spec.usesReps && incomplete.reps != null
+                  ? String(incomplete.reps)
+                  : "",
+              km:
+                spec.usesDistance &&
+                incomplete.distanceKm != null &&
+                incomplete.distanceKm > 0
+                  ? String(incomplete.distanceKm)
+                  : "",
+              time:
+                spec.usesDuration &&
+                incomplete.durationSec != null &&
+                incomplete.durationSec > 0
+                  ? durationSecToMinutesInput(incomplete.durationSec)
+                  : "",
+              setType: incomplete.setType,
+              rpe: incomplete.rpe != null ? String(incomplete.rpe) : "",
+            };
+          } else {
+            const last = ex.lastTime?.sets?.at(-1);
+            if (last) draft = draftFromHistorySet(last, ex.kind);
+          }
+        }
+        if (!draft) continue;
+        // H1: overlay remembered lever kg/reps onto the draft.
+        const goal = resolveLeverSessionGoal({
+          name: ex.name,
+          kind: ex.kind,
+          progressRate: session.progressRate,
+          sets: ex.sets,
+          lastTimeSets: ex.lastTime?.sets ?? null,
+        });
+        const merged = mergeDraftWithLeverGoal(draft, goal);
+        next[ex.id] = { ...draft, kg: merged.kg, reps: merged.reps };
+      }
+      return next;
+    });
+  }, []);
+
+  /**
+   * H1/H2 after open: rewrite incomplete planned sets to lever targets,
+   * and for volume add one incomplete working set when still short.
+   */
+  const applyLeverGoalsOnOpen = useCallback(async (session: SessionDetail) => {
+    if (session.clockStatus === "finished") return;
+    let latest = session;
+    for (const ex of session.exercises) {
+      if (ex.kind === "cardio") continue;
+      const liveEx = latest.exercises.find((e) => e.id === ex.id) ?? ex;
+      const goal = resolveLeverSessionGoal({
+        name: ex.name,
+        kind: ex.kind,
+        progressRate: session.progressRate,
+        sets: liveEx.sets,
+        lastTimeSets: ex.lastTime?.sets ?? null,
+      });
+      if (!goal) continue;
+
+      // Prefill planned incomplete rows to the remembered target.
+      if (!isLocalSessionId(session.id) && (goal.kg != null || goal.reps != null)) {
+        for (const s of liveEx.sets) {
+          if (s.completed !== false) continue;
+          const t = s.setType ?? "working";
+          if (t === "warmup" || t === "drop") continue;
+          const nextKg = goal.kg ?? s.weightKg;
+          const nextReps = goal.reps ?? s.reps;
+          if (nextKg === s.weightKg && nextReps === s.reps) continue;
+          try {
+            const data = await readJson<{ session: SessionDetail }>(
+              await fetch(withBasePath(`/api/workouts/sets/${s.id}`), {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  ...(goal.kg != null ? { weightKg: goal.kg } : {}),
+                  ...(goal.reps != null ? { reps: goal.reps } : {}),
+                }),
+              }),
+            );
+            latest = data.session;
+            setDetail(data.session);
+          } catch {
+            // draft overlay still applies
+          }
+        }
+      }
+
+      const afterPatch = latest.exercises.find((e) => e.id === ex.id) ?? liveEx;
+      const lastWorking = ex.lastTime?.sets?.length ?? null;
+      if (!needsVolumeExtraSet(afterPatch.sets, lastWorking, goal)) continue;
+      const body = volumeExtraSetBody(goal);
+      if (!body) continue;
+
+      if (isLocalSessionId(session.id)) {
+        enqueueWorkoutSetDraft({
+          sessionId: session.id,
+          exerciseId: ex.id,
+          body,
+        });
+        continue;
+      }
+      try {
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/exercises/${ex.id}/sets`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          }),
+        );
+        latest = data.session;
+        setDetail(data.session);
+      } catch {
+        // keep session as-is; draft prefill still helps
+      }
+    }
+  }, []);
+
   const openSession = useCallback(async (id: string, opts?: { enterStage?: boolean }) => {
     setError(null);
     setActiveId(id);
@@ -545,6 +697,8 @@ export function WorkoutsView({
       setShowSummary(session.clockStatus === "finished");
       setCircuitRound(1);
       setFocusExerciseId(session.exercises[0]?.id ?? null);
+      fillDraftsFromSession(session);
+      void applyLeverGoalsOnOpen(session);
       setError("Тренировка на устройстве — отправим при связи");
       return;
     }
@@ -565,57 +719,13 @@ export function WorkoutsView({
       setShowSummary(false);
       setCircuitRound(1);
       setFocusExerciseId(data.session.exercises[0]?.id ?? null);
-      setSetDrafts((prev) => {
-        const next = { ...prev };
-        for (const ex of data.session.exercises) {
-          const cur = next[ex.id];
-          if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
-          const fill = autofillNextDraft(ex.sets, {
-            progressRate: data.session.progressRate,
-          });
-          if (fill) {
-            next[ex.id] = {
-              ...EMPTY_DRAFT,
-              kg: fill.weightKg != null ? String(fill.weightKg) : "",
-              reps: fill.reps != null ? String(fill.reps) : "",
-              setType: (SET_TYPES.includes(fill.setType as SetType)
-                ? fill.setType
-                : "working") as SetType,
-            };
-            continue;
-          }
-          const incomplete = ex.sets.find((s) => !s.completed);
-          if (incomplete) {
-            const spec = fieldsForKind(ex.kind);
-            next[ex.id] = {
-              ...EMPTY_DRAFT,
-              kg: spec.usesWeight && incomplete.weightKg != null ? String(incomplete.weightKg) : "",
-              reps: spec.usesReps && incomplete.reps != null ? String(incomplete.reps) : "",
-              km:
-                spec.usesDistance && incomplete.distanceKm != null && incomplete.distanceKm > 0
-                  ? String(incomplete.distanceKm)
-                  : "",
-              time:
-                spec.usesDuration && incomplete.durationSec != null && incomplete.durationSec > 0
-                  ? durationSecToMinutesInput(incomplete.durationSec)
-                  : "",
-              setType: incomplete.setType,
-              rpe: incomplete.rpe != null ? String(incomplete.rpe) : "",
-            };
-            continue;
-          }
-          const last = ex.lastTime?.sets?.at(-1);
-          if (last) {
-            next[ex.id] = draftFromHistorySet(last, ex.kind);
-          }
-        }
-        return next;
-      });
+      fillDraftsFromSession(data.session);
+      void applyLeverGoalsOnOpen(data.session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
       setActiveId(null);
     }
-  }, []);
+  }, [applyLeverGoalsOnOpen, fillDraftsFromSession]);
 
   useEffect(() => {
     void loadList();
@@ -1473,14 +1583,34 @@ export function WorkoutsView({
     setsAfter: SessionExercise["sets"],
     progressRate: number,
   ) => {
-    const fill = autofillNextDraft(setsAfter, { progressRate });
+    const goal = resolveLeverSessionGoal({
+      name: ex.name,
+      kind: ex.kind,
+      progressRate,
+      sets: setsAfter,
+      lastTimeSets: ex.lastTime?.sets ?? null,
+      historyPoints: historyByName[ex.name]?.points ?? null,
+    });
+    // Weight lever (or no memory): allow kg bump after a completed set.
+    const bump =
+      !goal || goal.lever === "weight"
+        ? { progressRate, bumpAfterComplete: true as const }
+        : { progressRate, bumpAfterComplete: false as const };
+    const fill = autofillNextDraft(setsAfter, bump);
     if (!fill) return;
+    const merged = mergeDraftWithLeverGoal(
+      {
+        kg: fill.weightKg != null ? String(fill.weightKg) : "",
+        reps: fill.reps != null ? String(fill.reps) : "",
+      },
+      goal,
+    );
     setSetDrafts((prev) => ({
       ...prev,
       [ex.id]: {
         ...EMPTY_DRAFT,
-        kg: fill.weightKg != null ? String(fill.weightKg) : "",
-        reps: fill.reps != null ? String(fill.reps) : "",
+        kg: merged.kg,
+        reps: merged.reps,
         setType: (SET_TYPES.includes(fill.setType as SetType)
           ? fill.setType
           : "working") as SetType,
