@@ -90,9 +90,13 @@ export function WorkoutSessionSummary({
   const [chosen, setChosen] = useState<Record<string, ProgressionLever>>(() =>
     initialChosen(targets),
   );
-  const [tip, setTip] = useState<string | null>(() =>
-    targets.length > 0 ? ruleNextSessionTip(targets) : null,
-  );
+  const chosenKey = Object.entries(chosen)
+    .map(([n, l]) => `${n}:${l}`)
+    .sort()
+    .join("|");
+  const [tip, setTip] = useState<string | null>(null);
+  const [tipLever, setTipLever] = useState<ProgressionLever | null>(null);
+  const [tipExercise, setTipExercise] = useState<string | null>(null);
 
   useEffect(() => {
     setChosen(initialChosen(targets));
@@ -102,14 +106,31 @@ export function WorkoutSessionSummary({
   useEffect(() => {
     if (!targetsKey) {
       setTip(null);
+      setTipLever(null);
+      setTipExercise(null);
       return;
     }
-    const snapshot = nextTargets?.targets ?? [];
+    const snapshot = (nextTargets?.targets ?? []).map((t) => {
+      const pick = chosen[t.name] ?? t.primaryLever;
+      const opt = pick ? t.options.find((o) => o.lever === pick) : null;
+      return {
+        ...t,
+        primaryLever: pick,
+        // Lock tip to the on-screen focus lever (G3).
+        leverRemembered: Boolean(pick),
+        line: opt ? `${t.name} → ${opt.label}: ${opt.line}` : t.line,
+        suggestedKg: opt?.suggestedKg ?? t.suggestedKg,
+      };
+    });
     if (snapshot.length === 0) {
       setTip(null);
       return;
     }
     setTip(ruleNextSessionTip(snapshot));
+    setTipLever(snapshot.find((t) => t.leverRemembered)?.primaryLever ?? snapshot[0]?.primaryLever ?? null);
+    setTipExercise(
+      snapshot.find((t) => t.leverRemembered)?.name ?? snapshot[0]?.name ?? null,
+    );
     let cancelled = false;
     void (async () => {
       try {
@@ -123,11 +144,8 @@ export function WorkoutSessionSummary({
               line: t.line,
               suggestedKg: t.suggestedKg,
               basisKg: t.basisKg,
-              primaryLever: chosen[t.name] ?? t.primaryLever,
-              leverRemembered: Boolean(
-                chosen[t.name] &&
-                  (t.leverRemembered || chosen[t.name] !== t.primaryLever),
-              ),
+              primaryLever: t.primaryLever,
+              leverRemembered: t.leverRemembered,
               options: t.options.map((o) => ({
                 lever: o.lever,
                 label: o.label,
@@ -139,13 +157,26 @@ export function WorkoutSessionSummary({
           }),
         });
         if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { tip?: unknown };
+        const data = (await res.json()) as {
+          tip?: unknown;
+          lever?: unknown;
+          exerciseName?: unknown;
+        };
         if (
           !cancelled &&
           typeof data.tip === "string" &&
           data.tip.trim().length >= 12
         ) {
           setTip(data.tip.trim());
+        }
+        if (
+          !cancelled &&
+          (data.lever === "weight" || data.lever === "volume" || data.lever === "reps")
+        ) {
+          setTipLever(data.lever);
+        }
+        if (!cancelled && typeof data.exerciseName === "string") {
+          setTipExercise(data.exerciseName);
         }
       } catch {
         // keep rule tip
@@ -154,9 +185,9 @@ export function WorkoutSessionSummary({
     return () => {
       cancelled = true;
     };
-    // targetsKey encodes advice + lines; tip refresh on lever pick is G3.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
-  }, [targetsKey]);
+    // G3: refresh tip when user picks a different lever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- snapshot from targets + chosen
+  }, [targetsKey, chosenKey]);
 
   const pickLever = (
     name: string,
@@ -311,7 +342,22 @@ export function WorkoutSessionSummary({
             })}
           </ul>
           {tip ? (
-            <p className="mt-3 text-xs leading-relaxed text-white/65">{tip}</p>
+            <div className="mt-3 border-t border-white/10 pt-2.5">
+              {tipLever || tipExercise ? (
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  Совет
+                  {tipExercise ? ` · ${tipExercise}` : ""}
+                  {tipLever === "weight"
+                    ? " · вес"
+                    : tipLever === "volume"
+                      ? " · тоннаж"
+                      : tipLever === "reps"
+                        ? " · повторы"
+                        : ""}
+                </p>
+              ) : null}
+              <p className="text-xs leading-relaxed text-white/65">{tip}</p>
+            </div>
           ) : null}
         </section>
       ) : null}
