@@ -1066,9 +1066,9 @@ export function AssistantChat() {
   return (
     <section className="assistant-scene flex flex-col gap-2.5 text-[14px] leading-snug">
       {!online ? (
-        <div className="assistant-offline-glass" role="status">
+        <div className="offline-chrome offline-chrome-pad assistant-offline-glass" role="status">
           <p className="font-semibold">Нет сети</p>
-          <p className="mt-0.5 text-[11px] opacity-90">
+          <p className="mt-0.5 text-[11px] text-[var(--offline-glass-muted)]">
             Чат с AI недоступен. Уже распознанные карточки можно поставить в очередь — доедут
             сами.
             {applyQueued > 0 ? ` В очереди: ${applyQueued}.` : ""}
