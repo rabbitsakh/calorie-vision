@@ -282,8 +282,8 @@ export function WeightGoalCard({
               </div>
             </div>
             {weighInDays != null ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3 py-2.5">
-                <p className="text-sm text-teal-900">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 px-3 py-2.5">
+                <p className="text-sm text-[var(--accent-ink)]">
                   {weighInDays <= 1
                     ? `Взвешивание: ${weighInRhythmLabel(weighInDays)}`
                     : weighInRhythmLabel(weighInDays)}
@@ -299,7 +299,7 @@ export function WeightGoalCard({
             ) : null}
             <Link
               href={withBasePath("/weight")}
-              className="inline-flex items-center justify-between gap-2 rounded-xl border border-[rgba(13,115,119,0.08)] bg-white px-3 py-2 text-sm text-teal-800 transition-colors hover:border-teal-200 hover:bg-teal-50/60"
+              className="inline-flex items-center justify-between gap-2 rounded-xl border border-[rgba(13,115,119,0.08)] bg-white px-3 py-2 text-sm text-[var(--accent-ink)] transition-colors hover:border-[var(--border-quiet)] hover:bg-[var(--accent-soft)]/60"
             >
               <span className="font-medium">Журнал веса</span>
               <span className="shrink-0 font-semibold">Открыть →</span>
@@ -311,18 +311,18 @@ export function WeightGoalCard({
           <div>
             <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">Цель</p>
             {!goal ? (
-              <p className="mb-2 text-xs text-teal-800">
+              <p className="mb-2 text-xs text-[var(--accent-ink)]">
                 Задайте цель — появится прогноз на Плане
               </p>
             ) : null}
             {goal && !editingGoal ? (
-              <div className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3">
+              <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-teal-900">{formatGoalChoice(goal, goalPace)}</p>
-                    <p className="text-xs text-teal-800">{savedGoalHint(goal, goalPace)}</p>
+                    <p className="font-semibold text-[var(--accent-ink)]">{formatGoalChoice(goal, goalPace)}</p>
+                    <p className="text-xs text-[var(--accent-ink)]">{savedGoalHint(goal, goalPace)}</p>
                     {targetWeightKg ? (
-                      <p className="mt-1 text-xs text-teal-700">
+                      <p className="mt-1 text-xs text-[var(--accent)]">
                         Цель: {targetWeightKg} кг
                         {goalDeadline
                           ? ` · к ${new Intl.DateTimeFormat("ru-RU", {
@@ -363,7 +363,7 @@ export function WeightGoalCard({
                   </button>
                 </div>
                 {forecast ? (
-                  <p className="rounded-xl bg-white/70 px-3 py-2 text-xs text-teal-900">
+                  <p className="rounded-xl bg-white/70 px-3 py-2 text-xs text-[var(--accent-ink)]">
                     {forecast.message}
                     {goalDeadline && forecast.forecastDate > goalDeadline ? (
                       <span className="mt-1 block text-amber-800">
@@ -371,7 +371,7 @@ export function WeightGoalCard({
                       </span>
                     ) : null}
                     {goalDeadline && forecast.forecastDate < goalDeadline ? (
-                      <span className="mt-1 block text-teal-700">
+                      <span className="mt-1 block text-[var(--accent)]">
                         Темп опережает дедлайн — можно чуть смягчить дефицит.
                       </span>
                     ) : null}
@@ -391,8 +391,8 @@ export function WeightGoalCard({
                         onClick={() => pickGoal(option.value)}
                         className={`rounded-2xl border px-3 py-3 text-left ${
                           active
-                            ? "border-teal-600 bg-teal-50 text-teal-900"
-                            : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-teal-300"
+                            ? "border-[var(--border-quiet)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                            : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-[var(--accent)]"
                         }`}
                       >
                         <span className="block text-sm font-semibold">{option.label}</span>
@@ -415,8 +415,8 @@ export function WeightGoalCard({
                             onClick={() => pickPace(option.value)}
                             className={`rounded-2xl border px-3 py-3 text-left ${
                               active
-                                ? "border-teal-600 bg-teal-50 text-teal-900"
-                                : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-teal-300"
+                                ? "border-[var(--border-quiet)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                                : "border-[rgba(13,115,119,0.14)] bg-white text-[var(--muted-strong)] hover:border-[var(--accent)]"
                             }`}
                           >
                             <span className="block text-sm font-semibold">{option.label}</span>

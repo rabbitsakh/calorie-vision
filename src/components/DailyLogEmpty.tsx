@@ -58,7 +58,7 @@ export function DailyLogEmpty({
       {onAddFoodText ? (
         <button
           type="button"
-          className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+          className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
           onClick={onAddFoodText}
         >
           Текстом
@@ -68,7 +68,7 @@ export function DailyLogEmpty({
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
-            className="text-sm font-semibold text-[var(--muted)] underline-offset-2 hover:text-teal-800 hover:underline"
+            className="text-sm font-semibold text-[var(--muted)] underline-offset-2 hover:text-[var(--accent-ink)] hover:underline"
             onClick={onToggleCopyOptions}
             aria-expanded={showCopyOptions}
           >

@@ -95,7 +95,7 @@ function TelegramCallbackInner() {
       <div className="card p-8 text-center">
         <div className="flex items-center justify-center gap-3">
           <BrandMark size={64} />
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-teal-700">Calorie Vision</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">Calorie Vision</p>
         </div>
         {error ? (
           <>

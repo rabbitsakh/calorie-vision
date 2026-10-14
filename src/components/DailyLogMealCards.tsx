@@ -134,8 +134,8 @@ function MealEntryDetails({
 
 function mealStripeClass(mealType: string | null | undefined): string {
   if (mealType === "BREAKFAST") return "bg-amber-400";
-  if (mealType === "LUNCH") return "bg-teal-500";
-  if (mealType === "DINNER") return "bg-teal-600";
+  if (mealType === "LUNCH") return "bg-[var(--accent)]";
+  if (mealType === "DINNER") return "bg-[var(--accent)]";
   if (mealType === "SNACK") return "bg-rose-400";
   return "bg-[var(--accent-soft)]";
 }
@@ -358,7 +358,7 @@ function GroupedMealCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="meal-card-title">С одного фото</h3>
-            <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">
+            <span className="rounded-full bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-ink)]">
               {group.entries.length} {group.entries.length === 1 ? "блюдо" : group.entries.length < 5 ? "блюда" : "блюд"}
             </span>
           </div>
@@ -495,7 +495,7 @@ function GroupedMealCard({
                     ) : null}
                     <button
                       type="button"
-                      className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+                      className="text-left text-[11px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                       onClick={() => {
                         addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
                         setShopFlashId(entry.id);
@@ -751,7 +751,7 @@ function SingleMealCard({
             ) : null}
             <button
               type="button"
-              className="text-left text-[11px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+              className="text-left text-[11px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
               onClick={() => {
                 addToShopping(decodeHtmlEntities(entry.dishName), entry.date);
                 setShopFlash(true);

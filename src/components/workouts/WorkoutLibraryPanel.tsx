@@ -126,7 +126,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
                 type="button"
                 onClick={() => setKind(k)}
                 className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                  kind === k ? "bg-teal-700 text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                  kind === k ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
                 }`}
               >
                 {EXERCISE_KIND_LABELS[k]}
@@ -175,7 +175,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
               {onPick ? (
                 <button
                   type="button"
-                  className="text-sm font-medium text-teal-800"
+                  className="text-sm font-medium text-[var(--accent-ink)]"
                   onClick={() => onPick(e)}
                 >
                   Выбрать

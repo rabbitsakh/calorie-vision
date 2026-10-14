@@ -36,7 +36,7 @@ type ApiResponse = {
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  protein: { label: "Белковое", color: "bg-teal-100 text-teal-800" },
+  protein: { label: "Белковое", color: "bg-[var(--accent-soft)] text-[var(--accent-ink)]" },
   carbs: { label: "Углеводы", color: "bg-cyan-100 text-cyan-900" },
   fat: { label: "Жиры", color: "bg-amber-100 text-amber-800" },
   balanced: { label: "Баланс", color: "bg-[var(--accent-soft)] text-[var(--muted-strong)]" },
@@ -180,14 +180,14 @@ export function MealSuggestions({
     return (
       <button
         type="button"
-        className={`flex w-full items-center gap-3 rounded-2xl border border-dashed border-teal-200 px-4 py-3.5 text-sm text-teal-700 hover:border-teal-400 hover:bg-teal-50 ${embedded ? "border-[rgba(13,115,119,0.14)]" : ""}`}
+        className={`flex w-full items-center gap-3 rounded-2xl border border-dashed border-[var(--border-quiet)] px-4 py-3.5 text-sm text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] ${embedded ? "border-[rgba(13,115,119,0.14)]" : ""}`}
         onClick={() => { setVisible(true); void load(); }}
       >
         <div className="text-left">
           <p className="font-semibold">
             {totalCalories === 0 ? "Что съесть, чтобы попасть в норму?" : "Что ещё съесть до цели?"}
           </p>
-          <p className="text-xs text-teal-600">
+          <p className="text-xs text-[var(--accent)]">
             Остаток калорий и белка → 3 конкретных блюда
           </p>
         </div>
@@ -228,19 +228,19 @@ export function MealSuggestions({
             <span className="text-sm font-medium text-[var(--muted-strong)]">
               {data.eaten.calories} / {data.target.calories} ккал
             </span>
-            <span className={`text-xs font-semibold ${(data.pctCalories ?? 0) > 100 ? "text-rose-600" : "text-teal-700"}`}>
+            <span className={`text-xs font-semibold ${(data.pctCalories ?? 0) > 100 ? "text-rose-600" : "text-[var(--accent)]"}`}>
               {data.pctCalories}%
             </span>
           </div>
           {/* Calorie bar */}
           <div className="mb-3 h-2 overflow-hidden rounded-full bg-[var(--accent-soft)]">
             <div
-              className={`h-2 rounded-full transition-all ${(data.pctCalories ?? 0) > 100 ? "bg-rose-400" : "bg-teal-500"}`}
+              className={`h-2 rounded-full transition-all ${(data.pctCalories ?? 0) > 100 ? "bg-rose-400" : "bg-[var(--accent)]"}`}
               style={{ width: `${Math.min(100, data.pctCalories ?? 0)}%` }}
             />
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <MacroBar label="Белки" eaten={data.eaten.protein} target={data.target.protein} color="bg-teal-400" />
+            <MacroBar label="Белки" eaten={data.eaten.protein} target={data.target.protein} color="bg-[var(--accent)]" />
             <MacroBar label="Жиры" eaten={data.eaten.fat} target={data.target.fat} color="bg-amber-400" />
             <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-cyan-500" />
           </div>
@@ -269,11 +269,11 @@ export function MealSuggestions({
       {data?.remaining && !data.reason && !loading ? (
         <div className="border-t border-[rgba(13,115,119,0.08)] px-4 pt-3 text-xs text-[var(--muted)] md:px-6">
           <span className="font-medium text-[var(--muted-strong)]">Осталось до цели: </span>
-          <span className="font-semibold text-teal-800">
+          <span className="font-semibold text-[var(--accent-ink)]">
             {data.remaining.calories} ккал
           </span>
           {" · белок "}
-          <span className="font-semibold text-teal-800">{data.remaining.protein} г</span>
+          <span className="font-semibold text-[var(--accent-ink)]">{data.remaining.protein} г</span>
           {" · Ж "}
           {data.remaining.fat} г · У {data.remaining.carbs} г
         </div>
@@ -306,12 +306,12 @@ export function MealSuggestions({
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     <div className="text-right">
-                      <p className="text-sm font-bold text-teal-700">{s.calories} ккал</p>
+                      <p className="text-sm font-bold text-[var(--accent)]">{s.calories} ккал</p>
                       {s.portionGrams ? <p className="text-xs text-[var(--muted)]">{s.portionGrams} г</p> : null}
                     </div>
                     <button
                       type="button"
-                      className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                      className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-60"
                       disabled={busy || addingIndex != null}
                       onClick={() => void addSuggestion(s, i)}
                     >

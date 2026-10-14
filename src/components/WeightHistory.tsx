@@ -352,8 +352,8 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
           ) : null}
         </form>
 
-        <div className="rounded-2xl bg-teal-50 px-4 py-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-teal-800">Текущий вес</div>
+        <div className="rounded-2xl bg-[var(--accent-soft)] px-4 py-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">Текущий вес</div>
           <div className="mt-1 flex items-end justify-between gap-3">
             <p className="text-4xl font-bold tabular-nums text-[var(--foreground)]">
               {data?.currentWeightKg != null ? `${data.currentWeightKg}` : "—"}
@@ -449,7 +449,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
           {(data?.entries.length ?? 0) >= limit ? (
             <button
               type="button"
-              className="mt-3 text-sm text-teal-700 hover:underline"
+              className="mt-3 text-sm text-[var(--accent)] hover:underline"
               onClick={() => setLimit((l) => l + 20)}
             >
               Показать ещё…

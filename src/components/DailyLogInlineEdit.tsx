@@ -153,7 +153,7 @@ export function InlineEdit({
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50/30 p-4">
+    <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col gap-3 rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/30 p-4">
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="field sm:col-span-2">
           <label className="text-xs">Название</label>
@@ -174,7 +174,7 @@ export function InlineEdit({
                   type="button"
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
                     Number(portionGrams) === grams
-                      ? "bg-teal-700 text-white"
+                      ? "bg-[var(--accent)] text-white"
                       : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
                   }`}
                   onClick={() => handlePortionChange(String(grams))}
@@ -227,7 +227,7 @@ export function InlineEdit({
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                   mealType === value
-                    ? "bg-teal-700 text-white"
+                    ? "bg-[var(--accent)] text-white"
                     : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => setMealType(mealType === value ? "" : value)}
@@ -240,7 +240,7 @@ export function InlineEdit({
       </div>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-on-tint text-sm text-teal-800" disabled={saving}>{saving ? "Сохраняем..." : "Сохранить"}</button>
+        <button type="submit" className="btn btn-on-tint text-sm text-[var(--accent-ink)]" disabled={saving}>{saving ? "Сохраняем..." : "Сохранить"}</button>
         <button type="button" className="btn btn-secondary text-sm" onClick={onCancel} disabled={saving}>Отмена</button>
       </div>
     </form>

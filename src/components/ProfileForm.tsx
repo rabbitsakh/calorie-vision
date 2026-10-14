@@ -410,7 +410,7 @@ export function ProfileForm() {
                     image={image}
                     label={displayName}
                     className="h-24 w-24 rounded-full border border-[rgba(13,115,119,0.14)] object-cover bg-[var(--accent-soft)]"
-                    fallbackClassName="flex h-24 w-24 items-center justify-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800"
+                    fallbackClassName="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--accent-soft)] text-2xl font-bold text-[var(--accent-ink)]"
                   />
                 </AvatarFrame>
                 <span className="absolute inset-x-0 bottom-0 rounded-b-full bg-black/45 py-1 text-center text-xs text-white">
@@ -445,7 +445,7 @@ export function ProfileForm() {
               </div>
             </div>
 
-            {message ? <p className="mt-3 text-sm text-teal-700">{message}</p> : null}
+            {message ? <p className="mt-3 text-sm text-[var(--accent)]">{message}</p> : null}
             {error && !openData && !openDelete ? (
               <p className="mt-3 text-sm text-red-600">{error}</p>
             ) : null}
@@ -631,7 +631,7 @@ export function ProfileForm() {
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
+                    className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
                     checked={weeklyDigestEmail}
                     onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
                     disabled={!email.trim()}
@@ -674,7 +674,7 @@ export function ProfileForm() {
                       >
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-700 focus:ring-teal-600"
+                          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
                           checked={checked}
                           onChange={() => {
                             setAllergens((prev) =>
@@ -776,7 +776,7 @@ export function ProfileForm() {
               VK
             </a>
           </div>
-          {copyStatus ? <p className="mt-2 text-sm text-teal-700">{copyStatus}</p> : null}
+          {copyStatus ? <p className="mt-2 text-sm text-[var(--accent)]">{copyStatus}</p> : null}
         </ProfileCollapse>
       ) : null}
 
@@ -916,19 +916,19 @@ export function ProfileForm() {
           <nav className="flex flex-wrap gap-x-4 gap-y-2" aria-label="Правовая информация">
             <Link
               href={withBasePath("/privacy")}
-              className="text-teal-800 underline-offset-2 hover:underline"
+              className="text-[var(--accent-ink)] underline-offset-2 hover:underline"
             >
               Конфиденциальность
             </Link>
             <Link
               href={withBasePath("/terms")}
-              className="text-teal-800 underline-offset-2 hover:underline"
+              className="text-[var(--accent-ink)] underline-offset-2 hover:underline"
             >
               Условия
             </Link>
             <Link
               href={withBasePath("/disclaimer")}
-              className="text-teal-800 underline-offset-2 hover:underline"
+              className="text-[var(--accent-ink)] underline-offset-2 hover:underline"
             >
               Дисклеймер
             </Link>
