@@ -6720,13 +6720,21 @@ select {
 }
 
 .cookie-consent {
-  bottom: 0;
+  /* Sit above the mobile tab dock so «+» stays tappable until consent is chosen. */
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   left: 0;
-  padding: max(0.75rem, env(safe-area-inset-bottom)) 0.75rem 0.75rem;
+  padding: 0.75rem;
   pointer-events: none;
   position: fixed;
   right: 0;
   z-index: 80;
+}
+
+@media (min-width: 768px) {
+  .cookie-consent {
+    bottom: 0;
+    padding: max(0.75rem, env(safe-area-inset-bottom)) 0.75rem 0.75rem;
+  }
 }
 
 .cookie-consent-inner {
