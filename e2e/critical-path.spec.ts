@@ -35,37 +35,37 @@ test.describe("guest critical path", () => {
     await expect(page.getByRole("link", { name: /На главную/i })).toBeVisible();
   });
 
+  const guestAuthGate = (page: import("@playwright/test").Page) =>
+    page.locator("section").filter({ has: page.getByRole("heading", { name: /Войдите, чтобы начать/i }) });
+
   test("profile requires auth when guest", async ({ page }) => {
     await page.goto("/profile");
     // AuthGate (no middleware redirect): guest sees sign-in prompt on the page.
-    await expect(page.getByRole("heading", { name: /Войдите, чтобы начать/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    const gate = guestAuthGate(page);
+    await expect(gate).toBeVisible({ timeout: 15_000 });
+    // Prefer AuthGate CTA — header also has «Войти».
+    await expect(gate.getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 
   test("ration requires auth when guest", async ({ page }) => {
     await page.goto("/ration");
-    await expect(page.getByRole("heading", { name: /Войдите, чтобы начать/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    const gate = guestAuthGate(page);
+    await expect(gate).toBeVisible({ timeout: 15_000 });
+    await expect(gate.getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 
   test("plan requires auth when guest", async ({ page }) => {
     await page.goto("/plan");
-    await expect(page.getByRole("heading", { name: /Войдите, чтобы начать/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    const gate = guestAuthGate(page);
+    await expect(gate).toBeVisible({ timeout: 15_000 });
+    await expect(gate.getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 
   test("stats requires auth when guest", async ({ page }) => {
     await page.goto("/stats");
-    await expect(page.getByRole("heading", { name: /Войдите, чтобы начать/i })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(page.getByRole("link", { name: /^Войти$/i })).toBeVisible();
+    const gate = guestAuthGate(page);
+    await expect(gate).toBeVisible({ timeout: 15_000 });
+    await expect(gate.getByRole("link", { name: /^Войти$/i })).toBeVisible();
   });
 
   test("diary redirects to ration", async ({ page }) => {
