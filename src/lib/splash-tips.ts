@@ -9,6 +9,7 @@
  * - DayHero / DailyLog skeletons — in-scene
  * - DaisyLoading — admin only
  * - SceneSkeleton / SceneBusy — product routes (Wave D1)
+ * - AppSplash wordmark / tip / ready motion — Wave D5 boot chrome
  */
 
 import { pluralDays } from "@/lib/russian-text";

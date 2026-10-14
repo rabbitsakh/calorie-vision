@@ -81,13 +81,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (status === "authenticated" || offlinePass) {
-    return <>{children}</>;
+    return <div className="boot-enter">{children}</div>;
   }
 
   return (
-    <section className="card p-8 text-center">
-      <h2 className="text-xl font-semibold">Войдите, чтобы начать</h2>
-      <p className="mt-2 text-[var(--muted-strong)]">
+    <section className="boot-enter rounded-[var(--radius-panel)] border border-[var(--border-quiet)] bg-[var(--panel-wash)] p-8 text-center shadow-[var(--shadow-card)]">
+      <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+        Calorie Vision
+      </p>
+      <h2 className="font-display mt-3 text-xl font-semibold tracking-tight text-[var(--ink)]">
+        Войдите, чтобы начать
+      </h2>
+      <p className="mt-2 text-sm text-[var(--muted-strong)]">
         Дневник питания привязан к вашему аккаунту — войдите через Яндекс, Google, VK, Telegram или
         email.
       </p>

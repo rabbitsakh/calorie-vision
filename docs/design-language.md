@@ -5,6 +5,7 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Brand & surface
 - Cream surfaces (`--background`, `--surface-*`), teal accent (`--accent` / `#0d7377`).
 - Shared plane wash: `--panel-wash` on day/gym/assistant scenes.
+- Gym depth (Wave D4): `.gym-day` / `.gym-session-scene` / `.gym-hub-scene` as one atmospheric plane; nested blocks use `.gym-plane` (hairline, no card cascade).
 - Display: Unbounded; body: Manrope. No Inter/Roboto/system stacks on hero text.
 - No purple/indigo themes, no glow stacks, no emoji decoration.
 - Accent on product UI: prefer `var(--accent)` / `--accent-soft` / `--accent-ink` / `--border-quiet` / `--on-ink` over Tailwind `teal-*` (Wave D2).
@@ -30,3 +31,4 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 ## Motion & brand
 - Prefer existing `ration-scene-in` / `meal-row-in` / day-voice / apply-flash — not decorative noise.
 - Landing accents alias product `--accent` (C5) so install → app is one teal family.
+- Boot chrome (Wave D5): `AppSplash` wordmark is Unbounded hero on accent-token stage; tip swap + ready beat; AuthGate → product uses `.boot-enter`; skeletons fade with the same language.

@@ -1988,7 +1988,19 @@ select {
   color: #0f172a;
 }
 
-/* App splash (session / day bootstrap) */
+/* App splash (session / day bootstrap) — Wave D5 type + motion */
+.app-splash {
+  background:
+    linear-gradient(
+      165deg,
+      var(--accent-hover) 0%,
+      var(--accent) 42%,
+      var(--accent-ink) 78%,
+      #083d40 100%
+    );
+  color: var(--on-ink);
+}
+
 .app-splash-atmosphere {
   pointer-events: none;
   position: absolute;
@@ -2003,6 +2015,16 @@ select {
 
 .app-splash-brand {
   animation: app-splash-fade-up 0.55s ease-out both;
+}
+
+.app-splash-wordmark {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--on-ink);
 }
 
 .app-splash-mascot {
@@ -2028,7 +2050,19 @@ select {
 }
 
 .app-splash-tip {
-  animation: app-splash-fade-up 0.55s ease-out both;
+  font-family: var(--font-body), sans-serif;
+  animation: app-splash-tip-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-splash-status {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  letter-spacing: 0.08em;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.app-splash-status--ready {
+  color: #a7f3d0;
+  animation: app-splash-ready-beat 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-splash-bar-fill {
@@ -2037,6 +2071,16 @@ select {
 
 .app-splash-bar-done {
   animation: none;
+}
+
+/* Boot → first product paint */
+.boot-enter {
+  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scene-skeleton,
+.scene-skeleton-inline {
+  animation: app-splash-fade-up 0.35s ease-out both;
 }
 
 @keyframes app-splash-atmosphere-drift {
@@ -2068,6 +2112,32 @@ select {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes app-splash-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes app-splash-ready-beat {
+  0% {
+    opacity: 0.55;
+    transform: translateY(4px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -2598,6 +2668,7 @@ select {
 
 /* B6 — Gym live scene */
 /* C6 — gym console: deep teal stage when live */
+/* D4 — deeper gym atmosphere (layered wash, one plane) */
 .gym-day {
   display: flex;
   flex-direction: column;
@@ -2608,9 +2679,57 @@ select {
   padding: 0.65rem 0.75rem 0.85rem;
   border-radius: var(--radius-panel);
   border: 1px solid var(--border-quiet);
-  background: var(--panel-wash);
+  background:
+    radial-gradient(ellipse 100% 70% at 100% 0%, rgba(13, 115, 119, 0.12), transparent 55%),
+    radial-gradient(ellipse 80% 50% at 0% 100%, rgba(20, 145, 155, 0.08), transparent 50%),
+    var(--panel-wash);
   box-shadow: var(--shadow-card);
   animation: plan-week-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  isolation: isolate;
+}
+
+/* Active session + hub “Ещё” — same depth language as today */
+.gym-session-scene,
+.gym-hub-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.7rem 0.8rem 1rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-quiet);
+  background:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(13, 115, 119, 0.1), transparent 52%),
+    var(--panel-wash);
+  box-shadow: var(--shadow-card);
+  animation: ration-scene-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gym-session-scene {
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .gym-session-scene,
+  .gym-hub-scene {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+.gym-plane {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-hairline);
+  background: rgba(255, 255, 255, 0.62);
+  padding: 0.85rem 0.9rem;
+  box-shadow: none;
+}
+
+.gym-session-scene .gym-plane,
+.gym-hub-scene .gym-plane,
+.gym-day .gym-plane {
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .gym-day .day-hero--scene {
@@ -2878,7 +2997,11 @@ select {
   .app-splash-mascot-glow,
   .app-splash-atmosphere,
   .app-splash-tip,
+  .app-splash-status--ready,
   .app-splash-bar-fill,
+  .boot-enter,
+  .scene-skeleton,
+  .scene-skeleton-inline,
   .day-hero,
   .day-hero-mascot,
   .day-hero-ring,
@@ -2888,6 +3011,9 @@ select {
   .ration-empty-day,
   .stats-page-scene,
   .confirm-card-section,
+  .gym-day,
+  .gym-session-scene,
+  .gym-hub-scene,
   .gym-live-pulse::before {
     animation: none;
   }
@@ -7011,10 +7137,20 @@ select {
   }
 }
 
-/* Wave C3 — one scene: soften nested card cascade on stats / gym / plan */
+/* Wave C3 / D4 — one scene: soften nested card cascade on stats / gym / plan */
 .stats-page-scene .card,
 .gym-day .card,
+.gym-session-scene .card,
+.gym-hub-scene .card,
 .plan-week .card {
+  box-shadow: none;
+  border-color: var(--border-hairline);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.gym-session-scene > section.rounded-2xl,
+.gym-hub-scene > section.rounded-2xl,
+.gym-hub-scene section.rounded-2xl {
   box-shadow: none;
   border-color: var(--border-hairline);
   background: rgba(255, 255, 255, 0.55);

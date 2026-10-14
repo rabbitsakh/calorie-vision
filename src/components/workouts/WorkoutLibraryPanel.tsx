@@ -100,7 +100,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="gym-hub-scene">
       <input
         className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
         placeholder="Поиск…"
