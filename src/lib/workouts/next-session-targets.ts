@@ -24,6 +24,10 @@ export type NextSessionTargetInput = {
   points: readonly ProgressionPoint[];
   load: number;
   completedCount: number;
+  /** Completed working sets this session (I2 volume hit). */
+  sessionWorkingCount?: number;
+  /** Working sets last time (I2 volume baseline). */
+  lastWorkingCount?: number | null;
   cardioDistanceKm?: number;
   cardioDurationSec?: number;
   previousBestPaceSecPerKm?: number | null;
@@ -41,6 +45,10 @@ export type NextSessionTarget = {
   /** True when primary came from saved user choice (G1). */
   leverRemembered?: boolean;
   options: ProgressionOption[];
+  /** Top working reps this session (I2). */
+  sessionTopReps?: number | null;
+  sessionWorkingCount?: number;
+  lastWorkingCount?: number | null;
 };
 
 export type NextSessionTargetsCard = {
@@ -127,6 +135,9 @@ function toTarget(
     primaryLever,
     leverRemembered,
     options,
+    sessionTopReps: ex.lastWorkingReps ?? null,
+    sessionWorkingCount: ex.sessionWorkingCount ?? ex.completedCount,
+    lastWorkingCount: ex.lastWorkingCount ?? null,
   };
 }
 

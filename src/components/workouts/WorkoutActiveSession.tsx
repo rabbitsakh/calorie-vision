@@ -536,6 +536,10 @@ export function WorkoutActiveSession({
           .map((p) => p.bestPaceSecPerKm)
           .filter((p): p is number => p != null && p > 0)
           .sort((a, b) => a - b)[0] ?? ex.cardioBestPaceSecPerKm;
+      const workingSets = ex.sets.filter(
+        (s) => s.completed && (s.setType ?? "working") !== "warmup" && (s.setType ?? "working") !== "drop",
+      );
+      const lastTimeCount = ex.lastTime?.sets?.length ?? 0;
       return {
         name: ex.name,
         kind: ex.kind,
@@ -549,6 +553,8 @@ export function WorkoutActiveSession({
         })),
         load: ex.load,
         completedCount: ex.sets.filter((s) => s.completed).length,
+        sessionWorkingCount: workingSets.length,
+        lastWorkingCount: lastTimeCount > 0 ? lastTimeCount : null,
         cardioDistanceKm: ex.cardioDistanceKm,
         cardioDurationSec: ex.cardioDurationSec,
         previousBestPaceSecPerKm: prevCardioPace ?? null,
