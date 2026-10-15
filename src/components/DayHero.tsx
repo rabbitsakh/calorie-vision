@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DiarySticker } from "@/components/DiarySticker";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
@@ -285,7 +286,10 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       <div className="day-hero-glow" aria-hidden />
       <div className="day-hero-wash" aria-hidden />
       <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
-        <p className="day-hero-eyebrow">{copy.eyebrow}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="day-hero-eyebrow">{copy.eyebrow}</p>
+          <DiarySticker className="shrink-0" />
+        </div>
 
         <div className="mt-2.5 flex flex-wrap items-end gap-x-3 gap-y-1">
           {pctShow != null ? (

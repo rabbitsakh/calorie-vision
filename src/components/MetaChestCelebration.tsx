@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import type { ChestRewardPayload } from "@/lib/chest-client";
+import {
+  flushPendingMetaChests,
+  hydratePendingMetaChests,
+  type ChestRewardPayload,
+} from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 
 const EVENT = "cv-meta-chest";
 
 /**
  * Shows a follow-up celebration when a collection meta chest drops (wave 9).
- * Mount once in AppShell.
+ * Mount once in AppShell. On mount, hydrate + flush session-persisted meta (R1e).
  */
 export function MetaChestCelebration() {
   const [queue, setQueue] = useState<ChestRewardPayload[]>([]);
@@ -22,6 +26,9 @@ export function MetaChestCelebration() {
       setQueue((prev) => [...prev, ...detail]);
     }
     window.addEventListener(EVENT, onMeta);
+    hydratePendingMetaChests();
+    // After listener is attached — flush meta that survived navigation (R1e).
+    flushPendingMetaChests();
     return () => window.removeEventListener(EVENT, onMeta);
   }, []);
 

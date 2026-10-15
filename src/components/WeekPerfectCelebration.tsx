@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
+import {
+  flushPendingMetaChests,
+  openChest,
+  presentChestGrant,
+} from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import { pluralDays } from "@/lib/russian-text";
@@ -63,26 +67,48 @@ export function WeekPerfectCelebration({
       if (
         prevPerfect.current === false &&
         perfect &&
-        !isSoftCelebrationsMutedToday(today) &&
         !isSoftCelebrationSeen("week-perfect", weekStart)
       ) {
-        if (isSoftCelebrationQuietBlocked()) {
-          return;
-        }
+        const muted = isSoftCelebrationsMutedToday(today);
+        const quiet = isSoftCelebrationQuietBlocked();
         markSoftCelebrationSeen("week-perfect", weekStart);
         const result = await openChest({ source: "week", weekStart });
         const loot = result?.reward;
-        setCopy({
-          title: loot ? loot.title : total >= 7 ? "Идеальная неделя!" : "Отличная неделя!",
-          subtitle: loot
-            ? loot.description
-            : `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`,
-          badge: loot ? "✦" : String(logged),
-          lootKey: loot?.key,
-          rarity: loot?.rarity,
-          rarityLabel: loot?.rarityLabel,
-        });
-        setOpen(true);
+        const fallbackTitle = total >= 7 ? "Идеальная неделя!" : "Отличная неделя!";
+        const fallbackSubtitle = `${logged} ${pluralDays(logged)} подряд с записями — регулярность на высоте.`;
+
+        if (loot) {
+          presentChestGrant(loot, {
+            quiet,
+            muted,
+            fallbackTitle,
+            fallbackSubtitle,
+            onFullscreen: (reward) => {
+              setCopy({
+                title: reward.title,
+                subtitle: reward.description,
+                badge: "✦",
+                lootKey: reward.key,
+                rarity: reward.rarity,
+                rarityLabel: reward.rarityLabel,
+              });
+              setOpen(true);
+            },
+          });
+        } else if (!muted && !quiet) {
+          setCopy({
+            title: fallbackTitle,
+            subtitle: fallbackSubtitle,
+            badge: String(logged),
+            lootKey: undefined,
+            rarity: undefined,
+            rarityLabel: undefined,
+          });
+          setOpen(true);
+          flushPendingMetaChests();
+        } else {
+          flushPendingMetaChests();
+        }
       }
 
       prevPerfect.current = perfect;

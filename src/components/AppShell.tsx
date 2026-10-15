@@ -4,6 +4,7 @@ import { AuthPanel } from "@/components/AuthPanel";
 import { BrandMark } from "@/components/BrandMark";
 import { FoodAddHost, useFoodAddUi } from "@/components/FoodAddHost";
 import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
+import { ChestInboxToast } from "@/components/ChestInboxToast";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
 import { ReferralChestToast } from "@/components/ReferralChestToast";
 import { MobileTabBar } from "@/components/MobileTabBar";
@@ -199,6 +200,7 @@ export function AppShell({
 
         <MobileTabBar date={date} showAdd={foodAddEnabled} />
         <MetaChestCelebration />
+        <ChestInboxToast />
         <ReferralChestToast />
         <WaterQuickSheet />
         <WeightQuickSheet />
