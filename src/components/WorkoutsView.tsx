@@ -64,13 +64,21 @@ import {
   autofillNextDraft,
   bumpKg,
 } from "@/lib/workouts/progression";
-import { adviceWithPreferredLever } from "@/lib/workouts/progression-lever-memory";
+import {
+  adviceWithPreferredLever,
+  getLeverMemory,
+} from "@/lib/workouts/progression-lever-memory";
 import {
   mergeDraftWithLeverGoal,
   needsVolumeExtraSet,
   resolveLeverSessionGoal,
   volumeExtraSetBody,
 } from "@/lib/workouts/lever-session-apply";
+import {
+  compareSetToLeverGoal,
+  formatLeverSetToast,
+  leverGoalFromMemory,
+} from "@/lib/workouts/lever-set-feedback";
 import { markPostWorkoutNudge } from "@/lib/post-workout-nudge";
 import {
   countWorkoutOfflineDrafts,
@@ -1396,7 +1404,7 @@ export function WorkoutsView({
   );
 
   const maybeAnnouncePr = useCallback(
-    (ex: SessionExercise, session: SessionDetail) => {
+    (ex: SessionExercise, session: SessionDetail): boolean => {
       const live = session.exercises.find((e) => e.id === ex.id) ?? ex;
       const after = computeExercisePrs(live.kind, live.sets);
       const beforeHist = historicalPrsFor(ex);
@@ -1409,9 +1417,51 @@ export function WorkoutsView({
         [beforeHist, beforeSession].filter(Boolean) as ExercisePrs[],
       );
       const beat = describePrBeat(before, after);
-      if (beat) showPrToast(beat);
+      if (beat) {
+        showPrToast(beat);
+        return true;
+      }
+      return false;
     },
     [historicalPrsFor, showPrToast],
+  );
+
+  /** I1 — toast hit/close/miss vs remembered lever (skip if PR toast already fired). */
+  const maybeAnnounceLeverFeedback = useCallback(
+    (
+      ex: SessionExercise,
+      logged: {
+        weightKg: number | null;
+        reps: number | null;
+        setType?: string | null;
+      },
+      opts?: { skip?: boolean; progressRate?: number },
+    ) => {
+      if (opts?.skip) return;
+      if (ex.kind === "cardio") return;
+      const rate = opts?.progressRate ?? detail?.progressRate ?? 1;
+      const goal =
+        resolveLeverSessionGoal({
+          name: ex.name,
+          kind: ex.kind,
+          progressRate: rate,
+          sets: ex.sets,
+          lastTimeSets: ex.lastTime?.sets ?? null,
+        }) ?? leverGoalFromMemory(getLeverMemory(ex.name));
+      if (!goal) return;
+      const verdict = compareSetToLeverGoal(
+        {
+          weightKg: logged.weightKg,
+          reps: logged.reps,
+          setType: logged.setType ?? "working",
+          completed: true,
+        },
+        goal,
+      );
+      if (!verdict) return;
+      showPrToast(formatLeverSetToast(verdict, goal, ex.name));
+    },
+    [detail?.progressRate, showPrToast],
   );
 
   const advanceSupersetFocus = (ex: SessionExercise, session: SessionDetail) => {
@@ -1535,7 +1585,16 @@ export function WorkoutsView({
       await refreshDetail(data.session);
       const updated = data.session.exercises.find((e) => e.id === exerciseId);
       const newSetId = updated?.sets.at(-1)?.id ?? "";
-      maybeAnnouncePr(ex, data.session);
+      const prShown = maybeAnnouncePr(ex, data.session);
+      maybeAnnounceLeverFeedback(
+        ex,
+        {
+          weightKg: typeof body.weightKg === "number" ? body.weightKg : null,
+          reps: typeof body.reps === "number" ? body.reps : null,
+          setType: draft.setType,
+        },
+        { skip: prShown, progressRate: detail.progressRate },
+      );
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
     } catch (err) {
@@ -1654,7 +1713,16 @@ export function WorkoutsView({
             e.id === ex.id ? { ...e, sets: setsAfter } : e,
           ),
         };
-        maybeAnnouncePr(ex, sessionAfter);
+        const prShown = maybeAnnouncePr(ex, sessionAfter);
+        maybeAnnounceLeverFeedback(
+          ex,
+          {
+            weightKg: set.weightKg,
+            reps: set.reps,
+            setType: set.setType,
+          },
+          { skip: prShown, progressRate: detail.progressRate },
+        );
         bumpCircuitIfNeeded(ex, set.id, detail);
       }
     }
@@ -1800,7 +1868,17 @@ export function WorkoutsView({
           e.id === focusExForStage.id ? { ...e, sets: setsAfter } : e,
         ),
       };
-      maybeAnnouncePr(focusExForStage, sessionAfter);
+      const prShown = maybeAnnouncePr(focusExForStage, sessionAfter);
+      maybeAnnounceLeverFeedback(
+        focusExForStage,
+        {
+          weightKg:
+            typeof patch.weightKg === "number" ? patch.weightKg : incomplete.weightKg,
+          reps: typeof patch.reps === "number" ? patch.reps : incomplete.reps,
+          setType: stageDraft.setType,
+        },
+        { skip: prShown, progressRate: detail.progressRate },
+      );
       advanceSupersetFocus(focusExForStage, sessionAfter);
       bumpCircuitIfNeeded(focusExForStage, incomplete.id, sessionAfter);
       return;

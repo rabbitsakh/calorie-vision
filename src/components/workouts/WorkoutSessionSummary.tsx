@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import {
   buildSessionSummary,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/workouts/session-summary";
 import {
   ruleNextSessionTip,
+  type NextSessionTarget,
   type NextSessionTargetsCard,
 } from "@/lib/workouts/next-session-targets";
 import {
@@ -16,6 +17,11 @@ import {
   setLeverMemory,
 } from "@/lib/workouts/progression-lever-memory";
 import type { ProgressionLever } from "@/lib/workouts/progression";
+import {
+  evaluateSessionLeverOutcome,
+  leverGoalFromMemory,
+  type SessionLeverOutcome,
+} from "@/lib/workouts/lever-set-feedback";
 
 type Props = {
   date: string;
@@ -52,6 +58,34 @@ function initialChosen(
     if (pick) out[t.name] = pick;
   }
   return out;
+}
+
+/** I2 — hit/miss vs remembered lever from this session's top set / volume count. */
+function outcomeForTarget(t: NextSessionTarget): SessionLeverOutcome | null {
+  const mem = getLeverMemory(t.name);
+  if (!mem) return null;
+  const goal = leverGoalFromMemory(mem);
+  if (!goal) return null;
+  const synthetic = [
+    {
+      weightKg: t.basisKg,
+      reps: t.sessionTopReps ?? mem.targetReps,
+      setType: "working" as const,
+      completed: true,
+    },
+  ];
+  // Volume: synthesize N completed working sets so count-based hit works.
+  if (goal.lever === "volume") {
+    const n = Math.max(1, t.sessionWorkingCount ?? 1);
+    const sets = Array.from({ length: n }, () => ({
+      weightKg: t.basisKg,
+      reps: t.sessionTopReps ?? mem.targetReps,
+      setType: "working" as const,
+      completed: true,
+    }));
+    return evaluateSessionLeverOutcome(sets, goal, t.lastWorkingCount);
+  }
+  return evaluateSessionLeverOutcome(synthetic, goal, t.lastWorkingCount);
 }
 
 export function WorkoutSessionSummary({
@@ -97,10 +131,44 @@ export function WorkoutSessionSummary({
   const [tip, setTip] = useState<string | null>(null);
   const [tipLever, setTipLever] = useState<ProgressionLever | null>(null);
   const [tipExercise, setTipExercise] = useState<string | null>(null);
+  /** Missed exercises that expanded the «сменить рычаг» list. */
+  const [changeOpen, setChangeOpen] = useState<Record<string, boolean>>({});
+
+  const leverOutcomes = useMemo(() => {
+    const out: Record<string, SessionLeverOutcome> = {};
+    for (const t of targets) {
+      const o = outcomeForTarget(t);
+      if (o) out[t.name] = o;
+    }
+    return out;
+  }, [targetsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- targets snapshot
+
+  const anyHit = Object.values(leverOutcomes).some((o) => o === "hit");
+  const anyMiss = Object.values(leverOutcomes).some((o) => o === "miss");
 
   useEffect(() => {
     setChosen(initialChosen(targets));
+    setChangeOpen({});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
+  }, [targetsKey]);
+
+  // I2: reinforce memory for hit levers (same choice kept for next time).
+  useEffect(() => {
+    for (const t of targets) {
+      if (leverOutcomes[t.name] !== "hit") continue;
+      const lever = chosen[t.name] ?? t.primaryLever;
+      if (!lever) continue;
+      const opt = t.options.find((o) => o.lever === lever) ?? t.options[0];
+      setLeverMemory({
+        name: t.name,
+        lever,
+        basisKg: t.basisKg,
+        targetKg: opt?.suggestedKg ?? null,
+        targetReps: opt?.suggestedReps ?? null,
+        at: date,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per summary open
   }, [targetsKey]);
 
   useEffect(() => {
@@ -283,13 +351,27 @@ export function WorkoutSessionSummary({
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--on-ink)]/80">
             {nextTargets?.title ?? "Следующий раз"}
           </p>
-          <p className="mt-1 text-[11px] leading-snug text-white/55">
-            От макс. рабочего веса (без дроп-сетов). Нажмите рычаг — запомним до
-            следующей.
-          </p>
+          {anyHit ? (
+            <p className="mt-1.5 text-sm font-semibold text-teal-200">
+              Цель по рычагу взята — оставляем на следующий раз
+            </p>
+          ) : anyMiss ? (
+            <p className="mt-1.5 text-sm font-semibold text-amber-100">
+              Цель не добрана — можно сменить рычаг
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] leading-snug text-white/55">
+              От макс. рабочего веса (без дроп-сетов). Нажмите рычаг — запомним до
+              следующей.
+            </p>
+          )}
           <ul className="mt-2.5 space-y-3">
             {targets.map((t) => {
               const selected = chosen[t.name] ?? t.primaryLever;
+              const outcome = leverOutcomes[t.name];
+              const showChangeCta = outcome === "miss" && !changeOpen[t.name];
+              const showLevers =
+                t.options.length > 0 && (outcome !== "miss" || changeOpen[t.name] || outcome == null);
               return (
                 <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
                   <p className="font-semibold">
@@ -299,8 +381,24 @@ export function WorkoutSessionSummary({
                         макс {Number.isInteger(t.basisKg) ? t.basisKg : t.basisKg} кг
                       </span>
                     ) : null}
+                    {outcome === "hit" ? (
+                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-teal-300">
+                        цель
+                      </span>
+                    ) : null}
                   </p>
-                  {t.options.length > 0 ? (
+                  {showChangeCta ? (
+                    <button
+                      type="button"
+                      className="mt-1.5 w-full rounded-lg border border-amber-200/35 bg-amber-400/10 px-3 py-2 text-left text-[13px] font-semibold text-amber-50"
+                      onClick={() =>
+                        setChangeOpen((prev) => ({ ...prev, [t.name]: true }))
+                      }
+                    >
+                      Сменить рычаг
+                    </button>
+                  ) : null}
+                  {showLevers ? (
                     <ul className="mt-1.5 space-y-1" role="listbox" aria-label={`Рычаг для ${t.name}`}>
                       {t.options.map((opt) => {
                         const primary = opt.lever === selected;
@@ -326,7 +424,9 @@ export function WorkoutSessionSummary({
                               <span className="min-w-0 flex-1">{opt.line}</span>
                               {primary ? (
                                 <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
-                                  {t.leverRemembered || chosen[t.name] ? "ваш" : "фокус"}
+                                  {outcome === "hit" || t.leverRemembered || chosen[t.name]
+                                    ? "ваш"
+                                    : "фокус"}
                                 </span>
                               ) : null}
                             </button>
@@ -334,9 +434,9 @@ export function WorkoutSessionSummary({
                         );
                       })}
                     </ul>
-                  ) : (
+                  ) : t.options.length === 0 ? (
                     <p className="mt-1 text-[13px] text-white/75">{t.line}</p>
-                  )}
+                  ) : null}
                 </li>
               );
             })}
