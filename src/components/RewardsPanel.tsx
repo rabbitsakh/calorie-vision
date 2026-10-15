@@ -35,6 +35,7 @@ import {
 } from "@/lib/equipped-cheer";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
+import { shareStickerCard } from "@/lib/share-sticker";
 
 type RewardItem = {
   key: string;
@@ -81,6 +82,8 @@ export function RewardsPanel() {
   const [equipped, setEquipped] = useState<string | null>(null);
   const [equippedSticker, setEquippedSticker] = useState<string | null>(null);
   const [equippedCheer, setEquippedCheer] = useState<string | null>(null);
+  const [shareHint, setShareHint] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     setEquipped(getEquippedFrameKey());
@@ -109,7 +112,10 @@ export function RewardsPanel() {
   const load = useCallback(async () => {
     try {
       const resp = await fetch(withBasePath("/api/rewards"));
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        setLoaded(true);
+        return;
+      }
       const data = (await resp.json()) as {
         rewards: RewardItem[];
         ownedCount: number;
@@ -120,8 +126,27 @@ export function RewardsPanel() {
       setTotal(data.total);
     } catch {
       // non-critical
+    } finally {
+      setLoaded(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!shareHint) return;
+    const timer = window.setTimeout(() => setShareHint(null), 2800);
+    return () => window.clearTimeout(timer);
+  }, [shareHint]);
+
+  async function onShareSticker(key: string) {
+    const result = await shareStickerCard(key);
+    setShareHint(
+      result === "shared"
+        ? "Наклейка отправлена"
+        : result === "downloaded"
+          ? "Картинка скачана"
+          : "Не удалось поделиться",
+    );
+  }
 
   useEffect(() => {
     void load();
@@ -168,7 +193,19 @@ export function RewardsPanel() {
     }
   }
 
-  if (rewards.length === 0) return null;
+  if (!loaded) return null;
+  if (rewards.length === 0) {
+    // R4: empty / failed load — still show a soft collection shell.
+    return (
+      <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+        <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Пока пусто. Закройте день или недельный челлендж — первая награда из сундука появится
+          здесь.
+        </p>
+      </div>
+    );
+  }
 
   const metaHint = nextMetaProgress(ownedCount);
 
@@ -183,6 +220,17 @@ export function RewardsPanel() {
       <p className="mb-3 text-sm text-[var(--muted)]">
         Награды из сундуков — за челленджи, серии и спокойные недели. Без штрафов.
       </p>
+      {ownedCount === 0 ? (
+        <p className="mb-3 rounded-xl bg-teal-50 px-3 py-2 text-xs font-medium text-teal-950">
+          Коллекция пуста — закройте день или челлендж, откройте сундук, наденьте первую
+          наклейку или фразу.
+        </p>
+      ) : null}
+      {shareHint ? (
+        <p className="mb-3 text-xs font-medium text-teal-800" role="status">
+          {shareHint}
+        </p>
+      ) : null}
       {metaHint ? (
         <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950">
           {metaHint.label} · {metaHint.current}/{metaHint.target}
@@ -268,27 +316,38 @@ export function RewardsPanel() {
                         {reward.unlocked ? reward.description : "Откроется из сундука"}
                       </p>
                       {(isFrame || isSticker || isCheer) && reward.unlocked ? (
-                        <button
-                          type="button"
-                          className={`mt-2 w-full rounded-lg px-2 py-1 text-xs font-semibold ${
-                            isEquipped
-                              ? "bg-teal-700 text-white"
-                              : "bg-white/80 text-teal-800 ring-1 ring-teal-200"
-                          }`}
-                          onClick={() => toggleEquip(reward.key)}
-                        >
-                          {isEquipped
-                            ? isCheer
-                              ? "В репликах"
-                              : isSticker
-                                ? "В дневнике"
-                                : "Надета"
-                            : isCheer
-                              ? "В реплики"
-                              : isSticker
-                                ? "В дневник"
-                                : "Надеть"}
-                        </button>
+                        <div className="mt-2 flex flex-col gap-1">
+                          <button
+                            type="button"
+                            className={`w-full rounded-lg px-2 py-1 text-xs font-semibold ${
+                              isEquipped
+                                ? "bg-teal-700 text-white"
+                                : "bg-white/80 text-teal-800 ring-1 ring-teal-200"
+                            }`}
+                            onClick={() => toggleEquip(reward.key)}
+                          >
+                            {isEquipped
+                              ? isCheer
+                                ? "В репликах"
+                                : isSticker
+                                  ? "В дневнике"
+                                  : "Надета"
+                              : isCheer
+                                ? "В реплики"
+                                : isSticker
+                                  ? "В дневник"
+                                  : "Надеть"}
+                          </button>
+                          {isSticker ? (
+                            <button
+                              type="button"
+                              className="w-full rounded-lg px-2 py-1 text-xs font-semibold text-teal-800 ring-1 ring-teal-100"
+                              onClick={() => void onShareSticker(reward.key)}
+                            >
+                              Поделиться
+                            </button>
+                          ) : null}
+                        </div>
                       ) : null}
                     </div>
                   );

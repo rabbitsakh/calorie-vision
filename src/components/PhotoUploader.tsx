@@ -11,6 +11,8 @@ import {
 } from "@/lib/recognize-photo-client";
 
 const MAX_FILE_SIZE_MB = 15;
+/** T2: weak/hanging recognize must not spin forever — queue offline and recover. */
+const RECOGNIZE_HARD_TIMEOUT_MS = 45_000;
 
 const RECOGNITION_STAGES = [
   "Загружаем фото…",
@@ -190,6 +192,11 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
     const controller = new AbortController();
     abortRef.current = controller;
     let handedOffPreview = false;
+    let timedOut = false;
+    const hardTimer = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, RECOGNIZE_HARD_TIMEOUT_MS);
 
     try {
       const data = await recognizePhotoFile(file, {
@@ -209,6 +216,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       });
 
       if (controller.signal.aborted) {
+        if (timedOut && !handedOffPreview) {
+          await queueOfflinePhoto(file);
+        }
         return;
       }
 
@@ -218,13 +228,19 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         previewUrl: objectUrl,
       });
     } catch (err) {
-      if ((err as Error).name === "AbortError") return;
+      if ((err as Error).name === "AbortError") {
+        if (timedOut && !handedOffPreview) {
+          await queueOfflinePhoto(file);
+        }
+        return;
+      }
       if (isNetworkFetchError(err)) {
         await queueOfflinePhoto(file);
         return;
       }
       setError(describeRecognizeError(err, "Не удалось загрузить фото"));
     } finally {
+      window.clearTimeout(hardTimer);
       if (!handedOffPreview) {
         URL.revokeObjectURL(objectUrl);
       }

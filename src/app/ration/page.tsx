@@ -311,13 +311,13 @@ function RationBody({
             </div>
           ) : day.fromCache ? (
             <div
-              className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950"
+              className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm text-amber-950"
               role="status"
             >
               <p className="min-w-0 flex-1 font-medium">
                 {day.data?.meals.entries?.length
-                  ? "Офлайн: день с устройства — запись еды уйдёт в очередь"
-                  : "Офлайн: день ещё не синхронизирован — можно листать интерфейс"}
+                  ? "День с устройства — при связи обновим; новые записи уйдут в очередь"
+                  : "День ещё подгружается — можно листать; при связи обновим"}
               </p>
               <button
                 type="button"
@@ -329,6 +329,20 @@ function RationBody({
               </button>
             </div>
           ) : null}
+
+          {/* T1: queue above the meal feed so sync status is visible without scrolling */}
+          <div className="mx-0.5 mt-2">
+            <OfflineMealQueueBanner
+              selectedDate={date}
+              onFlushed={bump}
+              onRecognitionReady={(readyDate) => {
+                bump();
+                if (readyDate === date) {
+                  requestOpenPendingConfirm();
+                }
+              }}
+            />
+          </div>
 
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">
@@ -350,16 +364,6 @@ function RationBody({
         <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1 md:gap-3.5">
           <ProfileCompletionBanner />
           <TimezoneConflictBanner />
-          <OfflineMealQueueBanner
-            selectedDate={date}
-            onFlushed={bump}
-            onRecognitionReady={(readyDate) => {
-              bump();
-              if (readyDate === date) {
-                requestOpenPendingConfirm();
-              }
-            }}
-          />
           <FastingWindowBanner isToday={date === today} />
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}

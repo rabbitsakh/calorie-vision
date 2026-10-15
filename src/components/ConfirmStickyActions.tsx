@@ -23,6 +23,8 @@ type ConfirmStickyActionsProps = {
   searching: boolean;
   anyMissingCalories: boolean;
   enriching: boolean;
+  /** T2: after enrich timeout, allow save even if kcal still missing. */
+  enrichmentTimedOut?: boolean;
   saveLabel: string;
   onSave: () => void;
   onCancel: () => void;
@@ -46,10 +48,13 @@ export function ConfirmStickyActions({
   searching,
   anyMissingCalories,
   enriching,
+  enrichmentTimedOut = false,
   saveLabel,
   onSave,
   onCancel,
 }: ConfirmStickyActionsProps) {
+  const blockSaveForMissingKcal =
+    anyMissingCalories && !enriching && !enrichmentTimedOut;
   return (
     <div className="confirm-card-actions">
       {multi ? (
@@ -97,7 +102,7 @@ export function ConfirmStickyActions({
         className={`inline-flex items-center justify-center gap-2 ${
           needsReview && reviewCta ? "btn btn-secondary" : "btn btn-primary"
         }`}
-        disabled={saving || searching || (anyMissingCalories && !enriching)}
+        disabled={saving || searching || blockSaveForMissingKcal}
         onClick={() => void onSave()}
       >
         {saving ? (

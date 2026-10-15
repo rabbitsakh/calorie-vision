@@ -220,7 +220,20 @@ export function ConfirmationCard({
   }, [recognition]);
 
   // Persist confirm edits into pending-confirm so reload / PWA kill keeps them (1.11.1).
+  // T2: also flush immediately on pagehide / hidden tab so weak-net kills don't drop keystrokes.
   useEffect(() => {
+    function persistNow() {
+      if (persistClosedRef.current || savingRef.current) return;
+      const ui: PendingConfirmUi = {
+        mealType,
+        eatenTime,
+        allergenAck,
+        activeDish,
+        dishes: dishes.map(serializeDishUi),
+      };
+      upsertPendingConfirmDraft(selectedDate, result, { ui });
+    }
+
     if (skipUiPersistRef.current) {
       skipUiPersistRef.current = false;
       return;
@@ -232,21 +245,29 @@ export function ConfirmationCard({
     }
     persistTimerRef.current = window.setTimeout(() => {
       persistTimerRef.current = null;
-      if (persistClosedRef.current || savingRef.current) return;
-      const ui: PendingConfirmUi = {
-        mealType,
-        eatenTime,
-        allergenAck,
-        activeDish,
-        dishes: dishes.map(serializeDishUi),
-      };
-      upsertPendingConfirmDraft(selectedDate, result, { ui });
+      persistNow();
     }, 300);
+
+    function onHide() {
+      if (persistTimerRef.current != null) {
+        window.clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+      persistNow();
+    }
+    function onVisibility() {
+      if (document.visibilityState === "hidden") onHide();
+    }
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       if (persistTimerRef.current != null) {
         window.clearTimeout(persistTimerRef.current);
         persistTimerRef.current = null;
       }
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [allergenAck, activeDish, dishes, eatenTime, mealType, result, selectedDate]);
 
@@ -1055,6 +1076,7 @@ export function ConfirmationCard({
           searching={searching}
           anyMissingCalories={anyMissingCalories}
           enriching={enriching}
+          enrichmentTimedOut={Boolean(recognition.enrichmentTimedOut)}
           saveLabel={saveLabel}
           onSave={() => void handleSave()}
           onCancel={() => {
