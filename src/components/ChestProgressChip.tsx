@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { buildChestProgressChip } from "@/lib/chest-progress-chip";
 import { withBasePath } from "@/lib/paths";
-import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
+import { withDateQuery } from "@/lib/use-selected-date";
 
 type ChestProgressChipProps = {
   selectedDate: string;
@@ -11,14 +12,8 @@ type ChestProgressChipProps = {
   refreshKey: number;
 };
 
-type RewardsProgress = {
-  questDayCount: number;
-  questDaysPerChest: number;
-  nextIn: number;
-};
-
 /**
- * Soft ration chip: progress toward the next quest chest (R1d).
+ * Soft ration chip: progress toward the next quest chest (R1d / R2d).
  * Visible outside «Ещё» so quiet users still see the loop.
  */
 export function ChestProgressChip({
@@ -26,11 +21,13 @@ export function ChestProgressChip({
   today,
   refreshKey,
 }: ChestProgressChipProps) {
-  const [progress, setProgress] = useState<RewardsProgress | null>(null);
+  const [model, setModel] = useState<ReturnType<typeof buildChestProgressChip> | null>(
+    null,
+  );
 
   useEffect(() => {
     if (selectedDate !== today) {
-      setProgress(null);
+      setModel(null);
       return;
     }
     let cancelled = false;
@@ -42,19 +39,16 @@ export function ChestProgressChip({
           questDayCount?: number;
           questDaysPerChest?: number;
         };
-        const per = data.questDaysPerChest ?? QUEST_DAYS_PER_CHEST;
-        const count = Math.max(0, Number(data.questDayCount) || 0);
-        const remainder = count % per;
-        const nextIn = remainder === 0 && count > 0 ? per : per - remainder;
         if (!cancelled) {
-          setProgress({
-            questDayCount: count,
-            questDaysPerChest: per,
-            nextIn,
-          });
+          setModel(
+            buildChestProgressChip({
+              questDayCount: data.questDayCount ?? 0,
+              questDaysPerChest: data.questDaysPerChest,
+            }),
+          );
         }
       } catch {
-        if (!cancelled) setProgress(null);
+        if (!cancelled) setModel(null);
       }
     })();
     return () => {
@@ -62,28 +56,22 @@ export function ChestProgressChip({
     };
   }, [selectedDate, today, refreshKey]);
 
-  if (!progress || selectedDate !== today) return null;
+  if (!model || selectedDate !== today) return null;
 
-  const filled =
-    progress.questDayCount > 0 && progress.nextIn === progress.questDaysPerChest
-      ? progress.questDaysPerChest
-      : progress.questDaysPerChest - progress.nextIn;
-  const label =
-    progress.questDayCount === 0
-      ? `Сундук · 0/${progress.questDaysPerChest}`
-      : filled === progress.questDaysPerChest
-        ? "Сундук · готов при закрытии дня"
-        : `Сундук · ${filled}/${progress.questDaysPerChest}`;
+  const href =
+    model.href === "habits"
+      ? `${withBasePath(withDateQuery("/ration", selectedDate))}#habits-panel`
+      : withBasePath("/profile#rewards");
 
   return (
     <div className="pt-2">
       <Link
-        href={withBasePath("/profile#rewards")}
+        href={href}
         className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[rgba(13,115,119,0.12)] bg-white/80 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:border-teal-300"
         title="Прогресс к сундуку за спокойные дни"
       >
         <span aria-hidden>✦</span>
-        <span className="truncate">{label}</span>
+        <span className="truncate">{model.label}</span>
       </Link>
     </div>
   );

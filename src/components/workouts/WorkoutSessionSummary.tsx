@@ -22,6 +22,11 @@ import {
   leverGoalFromMemory,
   type SessionLeverOutcome,
 } from "@/lib/workouts/lever-set-feedback";
+import {
+  formatLeverStreakHint,
+  getLeverHitStreak,
+  recordLeverOutcome,
+} from "@/lib/workouts/lever-outcome-history";
 
 type Props = {
   date: string;
@@ -133,6 +138,8 @@ export function WorkoutSessionSummary({
   const [tipExercise, setTipExercise] = useState<string | null>(null);
   /** Missed exercises that expanded the «сменить рычаг» list. */
   const [changeOpen, setChangeOpen] = useState<Record<string, boolean>>({});
+  /** Bump after J1 history write so streak labels include this session. */
+  const [historyTick, setHistoryTick] = useState(0);
 
   const leverOutcomes = useMemo(() => {
     const out: Record<string, SessionLeverOutcome> = {};
@@ -153,21 +160,31 @@ export function WorkoutSessionSummary({
   }, [targetsKey]);
 
   // I2: reinforce memory for hit levers (same choice kept for next time).
+  // J1: append hit/miss/close into local lever outcome history.
   useEffect(() => {
     for (const t of targets) {
-      if (leverOutcomes[t.name] !== "hit") continue;
+      const outcome = leverOutcomes[t.name];
       const lever = chosen[t.name] ?? t.primaryLever;
-      if (!lever) continue;
-      const opt = t.options.find((o) => o.lever === lever) ?? t.options[0];
-      setLeverMemory({
+      if (!lever || !outcome) continue;
+      if (outcome === "hit") {
+        const opt = t.options.find((o) => o.lever === lever) ?? t.options[0];
+        setLeverMemory({
+          name: t.name,
+          lever,
+          basisKg: t.basisKg,
+          targetKg: opt?.suggestedKg ?? null,
+          targetReps: opt?.suggestedReps ?? null,
+          at: date,
+        });
+      }
+      recordLeverOutcome({
         name: t.name,
         lever,
-        basisKg: t.basisKg,
-        targetKg: opt?.suggestedKg ?? null,
-        targetReps: opt?.suggestedReps ?? null,
+        outcome,
         at: date,
       });
     }
+    setHistoryTick((n) => n + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per summary open
   }, [targetsKey]);
 
@@ -386,6 +403,16 @@ export function WorkoutSessionSummary({
                         цель
                       </span>
                     ) : null}
+                    {historyTick > 0
+                      ? (() => {
+                          const streakHint = formatLeverStreakHint(getLeverHitStreak(t.name));
+                          return streakHint ? (
+                            <span className="ml-1.5 text-[10px] font-medium text-white/45">
+                              {streakHint}
+                            </span>
+                          ) : null;
+                        })()
+                      : null}
                   </p>
                   {showChangeCta ? (
                     <button

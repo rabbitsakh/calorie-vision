@@ -45,6 +45,10 @@ import {
   adviceWithPreferredLever,
   collectPreferredLevers,
 } from "@/lib/workouts/progression-lever-memory";
+import {
+  formatLeverStreakHint,
+  getLeverHitStreak,
+} from "@/lib/workouts/lever-outcome-history";
 import { buildLiveGoalChrome } from "@/lib/workouts/live-goal-chrome";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
@@ -1055,7 +1059,12 @@ export function WorkoutActiveSession({
                   <p className="mt-1 text-xs font-medium text-[var(--accent-ink)]">
                     Цель
                     {goalOpt ? ` · ${goalOpt.label}` : ""}
-                    {preferred?.leverRemembered ? " (ваш рычаг)" : ""}
+                    {preferred?.leverRemembered
+                      ? (() => {
+                          const hint = formatLeverStreakHint(getLeverHitStreak(ex.name));
+                          return hint ? ` (ваш рычаг · ${hint})` : " (ваш рычаг)";
+                        })()
+                      : ""}
                     :{" "}
                     {goalOpt?.line ??
                       `${formatSuggestedKg(goalKg)} кг`}

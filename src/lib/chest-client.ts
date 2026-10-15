@@ -145,6 +145,7 @@ export function flushPendingMetaChests(): void {
       notifyChestInbox({
         title: reward.title,
         subtitle: reward.description || "Мета-сундук · в коллекции",
+        rewardKey: reward.key,
       });
     }
     return;
@@ -154,7 +155,7 @@ export function flushPendingMetaChests(): void {
 }
 
 /**
- * Present a primary chest reward: fullscreen path via callback, or quiet inbox (R1a).
+ * Present a primary chest reward: fullscreen path via callback, or quiet inbox (R1a/R2).
  * Always flushes meta after quiet inbox; fullscreen callers flush on dismiss.
  */
 export function presentChestGrant(
@@ -181,6 +182,7 @@ export function presentChestGrant(
     notifyChestInbox({
       title: reward.title || opts.fallbackTitle,
       subtitle: reward.description || opts.fallbackSubtitle || "В коллекции · Профиль",
+      rewardKey: reward.key,
     });
     flushPendingMetaChests();
     return;

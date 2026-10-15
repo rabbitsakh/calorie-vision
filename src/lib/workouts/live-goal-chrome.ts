@@ -8,12 +8,18 @@ import {
   adviceWithPreferredLever,
   goalFromLeverOption,
 } from "@/lib/workouts/progression-lever-memory";
+import {
+  formatLeverStreakHint,
+  getLeverHitStreak,
+} from "@/lib/workouts/lever-outcome-history";
 
 export type LiveGoalChrome = {
   basisKg: number | null;
   lever: ProgressionLever | null;
   leverLabel: string | null;
   leverRemembered: boolean;
+  /** J2 — soft streak under remembered lever, e.g. «3× подряд». */
+  streakHint: string | null;
   /** Short target for the big line, e.g. «84 кг» or «80 кг × 6». */
   targetLine: string | null;
   suggestedKg: number | null;
@@ -40,6 +46,7 @@ export function buildLiveGoalChrome(
       lever: "weight",
       leverLabel: "Вес",
       leverRemembered: false,
+      streakHint: null,
       targetLine: `${formatSuggestedKg(fallbackSuggestedKg)} кг`,
       suggestedKg: fallbackSuggestedKg,
       suggestedReps: null,
@@ -53,6 +60,9 @@ export function buildLiveGoalChrome(
   const reps = goal.reps ?? preferred.suggestedReps;
   const lever = preferred.primaryLever;
   const leverLabel = preferred.option?.label ?? (lever ? LEVER_LABEL[lever] : null);
+  const streakHint = preferred.leverRemembered
+    ? formatLeverStreakHint(getLeverHitStreak(exerciseName))
+    : null;
 
   let targetLine: string | null = preferred.option?.line ?? null;
   if (!targetLine && kg != null) {
@@ -67,6 +77,7 @@ export function buildLiveGoalChrome(
     lever,
     leverLabel,
     leverRemembered: preferred.leverRemembered,
+    streakHint,
     targetLine,
     suggestedKg: kg,
     suggestedReps: reps,
