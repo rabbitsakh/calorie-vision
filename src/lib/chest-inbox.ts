@@ -1,6 +1,6 @@
 /** Quiet-mode inbox toasts for chest grants (R1a / R2a). */
 
-import { isFrameReward, isStickerReward } from "@/lib/rewards";
+import { isCheerReward, isFrameReward, isStickerReward } from "@/lib/rewards";
 
 export type ChestInboxPayload = {
   title: string;
@@ -11,11 +11,16 @@ export type ChestInboxPayload = {
 
 export const CHEST_INBOX_EVENT = "cv-chest-inbox";
 
-export type ChestInboxAction = "equip-sticker" | "equip-frame" | "collection";
+export type ChestInboxAction =
+  | "equip-sticker"
+  | "equip-frame"
+  | "equip-cheer"
+  | "collection";
 
 export function chestInboxAction(rewardKey: string | undefined): ChestInboxAction {
   if (rewardKey && isStickerReward(rewardKey)) return "equip-sticker";
   if (rewardKey && isFrameReward(rewardKey)) return "equip-frame";
+  if (rewardKey && isCheerReward(rewardKey)) return "equip-cheer";
   return "collection";
 }
 

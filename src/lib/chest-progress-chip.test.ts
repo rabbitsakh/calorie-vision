@@ -29,4 +29,14 @@ describe("buildChestProgressChip", () => {
     assert.equal(m.nextIn, 2);
     assert.match(m.label, /ещё 2/);
   });
+
+  test("meta line from owned count", () => {
+    const m = buildChestProgressChip({
+      questDayCount: 1,
+      questDaysPerChest: 3,
+      ownedCount: 4,
+    });
+    assert.ok(m.metaLabel);
+    assert.match(m.metaLabel!, /мета/);
+  });
 });

@@ -10,7 +10,12 @@ import {
   isSaveCheerClaimedByFullscreen,
   SAVE_TOAST_DELAY_MS,
 } from "@/lib/save-cheer-coordination";
+import {
+  getEquippedCheerKey,
+  hydrateEquippedCheerFromAccount,
+} from "@/lib/equipped-cheer";
 import { pluralDays } from "@/lib/russian-text";
+import { cheerPhrase } from "@/lib/rewards";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
 
 const TOAST_MS = 2200;
@@ -60,6 +65,7 @@ export function MascotSaveReaction() {
 
   useEffect(() => {
     setHost(getSaveToastHost());
+    void hydrateEquippedCheerFromAccount();
   }, []);
 
   useEffect(() => {
@@ -76,7 +82,12 @@ export function MascotSaveReaction() {
           seed: Date.now(),
         }),
       );
-      setDetail(streak >= 2 ? `Серия ${streak} ${pluralDays(streak)}` : null);
+      // R3b: equipped cheer phrase wins over streak detail on quiet save toast.
+      const cheerKey = getEquippedCheerKey();
+      const cheer = cheerKey ? cheerPhrase(cheerKey) : null;
+      setDetail(
+        cheer ?? (streak >= 2 ? `Серия ${streak} ${pluralDays(streak)}` : null),
+      );
       setToastKey((value) => value + 1);
       setOpen(false);
 

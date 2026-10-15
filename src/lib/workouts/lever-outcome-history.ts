@@ -135,6 +135,52 @@ export function formatLeverStreakHint(streak: LeverStreak | null | undefined): s
   return null;
 }
 
+/** Consecutive misses on the latest lever thread (K1). */
+export function getLeverMissStreak(name: string): number {
+  const key = normalizeExerciseKey(name);
+  if (!key) return 0;
+  const list = readStore()[key];
+  if (!list || list.length === 0) return 0;
+  const last = list[list.length - 1]!;
+  let missStreak = 0;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const row = list[i]!;
+    if (row.lever !== last.lever) break;
+    if (row.outcome !== "miss") break;
+    missStreak += 1;
+  }
+  return missStreak;
+}
+
+export function shouldSuggestLeverSwitch(name: string): boolean {
+  return getLeverMissStreak(name) >= 2;
+}
+
+export type LeverStreakListItem = {
+  name: string;
+  streak: LeverStreak;
+};
+
+/** Top hit streaks across exercises for History hub (K2). */
+export function listTopLeverHitStreaks(limit = 3): LeverStreakListItem[] {
+  const store = readStore();
+  const items: LeverStreakListItem[] = [];
+  for (const list of Object.values(store)) {
+    if (!list || list.length === 0) continue;
+    const name = list[list.length - 1]!.name;
+    const streak = getLeverHitStreak(name);
+    if (!streak || streak.hitStreak < 2) continue;
+    items.push({ name, streak });
+  }
+  items.sort((a, b) => {
+    if (b.streak.hitStreak !== a.streak.hitStreak) {
+      return b.streak.hitStreak - a.streak.hitStreak;
+    }
+    return a.name.localeCompare(b.name, "ru");
+  });
+  return items.slice(0, Math.max(0, limit));
+}
+
 export function resetLeverOutcomeHistoryForTests(): void {
   try {
     if (typeof localStorage === "undefined") return;

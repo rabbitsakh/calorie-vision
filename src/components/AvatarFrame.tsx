@@ -26,5 +26,13 @@ export function AvatarFrame({ className = "", children }: AvatarFrameProps) {
   }, []);
 
   const frameClass = frameAvatarClass(frameKey);
-  return <span className={`inline-flex shrink-0 ${frameClass} ${className}`.trim()}>{children}</span>;
+  return (
+    <span
+      className={`inline-flex shrink-0 ${frameClass} ${className}`.trim()}
+      data-cv-frame={frameKey ?? undefined}
+      title={frameKey ? "Рамка из коллекции" : undefined}
+    >
+      {children}
+    </span>
+  );
 }
