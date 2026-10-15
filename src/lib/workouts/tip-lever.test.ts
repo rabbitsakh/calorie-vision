@@ -12,6 +12,7 @@ import {
   recordLeverOutcome,
   resetLeverOutcomeHistoryForTests,
 } from "./lever-outcome-history.ts";
+import { setLeverMemory } from "./progression-lever-memory.ts";
 
 function installLocalStorage() {
   const map = new Map<string, string>();
@@ -119,4 +120,23 @@ test("K1: 2× miss prefers struggling exercise and deload tip", () => {
   assert.equal(pick.exerciseName, "Присед");
   assert.ok(pick.missStreak >= 2);
   assert.match(ruleTipForFocus(pick), /Два раза мимо/);
+});
+
+test("N: recovery-armed tip prefers switch wording over soft deload", () => {
+  installLocalStorage();
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 90,
+    targetReps: 5,
+    at: "2026-03-04",
+    recovery: "deload",
+  });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-03-05" });
+  const pick = pickTipFocus([
+    target({ name: "Присед", primaryLever: "weight", leverRemembered: true }),
+  ])!;
+  assert.ok(pick.missStreak >= 1);
+  assert.match(ruleTipForFocus(pick), /после восстановления мимо/);
 });

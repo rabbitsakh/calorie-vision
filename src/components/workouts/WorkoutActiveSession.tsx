@@ -950,7 +950,7 @@ export function WorkoutActiveSession({
       </div>
     ) : flushSummary ? (
       <div
-        className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+        className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-3 py-2 text-sm font-medium text-[var(--accent-ink)]"
         role="status"
       >
         {flushSummary}

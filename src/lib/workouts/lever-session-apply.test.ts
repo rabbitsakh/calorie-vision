@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   countWorkingSets,
   formatLeverRecoveryHint,
+  formatRecoveryOutcomeLine,
   mergeDraftWithLeverGoal,
   needsVolumeExtraSet,
   persistLeverRecoveryMemory,
@@ -16,6 +17,7 @@ import {
   resetLeverOutcomeHistoryForTests,
 } from "./lever-outcome-history.ts";
 import {
+  clearLeverRecoveryFlag,
   getLeverMemory,
   PROGRESSION_LEVER_MEMORY_KEY,
   setLeverMemory,
@@ -216,6 +218,7 @@ test("L: 2× miss on weight → soft deload kg", () => {
   assert.equal(formatLeverRecoveryHint(g), "Soft deload после 2× мимо");
   persistLeverRecoveryMemory("Присед", g!, 100);
   assert.equal(getLeverMemory("Присед")?.targetKg, 90);
+  assert.equal(getLeverMemory("Присед")?.recovery, "deload");
 });
 
 test("L: 2× miss on volume → switch to reps", () => {
@@ -242,4 +245,58 @@ test("L: 2× miss on volume → switch to reps", () => {
   assert.equal(g?.extraSet, false);
   assert.equal(g?.kg, 80);
   assert.equal(formatLeverRecoveryHint(g), "Рычаг сменён после 2× мимо");
+});
+
+test("N: armed deload recovery does not stack — switches lever", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 90,
+    targetReps: 5,
+    at: "2026-10-14",
+    recovery: "deload",
+  });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-12" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-13" });
+  const g = resolveLeverSessionGoal({
+    name: "Присед",
+    kind: "barbell",
+    progressRate: 0.05,
+    sets: [],
+    lastTimeSets: [{ weightKg: 100, reps: 5, setType: "working", completed: true }],
+  });
+  assert.equal(g?.recovery, "switch");
+  assert.equal(g?.lever, "reps");
+  assert.equal(g?.kg, 100);
+});
+
+test("N: formatRecoveryOutcomeLine hit/miss", () => {
+  assert.equal(
+    formatRecoveryOutcomeLine("deload", "hit"),
+    "Восстановление сработало — цель взята",
+  );
+  assert.match(formatRecoveryOutcomeLine("deload", "miss") ?? "", /soft deload/i);
+  assert.equal(formatRecoveryOutcomeLine("switch", "partial"), null);
+  assert.equal(formatRecoveryOutcomeLine(null, "hit"), null);
+});
+
+test("N: clearLeverRecoveryFlag keeps lever targets", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Жим",
+    lever: "weight",
+    basisKg: 80,
+    targetKg: 72,
+    targetReps: 5,
+    at: "2026-10-14",
+    recovery: "deload",
+  });
+  assert.equal(getLeverMemory("Жим")?.recovery, "deload");
+  clearLeverRecoveryFlag("Жим");
+  const mem = getLeverMemory("Жим");
+  assert.equal(mem?.recovery, undefined);
+  assert.equal(mem?.lever, "weight");
+  assert.equal(mem?.targetKg, 72);
 });

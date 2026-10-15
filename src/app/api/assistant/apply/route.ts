@@ -15,10 +15,12 @@ import {
 } from "@/lib/assistant-prefs";
 import {
   resolveAssistantDate,
+  toolAddShopping,
   toolCreateWorkoutPlan,
   toolLogWeight,
   toolSaveMeals,
   toolSavePhotoDrafts,
+  toolStartTodaysRoutine,
   toolUndoWrites,
   type AssistantUndoPayload,
 } from "@/lib/assistant-tools";
@@ -51,7 +53,7 @@ function parseUndo(raw: unknown): AssistantUndoPayload | null {
 
 /**
  * POST actions from assistant cards / undo / photo confirm:
- * { kind: "meals"|"routine"|"prefs"|"undo"|"photo", date?, actions?, prefs?, undo?, drafts?, imagePath? }
+ * { kind: "meals"|"routine"|"shopping"|"start"|"prefs"|"undo"|"photo"|"weight", date?, actions?, prefs?, undo?, drafts?, imagePath? }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -211,6 +213,41 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
       return NextResponse.json({ ok: true, ...(result.data as object), tools: [result] });
+    }
+
+    if (body.kind === "shopping") {
+      const names = actions.shopping ?? [];
+      if (!names.length) {
+        return NextResponse.json({ error: "Нет покупок" }, { status: 400 });
+      }
+      const shoppingDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolAddShopping({
+        userId: session.user.id,
+        names,
+        date: shoppingDate,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "start") {
+      const startDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolStartTodaysRoutine({
+        userId: session.user.id,
+        date: startDate,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
     }
 
     return NextResponse.json({ error: "Неизвестный kind" }, { status: 400 });

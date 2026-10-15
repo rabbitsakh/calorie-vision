@@ -15,11 +15,12 @@ import {
   getLeverMemory,
   setLeverMemory,
   type LeverMemoryEntry,
+  type LeverRecoveryKind,
 } from "@/lib/workouts/progression-lever-memory";
 import { getLeverMissStreak } from "@/lib/workouts/lever-outcome-history";
 import { formatSuggestedKg, pickTopWorkingSet } from "@/lib/workouts/suggested-load";
 
-export type LeverRecoveryKind = "deload" | "switch";
+export type { LeverRecoveryKind };
 
 export type LeverSessionGoal = {
   lever: ProgressionLever;
@@ -83,6 +84,28 @@ export function buildMissRecoveryGoal(input: {
       ? input.basisReps
       : input.mem.targetReps;
 
+  // N: already deloaded once and still missing → switch lever, don't stack deload.
+  if (input.mem.recovery === "deload" || input.mem.recovery === "switch") {
+    if (input.mem.lever === "weight" || input.mem.lever === "volume") {
+      return {
+        lever: "reps",
+        fromMemory: true,
+        kg: input.basisKg,
+        reps,
+        extraSet: false,
+        recovery: "switch",
+      };
+    }
+    return {
+      lever: "volume",
+      fromMemory: true,
+      kg: input.basisKg,
+      reps,
+      extraSet: true,
+      recovery: "switch",
+    };
+  }
+
   if (input.mem.lever === "weight") {
     const kg = suggestDeloadKg(input.basisKg);
     return {
@@ -131,7 +154,23 @@ export function persistLeverRecoveryMemory(
     basisKg,
     targetKg: goal.kg,
     targetReps: goal.reps,
+    recovery: goal.recovery,
   });
+}
+
+/** N: summary chrome for recovery outcome this session. */
+export function formatRecoveryOutcomeLine(
+  recovery: LeverRecoveryKind | null | undefined,
+  outcome: "hit" | "miss" | "partial" | null | undefined,
+): string | null {
+  if (!recovery || !outcome) return null;
+  if (outcome === "hit") return "Восстановление сработало — цель взята";
+  if (outcome === "miss") {
+    return recovery === "deload"
+      ? "После soft deload всё ещё мимо — смените рычаг"
+      : "Новый рычаг не взят — попробуйте другой";
+  }
+  return null;
 }
 
 /**

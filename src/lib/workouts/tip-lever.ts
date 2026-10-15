@@ -6,6 +6,7 @@
 
 import type { ProgressionLever, ProgressionOption } from "@/lib/workouts/progression";
 import { getLeverMissStreak } from "@/lib/workouts/lever-outcome-history";
+import { getLeverMemory } from "@/lib/workouts/progression-lever-memory";
 
 export type TipTarget = {
   name: string;
@@ -72,6 +73,11 @@ export function pickTipFocus(targets: readonly TipTarget[]): TipLeverPick | null
 /** Rule one-liner locked to the picked lever (no multi-lever advice). */
 export function ruleTipForFocus(pick: TipLeverPick): string {
   const name = pick.exerciseName;
+  // N: after L recovery, don't blindly re-nudge soft deload.
+  const recovery = getLeverMemory(name)?.recovery;
+  if (recovery && pick.missStreak >= 1) {
+    return `«${name}» после восстановления мимо — смените рычаг: ${pick.line}.`;
+  }
   if (pick.missStreak >= 2) {
     if (pick.lever === "weight") {
       return `Два раза мимо на «${name}» — soft deload или смените рычаг: ${pick.line}.`;

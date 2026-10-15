@@ -15,7 +15,7 @@ import {
 import { cheerPhrase } from "@/lib/rewards";
 
 /**
- * R5 — show equipped collection wear on gym Today (sticker + cheer line).
+ * R5/R6 — equipped collection wear on gym Today + session summary.
  */
 export function GymCollectionWear({ className = "" }: { className?: string }) {
   const [sticker, setSticker] = useState<string | null>(null);

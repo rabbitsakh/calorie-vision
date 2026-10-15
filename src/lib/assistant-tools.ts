@@ -968,16 +968,7 @@ export async function executeAssistantWriteTools(opts: {
 
   // Assistant J: gym plan writes only via /api/assistant/apply after ActionCard CTA.
   // Never silent-write workoutDays from the stream path.
-
-  if (opts.actions.shopping?.length) {
-    results.push(
-      await toolAddShopping({
-        userId: opts.userId,
-        names: opts.actions.shopping,
-        date: target,
-      }),
-    );
-  }
+  // Assistant K: same for shopping + startWorkout.
 
   if (typeof opts.actions.waterMl === "number") {
     results.push(
@@ -996,15 +987,6 @@ export async function executeAssistantWriteTools(opts: {
         date: target,
         weightKg: opts.actions.weightKg,
         overwrite: opts.actions.overwriteWeight === true,
-      }),
-    );
-  }
-
-  if (opts.actions.startWorkout || userWantsStartWorkout(opts.lastUserMessage)) {
-    results.push(
-      await toolStartTodaysRoutine({
-        userId: opts.userId,
-        date: target,
       }),
     );
   }

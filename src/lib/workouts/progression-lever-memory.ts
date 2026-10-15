@@ -8,6 +8,8 @@ import type { ProgressionLever, ProgressionOption } from "@/lib/workouts/progres
 
 export const PROGRESSION_LEVER_MEMORY_KEY = "cv-workout-lever-memory-v1";
 
+export type LeverRecoveryKind = "deload" | "switch";
+
 export type LeverMemoryEntry = {
   lever: ProgressionLever;
   /** Max working kg when the choice was made. */
@@ -17,6 +19,8 @@ export type LeverMemoryEntry = {
   /** Session date (YYYY-MM-DD) when saved. */
   at: string;
   name: string;
+  /** N: L recovery still armed until a hit clears it. */
+  recovery?: LeverRecoveryKind | null;
 };
 
 type Store = Record<string, LeverMemoryEntry>;
@@ -76,6 +80,7 @@ export function setLeverMemory(input: {
   targetKg?: number | null;
   targetReps?: number | null;
   at?: string;
+  recovery?: LeverRecoveryKind | null;
 }): LeverMemoryEntry | null {
   const key = normalizeExerciseKey(input.name);
   if (!key || !LEVERS.has(input.lever)) return null;
@@ -86,11 +91,28 @@ export function setLeverMemory(input: {
     targetKg: input.targetKg ?? null,
     targetReps: input.targetReps ?? null,
     at: input.at ?? new Date().toISOString().slice(0, 10),
+    recovery: input.recovery ?? null,
   };
+  if (!entry.recovery) delete entry.recovery;
   const store = readStore();
   store[key] = entry;
   writeStore(store);
   return entry;
+}
+
+/** N: clear recovery flag after a hit (keep lever/targets). */
+export function clearLeverRecoveryFlag(name: string): void {
+  const mem = getLeverMemory(name);
+  if (!mem?.recovery) return;
+  setLeverMemory({
+    name: mem.name,
+    lever: mem.lever,
+    basisKg: mem.basisKg,
+    targetKg: mem.targetKg,
+    targetReps: mem.targetReps,
+    at: mem.at,
+    recovery: null,
+  });
 }
 
 export function clearLeverMemory(name: string): void {

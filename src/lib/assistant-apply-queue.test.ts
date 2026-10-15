@@ -41,3 +41,21 @@ test("enqueue / count / remove assistant apply queue", () => {
   assert.equal(countAssistantApplyQueue(), 0);
   assert.ok(ASSISTANT_APPLY_QUEUE_KEY.length > 0);
 });
+
+test("Assistant K: shopping and start kinds enqueue", () => {
+  store.clear();
+  clearAssistantApplyQueue();
+  enqueueAssistantApply("shopping", {
+    kind: "shopping",
+    date: "2026-10-14",
+    actions: { shopping: ["Хлеб"] },
+  });
+  enqueueAssistantApply("start", {
+    kind: "start",
+    date: "2026-10-14",
+    actions: { startWorkout: true },
+  });
+  assert.equal(countAssistantApplyQueue(), 2);
+  const kinds = listAssistantApplyQueue().map((x) => x.kind).sort();
+  assert.deepEqual(kinds, ["shopping", "start"]);
+});
