@@ -2,13 +2,21 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   countWorkingSets,
+  formatLeverRecoveryHint,
   mergeDraftWithLeverGoal,
   needsVolumeExtraSet,
+  persistLeverRecoveryMemory,
   resolveLeverSessionGoal,
   volumeExtraSetBody,
   type LeverSessionGoal,
 } from "./lever-session-apply.ts";
 import {
+  LEVER_OUTCOME_HISTORY_KEY,
+  recordLeverOutcome,
+  resetLeverOutcomeHistoryForTests,
+} from "./lever-outcome-history.ts";
+import {
+  getLeverMemory,
   PROGRESSION_LEVER_MEMORY_KEY,
   setLeverMemory,
 } from "./progression-lever-memory.ts";
@@ -33,6 +41,8 @@ function installStorage() {
     configurable: true,
   });
   map.delete(PROGRESSION_LEVER_MEMORY_KEY);
+  map.delete(LEVER_OUTCOME_HISTORY_KEY);
+  resetLeverOutcomeHistoryForTests();
 }
 
 test("countWorkingSets skips warmup/drop", () => {
@@ -179,4 +189,57 @@ test("volumeExtraSetBody requires kg and reps", () => {
     }),
     null,
   );
+});
+
+test("L: 2× miss on weight → soft deload kg", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 105,
+    targetReps: 5,
+    at: "2026-10-10",
+  });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-12" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-13" });
+  const g = resolveLeverSessionGoal({
+    name: "Присед",
+    kind: "barbell",
+    progressRate: 0.05,
+    sets: [],
+    lastTimeSets: [{ weightKg: 100, reps: 5, setType: "working", completed: true }],
+  });
+  assert.equal(g?.recovery, "deload");
+  assert.equal(g?.lever, "weight");
+  assert.equal(g?.kg, 90);
+  assert.equal(formatLeverRecoveryHint(g), "Soft deload после 2× мимо");
+  persistLeverRecoveryMemory("Присед", g!, 100);
+  assert.equal(getLeverMemory("Присед")?.targetKg, 90);
+});
+
+test("L: 2× miss on volume → switch to reps", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Тяга",
+    lever: "volume",
+    basisKg: 80,
+    targetKg: 80,
+    targetReps: 8,
+    at: "2026-10-10",
+  });
+  recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "miss", at: "2026-10-12" });
+  recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "miss", at: "2026-10-13" });
+  const g = resolveLeverSessionGoal({
+    name: "Тяга",
+    kind: "barbell",
+    progressRate: 0.05,
+    sets: [{ weightKg: 80, reps: 8, setType: "working", completed: false }],
+    lastTimeSets: [{ weightKg: 80, reps: 8, setType: "working", completed: true }],
+  });
+  assert.equal(g?.recovery, "switch");
+  assert.equal(g?.lever, "reps");
+  assert.equal(g?.extraSet, false);
+  assert.equal(g?.kg, 80);
+  assert.equal(formatLeverRecoveryHint(g), "Рычаг сменён после 2× мимо");
 });

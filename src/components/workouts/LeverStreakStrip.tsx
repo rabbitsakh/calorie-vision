@@ -13,9 +13,9 @@ const LEVER_LABEL: Record<string, string> = {
 };
 
 /**
- * K2 — soft strip of current lever hit streaks on the gym History hub.
+ * K2 / M — soft strip of current lever hit streaks (History hub + Today).
  */
-export function LeverStreakStrip() {
+export function LeverStreakStrip({ className = "" }: { className?: string }) {
   const [items, setItems] = useState<LeverStreakListItem[]>([]);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function LeverStreakStrip() {
 
   return (
     <div
-      className="mt-2 flex flex-wrap items-center gap-1.5"
+      className={`flex flex-wrap items-center gap-1.5 ${className}`.trim()}
       aria-label="Серии по рычагам"
     >
       {items.map(({ name, streak }) => (

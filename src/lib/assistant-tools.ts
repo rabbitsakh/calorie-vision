@@ -966,16 +966,8 @@ export async function executeAssistantWriteTools(opts: {
     );
   }
 
-  if (opts.actions.workoutDays?.length) {
-    results.push(
-      await toolCreateWorkoutPlan({
-        userId: opts.userId,
-        today: opts.today,
-        date: target,
-        actions: opts.actions,
-      }),
-    );
-  }
+  // Assistant J: gym plan writes only via /api/assistant/apply after ActionCard CTA.
+  // Never silent-write workoutDays from the stream path.
 
   if (opts.actions.shopping?.length) {
     results.push(

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
+import { LeverStreakStrip } from "@/components/workouts/LeverStreakStrip";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
@@ -346,6 +348,12 @@ export function WorkoutWeekPlan({
           ) : null}
         </div>
       </section>
+
+      {/* M: lever hit streaks · R5: equipped collection wear */}
+      <div className="mt-2 flex flex-col gap-1.5 px-0.5">
+        <LeverStreakStrip />
+        <GymCollectionWear />
+      </div>
 
       <div className="gym-today-feed">
         {active ? (

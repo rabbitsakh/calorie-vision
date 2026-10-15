@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   collectUndoFromTools,
   decodeImageBase64,
+  executeAssistantWriteTools,
   formatToolResultsForReply,
   resolveAssistantDate,
   shouldAutoApply,
@@ -107,4 +108,18 @@ test("collectUndoFromTools gathers meal and routine ids", () => {
 test("shouldAutoApply for water and start", () => {
   assert.equal(shouldAutoApply({ apply: true, waterMl: 250 }, "ок"), true);
   assert.equal(shouldAutoApply({ startWorkout: true }, "начни"), true);
+});
+
+test("Assistant J: stream path never silent-writes workoutDays", async () => {
+  const results = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-14",
+    date: "2026-10-14",
+    actions: {
+      apply: true,
+      workoutDays: [{ day: "Пн", focus: "Грудь" }],
+    },
+    lastUserMessage: "Составь план зала",
+  });
+  assert.equal(results.length, 0);
 });
