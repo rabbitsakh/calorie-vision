@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
+import {
+  flushPendingMetaChests,
+  openChest,
+  presentChestGrant,
+} from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
 import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
@@ -69,20 +73,29 @@ export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
   useEffect(() => {
     const next = findUnseenMilestone(streak);
     if (next == null) return;
-    if (isSoftCelebrationQuietBlocked()) return;
-    setMilestone(next);
     markMilestoneSeen(next);
+    const quiet = isSoftCelebrationQuietBlocked();
     void (async () => {
       const result = await openChest({ source: "streak", milestone: next });
-      if (result?.reward) {
-        setLoot({
-          key: result.reward.key,
-          title: result.reward.title,
-          description: result.reward.description,
-          rarity: result.reward.rarity,
-          rarityLabel: result.reward.rarityLabel,
-        });
+      if (!result?.reward) {
+        flushPendingMetaChests();
+        return;
       }
+      presentChestGrant(result.reward, {
+        quiet,
+        fallbackTitle: `${next} ${pluralDays(next)} — сундук!`,
+        fallbackSubtitle: MILESTONE_COPY[next] ?? `Вы достигли ${next} дней подряд!`,
+        onFullscreen: (reward) => {
+          setLoot({
+            key: reward.key,
+            title: reward.title,
+            description: reward.description,
+            rarity: reward.rarity,
+            rarityLabel: reward.rarityLabel,
+          });
+          setMilestone(next);
+        },
+      });
     })();
   }, [streak]);
 

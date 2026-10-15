@@ -25,6 +25,7 @@ import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { MorningTodayCard } from "@/components/MorningTodayCard";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
+import { ChestProgressChip } from "@/components/ChestProgressChip";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
@@ -282,6 +283,7 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+          <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
           <div className="pt-2">
             <MorningTodayCard selectedDate={date} today={today} />
           </div>

@@ -9,7 +9,11 @@ import {
   markSoftCelebrationSeen,
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
-import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
+import {
+  flushPendingMetaChests,
+  openChest,
+  presentChestGrant,
+} from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -94,19 +98,34 @@ export function WeeklyChallenge({
   }, []);
 
   const openChallengeChest = useCallback(
-    async (weekStart: string, challengeKey: string, challengeTitle: string) => {
+    async (
+      weekStart: string,
+      challengeKey: string,
+      challengeTitle: string,
+      opts: { quiet: boolean; muted: boolean },
+    ) => {
       const result = await openChest({ source: "challenge", weekStart, challengeKey });
       if (result?.reward) {
-        setChestReward({
-          key: result.reward.key,
-          title: result.reward.title,
-          description: result.reward.description || `${challengeTitle} — неделя в копилку.`,
-          rarity: result.reward.rarity,
-          rarityLabel: result.reward.rarityLabel,
+        presentChestGrant(result.reward, {
+          quiet: opts.quiet,
+          muted: opts.muted,
+          fallbackTitle: challengeTitle,
+          fallbackSubtitle: `${challengeTitle} — неделя в копилку.`,
+          onFullscreen: (reward) => {
+            setChestReward({
+              key: reward.key,
+              title: reward.title,
+              description: reward.description || `${challengeTitle} — неделя в копилку.`,
+              rarity: reward.rarity,
+              rarityLabel: reward.rarityLabel,
+            });
+            setCelebrate(true);
+          },
         });
-        setCelebrate(true);
         return;
       }
+      flushPendingMetaChests();
+      if (opts.muted || opts.quiet) return;
       setChestReward({
         title: challengeTitle,
         description: "Неделя в копилку — сундук чуть позже.",
@@ -141,15 +160,15 @@ export function WeeklyChallenge({
 
       if (
         (justCompleted || firstSightDone) &&
-        !isSoftCelebrationSeen("challenge-done", doneKey) &&
-        !isSoftCelebrationsMutedToday(todayKey)
+        !isSoftCelebrationSeen("challenge-done", doneKey)
       ) {
-        if (isSoftCelebrationQuietBlocked()) {
-          // Leave prevCompleted unchanged so we can celebrate once quiet lifts.
-          return;
-        }
+        const muted = isSoftCelebrationsMutedToday(todayKey);
+        const quiet = isSoftCelebrationQuietBlocked();
         markSoftCelebrationSeen("challenge-done", doneKey);
-        void openChallengeChest(active.weekStart, active.challengeKey, active.title);
+        void openChallengeChest(active.weekStart, active.challengeKey, active.title, {
+          quiet,
+          muted,
+        });
       }
 
       prevCompleted.current = active.completed;

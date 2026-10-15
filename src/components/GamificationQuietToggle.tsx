@@ -25,7 +25,8 @@ export function GamificationQuietToggle() {
     <section className="rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white p-4 md:p-5">
       <h2 className="text-base font-semibold text-[var(--foreground)]">Празднования</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        По умолчанию тихо: тосты вместо полноэкранных сцен. Можно включить обратно.
+        По умолчанию тихо: без полноэкранных сцен. Сундуки и награды всё равно
+        начисляются — короткий тост и запись в коллекции.
       </p>
       <label className="mt-4 flex cursor-pointer items-start gap-3">
         <input
@@ -38,7 +39,7 @@ export function GamificationQuietToggle() {
         <span>
           <span className="block text-sm font-medium text-[var(--foreground)]">Показывать празднования</span>
           <span className="mt-0.5 block text-xs text-[var(--muted)]">
-            Полноэкранные сцены, сундуки и звуки при вехах.
+            Полноэкранные сцены и звуки при вехах. Награды открываются в любом режиме.
           </span>
         </span>
       </label>

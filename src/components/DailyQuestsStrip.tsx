@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
+import {
+  flushPendingMetaChests,
+  openChest,
+  presentChestGrant,
+} from "@/lib/chest-client";
 import type { RewardRarity } from "@/lib/rewards";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
@@ -88,8 +92,6 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     if (selectedDate !== today) return;
     if (!progress?.allDone) return;
     if (claimedRef.current === today) return;
-    if (isSoftCelebrationsMutedToday(todayKey)) return;
-    if (isSoftCelebrationQuietBlocked()) return;
     if (isSoftCelebrationSeen("quest-chest", today)) return;
     // Let NextStepBar own «после зала — белок» before stacking a chest.
     if (
@@ -101,21 +103,36 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
       return;
     }
 
+    const muted = isSoftCelebrationsMutedToday(todayKey);
+    const quiet = isSoftCelebrationQuietBlocked();
+
     claimedRef.current = today;
     const result = await openChest({ source: "quest", date: today });
-    if (!result) return;
+    if (!result) {
+      claimedRef.current = null;
+      return;
+    }
+
+    markSoftCelebrationSeen("quest-chest", today);
 
     if (result.reward) {
-      markSoftCelebrationSeen("quest-chest", today);
-      setLoot({
-        key: result.reward.key,
-        title: result.reward.title,
-        description: result.reward.description,
-        rarity: result.reward.rarity,
-        rarityLabel: result.reward.rarityLabel,
-      });
-      setCelebrate(true);
       setHint(null);
+      presentChestGrant(result.reward, {
+        quiet,
+        muted,
+        fallbackTitle: "Сундук за ритм!",
+        fallbackSubtitle: "Несколько спокойных дней — награда в коллекции.",
+        onFullscreen: (reward) => {
+          setLoot({
+            key: reward.key,
+            title: reward.title,
+            description: reward.description,
+            rarity: reward.rarity,
+            rarityLabel: reward.rarityLabel,
+          });
+          setCelebrate(true);
+        },
+      });
       return;
     }
 
@@ -126,7 +143,6 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         ? null
         : `Ещё ${nextIn} лёгких дня до сундука`,
     );
-    markSoftCelebrationSeen("quest-chest", today);
   }, [
     progress?.allDone,
     selectedDate,
