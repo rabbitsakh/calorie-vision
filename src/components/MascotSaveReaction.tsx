@@ -14,9 +14,11 @@ import {
   getEquippedCheerKey,
   hydrateEquippedCheerFromAccount,
 } from "@/lib/equipped-cheer";
+import { pickRotatedCheerKey } from "@/lib/cheer-rotate";
 import { pluralDays } from "@/lib/russian-text";
-import { cheerPhrase } from "@/lib/rewards";
+import { cheerPhrase, isCheerReward } from "@/lib/rewards";
 import { pickSaveReactionLine } from "@/lib/save-reaction-copy";
+import { withBasePath } from "@/lib/paths";
 
 const TOAST_MS = 2200;
 const HOST_ID = "cv-mascot-save-toast-host";
@@ -61,11 +63,27 @@ export function MascotSaveReaction() {
   const [toastKey, setToastKey] = useState(0);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const showTimerRef = useRef<number | null>(null);
+  /** R4: owned cheer keys for rotation (best-effort cache). */
+  const ownedCheersRef = useRef<string[]>([]);
   const fullscreenActive = Boolean(gate?.activeId);
 
   useEffect(() => {
     setHost(getSaveToastHost());
     void hydrateEquippedCheerFromAccount();
+    void (async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/rewards"), { cache: "no-store" });
+        if (!resp.ok) return;
+        const data = (await resp.json()) as {
+          rewards?: { key: string; unlocked?: boolean; group?: string }[];
+        };
+        ownedCheersRef.current = (data.rewards ?? [])
+          .filter((r) => r.unlocked && (r.group === "cheer" || isCheerReward(r.key)))
+          .map((r) => r.key);
+      } catch {
+        // offline — equipped-only path
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -82,8 +100,11 @@ export function MascotSaveReaction() {
           seed: Date.now(),
         }),
       );
-      // R3b: equipped cheer phrase wins over streak detail on quiet save toast.
-      const cheerKey = getEquippedCheerKey();
+      // R3b + R4: rotate among owned cheers (equipped leads the cycle).
+      const cheerKey = pickRotatedCheerKey(
+        ownedCheersRef.current,
+        getEquippedCheerKey(),
+      );
       const cheer = cheerKey ? cheerPhrase(cheerKey) : null;
       setDetail(
         cheer ?? (streak >= 2 ? `Серия ${streak} ${pluralDays(streak)}` : null),

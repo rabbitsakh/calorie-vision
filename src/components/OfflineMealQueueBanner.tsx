@@ -94,6 +94,8 @@ export function OfflineMealQueueBanner({
   const [shoppingSyncCount, setShoppingSyncCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** T1: brief «Ушло N» after a flush so the queue doesn't vanish without feedback. */
+  const [flushSummary, setFlushSummary] = useState<string | null>(null);
   // Optimistic online — Android WebView lies about navigator.onLine.
   const [online, setOnline] = useState(true);
   const { data: session } = useSession();
@@ -164,12 +166,19 @@ export function OfflineMealQueueBanner({
     setFlushing(true);
     let savedAny = false;
     let recognizedAny = false;
+    let flushedCount = 0;
 
     try {
       const localFlush = await flushLocalWorkoutSessions();
-      if (localFlush.flushed > 0) savedAny = true;
+      if (localFlush.flushed > 0) {
+        savedAny = true;
+        flushedCount += localFlush.flushed;
+      }
       const exFlush = await flushWorkoutExerciseDrafts();
-      if (exFlush.flushed > 0) savedAny = true;
+      if (exFlush.flushed > 0) {
+        savedAny = true;
+        flushedCount += exFlush.flushed;
+      }
 
       for (const item of pending) {
         try {
@@ -186,6 +195,7 @@ export function OfflineMealQueueBanner({
           upsertPendingConfirmDraft(item.selectedDate, result);
           removeMealDraft(item.id);
           recognizedAny = true;
+          flushedCount += 1;
           onRecognitionReady?.(item.selectedDate);
         } catch (err) {
           if (isNetworkFetchError(err)) {
@@ -205,6 +215,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeMealDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch {
           // stay queued
         }
@@ -225,6 +236,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeMealDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch (err) {
           if (isLikelyOfflineError(err)) break;
         }
@@ -238,6 +250,7 @@ export function OfflineMealQueueBanner({
           if (response.ok || response.status === 404) {
             removeMealDraft(item.id);
             savedAny = true;
+            flushedCount += 1;
           }
         } catch (err) {
           if (isLikelyOfflineError(err)) break;
@@ -254,6 +267,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) break;
           removeWaterDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch {
           break;
         }
@@ -287,6 +301,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) break;
           removeWeightDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch {
           break;
         }
@@ -306,6 +321,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeDiaryNoteDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch (err) {
           if (isLikelyOfflineError(err)) break;
         }
@@ -324,6 +340,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeWorkoutSetDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch (err) {
           // Network flake — stop so we don't spin remaining drafts.
           if (isLikelyOfflineError(err)) break;
@@ -341,6 +358,7 @@ export function OfflineMealQueueBanner({
           if (!response.ok) continue;
           removeWorkoutFinishDraft(item.id);
           savedAny = true;
+          flushedCount += 1;
         } catch (err) {
           if (isLikelyOfflineError(err)) break;
         }
@@ -357,6 +375,7 @@ export function OfflineMealQueueBanner({
           if (response.ok) {
             clearShoppingSyncDirty();
             savedAny = true;
+            flushedCount += 1;
           }
         } catch (err) {
           if (isLikelyOfflineError(err)) {
@@ -367,6 +386,26 @@ export function OfflineMealQueueBanner({
     } finally {
       setFlushing(false);
       refreshCounts();
+      if (flushedCount > 0) {
+        const remaining =
+          countFailedSaves() +
+          countFailedPatches() +
+          countFailedDeletes() +
+          countPendingRecognitions() +
+          countWaterDrafts() +
+          countWeightDrafts() +
+          countDiaryNoteDrafts() +
+          countWorkoutSetDrafts() +
+          countWorkoutFinishDrafts() +
+          countLocalWorkoutSessions() +
+          countWorkoutExerciseDrafts() +
+          countShoppingSyncDrafts();
+        setFlushSummary(
+          remaining > 0
+            ? `Ушло ${flushedCount} · ещё ждёт ${remaining}`
+            : `Ушло ${flushedCount} — очередь пуста`,
+        );
+      }
       if (savedAny || recognizedAny) {
         if (savedAny) {
           emitMascotReaction("save");
@@ -375,6 +414,12 @@ export function OfflineMealQueueBanner({
       }
     }
   }, [onFlushed, onRecognitionReady, refreshCounts, shoppingUserId]);
+
+  useEffect(() => {
+    if (!flushSummary) return;
+    const timer = window.setTimeout(() => setFlushSummary(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [flushSummary]);
 
   useEffect(() => {
     let wasOnline = true;
@@ -401,7 +446,17 @@ export function OfflineMealQueueBanner({
     workoutLocalCount +
     workoutExerciseCount +
     shoppingSyncCount;
-  if (totalCount <= 0) return null;
+  if (totalCount <= 0 && !flushSummary) return null;
+
+  if (totalCount <= 0 && flushSummary) {
+    return (
+      <div className="flex flex-col gap-2" role="status">
+        <div className="offline-chrome offline-chrome-pad text-sm">
+          <p className="font-semibold text-teal-900">{flushSummary}</p>
+        </div>
+      </div>
+    );
+  }
 
   const lines: string[] = [];
   if (recognitionCount > 0) {
@@ -483,9 +538,11 @@ export function OfflineMealQueueBanner({
 
   const queueTitle = flushing
     ? "Отправляем черновики…"
-    : !online
-      ? `Ждёт сеть · ${totalCount} на устройстве`
-      : `Ждёт отправку · ${totalCount} на устройстве`;
+    : flushSummary
+      ? flushSummary
+      : !online
+        ? `Ждёт сеть · ${totalCount} на устройстве`
+        : `Ждёт отправку · ${totalCount} на устройстве`;
 
   return (
     <div className="flex flex-col gap-2" role="status">

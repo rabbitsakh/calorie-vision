@@ -21,7 +21,7 @@ import {
   subscribeMealDraftQueue,
   upsertPendingConfirmDraft,
 } from "@/lib/meal-draft-queue";
-import { isLikelyOfflineError } from "@/lib/connectivity";
+import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import { humanizeClientFetchError, readApiJson } from "@/lib/read-api-json";
 import {
   barcodeFailureHint,
@@ -297,11 +297,14 @@ export function FoodAddPanel({
   }, [selectedDate]);
 
   useEffect(() => {
-    function onOnline() {
-      void flushFailedSaves();
-    }
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
+    // T3: Android WebView lies about navigator.onLine — flush on probed recovery.
+    let wasOnline = true;
+    return subscribeConnectivity((next) => {
+      if (next && !wasOnline) {
+        void flushFailedSaves();
+      }
+      wasOnline = next;
+    });
   }, [flushFailedSaves]);
 
   // Seed pending-confirm once when confirm opens (crash recovery). Edits upsert from ConfirmationCard.
