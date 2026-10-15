@@ -99,9 +99,9 @@ describe("chest-client R1", () => {
 
   test("presentChestGrant quiet path notifies inbox and flushes meta", () => {
     installWindow({ quiet: true });
-    const inbox: string[] = [];
+    const inbox: Array<{ title: string; rewardKey?: string }> = [];
     window.addEventListener("cv-chest-inbox", ((event: Event) => {
-      inbox.push((event as CustomEvent<{ title: string }>).detail.title);
+      inbox.push((event as CustomEvent<{ title: string; rewardKey?: string }>).detail);
     }) as EventListener);
 
     let fullscreen = false;
@@ -117,7 +117,8 @@ describe("chest-client R1", () => {
     );
 
     assert.equal(fullscreen, false);
-    assert.equal(inbox.includes("Росток"), true);
+    assert.equal(inbox[0]?.title, "Росток");
+    assert.equal(inbox[0]?.rewardKey, "sticker_sprout");
   });
 
   test("presentChestGrant loud path calls onFullscreen", () => {

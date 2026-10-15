@@ -265,7 +265,13 @@ export function WorkoutLiveStage({
                     : null}
                   {liveGoal.basisKg != null && liveGoal.leverLabel ? " · " : null}
                   {liveGoal.leverLabel
-                    ? `${liveGoal.leverLabel}${liveGoal.leverRemembered ? " · ваш" : ""}`
+                    ? `${liveGoal.leverLabel}${
+                        liveGoal.leverRemembered
+                          ? liveGoal.streakHint
+                            ? ` · ваш · ${liveGoal.streakHint}`
+                            : " · ваш"
+                          : ""
+                      }`
                     : null}
                   {liveGoal.extraSet ? " · +1 подход" : null}
                 </p>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { SoftCelebration } from "@/components/SoftCelebration";
+import { notifyChestInbox } from "@/lib/chest-inbox";
 import { withBasePath } from "@/lib/paths";
 import {
   isSoftCelebrationQuietBlocked,
@@ -25,6 +26,7 @@ function todayKey(): string {
 
 /**
  * Soft toast for the inviter when a referral chest was granted while they were away.
+ * Quiet mode → inbox toast with equip/collection CTA (R2c); loud → SoftCelebration.
  */
 export function ReferralChestToast() {
   const [open, setOpen] = useState(false);
@@ -35,7 +37,6 @@ export function ReferralChestToast() {
   useEffect(() => {
     const today = todayKey();
     if (isSoftCelebrationsMutedToday(today)) return;
-    if (isSoftCelebrationQuietBlocked()) return;
 
     void (async () => {
       try {
@@ -51,10 +52,21 @@ export function ReferralChestToast() {
         );
         const next = pending[0];
         if (!next?.sourceKey) return;
+        markSoftCelebrationSeen("referral-chest", next.sourceKey);
         setSeenKey(next.sourceKey);
+
+        const quiet = isSoftCelebrationQuietBlocked();
+        if (quiet) {
+          notifyChestInbox({
+            title: "Друг открыл приложение по вашей ссылке",
+            subtitle: `В коллекции: ${next.title}`,
+            rewardKey: next.key,
+          });
+          return;
+        }
+
         setTitle("Друг открыл приложение по вашей ссылке");
         setSubtitle(`В коллекции: ${next.title}`);
-        markSoftCelebrationSeen("referral-chest", next.sourceKey);
         setOpen(true);
       } catch {
         // non-critical
