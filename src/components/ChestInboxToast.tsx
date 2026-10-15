@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { maybeAutoEquipReward } from "@/lib/auto-equip-reward";
 import {
   CHEST_INBOX_EVENT,
   chestInboxAction,
   type ChestInboxPayload,
 } from "@/lib/chest-inbox";
+import { persistEquippedCheerKey } from "@/lib/equipped-cheer";
 import { persistEquippedFrameKey } from "@/lib/equipped-frame";
 import { persistEquippedStickerKey } from "@/lib/equipped-sticker";
 import { withBasePath } from "@/lib/paths";
@@ -40,9 +42,20 @@ function getHost(): HTMLElement | null {
   return host;
 }
 
+function equipLabel(
+  action: ReturnType<typeof chestInboxAction>,
+  equipped: boolean,
+  auto: boolean,
+): string {
+  if (equipped) return auto ? "Надето сразу" : "Надето";
+  if (action === "equip-frame") return "Надеть рамку";
+  if (action === "equip-cheer") return "Включить фразу";
+  return "Надеть";
+}
+
 /**
- * Soft inbox toast when a chest grants under quiet mode (R1a / R2a–b).
- * Equip CTA for stickers/frames; otherwise link to collection.
+ * Soft inbox toast when a chest grants under quiet mode (R1–R3).
+ * Auto-equips empty sticker/frame/cheer slots; CTA otherwise.
  */
 export function ChestInboxToast() {
   const [open, setOpen] = useState(false);
@@ -51,6 +64,7 @@ export function ChestInboxToast() {
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [equipped, setEquipped] = useState(false);
+  const [autoEquipped, setAutoEquipped] = useState(false);
 
   useEffect(() => {
     setHost(getHost());
@@ -63,8 +77,17 @@ export function ChestInboxToast() {
       setPayload(detail);
       setToastKey((n) => n + 1);
       setEquipped(false);
+      setAutoEquipped(false);
       setBusy(false);
       setOpen(true);
+      if (detail.rewardKey) {
+        void maybeAutoEquipReward(detail.rewardKey).then((kind) => {
+          if (kind) {
+            setEquipped(true);
+            setAutoEquipped(true);
+          }
+        });
+      }
     }
     window.addEventListener(CHEST_INBOX_EVENT, onInbox);
     return () => window.removeEventListener(CHEST_INBOX_EVENT, onInbox);
@@ -80,6 +103,8 @@ export function ChestInboxToast() {
 
   const action = chestInboxAction(payload.rewardKey);
   const collectionHref = withBasePath("/profile#rewards");
+  const canEquip =
+    action === "equip-sticker" || action === "equip-frame" || action === "equip-cheer";
 
   async function onEquip() {
     if (!payload?.rewardKey || busy) return;
@@ -89,8 +114,11 @@ export function ChestInboxToast() {
         await persistEquippedStickerKey(payload.rewardKey);
       } else if (action === "equip-frame") {
         await persistEquippedFrameKey(payload.rewardKey);
+      } else if (action === "equip-cheer") {
+        await persistEquippedCheerKey(payload.rewardKey);
       }
       setEquipped(true);
+      setAutoEquipped(false);
     } finally {
       setBusy(false);
     }
@@ -111,14 +139,14 @@ export function ChestInboxToast() {
           <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">В коллекции · Профиль</p>
         )}
         <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          {action === "equip-sticker" || action === "equip-frame" ? (
+          {canEquip ? (
             <button
               type="button"
               disabled={busy || equipped}
               className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
               onClick={() => void onEquip()}
             >
-              {equipped ? "Надето" : action === "equip-frame" ? "Надеть рамку" : "Надеть"}
+              {equipLabel(action, equipped, autoEquipped)}
             </button>
           ) : null}
           <Link

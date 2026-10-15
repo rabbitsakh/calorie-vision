@@ -1,6 +1,7 @@
 "use client";
 
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+import { LeverStreakStrip } from "@/components/workouts/LeverStreakStrip";
 import {
   formatDateShort,
   formatDateWords,
@@ -123,6 +124,7 @@ export function WorkoutHistoryHub({
           Новая
         </button>
       </div>
+      <LeverStreakStrip />
 
       <section className="gym-plane">
         <div className="mb-2 flex items-center justify-between gap-2">

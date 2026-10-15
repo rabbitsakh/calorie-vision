@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { afterEach, test } from "node:test";
 import {
   buildTipPrompt,
   detectLeverInTip,
@@ -8,6 +8,35 @@ import {
   stripLeverAnnotation,
   type TipTarget,
 } from "./tip-lever.ts";
+import {
+  recordLeverOutcome,
+  resetLeverOutcomeHistoryForTests,
+} from "./lever-outcome-history.ts";
+
+function installLocalStorage() {
+  const map = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    value: {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        map.set(k, v);
+      },
+      removeItem: (k: string) => {
+        map.delete(k);
+      },
+      clear: () => map.clear(),
+      key: () => null,
+      get length() {
+        return map.size;
+      },
+    },
+    configurable: true,
+  });
+}
+
+afterEach(() => {
+  resetLeverOutcomeHistoryForTests();
+});
 
 const options = [
   { lever: "weight" as const, label: "Вес", line: "84 кг", suggestedKg: 84, suggestedReps: 5 },
@@ -69,6 +98,7 @@ test("detectLeverInTip constrained", () => {
 });
 
 test("buildTipPrompt locks preference", () => {
+  installLocalStorage();
   const pick = pickTipFocus([
     target({ primaryLever: "volume", leverRemembered: true }),
   ])!;
@@ -76,4 +106,17 @@ test("buildTipPrompt locks preference", () => {
   assert.match(prompt, /уже выбрал/);
   assert.match(prompt, /Тоннаж/);
   assert.doesNotMatch(prompt, /укажи код рычага/);
+});
+
+test("K1: 2× miss prefers struggling exercise and deload tip", () => {
+  installLocalStorage();
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-03-01" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-03-03" });
+  const pick = pickTipFocus([
+    target({ name: "Жим", primaryLever: "reps", leverRemembered: true }),
+    target({ name: "Присед", primaryLever: "weight", leverRemembered: true }),
+  ])!;
+  assert.equal(pick.exerciseName, "Присед");
+  assert.ok(pick.missStreak >= 2);
+  assert.match(ruleTipForFocus(pick), /Два раза мимо/);
 });

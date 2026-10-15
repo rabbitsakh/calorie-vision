@@ -3,8 +3,11 @@ import { afterEach, describe, test } from "node:test";
 import {
   formatLeverStreakHint,
   getLeverHitStreak,
+  getLeverMissStreak,
+  listTopLeverHitStreaks,
   recordLeverOutcome,
   resetLeverOutcomeHistoryForTests,
+  shouldSuggestLeverSwitch,
 } from "./lever-outcome-history.ts";
 
 function installLocalStorage() {
@@ -62,5 +65,28 @@ describe("lever-outcome-history", () => {
     recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "miss", at: "2026-03-01" });
     recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "hit", at: "2026-03-01" });
     assert.equal(getLeverHitStreak("Тяга")?.hitStreak, 1);
+  });
+
+  test("miss streak suggests lever switch at 2", () => {
+    installLocalStorage();
+    recordLeverOutcome({ name: "Жим", lever: "weight", outcome: "miss", at: "2026-03-01" });
+    assert.equal(getLeverMissStreak("Жим"), 1);
+    assert.equal(shouldSuggestLeverSwitch("Жим"), false);
+    recordLeverOutcome({ name: "Жим", lever: "weight", outcome: "miss", at: "2026-03-03" });
+    assert.equal(getLeverMissStreak("Жим"), 2);
+    assert.equal(shouldSuggestLeverSwitch("Жим"), true);
+  });
+
+  test("listTopLeverHitStreaks ranks by streak", () => {
+    installLocalStorage();
+    recordLeverOutcome({ name: "A", lever: "reps", outcome: "hit", at: "2026-03-01" });
+    recordLeverOutcome({ name: "A", lever: "reps", outcome: "hit", at: "2026-03-02" });
+    recordLeverOutcome({ name: "B", lever: "weight", outcome: "hit", at: "2026-03-01" });
+    recordLeverOutcome({ name: "B", lever: "weight", outcome: "hit", at: "2026-03-02" });
+    recordLeverOutcome({ name: "B", lever: "weight", outcome: "hit", at: "2026-03-03" });
+    const top = listTopLeverHitStreaks(2);
+    assert.equal(top[0]?.name, "B");
+    assert.equal(top[0]?.streak.hitStreak, 3);
+    assert.equal(top[1]?.streak.hitStreak, 2);
   });
 });
