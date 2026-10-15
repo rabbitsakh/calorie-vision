@@ -357,6 +357,8 @@ export type WorkoutActiveSessionProps = {
   historyOpen: Record<string, boolean>;
   setHistoryByName: Dispatch<SetStateAction<Record<string, HistoryBundle>>>;
   queuedSets: number;
+  /** T4: brief flush summary when queue clears. */
+  flushSummary?: string | null;
   insights: Insights | null;
   libraryHits: LibraryEntry[];
   newExerciseKind: ExerciseKind;
@@ -444,6 +446,7 @@ export function WorkoutActiveSession({
   historyOpen,
   setHistoryByName,
   queuedSets,
+  flushSummary = null,
   insights,
   libraryHits,
   newExerciseKind,
@@ -931,9 +934,11 @@ export function WorkoutActiveSession({
     {queuedSets > 0 ? (
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
         <p className="min-w-0 font-medium">
-          {queuedSets === 1
-            ? "1 подход ждёт сеть"
-            : `${queuedSets} подхода ждут сеть`}
+          {flushSummary
+            ? flushSummary
+            : queuedSets === 1
+              ? "1 подход ждёт сеть"
+              : `${queuedSets} подхода ждут сеть`}
         </p>
         <button
           type="button"
@@ -942,6 +947,13 @@ export function WorkoutActiveSession({
         >
           Отправить
         </button>
+      </div>
+    ) : flushSummary ? (
+      <div
+        className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+        role="status"
+      >
+        {flushSummary}
       </div>
     ) : null}
     {error ? <p className="text-sm text-red-600">{error}</p> : null}

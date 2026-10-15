@@ -266,14 +266,21 @@ export function WorkoutLiveStage({
                   {liveGoal.basisKg != null && liveGoal.leverLabel ? " · " : null}
                   {liveGoal.leverLabel
                     ? `${liveGoal.leverLabel}${
-                        liveGoal.leverRemembered
-                          ? liveGoal.streakHint
-                            ? ` · ваш · ${liveGoal.streakHint}`
-                            : " · ваш"
-                          : ""
+                        liveGoal.recoveryHint
+                          ? ""
+                          : liveGoal.leverRemembered
+                            ? liveGoal.streakHint
+                              ? ` · ваш · ${liveGoal.streakHint}`
+                              : " · ваш"
+                            : ""
                       }`
                     : null}
                   {liveGoal.extraSet ? " · +1 подход" : null}
+                </p>
+              ) : null}
+              {liveGoal?.recoveryHint ? (
+                <p className="mt-0.5 text-[11px] font-medium text-amber-200/90">
+                  {liveGoal.recoveryHint}
                 </p>
               ) : null}
               <p className="mt-1 text-lg font-semibold tracking-tight text-teal-200">

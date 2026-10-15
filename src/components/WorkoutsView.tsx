@@ -71,6 +71,7 @@ import {
 import {
   mergeDraftWithLeverGoal,
   needsVolumeExtraSet,
+  persistLeverRecoveryMemory,
   resolveLeverSessionGoal,
   volumeExtraSetBody,
 } from "@/lib/workouts/lever-session-apply";
@@ -391,6 +392,8 @@ export function WorkoutsView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [queuedSets, setQueuedSets] = useState(0);
+  /** T4: brief «Ушло N» after in-gym flush (parity with ration T1). */
+  const [gymFlushSummary, setGymFlushSummary] = useState<string | null>(null);
   /** Bumps on any draft queue notify so edits re-merge even when count is unchanged. */
   const [queueRev, setQueueRev] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -623,6 +626,15 @@ export function WorkoutsView({
         lastTimeSets: ex.lastTime?.sets ?? null,
       });
       if (!goal) continue;
+
+      // L: persist soft deload / switched lever after 2× miss.
+      if (goal.recovery) {
+        const basis =
+          liveEx.sets.find((s) => s.weightKg != null && s.weightKg > 0)?.weightKg ??
+          ex.lastTime?.sets?.find((s) => s.weightKg != null && s.weightKg > 0)?.weightKg ??
+          goal.kg;
+        persistLeverRecoveryMemory(ex.name, goal, basis);
+      }
 
       // Prefill planned incomplete rows to the remembered target.
       if (!isLocalSessionId(session.id) && (goal.kg != null || goal.reps != null)) {
@@ -1220,6 +1232,15 @@ export function WorkoutsView({
     }
     if (saved > 0) {
       setError(null);
+      const remaining =
+        countWorkoutOfflineDrafts() +
+        countLocalWorkoutSessions() +
+        countWorkoutExerciseDrafts();
+      setGymFlushSummary(
+        remaining > 0
+          ? `Ушло ${saved} · ещё ждёт ${remaining}`
+          : `Ушло ${saved} — очередь пуста`,
+      );
       if (
         localFlush.lastSessionId &&
         detail &&
@@ -1233,6 +1254,12 @@ export function WorkoutsView({
       }
     }
   }, [detail, loadList, openSession, refreshDetail]);
+
+  useEffect(() => {
+    if (!gymFlushSummary) return;
+    const timer = window.setTimeout(() => setGymFlushSummary(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [gymFlushSummary]);
 
   useEffect(() => {
     let wasOnline = true;
@@ -2218,6 +2245,7 @@ export function WorkoutsView({
         historyOpen={historyOpen}
         setHistoryByName={setHistoryByName}
         queuedSets={queuedSets}
+        flushSummary={gymFlushSummary}
         insights={insights}
         libraryHits={libraryHits}
         newExerciseKind={newExerciseKind}
@@ -2472,6 +2500,7 @@ export function WorkoutsView({
           creating={creating}
           busy={busy}
           queuedSets={queuedSets}
+          flushSummary={gymFlushSummary}
           insights={insights}
           filterPeriod={filterPeriod}
           filterDate={filterDate}

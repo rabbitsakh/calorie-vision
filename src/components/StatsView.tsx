@@ -925,7 +925,7 @@ export function StatsView({ endDate }: StatsViewProps) {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {data && data.summary.totalMealDays === 0 ? (
-        <div className="stats-chart-block flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-[rgba(13,115,119,0.12)] bg-gradient-to-b from-white to-[var(--surface-mist)] py-8 text-center shadow-[var(--shadow-card)]">
+        <div className="stats-chart-block flex flex-col items-center gap-3 border-0 py-8 text-center">
           <p className="font-display text-base font-semibold text-[var(--foreground)]">Пока тихо</p>
           <p className="max-w-xs text-sm text-[var(--muted-strong)]">
             За этот период нет записей — добавьте приём, и здесь появится картина дня.

@@ -54,6 +54,8 @@ type Props = {
   creating: boolean;
   busy: boolean;
   queuedSets: number;
+  /** T4: brief flush summary when queue clears. */
+  flushSummary?: string | null;
   insights: HistoryInsights | null;
   filterPeriod: "all" | "week" | "month" | "day";
   filterDate: string | null;
@@ -89,6 +91,7 @@ export function WorkoutHistoryHub({
   creating,
   busy,
   queuedSets,
+  flushSummary = null,
   insights,
   filterPeriod,
   filterDate,
@@ -124,7 +127,7 @@ export function WorkoutHistoryHub({
           Новая
         </button>
       </div>
-      <LeverStreakStrip />
+      <LeverStreakStrip className="mt-2" />
 
       <section className="gym-plane">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -313,9 +316,11 @@ export function WorkoutHistoryHub({
       {queuedSets > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
           <p className="min-w-0 font-medium">
-            {queuedSets === 1
-              ? "1 подход ждёт сеть"
-              : `${queuedSets} подхода ждут сеть`}
+            {flushSummary
+              ? flushSummary
+              : queuedSets === 1
+                ? "1 подход ждёт сеть"
+                : `${queuedSets} подхода ждут сеть`}
           </p>
           <button
             type="button"
@@ -324,6 +329,13 @@ export function WorkoutHistoryHub({
           >
             Отправить
           </button>
+        </div>
+      ) : flushSummary ? (
+        <div
+          className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+          role="status"
+        >
+          {flushSummary}
         </div>
       ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}

@@ -460,11 +460,16 @@ function ActionCard({
     }
   }
 
+  const gymOnly =
+    Boolean(actions.workoutDays?.length) && !actions.meals?.length;
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
       <p className="confirm-family-skim">
-        День {date}
-        {alreadyApplied ? " · уже записано" : " · подтверди запись"}
+        {gymOnly
+          ? alreadyApplied
+            ? "План зала · уже записано"
+            : "План зала · подтверди запись"
+          : `День ${date}${alreadyApplied ? " · уже записано" : " · подтверди запись"}`}
       </p>
       {actions.summary ? (
         <p className="mb-1.5 font-display text-[13px] font-semibold text-teal-950">

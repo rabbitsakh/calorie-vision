@@ -2857,7 +2857,8 @@ select {
   border-radius: var(--radius-panel);
   border: 1px solid var(--border-quiet);
   background: var(--panel-wash);
-  box-shadow: var(--shadow-card);
+  /* D6: one wash plane — no stacked card shadow */
+  box-shadow: none;
   animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
