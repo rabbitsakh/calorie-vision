@@ -210,7 +210,9 @@ function ToolChips({ tools }: { tools: ToolResult[] }) {
         <p
           key={`${t.tool}-${i}`}
           className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-snug ${
-            t.ok ? "bg-teal-100 text-teal-950" : "bg-rose-50 text-rose-900"
+            t.ok
+              ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+              : "bg-rose-50 text-rose-900"
           }`}
         >
           {t.ok ? "✓ " : "✗ "}
@@ -402,30 +404,64 @@ function PhotoConfirm({
 function ActionCard({
   actions,
   date,
-  alreadyApplied,
+  streamDone,
   online,
   onFlash,
   onApplied,
 }: {
   actions: AssistantActions;
   date: string;
-  alreadyApplied: boolean;
+  /** K: per-kind stream writes — gated shopping/start stay confirmable. */
+  streamDone: {
+    meals: boolean;
+    routine: boolean;
+    shopping: boolean;
+    start: boolean;
+  };
   online: boolean;
   onFlash: (msg: string) => void;
   onApplied: (undo: UndoPayload) => void;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
+  const [localDone, setLocalDone] = useState({
+    meals: false,
+    routine: false,
+    shopping: false,
+    start: false,
+  });
 
-  async function apply(kind: "meals" | "routine") {
+  const mealsDone = streamDone.meals || localDone.meals;
+  const routineDone = streamDone.routine || localDone.routine;
+  const shoppingDone = streamDone.shopping || localDone.shopping;
+  const startDone = streamDone.start || localDone.start;
+
+  const needsMeals = Boolean(actions.meals?.length);
+  const needsRoutine = Boolean(actions.workoutDays?.length);
+  const needsShopping = Boolean(actions.shopping?.length);
+  const needsStart = Boolean(actions.startWorkout);
+
+  const alreadyApplied =
+    (!needsMeals || mealsDone) &&
+    (!needsRoutine || routineDone) &&
+    (!needsShopping || shoppingDone) &&
+    (!needsStart || startDone) &&
+    (needsMeals || needsRoutine || needsShopping || needsStart);
+
+  async function apply(kind: "meals" | "routine" | "shopping" | "start") {
     setBusy(kind);
     try {
       const body = { kind, date, actions };
       if (!online) {
         enqueueAssistantApply(kind, body);
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
         onFlash(
           kind === "meals"
             ? "Офлайн — запись в дневник в очереди"
-            : "Офлайн — план зала в очереди",
+            : kind === "routine"
+              ? "Офлайн — план зала в очереди"
+              : kind === "shopping"
+                ? "Офлайн — покупки в очереди"
+                : "Офлайн — старт тренировки в очереди",
         );
         return;
       }
@@ -438,20 +474,28 @@ function ActionCard({
         error?: string;
         meals?: Array<{ id: string }>;
         routines?: Array<{ id: string }>;
+        result?: { message?: string };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
+      setLocalDone((prev) => ({ ...prev, [kind]: true }));
       if (kind === "meals") {
         onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
         onApplied({
           ...emptyUndo(),
           mealIds: (data?.meals ?? []).map((m) => m.id).filter(Boolean),
         });
-      } else {
+      } else if (kind === "routine") {
         onFlash("В план зала");
         onApplied({
           ...emptyUndo(),
           routineIds: (data?.routines ?? []).map((r) => r.id).filter(Boolean),
         });
+      } else if (kind === "shopping") {
+        onFlash(data?.result?.message ?? "В покупки");
+        onApplied(emptyUndo());
+      } else {
+        onFlash(data?.result?.message ?? "Тренировка начата");
+        onApplied(emptyUndo());
       }
     } catch (err) {
       onFlash(err instanceof Error ? err.message : "Ошибка");
@@ -461,18 +505,32 @@ function ActionCard({
   }
 
   const gymOnly =
-    Boolean(actions.workoutDays?.length) && !actions.meals?.length;
+    needsRoutine && !needsMeals && !needsShopping && !needsStart;
+  const shoppingOnly =
+    needsShopping && !needsMeals && !needsRoutine && !needsStart;
+  const startOnly =
+    needsStart && !needsMeals && !needsRoutine && !needsShopping;
+  const skim = alreadyApplied
+    ? gymOnly
+      ? "План зала · уже записано"
+      : shoppingOnly
+        ? "Покупки · уже записано"
+        : startOnly
+          ? "Тренировка · уже записано"
+          : `День ${date} · уже записано`
+    : gymOnly
+      ? "План зала · подтверди запись"
+      : shoppingOnly
+        ? "Покупки · подтверди запись"
+        : startOnly
+          ? "Тренировка · подтверди старт"
+          : `День ${date} · подтверди запись`;
+
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
-      <p className="confirm-family-skim">
-        {gymOnly
-          ? alreadyApplied
-            ? "План зала · уже записано"
-            : "План зала · подтверди запись"
-          : `День ${date}${alreadyApplied ? " · уже записано" : " · подтверди запись"}`}
-      </p>
+      <p className="confirm-family-skim">{skim}</p>
       {actions.summary ? (
-        <p className="mb-1.5 font-display text-[13px] font-semibold text-teal-950">
+        <p className="mb-1.5 font-display text-[13px] font-semibold text-[var(--accent-ink)]">
           {actions.summary}
         </p>
       ) : null}
@@ -500,16 +558,30 @@ function ActionCard({
           ))}
         </ul>
       ) : null}
+      {actions.shopping?.length ? (
+        <ul className="confirm-family-dish mt-1.5 space-y-1">
+          {actions.shopping.map((name) => (
+            <li key={name}>
+              <span className="font-semibold">{name}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {actions.startWorkout ? (
+        <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
+          Старт сегодняшней тренировки по плану
+        </p>
+      ) : null}
       <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
-          actions.workoutDays?.length ? (
+          needsRoutine || needsStart ? (
             <Link href="/workouts" className="confirm-family-secondary">
               Открыть зал
             </Link>
           ) : null
         ) : (
           <>
-            {actions.meals?.length ? (
+            {needsMeals && !mealsDone ? (
               <button
                 type="button"
                 className="confirm-family-cta"
@@ -519,7 +591,7 @@ function ActionCard({
                 {busy === "meals" ? "…" : online ? "В дневник" : "В очередь"}
               </button>
             ) : null}
-            {actions.workoutDays?.length ? (
+            {needsRoutine && !routineDone ? (
               <>
                 <button
                   type="button"
@@ -528,6 +600,31 @@ function ActionCard({
                   onClick={() => void apply("routine")}
                 >
                   {busy === "routine" ? "…" : online ? "В план зала" : "В очередь"}
+                </button>
+                <Link href="/workouts" className="confirm-family-secondary">
+                  Зал
+                </Link>
+              </>
+            ) : null}
+            {needsShopping && !shoppingDone ? (
+              <button
+                type="button"
+                className="confirm-family-cta"
+                disabled={busy === "shopping"}
+                onClick={() => void apply("shopping")}
+              >
+                {busy === "shopping" ? "…" : online ? "В покупки" : "В очередь"}
+              </button>
+            ) : null}
+            {needsStart && !startDone ? (
+              <>
+                <button
+                  type="button"
+                  className="confirm-family-cta"
+                  disabled={busy === "start"}
+                  onClick={() => void apply("start")}
+                >
+                  {busy === "start" ? "…" : online ? "Начать тренировку" : "В очередь"}
                 </button>
                 <Link href="/workouts" className="confirm-family-secondary">
                   Зал
@@ -1080,14 +1177,14 @@ export function AssistantChat() {
           </p>
         </div>
       ) : applyQueued > 0 ? (
-        <p className="rounded-lg border border-teal-200 bg-teal-50/90 px-2.5 py-1.5 text-[12px] font-medium text-teal-950">
+        <p className="rounded-lg border border-[var(--accent)]/25 bg-[var(--accent-soft)]/90 px-2.5 py-1.5 text-[12px] font-medium text-[var(--accent-ink)]">
           Офлайн-очередь: {applyQueued} — отправляю…
         </p>
       ) : null}
 
       {showOnboard ? (
         <div className="rounded-xl border border-[var(--border-quiet)] bg-white/70 px-3 py-2.5 text-[13px] text-[var(--ink)]">
-          <p className="font-display text-[13px] font-semibold tracking-wide text-teal-900">
+          <p className="font-display text-[13px] font-semibold tracking-wide text-[var(--accent-ink)]">
             Коротко про AI
           </p>
           <p className="mt-1 text-[12px] leading-snug text-[var(--muted-strong)]">
@@ -1099,7 +1196,7 @@ export function AssistantChat() {
               <button
                 key={s.label}
                 type="button"
-                className="rounded-full border border-teal-700/30 bg-white px-2 py-0.5 text-[10px] font-medium text-teal-900 disabled:opacity-50"
+                className="rounded-full border border-[var(--accent-ink)]/25 bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--accent-ink)] disabled:opacity-50"
                 disabled={busy || !online}
                 onClick={() => {
                   if (s.label === "Фото") {
@@ -1115,7 +1212,7 @@ export function AssistantChat() {
             ))}
             <button
               type="button"
-              className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-teal-800 underline-offset-2 hover:underline"
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
               onClick={dismissOnboard}
             >
               Понятно
@@ -1285,7 +1382,7 @@ export function AssistantChat() {
             aria-selected={mode === p.id}
             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 ${
               mode === p.id
-                ? "bg-teal-700 text-white"
+                ? "bg-[var(--accent)] text-white"
                 : "border border-[var(--line)] bg-white text-[var(--muted-strong)]"
             }`}
             disabled={busy}
@@ -1298,22 +1395,18 @@ export function AssistantChat() {
 
       <div className="assistant-scene-thread flex flex-1 flex-col gap-2 overflow-y-auto p-0.5 sm:p-1">
         {turns.map((turn) => {
-          const applied = Boolean(
-            turn.tools?.some(
-              (t) =>
-                t.ok &&
-                t.tool !== "recognize_meal_preview" &&
-                (t.tool.includes("save") ||
-                  t.tool.includes("plan") ||
-                  t.tool.includes("shopping") ||
-                  t.tool.includes("water") ||
-                  t.tool.includes("weight") ||
-                  t.tool.includes("patch") ||
-                  t.tool.includes("delete") ||
-                  t.tool.includes("start") ||
-                  t.tool.includes("photo")),
-            ),
-          );
+          const toolOk = (sub: string) =>
+            Boolean(
+              turn.tools?.some(
+                (t) => t.ok && t.tool !== "recognize_meal_preview" && t.tool.includes(sub),
+              ),
+            );
+          const streamDone = {
+            meals: toolOk("save") || toolOk("photo"),
+            routine: toolOk("plan") || toolOk("routine"),
+            shopping: toolOk("shopping"),
+            start: toolOk("start"),
+          };
           const weightConfirm = turn.tools?.find(
             (t) =>
               t.tool === "log_weight" &&
@@ -1415,7 +1508,7 @@ export function AssistantChat() {
                 <ActionCard
                   actions={turn.actions}
                   date={date}
-                  alreadyApplied={applied}
+                  streamDone={streamDone}
                   online={online}
                   onFlash={showFlash}
                   onApplied={(undo) => rememberUndo(undo)}
@@ -1433,7 +1526,7 @@ export function AssistantChat() {
       </div>
 
       {flash ? (
-        <p className="assistant-apply-flash text-[12px] font-medium text-teal-800">{flash}</p>
+        <p className="assistant-apply-flash text-[12px] font-medium text-[var(--accent-ink)]">{flash}</p>
       ) : null}
       {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
 

@@ -123,3 +123,23 @@ test("Assistant J: stream path never silent-writes workoutDays", async () => {
   });
   assert.equal(results.length, 0);
 });
+
+test("Assistant K: stream path never silent-writes shopping or startWorkout", async () => {
+  const shopping = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-14",
+    date: "2026-10-14",
+    actions: { apply: true, shopping: ["Молоко", "Яйца"] },
+    lastUserMessage: "добавь в покупки молоко и яйца",
+  });
+  assert.equal(shopping.length, 0);
+
+  const start = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-14",
+    date: "2026-10-14",
+    actions: { apply: true, startWorkout: true },
+    lastUserMessage: "начни тренировку",
+  });
+  assert.equal(start.length, 0);
+});

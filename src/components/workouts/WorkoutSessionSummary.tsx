@@ -13,6 +13,7 @@ import {
   type NextSessionTargetsCard,
 } from "@/lib/workouts/next-session-targets";
 import {
+  clearLeverRecoveryFlag,
   getLeverMemory,
   setLeverMemory,
 } from "@/lib/workouts/progression-lever-memory";
@@ -27,6 +28,8 @@ import {
   getLeverHitStreak,
   recordLeverOutcome,
 } from "@/lib/workouts/lever-outcome-history";
+import { formatRecoveryOutcomeLine } from "@/lib/workouts/lever-session-apply";
+import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 
 type Props = {
   date: string;
@@ -153,6 +156,17 @@ export function WorkoutSessionSummary({
   const anyHit = Object.values(leverOutcomes).some((o) => o === "hit");
   const anyMiss = Object.values(leverOutcomes).some((o) => o === "miss");
 
+  // N: recovery chrome from armed L flag at summary open.
+  const recoveryLine = useMemo(() => {
+    for (const t of targets) {
+      const mem = getLeverMemory(t.name);
+      if (!mem?.recovery) continue;
+      const line = formatRecoveryOutcomeLine(mem.recovery, leverOutcomes[t.name]);
+      if (line) return line;
+    }
+    return null;
+  }, [targets, leverOutcomes, historyTick]); // eslint-disable-line react-hooks/exhaustive-deps -- historyTick after write
+
   useEffect(() => {
     setChosen(initialChosen(targets));
     setChangeOpen({});
@@ -161,6 +175,7 @@ export function WorkoutSessionSummary({
 
   // I2: reinforce memory for hit levers (same choice kept for next time).
   // J1: append hit/miss/close into local lever outcome history.
+  // N: clear recovery flag on hit so next open doesn't stack deload.
   useEffect(() => {
     for (const t of targets) {
       const outcome = leverOutcomes[t.name];
@@ -175,7 +190,9 @@ export function WorkoutSessionSummary({
           targetKg: opt?.suggestedKg ?? null,
           targetReps: opt?.suggestedReps ?? null,
           at: date,
+          recovery: null,
         });
+        clearLeverRecoveryFlag(t.name);
       }
       recordLeverOutcome({
         name: t.name,
@@ -338,6 +355,18 @@ export function WorkoutSessionSummary({
           : { label: "Остаться в тренировке", onClick: onClose }
       }
     >
+      {/* R6: equipped collection wear on finish summary */}
+      <GymCollectionWear className="mb-3 [&_p]:text-white/70" />
+
+      {recoveryLine ? (
+        <p
+          className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2 text-sm font-semibold text-[var(--accent-soft)]"
+          role="status"
+        >
+          {recoveryLine}
+        </p>
+      ) : null}
+
       <ul className="space-y-2">
         {card.exercises.map((ex) => (
           <li
@@ -347,7 +376,7 @@ export function WorkoutSessionSummary({
             <div className="min-w-0">
               <p className="truncate font-medium">{ex.name}</p>
               {ex.prLine ? (
-                <p className="text-xs font-semibold text-teal-300">{ex.prLine}</p>
+                <p className="text-xs font-semibold text-[var(--accent-soft)]">{ex.prLine}</p>
               ) : ex.progressionKind === "stall" ? (
                 <p className="text-xs text-amber-200">Плато — подумайте о deload</p>
               ) : null}
@@ -369,7 +398,7 @@ export function WorkoutSessionSummary({
             {nextTargets?.title ?? "Следующий раз"}
           </p>
           {anyHit ? (
-            <p className="mt-1.5 text-sm font-semibold text-teal-200">
+            <p className="mt-1.5 text-sm font-semibold text-[var(--accent-soft)]">
               Цель по рычагу взята — оставляем на следующий раз
             </p>
           ) : anyMiss ? (
@@ -399,7 +428,7 @@ export function WorkoutSessionSummary({
                       </span>
                     ) : null}
                     {outcome === "hit" ? (
-                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-teal-300">
+                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
                         цель
                       </span>
                     ) : null}

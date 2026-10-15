@@ -49,14 +49,43 @@ import {
   subscribeShoppingSyncDraft,
 } from "@/lib/shopping-sync-draft";
 
+/** T5 — row status for offline queue clarity. */
+type QueueRowStatus = "waiting" | "conflict" | "local";
+
 type QueueRow = {
   id: string;
   kind: string;
   label: string;
   detail?: string;
+  status: QueueRowStatus;
   onDiscard: () => void;
   weightConflict?: WeightDraftItem;
 };
+
+function statusPill(status: QueueRowStatus, flushing: boolean): { label: string; className: string } {
+  if (flushing) {
+    return {
+      label: "Отправка…",
+      className: "bg-[var(--accent-soft)] text-[var(--accent-ink)]",
+    };
+  }
+  if (status === "conflict") {
+    return {
+      label: "Конфликт",
+      className: "bg-amber-100 text-amber-950",
+    };
+  }
+  if (status === "local") {
+    return {
+      label: "На устройстве",
+      className: "bg-[var(--surface-mist)] text-[var(--muted-strong)]",
+    };
+  }
+  return {
+    label: "Ждёт сеть",
+    className: "bg-[var(--accent-soft)]/80 text-[var(--accent-ink)]",
+  };
+}
 
 type Props = {
   flushing: boolean;
@@ -74,6 +103,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "photo",
       label: "Фото на распознавание",
       detail: item.selectedDate,
+      status: "waiting",
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -90,6 +120,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "meal",
       label: dishName ? `Блюдо: ${dishName}` : "Блюдо в дневник",
       detail: item.selectedDate,
+      status: "waiting",
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -102,6 +133,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "patch",
       label: "Правка в дневнике",
       detail: item.mealId,
+      status: "waiting",
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -114,6 +146,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "delete",
       label: "Удаление из дневника",
       detail: item.mealId,
+      status: "waiting",
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -126,6 +159,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "water",
       label: `Вода · ${item.ml} мл`,
       detail: item.selectedDate,
+      status: "waiting",
       onDiscard: () => {
         removeWaterDraft(item.id);
         onChanged();
@@ -142,6 +176,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "weight",
       label: `Вес · ${item.weightKg} кг`,
       detail: conflict ?? item.date,
+      status: conflict ? "conflict" : "waiting",
       onDiscard: () => {
         removeWeightDraft(item.id);
         onChanged();
@@ -155,6 +190,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "diary",
       label: "Вечерний чек-ин",
       detail: item.date,
+      status: "waiting",
       onDiscard: () => {
         removeDiaryNoteDraft(item.id);
         onChanged();
@@ -167,6 +203,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-local",
       label: `Тренировка · ${item.exercises.length} упр.`,
       detail: item.date,
+      status: "local",
       onDiscard: () => {
         removeLocalWorkoutSession(item.id);
         onChanged();
@@ -179,6 +216,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-ex",
       label: `Упражнение · ${item.name}`,
       detail: item.sessionId,
+      status: "waiting",
       onDiscard: () => {
         removeWorkoutExerciseDraft(item.id);
         onChanged();
@@ -191,6 +229,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-set",
       label: "Подход в зале",
       detail: item.exerciseId,
+      status: "waiting",
       onDiscard: () => {
         removeWorkoutSetDraft(item.id);
         onChanged();
@@ -203,6 +242,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-finish",
       label: "Завершение тренировки",
       detail: item.sessionId,
+      status: "waiting",
       onDiscard: () => {
         removeWorkoutFinishDraft(item.id);
         onChanged();
@@ -215,6 +255,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "shopping",
       label: "Список покупок",
       detail: "локальные правки ещё не на сервере",
+      status: "local",
       onDiscard: () => {
         // Keep the local list — only drop the sync debt marker.
         clearShoppingSyncDirty();
@@ -274,13 +315,22 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
           <p className="py-6 text-center text-sm text-[var(--muted)]">Очередь пуста</p>
         ) : (
           <ul className="space-y-2">
-            {rows.map((row) => (
+            {rows.map((row) => {
+              const pill = statusPill(row.status, flushing);
+              return (
               <li key={`${row.kind}-${row.id}`} className="offline-queue-row">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[var(--ink)]">
-                      {row.label}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                        {row.label}
+                      </p>
+                      <span
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${pill.className}`}
+                      >
+                        {pill.label}
+                      </span>
+                    </div>
                     {row.detail ? (
                       <p className="truncate text-[11px] text-[var(--muted)]">{row.detail}</p>
                     ) : null}
@@ -315,7 +365,8 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
                   </div>
                 ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 

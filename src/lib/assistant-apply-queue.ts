@@ -5,7 +5,7 @@
 
 export const ASSISTANT_APPLY_QUEUE_KEY = "cv-assistant-apply-queue-v1";
 
-export type AssistantApplyKind = "photo" | "meals" | "routine";
+export type AssistantApplyKind = "photo" | "meals" | "routine" | "shopping" | "start";
 
 export type PendingAssistantApply = {
   id: string;
