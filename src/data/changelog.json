@@ -1,5 +1,478 @@
 [
   {
+    "version": "3.0.9",
+    "date": "2026-10-16",
+    "summary": "feat(gym,trust,ai,design): Gym N+R6, T5+K, D7",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym,trust,ai,design): Gym N+R6, T5+K, D7"
+      }
+    ]
+  },
+  {
+    "version": "3.0.8",
+    "date": "2026-10-16",
+    "summary": "feat(gym,trust,stats,ai,rewards): Gym L+T4+M, D6/J, R5",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym,trust,stats,ai,rewards): Gym L+T4+M, D6/J, R5"
+      }
+    ]
+  },
+  {
+    "version": "3.0.7",
+    "date": "2026-10-15",
+    "summary": "feat(trust,rewards): T1–T3 offline clarity + R4 collection",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(trust,rewards): T1–T3 offline clarity + R4 collection"
+      }
+    ]
+  },
+  {
+    "version": "3.0.6",
+    "date": "2026-10-15",
+    "summary": "feat(rewards,gym): R3 auto-equip + cheer, Gym K miss deload",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rewards,gym): R3 auto-equip + cheer, Gym K miss deload"
+      }
+    ]
+  },
+  {
+    "version": "3.0.5",
+    "date": "2026-10-15",
+    "summary": "feat(rewards,gym): R2 equip CTA + Gym J lever streak",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rewards,gym): R2 equip CTA + Gym J lever streak"
+      }
+    ]
+  },
+  {
+    "version": "3.0.4",
+    "date": "2026-10-15",
+    "summary": "feat(rewards): R1 — quiet≠no grants, sticker, chip, meta persist",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(rewards): R1 — quiet≠no grants, sticker, chip, meta persist"
+      }
+    ]
+  },
+  {
+    "version": "3.0.3",
+    "date": "2026-10-15",
+    "summary": "feat(gym): I1–I3 — цель по рычагу в сессии и в итоге",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym): I1–I3 — цель по рычагу в сессии и в итоге"
+      }
+    ]
+  },
+  {
+    "version": "3.0.2",
+    "date": "2026-10-14",
+    "summary": "fix(ui): «+» на рационе снова открывает добавление",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): «+» на рационе снова открывает добавление"
+      }
+    ]
+  },
+  {
+    "version": "3.0.1",
+    "date": "2026-10-14",
+    "summary": "feat(gym): H1–H3 — apply lever on open (prefill, +1 set, RuStore)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym): H1–H3 — apply lever on open (prefill, +1 set, RuStore)"
+      }
+    ]
+  },
+  {
+    "version": "3.0.0",
+    "date": "2026-10-14",
+    "summary": "feat(gym): G1–G3 progression levers — memory, live goal, one-lever tip",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym): G1–G3 progression levers — memory, live goal, one-lever tip"
+      }
+    ]
+  },
+  {
+    "version": "2.9.19",
+    "date": "2026-10-14",
+    "summary": "fix(workouts): итоги — макс. рабочий вес + 3 рычага прогрессии",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(workouts): итоги — макс. рабочий вес + 3 рычага прогрессии"
+      }
+    ]
+  },
+  {
+    "version": "2.9.18",
+    "date": "2026-10-14",
+    "summary": "fix(ui): «+» menu above day scene",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(ui): «+» menu above day scene"
+      }
+    ]
+  },
+  {
+    "version": "2.9.17",
+    "date": "2026-10-14",
+    "summary": "feat(design): D4+D5 — gym depth scene + boot chrome",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D4+D5 — gym depth scene + boot chrome"
+      }
+    ]
+  },
+  {
+    "version": "2.9.16",
+    "date": "2026-10-14",
+    "summary": "feat(design): D3 — confirm + offline chrome family",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D3 — confirm + offline chrome family"
+      }
+    ]
+  },
+  {
+    "version": "2.9.15",
+    "date": "2026-10-14",
+    "summary": "feat(design): D2 — accent tokens on primary surfaces",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D2 — accent tokens on primary surfaces"
+      }
+    ]
+  },
+  {
+    "version": "2.9.14",
+    "date": "2026-10-14",
+    "summary": "feat(design): D1 — unify product loading (SceneSkeleton / SceneBusy)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): D1 — unify product loading (SceneSkeleton / SceneBusy)"
+      }
+    ]
+  },
+  {
+    "version": "2.9.13",
+    "date": "2026-10-13",
+    "summary": "feat(design): Wave 4 — day voice, memory, offline apply, brand depth",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): Wave 4 — day voice, memory, offline apply, brand depth"
+      }
+    ]
+  },
+  {
+    "version": "2.9.12",
+    "date": "2026-10-13",
+    "summary": "feat(design): Wave 3 — confirm family for AI photo + apply cards",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): Wave 3 — confirm family for AI photo + apply cards"
+      }
+    ]
+  },
+  {
+    "version": "2.9.11",
+    "date": "2026-10-13",
+    "summary": "feat(design): Wave 2 — assistant scene + SceneSkeleton",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(design): Wave 2 — assistant scene + SceneSkeleton"
+      }
+    ]
+  },
+  {
+    "version": "2.9.10",
+    "date": "2026-10-13",
+    "summary": "feat(ai-boot): Wave 1 — honest photo AI + smarter splash",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ai-boot): Wave 1 — honest photo AI + smarter splash"
+      }
+    ]
+  },
+  {
+    "version": "2.9.9",
+    "date": "2026-10-13",
+    "summary": "fix(assistant): photo saves to wrong diary date (UTC / stale)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(assistant): photo saves to wrong diary date (UTC / stale)"
+      }
+    ]
+  },
+  {
+    "version": "2.9.8",
+    "date": "2026-10-13",
+    "summary": "fix(assistant): photo send stuck — no confirm card",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(assistant): photo send stuck — no confirm card"
+      }
+    ]
+  },
+  {
+    "version": "2.9.7",
+    "date": "2026-10-13",
+    "summary": "refactor(deploy): drop Картинки step — images are lazy/manual",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "refactor(deploy): drop Картинки step — images are lazy/manual"
+      }
+    ]
+  },
+  {
+    "version": "2.9.6",
+    "date": "2026-10-13",
+    "summary": "feat(offline): Wave J — shopping sync in offline queue",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(offline): Wave J — shopping sync in offline queue"
+      }
+    ]
+  },
+  {
+    "version": "2.9.5",
+    "date": "2026-10-13",
+    "summary": "feat(ration): Wave L — утро → зал или AI",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(ration): Wave L — утро → зал или AI"
+      }
+    ]
+  },
+  {
+    "version": "2.9.4",
+    "date": "2026-10-13",
+    "summary": "feat(push): Wave K — напоминание «Сегодня зал»",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(push): Wave K — напоминание «Сегодня зал»"
+      }
+    ]
+  },
+  {
+    "version": "2.9.3",
+    "date": "2026-10-13",
+    "summary": "feat(assistant): Wave I — правка/удаление еды + подтверждение веса",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(assistant): Wave I — правка/удаление еды + подтверждение веса"
+      }
+    ]
+  },
+  {
+    "version": "2.9.2",
+    "date": "2026-10-13",
+    "summary": "fix(deploy): Картинки step no longer hangs deploy",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(deploy): Картинки step no longer hangs deploy"
+      }
+    ]
+  },
+  {
+    "version": "2.9.1",
+    "date": "2026-10-13",
+    "summary": "feat(stats): Wave H — protein/gym insight + AI CTA",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(stats): Wave H — protein/gym insight + AI CTA"
+      }
+    ]
+  },
+  {
+    "version": "2.9.0",
+    "date": "2026-10-13",
+    "summary": "feat(gym): Wave G — fuzzy exercise names",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym): Wave G — fuzzy exercise names"
+      }
+    ]
+  },
+  {
+    "version": "2.8.19",
+    "date": "2026-10-12",
+    "summary": "fix(stats): уменьшить шрифт главного инсайта",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(stats): уменьшить шрифт главного инсайта"
+      }
+    ]
+  },
+  {
+    "version": "2.8.18",
+    "date": "2026-10-12",
+    "summary": "docs(rustore): Wave F screenshots — AI + refreshed product shots",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "docs(rustore): Wave F screenshots — AI + refreshed product shots"
+      }
+    ]
+  },
+  {
+    "version": "2.8.17",
+    "date": "2026-10-12",
+    "summary": "feat: Waves A–F — AI reliability, gym Today, ration trust, offline, retention, RuStore",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat: Waves A–F — AI reliability, gym Today, ration trust, offline, retention, RuStore"
+      }
+    ]
+  },
+  {
+    "version": "2.8.16",
+    "date": "2026-10-12",
+    "summary": "fix(assistant): prefer-const блокировал deploy 2.8.15",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(assistant): prefer-const блокировал deploy 2.8.15"
+      }
+    ]
+  },
+  {
+    "version": "2.8.15",
+    "date": "2026-10-12",
+    "summary": "fix(assistant): запись в рацион, когда модель забыла cv-actions",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(assistant): запись в рацион, когда модель забыла cv-actions"
+      }
+    ]
+  },
+  {
+    "version": "2.8.14",
+    "date": "2026-10-12",
+    "summary": "feat(assistant): доверие + живой чат (undo, лимиты, вода/вес, фото)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(assistant): доверие + живой чат (undo, лимиты, вода/вес, фото)"
+      }
+    ]
+  },
+  {
+    "version": "2.8.13",
+    "date": "2026-10-12",
+    "summary": "feat(gym): убрать тренировку из плана на день",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(gym): убрать тренировку из плана на день"
+      }
+    ]
+  },
+  {
+    "version": "2.8.12",
+    "date": "2026-10-12",
+    "summary": "fix(assistant): prefer-const блокировал deploy build",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(assistant): prefer-const блокировал deploy build"
+      }
+    ]
+  },
+  {
+    "version": "2.8.11",
+    "date": "2026-10-12",
+    "summary": "feat(assistant): агент сам пишет в рацион и план зала",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(assistant): агент сам пишет в рацион и план зала"
+      }
+    ]
+  },
+  {
+    "version": "2.8.10",
+    "date": "2026-10-10",
+    "summary": "feat(nav): E2 split center — AI | + in tab bar",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(nav): E2 split center — AI | + in tab bar"
+      }
+    ]
+  },
+  {
+    "version": "2.8.9",
+    "date": "2026-10-10",
+    "summary": "feat(admin): scale AI assistant — modes, context, actionable plans",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(admin): scale AI assistant — modes, context, actionable plans"
+      }
+    ]
+  },
+  {
+    "version": "2.8.8",
+    "date": "2026-10-10",
+    "summary": "feat(admin): AI assistant chat (ration + gym context)",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "feat(admin): AI assistant chat (ration + gym context)"
+      }
+    ]
+  },
+  {
+    "version": "2.8.7",
+    "date": "2026-10-10",
+    "summary": "fix(rustore): bump versionCode to 20806 (v2.8.6)",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "fix(rustore): bump versionCode to 20806 (v2.8.6)"
+      }
+    ]
+  },
+  {
     "version": "2.8.6",
     "date": "2026-10-10",
     "summary": "feat(workouts): Wave Q — start planned routine offline",
