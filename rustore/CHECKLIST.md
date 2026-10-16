@@ -27,7 +27,7 @@
 ## Витрина
 
 Подробный гайд: [`PUBLISH.md`](PUBLISH.md). Тексты: [`listing.ru.md`](listing.ru.md).  
-**Wave F (вместе):** [`WAVE-F-TOGETHER.md`](WAVE-F-TOGETHER.md) — что сделать в Консоли после merge A–E.
+**Wave F+ (вместе):** [`WAVE-F-TOGETHER.md`](WAVE-F-TOGETHER.md) — тексты/скрины/APK после #693 (N/T5/K).
 
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`
@@ -44,8 +44,9 @@
 - [ ] Название: `Calorie Vision: счётчик КБЖУ и тренировки` (≤50; лаунчер — короткое Calorie Vision)
 - [ ] Краткое и полное описание (скопировать из `listing.ru.md`)
 - [ ] Иконка: `rustore/icon-512-store.png` (512×512, без прозрачности)
-- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, полный набор 01→09:
-      рацион → добавить → стат → зал сегодня → новая тренировка → итог → план → профиль ×2)
+- [ ] Скриншоты: `rustore/screenshots/submit/` (≥3, полный набор 01→10,
+      плюс 11-offline-queue когда снят: рацион → добавить → стат → зал → …
+      → AI → офлайн-очередь)
 - [ ] Декларация данных (шпаргалка в `listing.ru.md`)
 - [ ] «Что нового» из `listing.ru.md`
 - [ ] Сборка Capacitor APK: `bash scripts/rustore-cap-init.sh` затем
