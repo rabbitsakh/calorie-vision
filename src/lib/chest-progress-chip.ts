@@ -46,7 +46,7 @@ export function buildChestProgressChip(input: {
   if (count === 0) {
     return withMeta(
       {
-        label: `Сундук · закрой ${per} ${pluralDays(per)}`,
+        label: `Сундук · сегодня · ${per} ${pluralDays(per)}`,
         href: "habits",
         nextIn: per,
         filled: 0,
@@ -59,7 +59,7 @@ export function buildChestProgressChip(input: {
   if (nextIn === 1) {
     return withMeta(
       {
-        label: "Сундук · закрой день",
+        label: "Сундук · закрой сегодня",
         href: "habits",
         nextIn: 1,
         filled,
@@ -69,10 +69,11 @@ export function buildChestProgressChip(input: {
     );
   }
 
+  // Mid-cycle still points at today's habits (R10) — not the collection.
   return withMeta(
     {
-      label: `Сундук · ещё ${nextIn} ${pluralDays(nextIn)}`,
-      href: "rewards",
+      label: `Сундук · сегодня · ещё ${nextIn} ${pluralDays(nextIn)}`,
+      href: "habits",
       nextIn,
       filled,
       per,

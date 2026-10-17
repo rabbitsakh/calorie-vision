@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import {
   challengeChestSourceKey,
+  CHEST_SOURCE_LABELS,
   cheerPhrase,
   lootGlyph,
   isCheerReward,
@@ -19,6 +20,7 @@ import {
   stickerGlyph,
   streakChestSourceKey,
   weekChestSourceKey,
+  type ChestSource,
 } from "./rewards.ts";
 
 describe("rewards", () => {
@@ -94,6 +96,21 @@ describe("rewards", () => {
     assert.equal(isCheerReward("cheer_steady"), true);
     const phrase = cheerPhrase("cheer_steady");
     assert.ok(phrase && phrase.length > 0);
+  });
+
+  test("CHEST_SOURCE_LABELS covers all six sources", () => {
+    const sources: ChestSource[] = [
+      "challenge",
+      "streak",
+      "week",
+      "quest",
+      "meta",
+      "referral",
+    ];
+    for (const source of sources) {
+      assert.ok(CHEST_SOURCE_LABELS[source].length > 0);
+    }
+    assert.equal(Object.keys(CHEST_SOURCE_LABELS).length, 6);
   });
 });
 
