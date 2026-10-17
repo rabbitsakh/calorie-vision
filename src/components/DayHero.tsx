@@ -288,8 +288,8 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
         <div className="flex items-center justify-between gap-2">
           <p className="day-hero-eyebrow">{copy.eyebrow}</p>
-          {/* R9: sticker + cheer + frame wear on ration day hero */}
-          <GymCollectionWear className="shrink-0 justify-end [&_p]:text-[11px] [&_p]:text-[var(--muted-strong)]" />
+          {/* R9/R16: larger wear so collection reads on the day hero */}
+          <GymCollectionWear className="shrink-0 justify-end" size="lg" />
         </div>
 
         <div className="mt-2.5 flex flex-wrap items-end gap-x-3 gap-y-1">

@@ -217,23 +217,45 @@ export function RewardsPanel() {
   );
 
   if (!loaded) return null;
-  if (rewards.length === 0) {
-    // Soft empty scene — door into the day, not a dead end.
+
+  // R19 — zero ownership: light empty (no ??? grid, no 9 filters).
+  if (rewards.length === 0 || ownedCount === 0) {
     return (
       <div
         id="rewards"
         className="rounded-2xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 p-5"
       >
-        <h2 className="font-display text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-display text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+          {total > 0 ? (
+            <span className="text-xs text-[var(--muted)]">0 / {total}</span>
+          ) : null}
+        </div>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">
           Пока пусто. Закройте день или недельный челлендж — первая награда из сундука появится
-          здесь.
+          здесь. Без сетки «???» и фильтров, пока нечего надеть.
         </p>
-        <ul className="mt-3 space-y-1 text-xs text-[var(--muted-strong)]">
+        <p className="mt-3 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+          Когда открывается
+        </p>
+        <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Когда открываются сундуки">
           {CHEST_SOURCE_ORDER.map((source) => (
-            <li key={source}>· {CHEST_SOURCE_LABELS[source]}</li>
+            <li
+              key={source}
+              className="rounded-md bg-white/70 px-2 py-0.5 text-[10px] font-semibold text-[var(--muted-strong)]"
+            >
+              {CHEST_SOURCE_LABELS[source]}
+            </li>
           ))}
         </ul>
+        <div className="mt-3 rounded-xl border border-[var(--border-quiet)] bg-white/60 px-3 py-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+            Сейчас на вас
+          </p>
+          <p className="mt-1 text-xs text-[var(--muted-strong)]">
+            Откройте сундук — и первая награда появится здесь.
+          </p>
+        </div>
         <a
           href={withBasePath("/ration")}
           className="mt-3 inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
@@ -308,12 +330,6 @@ export function RewardsPanel() {
         )}
       </div>
 
-      {ownedCount === 0 ? (
-        <p className="mb-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-xs font-medium text-[var(--accent-ink)]">
-          Коллекция пуста — закройте день или челлендж, откройте сундук, наденьте первую
-          наклейку или фразу.
-        </p>
-      ) : null}
       {shareHint ? (
         <p className="mb-3 text-xs font-medium text-[var(--accent-ink)]" role="status">
           {shareHint}
