@@ -1,6 +1,8 @@
 "use client";
 
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
+import { LeverRecoveryStrip } from "@/components/workouts/LeverRecoveryStrip";
 import { LeverStreakStrip } from "@/components/workouts/LeverStreakStrip";
 import {
   formatDateShort,
@@ -128,6 +130,9 @@ export function WorkoutHistoryHub({
         </button>
       </div>
       <LeverStreakStrip className="mt-2" />
+      {/* P: recovery strip; R8: collection wear on History hub */}
+      <LeverRecoveryStrip className="mt-1.5" />
+      <GymCollectionWear className="mt-1.5" />
 
       <section className="gym-plane">
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -287,7 +292,7 @@ export function WorkoutHistoryHub({
             </div>
           ) : null}
           {insights.monthStart ? (
-            <div className="mt-3 border-t border-[rgba(13,115,119,0.08)] pt-3">
+            <div className="mt-3 border-t border-[var(--border-hairline)] pt-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                 Месяц {insights.monthStart.slice(0, 7)}
               </p>
@@ -332,7 +337,7 @@ export function WorkoutHistoryHub({
         </div>
       ) : flushSummary ? (
         <div
-          className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-950"
+          className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-3 py-2 text-sm font-medium text-[var(--accent-ink)]"
           role="status"
         >
           {flushSummary}
@@ -343,7 +348,7 @@ export function WorkoutHistoryHub({
       {loading ? <SceneSkeleton inline label="Загрузка истории…" /> : null}
 
       {!loading && sessions.length === 0 && !creating ? (
-        <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-6 text-center text-sm text-[var(--muted-strong)]">
+        <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] p-6 text-center text-sm text-[var(--muted-strong)]">
           {filterPeriod !== "all" || filterGroups.length || filterCardio
             ? "Нет тренировок по фильтру."
             : "Пока нет тренировок. Создайте первую и отметьте вид / группы."}
@@ -399,7 +404,7 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--accent-ink)] hover:bg-[var(--accent-soft)] disabled:opacity-40"
+              className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--accent-ink)] hover:bg-[var(--accent-soft)] disabled:opacity-40"
               onClick={() => onRepeat(s.id)}
             >
               Повторить
@@ -407,7 +412,7 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-40"
+              className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-40"
               title="Сохранить как шаблон"
               onClick={() =>
                 onSaveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))

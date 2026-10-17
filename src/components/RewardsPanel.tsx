@@ -54,8 +54,8 @@ type FilterId = "all" | "owned" | "locked" | RewardRarity | RewardGroup;
 const GROUP_ORDER: RewardGroup[] = ["sticker", "cheer", "frame"];
 
 const RARITY_TONE: Record<RewardRarity, string> = {
-  common: "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)] text-[var(--muted-strong)]",
-  rare: "border-teal-200 bg-teal-50 text-teal-900",
+  common: "border-[var(--border-hairline)] bg-[var(--surface-mist)] text-[var(--muted-strong)]",
+  rare: "border-[var(--accent)]/25 bg-[var(--accent-soft)] text-[var(--accent-ink)]",
   festive: "border-amber-200 bg-amber-50 text-amber-950",
 };
 
@@ -197,7 +197,7 @@ export function RewardsPanel() {
   if (rewards.length === 0) {
     // R4: empty / failed load — still show a soft collection shell.
     return (
-      <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+      <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Пока пусто. Закройте день или недельный челлендж — первая награда из сундука появится
@@ -210,7 +210,7 @@ export function RewardsPanel() {
   const metaHint = nextMetaProgress(ownedCount);
 
   return (
-    <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+    <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
         <span className="text-xs text-[var(--muted)]">
@@ -221,13 +221,13 @@ export function RewardsPanel() {
         Награды из сундуков — за челленджи, серии и спокойные недели. Без штрафов.
       </p>
       {ownedCount === 0 ? (
-        <p className="mb-3 rounded-xl bg-teal-50 px-3 py-2 text-xs font-medium text-teal-950">
+        <p className="mb-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-xs font-medium text-[var(--accent-ink)]">
           Коллекция пуста — закройте день или челлендж, откройте сундук, наденьте первую
           наклейку или фразу.
         </p>
       ) : null}
       {shareHint ? (
-        <p className="mb-3 text-xs font-medium text-teal-800" role="status">
+        <p className="mb-3 text-xs font-medium text-[var(--accent-ink)]" role="status">
           {shareHint}
         </p>
       ) : null}
@@ -247,7 +247,7 @@ export function RewardsPanel() {
               aria-pressed={active}
               className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                 active
-                  ? "bg-teal-700 text-white"
+                  ? "bg-[var(--accent)] text-white"
                   : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
               onClick={() => setFilter(f.id)}
@@ -282,7 +282,7 @@ export function RewardsPanel() {
                       className={`rounded-xl border px-3 py-2.5 ${
                         reward.unlocked
                           ? RARITY_TONE[reward.rarity]
-                          : "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]/80 text-[var(--muted)]"
+                          : "border-[var(--border-hairline)] bg-[var(--surface-mist)]/80 text-[var(--muted)]"
                       }`}
                     >
                       {isFrame && reward.unlocked ? (
@@ -321,8 +321,8 @@ export function RewardsPanel() {
                             type="button"
                             className={`w-full rounded-lg px-2 py-1 text-xs font-semibold ${
                               isEquipped
-                                ? "bg-teal-700 text-white"
-                                : "bg-white/80 text-teal-800 ring-1 ring-teal-200"
+                                ? "bg-[var(--accent)] text-white"
+                                : "bg-white/80 text-[var(--accent-ink)] ring-1 ring-[var(--accent)]/25"
                             }`}
                             onClick={() => toggleEquip(reward.key)}
                           >
@@ -341,7 +341,7 @@ export function RewardsPanel() {
                           {isSticker ? (
                             <button
                               type="button"
-                              className="w-full rounded-lg px-2 py-1 text-xs font-semibold text-teal-800 ring-1 ring-teal-100"
+                              className="w-full rounded-lg px-2 py-1 text-xs font-semibold text-[var(--accent-ink)] ring-1 ring-[var(--accent)]/20"
                               onClick={() => void onShareSticker(reward.key)}
                             >
                               Поделиться

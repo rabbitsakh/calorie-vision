@@ -62,6 +62,7 @@ const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
   shopping: "AI · покупки",
   start: "AI · старт",
   water: "AI · вода",
+  weight: "AI · вес",
 };
 
 /** T5 — row status for offline queue clarity. */

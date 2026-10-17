@@ -202,13 +202,13 @@ function BarChart({
       </div>
 
       {/* Plot area */}
-      <div className="min-w-0 flex-1 overflow-hidden border-l border-[rgba(13,115,119,0.14)] pl-2 sm:pl-3">
+      <div className="min-w-0 flex-1 overflow-hidden border-l border-[var(--border-quiet)] pl-2 sm:pl-3">
         <div className="relative" style={{ height: totalHeight }}>
           {/* Dashed grid lines in bar zone */}
           {ticks.map((tick, i) => (
             <div
               key={`grid-${i}`}
-              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[rgba(13,115,119,0.08)]"
+              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-hairline)]"
               style={{ top: `${labelAreaHeight + (i / (ticks.length - 1)) * plotHeight}px` }}
             />
           ))}
@@ -369,12 +369,12 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
         </div>
 
         {/* Plot */}
-        <div className="min-w-0 flex-1 overflow-hidden border-l border-[rgba(13,115,119,0.14)] pl-2 sm:pl-3">
+        <div className="min-w-0 flex-1 overflow-hidden border-l border-[var(--border-quiet)] pl-2 sm:pl-3">
           <div className="relative overflow-visible" style={{ height: plotHeight }}>
             {ticks.map((tick, i) => (
               <div
                 key={`grid-${i}`}
-                className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[rgba(13,115,119,0.08)]"
+                className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-hairline)]"
                 style={{ top: `${(i / (ticks.length - 1)) * 100}%` }}
               />
             ))}
@@ -1051,7 +1051,7 @@ export function StatsView({ endDate }: StatsViewProps) {
                       : "нет записей"}
                   </p>
                 </div>
-                <div className="rounded-xl border border-[rgba(13,115,119,0.08)] px-4 py-3">
+                <div className="rounded-xl border border-[var(--border-hairline)] px-4 py-3">
                   <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">Разница</p>
                   <p
                     className={`mt-1 text-2xl font-bold tabular-nums ${
@@ -1162,7 +1162,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               {photoBackfillMsg ? (
                 <p className="mt-1 text-xs text-[var(--muted)]">{photoBackfillMsg}</p>
               ) : null}
-              <ul className="mt-3 divide-y divide-[rgba(13,115,119,0.08)]">
+              <ul className="mt-3 divide-y divide-[var(--border-hairline)]">
                 {data.topFoods.map((food) => (
                   <li key={food.dishName} className="flex items-center justify-between gap-3 py-2.5">
                     <div className="min-w-0 flex-1">

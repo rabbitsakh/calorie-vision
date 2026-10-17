@@ -166,3 +166,14 @@ test("Assistant L: stream path never silent-writes meals or water", async () => 
   });
   assert.equal(water.length, 0);
 });
+
+test("Assistant M: stream path never silent-writes weightKg", async () => {
+  const weight = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-17",
+    date: "2026-10-17",
+    actions: { apply: true, weightKg: 72.5 },
+    lastUserMessage: "запиши вес 72.5",
+  });
+  assert.equal(weight.length, 0);
+});

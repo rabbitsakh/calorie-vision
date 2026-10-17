@@ -63,6 +63,8 @@ import {
 } from "@/lib/shopping-sync-draft";
 import {
   countAssistantApplyQueue,
+  listAssistantApplyQueue,
+  removeAssistantApply,
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
 import { loadList } from "@/lib/shopping-list";
@@ -153,6 +155,8 @@ export function OfflineMealQueueBanner({
     const workoutLocals = countLocalWorkoutSessions();
     const workoutExercises = countWorkoutExerciseDrafts();
     const shoppingDirty = isShoppingSyncDirty();
+    // T7: AI confirm payloads must flush from the banner too (not only chat).
+    const assistantApplies = listAssistantApplyQueue();
     if (
       pending.length === 0 &&
       failed.length === 0 &&
@@ -165,7 +169,8 @@ export function OfflineMealQueueBanner({
       workoutFinishes.length === 0 &&
       workoutLocals === 0 &&
       workoutExercises === 0 &&
-      !shoppingDirty
+      !shoppingDirty &&
+      assistantApplies.length === 0
     ) {
       return;
     }
@@ -390,6 +395,22 @@ export function OfflineMealQueueBanner({
           }
         }
       }
+
+      for (const item of assistantApplies) {
+        try {
+          const response = await fetch(withBasePath("/api/assistant/apply"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.body),
+          });
+          if (!response.ok) continue;
+          removeAssistantApply(item.id);
+          savedAny = true;
+          flushedCount += 1;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
+        }
+      }
     } finally {
       setFlushing(false);
       refreshCounts();
@@ -406,7 +427,8 @@ export function OfflineMealQueueBanner({
           countWorkoutFinishDrafts() +
           countLocalWorkoutSessions() +
           countWorkoutExerciseDrafts() +
-          countShoppingSyncDrafts();
+          countShoppingSyncDrafts() +
+          countAssistantApplyQueue();
         setFlushSummary(
           remaining > 0
             ? `Ушло ${flushedCount} · ещё ждёт ${remaining}`

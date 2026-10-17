@@ -71,3 +71,15 @@ test("Assistant L: water kind enqueues", () => {
   assert.equal(countAssistantApplyQueue(), 1);
   assert.equal(listAssistantApplyQueue()[0]?.kind, "water");
 });
+
+test("Assistant M: weight kind enqueues", () => {
+  store.clear();
+  clearAssistantApplyQueue();
+  enqueueAssistantApply("weight", {
+    kind: "weight",
+    date: "2026-10-17",
+    actions: { weightKg: 72.5 },
+  });
+  assert.equal(countAssistantApplyQueue(), 1);
+  assert.equal(listAssistantApplyQueue()[0]?.kind, "weight");
+});
