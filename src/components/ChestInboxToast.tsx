@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { StickerArt } from "@/components/StickerArt";
 import { maybeAutoEquipReward } from "@/lib/auto-equip-reward";
 import {
   CHEST_INBOX_EVENT,
@@ -13,8 +14,14 @@ import { persistEquippedCheerKey } from "@/lib/equipped-cheer";
 import { persistEquippedFrameKey } from "@/lib/equipped-frame";
 import { persistEquippedStickerKey } from "@/lib/equipped-sticker";
 import { withBasePath } from "@/lib/paths";
+import {
+  cheerPhrase,
+  frameAvatarClass,
+  lootGlyph,
+  rewardDef,
+} from "@/lib/rewards";
 
-const TOAST_MS = 5200;
+const TOAST_MS = 5600;
 const HOST_ID = "cv-chest-inbox-toast-host";
 
 function getHost(): HTMLElement | null {
@@ -54,8 +61,8 @@ function equipLabel(
 }
 
 /**
- * Soft inbox toast when a chest grants under quiet mode (R1–R3).
- * Auto-equips empty sticker/frame/cheer slots; CTA otherwise.
+ * Soft inbox toast when a chest grants under quiet mode (R1–R3, R13).
+ * Shows loot glyph + stacked CTAs; auto-equips empty slots.
  */
 export function ChestInboxToast() {
   const [open, setOpen] = useState(false);
@@ -105,6 +112,11 @@ export function ChestInboxToast() {
   const collectionHref = withBasePath("/profile#rewards");
   const canEquip =
     action === "equip-sticker" || action === "equip-frame" || action === "equip-cheer";
+  const def = payload.rewardKey ? rewardDef(payload.rewardKey) : null;
+  const phrase =
+    payload.rewardKey && def?.group === "cheer"
+      ? cheerPhrase(payload.rewardKey)
+      : null;
 
   async function onEquip() {
     if (!payload?.rewardKey || busy) return;
@@ -131,31 +143,72 @@ export function ChestInboxToast() {
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto rounded-[var(--radius-lg)] border border-[var(--accent)]/25 bg-white px-4 py-3 text-center shadow-[0_8px_24px_rgba(15,23,42,0.1)]">
-        <p className="text-sm font-semibold text-[var(--foreground)]">{payload.title}</p>
-        {payload.subtitle ? (
-          <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">{payload.subtitle}</p>
-        ) : (
-          <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">В коллекции · Профиль</p>
-        )}
-        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2">
-          {canEquip ? (
-            <button
-              type="button"
-              disabled={busy || equipped}
-              className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-              onClick={() => void onEquip()}
+      <div className="pointer-events-auto overflow-hidden rounded-[var(--radius-lg)] border border-[var(--accent)]/25 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.1)]">
+        {/* Soft lid strip — quiet path still feels like a chest open */}
+        <div
+          className="h-1.5 bg-gradient-to-r from-amber-300 via-[var(--accent)] to-amber-200"
+          aria-hidden
+        />
+        <div className="px-4 py-3 text-center">
+          {payload.rewardKey && def ? (
+            <div className="mb-2 flex justify-center">
+              {def.group === "frame" ? (
+                <div
+                  className={`h-12 w-12 rounded-full bg-[var(--accent-soft)] ${frameAvatarClass(payload.rewardKey)}`}
+                  aria-hidden
+                />
+              ) : def.group === "sticker" ? (
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-soft)] shadow-sm">
+                  <StickerArt
+                    stickerKey={payload.rewardKey}
+                    size={32}
+                    title={def.title}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xl shadow-sm"
+                  aria-hidden
+                >
+                  {lootGlyph(payload.rewardKey)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="mb-2 flex justify-center text-lg text-[var(--accent)]"
+              aria-hidden
             >
-              {equipLabel(action, equipped, autoEquipped)}
-            </button>
-          ) : null}
-          <Link
-            href={collectionHref}
-            className="rounded-lg border border-[var(--accent)]/25 px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)]"
-            onClick={() => setOpen(false)}
-          >
-            В коллекцию
-          </Link>
+              ✦
+            </div>
+          )}
+          <p className="text-sm font-semibold text-[var(--foreground)]">{payload.title}</p>
+          {phrase ? (
+            <p className="mt-0.5 text-xs font-medium text-[var(--accent-ink)]">«{phrase}»</p>
+          ) : payload.subtitle ? (
+            <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">{payload.subtitle}</p>
+          ) : (
+            <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">В коллекции · Профиль</p>
+          )}
+          <div className="mt-2.5 flex flex-col gap-1.5">
+            {canEquip ? (
+              <button
+                type="button"
+                disabled={busy || equipped}
+                className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                onClick={() => void onEquip()}
+              >
+                {equipLabel(action, equipped, autoEquipped)}
+              </button>
+            ) : null}
+            <Link
+              href={collectionHref}
+              className="w-full rounded-lg border border-[var(--accent)]/25 px-3 py-2 text-xs font-semibold text-[var(--accent-ink)]"
+              onClick={() => setOpen(false)}
+            >
+              В коллекцию
+            </Link>
+          </div>
         </div>
       </div>
     </div>,
