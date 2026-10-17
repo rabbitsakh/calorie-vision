@@ -115,6 +115,18 @@ export function clearLeverRecoveryFlag(name: string): void {
   });
 }
 
+/** O: entries still armed with L recovery (Today chrome). */
+export function listArmedRecoveries(limit = 3): LeverMemoryEntry[] {
+  const store = readStore();
+  const out: LeverMemoryEntry[] = [];
+  for (const entry of Object.values(store)) {
+    if (!entry?.recovery || !LEVERS.has(entry.lever)) continue;
+    out.push(entry);
+  }
+  out.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return out.slice(0, Math.max(0, limit));
+}
+
 export function clearLeverMemory(name: string): void {
   const key = normalizeExerciseKey(name);
   if (!key) return;

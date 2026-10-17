@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   countWorkingSets,
+  formatArmedRecoveryChromeLine,
   formatLeverRecoveryHint,
   formatRecoveryOutcomeLine,
   mergeDraftWithLeverGoal,
@@ -19,6 +20,7 @@ import {
 import {
   clearLeverRecoveryFlag,
   getLeverMemory,
+  listArmedRecoveries,
   PROGRESSION_LEVER_MEMORY_KEY,
   setLeverMemory,
 } from "./progression-lever-memory.ts";
@@ -299,4 +301,28 @@ test("N: clearLeverRecoveryFlag keeps lever targets", () => {
   assert.equal(mem?.recovery, undefined);
   assert.equal(mem?.lever, "weight");
   assert.equal(mem?.targetKg, 72);
+});
+
+test("O: listArmedRecoveries + Today chrome line", () => {
+  installStorage();
+  assert.equal(listArmedRecoveries().length, 0);
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 90,
+    at: "2026-10-16",
+    recovery: "deload",
+  });
+  setLeverMemory({
+    name: "Тяга",
+    lever: "reps",
+    basisKg: 80,
+    at: "2026-10-15",
+    recovery: "switch",
+  });
+  const armed = listArmedRecoveries(3);
+  assert.equal(armed.length, 2);
+  assert.match(formatArmedRecoveryChromeLine(armed[0]!) ?? "", /soft deload|новый рычаг/);
+  assert.match(formatArmedRecoveryChromeLine({ name: "Тяга", recovery: "switch" }) ?? "", /новый рычаг/);
 });

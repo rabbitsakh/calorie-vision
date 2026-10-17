@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import {
   buildSessionSummary,
@@ -156,6 +156,17 @@ export function WorkoutSessionSummary({
   const anyHit = Object.values(leverOutcomes).some((o) => o === "hit");
   const anyMiss = Object.values(leverOutcomes).some((o) => o === "miss");
 
+  // O: snapshot recovery+hit names before N clears the flag (tip needs it).
+  const recoveryHitNamesRef = useRef<string[] | null>(null);
+  if (recoveryHitNamesRef.current === null && targets.length > 0) {
+    recoveryHitNamesRef.current = targets
+      .filter(
+        (t) => leverOutcomes[t.name] === "hit" && Boolean(getLeverMemory(t.name)?.recovery),
+      )
+      .map((t) => t.name);
+  }
+  const recoveryHitNames = recoveryHitNamesRef.current ?? [];
+
   // N: recovery chrome from armed L flag at summary open.
   const recoveryLine = useMemo(() => {
     for (const t of targets) {
@@ -164,8 +175,13 @@ export function WorkoutSessionSummary({
       const line = formatRecoveryOutcomeLine(mem.recovery, leverOutcomes[t.name]);
       if (line) return line;
     }
+    // After clear, still show hit line from snapshot.
+    for (const name of recoveryHitNames) {
+      const line = formatRecoveryOutcomeLine("deload", "hit");
+      if (line && leverOutcomes[name] === "hit") return line;
+    }
     return null;
-  }, [targets, leverOutcomes, historyTick]); // eslint-disable-line react-hooks/exhaustive-deps -- historyTick after write
+  }, [targets, leverOutcomes, historyTick, recoveryHitNames]); // eslint-disable-line react-hooks/exhaustive-deps -- historyTick after write
 
   useEffect(() => {
     setChosen(initialChosen(targets));
@@ -228,7 +244,7 @@ export function WorkoutSessionSummary({
       setTip(null);
       return;
     }
-    setTip(ruleNextSessionTip(snapshot));
+    setTip(ruleNextSessionTip(snapshot, { recoveryHitNames }));
     setTipLever(snapshot.find((t) => t.leverRemembered)?.primaryLever ?? snapshot[0]?.primaryLever ?? null);
     setTipExercise(
       snapshot.find((t) => t.leverRemembered)?.name ?? snapshot[0]?.name ?? null,
@@ -240,6 +256,7 @@ export function WorkoutSessionSummary({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            recoveryHitNames,
             targets: snapshot.map((t) => ({
               name: t.name,
               adviceKind: t.adviceKind,

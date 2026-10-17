@@ -48,6 +48,21 @@ import {
   isShoppingSyncDirty,
   subscribeShoppingSyncDraft,
 } from "@/lib/shopping-sync-draft";
+import {
+  listAssistantApplyQueue,
+  removeAssistantApply,
+  subscribeAssistantApplyQueue,
+  type AssistantApplyKind,
+} from "@/lib/assistant-apply-queue";
+
+const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
+  photo: "AI · фото",
+  meals: "AI · дневник",
+  routine: "AI · план зала",
+  shopping: "AI · покупки",
+  start: "AI · старт",
+  water: "AI · вода",
+};
 
 /** T5 — row status for offline queue clarity. */
 type QueueRowStatus = "waiting" | "conflict" | "local";
@@ -264,6 +279,21 @@ function buildRows(onChanged: () => void): QueueRow[] {
     });
   }
 
+  // T6: assistant confirm payloads queued offline from ActionCard.
+  for (const item of listAssistantApplyQueue()) {
+    rows.push({
+      id: item.id,
+      kind: `assistant-${item.kind}`,
+      label: ASSISTANT_APPLY_LABEL[item.kind] ?? `AI · ${item.kind}`,
+      detail: typeof item.body.date === "string" ? item.body.date : undefined,
+      status: "waiting",
+      onDiscard: () => {
+        removeAssistantApply(item.id);
+        onChanged();
+      },
+    });
+  }
+
   return rows;
 }
 
@@ -283,6 +313,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
       subscribeWorkoutExerciseDraftQueue(bump),
       subscribeWorkoutSetDraftQueue(bump),
       subscribeShoppingSyncDraft(bump),
+      subscribeAssistantApplyQueue(bump),
     ];
     return () => {
       for (const u of unsubs) u();

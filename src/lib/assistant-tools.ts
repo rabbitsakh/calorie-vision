@@ -936,15 +936,10 @@ export async function executeAssistantWriteTools(opts: {
     resolveAssistantDate(opts.actions.targetDate, opts.today) ?? opts.date;
   const results: AssistantToolResult[] = [];
 
-  if (opts.actions.meals?.length) {
-    results.push(
-      await toolSaveMeals({
-        userId: opts.userId,
-        date: target,
-        actions: opts.actions,
-      }),
-    );
-  }
+  // Assistant J: gym plan writes only via /api/assistant/apply after ActionCard CTA.
+  // Never silent-write workoutDays from the stream path.
+  // Assistant K: same for shopping + startWorkout.
+  // Assistant L: same for meals + waterMl.
 
   if (opts.actions.deleteMeals?.length) {
     results.push(
@@ -962,20 +957,6 @@ export async function executeAssistantWriteTools(opts: {
         userId: opts.userId,
         date: target,
         patches: opts.actions.patchMeals,
-      }),
-    );
-  }
-
-  // Assistant J: gym plan writes only via /api/assistant/apply after ActionCard CTA.
-  // Never silent-write workoutDays from the stream path.
-  // Assistant K: same for shopping + startWorkout.
-
-  if (typeof opts.actions.waterMl === "number") {
-    results.push(
-      await toolLogWater({
-        userId: opts.userId,
-        date: target,
-        ml: opts.actions.waterMl,
       }),
     );
   }

@@ -17,6 +17,7 @@ import {
   resolveAssistantDate,
   toolAddShopping,
   toolCreateWorkoutPlan,
+  toolLogWater,
   toolLogWeight,
   toolSaveMeals,
   toolSavePhotoDrafts,
@@ -53,7 +54,7 @@ function parseUndo(raw: unknown): AssistantUndoPayload | null {
 
 /**
  * POST actions from assistant cards / undo / photo confirm:
- * { kind: "meals"|"routine"|"shopping"|"start"|"prefs"|"undo"|"photo"|"weight", date?, actions?, prefs?, undo?, drafts?, imagePath? }
+ * { kind: "meals"|"routine"|"shopping"|"start"|"water"|"prefs"|"undo"|"photo"|"weight", date?, actions?, prefs?, undo?, drafts?, imagePath? }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -195,6 +196,26 @@ export async function POST(request: NextRequest) {
         date: weightDate,
         weightKg: kg,
         overwrite: true,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "water") {
+      const ml = actions.waterMl;
+      if (typeof ml !== "number") {
+        return NextResponse.json({ error: "Нет объёма воды" }, { status: 400 });
+      }
+      const waterDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolLogWater({
+        userId: session.user.id,
+        date: waterDate,
+        ml,
       });
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });

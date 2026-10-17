@@ -169,8 +169,8 @@ export function WeeklyPlan({
             {showPlanLink ? (
               <Link
                 href={withDateQuery("/plan", selectedDate)}
-                className={`font-semibold text-teal-800 underline-offset-2 hover:underline ${
-                  compact ? "text-[11px] text-[var(--muted)] hover:text-teal-800" : "text-xs"
+                className={`font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline ${
+                  compact ? "text-[11px] text-[var(--muted)] hover:text-[var(--accent-ink)]" : "text-xs"
                 }`}
               >
                 {compact ? "открыть план" : "Подробнее →"}
@@ -206,7 +206,7 @@ export function WeeklyPlan({
               aria-checked={holidayOn}
               aria-label={`Праздничный запас +${holidayPct}% к норме`}
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
-                holidayOn ? "bg-teal-600" : "bg-[var(--accent-soft)]"
+                holidayOn ? "bg-[var(--accent)]" : "bg-[var(--accent-soft)]"
               }`}
               onClick={() => {
                 const next = !holidayOn;
@@ -238,7 +238,7 @@ export function WeeklyPlan({
           <button
             type="button"
             className={`btn-quiet min-h-8 px-2.5 text-xs font-semibold ${
-              isThisWeek ? "text-teal-800" : "text-[var(--muted-strong)]"
+              isThisWeek ? "text-[var(--accent-ink)]" : "text-[var(--muted-strong)]"
             }`}
             disabled={isThisWeek || !today}
             aria-label="Текущая неделя"
@@ -287,7 +287,7 @@ export function WeeklyPlan({
                 key={dayRow.date}
                 type="button"
                 className={`flex flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 transition-colors ${
-                  selected ? "bg-teal-50 ring-1 ring-teal-200" : "hover:bg-[var(--surface-mist)]"
+                  selected ? "bg-[var(--accent-soft)]/50 ring-1 ring-[var(--accent)]/30" : "hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => onSelectDate?.(dayRow.date)}
                 aria-label={`${weekdayShort(dayRow.date)} ${dayRow.date}: ${dayRow.calories} ккал`}
@@ -298,7 +298,7 @@ export function WeeklyPlan({
                 <div className="flex h-10 w-full items-end justify-center">
                   <div
                     className={`w-3 rounded-t-sm ${
-                      over ? "bg-rose-400" : dayRow.calories > 0 ? "bg-teal-500" : "bg-[var(--surface-mist)]"
+                      over ? "bg-rose-400" : dayRow.calories > 0 ? "bg-[var(--accent-soft)]/500" : "bg-[var(--surface-mist)]"
                     }`}
                     style={{ height: `${barH}px` }}
                   />

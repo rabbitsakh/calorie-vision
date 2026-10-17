@@ -815,7 +815,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "running" ? (
               <button
                 type="button"
-                className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
+                className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
                 onClick={() => void patchClock("pause")}
               >
                 Пауза
@@ -833,7 +833,7 @@ export function WorkoutActiveSession({
             {detail.clockStatus === "running" || detail.clockStatus === "paused" ? (
               <button
                 type="button"
-                className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
+                className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
                 onClick={() => void patchClock("finish")}
               >
                 Финиш
@@ -918,7 +918,7 @@ export function WorkoutActiveSession({
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Заметка к тренировке
         <input
-          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
+          className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base text-[var(--foreground)]"
           defaultValue={detail.note ?? ""}
           key={`note-${detail.id}-${detail.note ?? ""}`}
           placeholder="Самочувствие, зал…"
@@ -960,7 +960,7 @@ export function WorkoutActiveSession({
 
     {/* List is always a vertical stack. One-exercise paging lives only in «К подходам» stage. */}
     {detail.exercises.length === 0 && detail.clockStatus !== "finished" ? (
-      <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] bg-[var(--accent-soft)]/40 px-4 py-3 text-sm text-[var(--muted-strong)]">
+      <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 px-4 py-3 text-sm text-[var(--muted-strong)]">
         Пока нет упражнений. Добавьте первое ниже — потом «Старт» таймера или «К
         подходам» для записи весов.
       </p>
@@ -1266,7 +1266,7 @@ export function WorkoutActiveSession({
             <label className="mt-2 flex flex-col gap-1 text-xs text-[var(--muted)]">
               Заметка
               <input
-                className="rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 defaultValue={ex.note ?? ""}
                 key={`ex-note-${ex.id}-${ex.note ?? ""}`}
                 placeholder="Хват, амплитуда…"
@@ -1339,7 +1339,7 @@ export function WorkoutActiveSession({
                       className={`w-24 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.km.trim()
                           ? "border-red-400"
-                          : "border-[rgba(13,115,119,0.14)]"
+                          : "border-[var(--border-quiet)]"
                       }`}
                       value={draft.km}
                       onChange={(e) => patchDraft(ex.id, { km: e.target.value })}
@@ -1355,7 +1355,7 @@ export function WorkoutActiveSession({
                       className={`w-24 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.time.trim()
                           ? "border-red-400"
-                          : "border-[rgba(13,115,119,0.14)]"
+                          : "border-[var(--border-quiet)]"
                       }`}
                       placeholder={ex.kind === "duration" ? "1" : "30"}
                       value={draft.time}
@@ -1376,7 +1376,7 @@ export function WorkoutActiveSession({
                       className={`w-20 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.kg.trim()
                           ? "border-red-400"
-                          : "border-[rgba(13,115,119,0.14)]"
+                          : "border-[var(--border-quiet)]"
                       }`}
                       value={draft.kg}
                       onChange={(e) => patchDraft(ex.id, { kg: e.target.value })}
@@ -1392,7 +1392,7 @@ export function WorkoutActiveSession({
                       className={`w-20 rounded-lg border px-2 py-2 text-base text-[var(--foreground)] ${
                         draftErrors[ex.id] && !draft.reps.trim()
                           ? "border-red-400"
-                          : "border-[rgba(13,115,119,0.14)]"
+                          : "border-[var(--border-quiet)]"
                       }`}
                       value={draft.reps}
                       onChange={(e) => patchDraft(ex.id, { reps: e.target.value })}
@@ -1403,7 +1403,7 @@ export function WorkoutActiveSession({
                   <button
                     type="button"
                     title={`${SET_TYPE_LABELS[draft.setType]} — нажмите, чтобы сменить тип подхода`}
-                    className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-2 py-2 text-xs font-bold text-[var(--muted-strong)]"
+                    className="rounded-lg border border-[var(--border-quiet)] bg-white px-2 py-2 text-xs font-bold text-[var(--muted-strong)]"
                     onClick={() =>
                       patchDraft(ex.id, { setType: nextSetType(draft.setType) })
                     }
@@ -1419,7 +1419,7 @@ export function WorkoutActiveSession({
                     {EFFORT_FIELD_LABEL}
                     <input
                       inputMode="decimal"
-                      className="w-14 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                      className="w-14 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                       placeholder="8"
                       aria-label={EFFORT_FIELD_ARIA}
                       value={draft.rpe}
@@ -1486,7 +1486,7 @@ export function WorkoutActiveSession({
       </div>
     ) : null}
 
-    <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-[var(--border-quiet)] p-4">
       <div className="flex flex-wrap gap-1">
         {EXERCISE_KINDS.map((key) => (
           <button
@@ -1507,7 +1507,7 @@ export function WorkoutActiveSession({
         <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs text-[var(--muted)]">
           Упражнение
           <input
-            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
+            className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base text-[var(--foreground)]"
             placeholder={EXERCISE_KIND_PLACEHOLDERS[newExerciseKind]}
             value={exerciseName}
             onChange={(e) => setExerciseName(e.target.value)}
@@ -1522,13 +1522,13 @@ export function WorkoutActiveSession({
         </label>
         <button
           type="button"
-          className="rounded-lg border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
+          className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
           onClick={() => void addExercise()}
         >
           Добавить упражнение
         </button>
         {libraryHits.length > 0 ? (
-          <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-[rgba(13,115,119,0.14)] bg-white py-1 shadow-md">
+          <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-md">
             {libraryHits.map((hit) => (
               <li key={hit.id}>
                 <button
@@ -1559,7 +1559,7 @@ export function WorkoutActiveSession({
         Пример: «Жим лёжа 80x8, 80x8» — по строке на упражнение. Свободный текст — через AI.
       </p>
       <textarea
-        className="mt-2 w-full rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
+        className="mt-2 w-full rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base text-[var(--foreground)]"
         rows={3}
         value={pasteText}
         onChange={(e) => setPasteText(e.target.value)}

@@ -71,8 +71,15 @@ export function pickTipFocus(targets: readonly TipTarget[]): TipLeverPick | null
 }
 
 /** Rule one-liner locked to the picked lever (no multi-lever advice). */
-export function ruleTipForFocus(pick: TipLeverPick): string {
+export function ruleTipForFocus(
+  pick: TipLeverPick,
+  opts?: { recoveryHit?: boolean },
+): string {
   const name = pick.exerciseName;
+  // O: celebrate recovery hit before miss/stall nudges.
+  if (opts?.recoveryHit) {
+    return `Восстановление сработало на «${name}» — держим рычаг: ${pick.line}.`;
+  }
   // N: after L recovery, don't blindly re-nudge soft deload.
   const recovery = getLeverMemory(name)?.recovery;
   if (recovery && pick.missStreak >= 1) {
