@@ -940,6 +940,7 @@ export async function executeAssistantWriteTools(opts: {
   // Never silent-write workoutDays from the stream path.
   // Assistant K: same for shopping + startWorkout.
   // Assistant L: same for meals + waterMl.
+  // Assistant M: same for weightKg.
 
   if (opts.actions.deleteMeals?.length) {
     results.push(
@@ -957,17 +958,6 @@ export async function executeAssistantWriteTools(opts: {
         userId: opts.userId,
         date: target,
         patches: opts.actions.patchMeals,
-      }),
-    );
-  }
-
-  if (typeof opts.actions.weightKg === "number") {
-    results.push(
-      await toolLogWeight({
-        userId: opts.userId,
-        date: target,
-        weightKg: opts.actions.weightKg,
-        overwrite: opts.actions.overwriteWeight === true,
       }),
     );
   }

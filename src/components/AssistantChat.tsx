@@ -411,13 +411,14 @@ function ActionCard({
 }: {
   actions: AssistantActions;
   date: string;
-  /** K/L: per-kind stream writes — gated kinds stay confirmable. */
+  /** K/L/M: per-kind stream writes — gated kinds stay confirmable. */
   streamDone: {
     meals: boolean;
     routine: boolean;
     shopping: boolean;
     start: boolean;
     water: boolean;
+    weight: boolean;
   };
   online: boolean;
   onFlash: (msg: string) => void;
@@ -430,6 +431,7 @@ function ActionCard({
     shopping: false,
     start: false,
     water: false,
+    weight: false,
   });
 
   const mealsDone = streamDone.meals || localDone.meals;
@@ -437,12 +439,14 @@ function ActionCard({
   const shoppingDone = streamDone.shopping || localDone.shopping;
   const startDone = streamDone.start || localDone.start;
   const waterDone = streamDone.water || localDone.water;
+  const weightDone = streamDone.weight || localDone.weight;
 
   const needsMeals = Boolean(actions.meals?.length);
   const needsRoutine = Boolean(actions.workoutDays?.length);
   const needsShopping = Boolean(actions.shopping?.length);
   const needsStart = Boolean(actions.startWorkout);
   const needsWater = typeof actions.waterMl === "number" && actions.waterMl > 0;
+  const needsWeight = typeof actions.weightKg === "number" && actions.weightKg > 0;
 
   const alreadyApplied =
     (!needsMeals || mealsDone) &&
@@ -450,9 +454,17 @@ function ActionCard({
     (!needsShopping || shoppingDone) &&
     (!needsStart || startDone) &&
     (!needsWater || waterDone) &&
-    (needsMeals || needsRoutine || needsShopping || needsStart || needsWater);
+    (!needsWeight || weightDone) &&
+    (needsMeals ||
+      needsRoutine ||
+      needsShopping ||
+      needsStart ||
+      needsWater ||
+      needsWeight);
 
-  async function apply(kind: "meals" | "routine" | "shopping" | "start" | "water") {
+  async function apply(
+    kind: "meals" | "routine" | "shopping" | "start" | "water" | "weight",
+  ) {
     setBusy(kind);
     try {
       const body = { kind, date, actions };
@@ -468,7 +480,9 @@ function ActionCard({
                 ? "Офлайн — покупки в очереди"
                 : kind === "water"
                   ? "Офлайн — вода в очереди"
-                  : "Офлайн — старт тренировки в очереди",
+                  : kind === "weight"
+                    ? "Офлайн — вес в очереди"
+                    : "Офлайн — старт тренировки в очереди",
         );
         return;
       }
@@ -481,7 +495,10 @@ function ActionCard({
         error?: string;
         meals?: Array<{ id: string }>;
         routines?: Array<{ id: string }>;
-        result?: { message?: string; data?: { waterId?: string } };
+        result?: {
+          message?: string;
+          data?: { waterId?: string; weightId?: string };
+        };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
       setLocalDone((prev) => ({ ...prev, [kind]: true }));
@@ -507,6 +524,13 @@ function ActionCard({
           ...emptyUndo(),
           waterIds: waterId ? [waterId] : [],
         });
+      } else if (kind === "weight") {
+        const weightId = data?.result?.data?.weightId;
+        onFlash(data?.result?.message ?? "Вес записан");
+        onApplied({
+          ...emptyUndo(),
+          weightIds: weightId ? [weightId] : [],
+        });
       } else {
         onFlash(data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
@@ -519,13 +543,40 @@ function ActionCard({
   }
 
   const gymOnly =
-    needsRoutine && !needsMeals && !needsShopping && !needsStart && !needsWater;
+    needsRoutine &&
+    !needsMeals &&
+    !needsShopping &&
+    !needsStart &&
+    !needsWater &&
+    !needsWeight;
   const shoppingOnly =
-    needsShopping && !needsMeals && !needsRoutine && !needsStart && !needsWater;
+    needsShopping &&
+    !needsMeals &&
+    !needsRoutine &&
+    !needsStart &&
+    !needsWater &&
+    !needsWeight;
   const startOnly =
-    needsStart && !needsMeals && !needsRoutine && !needsShopping && !needsWater;
+    needsStart &&
+    !needsMeals &&
+    !needsRoutine &&
+    !needsShopping &&
+    !needsWater &&
+    !needsWeight;
   const waterOnly =
-    needsWater && !needsMeals && !needsRoutine && !needsShopping && !needsStart;
+    needsWater &&
+    !needsMeals &&
+    !needsRoutine &&
+    !needsShopping &&
+    !needsStart &&
+    !needsWeight;
+  const weightOnly =
+    needsWeight &&
+    !needsMeals &&
+    !needsRoutine &&
+    !needsShopping &&
+    !needsStart &&
+    !needsWater;
   const skim = alreadyApplied
     ? gymOnly
       ? "План зала · уже записано"
@@ -535,7 +586,9 @@ function ActionCard({
           ? "Тренировка · уже записано"
           : waterOnly
             ? "Вода · уже записано"
-            : `День ${date} · уже записано`
+            : weightOnly
+              ? "Вес · уже записано"
+              : `День ${date} · уже записано`
     : gymOnly
       ? "План зала · подтверди запись"
       : shoppingOnly
@@ -544,7 +597,9 @@ function ActionCard({
           ? "Тренировка · подтверди старт"
           : waterOnly
             ? "Вода · подтверди запись"
-            : `День ${date} · подтверди запись`;
+            : weightOnly
+              ? "Вес · подтверди запись"
+              : `День ${date} · подтверди запись`;
 
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
@@ -597,6 +652,11 @@ function ActionCard({
           Вода · {actions.waterMl} мл
         </p>
       ) : null}
+      {needsWeight ? (
+        <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
+          Вес · {actions.weightKg} кг
+        </p>
+      ) : null}
       <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
           needsRoutine || needsStart ? (
@@ -624,6 +684,16 @@ function ActionCard({
                 onClick={() => void apply("water")}
               >
                 {busy === "water" ? "…" : online ? "В воду" : "В очередь"}
+              </button>
+            ) : null}
+            {needsWeight && !weightDone ? (
+              <button
+                type="button"
+                className="confirm-family-cta"
+                disabled={busy === "weight"}
+                onClick={() => void apply("weight")}
+              >
+                {busy === "weight" ? "…" : online ? "В вес" : "В очередь"}
               </button>
             ) : null}
             {needsRoutine && !routineDone ? (
@@ -1442,6 +1512,7 @@ export function AssistantChat() {
             shopping: toolOk("shopping"),
             start: toolOk("start"),
             water: toolOk("water"),
+            weight: toolOk("weight") || toolOk("log_weight"),
           };
           const weightConfirm = turn.tools?.find(
             (t) =>

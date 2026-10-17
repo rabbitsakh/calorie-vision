@@ -8,7 +8,7 @@ import {
 } from "@/lib/workouts/progression-lever-memory";
 
 /**
- * O — soft strip of armed L recovery (deload/switch) on Today.
+ * O/P — soft strip of armed L recovery (deload/switch) on Today and History.
  */
 export function LeverRecoveryStrip({ className = "" }: { className?: string }) {
   const [items, setItems] = useState<LeverMemoryEntry[]>([]);
