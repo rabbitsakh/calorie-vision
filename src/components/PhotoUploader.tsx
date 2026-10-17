@@ -52,27 +52,27 @@ function ThinkingAnimation({ preview, stage }: { preview: string | null; stage: 
             alt="Фото для анализа"
             className="h-24 w-24 rounded-xl object-cover opacity-70"
           />
-          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-teal-900/30">
+          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[var(--accent-ink)]/30">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
           </div>
         </div>
       ) : (
         <div className="relative flex h-14 w-14 items-center justify-center">
-          <div className="absolute inset-0 animate-ping rounded-full bg-teal-400/30" />
-          <div className="absolute inset-1 animate-pulse rounded-full bg-teal-100" />
-          <svg className="relative h-7 w-7 text-teal-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <div className="absolute inset-0 animate-ping rounded-full bg-[var(--accent)]/30" />
+          <div className="absolute inset-1 animate-pulse rounded-full bg-[var(--accent-soft)]" />
+          <svg className="relative h-7 w-7 text-[var(--accent-ink)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             <circle cx="11" cy="11" r="7" />
             <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
           </svg>
         </div>
       )}
       <div className="flex flex-col items-center gap-1">
-        <span className="text-sm font-semibold text-teal-900">{stage}</span>
+        <span className="text-sm font-semibold text-[var(--accent-ink)]">{stage}</span>
         <div className="flex items-center gap-1">
           {[0, 0.2, 0.4].map((delay, i) => (
             <span
               key={i}
-              className="h-1.5 w-1.5 rounded-full bg-teal-500"
+              className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]"
               style={{ animation: `thinkingDot 1.2s ${delay}s ease-in-out infinite` }}
             />
           ))}
@@ -291,7 +291,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       ) : null}
 
       {loading ? (
-        <div className="flex min-h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-teal-200 bg-teal-50/60 px-4 py-6 md:min-h-44">
+        <div className="flex min-h-36 flex-col items-center justify-center gap-2 rounded-2xl border-2 border-[var(--accent)]/25 bg-[var(--accent-soft)]/60 px-4 py-6 md:min-h-44">
           <ThinkingAnimation preview={preview} stage={stage} />
           <button type="button" className="btn-quiet mt-1" onClick={handleCancel}>
             Отменить
@@ -301,17 +301,17 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
         <div
           className={`flex min-h-36 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition md:min-h-44 md:py-8 ${
             disabled
-              ? "border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] opacity-70"
+              ? "border-[var(--border-quiet)] bg-[var(--surface-mist)] opacity-70"
               : dragOver
-                ? "border-teal-500 bg-teal-100/60 scale-[1.01]"
-                : "border-teal-300 bg-teal-50/60"
+                ? "scale-[1.01] border-[var(--accent)] bg-[var(--accent-soft)]/80"
+                : "border-[var(--accent)]/40 bg-[var(--accent-soft)]/60"
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
           <div>
-            <p className="text-sm font-semibold text-teal-900 md:text-base">
+            <p className="text-sm font-semibold text-[var(--accent-ink)] md:text-base">
               {dragOver ? "Отпустите для загрузки" : "Добавить фото еды"}
             </p>
             <p className="mt-1 text-xs text-[var(--muted)] md:text-sm">
@@ -323,7 +323,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
-              className="btn btn-on-tint text-teal-800"
+              className="btn btn-on-tint text-[var(--accent-ink)]"
               disabled={disabled}
               onClick={() => void openDeviceCamera()}
             >
@@ -370,7 +370,7 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
           <p className="text-sm text-red-600">{error}</p>
           <button
             type="button"
-            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
             disabled={disabled || loading}
             onClick={() => {
               setError(null);

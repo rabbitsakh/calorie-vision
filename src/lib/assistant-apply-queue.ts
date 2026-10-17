@@ -12,7 +12,9 @@ export type AssistantApplyKind =
   | "shopping"
   | "start"
   | "water"
-  | "weight";
+  | "weight"
+  | "deleteMeals"
+  | "patchMeals";
 
 export type PendingAssistantApply = {
   id: string;

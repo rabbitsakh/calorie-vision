@@ -17,6 +17,7 @@ import {
   type SetType,
 } from "@/lib/workouts/set-meta";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
+import { LeverRecoveryStrip } from "@/components/workouts/LeverRecoveryStrip";
 
 export type LiveSet = {
   id: string;
@@ -175,9 +176,10 @@ export function WorkoutLiveStage({
         </div>
       </div>
 
-      {/* R7: equipped wear on live stage */}
-      <div className="px-4 pb-1">
+      {/* R7 + Q: wear and armed recovery on live stage */}
+      <div className="flex flex-col gap-1.5 px-4 pb-1">
         <GymCollectionWear className="[&_p]:text-white/70" />
+        <LeverRecoveryStrip className="[&_span]:border-white/20 [&_span]:bg-white/10 [&_span]:text-white/85" />
       </div>
 
       {prToast ? (

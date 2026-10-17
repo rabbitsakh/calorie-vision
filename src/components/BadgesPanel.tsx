@@ -41,20 +41,20 @@ const GROUP_ORDER: BadgeGroupId[] = [
 function NextBadgeSection({ hint }: { hint: NextBadgeHint }) {
   const pct = Math.min(100, Math.round(hint.ratio * 100));
   return (
-    <div className="mb-4 rounded-xl border border-teal-200 bg-teal-50/80 px-3 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+    <div className="mb-4 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)]/80 px-3 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--accent-ink)]">
         Следующий значок
       </p>
-      <p className="mt-1 text-sm font-semibold text-teal-950">{hint.title}</p>
-      <p className="mt-0.5 text-xs text-teal-800">{hint.description}</p>
-      <div className="mt-2 flex items-center justify-between text-xs font-medium text-teal-900">
+      <p className="mt-1 text-sm font-semibold text-[var(--accent-ink)]">{hint.title}</p>
+      <p className="mt-0.5 text-xs text-[var(--accent-ink)]/90">{hint.description}</p>
+      <div className="mt-2 flex items-center justify-between text-xs font-medium text-[var(--accent-ink)]">
         <span className="tabular-nums">
           {hint.current} / {hint.target}
         </span>
         <span className="tabular-nums">{pct}%</span>
       </div>
       <div
-        className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-teal-200/90"
+        className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-[var(--accent)]/25"
         role="progressbar"
         aria-valuenow={pct}
         aria-valuemin={0}
@@ -62,7 +62,7 @@ function NextBadgeSection({ hint }: { hint: NextBadgeHint }) {
         aria-label={`До следующего значка: ${pct}%`}
       >
         <div
-          className="h-full rounded-full bg-teal-600 transition-all duration-500"
+          className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -140,7 +140,7 @@ export function BadgesPanel() {
 
   return (
     <>
-      <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+      <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="text-lg font-bold text-[var(--foreground)]">Достижения</h2>
           <span className="text-xs text-[var(--muted)]">
@@ -172,13 +172,13 @@ export function BadgesPanel() {
                       key={badge.key}
                       className={`rounded-xl border px-3 py-2.5 ${
                         badge.unlocked
-                          ? "border-teal-200 bg-teal-50"
-                          : "border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]"
+                          ? "border-[var(--accent)]/25 bg-[var(--accent-soft)]"
+                          : "border-[var(--border-hairline)] bg-[var(--surface-mist)]"
                       }`}
                     >
                       <p
                         className={`text-sm font-semibold ${
-                          badge.unlocked ? "text-teal-900" : "text-[var(--muted-strong)]"
+                          badge.unlocked ? "text-[var(--accent-ink)]" : "text-[var(--muted-strong)]"
                         }`}
                       >
                         {badge.title}
@@ -194,7 +194,7 @@ export function BadgesPanel() {
                           </div>
                           <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
                             <div
-                              className="h-full rounded-full bg-teal-500/80"
+                              className="h-full rounded-full bg-[var(--accent)]/80"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

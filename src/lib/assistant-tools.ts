@@ -932,37 +932,9 @@ export async function executeAssistantWriteTools(opts: {
 }): Promise<AssistantToolResult[]> {
   if (!shouldAutoApply(opts.actions, opts.lastUserMessage)) return [];
 
-  const target =
-    resolveAssistantDate(opts.actions.targetDate, opts.today) ?? opts.date;
-  const results: AssistantToolResult[] = [];
-
-  // Assistant J: gym plan writes only via /api/assistant/apply after ActionCard CTA.
-  // Never silent-write workoutDays from the stream path.
-  // Assistant K: same for shopping + startWorkout.
-  // Assistant L: same for meals + waterMl.
-  // Assistant M: same for weightKg.
-
-  if (opts.actions.deleteMeals?.length) {
-    results.push(
-      await toolDeleteMeals({
-        userId: opts.userId,
-        date: target,
-        matches: opts.actions.deleteMeals,
-      }),
-    );
-  }
-
-  if (opts.actions.patchMeals?.length) {
-    results.push(
-      await toolPatchMeals({
-        userId: opts.userId,
-        date: target,
-        patches: opts.actions.patchMeals,
-      }),
-    );
-  }
-
-  return results;
+  // Assistant J–N: all write kinds go through /api/assistant/apply after ActionCard CTA.
+  // Stream path never silent-writes meals, water, weight, plan, shopping, start, delete, or patch.
+  return [];
 }
 
 export function formatToolResultsForReply(results: AssistantToolResult[]): string {

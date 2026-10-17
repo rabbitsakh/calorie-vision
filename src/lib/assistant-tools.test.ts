@@ -177,3 +177,26 @@ test("Assistant M: stream path never silent-writes weightKg", async () => {
   });
   assert.equal(weight.length, 0);
 });
+
+test("Assistant N: stream path never silent-writes deleteMeals or patchMeals", async () => {
+  const del = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-17",
+    date: "2026-10-17",
+    actions: { apply: true, deleteMeals: [{ match: "Омлет" }] },
+    lastUserMessage: "удали омлет",
+  });
+  assert.equal(del.length, 0);
+
+  const patch = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-17",
+    date: "2026-10-17",
+    actions: {
+      apply: true,
+      patchMeals: [{ match: "суп", protein: 12, kcal: 220 }],
+    },
+    lastUserMessage: "исправь суп",
+  });
+  assert.equal(patch.length, 0);
+});

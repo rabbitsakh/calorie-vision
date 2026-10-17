@@ -17,8 +17,10 @@ import {
   resolveAssistantDate,
   toolAddShopping,
   toolCreateWorkoutPlan,
+  toolDeleteMeals,
   toolLogWater,
   toolLogWeight,
+  toolPatchMeals,
   toolSaveMeals,
   toolSavePhotoDrafts,
   toolStartTodaysRoutine,
@@ -54,7 +56,7 @@ function parseUndo(raw: unknown): AssistantUndoPayload | null {
 
 /**
  * POST actions from assistant cards / undo / photo confirm:
- * { kind: "meals"|"routine"|"shopping"|"start"|"water"|"prefs"|"undo"|"photo"|"weight", date?, actions?, prefs?, undo?, drafts?, imagePath? }
+ * { kind: "meals"|"routine"|"shopping"|"start"|"water"|"prefs"|"undo"|"photo"|"weight"|"deleteMeals"|"patchMeals", date?, actions?, prefs?, undo?, drafts?, imagePath? }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -264,6 +266,46 @@ export async function POST(request: NextRequest) {
       const result = await toolStartTodaysRoutine({
         userId: session.user.id,
         date: startDate,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "deleteMeals") {
+      const matches = actions.deleteMeals ?? [];
+      if (!matches.length) {
+        return NextResponse.json({ error: "Нет блюд для удаления" }, { status: 400 });
+      }
+      const deleteDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolDeleteMeals({
+        userId: session.user.id,
+        date: deleteDate,
+        matches,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "patchMeals") {
+      const patches = actions.patchMeals ?? [];
+      if (!patches.length) {
+        return NextResponse.json({ error: "Нет правок" }, { status: 400 });
+      }
+      const patchDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolPatchMeals({
+        userId: session.user.id,
+        date: patchDate,
+        patches,
       });
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });
