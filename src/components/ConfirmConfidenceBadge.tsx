@@ -60,7 +60,7 @@ export function ConfidenceBadge({
         </span>
       </span>
       {nutritionBasis ? (
-        <p className={`text-xs font-medium leading-snug ${inverted ? "text-teal-100" : "text-teal-800"}`}>
+        <p className={`text-xs font-medium leading-snug ${inverted ? "text-[var(--accent-soft)]" : "text-[var(--accent-ink)]"}`}>
           {nutritionBasis}
         </p>
       ) : null}

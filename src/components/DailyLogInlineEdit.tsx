@@ -175,7 +175,7 @@ export function InlineEdit({
                   className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
                     Number(portionGrams) === grams
                       ? "bg-[var(--accent)] text-white"
-                      : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
+                      : "bg-white text-[var(--muted-strong)] ring-1 ring-[var(--border-quiet)] hover:bg-[var(--surface-mist)]"
                   }`}
                   onClick={() => handlePortionChange(String(grams))}
                 >
@@ -228,7 +228,7 @@ export function InlineEdit({
                 className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                   mealType === value
                     ? "bg-[var(--accent)] text-white"
-                    : "bg-white text-[var(--muted-strong)] ring-1 ring-[rgba(13,115,119,0.14)] hover:bg-[var(--surface-mist)]"
+                    : "bg-white text-[var(--muted-strong)] ring-1 ring-[var(--border-quiet)] hover:bg-[var(--surface-mist)]"
                 }`}
                 onClick={() => setMealType(mealType === value ? "" : value)}
               >

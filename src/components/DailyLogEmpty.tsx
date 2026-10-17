@@ -36,7 +36,7 @@ export function DailyLogEmpty({
   return (
     <div
       className={`ration-empty-day flex flex-col items-center gap-5 px-6 py-14 text-center ${
-        sceneFeed ? "" : "rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] text-[var(--muted)]"
+        sceneFeed ? "" : "rounded-2xl border border-dashed border-[var(--border-quiet)] text-[var(--muted)]"
       }`}
     >
       <Mascot pose="empty" size="lg" title={MASCOT_COPY.emptyDiary.title} entrance />
@@ -49,7 +49,7 @@ export function DailyLogEmpty({
       {onAddFood ? (
         <button
           type="button"
-          className="btn btn-primary mt-2 min-h-12 px-8 text-base shadow-[0_8px_24px_rgba(13,115,119,0.28)]"
+          className="btn btn-primary mt-2 min-h-12 px-8 text-base shadow-[var(--shadow-card)]"
           onClick={() => onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)}
         >
           Добавить через «+»

@@ -53,7 +53,7 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
     return (
       <button
         type="button"
-        className="mb-3 flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-teal-200 px-4 py-2.5 text-sm text-teal-700 hover:border-teal-300"
+        className="mb-3 flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[var(--accent)]/25 px-4 py-2.5 text-sm text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
         onClick={() => {
           showPanelForWeek(PANEL_ID, data.weekStart);
           setHidden(false);
@@ -76,7 +76,7 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
       className={
         embedded
           ? "mb-4 border-b border-[var(--border-hairline)] pb-4"
-          : "mb-3 rounded-2xl border border-teal-100 bg-teal-50/70 p-4"
+          : "mb-3 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent-soft)]/70 p-4"
       }
       aria-label={headline}
     >
@@ -84,14 +84,14 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
         <div className="min-w-0">
           <p
             className={`text-xs font-semibold uppercase tracking-widest ${
-              embedded ? "text-teal-800/80" : "text-teal-700"
+              embedded ? "text-[var(--accent-ink)]/80" : "text-[var(--accent-ink)]"
             }`}
           >
             Следующая неделя
           </p>
           <p
             className={`mt-1 font-semibold leading-snug ${
-              embedded ? "text-[var(--foreground)]" : "text-teal-950"
+              embedded ? "text-[var(--foreground)]" : "text-[var(--accent-ink)]"
             }`}
           >
             {headline}
@@ -99,7 +99,7 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
         </div>
         <button
           type="button"
-          className="btn-quiet shrink-0 text-xs text-teal-800 hover:bg-teal-100"
+          className="btn-quiet shrink-0 text-xs text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
           onClick={() => {
             hidePanelForWeek(PANEL_ID, data.weekStart);
             setHidden(true);
@@ -116,14 +116,14 @@ export function WeeklyGymRationTipCard({ endDate, embedded = false }: Props) {
       </ol>
 
       {showTip ? (
-        <p className="mt-2.5 text-xs leading-relaxed text-teal-900/75">{data.tip}</p>
+        <p className="mt-2.5 text-xs leading-relaxed text-[var(--accent-ink)]/75">{data.tip}</p>
       ) : null}
 
       <Link
         href={assistantWeekLink({
           prefill: `По итогам недели: ${headline}. Помоги спланировать следующую: рацион + зал.`,
         })}
-        className="mt-3 inline-flex rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800"
+        className="mt-3 inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
       >
         Разобрать с AI
       </Link>

@@ -216,7 +216,7 @@ export function WorkoutRoutineEditor({
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Название
         <input
-          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
+          className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Грудь · Трицепс"
@@ -226,7 +226,7 @@ export function WorkoutRoutineEditor({
       <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
         Заметка
         <input
-          className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
+          className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base"
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
@@ -238,7 +238,7 @@ export function WorkoutRoutineEditor({
         </p>
         <p className="mt-0.5 text-[11px] text-[var(--muted)]">Например A / B / C для сплита</p>
         <input
-          className="mt-1 w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base uppercase"
+          className="mt-1 w-20 rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base uppercase"
           maxLength={8}
           value={planLabel}
           onChange={(e) => setPlanLabel(e.target.value)}
@@ -299,7 +299,7 @@ export function WorkoutRoutineEditor({
           <div
             key={ex.key}
             className={`rounded-xl border p-3 ${
-              ex.supersetGroup ? "border-[var(--accent)] bg-[var(--accent-soft)]/40" : "border-[rgba(13,115,119,0.14)] bg-white"
+              ex.supersetGroup ? "border-[var(--accent)] bg-[var(--accent-soft)]/40" : "border-[var(--border-quiet)] bg-white"
             }`}
           >
             {ex.supersetGroup ? (
@@ -308,7 +308,7 @@ export function WorkoutRoutineEditor({
               </p>
             ) : null}
             <input
-              className="w-full rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
+              className="w-full rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base"
               placeholder="Название"
               value={ex.name}
               onChange={(e) =>
@@ -367,7 +367,7 @@ export function WorkoutRoutineEditor({
                   Кругов
                   <input
                     inputMode="numeric"
-                    className="w-12 rounded border border-[rgba(13,115,119,0.14)] px-1.5 py-0.5 text-base"
+                    className="w-12 rounded border border-[var(--border-quiet)] px-1.5 py-0.5 text-base"
                     value={ex.circuitRounds ?? 3}
                     onChange={(e) => {
                       const n = parseCircuitRounds(e.target.value);
@@ -386,7 +386,7 @@ export function WorkoutRoutineEditor({
                 Подходы
                 <input
                   inputMode="numeric"
-                  className="w-14 rounded border border-[rgba(13,115,119,0.14)] px-2 py-1 text-base"
+                  className="w-14 rounded border border-[var(--border-quiet)] px-2 py-1 text-base"
                   value={ex.plannedSets.length}
                   onChange={(e) => {
                     const n = Math.min(12, Math.max(1, Math.round(Number(e.target.value)) || 1));
@@ -412,7 +412,7 @@ export function WorkoutRoutineEditor({
                 Повт
                 <input
                   inputMode="numeric"
-                  className="w-14 rounded border border-[rgba(13,115,119,0.14)] px-2 py-1 text-base"
+                  className="w-14 rounded border border-[var(--border-quiet)] px-2 py-1 text-base"
                   value={ex.plannedSets[0]?.reps ?? ""}
                   onChange={(e) => {
                     const reps = Math.round(Number(e.target.value)) || null;

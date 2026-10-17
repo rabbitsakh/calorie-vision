@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { DiarySticker } from "@/components/DiarySticker";
 import {
   getEquippedCheerKey,
@@ -17,10 +18,12 @@ import {
   hydrateEquippedFrameFromAccount,
   subscribeEquippedFrame,
 } from "@/lib/equipped-frame";
+import { withBasePath } from "@/lib/paths";
 import { cheerPhrase, frameAvatarClass } from "@/lib/rewards";
 
 /**
  * R5–R9 — equipped collection wear on gym surfaces and ration DayHero.
+ * Links into profile collection when anything is worn.
  */
 export function GymCollectionWear({ className = "" }: { className?: string }) {
   const [sticker, setSticker] = useState<string | null>(null);
@@ -49,9 +52,11 @@ export function GymCollectionWear({ className = "" }: { className?: string }) {
   if (!sticker && !phrase && !frameClass) return null;
 
   return (
-    <div
+    <Link
+      href={withBasePath("/profile#rewards")}
       className={`flex flex-wrap items-center gap-2 ${className}`.trim()}
-      aria-label="Награда из коллекции"
+      aria-label="Коллекция наград"
+      title="Открыть коллекцию"
     >
       {sticker || frameClass ? (
         <span
@@ -63,6 +68,6 @@ export function GymCollectionWear({ className = "" }: { className?: string }) {
       {phrase ? (
         <p className="text-xs font-medium text-[var(--muted-strong)]">{phrase}</p>
       ) : null}
-    </div>
+    </Link>
   );
 }

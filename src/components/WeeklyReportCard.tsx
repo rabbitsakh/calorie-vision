@@ -72,7 +72,7 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-teal-200 px-4 py-2.5 text-sm text-teal-700 hover:border-teal-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[var(--accent)]/25 px-4 py-2.5 text-sm text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
         onClick={() => {
           showPanelToday(PANEL_ID, endDate);
           setHidden(false);
@@ -89,23 +89,23 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
       className={
         embedded
           ? "px-1 py-1"
-          : "rounded-2xl border border-teal-100 bg-teal-50/70 p-4"
+          : "rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent-soft)]/70 p-4"
       }
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           {embedded ? null : (
-            <p className="text-xs font-medium uppercase tracking-wide text-teal-700">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--accent-ink)]">
               {ritual ? ritual.title : "Недельный отчёт"}
             </p>
           )}
-          <p className={`font-semibold ${embedded ? "text-[var(--foreground)]" : "text-teal-950"}`}>
+          <p className={`font-semibold ${embedded ? "text-[var(--foreground)]" : "text-[var(--accent-ink)]"}`}>
             {data.weekLabel}
           </p>
           {ritual ? (
             <p
               className={`mt-1 text-sm leading-snug ${
-                embedded ? "text-[var(--muted-strong)]" : "text-teal-950/85"
+                embedded ? "text-[var(--muted-strong)]" : "text-[var(--accent-ink)]/85"
               }`}
             >
               {ritual.body}
@@ -116,7 +116,7 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
           <ShareWeekButton endDate={endDate} className="[&_button]:min-h-8 [&_button]:px-2.5 [&_button]:text-xs" />
           <button
             type="button"
-            className="btn-quiet text-xs text-teal-800 hover:bg-teal-100"
+            className="btn-quiet text-xs text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
             onClick={() => {
               hidePanelToday(PANEL_ID, endDate);
               setHidden(true);
@@ -131,13 +131,13 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
         <div className="mt-3 flex flex-wrap gap-2">
           <Link
             href={withBasePath(`/ration?date=${endDate}`)}
-            className="chip min-h-9 bg-teal-100 font-semibold text-teal-950"
+            className="chip min-h-9 bg-[var(--accent-soft)] font-semibold text-[var(--accent-ink)]"
           >
             Открыть дневник
           </Link>
           <a
             href="#challenge"
-            className="chip min-h-9 font-semibold text-teal-950"
+            className="chip min-h-9 font-semibold text-[var(--accent-ink)]"
             onClick={(e) => {
               const el = document.getElementById("challenge");
               if (el) {
@@ -154,22 +154,22 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
       <div className="mt-3 grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Дней с записями</p>
-          <p className="text-lg font-bold text-teal-950">{data.daysLogged}/7</p>
+          <p className="text-lg font-bold text-[var(--accent-ink)]">{data.daysLogged}/7</p>
         </div>
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Среднее ккал</p>
-          <p className="text-lg font-bold text-teal-950">{data.avgCalories}</p>
+          <p className="text-lg font-bold text-[var(--accent-ink)]">{data.avgCalories}</p>
         </div>
         <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Вода/день</p>
-          <p className="text-lg font-bold text-teal-950">
+          <p className="text-lg font-bold text-[var(--accent-ink)]">
             {data.avgWaterMl > 0 ? `${data.avgWaterMl} мл` : "—"}
           </p>
         </div>
       </div>
 
       {data.fiberTarget != null || data.sugarTarget != null ? (
-        <p className="mt-2 text-center text-xs text-teal-800/90">
+        <p className="mt-2 text-center text-xs text-[var(--accent-ink)]/90">
           {[
             data.fiberTarget != null
               ? `клетчатка ср. ${Math.round(data.avgFiber ?? 0)} / ${Math.round(data.fiberTarget)} г`
@@ -209,10 +209,10 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
       ) : null}
 
       {data.insights.length > 0 ? (
-        <ul className="mt-3 space-y-1 text-sm text-teal-950/90">
+        <ul className="mt-3 space-y-1 text-sm text-[var(--accent-ink)]/90">
           {data.insights.map((line) => (
             <li key={line} className="flex gap-2">
-              <span className="text-teal-300">·</span>
+              <span className="text-[var(--accent)]/40">·</span>
               <span>{line}</span>
             </li>
           ))}

@@ -131,7 +131,7 @@ export function ChestInboxToast() {
       role="status"
       aria-live="polite"
     >
-      <div className="pointer-events-auto rounded-[var(--radius-lg)] border border-teal-200/80 bg-white px-4 py-3 text-center shadow-[0_8px_24px_rgba(15,23,42,0.1)]">
+      <div className="pointer-events-auto rounded-[var(--radius-lg)] border border-[var(--accent)]/25 bg-white px-4 py-3 text-center shadow-[0_8px_24px_rgba(15,23,42,0.1)]">
         <p className="text-sm font-semibold text-[var(--foreground)]">{payload.title}</p>
         {payload.subtitle ? (
           <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">{payload.subtitle}</p>
@@ -143,7 +143,7 @@ export function ChestInboxToast() {
             <button
               type="button"
               disabled={busy || equipped}
-              className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+              className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
               onClick={() => void onEquip()}
             >
               {equipLabel(action, equipped, autoEquipped)}
@@ -151,7 +151,7 @@ export function ChestInboxToast() {
           ) : null}
           <Link
             href={collectionHref}
-            className="rounded-lg border border-teal-200 px-3 py-1.5 text-xs font-semibold text-teal-900"
+            className="rounded-lg border border-[var(--accent)]/25 px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)]"
             onClick={() => setOpen(false)}
           >
             В коллекцию

@@ -170,7 +170,7 @@ export function DishFields({
       className={
         multi
           ? `rounded-2xl border p-4 ${
-              showReviewCta ? "border-amber-300 bg-amber-50/40" : "border-[rgba(13,115,119,0.14)]"
+              showReviewCta ? "border-amber-300 bg-amber-50/40" : "border-[var(--border-quiet)]"
             }`
           : "flex flex-col gap-4"
       }
@@ -264,7 +264,7 @@ export function DishFields({
             }
             if (dish.original.source === "correction-memory") {
               return (
-                <p className="mt-1 text-xs text-teal-800">
+                <p className="mt-1 text-xs text-[var(--accent-ink)]">
                   Подставлено из вашего прошлого исправления
                 </p>
               );
@@ -284,7 +284,7 @@ export function DishFields({
             ) : null}
           </details>
           {wrongDishHint ? (
-            <p className="mt-1 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-xs text-teal-900">
+            <p className="mt-1 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-3 py-2 text-xs text-[var(--accent-ink)]">
               Исправьте название и сохраните — приложение запомнит исправление и подставит его в
               следующий раз.
             </p>
@@ -374,7 +374,7 @@ export function DishFields({
         <div className="sm:col-span-2">
           <button
             type="button"
-            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+            className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
             onClick={() => setShowAdvanced((value) => !value)}
           >
             {showAdvanced ? "Скрыть уточнения" : "Уточнить БЖУ, клетчатку и сахар"}

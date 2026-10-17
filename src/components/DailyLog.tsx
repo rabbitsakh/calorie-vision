@@ -62,7 +62,7 @@ function UndoToast({
   onUndo: () => void;
 }) {
   return (
-    <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-[rgba(13,115,119,0.35)] bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">
+    <div className="undo-toast flex min-h-[4.5rem] items-center justify-between gap-3 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">
       <span className="min-w-0">
         <span className="block text-xs font-medium uppercase tracking-wide text-white/70">Удалено</span>
         <span className="mt-0.5 block truncate font-medium">{message}</span>
@@ -959,7 +959,7 @@ export function DailyLog({
                   const hasTypes = entries.some((e) => e.mealType);
                   if (!hasTypes) return null;
                   return (
-                    <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-3">
+                    <div className="rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)] p-3">
                       <p className="mb-2 text-xs font-semibold text-[var(--muted-strong)]">Бюджет по приёмам</p>
                       <div className="grid gap-1.5 sm:grid-cols-2">
                         {budgets.map((b) => {
@@ -1123,7 +1123,7 @@ export function DailyLog({
           entries.length > 0 &&
           displayRows.length === 0 &&
           (mealFilter !== "ALL" || sourceFilter !== "ALL") ? (
-            <p className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.14)] px-4 py-8 text-center text-sm text-[var(--muted)]">
+            <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] px-4 py-8 text-center text-sm text-[var(--muted)]">
               Нет записей по этому фильтру.{" "}
               <button
                 type="button"
