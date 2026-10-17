@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  CHEST_SOURCE_LABELS,
   REWARD_GROUP_LABELS,
   RARITY_LABELS,
   frameAvatarClass,
@@ -11,9 +12,12 @@ import {
   cheerPhrase,
   lootGlyph,
   nextMetaProgress,
+  rewardDef,
+  type ChestSource,
   type RewardGroup,
   type RewardRarity,
 } from "@/lib/rewards";
+import { DiarySticker } from "@/components/DiarySticker";
 import { StickerArt } from "@/components/StickerArt";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -52,6 +56,15 @@ type RewardItem = {
 type FilterId = "all" | "owned" | "locked" | RewardRarity | RewardGroup;
 
 const GROUP_ORDER: RewardGroup[] = ["sticker", "cheer", "frame"];
+
+const CHEST_SOURCE_ORDER: ChestSource[] = [
+  "quest",
+  "challenge",
+  "streak",
+  "week",
+  "meta",
+  "referral",
+];
 
 const RARITY_TONE: Record<RewardRarity, string> = {
   common: "border-[var(--border-hairline)] bg-[var(--surface-mist)] text-[var(--muted-strong)]",
@@ -193,6 +206,16 @@ export function RewardsPanel() {
     }
   }
 
+  const wearingSticker = equippedSticker
+    ? rewardDef(equippedSticker)?.title ?? null
+    : null;
+  const wearingCheer = equippedCheer ? cheerPhrase(equippedCheer) : null;
+  const wearingFrame = equipped ? rewardDef(equipped)?.title ?? null : null;
+  const hasWear = Boolean(wearingSticker || wearingCheer || wearingFrame);
+  const hasUnlockedWearable = rewards.some(
+    (r) => r.unlocked && (r.group === "sticker" || r.group === "cheer" || r.group === "frame"),
+  );
+
   if (!loaded) return null;
   if (rewards.length === 0) {
     // Soft empty scene — door into the day, not a dead end.
@@ -206,6 +229,11 @@ export function RewardsPanel() {
           Пока пусто. Закройте день или недельный челлендж — первая награда из сундука появится
           здесь.
         </p>
+        <ul className="mt-3 space-y-1 text-xs text-[var(--muted-strong)]">
+          {CHEST_SOURCE_ORDER.map((source) => (
+            <li key={source}>· {CHEST_SOURCE_LABELS[source]}</li>
+          ))}
+        </ul>
         <a
           href={withBasePath("/ration")}
           className="mt-3 inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
@@ -217,6 +245,9 @@ export function RewardsPanel() {
   }
 
   const metaHint = nextMetaProgress(ownedCount);
+  const metaPct = metaHint
+    ? Math.min(100, Math.round(metaHint.ratio * 100))
+    : 0;
 
   return (
     <div id="rewards" className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
@@ -226,9 +257,57 @@ export function RewardsPanel() {
           {ownedCount} / {total}
         </span>
       </div>
-      <p className="mb-3 text-sm text-[var(--muted)]">
-        Награды из сундуков — за челленджи, серии и спокойные недели. Без штрафов.
+      <p className="mb-2 text-sm text-[var(--muted)]">
+        Награды из сундуков — без штрафов. Когда открывается:
       </p>
+      <ul
+        className="mb-3 flex flex-wrap gap-1.5"
+        aria-label="Когда открываются сундуки"
+      >
+        {CHEST_SOURCE_ORDER.map((source) => (
+          <li
+            key={source}
+            className="rounded-md bg-[var(--surface-mist)] px-2 py-0.5 text-[10px] font-semibold text-[var(--muted-strong)]"
+          >
+            {CHEST_SOURCE_LABELS[source]}
+          </li>
+        ))}
+      </ul>
+
+      {/* R11 — live wear preview */}
+      <div className="mb-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 px-3 py-2.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
+          Сейчас на вас
+        </p>
+        {hasWear ? (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {equipped || equippedSticker ? (
+              <span
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ${frameAvatarClass(equipped)}`.trim()}
+                aria-hidden
+              >
+                {equippedSticker ? <DiarySticker /> : null}
+              </span>
+            ) : null}
+            <div className="min-w-0 text-sm font-medium text-[var(--foreground)]">
+              {wearingFrame ? <p className="truncate">{wearingFrame}</p> : null}
+              {wearingSticker ? <p className="truncate">{wearingSticker}</p> : null}
+              {wearingCheer ? (
+                <p className="truncate text-xs text-[var(--muted-strong)]">«{wearingCheer}»</p>
+              ) : null}
+            </div>
+          </div>
+        ) : hasUnlockedWearable ? (
+          <p className="mt-1 text-xs text-[var(--muted-strong)]">
+            Ничего не надето — выберите наклейку, фразу или рамку ниже.
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-[var(--muted-strong)]">
+            Откройте сундук — и первая награда появится здесь.
+          </p>
+        )}
+      </div>
+
       {ownedCount === 0 ? (
         <p className="mb-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-xs font-medium text-[var(--accent-ink)]">
           Коллекция пуста — закройте день или челлендж, откройте сундук, наденьте первую
@@ -241,9 +320,27 @@ export function RewardsPanel() {
         </p>
       ) : null}
       {metaHint ? (
-        <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950">
-          {metaHint.label} · {metaHint.current}/{metaHint.target}
-        </p>
+        <div className="mb-3 rounded-xl bg-amber-50 px-3 py-2">
+          <div className="flex items-baseline justify-between gap-2 text-xs font-medium text-amber-950">
+            <span>{metaHint.label}</span>
+            <span className="tabular-nums">
+              {metaHint.current}/{metaHint.target}
+            </span>
+          </div>
+          <div
+            className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-amber-100"
+            role="progressbar"
+            aria-valuenow={metaHint.current}
+            aria-valuemin={0}
+            aria-valuemax={metaHint.target}
+            aria-label="Прогресс к мета-сундуку"
+          >
+            <div
+              className="h-full rounded-full bg-amber-500 transition-[width] duration-300"
+              style={{ width: `${metaPct}%` }}
+            />
+          </div>
+        </div>
       ) : null}
 
       <div className="mb-4 flex flex-wrap gap-1.5" role="toolbar" aria-label="Фильтр коллекции">

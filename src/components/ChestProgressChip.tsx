@@ -13,7 +13,7 @@ type ChestProgressChipProps = {
 };
 
 /**
- * Soft ration chip: quest chest + meta progress (R1–R3).
+ * Soft ration chip: quest chest bar + meta progress (R1–R3, R10).
  */
 export function ChestProgressChip({
   selectedDate,
@@ -64,19 +64,35 @@ export function ChestProgressChip({
       ? `${withBasePath(withDateQuery("/ration", selectedDate))}#habits-panel`
       : withBasePath("/profile#rewards");
 
-  const label = model.metaLabel
-    ? `${model.label} · ${model.metaLabel}`
-    : model.label;
+  const pct =
+    model.per > 0 ? Math.min(100, Math.round((model.filled / model.per) * 100)) : 0;
 
   return (
     <div className="pt-2">
       <Link
         href={href}
-        className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[var(--border-quiet)] bg-white/80 px-2.5 py-1 text-xs font-semibold text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
-        title="Прогресс к сундуку и мета-коллекции"
+        className="inline-flex max-w-full flex-col gap-1 rounded-lg border border-[var(--border-quiet)] bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
+        title="Прогресс к сундуку за сегодня · привычки"
       >
-        <span aria-hidden>✦</span>
-        <span className="truncate">{label}</span>
+        <span className="inline-flex min-w-0 items-center gap-1.5">
+          <span aria-hidden>✦</span>
+          <span className="truncate">{model.label}</span>
+          {model.metaLabel ? (
+            <span className="shrink-0 font-medium text-[var(--muted)]">· {model.metaLabel}</span>
+          ) : null}
+        </span>
+        <span
+          className="block h-1 w-full min-w-[7.5rem] overflow-hidden rounded-full bg-[var(--accent-soft)]"
+          aria-hidden
+        >
+          <span
+            className="block h-full rounded-full bg-[var(--accent)] transition-[width] duration-300"
+            style={{ width: `${pct}%` }}
+          />
+        </span>
+        <span className="sr-only">
+          {model.filled} из {model.per} дней к сундуку
+        </span>
       </Link>
     </div>
   );

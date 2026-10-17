@@ -6,6 +6,16 @@ export type RewardRarity = "common" | "rare" | "festive";
 export type RewardGroup = "sticker" | "cheer" | "frame";
 export type ChestSource = "challenge" | "streak" | "week" | "quest" | "meta" | "referral";
 
+/** Human labels for when each chest source opens (R14). */
+export const CHEST_SOURCE_LABELS: Record<ChestSource, string> = {
+  challenge: "Недельный челлендж",
+  streak: "Серия дней",
+  week: "Спокойная неделя",
+  quest: "Ежедневные квесты",
+  meta: "Мета коллекции",
+  referral: "Приглашение друга",
+};
+
 export type RewardDef = {
   key: string;
   title: string;

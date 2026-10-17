@@ -19,6 +19,11 @@ import {
   areCelebrationsInQuietHours,
   hydrateQuietHoursFromAccount,
 } from "@/lib/quiet-hours-prefs";
+import { maybeAutoEquipReward } from "@/lib/auto-equip-reward";
+import { chestInboxAction } from "@/lib/chest-inbox";
+import { persistEquippedCheerKey } from "@/lib/equipped-cheer";
+import { persistEquippedFrameKey } from "@/lib/equipped-frame";
+import { persistEquippedStickerKey } from "@/lib/equipped-sticker";
 import {
   cheerPhrase,
   frameAvatarClass,
@@ -143,7 +148,11 @@ export function FullscreenCelebration({
   const [mounted, setMounted] = useState(false);
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   const [chestRevealed, setChestRevealed] = useState(false);
+  const [lootEquipped, setLootEquipped] = useState(false);
+  const [lootAutoEquipped, setLootAutoEquipped] = useState(false);
+  const [equipBusy, setEquipBusy] = useState(false);
   const chestChimePlayed = useRef(false);
+  const autoEquipTried = useRef(false);
   const gate = useCelebrationGate();
   const celebrationId = useId();
   const theme = VARIANT_THEME[variant];
@@ -155,11 +164,20 @@ export function FullscreenCelebration({
   const show = open && isActive && !quiet;
   const isChest = variant === "chest";
   const showChestStage = isChest && !chestRevealed;
+  const lootAction = isChest ? chestInboxAction(lootKey) : "collection";
+  const canEquipLoot =
+    lootAction === "equip-sticker" ||
+    lootAction === "equip-frame" ||
+    lootAction === "equip-cheer";
 
   useEffect(() => {
     if (!show) {
       setChestRevealed(false);
+      setLootEquipped(false);
+      setLootAutoEquipped(false);
+      setEquipBusy(false);
       chestChimePlayed.current = false;
+      autoEquipTried.current = false;
     }
   }, [show]);
 
@@ -172,6 +190,43 @@ export function FullscreenCelebration({
   const onChestRevealComplete = useCallback(() => {
     setChestRevealed(true);
   }, []);
+
+  // R17 — soft auto-equip empty slots when chest loot is revealed.
+  useEffect(() => {
+    if (!show || !isChest || !chestRevealed || !lootKey || autoEquipTried.current) return;
+    autoEquipTried.current = true;
+    void maybeAutoEquipReward(lootKey).then((kind) => {
+      if (kind) {
+        setLootEquipped(true);
+        setLootAutoEquipped(true);
+      }
+    });
+  }, [show, isChest, chestRevealed, lootKey]);
+
+  const onEquipLoot = useCallback(async () => {
+    if (!lootKey || equipBusy || lootEquipped) return;
+    setEquipBusy(true);
+    try {
+      if (lootAction === "equip-sticker") {
+        await persistEquippedStickerKey(lootKey);
+      } else if (lootAction === "equip-frame") {
+        await persistEquippedFrameKey(lootKey);
+      } else if (lootAction === "equip-cheer") {
+        await persistEquippedCheerKey(lootKey);
+      }
+      setLootEquipped(true);
+      setLootAutoEquipped(false);
+    } finally {
+      setEquipBusy(false);
+    }
+  }, [lootKey, equipBusy, lootEquipped, lootAction]);
+
+  function equipLootLabel(): string {
+    if (lootEquipped) return lootAutoEquipped ? "Надето сразу" : "Надето";
+    if (lootAction === "equip-frame") return "Надеть рамку";
+    if (lootAction === "equip-cheer") return "Включить фразу";
+    return "Надеть";
+  }
 
   useEffect(() => {
     setPortalHost(getCelebrationPortalHost());
@@ -336,13 +391,29 @@ export function FullscreenCelebration({
             ) : null}
 
             {!autoClose ? (
-              <button
-                type="button"
-                className="fs-celeb-cta btn mt-10 min-h-12 w-full max-w-xs rounded-2xl bg-white px-6 text-base font-bold text-teal-900 shadow-lg hover:bg-teal-50"
-                onClick={onClose}
-              >
-                {ctaLabel}
-              </button>
+              <div className="mt-10 flex w-full max-w-xs flex-col gap-2">
+                {isChest && canEquipLoot ? (
+                  <button
+                    type="button"
+                    disabled={equipBusy || lootEquipped}
+                    className="fs-celeb-cta btn min-h-12 w-full rounded-2xl bg-white px-6 text-base font-bold text-[var(--accent-ink)] shadow-lg hover:bg-[var(--accent-soft)] disabled:opacity-70"
+                    onClick={() => void onEquipLoot()}
+                  >
+                    {equipLootLabel()}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className={`fs-celeb-cta btn min-h-12 w-full rounded-2xl px-6 text-base font-bold shadow-lg ${
+                    isChest && canEquipLoot
+                      ? "bg-white/15 text-white ring-1 ring-white/40 hover:bg-white/25"
+                      : "bg-white text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
+                  }`}
+                  onClick={onClose}
+                >
+                  {ctaLabel}
+                </button>
+              </div>
             ) : (
               <button
                 type="button"
