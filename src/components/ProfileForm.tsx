@@ -409,7 +409,7 @@ export function ProfileForm() {
                   <UserAvatar
                     image={image}
                     label={displayName}
-                    className="h-24 w-24 rounded-full border border-[rgba(13,115,119,0.14)] object-cover bg-[var(--accent-soft)]"
+                    className="h-24 w-24 rounded-full border border-[var(--border-quiet)] object-cover bg-[var(--accent-soft)]"
                     fallbackClassName="flex h-24 w-24 items-center justify-center rounded-full bg-[var(--accent-soft)] text-2xl font-bold text-[var(--accent-ink)]"
                   />
                 </AvatarFrame>
@@ -631,7 +631,7 @@ export function ProfileForm() {
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                    className="mt-1 h-4 w-4 rounded border-[var(--border-quiet)] text-[var(--accent)] focus:ring-[var(--accent)]"
                     checked={weeklyDigestEmail}
                     onChange={(event) => setWeeklyDigestEmail(event.target.checked)}
                     disabled={!email.trim()}
@@ -674,7 +674,7 @@ export function ProfileForm() {
                       >
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
+                          className="h-4 w-4 rounded border-[var(--border-quiet)] text-[var(--accent)] focus:ring-[var(--accent)]"
                           checked={checked}
                           onChange={() => {
                             setAllergens((prev) =>

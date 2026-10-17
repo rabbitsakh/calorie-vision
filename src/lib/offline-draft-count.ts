@@ -10,6 +10,7 @@ import { countLocalWorkoutSessions } from "@/lib/workout-local-session";
 import { countWorkoutExerciseDrafts } from "@/lib/workout-exercise-draft-queue";
 import { countWorkoutOfflineDrafts } from "@/lib/workout-set-draft-queue";
 import { countShoppingSyncDrafts } from "@/lib/shopping-sync-draft";
+import { countAssistantApplyQueue } from "@/lib/assistant-apply-queue";
 
 export function countAllOfflineDrafts(): number {
   return (
@@ -20,6 +21,7 @@ export function countAllOfflineDrafts(): number {
     countWorkoutOfflineDrafts() +
     countLocalWorkoutSessions() +
     countWorkoutExerciseDrafts() +
-    countShoppingSyncDrafts()
+    countShoppingSyncDrafts() +
+    countAssistantApplyQueue()
   );
 }

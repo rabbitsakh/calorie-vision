@@ -140,3 +140,11 @@ test("N: recovery-armed tip prefers switch wording over soft deload", () => {
   assert.ok(pick.missStreak >= 1);
   assert.match(ruleTipForFocus(pick), /после восстановления мимо/);
 });
+
+test("O: recovery hit tip celebrates and keeps lever", () => {
+  installLocalStorage();
+  const pick = pickTipFocus([
+    target({ name: "Присед", primaryLever: "weight", leverRemembered: true }),
+  ])!;
+  assert.match(ruleTipForFocus(pick, { recoveryHit: true }), /Восстановление сработало/);
+});

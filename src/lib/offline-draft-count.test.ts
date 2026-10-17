@@ -7,6 +7,10 @@ import {
   markShoppingSyncDirty,
   SHOPPING_SYNC_DIRTY_KEY,
 } from "./shopping-sync-draft.ts";
+import {
+  ASSISTANT_APPLY_QUEUE_KEY,
+  enqueueAssistantApply,
+} from "./assistant-apply-queue.ts";
 
 function mockStorage() {
   const map = new Map<string, string>();
@@ -45,7 +49,14 @@ test("countAllOfflineDrafts sums meal, water, and shopping sync drafts", () => {
   assert.equal(countAllOfflineDrafts(), 2);
   markShoppingSyncDirty();
   assert.equal(countAllOfflineDrafts(), 3);
+  enqueueAssistantApply("meals", {
+    kind: "meals",
+    date: "2026-08-24",
+    actions: { meals: [{ name: "Суп" }] },
+  });
+  assert.equal(countAllOfflineDrafts(), 4);
   assert.ok(localStorage.getItem(MEAL_DRAFT_QUEUE_KEY));
   assert.ok(localStorage.getItem(WATER_DRAFT_QUEUE_KEY));
   assert.ok(localStorage.getItem(SHOPPING_SYNC_DIRTY_KEY));
+  assert.ok(localStorage.getItem(ASSISTANT_APPLY_QUEUE_KEY));
 });

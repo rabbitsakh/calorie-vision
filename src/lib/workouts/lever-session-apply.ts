@@ -69,6 +69,17 @@ export function formatLeverRecoveryHint(
   return "Рычаг сменён после 2× мимо";
 }
 
+/** O: Today strip line for an armed recovery memory entry. */
+export function formatArmedRecoveryChromeLine(
+  entry: Pick<LeverMemoryEntry, "name" | "recovery">,
+): string | null {
+  if (!entry.recovery) return null;
+  if (entry.recovery === "deload") {
+    return `${entry.name} · soft deload`;
+  }
+  return `${entry.name} · новый рычаг`;
+}
+
 /**
  * L — concrete recovery goal after 2× miss (pure; persist via {@link persistLeverRecoveryMemory}).
  */

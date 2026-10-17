@@ -32,11 +32,11 @@ export function LeverStreakStrip({ className = "" }: { className?: string }) {
       {items.map(({ name, streak }) => (
         <span
           key={`${name}-${streak.lever}`}
-          className="inline-flex max-w-full items-center gap-1 rounded-lg border border-[rgba(13,115,119,0.12)] bg-white/80 px-2 py-1 text-[11px] font-semibold text-teal-900"
+          className="inline-flex max-w-full items-center gap-1 rounded-lg border border-[var(--border-quiet)] bg-white/80 px-2 py-1 text-[11px] font-semibold text-[var(--accent-ink)]"
           title={`${name}: ${LEVER_LABEL[streak.lever] ?? streak.lever} ${streak.hitStreak}× подряд`}
         >
           <span className="truncate">{name}</span>
-          <span className="shrink-0 text-teal-700">
+          <span className="shrink-0 text-[var(--accent-ink)]">
             {LEVER_LABEL[streak.lever] ?? streak.lever} · {streak.hitStreak}×
           </span>
         </span>

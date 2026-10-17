@@ -61,6 +61,10 @@ import {
   isShoppingSyncDirty,
   subscribeShoppingSyncDraft,
 } from "@/lib/shopping-sync-draft";
+import {
+  countAssistantApplyQueue,
+  subscribeAssistantApplyQueue,
+} from "@/lib/assistant-apply-queue";
 import { loadList } from "@/lib/shopping-list";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
@@ -92,6 +96,7 @@ export function OfflineMealQueueBanner({
   const [workoutLocalCount, setWorkoutLocalCount] = useState(0);
   const [workoutExerciseCount, setWorkoutExerciseCount] = useState(0);
   const [shoppingSyncCount, setShoppingSyncCount] = useState(0);
+  const [assistantApplyCount, setAssistantApplyCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   /** T1: brief «Ушло N» after a flush so the queue doesn't vanish without feedback. */
@@ -114,6 +119,7 @@ export function OfflineMealQueueBanner({
     setWorkoutLocalCount(countLocalWorkoutSessions());
     setWorkoutExerciseCount(countWorkoutExerciseDrafts());
     setShoppingSyncCount(countShoppingSyncDrafts());
+    setAssistantApplyCount(countAssistantApplyQueue());
   }, []);
 
   useEffect(() => {
@@ -127,6 +133,7 @@ export function OfflineMealQueueBanner({
       subscribeLocalWorkoutSessions(refreshCounts),
       subscribeWorkoutExerciseDraftQueue(refreshCounts),
       subscribeShoppingSyncDraft(refreshCounts),
+      subscribeAssistantApplyQueue(refreshCounts),
     ];
     return () => {
       for (const unsub of unsubs) unsub();
@@ -445,14 +452,15 @@ export function OfflineMealQueueBanner({
     workoutFinishCount +
     workoutLocalCount +
     workoutExerciseCount +
-    shoppingSyncCount;
+    shoppingSyncCount +
+    assistantApplyCount;
   if (totalCount <= 0 && !flushSummary) return null;
 
   if (totalCount <= 0 && flushSummary) {
     return (
       <div className="flex flex-col gap-2" role="status">
         <div className="offline-chrome offline-chrome-pad text-sm">
-          <p className="font-semibold text-teal-900">{flushSummary}</p>
+          <p className="font-semibold text-[var(--accent-ink)]">{flushSummary}</p>
         </div>
       </div>
     );
@@ -534,6 +542,13 @@ export function OfflineMealQueueBanner({
   }
   if (shoppingSyncCount > 0) {
     lines.push("Список покупок ждёт синхронизацию");
+  }
+  if (assistantApplyCount > 0) {
+    lines.push(
+      assistantApplyCount === 1
+        ? "1 запись AI ждёт подтверждение / сеть"
+        : `${assistantApplyCount} записи AI ждут подтверждение / сеть`,
+    );
   }
 
   const queueTitle = flushing

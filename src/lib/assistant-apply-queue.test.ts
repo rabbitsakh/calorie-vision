@@ -59,3 +59,15 @@ test("Assistant K: shopping and start kinds enqueue", () => {
   const kinds = listAssistantApplyQueue().map((x) => x.kind).sort();
   assert.deepEqual(kinds, ["shopping", "start"]);
 });
+
+test("Assistant L: water kind enqueues", () => {
+  store.clear();
+  clearAssistantApplyQueue();
+  enqueueAssistantApply("water", {
+    kind: "water",
+    date: "2026-10-16",
+    actions: { waterMl: 250 },
+  });
+  assert.equal(countAssistantApplyQueue(), 1);
+  assert.equal(listAssistantApplyQueue()[0]?.kind, "water");
+});

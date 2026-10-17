@@ -98,10 +98,22 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json().catch(() => ({}))) as {
       targets?: unknown;
+      recoveryHitNames?: unknown;
     };
     const targets = parseTargets(body.targets);
+    const recoveryHitNames = Array.isArray(body.recoveryHitNames)
+      ? body.recoveryHitNames.filter((n): n is string => typeof n === "string")
+      : [];
     const focus = pickTipFocus(targets);
-    let tip = focus ? ruleTipForFocus(focus) : ruleNextSessionTip(targets);
+    const recoveryHit = Boolean(
+      focus &&
+        recoveryHitNames.some(
+          (n) => n.trim().toLowerCase() === focus.exerciseName.trim().toLowerCase(),
+        ),
+    );
+    let tip = focus
+      ? ruleTipForFocus(focus, { recoveryHit })
+      : ruleNextSessionTip(targets, { recoveryHitNames });
     let source: "gigachat" | "rules" = "rules";
     let lever: ProgressionLever | null = focus?.lever ?? null;
     const exerciseName: string | null = focus?.exerciseName ?? null;

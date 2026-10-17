@@ -16,6 +16,7 @@ import {
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
+import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 
 export type LiveSet = {
   id: string;
@@ -134,7 +135,7 @@ export function WorkoutLiveStage({
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] px-4 py-6 text-white">
         <p className="text-lg">Нет упражнений</p>
-        <button type="button" className="mt-4 text-teal-300" onClick={onExitStage}>
+        <button type="button" className="mt-4 text-[var(--accent-soft)]" onClick={onExitStage}>
           Назад
         </button>
       </div>
@@ -167,11 +168,16 @@ export function WorkoutLiveStage({
             </button>
           ) : null}
           {clockStatus === "paused" ? (
-            <button type="button" className="text-sm text-teal-300" onClick={onResume}>
+            <button type="button" className="text-sm text-[var(--accent-soft)]" onClick={onResume}>
               Дальше
             </button>
           ) : null}
         </div>
+      </div>
+
+      {/* R7: equipped wear on live stage */}
+      <div className="px-4 pb-1">
+        <GymCollectionWear className="[&_p]:text-white/70" />
       </div>
 
       {prToast ? (
@@ -181,8 +187,8 @@ export function WorkoutLiveStage({
       ) : null}
 
       {restEndsAt ? (
-        <div className="mx-4 rounded-2xl border border-teal-400/40 bg-teal-950/80 px-4 py-5 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-teal-300">Отдых</p>
+        <div className="mx-4 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-ink)]/80 px-4 py-5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-soft)]">Отдых</p>
           <p className="mt-1 text-5xl font-semibold tabular-nums">{formatRest(restLeft)}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <button
@@ -210,12 +216,12 @@ export function WorkoutLiveStage({
           </button>
           <div className="min-w-0 text-center">
             {focus.supersetGroup ? (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-soft)]/80">
                 {mode === "circuit" ? "Круг" : "Суперсет"} {focus.supersetGroup}
                 {mode === "circuit" ? ` · ${circuitRound}/${targetRounds}` : ""}
               </p>
             ) : mode !== "normal" ? (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-teal-400">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-soft)]/80">
                 {BLOCK_MODE_LABELS[mode]}
               </p>
             ) : null}
@@ -283,7 +289,7 @@ export function WorkoutLiveStage({
                   {liveGoal.recoveryHint}
                 </p>
               ) : null}
-              <p className="mt-1 text-lg font-semibold tracking-tight text-teal-200">
+              <p className="mt-1 text-lg font-semibold tracking-tight text-[var(--accent-soft)]">
                 Цель: {hasPlanned ? plannedParts.join(" × ") : chromeTarget}
               </p>
             </div>
@@ -296,7 +302,7 @@ export function WorkoutLiveStage({
               <span
                 key={g.id}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  g.id === focus.id ? "bg-teal-600 text-white" : "bg-white/10 text-white/70"
+                  g.id === focus.id ? "bg-[var(--accent)] text-white" : "bg-white/10 text-white/70"
                 }`}
               >
                 {g.name}
@@ -436,7 +442,7 @@ export function WorkoutLiveStage({
             {(liveGoal?.suggestedKg ?? suggestedKg) != null && spec.usesWeight ? (
               <button
                 type="button"
-                className="text-sm font-semibold text-teal-300"
+                className="text-sm font-semibold text-[var(--accent-soft)]"
                 onClick={onApplySuggested}
               >
                 Взять{" "}
@@ -454,7 +460,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
+              className="rounded-2xl bg-[var(--accent)] py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
               onClick={onCompleteCurrent}
             >
               ✓ Готово
@@ -463,7 +469,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-teal-500 py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
+              className="rounded-2xl bg-[var(--accent)] py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
               onClick={onAddAndComplete}
             >
               + Подход и ✓
