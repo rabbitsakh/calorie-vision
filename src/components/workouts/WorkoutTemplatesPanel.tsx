@@ -42,7 +42,7 @@ export function WorkoutTemplatesPanel({
           {routines.map((r) => (
             <li
               key={r.id}
-              className="flex items-stretch gap-2 rounded-xl border border-[rgba(13,115,119,0.08)] bg-[var(--surface-mist)]"
+              className="flex items-stretch gap-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--surface-mist)]"
             >
               <button
                 type="button"
@@ -53,7 +53,7 @@ export function WorkoutTemplatesPanel({
                 <div className="min-w-0">
                   <p className="font-semibold text-[var(--foreground)]">
                     {r.planLabel ? (
-                      <span className="mr-1 rounded bg-teal-700 px-1.5 py-0.5 text-[10px] text-white">
+                      <span className="mr-1 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">
                         {r.planLabel}
                       </span>
                     ) : null}
@@ -63,18 +63,18 @@ export function WorkoutTemplatesPanel({
                     {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
                   </p>
                 </div>
-                <span className="shrink-0 text-xs font-semibold text-teal-800">Старт</span>
+                <span className="shrink-0 text-xs font-semibold text-[var(--accent-ink)]">Старт</span>
               </button>
               <button
                 type="button"
-                className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs font-semibold text-[var(--muted-strong)]"
+                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)]"
                 onClick={() => onEdit(r.id)}
               >
                 ✎
               </button>
               <button
                 type="button"
-                className="shrink-0 border-l border-[rgba(13,115,119,0.08)] px-2.5 text-xs text-[var(--muted)] hover:text-red-600"
+                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs text-[var(--muted)] hover:text-red-600"
                 title="Удалить шаблон"
                 onClick={() => onDelete(r.id)}
               >

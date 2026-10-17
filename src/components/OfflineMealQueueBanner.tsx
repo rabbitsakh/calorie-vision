@@ -67,6 +67,10 @@ import {
   removeAssistantApply,
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
+import {
+  clearOfflineQueueFlushError,
+  markOfflineQueueFlushError,
+} from "@/lib/offline-queue-flush-errors";
 import { loadList } from "@/lib/shopping-list";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
@@ -224,7 +228,11 @@ export function OfflineMealQueueBanner({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(item.body),
           });
-          if (!response.ok) continue;
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeMealDraft(item.id);
           savedAny = true;
           flushedCount += 1;
@@ -349,7 +357,11 @@ export function OfflineMealQueueBanner({
               body: JSON.stringify(item.body),
             },
           );
-          if (!response.ok) continue;
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeWorkoutSetDraft(item.id);
           savedAny = true;
           flushedCount += 1;
@@ -367,7 +379,11 @@ export function OfflineMealQueueBanner({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ clock: "finish" }),
           });
-          if (!response.ok) continue;
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeWorkoutFinishDraft(item.id);
           savedAny = true;
           flushedCount += 1;
@@ -403,7 +419,12 @@ export function OfflineMealQueueBanner({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(item.body),
           });
-          if (!response.ok) continue;
+          if (!response.ok) {
+            // T8: surface server/reject failures as «Ошибка» + retry in the sheet.
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeAssistantApply(item.id);
           savedAny = true;
           flushedCount += 1;

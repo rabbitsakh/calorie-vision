@@ -411,7 +411,7 @@ function ActionCard({
 }: {
   actions: AssistantActions;
   date: string;
-  /** K/L/M: per-kind stream writes — gated kinds stay confirmable. */
+  /** K–N: per-kind stream writes — gated kinds stay confirmable. */
   streamDone: {
     meals: boolean;
     routine: boolean;
@@ -419,6 +419,8 @@ function ActionCard({
     start: boolean;
     water: boolean;
     weight: boolean;
+    deleteMeals: boolean;
+    patchMeals: boolean;
   };
   online: boolean;
   onFlash: (msg: string) => void;
@@ -432,6 +434,8 @@ function ActionCard({
     start: false,
     water: false,
     weight: false,
+    deleteMeals: false,
+    patchMeals: false,
   });
 
   const mealsDone = streamDone.meals || localDone.meals;
@@ -440,6 +444,8 @@ function ActionCard({
   const startDone = streamDone.start || localDone.start;
   const waterDone = streamDone.water || localDone.water;
   const weightDone = streamDone.weight || localDone.weight;
+  const deleteDone = streamDone.deleteMeals || localDone.deleteMeals;
+  const patchDone = streamDone.patchMeals || localDone.patchMeals;
 
   const needsMeals = Boolean(actions.meals?.length);
   const needsRoutine = Boolean(actions.workoutDays?.length);
@@ -447,6 +453,8 @@ function ActionCard({
   const needsStart = Boolean(actions.startWorkout);
   const needsWater = typeof actions.waterMl === "number" && actions.waterMl > 0;
   const needsWeight = typeof actions.weightKg === "number" && actions.weightKg > 0;
+  const needsDelete = Boolean(actions.deleteMeals?.length);
+  const needsPatch = Boolean(actions.patchMeals?.length);
 
   const alreadyApplied =
     (!needsMeals || mealsDone) &&
@@ -455,16 +463,28 @@ function ActionCard({
     (!needsStart || startDone) &&
     (!needsWater || waterDone) &&
     (!needsWeight || weightDone) &&
+    (!needsDelete || deleteDone) &&
+    (!needsPatch || patchDone) &&
     (needsMeals ||
       needsRoutine ||
       needsShopping ||
       needsStart ||
       needsWater ||
-      needsWeight);
+      needsWeight ||
+      needsDelete ||
+      needsPatch);
 
-  async function apply(
-    kind: "meals" | "routine" | "shopping" | "start" | "water" | "weight",
-  ) {
+  type ApplyKind =
+    | "meals"
+    | "routine"
+    | "shopping"
+    | "start"
+    | "water"
+    | "weight"
+    | "deleteMeals"
+    | "patchMeals";
+
+  async function apply(kind: ApplyKind) {
     setBusy(kind);
     try {
       const body = { kind, date, actions };
@@ -482,7 +502,11 @@ function ActionCard({
                   ? "Офлайн — вода в очереди"
                   : kind === "weight"
                     ? "Офлайн — вес в очереди"
-                    : "Офлайн — старт тренировки в очереди",
+                    : kind === "deleteMeals"
+                      ? "Офлайн — удаление в очереди"
+                      : kind === "patchMeals"
+                        ? "Офлайн — правка в очереди"
+                        : "Офлайн — старт тренировки в очереди",
         );
         return;
       }
@@ -497,7 +521,7 @@ function ActionCard({
         routines?: Array<{ id: string }>;
         result?: {
           message?: string;
-          data?: { waterId?: string; weightId?: string };
+          data?: { waterId?: string; weightId?: string; mealIds?: string[] };
         };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
@@ -531,6 +555,12 @@ function ActionCard({
           ...emptyUndo(),
           weightIds: weightId ? [weightId] : [],
         });
+      } else if (kind === "deleteMeals") {
+        onFlash(data?.result?.message ?? "Удалил из рациона");
+        onApplied(emptyUndo());
+      } else if (kind === "patchMeals") {
+        onFlash(data?.result?.message ?? "Обновил в рационе");
+        onApplied(emptyUndo());
       } else {
         onFlash(data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
@@ -542,41 +572,36 @@ function ActionCard({
     }
   }
 
-  const gymOnly =
-    needsRoutine &&
-    !needsMeals &&
-    !needsShopping &&
-    !needsStart &&
-    !needsWater &&
-    !needsWeight;
-  const shoppingOnly =
-    needsShopping &&
-    !needsMeals &&
-    !needsRoutine &&
-    !needsStart &&
-    !needsWater &&
-    !needsWeight;
-  const startOnly =
-    needsStart &&
-    !needsMeals &&
-    !needsRoutine &&
-    !needsShopping &&
-    !needsWater &&
-    !needsWeight;
-  const waterOnly =
-    needsWater &&
-    !needsMeals &&
-    !needsRoutine &&
-    !needsShopping &&
-    !needsStart &&
-    !needsWeight;
-  const weightOnly =
-    needsWeight &&
-    !needsMeals &&
-    !needsRoutine &&
-    !needsShopping &&
-    !needsStart &&
-    !needsWater;
+  const alone = (flag: boolean, ...rest: boolean[]) => flag && rest.every((x) => !x);
+  const othersOf = (...flags: boolean[]) => flags;
+  const gymOnly = alone(
+    needsRoutine,
+    ...othersOf(needsMeals, needsShopping, needsStart, needsWater, needsWeight, needsDelete, needsPatch),
+  );
+  const shoppingOnly = alone(
+    needsShopping,
+    ...othersOf(needsMeals, needsRoutine, needsStart, needsWater, needsWeight, needsDelete, needsPatch),
+  );
+  const startOnly = alone(
+    needsStart,
+    ...othersOf(needsMeals, needsRoutine, needsShopping, needsWater, needsWeight, needsDelete, needsPatch),
+  );
+  const waterOnly = alone(
+    needsWater,
+    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWeight, needsDelete, needsPatch),
+  );
+  const weightOnly = alone(
+    needsWeight,
+    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsDelete, needsPatch),
+  );
+  const deleteOnly = alone(
+    needsDelete,
+    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsWeight, needsPatch),
+  );
+  const patchOnly = alone(
+    needsPatch,
+    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsWeight, needsDelete),
+  );
   const skim = alreadyApplied
     ? gymOnly
       ? "План зала · уже записано"
@@ -588,7 +613,11 @@ function ActionCard({
             ? "Вода · уже записано"
             : weightOnly
               ? "Вес · уже записано"
-              : `День ${date} · уже записано`
+              : deleteOnly
+                ? "Удаление · уже записано"
+                : patchOnly
+                  ? "Правка · уже записано"
+                  : `День ${date} · уже записано`
     : gymOnly
       ? "План зала · подтверди запись"
       : shoppingOnly
@@ -599,7 +628,11 @@ function ActionCard({
             ? "Вода · подтверди запись"
             : weightOnly
               ? "Вес · подтверди запись"
-              : `День ${date} · подтверди запись`;
+              : deleteOnly
+                ? "Удаление · подтверди"
+                : patchOnly
+                  ? "Правка · подтверди"
+                  : `День ${date} · подтверди запись`;
 
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
@@ -657,6 +690,28 @@ function ActionCard({
           Вес · {actions.weightKg} кг
         </p>
       ) : null}
+      {needsDelete ? (
+        <ul className="confirm-family-dish mt-1.5 space-y-1">
+          {actions.deleteMeals!.map((d) => (
+            <li key={`del-${d.match}`}>
+              <span className="font-semibold">Удалить</span>: {d.match}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {needsPatch ? (
+        <ul className="confirm-family-dish mt-1.5 space-y-1">
+          {actions.patchMeals!.map((p) => (
+            <li key={`patch-${p.match}`}>
+              <span className="font-semibold">Правка</span>: {p.match}
+              {p.kcal != null ? ` · ${p.kcal} ккал` : ""}
+              {p.protein != null || p.fat != null || p.carbs != null
+                ? ` · Б${p.protein ?? "—"} Ж${p.fat ?? "—"} У${p.carbs ?? "—"}`
+                : ""}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
           needsRoutine || needsStart ? (
@@ -694,6 +749,26 @@ function ActionCard({
                 onClick={() => void apply("weight")}
               >
                 {busy === "weight" ? "…" : online ? "В вес" : "В очередь"}
+              </button>
+            ) : null}
+            {needsDelete && !deleteDone ? (
+              <button
+                type="button"
+                className="confirm-family-cta"
+                disabled={busy === "deleteMeals"}
+                onClick={() => void apply("deleteMeals")}
+              >
+                {busy === "deleteMeals" ? "…" : online ? "Удалить" : "В очередь"}
+              </button>
+            ) : null}
+            {needsPatch && !patchDone ? (
+              <button
+                type="button"
+                className="confirm-family-cta"
+                disabled={busy === "patchMeals"}
+                onClick={() => void apply("patchMeals")}
+              >
+                {busy === "patchMeals" ? "…" : online ? "Исправить" : "В очередь"}
               </button>
             ) : null}
             {needsRoutine && !routineDone ? (
@@ -1513,6 +1588,8 @@ export function AssistantChat() {
             start: toolOk("start"),
             water: toolOk("water"),
             weight: toolOk("weight") || toolOk("log_weight"),
+            deleteMeals: toolOk("delete"),
+            patchMeals: toolOk("patch"),
           };
           const weightConfirm = turn.tools?.find(
             (t) =>

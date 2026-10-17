@@ -54,6 +54,10 @@ import {
   subscribeAssistantApplyQueue,
   type AssistantApplyKind,
 } from "@/lib/assistant-apply-queue";
+import {
+  hasOfflineQueueFlushError,
+  subscribeOfflineQueueFlushErrors,
+} from "@/lib/offline-queue-flush-errors";
 
 const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
   photo: "AI · фото",
@@ -63,10 +67,12 @@ const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
   start: "AI · старт",
   water: "AI · вода",
   weight: "AI · вес",
+  deleteMeals: "AI · удаление",
+  patchMeals: "AI · правка",
 };
 
-/** T5 — row status for offline queue clarity. */
-type QueueRowStatus = "waiting" | "conflict" | "local";
+/** T5/T8 — row status for offline queue clarity. */
+type QueueRowStatus = "waiting" | "conflict" | "local" | "error";
 
 type QueueRow = {
   id: string;
@@ -91,6 +97,12 @@ function statusPill(status: QueueRowStatus, flushing: boolean): { label: string;
       className: "bg-amber-100 text-amber-950",
     };
   }
+  if (status === "error") {
+    return {
+      label: "Ошибка",
+      className: "bg-rose-100 text-rose-950",
+    };
+  }
   if (status === "local") {
     return {
       label: "На устройстве",
@@ -101,6 +113,10 @@ function statusPill(status: QueueRowStatus, flushing: boolean): { label: string;
     label: "Ждёт сеть",
     className: "bg-[var(--accent-soft)]/80 text-[var(--accent-ink)]",
   };
+}
+
+function rowStatus(id: string, base: "waiting" | "local"): QueueRowStatus {
+  return hasOfflineQueueFlushError(id) ? "error" : base;
 }
 
 type Props = {
@@ -119,7 +135,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "photo",
       label: "Фото на распознавание",
       detail: item.selectedDate,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -136,7 +152,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "meal",
       label: dishName ? `Блюдо: ${dishName}` : "Блюдо в дневник",
       detail: item.selectedDate,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -149,7 +165,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "patch",
       label: "Правка в дневнике",
       detail: item.mealId,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -162,7 +178,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "delete",
       label: "Удаление из дневника",
       detail: item.mealId,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeMealDraft(item.id);
         onChanged();
@@ -175,7 +191,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "water",
       label: `Вода · ${item.ml} мл`,
       detail: item.selectedDate,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeWaterDraft(item.id);
         onChanged();
@@ -192,7 +208,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "weight",
       label: `Вес · ${item.weightKg} кг`,
       detail: conflict ?? item.date,
-      status: conflict ? "conflict" : "waiting",
+      status: conflict ? "conflict" : rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeWeightDraft(item.id);
         onChanged();
@@ -206,7 +222,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "diary",
       label: "Вечерний чек-ин",
       detail: item.date,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeDiaryNoteDraft(item.id);
         onChanged();
@@ -219,7 +235,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-local",
       label: `Тренировка · ${item.exercises.length} упр.`,
       detail: item.date,
-      status: "local",
+      status: rowStatus(item.id, "local"),
       onDiscard: () => {
         removeLocalWorkoutSession(item.id);
         onChanged();
@@ -232,7 +248,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-ex",
       label: `Упражнение · ${item.name}`,
       detail: item.sessionId,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeWorkoutExerciseDraft(item.id);
         onChanged();
@@ -245,7 +261,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-set",
       label: "Подход в зале",
       detail: item.exerciseId,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeWorkoutSetDraft(item.id);
         onChanged();
@@ -258,7 +274,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "gym-finish",
       label: "Завершение тренировки",
       detail: item.sessionId,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeWorkoutFinishDraft(item.id);
         onChanged();
@@ -271,7 +287,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: "shopping",
       label: "Список покупок",
       detail: "локальные правки ещё не на сервере",
-      status: "local",
+      status: rowStatus("shopping-sync", "local"),
       onDiscard: () => {
         // Keep the local list — only drop the sync debt marker.
         clearShoppingSyncDirty();
@@ -287,7 +303,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
       kind: `assistant-${item.kind}`,
       label: ASSISTANT_APPLY_LABEL[item.kind] ?? `AI · ${item.kind}`,
       detail: typeof item.body.date === "string" ? item.body.date : undefined,
-      status: "waiting",
+      status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
         removeAssistantApply(item.id);
         onChanged();
@@ -315,6 +331,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
       subscribeWorkoutSetDraftQueue(bump),
       subscribeShoppingSyncDraft(bump),
       subscribeAssistantApplyQueue(bump),
+      subscribeOfflineQueueFlushErrors(bump),
     ];
     return () => {
       for (const u of unsubs) u();
@@ -393,6 +410,18 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
                     >
                       Заменить {row.weightConflict.conflictExistingKg} кг →{" "}
                       {row.weightConflict.weightKg} кг
+                    </button>
+                  </div>
+                ) : null}
+                {row.status === "error" ? (
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      className="confirm-family-cta !min-h-8 !px-2.5 !text-[11px]"
+                      disabled={flushing}
+                      onClick={onFlush}
+                    >
+                      Повторить
                     </button>
                   </div>
                 ) : null}

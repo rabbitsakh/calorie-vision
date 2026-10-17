@@ -20,7 +20,7 @@ import {
 import { cheerPhrase, frameAvatarClass } from "@/lib/rewards";
 
 /**
- * R5–R8 — equipped collection wear on gym Today, summary, live, and History.
+ * R5–R9 — equipped collection wear on gym surfaces and ration DayHero.
  */
 export function GymCollectionWear({ className = "" }: { className?: string }) {
   const [sticker, setSticker] = useState<string | null>(null);

@@ -83,3 +83,21 @@ test("Assistant M: weight kind enqueues", () => {
   assert.equal(countAssistantApplyQueue(), 1);
   assert.equal(listAssistantApplyQueue()[0]?.kind, "weight");
 });
+
+test("Assistant N: deleteMeals and patchMeals kinds enqueue", () => {
+  store.clear();
+  clearAssistantApplyQueue();
+  enqueueAssistantApply("deleteMeals", {
+    kind: "deleteMeals",
+    date: "2026-10-17",
+    actions: { deleteMeals: [{ match: "Омлет" }] },
+  });
+  enqueueAssistantApply("patchMeals", {
+    kind: "patchMeals",
+    date: "2026-10-17",
+    actions: { patchMeals: [{ match: "суп", kcal: 220 }] },
+  });
+  assert.equal(countAssistantApplyQueue(), 2);
+  const kinds = listAssistantApplyQueue().map((x) => x.kind).sort();
+  assert.deepEqual(kinds, ["deleteMeals", "patchMeals"]);
+});
