@@ -35,7 +35,6 @@ import {
   subscribeEquippedCheer,
 } from "@/lib/equipped-cheer";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
-import { withBasePath } from "@/lib/paths";
 import { shareStickerCard } from "@/lib/share-sticker";
 
 type RewardItem = {
