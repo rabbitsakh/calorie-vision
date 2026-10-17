@@ -102,19 +102,19 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
   return (
     <div className="gym-hub-scene">
       <input
-        className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base text-[var(--foreground)]"
+        className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base text-[var(--foreground)]"
         placeholder="Поиск…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
 
-      <section className="rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] p-4">
+      <section className="rounded-2xl border border-dashed border-[var(--border-quiet)] p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Добавить в библиотеку
         </p>
         <div className="mt-2 flex flex-col gap-2">
           <input
-            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
+            className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base"
             placeholder="Название"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -134,7 +134,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
             ))}
           </div>
           <select
-            className="rounded-lg border border-[rgba(13,115,119,0.14)] px-3 py-2 text-base"
+            className="rounded-lg border border-[var(--border-quiet)] px-3 py-2 text-base"
             value={group}
             onChange={(e) => setGroup(e.target.value)}
           >
@@ -163,7 +163,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
         {entries.map((e) => (
           <li
             key={e.id}
-            className="flex items-center justify-between gap-2 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2"
+            className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-white px-3 py-2"
           >
             <div className="min-w-0">
               <p className="truncate font-medium text-[var(--foreground)]">{e.name}</p>

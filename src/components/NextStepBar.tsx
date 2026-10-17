@@ -10,6 +10,7 @@ import {
   hasFreshPostWorkoutNudge,
   shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
+import { dayPartFromHour } from "@/lib/splash-tips";
 import { dismissWeekNudge, isWeekNudgeDismissed } from "@/lib/week-nudge-dismiss";
 
 type NextStepBarProps = {
@@ -51,6 +52,8 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
     const logged =
       (meals?.entries.length ?? 0) > 0 || Boolean(streak?.loggedToday);
     const hour = new Date().getHours();
+    // MorningTodayCard owns the soft slot before midday — avoid two CTAs.
+    if (dayPartFromHour(hour) === "morning") return null;
     const postWorkout = hasFreshPostWorkoutNudge();
 
     // After the first meal, nudge weight once so calorie targets appear.

@@ -175,8 +175,8 @@ export function WorkoutInlineSetRow({
           disabled={busy}
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold ${
             set.completed
-              ? "border-teal-600 bg-teal-600 text-white"
-              : "border-[rgba(13,115,119,0.22)] bg-white text-[var(--muted)]"
+              ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+              : "border-[var(--border-quiet)] bg-white text-[var(--muted)]"
           }`}
           onClick={onToggleComplete}
         >
@@ -224,13 +224,13 @@ export function WorkoutInlineSetRow({
       </div>
 
       {editing ? (
-        <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-[rgba(13,115,119,0.12)] pt-2">
+        <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-[var(--border-quiet)] pt-2">
           {spec.usesDistance ? (
             <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
               Км
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="w-20 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={km}
                 onChange={(e) => setKm(e.target.value)}
               />
@@ -241,7 +241,7 @@ export function WorkoutInlineSetRow({
               Мин
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="w-20 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
               />
@@ -252,7 +252,7 @@ export function WorkoutInlineSetRow({
               Кг
               <input
                 inputMode="decimal"
-                className="w-20 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="w-20 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={kg}
                 onChange={(e) => setKg(e.target.value)}
               />
@@ -263,7 +263,7 @@ export function WorkoutInlineSetRow({
               Повт
               <input
                 inputMode="numeric"
-                className="w-16 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="w-16 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
               />
@@ -277,7 +277,7 @@ export function WorkoutInlineSetRow({
               {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
-                className="w-14 rounded-lg border border-[rgba(13,115,119,0.14)] px-2 py-2 text-base text-[var(--foreground)]"
+                className="w-14 rounded-lg border border-[var(--border-quiet)] px-2 py-2 text-base text-[var(--foreground)]"
                 value={rpe}
                 onChange={(e) => setRpe(e.target.value)}
                 placeholder="8"
@@ -288,7 +288,7 @@ export function WorkoutInlineSetRow({
           {suggestedKg != null && spec.usesWeight ? (
             <button
               type="button"
-              className="rounded-lg border border-teal-200 bg-teal-50 px-2 py-2 text-xs font-semibold text-teal-900"
+              className="rounded-lg border border-[var(--accent)]/25 bg-[var(--accent-soft)] px-2 py-2 text-xs font-semibold text-[var(--accent-ink)]"
               onClick={() => setKg(formatSuggestedKg(suggestedKg))}
             >
               → {formatSuggestedKg(suggestedKg)} кг

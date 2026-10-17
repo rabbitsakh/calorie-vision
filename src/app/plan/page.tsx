@@ -66,7 +66,7 @@ export default function PlanPage() {
               />
             </section>
 
-            <details id="week-digest" className="plan-week__fold group scroll-mt-3" open>
+            <details id="week-digest" className="plan-week__fold group scroll-mt-3">
               <summary className="plan-week__fold-summary">
                 <span className="min-w-0">
                   <span className="block font-semibold text-[var(--foreground)]">Итог недели</span>

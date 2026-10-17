@@ -68,25 +68,20 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
   });
 
   return (
-    <div
-      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 px-3 py-2.5 text-sm text-[var(--foreground)]"
-      role="status"
-    >
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold">Есть незавершённая проверка</p>
-        <p className="mt-0.5 text-xs text-[var(--muted-strong)]">{hint}</p>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
+    <div className="confirm-family text-sm text-[var(--ink)]" role="status">
+      <p className="confirm-family-skim">Незавершённая проверка</p>
+      <p className="text-xs text-[var(--muted-strong)]">{hint}</p>
+      <div className="confirm-family-actions flex flex-wrap gap-1.5 !border-t-0 !pt-1.5">
         <button
           type="button"
-          className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
+          className="confirm-family-cta"
           onClick={() => requestOpenPendingConfirm()}
         >
           Продолжить
         </button>
         <button
           type="button"
-          className="rounded-lg border border-[var(--border-quiet)] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-white"
+          className="confirm-family-secondary"
           onClick={() => clearPendingConfirmDraft(selectedDate)}
         >
           Удалить

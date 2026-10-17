@@ -925,12 +925,17 @@ export function StatsView({ endDate }: StatsViewProps) {
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {data && data.summary.totalMealDays === 0 ? (
-        <div className="stats-chart-block flex flex-col items-center gap-3 border-0 py-8 text-center">
-          <p className="font-display text-base font-semibold text-[var(--foreground)]">Пока тихо</p>
-          <p className="max-w-xs text-sm text-[var(--muted-strong)]">
-            За этот период нет записей — добавьте приём, и здесь появится картина дня.
+        <div className="stats-chart-block flex flex-col items-center gap-3 border-0 border-dashed py-10 text-center">
+          <p className="font-display text-lg font-semibold text-[var(--foreground)]">Пока тихо</p>
+          <p className="max-w-xs text-sm leading-relaxed text-[var(--muted-strong)]">
+            За этот период нет записей — один приём, и здесь появится картина дня.
           </p>
-          <a href={withBasePath("/ration")} className="btn btn-primary text-sm">Добавить еду</a>
+          <a
+            href={withBasePath("/ration")}
+            className="btn btn-primary mt-1 min-h-11 px-6 text-sm"
+          >
+            К рациону
+          </a>
         </div>
       ) : null}
 

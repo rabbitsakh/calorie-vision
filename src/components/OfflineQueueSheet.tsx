@@ -347,7 +347,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
             <p className="confirm-family-skim !mb-0.5">Очередь офлайн</p>
             <p className="text-xs text-[var(--muted)]">
               {rows.length === 0
-                ? "Пусто"
+                ? "Черновиков нет"
                 : `${rows.length} на устройстве — можно отменить до отправки`}
             </p>
           </div>
@@ -361,7 +361,19 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
         </div>
 
         {rows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-[var(--muted)]">Очередь пуста</p>
+          <div className="confirm-family my-4 border-dashed py-6 text-center">
+            <p className="confirm-family-skim !mb-1">Очередь пуста</p>
+            <p className="text-xs text-[var(--muted-strong)]">
+              Офлайн-записи появятся здесь — фото, дневник, зал, AI.
+            </p>
+            <button
+              type="button"
+              className="confirm-family-secondary mt-3 !min-h-8"
+              onClick={onClose}
+            >
+              Понятно
+            </button>
+          </div>
         ) : (
           <ul className="space-y-2">
             {rows.map((row) => {

@@ -24,7 +24,7 @@ export function DiarySticker({ className = "" }: { className?: string }) {
 
   return (
     <span
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 shadow-sm ring-1 ring-teal-900/5 ${className}`.trim()}
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 shadow-sm ring-1 ring-[var(--accent-ink)]/10 ${className}`.trim()}
       title="Наклейка из коллекции"
     >
       <StickerArt stickerKey={key} size={20} title="Наклейка из коллекции" />

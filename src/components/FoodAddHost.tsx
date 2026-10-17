@@ -170,7 +170,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
         className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3">
           <p id="food-add-sheet-title" className="font-semibold text-[var(--foreground)]">
             {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
           </p>

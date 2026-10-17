@@ -340,7 +340,7 @@ function GroupedMealCard({
     group.imagePath ?? group.entries.find((entry) => entry.imagePath)?.imagePath ?? null;
 
   return (
-    <article className="meal-card overflow-hidden rounded-2xl border border-[rgba(13,115,119,0.12)] bg-white">
+    <article className="meal-card overflow-hidden rounded-2xl border border-[var(--border-quiet)] bg-white">
       <div className="flex items-start gap-2.5 p-2.5 md:gap-3 md:p-3">
         {headerImage ? (
           <div className="meal-card-thumb shrink-0 overflow-hidden rounded-xl bg-white md:h-20 md:w-20">
@@ -380,7 +380,7 @@ function GroupedMealCard({
         </button>
       </div>
 
-      <div className="divide-y divide-[rgba(13,115,119,0.08)] border-t border-[rgba(13,115,119,0.1)] bg-[var(--surface-mist)]/40">
+      <div className="divide-y divide-[var(--border-hairline)] border-t border-[var(--border-hairline)] bg-[var(--surface-mist)]/40">
         {group.entries.map((entry) => {
           if (editingId === entry.id) {
             return (

@@ -552,7 +552,7 @@ export function FoodAddPanel({
         ) : null}
 
         {queuedCount > 0 ? (
-          <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-3 text-sm text-[var(--muted-strong)]">
+          <div className="rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)] px-3 py-3 text-sm text-[var(--muted-strong)]">
             <p>
               В очереди офлайн: {queuedCount}{" "}
               {queuedCount === 1 ? "элемент" : "элемента"}
@@ -572,7 +572,7 @@ export function FoodAddPanel({
             </p>
             <button
               type="button"
-              className="btn-quiet mt-1 text-sm text-teal-800"
+              className="btn-quiet mt-1 text-sm text-[var(--accent-ink)]"
               disabled={flushing}
               onClick={() => void flushFailedSaves()}
             >
@@ -646,7 +646,7 @@ export function FoodAddPanel({
                   type="button"
                   disabled={disabled || loading}
                   className={`rounded-lg px-1.5 py-2 text-[0.7rem] font-semibold ${
-                    photoContext === id ? "bg-white text-teal-800 shadow-sm" : "text-[var(--muted-strong)]"
+                    photoContext === id ? "bg-white text-[var(--accent-ink)] shadow-sm" : "text-[var(--muted-strong)]"
                   }`}
                   onClick={() => {
                     setPhotoContext(id);
@@ -699,7 +699,7 @@ export function FoodAddPanel({
                 {voiceSupported ? (
                   <button
                     type="button"
-                    className={`btn-icon ${listening ? "ring-2 ring-teal-500" : "bg-teal-50 text-teal-800"}`}
+                    className={`btn-icon ${listening ? "ring-2 ring-[var(--accent)]" : "bg-[var(--accent-soft)] text-[var(--accent-ink)]"}`}
                     title={listening ? "Остановить диктовку" : "Сказать название"}
                     aria-label={listening ? "Остановить диктовку" : "Сказать название голосом"}
                     aria-pressed={listening}
@@ -711,9 +711,9 @@ export function FoodAddPanel({
                 ) : null}
               </div>
               {listening ? (
-                <p className="text-xs font-medium text-teal-800">Слушаю… скажите название блюда</p>
+                <p className="text-xs font-medium text-[var(--accent-ink)]">Слушаю… скажите название блюда</p>
               ) : voiceSupported ? (
-                <p className="text-xs font-medium text-teal-700">Микрофон справа — надиктуйте название</p>
+                <p className="text-xs font-medium text-[var(--accent-ink)]">Микрофон справа — надиктуйте название</p>
               ) : null}
             </div>
             <button type="submit" className="btn btn-primary inline-flex items-center gap-2" disabled={disabled || loading}>

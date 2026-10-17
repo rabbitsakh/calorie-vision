@@ -283,15 +283,11 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
-          <div className="pt-2">
-            <MorningTodayCard selectedDate={date} today={today} />
-          </div>
-          <div className="pt-2">
-            <NextStepBar selectedDate={date} today={today} />
-          </div>
-          <div className="pt-1.5">
+          {/* One soft stack: pending → morning OR next-step (not both). Chest moves below queue. */}
+          <div className="flex flex-col gap-2 pt-2">
             <PendingConfirmBanner selectedDate={date} />
+            <MorningTodayCard selectedDate={date} today={today} />
+            <NextStepBar selectedDate={date} today={today} />
           </div>
 
           {/* Offline / error — above the meal feed so the day is usable without scrolling */}
@@ -311,17 +307,17 @@ function RationBody({
             </div>
           ) : day.fromCache ? (
             <div
-              className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-amber-200/80 bg-amber-50/90 px-3 py-2.5 text-sm text-amber-950"
+              className="offline-chrome offline-chrome-pad mx-0.5 mt-2 flex flex-wrap items-center gap-2 text-sm"
               role="status"
             >
-              <p className="min-w-0 flex-1 font-medium">
+              <p className="min-w-0 flex-1 font-medium text-[var(--offline-glass-ink)]">
                 {day.data?.meals.entries?.length
                   ? "День с устройства — при связи обновим; новые записи уйдут в очередь"
                   : "День ещё подгружается — можно листать; при связи обновим"}
               </p>
               <button
                 type="button"
-                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                className="offline-chrome-link shrink-0"
                 disabled={day.loading}
                 onClick={() => void day.refresh(false)}
               >
@@ -343,6 +339,7 @@ function RationBody({
               }}
             />
           </div>
+          <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
 
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">

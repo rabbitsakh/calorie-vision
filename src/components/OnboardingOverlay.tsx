@@ -137,11 +137,11 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
       aria-modal="true"
       aria-labelledby="cv-onboarding-title"
     >
-      <div className="w-full max-w-md rounded-3xl border border-teal-100 bg-white p-5 shadow-xl sm:p-6">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--accent)]/20 bg-white p-5 shadow-xl sm:p-6">
         <div className="flex items-start gap-3">
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
               Шаг {step + 1} из {steps.length}
             </p>
             <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-[var(--foreground)]">
@@ -183,7 +183,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
               <>
                 <button
                   type="button"
-                  className="btn-quiet text-sm text-teal-800"
+                  className="btn-quiet text-sm text-[var(--accent-ink)]"
                   onClick={() => void next()}
                 >
                   Позже
@@ -200,7 +200,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
               <>
                 <a
                   href={withBasePath("/profile")}
-                  className="btn-quiet text-sm text-teal-800"
+                  className="btn-quiet text-sm text-[var(--accent-ink)]"
                   onClick={() => finish()}
                 >
                   В профиль

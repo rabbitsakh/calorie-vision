@@ -15,6 +15,7 @@ import {
   type RewardRarity,
 } from "@/lib/rewards";
 import { StickerArt } from "@/components/StickerArt";
+import { withBasePath } from "@/lib/paths";
 import {
   getEquippedFrameKey,
   hydrateEquippedFrameFromAccount,
@@ -34,7 +35,6 @@ import {
   subscribeEquippedCheer,
 } from "@/lib/equipped-cheer";
 import { trackFrameEquippedGoal } from "@/lib/metrika-funnel";
-import { withBasePath } from "@/lib/paths";
 import { shareStickerCard } from "@/lib/share-sticker";
 
 type RewardItem = {
@@ -195,14 +195,23 @@ export function RewardsPanel() {
 
   if (!loaded) return null;
   if (rewards.length === 0) {
-    // R4: empty / failed load — still show a soft collection shell.
+    // Soft empty scene — door into the day, not a dead end.
     return (
-      <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
+      <div
+        id="rewards"
+        className="rounded-2xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 p-5"
+      >
+        <h2 className="font-display text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">
           Пока пусто. Закройте день или недельный челлендж — первая награда из сундука появится
           здесь.
         </p>
+        <a
+          href={withBasePath("/ration")}
+          className="mt-3 inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
+        >
+          Открыть рацион
+        </a>
       </div>
     );
   }
@@ -210,7 +219,7 @@ export function RewardsPanel() {
   const metaHint = nextMetaProgress(ownedCount);
 
   return (
-    <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
+    <div id="rewards" className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
       <div className="mb-3 flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
         <span className="text-xs text-[var(--muted)]">
