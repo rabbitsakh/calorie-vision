@@ -1157,9 +1157,12 @@ export function AssistantChat() {
       setStatus("Смотрю фото — сейчас покажу, что увидел…");
     }
 
+    // Drop empty/placeholder turns so parseAssistantMessages never 400s.
     const history = nextTurns
       .filter((t) => t.id !== "welcome")
-      .map((t) => ({ role: t.role, content: t.content }));
+      .filter((t) => t.role === "user" || t.role === "assistant")
+      .map((t) => ({ role: t.role as "user" | "assistant", content: String(t.content ?? "").trim() }))
+      .filter((t) => t.content.length > 0);
 
     const assistantId = newId();
     setTurns((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
@@ -1316,7 +1319,13 @@ export function AssistantChat() {
       void refreshSnapshot(date);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка");
-      setTurns((prev) => prev.filter((t) => t.id !== assistantId || t.content || t.tools?.length));
+      // Drop empty assistant shells (even with tools) so next send stays valid.
+      setTurns((prev) =>
+        prev.filter((t) => {
+          if (t.id !== assistantId) return true;
+          return Boolean(String(t.content ?? "").trim());
+        }),
+      );
     } finally {
       setBusy(false);
       setStatus(null);

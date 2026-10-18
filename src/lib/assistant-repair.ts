@@ -31,6 +31,39 @@ export function needsWriteRepair(
   return !actionsHaveWritablePayload(actions);
 }
 
+/**
+ * After confirm-gate (J–N), stream never silent-writes. Distinguish:
+ * - wrote true → tools already applied
+ * - wrote null → ActionCard pending (not a miss)
+ * - wrote false → user asked to write, but no actions to confirm
+ */
+export function assistantWroteFlag(opts: {
+  wroteOk: boolean;
+  actions: AssistantActions | null | undefined;
+  userMessage: string;
+}): boolean | null {
+  if (opts.wroteOk) return true;
+  if (actionsHaveWritablePayload(opts.actions)) return null;
+  if (userWantsWrite(opts.userMessage) || userWantsStartWorkout(opts.userMessage)) {
+    return false;
+  }
+  return null;
+}
+
+/** Scary miss line only when there is nothing for the ActionCard to confirm. */
+export function assistantWriteMissNote(opts: {
+  wroteOk: boolean;
+  awaitingConfirm?: boolean;
+  previewPending?: boolean;
+  actions: AssistantActions | null | undefined;
+  userMessage: string;
+}): string {
+  if (opts.previewPending || opts.wroteOk || opts.awaitingConfirm) return "";
+  if (actionsHaveWritablePayload(opts.actions)) return "";
+  if (!needsWriteRepair(opts.userMessage, null)) return "";
+  return "⚠ Не удалось подготовить запись. Нажми «Повторить запись» или добавь через «+».";
+}
+
 /** Pull JSON object from free-form model output. */
 export function extractActionsJson(raw: string): AssistantActions | null {
   const text = raw.trim();

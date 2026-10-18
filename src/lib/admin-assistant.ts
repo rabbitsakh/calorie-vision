@@ -62,11 +62,14 @@ export function parseAssistantMessages(raw: unknown): AssistantChatMessage[] | n
     const role = (item as { role?: unknown }).role;
     const content = (item as { content?: unknown }).content;
     if (role !== "user" && role !== "assistant") return null;
-    if (typeof content !== "string") return null;
+    // Skip empty/placeholder turns (client may keep failed assistant shells).
+    if (typeof content !== "string") continue;
     const trimmed = content.trim();
-    if (!trimmed || trimmed.length > ADMIN_ASSISTANT_MAX_CONTENT) return null;
+    if (!trimmed) continue;
+    if (trimmed.length > ADMIN_ASSISTANT_MAX_CONTENT) return null;
     out.push({ role, content: trimmed });
   }
+  if (out.length === 0) return null;
   if (out[out.length - 1]?.role !== "user") return null;
   return out;
 }
