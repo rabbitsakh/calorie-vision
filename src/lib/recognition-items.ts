@@ -1,3 +1,4 @@
+import { parseDishUnitCount } from "@/lib/dish-unit-count";
 import type { FoodRecognitionResult } from "./food-types";
 
 const MAX_PLATE_ITEMS = 8;
@@ -11,6 +12,43 @@ function sumDefined(values: Array<number | undefined>): number | undefined {
   return Math.round(present.reduce((sum, value) => sum + value, 0) * 10) / 10;
 }
 
+function scaleField(value: number | undefined, count: number): number | undefined {
+  if (value == null || !Number.isFinite(value)) return value;
+  return Math.round((value / count) * 10) / 10;
+}
+
+/**
+ * «2 батончика» / «два протеиновых батончика» → N identical units.
+ * Parent calories/portion are treated as totals for all units.
+ */
+export function expandCountedDish(
+  item: FoodRecognitionResult,
+): FoodRecognitionResult[] {
+  const parsed = parseDishUnitCount(item.dishName);
+  if (!parsed) return [item];
+
+  const { count, unitName } = parsed;
+  const copies: FoodRecognitionResult[] = [];
+  for (let i = 0; i < count; i++) {
+    copies.push({
+      ...item,
+      dishName: unitName,
+      calories: Math.max(0, Math.round((item.calories || 0) / count)),
+      protein: scaleField(item.protein, count),
+      fat: scaleField(item.fat, count),
+      carbs: scaleField(item.carbs, count),
+      fiber: scaleField(item.fiber, count),
+      sugar: scaleField(item.sugar, count),
+      portionGrams:
+        item.portionGrams && item.portionGrams > 0
+          ? Math.max(1, Math.round(item.portionGrams / count))
+          : item.portionGrams,
+      items: undefined,
+    });
+  }
+  return copies;
+}
+
 export function isMultiItemRecognition(result: FoodRecognitionResult): boolean {
   return (result.items?.length ?? 0) >= 2;
 }
@@ -18,15 +56,18 @@ export function isMultiItemRecognition(result: FoodRecognitionResult): boolean {
 export function flattenRecognitionItems(result: FoodRecognitionResult): FoodRecognitionResult[] {
   if (!isMultiItemRecognition(result) || !result.items) {
     const { items: _items, ...rest } = result;
-    return [rest];
+    return expandCountedDish(rest).slice(0, MAX_PLATE_ITEMS);
   }
 
-  return result.items.slice(0, MAX_PLATE_ITEMS).map((item) => ({
-    ...item,
-    photoKind: item.photoKind ?? result.photoKind ?? "meal",
-    source: item.source ?? result.source,
-    items: undefined,
-  }));
+  const flat = result.items.slice(0, MAX_PLATE_ITEMS).flatMap((item) =>
+    expandCountedDish({
+      ...item,
+      photoKind: item.photoKind ?? result.photoKind ?? "meal",
+      source: item.source ?? result.source,
+      items: undefined,
+    }),
+  );
+  return flat.slice(0, MAX_PLATE_ITEMS);
 }
 
 

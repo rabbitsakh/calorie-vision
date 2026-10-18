@@ -32,8 +32,7 @@ export function shouldRunPlatePass(result: FoodRecognitionResult): boolean {
 
   const looksMeal = result.photoKind === "meal" || result.photoKind === undefined;
   const misclassifiedPackage =
-    result.photoKind === "package" &&
-    !result.barcode?.trim() &&
+    (result.photoKind === "package" || result.photoKind === "label") &&
     looksLikeMultiDishName(result.dishName);
 
   if (looksMeal || misclassifiedPackage) {

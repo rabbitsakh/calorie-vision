@@ -41,7 +41,8 @@ ${FOOD_JSON_SHAPE}
 - label/package: если на этикетке «100 мл» / «100 г» — заполни per100g (calories, БЖУ); calories/protein/fat/carbs на порцию = per100g × (portionGrams/100)
 - meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
 - fiber/sugar: не включай в JSON — подтянутся отдельно; для мяса/рыбы/яиц можно 0 только в items если уверен
-- meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
+- meal/package: несколько видимых единиц (разные ИЛИ одинаковые: 2 батончика, 2 йогурта) → items 2–8, по одной позиции на каждую единицу; иначе items []
+- одинаковые продукты тоже в items отдельно (не сливай в «2× …» без items)
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
 
@@ -52,11 +53,11 @@ ${FOOD_JSON_SHAPE}
 export const FOOD_RECOGNITION_RETRY_PROMPT = `По фото еды верни ТОЛЬКО валидный JSON (без markdown) по схеме:
 ${FOOD_JSON_SHAPE}
 
-Исправь предыдущий ответ: валидный JSON; для смешанной тарелки items 2–8 с ненулевыми calories/portionGrams; fiber/sugar — только если знаешь (не ставь 0 «на всякий случай»).`;
+Исправь предыдущий ответ: валидный JSON; если на фото ≥2 единиц еды (в т.ч. одинаковых) — items 2–8 с ненулевыми calories/portionGrams; fiber/sugar — только если знаешь (не ставь 0 «на всякий случай»).`;
 
 /** @deprecated use FOOD_RECOGNITION_RETRY_PROMPT as a full retry message */
 export const FOOD_RECOGNITION_RETRY_HINT = `Предыдущий ответ был неполным или невалидным JSON.
-Верни ТОЛЬКО валидный JSON по схеме. Если на тарелке несколько разных продуктов — обязательно заполни items (2–8) с ненулевыми calories/portionGrams. Укажи fiber и sugar (0 если неизвестно). Не используй markdown.`;
+Верни ТОЛЬКО валидный JSON по схеме. Если на фото несколько продуктов или одинаковых единиц — обязательно заполни items (2–8) с ненулевыми calories/portionGrams. Укажи fiber и sugar (0 если неизвестно). Не используй markdown.`;
 
 export function buildFoodLookupPrompt(dishName: string): string {
   return `Ты диетолог. Пользователь указал название блюда: "${dishName}".

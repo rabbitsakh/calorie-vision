@@ -62,11 +62,14 @@ export function parseAssistantMessages(raw: unknown): AssistantChatMessage[] | n
     const role = (item as { role?: unknown }).role;
     const content = (item as { content?: unknown }).content;
     if (role !== "user" && role !== "assistant") return null;
-    if (typeof content !== "string") return null;
+    // Skip empty/placeholder turns (client may keep failed assistant shells).
+    if (typeof content !== "string") continue;
     const trimmed = content.trim();
-    if (!trimmed || trimmed.length > ADMIN_ASSISTANT_MAX_CONTENT) return null;
+    if (!trimmed) continue;
+    if (trimmed.length > ADMIN_ASSISTANT_MAX_CONTENT) return null;
     out.push({ role, content: trimmed });
   }
+  if (out.length === 0) return null;
   if (out[out.length - 1]?.role !== "user") return null;
   return out;
 }
@@ -94,7 +97,8 @@ export function buildAssistantSystemPrompt(
     "ТЫ УМЕЕШЬ ЗАПИСЫВАТЬ: блюда (с БЖУ), правки/удаление блюд, план зала по дням, покупки, воду (мл), вес (кг), старт сегодняшней тренировки.",
     "КРИТИЧНО: если пользователь просит добавить/записать/сохранить/съел+добавь/удали/исправь — НЕЛЬЗЯ только текстом «Добавляю».",
     "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
-    "Несколько блюд = несколько объектов в meals[]. Оцени kcal/БЖУ, если не указали.",
+    "Несколько блюд/единиц = несколько объектов в meals[] (2 батончика → 2 объекта; «печень и чебурек» → 2). Оцени kcal/БЖУ, если не указали.",
+    "Можно совмещать действия в одном cv-actions: meals + waterMl + weightKg + shopping + workoutDays и т.д. — клиент покажет кнопки по видам.",
     "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280}].",
     "Вес: weightKg. Если на день уже есть вес — сервер спросит подтверждение; не ставь overwriteWeight сам.",
     "Совет без просьбы записать — без apply / без блока.",

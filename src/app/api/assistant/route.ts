@@ -16,6 +16,8 @@ import {
   rateLimitResponse,
 } from "@/lib/assistant-rate-limit";
 import {
+  assistantWroteFlag,
+  assistantWriteMissNote,
   needsWriteRepair,
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
@@ -216,19 +218,28 @@ export async function POST(request: NextRequest) {
         ),
     );
     const toolNote = formatToolResultsForReply(writeResults);
-    const missNote =
-      !wroteOk && !awaitingWeightConfirm && needsWriteRepair(lastUser, null)
-        ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
-        : "";
+    // Confirm-gate: writable actions go to ActionCard — not a write miss.
+    const missNote = assistantWriteMissNote({
+      wroteOk,
+      awaitingConfirm: awaitingWeightConfirm,
+      previewPending,
+      actions,
+      userMessage: lastUser,
+    });
     const finalReply =
       [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;
+    const wrote = assistantWroteFlag({
+      wroteOk,
+      actions,
+      userMessage: lastUser,
+    });
 
     return NextResponse.json({
       reply: finalReply,
       actions: actions as AssistantActions | null,
       tools: toolResults,
       undo: collectUndoFromTools(toolResults),
-      wrote: wroteOk,
+      wrote,
       date,
       mode,
       snapshot: pack.snapshot,

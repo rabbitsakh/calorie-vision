@@ -72,6 +72,18 @@ test("parseAssistantMessages rejects empty / non-user tail", () => {
   assert.equal(parseAssistantMessages([{ role: "assistant", content: "hi" }]), null);
 });
 
+test("parseAssistantMessages skips empty placeholder turns", () => {
+  const parsed = parseAssistantMessages([
+    { role: "user", content: "привет" },
+    { role: "assistant", content: "" },
+    { role: "assistant", content: "   " },
+    { role: "user", content: "Я съел печень с рисом 500гр" },
+  ]);
+  assert.ok(parsed);
+  assert.equal(parsed!.length, 2);
+  assert.equal(parsed![1]!.content, "Я съел печень с рисом 500гр");
+});
+
 test("parseAssistantMode defaults", () => {
   assert.equal(parseAssistantMode("gym"), "gym");
   assert.equal(parseAssistantMode("nope"), "all");

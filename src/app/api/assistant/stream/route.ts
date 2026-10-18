@@ -15,6 +15,8 @@ import {
   rateLimitResponse,
 } from "@/lib/assistant-rate-limit";
 import {
+  assistantWroteFlag,
+  assistantWriteMissNote,
   needsWriteRepair,
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
@@ -214,7 +216,8 @@ export async function POST(request: NextRequest) {
             actions.weightKg != null ||
             actions.startWorkout)
         ) {
-          send("status", { text: "Записываю…" });
+          // Confirm-gate: nothing is written until ActionCard CTA.
+          send("status", { text: "Готовлю подтверждение…" });
         }
 
         const writeResults = await executeAssistantWriteTools({
@@ -244,23 +247,29 @@ export async function POST(request: NextRequest) {
           reply = sanitizePhotoPreviewReply(reply);
         }
         const toolNote = formatToolResultsForReply(writeResults);
-        const missNote =
-          !previewPending &&
-          !wroteOk &&
-          !awaitingWeightConfirm &&
-          needsWriteRepair(lastUser, null)
-            ? "⚠ Не удалось автоматически записать в рацион. Напиши блюда ещё раз или добавь через «+»."
-            : "";
+        // Confirm-gate: writable actions go to ActionCard — not a write miss.
+        const missNote = assistantWriteMissNote({
+          wroteOk,
+          awaitingConfirm: awaitingWeightConfirm,
+          previewPending,
+          actions,
+          userMessage: lastUser,
+        });
         const finalReply =
           [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;
         const undo = collectUndoFromTools(toolResults);
+        const wrote = assistantWroteFlag({
+          wroteOk,
+          actions,
+          userMessage: lastUser,
+        });
 
         send("done", {
           reply: finalReply,
           actions,
           tools: toolResults,
           undo,
-          wrote: wroteOk,
+          wrote,
           date,
           mode,
           snapshot: pack.snapshot,
