@@ -106,6 +106,30 @@ export function ChromePreviewClient() {
             </div>
           </article>
         </div>
+
+        {/* D7 — day-more: hairline bands on the day wash */}
+        <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1">
+          <section
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/35 px-3.5 py-3"
+            aria-label="Вода (превью)"
+          >
+            <p className="text-sm font-semibold text-[var(--foreground)]">
+              Вода <span className="font-medium text-[var(--muted-strong)]">750 / 2000 мл</span>
+            </p>
+            <p className="text-[11px] text-[var(--muted)]">Осталось 1250 мл</p>
+          </section>
+          <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/40">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left [&::-webkit-details-marker]:hidden">
+              <div className="min-w-0">
+                <p className="font-semibold text-[var(--foreground)]">Ещё</p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">Привычки, план, итог</p>
+              </div>
+              <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+                ▾
+              </span>
+            </summary>
+          </details>
+        </div>
       </div>
 
       <div className="gym-day mt-6">
@@ -113,13 +137,13 @@ export function ChromePreviewClient() {
           <div className="day-hero-glow" aria-hidden />
           <div className="gym-console-active relative flex items-center gap-4 px-5 py-7 md:px-7 md:py-8">
             <div className="min-w-0 flex-1">
-              <p className="gym-live-pulse text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-teal-100/90">
+              <p className="gym-live-pulse text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/80">
                 Сейчас · вт
               </p>
               <p className="font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight text-white sm:text-[1.7rem]">
                 Верх тела · в зале
               </p>
-              <p className="mt-2.5 text-[0.95rem] font-medium text-teal-50/85">
+              <p className="mt-2.5 text-[0.95rem] font-medium text-white/85">
                 24:10 · 3 упр. · 4 820 кг·повт
               </p>
             </div>
@@ -192,7 +216,34 @@ export function ChromePreviewClient() {
       </div>
 
       <div className="food-add-sheet mt-6 shrink-0 rounded-[var(--radius-panel)] p-4 shadow-xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-ink)]/70">
+        <p className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]">
+          Добавить еду
+        </p>
+        <div className="food-add-utility-row food-add-utility-row--three mt-3" role="list">
+          {(
+            [
+              ["water", "Вода", "+250 мл"],
+              ["weight", "Вес", "сегодня"],
+              ["workout", "Тренировка", "зал"],
+            ] as const
+          ).map(([id, label, hint]) => (
+            <button
+              key={id}
+              type="button"
+              tabIndex={-1}
+              className={`food-add-utility-tile food-add-utility-tile--${id}`}
+            >
+              <span className="food-add-utility-icon" aria-hidden>
+                ·
+              </span>
+              <span className="food-add-utility-copy">
+                <span className="food-add-utility-label">{label}</span>
+                <span className="food-add-utility-hint">{hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--accent-ink)]/70">
           Штрихкод · idle
         </p>
         <div className="barcode-scanner mt-3 flex flex-col gap-2">

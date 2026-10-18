@@ -140,9 +140,9 @@ export function BadgesPanel() {
 
   return (
     <>
-      <div className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
+      <div className="profile-settings__nested p-4">
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-[var(--foreground)]">Достижения</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--foreground)]">Достижения</h2>
           <span className="text-xs text-[var(--muted)]">
             {unlockedCount} / {badges.length}
           </span>

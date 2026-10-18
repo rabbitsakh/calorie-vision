@@ -162,7 +162,7 @@ export function WaterTracker({
         <button
           key={ml}
           type="button"
-          className="chip min-h-10 justify-center font-semibold text-sky-800"
+          className="chip min-h-10 justify-center font-semibold text-[var(--accent-ink)]"
           style={{ background: "var(--accent-water-soft)" }}
           disabled={loading}
           onClick={() => void add(ml)}
@@ -177,7 +177,7 @@ export function WaterTracker({
     return (
       <section
         id="water-tracker"
-        className="scroll-mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[rgba(2,132,199,0.14)] bg-gradient-to-br from-white to-[var(--accent-water-soft)]/55 px-3.5 py-3 shadow-[var(--shadow-card)] md:px-4"
+        className="scroll-mt-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/35 px-3.5 py-3 md:px-4"
         aria-label="Вода"
       >
         <div className="mb-2.5 flex items-center justify-between gap-2">
@@ -202,7 +202,7 @@ export function WaterTracker({
               className={`rounded-[var(--radius-sm)] px-2 py-1 text-xs font-bold tabular-nums ${
                 done
                   ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
-                  : "bg-[var(--accent-water-soft)] text-sky-900"
+                  : "bg-[var(--accent-water-soft)] text-[var(--accent-ink)]"
               }`}
             >
               {done ? "✓" : `${pct}%`}

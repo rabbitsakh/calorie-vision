@@ -415,8 +415,10 @@ export function PushRemindersSettings() {
 
   if (!cap || cap.kind === "loading") {
     return (
-      <section className="card p-4 md:p-6">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Напоминания</h2>
+      <section className="profile-settings__nested p-4 md:p-6">
+        <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--foreground)]">
+          Напоминания
+        </h2>
         <p className="mt-1 text-sm text-[var(--muted)]">Проверяем поддержку…</p>
       </section>
     );

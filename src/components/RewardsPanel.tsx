@@ -272,9 +272,9 @@ export function RewardsPanel() {
     : 0;
 
   return (
-    <div id="rewards" className="rounded-2xl border border-[var(--border-quiet)] bg-white p-4">
+    <div id="rewards" className="profile-settings__nested p-4">
       <div className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">Коллекция</h2>
+        <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--foreground)]">Коллекция</h2>
         <span className="text-xs text-[var(--muted)]">
           {ownedCount} / {total}
         </span>

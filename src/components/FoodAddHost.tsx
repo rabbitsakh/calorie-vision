@@ -170,13 +170,19 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
         className="food-add-sheet flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl shadow-xl sm:max-h-[88vh] sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3">
-          <p id="food-add-sheet-title" className="font-semibold text-[var(--foreground)]">
-            {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
-          </p>
-          {confirmOpen ? (
-            <span className="text-xs text-[var(--muted)]">Сохраните или отмените</span>
-          ) : (
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3.5">
+          <div className="min-w-0">
+            <p
+              id="food-add-sheet-title"
+              className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]"
+            >
+              {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
+            </p>
+            {confirmOpen ? (
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Сохраните или отмените</p>
+            ) : null}
+          </div>
+          {confirmOpen ? null : (
             <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={closeAll}>
               Закрыть
             </button>

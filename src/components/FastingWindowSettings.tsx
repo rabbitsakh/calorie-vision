@@ -102,7 +102,7 @@ export function FastingWindowSettings() {
   }
 
   return (
-    <section className="card p-4 md:p-5">
+    <section className="profile-settings__nested p-4 md:p-5">
       <h2 className="text-base font-semibold text-[var(--foreground)]">
         Окно питания
       </h2>
@@ -121,7 +121,7 @@ export function FastingWindowSettings() {
             setEnabled(on);
             void save(on, start || "12", end || "20");
           }}
-          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)]"
+          className="h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
         />
         Показывать подсказку вне окна
       </label>
@@ -152,7 +152,7 @@ export function FastingWindowSettings() {
           </div>
           <button
             type="button"
-            className="btn btn-on-tint text-sm text-teal-800"
+            className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
             disabled={saving}
             onClick={() => void save(true, start, end)}
           >
@@ -161,7 +161,7 @@ export function FastingWindowSettings() {
         </div>
       ) : null}
 
-      {message ? <p className="mt-2 text-xs text-teal-700">{message}</p> : null}
+      {message ? <p className="mt-2 text-xs text-[var(--accent-ink)]">{message}</p> : null}
       {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
     </section>
   );

@@ -380,7 +380,7 @@ function RationBody({
           <details
             ref={habitsRef}
             id="habits-panel"
-            className="group scroll-mt-3 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-white/70 open:bg-white"
+            className="group scroll-mt-3 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/40 open:bg-[var(--surface-mist)]/70"
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
