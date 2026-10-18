@@ -431,11 +431,13 @@ export function PushRemindersSettings() {
   const isCapLocal = cap.channel === "capacitor-local";
 
   return (
-    <section className="card p-4 md:p-6">
+    <section className="profile-settings__nested p-4 md:p-6">
       <div className="flex items-start gap-3">
         <Mascot pose={pose} size="md" className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg font-bold text-[var(--foreground)]">Напоминания</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight text-[var(--foreground)]">
+            Напоминания
+          </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             По умолчанию включены обед, ужин, серия, итог недели, мягкое возвращение и вечерний
             чек-ин — в часовом поясе профиля. Завтрак, воду и сводку калорий можно включить
