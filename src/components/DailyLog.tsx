@@ -870,9 +870,11 @@ export function DailyLog({
     >
       <div className={`flex flex-col ${compact || sceneFeed ? "gap-3" : "gap-5"}`}>
         <div
-          className={`flex flex-wrap items-end justify-between gap-2 ${
-            sceneFeed ? "ration-diary-toolbar" : ""
-          }`}
+          className={
+            sceneFeed
+              ? "ration-diary-toolbar flex flex-wrap items-baseline gap-x-3 gap-y-1"
+              : "flex flex-wrap items-end justify-between gap-2"
+          }
         >
           {!compact && !sceneFeed ? (
             <div>
@@ -880,33 +882,31 @@ export function DailyLog({
               <p className="mt-1 text-sm text-[var(--muted)]">{displayDate}</p>
             </div>
           ) : (
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h2
-                className={
-                  sceneFeed
-                    ? "font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]"
-                    : "text-base font-bold"
-                }
-              >
-                {sceneFeed ? "Дневник" : "Дневник питания"}
-              </h2>
-              {/* Filters sit between title and fiber/sugar (scene feed). */}
-              {sceneFeed && !loading && !error && entries.length > 0 ? (
-                <button
-                  type="button"
-                  className="ration-diary-filters text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-                  onClick={() => setShowFeedFilters((v) => !v)}
-                  aria-expanded={showFeedFilters}
-                >
-                  {showFeedFilters
-                    ? "Скрыть фильтры"
-                    : mealFilter !== "ALL" || sourceFilter !== "ALL"
-                      ? "Фильтры · активны"
-                      : "Фильтры"}
-                </button>
-              ) : null}
-            </div>
+            <h2
+              className={
+                sceneFeed
+                  ? "font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]"
+                  : "text-base font-bold"
+              }
+            >
+              {sceneFeed ? "Дневник" : "Дневник питания"}
+            </h2>
           )}
+          {/* Scene feed: one flow — Дневник → Фильтры → Клетч./Сахар (no justify-between). */}
+          {sceneFeed && !loading && !error && entries.length > 0 ? (
+            <button
+              type="button"
+              className="ration-diary-filters text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+              onClick={() => setShowFeedFilters((v) => !v)}
+              aria-expanded={showFeedFilters}
+            >
+              {showFeedFilters
+                ? "Скрыть фильтры"
+                : mealFilter !== "ALL" || sourceFilter !== "ALL"
+                  ? "Фильтры · активны"
+                  : "Фильтры"}
+            </button>
+          ) : null}
           {!sceneFeed && streakDays >= 2 ? (
             <div className="flex items-center gap-1 rounded-xl bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
               <FlameIcon className="h-4 w-4 text-amber-600" />

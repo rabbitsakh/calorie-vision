@@ -44,19 +44,17 @@ export function ChromePreviewClient() {
           </div>
         </section>
 
-        <div className="ration-diary-toolbar mt-3 flex items-end justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]">
-              Дневник
-            </h2>
-            <button
-              type="button"
-              className="ration-diary-filters text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-              tabIndex={-1}
-            >
-              Фильтры
-            </button>
-          </div>
+        <div className="ration-diary-toolbar mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]">
+            Дневник
+          </h2>
+          <button
+            type="button"
+            className="ration-diary-filters text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+            tabIndex={-1}
+          >
+            Фильтры
+          </button>
           <p className="text-xs font-medium text-[var(--muted-strong)]">Клетч. 2.3 г · Сахар 18.5 г</p>
         </div>
 
