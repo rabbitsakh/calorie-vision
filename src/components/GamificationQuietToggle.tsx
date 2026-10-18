@@ -22,7 +22,7 @@ export function GamificationQuietToggle() {
   }
 
   return (
-    <section className="rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-white p-4 md:p-5">
+    <section className="profile-settings__nested p-4 md:p-5">
       <h2 className="text-base font-semibold text-[var(--foreground)]">Празднования</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
         По умолчанию тихо: без полноэкранных сцен. Сундуки и награды всё равно
@@ -31,7 +31,7 @@ export function GamificationQuietToggle() {
       <label className="mt-4 flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
-          className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-teal-600 focus:ring-teal-500"
+          className="mt-1 h-4 w-4 rounded border-[rgba(13,115,119,0.22)] text-[var(--accent)] focus:ring-[var(--accent)]"
           checked={!quiet}
           disabled={!ready}
           onChange={(event) => handleChange(!event.target.checked)}

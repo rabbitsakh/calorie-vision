@@ -1115,8 +1115,12 @@ select {
 }
 
 /* Keep skim CTAs visible on first paint after recognition (Wave 1). */
+/* D7: nested confirm is flat inside the sheet — no second card shadow. */
 .food-add-sheet .confirm-card-section {
   padding-bottom: 0.25rem;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  animation: none;
 }
 
 @media (min-width: 768px) {
@@ -1413,61 +1417,45 @@ select {
   transform: scale(0.98);
 }
 
-.food-add-utility-tile--water {
-  background: linear-gradient(135deg, var(--accent-water-soft) 0%, #f0f9ff 100%);
-  border-color: rgba(2, 132, 199, 0.22);
-  color: #0c4a6e;
-}
-
-.food-add-utility-tile--water:hover {
-  border-color: rgba(2, 132, 199, 0.42);
-}
-
-.food-add-utility-tile--weight {
-  background: linear-gradient(135deg, var(--accent-soft) 0%, #f0fdfa 100%);
-  border-color: rgba(15, 118, 110, 0.22);
-  color: #134e4a;
-}
-
-.food-add-utility-tile--weight:hover {
-  border-color: rgba(15, 118, 110, 0.42);
-}
-
+/* D7: utility tiles share one wash plane; hue only on icons. */
+.food-add-utility-tile--water,
+.food-add-utility-tile--weight,
 .food-add-utility-tile--workout {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-  border-color: rgba(234, 88, 12, 0.22);
-  color: #7c2d12;
+  background: rgba(255, 252, 248, 0.92);
+  border-color: var(--border-quiet);
+  color: var(--foreground);
 }
 
+.food-add-utility-tile--water:hover,
+.food-add-utility-tile--weight:hover,
 .food-add-utility-tile--workout:hover {
-  border-color: rgba(234, 88, 12, 0.42);
+  border-color: rgba(13, 115, 119, 0.28);
+  background: var(--accent-soft);
 }
 
 .food-add-utility-tile--workout .food-add-utility-icon {
-  color: #ea580c;
+  color: var(--accent-ink);
 }
 
 .food-add-tile--suggested,
 .food-add-utility-tile--suggested {
-  outline: 2px solid rgba(15, 118, 110, 0.45);
+  outline: 2px solid rgba(13, 115, 119, 0.4);
   outline-offset: 1px;
 }
 
-.food-add-utility-tile--suggested.food-add-utility-tile--water {
-  outline-color: rgba(2, 132, 199, 0.5);
-}
-
-.food-add-utility-tile--suggested.food-add-utility-tile--weight {
-  outline-color: rgba(15, 118, 110, 0.5);
-  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.12);
+.food-add-utility-tile--suggested.food-add-utility-tile--water,
+.food-add-utility-tile--suggested.food-add-utility-tile--weight,
+.food-add-utility-tile--suggested.food-add-utility-tile--workout {
+  outline-color: rgba(13, 115, 119, 0.45);
+  box-shadow: none;
 }
 
 /* Desktop header chevron menu (P4) — matches sheet language */
 .food-add-desktop-menu {
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: 1px solid var(--border-quiet);
   border-radius: 1.15rem;
-  background: #fff;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  background: var(--panel-wash);
+  box-shadow: 0 12px 28px rgba(13, 115, 119, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -1489,14 +1477,14 @@ select {
 }
 
 .food-add-desktop-menu-sep {
-  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  border-top: 1px solid var(--border-hairline);
   margin: 0.2rem 0.25rem;
 }
 
 .food-add-desktop-item {
   align-items: center;
-  background: linear-gradient(165deg, #fff 0%, var(--surface-mist) 100%);
-  border: 1px solid rgba(13, 115, 119, 0.12);
+  background: rgba(255, 252, 248, 0.92);
+  border: 1px solid var(--border-quiet);
   border-radius: 0.85rem;
   color: var(--foreground);
   cursor: pointer;
@@ -1512,26 +1500,18 @@ select {
 
 .food-add-desktop-item:hover,
 .food-add-desktop-item:focus-visible {
-  background: linear-gradient(165deg, #f0fdfa 0%, #ecfeff 100%);
-  border-color: rgba(15, 118, 110, 0.35);
+  background: var(--accent-soft);
+  border-color: rgba(13, 115, 119, 0.28);
   outline: none;
 }
 
-.food-add-desktop-item--suggested {
-  background: linear-gradient(160deg, var(--accent-soft) 0%, #e6fffa 55%, #f0fdfa 100%);
-  border-color: rgba(15, 118, 110, 0.35);
-  outline: 2px solid rgba(15, 118, 110, 0.4);
-  outline-offset: 0;
-}
-
-.food-add-desktop-item--water.food-add-desktop-item--suggested {
-  background: linear-gradient(135deg, var(--accent-water-soft) 0%, #f0f9ff 100%);
-  border-color: rgba(2, 132, 199, 0.35);
-  outline-color: rgba(2, 132, 199, 0.45);
-}
-
+.food-add-desktop-item--suggested,
+.food-add-desktop-item--water.food-add-desktop-item--suggested,
 .food-add-desktop-item--weight.food-add-desktop-item--suggested {
-  background: linear-gradient(135deg, var(--accent-soft) 0%, #f0fdfa 100%);
+  background: var(--accent-soft);
+  border-color: rgba(13, 115, 119, 0.32);
+  outline: 2px solid rgba(13, 115, 119, 0.4);
+  outline-offset: 0;
 }
 
 .food-add-desktop-item-icon {
@@ -1547,16 +1527,13 @@ select {
 }
 
 .food-add-desktop-item-icon--accent,
-.food-add-desktop-item-icon--weight {
+.food-add-desktop-item-icon--weight,
+.food-add-desktop-item-icon--workout {
   color: var(--accent);
 }
 
 .food-add-desktop-item-icon--water {
   color: var(--accent-water);
-}
-
-.food-add-desktop-item-icon--workout {
-  color: #ea580c;
 }
 
 .food-add-desktop-item-copy {
@@ -1750,7 +1727,8 @@ select {
   position: relative;
   z-index: 5;
   border: none !important;
-  box-shadow: 0 16px 48px rgba(13, 115, 119, 0.1) !important;
+  /* D7: quiet plane — sheet/parent owns elevation */
+  box-shadow: 0 8px 24px rgba(13, 115, 119, 0.06) !important;
   border-radius: 1.35rem !important;
   overflow: hidden;
   animation: ration-scene-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -2532,6 +2510,7 @@ select {
   font-size: clamp(1.5rem, 5vw, 1.85rem) !important;
 }
 
+/* D7 — day-more on the day wash: hairline bands, not white card stack */
 .ration-day-more {
   border-top: none;
   padding-top: 0.45rem;
@@ -2539,9 +2518,13 @@ select {
 
 .ration-day-more > details,
 .ration-day-more > section {
-  box-shadow: var(--shadow-card);
-  background: #fff;
-  border-color: rgba(13, 115, 119, 0.1);
+  box-shadow: none;
+  background: rgba(255, 252, 248, 0.72);
+  border-color: var(--border-quiet);
+}
+
+.ration-day-more > details[open] {
+  background: rgba(255, 252, 248, 0.92);
 }
 
 /* C5 — Plan week mural, full atmosphere */

@@ -872,7 +872,7 @@ export function ConfirmationCard({
   return (
     <section
       id="food-add-panel"
-      className="confirm-card-section confirm-family !p-0 card overflow-hidden md:p-6"
+      className="confirm-card-section confirm-family !p-0 overflow-hidden md:p-6"
     >
       <div className="flex flex-col gap-5 p-4 md:p-0">
         {hasImage ? (

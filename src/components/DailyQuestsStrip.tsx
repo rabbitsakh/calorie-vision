@@ -163,7 +163,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
   return (
     <>
-      <div className="rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-3 py-2.5">
+      <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--surface-mist)]/50 px-3 py-2.5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             На сегодня
@@ -177,7 +177,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
             <li
               key={q.id}
               className={`flex items-center justify-between gap-2 text-sm ${
-                q.done ? "text-teal-800" : "text-[var(--muted-strong)]"
+                q.done ? "text-[var(--accent-ink)]" : "text-[var(--muted-strong)]"
               }`}
             >
               <span className="truncate">
@@ -188,11 +188,11 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
                 ) : null}
               </span>
               {q.done ? (
-                <span className="shrink-0 text-[10px] font-medium text-teal-600">{q.doneHint}</span>
+                <span className="shrink-0 text-[10px] font-medium text-[var(--accent)]">{q.doneHint}</span>
               ) : q.id === "gym_today" && isFirstWeekQuiet() ? (
                 <Link
                   href={withBasePath(withDateQuery("/workouts", selectedDate))}
-                  className="shrink-0 text-[10px] font-semibold text-teal-700 underline-offset-2 hover:underline"
+                  className="shrink-0 text-[10px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                 >
                   В зал
                 </Link>
@@ -207,7 +207,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         ) : null}
         {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}
         {progress.allDone && !hint && !celebrate ? (
-          <p className="mt-1.5 text-xs text-teal-700">День закрыт мягко — так и надо.</p>
+          <p className="mt-1.5 text-xs text-[var(--accent-ink)]">День закрыт мягко — так и надо.</p>
         ) : null}
       </div>
 

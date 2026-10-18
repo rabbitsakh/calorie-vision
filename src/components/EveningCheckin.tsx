@@ -211,7 +211,7 @@ export function EveningCheckin({ today, selectedDate, timezone }: EveningCheckin
                 disabled={saving}
                 title={mood.label}
                 aria-label={mood.label}
-                className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-[rgba(13,115,119,0.14)] bg-white px-1 py-2.5 text-xl transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+                className="flex flex-1 flex-col items-center gap-1 rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/60 px-1 py-2.5 text-xl transition-colors hover:border-[var(--accent)]/40 hover:bg-[var(--accent-soft)] disabled:opacity-60"
                 onClick={() => void chooseMood(mood.value)}
               >
                 <span aria-hidden>{mood.emoji}</span>
