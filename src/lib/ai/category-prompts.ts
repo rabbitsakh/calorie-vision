@@ -43,11 +43,11 @@ ${CATEGORY_JSON_SHAPE}
 Правила:
 - photoKind: "meal"
 - dishName: краткий список через запятую (2–6 названий)
-- items: ОБЯЗАТЕЛЬНО 2–8 отдельных позиций. Каждая — своё блюдо/гарнир/салат
+- items: ОБЯЗАТЕЛЬНО 2–8 отдельных позиций. Каждая — своё блюдо/гарнир/салат ИЛИ отдельная одинаковая единица (2 батончика → 2 item)
 - для каждого item: dishName, calories, protein, fat, carbs, fiber, sugar, portionGrams (>0), confidence
 - верхние calories/protein/fat/carbs/fiber/sugar/portionGrams = суммы по items
 - barcode: "", brand: "", alternatives: [], per100g: все нули
-- не сливай мясо и гарнир в один item
+- не сливай мясо и гарнир в один item; не сливай две одинаковые упаковки в один item
 - не выдумывай блюда, которых нет на фото`;
 }
 
@@ -90,7 +90,8 @@ ${CATEGORY_JSON_SHAPE}
 - barcode: только если цифры штрихкода читаются; иначе ""
 - portionGrams: вес/объём нетто с упаковки (г или мл как число), иначе 0
 - calories/macros/fiber/sugar/per100g: 0 — питание подтянет база по названию/штрихкоду
-- items: [], alternatives: []
+- если на фото ≥2 упаковки/единицы (в т.ч. одинаковые батончики) — items по одной на каждую; иначе items: []
+- alternatives: []
 - не выдумывай бренд или вес`;
 }
 

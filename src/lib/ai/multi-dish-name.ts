@@ -1,9 +1,12 @@
+import { looksLikeCountedDishName } from "@/lib/dish-unit-count";
+
 /** Side / garnish cues after «с» that usually mean a second plate item. */
 const MULTI_SIDE_AFTER_S_RE =
   /\s+с\s+(?:хлебом|салатом|гарниром|соусом|лимоном|сметаной|рисом|картофелем|пюре|овощами|тостом|яичницей|яйцом)(?=$|[^\p{L}\p{N}])/iu;
 
 /**
- * Dish name looks like several foods on one plate (comma / и / slash / plus / dash / «X с Y»).
+ * Dish name looks like several foods on one plate (comma / и / slash / plus / dash / «X с Y»),
+ * or several identical units («2 батончика», «два протеиновых батончика»).
  */
 export function looksLikeMultiDishName(dishName: string): boolean {
   const name = dishName.trim();
@@ -13,5 +16,6 @@ export function looksLikeMultiDishName(dishName: string): boolean {
   if (/\s*[+/]\s*/.test(name)) return true;
   if (/\s+[-–—]\s+/.test(name)) return true;
   if (MULTI_SIDE_AFTER_S_RE.test(name)) return true;
+  if (looksLikeCountedDishName(name)) return true;
   return false;
 }

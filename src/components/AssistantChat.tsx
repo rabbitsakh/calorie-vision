@@ -262,6 +262,30 @@ function PhotoConfirm({
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
   }
 
+  function addDraft() {
+    setDrafts((prev) => {
+      const last = prev[prev.length - 1];
+      return [
+        ...prev,
+        {
+          dishName: last?.dishName ? `${last.dishName}` : "Блюдо",
+          calories: last?.calories ?? 200,
+          protein: last?.protein,
+          fat: last?.fat,
+          carbs: last?.carbs,
+          fiber: last?.fiber,
+          sugar: last?.sugar,
+          portionGrams: last?.portionGrams,
+          confidence: last?.confidence,
+        },
+      ].slice(0, 8);
+    });
+  }
+
+  function removeDraft(index: number) {
+    setDrafts((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
   async function confirm() {
     setPending(true);
     try {
@@ -367,35 +391,63 @@ function PhotoConfirm({
                   </label>
                 ))}
               </div>
-              <label className="confirm-family-label mt-1.5 inline-block">
-                Порция, г
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={d.portionGrams ?? ""}
-                  disabled={busy || pending}
-                  onChange={(e) => {
-                    const n = e.target.value === "" ? undefined : Number(e.target.value);
-                    updateDraft(i, {
-                      portionGrams: n != null && Number.isFinite(n) ? n : undefined,
-                    });
-                  }}
-                  className="confirm-family-input w-24"
-                />
-              </label>
+              <div className="mt-1.5 flex flex-wrap items-end gap-2">
+                <label className="confirm-family-label inline-block">
+                  Порция, г
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={d.portionGrams ?? ""}
+                    disabled={busy || pending}
+                    onChange={(e) => {
+                      const n = e.target.value === "" ? undefined : Number(e.target.value);
+                      updateDraft(i, {
+                        portionGrams: n != null && Number.isFinite(n) ? n : undefined,
+                      });
+                    }}
+                    className="confirm-family-input w-24"
+                  />
+                </label>
+                {drafts.length > 1 ? (
+                  <button
+                    type="button"
+                    className="text-[10px] font-semibold text-[var(--muted)] underline-offset-2 hover:underline"
+                    disabled={busy || pending}
+                    onClick={() => removeDraft(i)}
+                  >
+                    Убрать
+                  </button>
+                ) : null}
+              </div>
             </div>
           );
         })}
       </div>
-      <div className="confirm-family-actions">
+      <div className="confirm-family-actions flex flex-wrap gap-1.5">
         <button
           type="button"
           disabled={busy || pending}
           className="confirm-family-cta"
           onClick={() => void confirm()}
         >
-          {pending ? "Пишу…" : online ? "Добавить в рацион" : "В очередь офлайн"}
+          {pending
+            ? "Пишу…"
+            : online
+              ? drafts.length > 1
+                ? `Добавить все (${drafts.length})`
+                : "Добавить в рацион"
+              : "В очередь офлайн"}
         </button>
+        {drafts.length < 8 ? (
+          <button
+            type="button"
+            disabled={busy || pending}
+            className="confirm-family-secondary"
+            onClick={addDraft}
+          >
+            + ещё блюдо
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -484,7 +536,7 @@ function ActionCard({
     | "deleteMeals"
     | "patchMeals";
 
-  async function apply(kind: ApplyKind) {
+  async function apply(kind: ApplyKind): Promise<boolean> {
     setBusy(kind);
     try {
       const body = { kind, date, actions };
@@ -508,7 +560,7 @@ function ActionCard({
                         ? "Офлайн — правка в очереди"
                         : "Офлайн — старт тренировки в очереди",
         );
-        return;
+        return true;
       }
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
         method: "POST",
@@ -565,10 +617,34 @@ function ActionCard({
         onFlash(data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
       }
+      return true;
     } catch (err) {
       onFlash(err instanceof Error ? err.message : "Ошибка");
+      return false;
     } finally {
       setBusy(null);
+    }
+  }
+
+  function pendingKinds(): ApplyKind[] {
+    const kinds: ApplyKind[] = [];
+    if (needsMeals && !mealsDone) kinds.push("meals");
+    if (needsWater && !waterDone) kinds.push("water");
+    if (needsWeight && !weightDone) kinds.push("weight");
+    if (needsDelete && !deleteDone) kinds.push("deleteMeals");
+    if (needsPatch && !patchDone) kinds.push("patchMeals");
+    if (needsShopping && !shoppingDone) kinds.push("shopping");
+    if (needsRoutine && !routineDone) kinds.push("routine");
+    if (needsStart && !startDone) kinds.push("start");
+    return kinds;
+  }
+
+  async function applyAll() {
+    const kinds = pendingKinds();
+    if (kinds.length < 2) return;
+    for (const kind of kinds) {
+      const ok = await apply(kind);
+      if (!ok) break;
     }
   }
 
@@ -721,11 +797,21 @@ function ActionCard({
           ) : null
         ) : (
           <>
+            {pendingKinds().length >= 2 ? (
+              <button
+                type="button"
+                className="confirm-family-cta"
+                disabled={busy != null}
+                onClick={() => void applyAll()}
+              >
+                {busy ? "…" : online ? "Подтвердить всё" : "Всё в очередь"}
+              </button>
+            ) : null}
             {needsMeals && !mealsDone ? (
               <button
                 type="button"
                 className="confirm-family-cta"
-                disabled={busy === "meals"}
+                disabled={busy != null}
                 onClick={() => void apply("meals")}
               >
                 {busy === "meals" ? "…" : online ? "В дневник" : "В очередь"}

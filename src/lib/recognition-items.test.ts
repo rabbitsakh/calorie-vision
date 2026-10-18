@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   combineRecognitionItems,
   countIncompleteMultiDishItems,
+  expandCountedDish,
   flattenRecognitionItems,
   isMultiItemRecognition,
   mergeMultiDishRecognition,
@@ -18,6 +19,30 @@ test("treats a single dish as one item", () => {
   assert.equal(result.length, 1);
   assert.equal(result[0].dishName, "Борщ");
   assert.equal(isMultiItemRecognition({ dishName: "Борщ", calories: 250, confidence: 0.8 }), false);
+});
+
+test("expands two identical bars into two diary lines", () => {
+  const expanded = expandCountedDish({
+    dishName: "2 батончика протеиновых",
+    calories: 400,
+    protein: 40,
+    portionGrams: 120,
+    confidence: 0.8,
+  });
+  assert.equal(expanded.length, 2);
+  assert.equal(expanded[0]!.dishName, "батончика протеиновых");
+  assert.equal(expanded[0]!.calories, 200);
+  assert.equal(expanded[0]!.portionGrams, 60);
+  assert.equal(expanded[1]!.calories, 200);
+
+  const flat = flattenRecognitionItems({
+    dishName: "два батончика",
+    calories: 360,
+    portionGrams: 80,
+    confidence: 0.7,
+  });
+  assert.equal(flat.length, 2);
+  assert.equal(flat[0]!.dishName, "батончика");
 });
 
 test("combines plate items into a list with totals", () => {

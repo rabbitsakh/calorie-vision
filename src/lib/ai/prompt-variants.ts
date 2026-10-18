@@ -45,7 +45,7 @@ ${FOOD_JSON_SHAPE_SLIM}
 - portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки (мл/г) или 0
 - label/package: если на этикетке «100 мл» / «100 г» — заполни per100g; calories/БЖУ на порцию = per100g × (portionGrams/100)
 - meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
-- meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
+- meal/package: несколько видимых единиц (разные ИЛИ одинаковые) → items 2–8 по одной на единицу; иначе items []
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1`;
 
@@ -67,7 +67,7 @@ ${FOOD_JSON_SHAPE_SLIM}
 - portionGrams: meal/items > 0 (типично 150–300 г/позицию). package/label/barcode — нетто с упаковки (мл/г) или 0
 - label/package: если на этикетке «100 мл» / «100 г» — заполни per100g; calories/БЖУ на порцию = per100g × (portionGrams/100)
 - meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
-- meal + несколько разных продуктов → items 2–8 с КБЖУ и portionGrams; иначе items []
+- meal/package: несколько видимых единиц (разные ИЛИ одинаковые) → items 2–8 по одной на единицу; иначе items []
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1`;
 
