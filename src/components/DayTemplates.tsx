@@ -227,7 +227,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
         </div>
         <button
           type="button"
-          className="btn btn-on-tint text-sm text-teal-800"
+          className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
           disabled={saving || dayMeals.length === 0}
           onClick={() => void handleSave()}
         >
@@ -238,7 +238,10 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
 
       {templates.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">Пока нет шаблонов — сохраните заполненный день.</p>
+        <div className="scene-empty">
+          <p className="scene-empty__title">Пока нет шаблонов</p>
+          <p className="scene-empty__hint">Сохраните заполненный день — потом примените одним тапом.</p>
+        </div>
       ) : (
         <ul className="divide-y divide-[rgba(13,115,119,0.08)]">
           {templates.map((tpl) => (
@@ -254,7 +257,7 @@ export function DayTemplates({ selectedDate, refreshKey, onSaved }: DayTemplates
               </div>
               <button
                 type="button"
-                className="shrink-0 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+                className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
                 disabled={applying !== null}
                 onClick={() => void handleApply(tpl)}
               >

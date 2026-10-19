@@ -49,7 +49,7 @@ export function DailyLogEmpty({
       {onAddFood ? (
         <button
           type="button"
-          className="btn btn-primary mt-2 min-h-12 px-8 text-base shadow-[var(--shadow-card)]"
+          className="btn btn-primary mt-2 min-h-12 px-8 text-base"
           onClick={() => onAddFood(mealFilter !== "ALL" ? mealFilter : undefined)}
         >
           Добавить через «+»

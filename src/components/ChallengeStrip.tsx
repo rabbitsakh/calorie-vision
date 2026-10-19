@@ -59,21 +59,18 @@ export function ChallengeStrip({ selectedDate, refreshKey, onOpenHabits }: Chall
   return (
     <button
       type="button"
-      className="flex w-full flex-col gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-left"
+      className="flex w-full flex-col gap-1.5 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 px-3 py-2 text-left"
       onClick={onOpenHabits}
       aria-label={`Челлендж: ${active.title}, ${active.progress} из ${active.target}`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-sm font-semibold text-emerald-950">{active.title}</span>
-        <span className="shrink-0 text-xs font-bold tabular-nums text-emerald-800">
+        <span className="min-w-0 truncate text-sm font-semibold text-[var(--accent-ink)]">{active.title}</span>
+        <span className="shrink-0 text-xs font-bold tabular-nums text-[var(--accent-ink)]">
           {active.completed ? "Готово" : `${active.progress}/${active.target}`}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-emerald-200/90">
-        <div
-          className={`h-full rounded-full ${active.completed ? "bg-emerald-600" : "bg-teal-500"}`}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--accent-soft)]">
+        <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
       </div>
     </button>
   );

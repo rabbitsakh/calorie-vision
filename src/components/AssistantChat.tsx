@@ -1458,7 +1458,7 @@ export function AssistantChat() {
       ) : null}
 
       {showOnboard ? (
-        <div className="rounded-xl border border-[var(--border-quiet)] bg-white/70 px-3 py-2.5 text-[13px] text-[var(--ink)]">
+        <div className="rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/60 px-3 py-2.5 text-[13px] text-[var(--ink)]">
           <p className="font-display text-[13px] font-semibold tracking-wide text-[var(--accent-ink)]">
             Коротко про AI
           </p>
@@ -1466,12 +1466,12 @@ export function AssistantChat() {
             Пиши обычным языком — я сам добавлю в рацион или план зала. Фото сначала покажу на
             подтверждение. Можно отменить последнюю запись.
           </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
             {ASSISTANT_ONBOARD_STARTERS.map((s) => (
               <button
                 key={s.label}
                 type="button"
-                className="rounded-full border border-[var(--accent-ink)]/25 bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--accent-ink)] disabled:opacity-50"
+                className="assistant-scene-chip disabled:opacity-50"
                 disabled={busy || !online}
                 onClick={() => {
                   if (s.label === "Фото") {
@@ -1487,7 +1487,7 @@ export function AssistantChat() {
             ))}
             <button
               type="button"
-              className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+              className="px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
               onClick={dismissOnboard}
             >
               Понятно
@@ -1525,9 +1525,7 @@ export function AssistantChat() {
           </button>
         ) : null}
         {remainLabel ? (
-          <span className="rounded-full border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-strong)]">
-            {remainLabel}
-          </span>
+          <span className="assistant-scene-chip">{remainLabel}</span>
         ) : null}
         {canUndo ? (
           <button
@@ -1655,10 +1653,8 @@ export function AssistantChat() {
             type="button"
             role="tab"
             aria-selected={mode === p.id}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold disabled:opacity-50 ${
-              mode === p.id
-                ? "bg-[var(--accent)] text-white"
-                : "border border-[var(--line)] bg-white text-[var(--muted-strong)]"
+            className={`assistant-scene-chip disabled:opacity-50 ${
+              mode === p.id ? "!bg-[var(--accent)] !text-white !border-[var(--accent)]" : ""
             }`}
             disabled={busy}
             onClick={() => setMode(p.id)}
@@ -1815,7 +1811,7 @@ export function AssistantChat() {
             <button
               key={hint}
               type="button"
-              className="rounded-full border border-[var(--line)] bg-white px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-50"
+              className="assistant-scene-chip hover:bg-[var(--accent-soft)] disabled:opacity-50"
               disabled={busy || !online}
               onClick={() => void send(hint)}
             >

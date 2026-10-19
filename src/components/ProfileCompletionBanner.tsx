@@ -115,23 +115,23 @@ export function ProfileCompletionBanner() {
   if (!missing || !visible) return null;
 
   return (
-    <div className="rounded-2xl border border-sky-200 bg-sky-50/90 px-4 py-3">
+    <div className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/45 px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-sky-950">Дополните профиль</p>
-          <p className="mt-0.5 text-xs text-sky-800">
+          <p className="text-sm font-semibold text-[var(--accent-ink)]">Дополните профиль</p>
+          <p className="mt-0.5 text-xs text-[var(--muted-strong)]">
             Укажите пол, рост и год рождения — нормы калорий станут точнее.
           </p>
           <Link
             href="/profile"
-            className="mt-2 inline-flex text-sm font-semibold text-sky-900 underline-offset-2 hover:underline"
+            className="mt-2 inline-flex text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
           >
             Открыть профиль
           </Link>
         </div>
         <button
           type="button"
-          className="shrink-0 text-xs font-semibold text-sky-700/80 hover:text-sky-950"
+          className="shrink-0 text-xs font-semibold text-[var(--muted)] hover:text-[var(--accent-ink)]"
           onClick={() => {
             hideForThisWeek();
             setVisible(false);

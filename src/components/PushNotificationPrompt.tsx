@@ -130,12 +130,12 @@ export function PushNotificationPrompt() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-teal-100 bg-teal-50/80 p-4">
+          <div className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 p-4">
             <div className="flex items-start gap-3">
               <Mascot pose="idle" size="sm" className="shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="font-semibold text-teal-900">{MASCOT_COPY.pushPrompt.title}</p>
-                <p className="mt-1 text-sm text-teal-700">
+                <p className="font-semibold text-[var(--accent-ink)]">{MASCOT_COPY.pushPrompt.title}</p>
+                <p className="mt-1 text-sm text-[var(--muted-strong)]">
                   {capacitorLocal
                     ? "В приложении — локальные напоминания на устройстве. Разрешите уведомления Android."
                     : MASCOT_COPY.pushPrompt.body}
@@ -144,7 +144,7 @@ export function PushNotificationPrompt() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="btn btn-on-tint text-sm text-teal-800"
+                    className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
                     disabled={loading}
                     onClick={() => void subscribe()}
                   >
@@ -153,7 +153,7 @@ export function PushNotificationPrompt() {
                   {!capacitorLocal ? (
                     <button
                       type="button"
-                      className="btn-quiet text-sm text-teal-700"
+                      className="btn-quiet text-sm text-[var(--accent-ink)]"
                       onClick={() => setWizardOpen(true)}
                     >
                       {MASCOT_COPY.pushPrompt.install}
@@ -161,13 +161,13 @@ export function PushNotificationPrompt() {
                   ) : (
                     <Link
                       href={withBasePath("/profile#reminders")}
-                      className="btn-quiet text-sm text-teal-700"
+                      className="btn-quiet text-sm text-[var(--accent-ink)]"
                       onClick={dismiss}
                     >
                       Настройки
                     </Link>
                   )}
-                  <button type="button" className="btn-quiet text-sm text-teal-700" onClick={dismiss}>
+                  <button type="button" className="btn-quiet text-sm text-[var(--accent-ink)]" onClick={dismiss}>
                     {MASCOT_COPY.pushPrompt.later}
                   </button>
                 </div>

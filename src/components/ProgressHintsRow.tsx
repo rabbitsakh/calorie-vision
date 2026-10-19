@@ -57,11 +57,11 @@ export function ProgressHintsRow({ refreshKey }: ProgressHintsProps) {
       {showBadge && badge ? (
         <Link
           href={withBasePath("/profile#rewards")}
-          className="rounded-xl border border-teal-100 bg-teal-50/60 px-3 py-2 text-left hover:border-teal-200"
+          className="rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 px-3 py-2 text-left hover:border-[var(--accent)]/30"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-teal-700">Значок</p>
-          <p className="truncate text-sm font-medium text-teal-950">{badge.title}</p>
-          <p className="mt-0.5 text-xs tabular-nums text-teal-800">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)]">Значок</p>
+          <p className="truncate text-sm font-medium text-[var(--accent-ink)]">{badge.title}</p>
+          <p className="mt-0.5 text-xs tabular-nums text-[var(--accent-ink)]">
             {badge.current}/{badge.target}
           </p>
         </Link>

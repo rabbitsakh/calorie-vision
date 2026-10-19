@@ -1126,11 +1126,11 @@ export function DailyLog({
           entries.length > 0 &&
           displayRows.length === 0 &&
           (mealFilter !== "ALL" || sourceFilter !== "ALL") ? (
-            <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] px-4 py-8 text-center text-sm text-[var(--muted)]">
-              Нет записей по этому фильтру.{" "}
+            <div className="scene-empty">
+              <p className="scene-empty__title">Нет записей по этому фильтру</p>
               <button
                 type="button"
-                className="font-semibold text-[var(--accent)] underline-offset-2 hover:underline"
+                className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
                 onClick={() => {
                   setMealFilter("ALL");
                   setSourceFilter("ALL");
@@ -1138,7 +1138,7 @@ export function DailyLog({
               >
                 Сбросить фильтр
               </button>
-            </p>
+            </div>
           ) : null}
           {(() => {
             let lastSection: MealTypeSection | null = null;

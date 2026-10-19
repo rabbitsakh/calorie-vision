@@ -475,15 +475,18 @@ function RationBody({
                   onClick={() => setShowHabits(false)}
                 >
                   <div
-                    className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[var(--radius-lg)] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.12)] sm:rounded-[var(--radius-lg)]"
+                    className="habits-sheet-panel flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[var(--radius-lg)] sm:rounded-[var(--radius-lg)]"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3.5">
                       <div className="min-w-0">
-                        <p id="habits-sheet-title" className="font-semibold text-[var(--foreground)]">
+                        <p
+                          id="habits-sheet-title"
+                          className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]"
+                        >
                           Привычки и план
                         </p>
-                        <p className="text-xs text-[var(--muted)]">Серия, челлендж, покупки, заметки</p>
+                        <p className="mt-0.5 text-xs text-[var(--muted)]">Серия, челлендж, покупки, заметки</p>
                       </div>
                       <button
                         type="button"

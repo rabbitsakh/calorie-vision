@@ -492,14 +492,14 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
       {loading ? <div className="mt-3"><SceneSkeleton inline label="Загрузка избранного…" /></div> : null}
 
       {!loading && foods.length === 0 && !showForm && !recipeOpen ? (
-        <div className="mt-3 rounded-xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 px-3 py-4 text-center">
-          <p className="text-sm font-medium text-[var(--accent-ink)]">Избранное пока пусто</p>
-          <p className="mt-1 text-xs text-[var(--muted)]">
+        <div className="scene-empty mt-3">
+          <p className="scene-empty__title">Избранное пока пусто</p>
+          <p className="scene-empty__hint">
             Сохраните частые блюда — потом добавляйте в дневник в один тап.
           </p>
           <button
             type="button"
-            className="btn btn-on-tint mt-3 text-sm text-[var(--accent-ink)]"
+            className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
             onClick={() => setShowForm(true)}
           >
             + Добавить продукт

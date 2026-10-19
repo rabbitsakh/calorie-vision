@@ -348,23 +348,25 @@ export function WorkoutHistoryHub({
       {loading ? <SceneSkeleton inline label="Загрузка истории…" /> : null}
 
       {!loading && sessions.length === 0 && !creating ? (
-        <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] p-6 text-center text-sm text-[var(--muted-strong)]">
-          {filterPeriod !== "all" || filterGroups.length || filterCardio
-            ? "Нет тренировок по фильтру."
-            : "Пока нет тренировок. Создайте первую и отметьте вид / группы."}
-          {filterPeriod === "day" && filterDate ? (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="font-semibold text-[var(--accent-ink)]"
-                onClick={() => onNewSession(filterDate)}
-              >
-                Создать на {formatDateShort(filterDate)}
-              </button>
-            </>
+        <div className="scene-empty">
+          <p className="scene-empty__title">
+            {filterPeriod !== "all" || filterGroups.length || filterCardio
+              ? "Нет тренировок по фильтру"
+              : "Пока нет тренировок"}
+          </p>
+          {!(filterPeriod !== "all" || filterGroups.length || filterCardio) ? (
+            <p className="scene-empty__hint">Создайте первую и отметьте вид / группы.</p>
           ) : null}
-        </p>
+          {filterPeriod === "day" && filterDate ? (
+            <button
+              type="button"
+              className="btn btn-on-tint text-sm text-[var(--accent-ink)]"
+              onClick={() => onNewSession(filterDate)}
+            >
+              Создать на {formatDateShort(filterDate)}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <ul className="flex flex-col gap-2">
