@@ -53,11 +53,11 @@ export function WorkoutCreateSessionPanel({
   return (
     <section
       ref={formRef}
-      className="rounded-2xl border-2 border-[var(--accent)] bg-white p-4 shadow-sm"
+      className="gym-plane rounded-2xl border border-[var(--border-quiet)] p-4"
     >
       <h2 className="font-semibold text-[var(--foreground)]">Новая тренировка</h2>
       {fromPlusMenu ? (
-        <p className="mt-1 text-xs font-medium text-teal-800">
+        <p className="mt-1 text-xs font-medium text-[var(--accent-ink)]">
           Из меню «+» · после создания откроется зал
         </p>
       ) : null}
@@ -83,7 +83,7 @@ export function WorkoutCreateSessionPanel({
               onClick={() => onToggleGroup(g.key)}
               className={`rounded-full px-3 py-1.5 text-sm font-medium ${
                 on
-                  ? "bg-teal-700 text-white"
+                  ? "bg-[var(--accent)] text-white"
                   : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
               }`}
             >
@@ -105,7 +105,7 @@ export function WorkoutCreateSessionPanel({
                 onClick={() => onProgressRateChange(opt.value)}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium ${
                   progressRate === opt.value
-                    ? "bg-teal-700 text-white"
+                    ? "bg-[var(--accent)] text-white"
                     : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                 }`}
               >

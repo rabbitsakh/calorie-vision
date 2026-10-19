@@ -21,7 +21,7 @@ export default function WeightPage() {
       compact
     >
       <AuthGate>
-        <div className="flex flex-col gap-4 md:gap-6">
+        <div className="weight-page-scene flex flex-col gap-3 md:gap-4">
           <OfflineMealQueueBanner onFlushed={() => setRefreshKey((value) => value + 1)} />
           <WeightHistory
             refreshKey={refreshKey}

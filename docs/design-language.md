@@ -34,3 +34,6 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Boot chrome (Wave D5): `AppSplash` wordmark is Unbounded hero on accent-token stage; tip swap + ready beat; AuthGate → product uses `.boot-enter`; skeletons fade with the same language.
 - Stats scene (Wave D6): `.stats-page-scene` is one wash plane (no card shadow); empty state and chart blocks sit as dividers on the wash, not nested white cards.
 - Daily chrome (Wave D7): ration `.ration-day-more` and water sit as hairline bands on the day wash; `+` utility tiles share one cream plane (hue on icons only); confirm inside `.food-add-sheet` drops the second `.card` shadow; profile nested blocks use `.profile-settings__nested`, not white card shells.
+- Plan rail (Wave D8): challenge / week report / shopping stay on accent tokens — no emerald second palette; stat tiles are surface-mist dividers on the wash.
+- Weight scene (Wave D9): `.weight-page-scene` mirrors stats wash; history/goal use `.weight-page-block`, not stacked `.card`.
+- Quick log + gym start (Wave D10): QuickAdd / RecipeBuilder / create-session chips use `--accent*`; morning nudge drops card shadow on the day wash.

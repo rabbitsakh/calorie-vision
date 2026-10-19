@@ -138,7 +138,7 @@ export function MorningTodayCard({ selectedDate, today }: MorningTodayCardProps)
 
   return (
     <div
-      className="morning-today-card ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-white/80 px-3.5 py-2.5 shadow-[var(--shadow-card)]"
+      className="morning-today-card ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/60 px-3.5 py-2.5"
       aria-label={brief.eyebrow}
     >
       {ctaHref ? (

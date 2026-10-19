@@ -282,7 +282,7 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
     .join(" ");
 
   return (
-    <section className="card p-4 md:p-6">
+    <section className="weight-page-block p-4 md:p-5">
       <div className="flex flex-col gap-5">
         <form className="flex flex-col gap-3" onSubmit={saveWeight}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

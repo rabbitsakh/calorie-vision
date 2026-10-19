@@ -374,13 +374,13 @@ export function RecipeBuilder({
 
       <button
         type="button"
-        className="btn-quiet mt-2 text-sm text-teal-800"
+        className="btn-quiet mt-2 text-sm text-[var(--accent-ink)]"
         onClick={() => setIngredients((prev) => [...prev, emptyIngredient()])}
       >
         + Ещё ингредиент
       </button>
 
-      <div className="mt-3 rounded-xl bg-teal-50/70 px-3 py-2 text-sm text-teal-950">
+      <div className="mt-3 rounded-xl bg-[var(--accent-soft)]/70 px-3 py-2 text-sm text-[var(--accent-ink)]">
         Итого: {Math.round(totals.calories)} ккал
         {totals.grams > 0 ? ` · ${Math.round(totals.grams)} г` : ""}
         {totals.protein > 0 || totals.fat > 0 || totals.carbs > 0
@@ -427,7 +427,7 @@ export function RecipeBuilder({
       </div>
 
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
-      {okMsg ? <p className="mt-2 text-sm text-teal-800">{okMsg}</p> : null}
+      {okMsg ? <p className="mt-2 text-sm text-[var(--accent-ink)]">{okMsg}</p> : null}
     </div>
   );
 }
