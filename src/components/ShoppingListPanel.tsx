@@ -439,7 +439,7 @@ export function ShoppingListPanel({ selectedDate, embedded = false }: ShoppingLi
                     {item.sourceDate ? (
                       <Link
                         href={withBasePath(`/ration?date=${encodeURIComponent(item.sourceDate)}`)}
-                        className="mt-0.5 shrink-0 text-[11px] font-medium text-teal-800 underline-offset-2 hover:underline"
+                        className="mt-0.5 shrink-0 text-[11px] font-medium text-[var(--accent-ink)] underline-offset-2 hover:underline"
                       >
                         {formatDateShort(item.sourceDate)}
                       </Link>

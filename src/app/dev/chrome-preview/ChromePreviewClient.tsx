@@ -201,6 +201,32 @@ export function ChromePreviewClient() {
             ))}
           </div>
         </div>
+        {/* D8 — challenge on accent tokens, not emerald */}
+        <div className="plan-week__band px-5 py-4 md:px-7">
+          <p className="font-semibold text-[var(--foreground)]">Челлендж недели</p>
+          <p className="text-xs text-[var(--muted)]">3 дня с белком ≥ нормы</p>
+          <div className="mt-2 flex items-end justify-between gap-2">
+            <span className="text-sm font-semibold tabular-nums text-[var(--accent-ink)]">
+              1<span className="font-normal"> / 3</span>
+            </span>
+            <span className="text-sm font-bold tabular-nums text-[var(--accent-ink)]">33%</span>
+          </div>
+          <div className="mt-2 h-3 overflow-hidden rounded-full bg-[var(--accent-soft)]">
+            <div className="h-full w-1/3 rounded-full bg-[var(--accent)]" />
+          </div>
+        </div>
+      </div>
+
+      {/* D9 — weight wash scene */}
+      <div className="weight-page-scene mt-6 flex flex-col gap-3">
+        <section className="weight-page-block p-4" aria-label="Вес (превью)">
+          <p className="font-display text-lg font-semibold tracking-tight text-[var(--foreground)]">Вес</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">78.4 кг · цель 75 кг</p>
+        </section>
+        <section className="weight-page-block p-4">
+          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">До цели</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--foreground)]">−3.4 кг</p>
+        </section>
       </div>
 
       <div className="ration-empty-day mt-6 flex flex-col items-center gap-4 px-6 py-14 text-center">

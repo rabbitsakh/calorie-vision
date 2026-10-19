@@ -105,7 +105,7 @@ export function QuickAddAgain({
                 type="button"
                 className={`min-h-11 shrink-0 flex-1 px-3 text-sm font-semibold transition-colors ${
                   tab === item.id
-                    ? "border-b-2 border-teal-700 text-teal-800"
+                    ? "border-b-2 border-[var(--accent)] text-[var(--accent-ink)]"
                     : "text-[var(--muted)] hover:text-[var(--muted-strong)]"
                 }`}
                 onClick={() => setTab(item.id)}
@@ -148,7 +148,7 @@ export function QuickAddAgain({
                       type="button"
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                         moreTab === item.id
-                          ? "bg-teal-700 text-white"
+                          ? "bg-[var(--accent)] text-white"
                           : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
                       }`}
                       onClick={() => setMoreTab(item.id)}

@@ -152,15 +152,15 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
       ) : null}
 
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
+        <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Дней с записями</p>
           <p className="text-lg font-bold text-[var(--accent-ink)]">{data.daysLogged}/7</p>
         </div>
-        <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
+        <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Среднее ккал</p>
           <p className="text-lg font-bold text-[var(--accent-ink)]">{data.avgCalories}</p>
         </div>
-        <div className="rounded-xl bg-white/80 px-3 py-2 text-center">
+        <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Вода/день</p>
           <p className="text-lg font-bold text-[var(--accent-ink)]">
             {data.avgWaterMl > 0 ? `${data.avgWaterMl} мл` : "—"}
@@ -186,8 +186,8 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
       {(data.closestToTarget || data.hardestDay) && data.calorieTarget ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {data.closestToTarget ? (
-            <div className="rounded-xl bg-white/80 px-3 py-2">
-              <p className="text-xs text-emerald-600">Ближе всего к цели</p>
+            <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2">
+              <p className="text-xs text-[var(--accent)]">Ближе всего к цели</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 {data.closestToTarget.calories} ккал
               </p>
@@ -195,7 +195,7 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
             </div>
           ) : null}
           {data.hardestDay ? (
-            <div className="rounded-xl bg-white/80 px-3 py-2">
+            <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2">
               <p className="text-xs text-amber-600">Самый сложный день</p>
               <p className="text-sm font-semibold text-[var(--foreground)]">
                 {data.hardestDay.calories} ккал

@@ -230,7 +230,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
     return (
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-teal-200 px-4 py-2.5 text-sm text-teal-600 hover:border-teal-300"
+        className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[var(--accent)]/25 px-4 py-2.5 text-sm text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
         onClick={() => {
           showPanelToday(PANEL_ID, selectedDate);
           setHidden(false);
@@ -245,12 +245,12 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
   const busy = adding !== null || copying !== null;
 
   return (
-    <div className={embedded ? "" : "rounded-2xl border border-teal-100 bg-teal-50/50 p-4"}>
+    <div className={embedded ? "" : "rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 p-4"}>
       {!embedded ? (
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
-          <p className="font-semibold text-teal-900">Быстрое добавление</p>
-          <p className="text-xs text-teal-700">
+          <p className="font-semibold text-[var(--accent-ink)]">Быстрое добавление</p>
+          <p className="text-xs text-[var(--muted-strong)]">
             {fromCache
               ? "Офлайн: показываем последние предложения с устройства"
               : showSuggestions
@@ -260,7 +260,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         </div>
         <button
           type="button"
-          className="btn-quiet text-xs text-teal-700 hover:bg-teal-100"
+          className="btn-quiet text-xs text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
           onClick={() => {
             hidePanelToday(PANEL_ID, selectedDate);
             setHidden(true);
@@ -284,7 +284,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
           <button
             type="button"
             disabled={busy}
-            className="flex w-full items-center justify-between gap-3 rounded-xl border border-teal-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-teal-400 hover:bg-teal-50 disabled:opacity-60"
+            className="flex w-full items-center justify-between gap-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/70 px-3 py-2.5 text-left transition-colors hover:border-[var(--accent)]/35 hover:bg-[var(--accent-soft)] disabled:opacity-60"
             onClick={() => void copyYesterday()}
           >
             <div className="min-w-0 flex-1">
@@ -293,7 +293,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
                 Скопировать все записи ({data.yesterdayCount})
               </p>
             </div>
-            <span className="shrink-0 text-sm font-semibold text-teal-800">
+            <span className="shrink-0 text-sm font-semibold text-[var(--accent-ink)]">
               {copying === "all" ? "Копируем…" : "Повторить"}
             </span>
           </button>
@@ -307,7 +307,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
                     key={type}
                     type="button"
                     disabled={busy}
-                    className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-200 transition-colors hover:bg-teal-50 disabled:opacity-60"
+                    className="rounded-full bg-[var(--surface-mist)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)] ring-1 ring-[var(--border-quiet)] transition-colors hover:bg-[var(--accent-soft)] disabled:opacity-60"
                     onClick={() => void copyYesterday(type)}
                   >
                     {copying === type
@@ -331,7 +331,7 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
               key={item.dishName}
               type="button"
               disabled={busy}
-              className="flex min-h-[3.5rem] items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white px-3.5 py-3.5 text-left transition-colors hover:border-teal-300 hover:bg-teal-50 disabled:opacity-60"
+              className="flex min-h-[3.5rem] items-center justify-between gap-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/70 px-3.5 py-3.5 text-left transition-colors hover:border-[var(--accent)]/35 hover:bg-[var(--accent-soft)] disabled:opacity-60"
               onClick={() => void addMeal(item)}
             >
               <div className="min-w-0 flex-1">
@@ -340,11 +340,11 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
                 <p className="text-xs text-[var(--muted)]">{item.why}</p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-base font-bold text-teal-800">{item.calories} ккал</p>
+                <p className="text-base font-bold text-[var(--accent-ink)]">{item.calories} ккал</p>
                 {adding === item.dishName ? (
-                  <span className="text-xs text-teal-600">Добавляем…</span>
+                  <span className="text-xs text-[var(--accent)]">Добавляем…</span>
                 ) : (
-                  <span className="text-xs text-teal-600">+ Добавить</span>
+                  <span className="text-xs text-[var(--accent)]">+ Добавить</span>
                 )}
               </div>
             </button>

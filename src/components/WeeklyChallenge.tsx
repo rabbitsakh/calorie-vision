@@ -255,7 +255,7 @@ export function WeeklyChallenge({
         : `${active.progress}/${active.target}`
       : "Выбрать цель";
     const miniClass =
-      "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-emerald-50 px-2.5 py-1.5 text-left text-xs font-semibold text-emerald-900";
+      "flex min-w-0 flex-1 items-center gap-1.5 rounded-xl bg-[var(--accent-soft)] px-2.5 py-1.5 text-left text-xs font-semibold text-[var(--accent-ink)]";
     const miniLabel = (
       <span className="truncate">
         {active ? active.title : "Челлендж"} · {label}
@@ -287,7 +287,7 @@ export function WeeklyChallenge({
       <>
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-emerald-200 px-4 py-2.5 text-sm text-emerald-700 hover:border-emerald-300"
+          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-dashed border-[var(--accent)]/25 px-4 py-2.5 text-sm text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
           onClick={() => {
             if (data.weekStart) showPanelForWeek(PANEL_ID, data.weekStart);
             setHidden(false);
@@ -312,9 +312,9 @@ export function WeeklyChallenge({
 
   const shellClass = embedded
     ? "plan-week__band"
-    : "rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4";
-  const titleClass = embedded ? "font-semibold text-[var(--foreground)]" : "font-semibold text-emerald-900";
-  const hintClass = embedded ? "text-xs text-[var(--muted)]" : "text-xs text-emerald-700";
+    : "rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 p-4";
+  const titleClass = embedded ? "font-semibold text-[var(--foreground)]" : "font-semibold text-[var(--accent-ink)]";
+  const hintClass = embedded ? "text-xs text-[var(--muted)]" : "text-xs text-[var(--accent-ink)]";
 
   return (
     <>
@@ -326,7 +326,7 @@ export function WeeklyChallenge({
           </div>
           <button
             type="button"
-            className="btn-quiet text-xs text-emerald-700 hover:bg-emerald-100"
+            className="btn-quiet text-xs text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
             onClick={() => {
               if (data.weekStart) hidePanelForWeek(PANEL_ID, data.weekStart);
               setHidden(true);
@@ -348,16 +348,16 @@ export function WeeklyChallenge({
               return (
                 <>
                   <div className="mt-3 flex items-end justify-between gap-2">
-                    <span className="text-sm font-semibold tabular-nums text-emerald-900">
+                    <span className="text-sm font-semibold tabular-nums text-[var(--accent-ink)]">
                       {data.active.progress}
-                      <span className="font-normal text-emerald-700"> / {data.active.target}</span>
+                      <span className="font-normal text-[var(--accent-ink)]"> / {data.active.target}</span>
                     </span>
-                    <span className="text-sm font-bold tabular-nums text-emerald-800">
+                    <span className="text-sm font-bold tabular-nums text-[var(--accent-ink)]">
                       {data.active.completed ? "Выполнено!" : `${pct}%`}
                     </span>
                   </div>
                   <div
-                    className="mt-2 h-4 overflow-hidden rounded-full bg-emerald-200/90 ring-1 ring-inset ring-emerald-300/80"
+                    className="mt-2 h-4 overflow-hidden rounded-full bg-[var(--accent-soft)] ring-1 ring-inset ring-[var(--accent)]/20"
                     role="progressbar"
                     aria-valuenow={pct}
                     aria-valuemin={0}
@@ -365,11 +365,7 @@ export function WeeklyChallenge({
                     aria-label={`Прогресс челленджа: ${pct}%`}
                   >
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        data.active.completed
-                          ? "bg-emerald-600"
-                          : "bg-gradient-to-r from-emerald-500 to-teal-500"
-                      }`}
+                      className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -379,7 +375,7 @@ export function WeeklyChallenge({
             {!data.active.completed ? (
               <button
                 type="button"
-                className="mt-3 text-xs font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                className="mt-3 text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
                 onClick={() => setSwitching(true)}
               >
                 Сменить цель
@@ -392,7 +388,7 @@ export function WeeklyChallenge({
           <div className={`flex flex-col gap-2 ${data.active && switching ? "mt-3" : ""}`}>
             {switching ? (
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-emerald-900">Новая цель на эту неделю</p>
+                <p className="text-xs font-medium text-[var(--accent-ink)]">Новая цель на эту неделю</p>
                 <button
                   type="button"
                   className="text-xs text-[var(--muted)] hover:text-[var(--muted-strong)]"
@@ -414,13 +410,13 @@ export function WeeklyChallenge({
                 key={opt.key}
                 type="button"
                 disabled={starting !== null}
-                className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5 text-left hover:border-emerald-300 disabled:opacity-60"
+                className="rounded-xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/70 px-3 py-2.5 text-left hover:border-[var(--accent)]/35 disabled:opacity-60"
                 onClick={() => void start(opt.key, switching)}
               >
                 <p className="text-sm font-medium text-[var(--foreground)]">{opt.title}</p>
                 <p className="text-xs text-[var(--muted)]">{opt.description}</p>
                 {opt.recommended ? (
-                  <p className="mt-1 text-xs font-semibold text-teal-700">Подойдёт на этой неделе</p>
+                  <p className="mt-1 text-xs font-semibold text-[var(--accent-ink)]">Подойдёт на этой неделе</p>
                 ) : null}
                 {opt.tight ? (
                   <p className="mt-1 text-xs font-medium text-amber-700">
@@ -428,7 +424,7 @@ export function WeeklyChallenge({
                   </p>
                 ) : null}
                 {starting === opt.key ? (
-                  <span className="text-xs text-emerald-700">Стартуем…</span>
+                  <span className="text-xs text-[var(--accent-ink)]">Стартуем…</span>
                 ) : null}
               </button>
             ))}
@@ -436,8 +432,8 @@ export function WeeklyChallenge({
         ) : null}
 
         {history.length > 0 ? (
-          <div className="mt-4 border-t border-emerald-100 pt-3">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+          <div className="mt-4 border-t border-[var(--border-hairline)] pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
               Прошлые недели
             </p>
             <ul className="flex flex-col gap-1.5">
@@ -451,7 +447,7 @@ export function WeeklyChallenge({
                     {" · "}
                     {row.title}
                   </span>
-                  <span className="shrink-0 tabular-nums font-semibold text-emerald-800">
+                  <span className="shrink-0 tabular-nums font-semibold text-[var(--accent-ink)]">
                     {row.completed ? "✓" : `${row.progress}/${row.target}`}
                   </span>
                 </li>

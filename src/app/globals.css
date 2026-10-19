@@ -2845,8 +2845,33 @@ select {
   animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* D9 — weight: one wash plane like stats */
+.weight-page-scene {
+  flex-shrink: 0;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.65rem 0.75rem 0.95rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-quiet);
+  background: var(--panel-wash);
+  box-shadow: none;
+  animation: ration-scene-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.weight-page-block {
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: rgba(255, 252, 248, 0.72);
+  box-shadow: none;
+}
+
+.weight-page-scene > .weight-page-block + .weight-page-block {
+  margin-top: 0.15rem;
+}
+
 @media (min-width: 768px) {
   .stats-page-scene,
+  .weight-page-scene,
   .gym-day {
     margin-left: 0;
     margin-right: 0;
@@ -7153,8 +7178,9 @@ select {
   }
 }
 
-/* Wave C3 / D4 — one scene: soften nested card cascade on stats / gym / plan */
+/* Wave C3 / D4 — one scene: soften nested card cascade on stats / gym / plan / weight */
 .stats-page-scene .card,
+.weight-page-scene .card,
 .gym-day .card,
 .gym-session-scene .card,
 .gym-hub-scene .card,

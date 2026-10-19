@@ -261,7 +261,7 @@ export function WeightGoalCard({
       : null;
 
   return (
-    <section className={embedded ? "px-1 py-1" : "card p-6"}>
+    <section className={embedded ? "px-1 py-1" : "weight-page-block p-5 md:p-6"}>
       <div className="flex flex-col gap-5">
         {loading ? <SceneSkeleton inline label="Загрузка цели…" /> : null}
 
