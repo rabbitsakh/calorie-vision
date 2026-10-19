@@ -134,7 +134,7 @@ export function WaterTracker({
       <button
         type="button"
         id="water-tracker"
-        className="flex w-full scroll-mt-4 items-center justify-between gap-2 rounded-2xl border border-dashed border-[rgba(13,115,119,0.22)] bg-[var(--accent-water-soft)]/40 px-4 py-2.5 text-sm text-[var(--muted-strong)] hover:border-[rgba(2,132,199,0.4)]"
+        className="flex w-full scroll-mt-4 items-center justify-between gap-2 rounded-2xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/40 px-4 py-2.5 text-sm text-[var(--muted-strong)] hover:border-[var(--accent-water)]/50"
         onClick={() => {
           showPanelToday(PANEL_ID, selectedDate);
           setHidden(false);
@@ -218,14 +218,19 @@ export function WaterTracker({
   }
 
   return (
-    <section id="water-tracker" className="card overflow-hidden scroll-mt-4">
-      <div className="border-b border-sky-100 bg-[var(--accent-water-soft)] px-4 py-3 md:px-5">
+    <section
+      id="water-tracker"
+      className="overflow-hidden scroll-mt-4 rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/50"
+    >
+      <div className="border-b border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/70 px-4 py-3 md:px-5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-sky-950">Вода</h2>
+              <h2 className="font-display text-base font-semibold tracking-tight text-[var(--accent-ink)]">
+                Вода
+              </h2>
             </div>
-            <p className="mt-0.5 text-sm text-sky-900/80">
+            <p className="mt-0.5 text-sm text-[var(--muted-strong)]">
               {totalMl} / {target} мл
               {remaining > 0 ? ` · осталось ${remaining} мл` : " · норма выполнена"}
             </p>
@@ -233,7 +238,7 @@ export function WaterTracker({
           <div className="flex items-center gap-2">
             <div className="relative shrink-0">
               <svg width="64" height="64" viewBox="0 0 72 72" aria-hidden>
-                <circle cx="36" cy="36" r={r} fill="none" stroke="#bae6fd" strokeWidth="5" />
+                <circle cx="36" cy="36" r={r} fill="none" stroke="var(--accent-water-soft)" strokeWidth="5" />
                 <circle
                   cx="36"
                   cy="36"
@@ -247,11 +252,11 @@ export function WaterTracker({
                   className="transition-all duration-500"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-sky-900">
+              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--accent-ink)]">
                 {done ? "✓" : `${pct}%`}
               </span>
             </div>
-            <button type="button" className="btn-quiet text-sky-800" onClick={handleHide}>
+            <button type="button" className="btn-quiet text-[var(--accent-ink)]" onClick={handleHide}>
               Скрыть
             </button>
           </div>
@@ -260,17 +265,17 @@ export function WaterTracker({
 
       <div className="px-4 py-3 md:px-5">
         {showTip ? (
-          <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm text-sky-950">
+          <div className="mb-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/80 px-3 py-2.5 text-sm text-[var(--accent-ink)]">
             <p className="font-medium">
               Норма воды — {target} мл в день
               {target !== WATER_DAILY_TARGET_ML ? " (ваша цель из профиля)" : ""}.
             </p>
-            <p className="mt-1 text-xs text-sky-900/80">
+            <p className="mt-1 text-xs text-[var(--muted-strong)]">
               Жмите быстрые кнопки после каждого стакана — так проще держать привычку.
             </p>
             <button
               type="button"
-              className="mt-2 text-xs font-semibold text-sky-800 underline-offset-2 hover:underline"
+              className="mt-2 text-xs font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
               onClick={() => {
                 markWaterTipSeen();
                 setShowTip(false);

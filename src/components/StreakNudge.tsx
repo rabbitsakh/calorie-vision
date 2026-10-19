@@ -209,7 +209,7 @@ export function StreakNudge({
           {showFreeze ? (
             <button
               type="button"
-              className="btn-quiet text-sm text-sky-800"
+              className="btn-quiet text-sm text-[var(--accent-ink)]"
               disabled={freezing}
               onClick={() => void applyFreeze()}
             >

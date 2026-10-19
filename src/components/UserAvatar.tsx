@@ -39,7 +39,7 @@ export function UserAvatar({
   image,
   label,
   className = "h-9 w-9 shrink-0 rounded-full border border-[rgba(13,115,119,0.14)] object-cover bg-[var(--accent-soft)]",
-  fallbackClassName = "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800",
+  fallbackClassName = "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent-ink)]",
   initialsClassName,
 }: UserAvatarProps) {
   const [failed, setFailed] = useState(false);

@@ -232,7 +232,7 @@ function BarChart({
                   : targetValue && value && value >= targetValue * 0.9
                     ? "bg-[var(--accent)]"
                     : "bg-[var(--accent)]"
-                : "bg-sky-600";
+                : "bg-[var(--accent-water)]";
               const labelValue = value && value > 0 && valueLabelIdx.has(index);
 
               return (
@@ -422,7 +422,7 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
                   style={{ left: `${x}%`, top: `${y}%` }}
                 >
                   <div
-                    className="h-2.5 w-2.5 rounded-full border-2 border-sky-600 bg-white"
+                    className="h-2.5 w-2.5 rounded-full border-2 border-[var(--accent-water)] bg-white"
                     title={`${formatDateShort(p.date)}: ${p.value} кг`}
                   />
                   {showLabel ? (
@@ -472,11 +472,11 @@ function WeightLineChart({ days, period }: { days: StatsDay[]; period: "week" | 
       {avgPoints ? (
         <div className="flex items-center gap-4 pl-[3.25rem] text-xs text-[var(--muted)]">
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-0.5 w-6 rounded bg-sky-200" />
+            <span className="inline-block h-0.5 w-6 rounded bg-[var(--accent-water-soft)]" />
             Измерения
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="inline-block h-[2.5px] w-6 rounded bg-sky-600" />
+            <span className="inline-block h-[2.5px] w-6 rounded bg-[var(--accent-water)]" />
             7‑дневное среднее
           </span>
         </div>

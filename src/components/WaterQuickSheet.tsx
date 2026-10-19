@@ -117,12 +117,15 @@ export function WaterQuickSheet() {
         className="food-add-sheet flex w-full max-w-md flex-col overflow-hidden rounded-t-3xl shadow-xl sm:rounded-3xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-[rgba(13,115,119,0.08)] px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--border-hairline)] px-4 py-3.5">
           <div className="min-w-0">
-            <p id="water-quick-title" className="font-semibold text-[var(--foreground)]">
+            <p
+              id="water-quick-title"
+              className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]"
+            >
               Вода сегодня
             </p>
-            <p className="text-xs text-[var(--muted)]">Быстрая запись из «+»</p>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">Быстрая запись из «+»</p>
           </div>
           <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={close}>
             Закрыть
@@ -130,14 +133,14 @@ export function WaterQuickSheet() {
         </div>
 
         <div className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-          <div className="rounded-2xl border border-sky-100 bg-[var(--accent-water-soft)] px-4 py-3">
-            <p className="text-sm font-semibold text-sky-950">
+          <div className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-water-soft)] px-4 py-3">
+            <p className="text-sm font-semibold text-[var(--accent-ink)]">
               {totalMl} / {target} мл
-              <span className="ml-2 text-xs font-bold text-sky-800">
+              <span className="ml-2 text-xs font-bold text-[var(--accent-ink)]">
                 {done ? "✓ норма" : `${pct}%`}
               </span>
             </p>
-            <p className="mt-0.5 text-xs text-sky-900/80">
+            <p className="mt-0.5 text-xs text-[var(--muted-strong)]">
               {done ? "Норма выполнена" : remaining > 0 ? `Осталось ${remaining} мл` : "Быстрые кнопки"}
             </p>
           </div>
@@ -147,7 +150,7 @@ export function WaterQuickSheet() {
               <button
                 key={ml}
                 type="button"
-                className="min-h-12 rounded-2xl border border-sky-200 bg-sky-50 text-base font-semibold text-sky-900 hover:border-sky-400 hover:bg-sky-100 disabled:opacity-50"
+                className="min-h-12 rounded-2xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/80 text-base font-semibold text-[var(--accent-ink)] hover:border-[var(--accent-water)]/45 hover:bg-[var(--accent-water-soft)] disabled:opacity-50"
                 disabled={loading}
                 onClick={() => void add(ml)}
               >
@@ -156,7 +159,7 @@ export function WaterQuickSheet() {
             ))}
           </div>
 
-          {doneMsg ? <p className="text-sm text-teal-700">{doneMsg}</p> : null}
+          {doneMsg ? <p className="text-sm text-[var(--accent-ink)]">{doneMsg}</p> : null}
         </div>
       </div>
     </div>

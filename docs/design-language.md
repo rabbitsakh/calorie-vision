@@ -39,3 +39,5 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Quick log + gym start (Wave D10): QuickAdd / RecipeBuilder / create-session chips use `--accent*`; morning nudge drops card shadow on the day wash.
 - Day retention (Wave D12): habits sheet uses `.habits-sheet-panel` wash; push/share/aha/profile-complete/install prompts on accent tokens (no teal/sky/emerald walls).
 - Assistant + empties (Wave D13): `.assistant-scene` drops card shadow; toolbar chips prefer `.assistant-scene-chip`; shared `.scene-empty` for diary filter / favorites / templates / gym history.
+- Water + streak (Wave D14): daily water/freeze use `--accent-water*` / `--accent-ink` (no Tailwind `sky-*`); weight chart marks follow `--accent-water`.
+- First hour (Wave D15): onboarding + PWA wizard share habits/food-add wash panels; auth avatar/menu and stage screens use accent tokens (no `teal-*` shells).

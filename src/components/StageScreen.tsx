@@ -52,7 +52,7 @@ export function StageScreen({
 
   const stage = (
     <div
-          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-teal-950 to-[#0a1f1e] text-white"
+          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-[var(--accent-ink)] to-[#0a1f1e] text-white"
       role="dialog"
       aria-modal="true"
       aria-label={eyebrow}
@@ -71,7 +71,7 @@ export function StageScreen({
           </div>
         ) : null}
 
-        <p className="text-xs font-semibold uppercase tracking-widest text-teal-300/90">{eyebrow}</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/75">{eyebrow}</p>
         <h2 className="mt-2 text-3xl font-semibold leading-tight">{headline}</h2>
         {subline ? <p className="mt-1 text-[var(--muted)]">{subline}</p> : null}
 
@@ -81,10 +81,10 @@ export function StageScreen({
               <div
                 key={m.key}
                 className={`rounded-2xl px-4 py-3 ${
-                  m.accent ? "bg-teal-500/20" : "bg-white/10"
+                  m.accent ? "bg-[var(--accent)]/25" : "bg-white/10"
                 }`}
               >
-                <p className={`text-xs ${m.accent ? "text-teal-200" : "text-[var(--muted)]"}`}>
+                <p className={`text-xs ${m.accent ? "text-[var(--accent-soft)]" : "text-[var(--muted)]"}`}>
                   {m.label}
                 </p>
                 <p className="mt-1 text-xl font-semibold tabular-nums">{m.value}</p>
@@ -100,7 +100,7 @@ export function StageScreen({
             {primaryAction ? (
               <button
                 type="button"
-                className="rounded-2xl bg-teal-500 py-3.5 text-base font-bold text-[#0a1f1e]"
+                className="rounded-2xl bg-[var(--accent)] py-3.5 text-base font-bold text-white"
                 onClick={primaryAction.onClick}
               >
                 {primaryAction.label}
