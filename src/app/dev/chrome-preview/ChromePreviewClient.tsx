@@ -241,6 +241,25 @@ export function ChromePreviewClient() {
         </button>
       </div>
 
+      {/* D13 — quiet empty + assistant wash */}
+      <div className="scene-empty mt-6">
+        <p className="scene-empty__title">Избранное пока пусто</p>
+        <p className="scene-empty__hint">Одна строка и один CTA — общий паттерн пустых экранов.</p>
+        <button type="button" className="btn btn-on-tint text-sm text-[var(--accent-ink)]" tabIndex={-1}>
+          + Добавить продукт
+        </button>
+      </div>
+
+      <div className="assistant-scene mt-6" aria-label="Ассистент (превью)">
+        <div className="assistant-scene-toolbar">
+          <span className="assistant-scene-chip">День · сегодня</span>
+          <span className="assistant-scene-chip">ещё 760 ккал</span>
+        </div>
+        <p className="mt-2 text-sm text-[var(--muted-strong)]">
+          Пиши обычным языком — добавлю в рацион или план зала.
+        </p>
+      </div>
+
       <div className="food-add-sheet mt-6 shrink-0 rounded-[var(--radius-panel)] p-4 shadow-xl">
         <p className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]">
           Добавить еду

@@ -35,7 +35,7 @@ export function FirstShareNudge({
   if (!visible) return null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-teal-100 bg-teal-50/70 px-3 py-2.5 text-sm text-teal-950">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 px-3 py-2.5 text-sm text-[var(--accent-ink)]">
       <p className="min-w-0 flex-1 font-medium">
         День начат — можно тихо поделиться карточкой, без оценок.
       </p>
@@ -51,7 +51,7 @@ export function FirstShareNudge({
         />
         <button
           type="button"
-          className="btn-quiet text-xs text-teal-800"
+          className="btn-quiet text-xs text-[var(--accent-ink)]"
           onClick={() => {
             markFirstShareNudgeSeen();
             setVisible(false);

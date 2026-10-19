@@ -36,7 +36,10 @@ export function WorkoutTemplatesPanel({
         + Новый шаблон
       </button>
       {routines.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">Пока нет шаблонов.</p>
+        <div className="scene-empty">
+          <p className="scene-empty__title">Пока нет шаблонов</p>
+          <p className="scene-empty__hint">Создайте шаблон — старт тренировки в один тап.</p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
           {routines.map((r) => (

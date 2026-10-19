@@ -99,7 +99,7 @@ function permissionLabelRu(permission: PushCapability["permission"]): string {
 function toneClasses(tone: PushUxState["tone"]): string {
   switch (tone) {
     case "ok":
-      return "border-emerald-200 bg-emerald-50/80";
+      return "border-[var(--accent)]/25 bg-[var(--accent-soft)]/60";
     case "warn":
       return "border-amber-200 bg-amber-50/90";
     case "tip":
@@ -112,7 +112,7 @@ function toneClasses(tone: PushUxState["tone"]): string {
 function matrixStepClasses(status: "done" | "current" | "todo" | "blocked"): string {
   switch (status) {
     case "done":
-      return "border-emerald-300 bg-emerald-100 text-emerald-900";
+      return "border-[var(--accent)]/35 bg-[var(--accent-soft)] text-[var(--accent-ink)]";
     case "current":
       return "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)] ring-1 ring-[var(--accent)]/40";
     case "blocked":

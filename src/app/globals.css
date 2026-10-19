@@ -6897,15 +6897,48 @@ select {
   animation-delay: 0.3s;
 }
 
+/* D12 — habits sheet: wash plane like food-add sheet */
+.habits-sheet-panel {
+  background: var(--panel-wash);
+  border: 1px solid var(--border-quiet);
+  box-shadow: 0 12px 28px rgba(13, 115, 119, 0.12);
+}
+
 /* Wave A1/C1 — assistant as product scene */
+/* D13: quieter wash — no heavy card shadow (parity with stats/weight) */
 .assistant-scene {
   background: var(--panel-wash);
   border: 1px solid var(--border-quiet);
   border-radius: var(--radius-panel);
-  box-shadow: var(--shadow-card);
+  box-shadow: none;
   padding: 0.85rem 0.85rem 1rem;
   min-height: 75vh;
   animation: ration-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* D13 — shared quiet empty: one line + one CTA */
+.scene-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.35rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--border-quiet);
+  border-radius: var(--radius-md);
+  background: rgba(255, 252, 248, 0.55);
+}
+
+.scene-empty__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+}
+
+.scene-empty__hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  max-width: 18rem;
 }
 
 .assistant-scene-toolbar {
@@ -6948,6 +6981,17 @@ select {
   margin-top: 0.5rem;
   padding-top: 0.65rem;
   border-top: 1px solid var(--border-hairline);
+  box-shadow: none;
+}
+
+.assistant-scene-chip {
+  border: 1px solid var(--border-quiet);
+  border-radius: 0.55rem;
+  background: rgba(255, 252, 248, 0.85);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--muted-strong);
 }
 
 /* Wave A2/A3/C2 — confirm family (AI photo + action cards ≈ ConfirmationCard) */

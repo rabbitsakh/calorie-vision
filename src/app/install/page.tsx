@@ -23,7 +23,7 @@ export default function InstallPage() {
   return (
     <main className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col gap-6 px-4 py-8">
       <div>
-        <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">На телефон</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">На телефон</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-[var(--foreground)]">Установка</h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">
           Calorie Vision — PWA. Добавьте на главный экран: иконка, полноэкранный режим, удобный дневник.
@@ -35,7 +35,7 @@ export default function InstallPage() {
       <InstallPageClient />
 
       {rustoreUrl && rustoreBadgeUrl ? (
-        <section className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4">
+        <section className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--surface-mist)]/70 p-4">
           <h2 className="font-semibold text-[var(--foreground)]">Android · RuStore</h2>
           <p className="mt-1 text-sm text-[var(--muted-strong)]">
             Бесплатное приложение в официальном магазине — тот же дневник и зал. Обновления приходят
@@ -60,7 +60,7 @@ export default function InstallPage() {
         </section>
       ) : null}
 
-      <section className="rounded-2xl border border-teal-200 bg-teal-50/60 p-4">
+      <section className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-soft)]/50 p-4">
         <h2 className="font-semibold text-[var(--foreground)]">Android · APK</h2>
         <p className="mt-1 text-sm text-[var(--muted-strong)]">
           Тот же дневник на телефоне: офлайн-иконка, напоминания и камера. Установите APK

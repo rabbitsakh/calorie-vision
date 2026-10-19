@@ -37,3 +37,5 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Plan rail (Wave D8): challenge / week report / shopping stay on accent tokens — no emerald second palette; stat tiles are surface-mist dividers on the wash.
 - Weight scene (Wave D9): `.weight-page-scene` mirrors stats wash; history/goal use `.weight-page-block`, not stacked `.card`.
 - Quick log + gym start (Wave D10): QuickAdd / RecipeBuilder / create-session chips use `--accent*`; morning nudge drops card shadow on the day wash.
+- Day retention (Wave D12): habits sheet uses `.habits-sheet-panel` wash; push/share/aha/profile-complete/install prompts on accent tokens (no teal/sky/emerald walls).
+- Assistant + empties (Wave D13): `.assistant-scene` drops card shadow; toolbar chips prefer `.assistant-scene-chip`; shared `.scene-empty` for diary filter / favorites / templates / gym history.
