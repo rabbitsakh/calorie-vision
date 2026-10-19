@@ -137,14 +137,17 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
       aria-modal="true"
       aria-labelledby="cv-onboarding-title"
     >
-      <div className="w-full max-w-md rounded-3xl border border-[var(--accent)]/20 bg-white p-5 shadow-xl sm:p-6">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--border-quiet)] bg-[var(--panel-wash)] p-5 shadow-[0_12px_28px_rgba(13,115,119,0.12)] sm:p-6">
         <div className="flex items-start gap-3">
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">
               Шаг {step + 1} из {steps.length}
             </p>
-            <h2 id="cv-onboarding-title" className="mt-1 text-lg font-bold text-[var(--foreground)]">
+            <h2
+              id="cv-onboarding-title"
+              className="font-display mt-1 text-lg font-semibold tracking-tight text-[var(--foreground)]"
+            >
               {current.title}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">{current.body}</p>

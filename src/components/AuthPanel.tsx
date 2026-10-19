@@ -109,7 +109,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-[rgba(13,115,119,0.14)] bg-white py-1 shadow-lg"
+            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-[var(--border-quiet)] bg-[var(--panel-wash)] py-1 shadow-[0_12px_28px_rgba(13,115,119,0.12)]"
             style={{ top: coords.top, right: coords.right }}
           >
             <Link
@@ -196,8 +196,8 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
         className={
           compactTrigger
             ? // Mobile: larger avatar-only control; sm+: pill with name.
-              "flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[rgba(13,115,119,0.14)] bg-white p-0 text-left hover:border-teal-300 sm:h-10 sm:w-auto sm:max-w-none sm:gap-2.5 sm:py-0 sm:pl-0 sm:pr-2.5"
-            : "flex max-w-[12rem] items-center gap-2 rounded-full border border-[rgba(13,115,119,0.14)] bg-white px-2 py-1.5 text-left hover:border-teal-300 md:max-w-none md:gap-3 md:px-3"
+              "flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[rgba(13,115,119,0.14)] bg-white p-0 text-left hover:border-[var(--accent)]/40 sm:h-10 sm:w-auto sm:max-w-none sm:gap-2.5 sm:py-0 sm:pl-0 sm:pr-2.5"
+            : "flex max-w-[12rem] items-center gap-2 rounded-full border border-[rgba(13,115,119,0.14)] bg-white px-2 py-1.5 text-left hover:border-[var(--accent)]/40 md:max-w-none md:gap-3 md:px-3"
         }
         aria-expanded={open}
         aria-haspopup="menu"
@@ -215,8 +215,8 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
             }
             fallbackClassName={
               compactTrigger
-                ? "flex h-full w-full items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
-                : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-800"
+                ? "flex h-full w-full items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent-ink)]"
+                : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--accent-ink)]"
             }
           />
         </AvatarFrame>

@@ -103,12 +103,15 @@ export function PwaInstallWizard({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-4 shadow-xl"
+        className="habits-sheet-panel max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-4"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p id="pwa-wizard-title" className="font-semibold text-[var(--foreground)]">
+            <p
+              id="pwa-wizard-title"
+              className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]"
+            >
               {reinstall ? "Переустановить для уведомлений" : "Установить на телефон"}
             </p>
             <p className="mt-1 text-sm text-[var(--muted)]">
@@ -126,7 +129,7 @@ export function PwaInstallWizard({
           <button
             type="button"
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
-              tab === "ios" ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)]"
+              tab === "ios" ? "bg-[var(--surface-mist)] text-[var(--foreground)]" : "text-[var(--muted)]"
             }`}
             onClick={() => setTab("ios")}
           >
@@ -135,7 +138,7 @@ export function PwaInstallWizard({
           <button
             type="button"
             className={`rounded-lg px-3 py-2 text-sm font-medium ${
-              tab === "android" ? "bg-white text-[var(--foreground)] shadow-sm" : "text-[var(--muted)]"
+              tab === "android" ? "bg-[var(--surface-mist)] text-[var(--foreground)]" : "text-[var(--muted)]"
             }`}
             onClick={() => setTab("android")}
           >

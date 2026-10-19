@@ -233,13 +233,13 @@ export function StreakWidget({
       ) : null}
 
       {data.canFreezeYesterday ? (
-        <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
-          <p className="text-sm text-sky-900">
+        <div className="mt-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/70 px-3 py-2.5">
+          <p className="text-sm text-[var(--accent-ink)]">
             {freezeBannerCopy()}
           </p>
           <button
             type="button"
-            className="mt-2 text-sm font-semibold text-sky-800 hover:text-sky-950 disabled:opacity-60"
+            className="mt-2 text-sm font-semibold text-[var(--accent-ink)] hover:text-[var(--foreground)] disabled:opacity-60"
             disabled={freezing}
             onClick={() => void applyStreakFreeze()}
           >
@@ -247,7 +247,7 @@ export function StreakWidget({
           </button>
         </div>
       ) : data.freezeAvailable && data.streakAtRisk ? null : data.freezeAvailable ? (
-        <p className="mt-2 text-xs text-sky-700">❄️ Заморозка доступна на этой неделе</p>
+        <p className="mt-2 text-xs text-[var(--accent-ink)]">❄️ Заморозка доступна на этой неделе</p>
       ) : null}
 
       {/* Last 14 days mini-calendar */}
@@ -268,8 +268,8 @@ export function StreakWidget({
                     active
                       ? frozen && !logged
                         ? isToday
-                          ? "bg-sky-500"
-                          : "bg-sky-400"
+                          ? "bg-[var(--accent-water)]"
+                          : "bg-[var(--accent-water)]/80"
                         : isToday
                           ? "bg-amber-500"
                           : "bg-amber-400"

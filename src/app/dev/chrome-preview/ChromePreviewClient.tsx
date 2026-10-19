@@ -110,10 +110,10 @@ export function ChromePreviewClient() {
         {/* D7 — day-more: hairline bands on the day wash */}
         <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1">
           <section
-            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/35 px-3.5 py-3"
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/55 px-3.5 py-3"
             aria-label="Вода (превью)"
           >
-            <p className="text-sm font-semibold text-[var(--foreground)]">
+            <p className="text-sm font-semibold text-[var(--accent-ink)]">
               Вода <span className="font-medium text-[var(--muted-strong)]">750 / 2000 мл</span>
             </p>
             <p className="text-[11px] text-[var(--muted)]">Осталось 1250 мл</p>
