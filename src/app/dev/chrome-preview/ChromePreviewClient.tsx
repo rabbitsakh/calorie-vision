@@ -116,7 +116,7 @@ export function ChromePreviewClient() {
             <p className="text-sm font-semibold text-[var(--accent-ink)]">
               Вода <span className="font-medium text-[var(--muted-strong)]">750 / 2000 мл</span>
             </p>
-            <p className="text-[11px] text-[var(--muted)]">Осталось 1250 мл · без sky-палитры</p>
+            <p className="text-[11px] text-[var(--muted)]">Осталось 1250 мл</p>
           </section>
           <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/40">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left [&::-webkit-details-marker]:hidden">
