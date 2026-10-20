@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildAssistantHistory,
   buildAssistantSystemPrompt,
   buildContextSnapshot,
   formatAssistantContext,
@@ -8,6 +9,8 @@ import {
   parseAssistantMessages,
   parseAssistantMode,
   splitAssistantReply,
+  truncateAssistantMessages,
+  ADMIN_ASSISTANT_MAX_MESSAGES,
   type AssistantContextInput,
 } from "./admin-assistant.ts";
 
@@ -82,6 +85,40 @@ test("parseAssistantMessages skips empty placeholder turns", () => {
   assert.ok(parsed);
   assert.equal(parsed!.length, 2);
   assert.equal(parsed![1]!.content, "Я съел печень с рисом 500гр");
+});
+
+test("parseAssistantMessages truncates long history instead of 400", () => {
+  const long: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (let i = 0; i < ADMIN_ASSISTANT_MAX_MESSAGES + 12; i++) {
+    long.push({
+      role: i % 2 === 0 ? "user" : "assistant",
+      content: i % 2 === 0 ? `user-${i}` : `assistant-${i}`,
+    });
+  }
+  // Ensure tail is user
+  if (long[long.length - 1]!.role !== "user") {
+    long.push({ role: "user", content: "Я съел 2 чебурека" });
+  }
+  const parsed = parseAssistantMessages(long);
+  assert.ok(parsed);
+  assert.ok(parsed!.length <= ADMIN_ASSISTANT_MAX_MESSAGES);
+  assert.equal(parsed![parsed!.length - 1]!.role, "user");
+  assert.match(parsed![parsed!.length - 1]!.content, /чебурека|user-/);
+});
+
+test("buildAssistantHistory drops welcome and truncates", () => {
+  const turns = [
+    { id: "welcome", role: "assistant", content: "Привет" },
+    { id: "1", role: "user", content: "привет" },
+    { id: "2", role: "assistant", content: "" },
+    { id: "3", role: "user", content: "  Я выпил пиво  " },
+  ];
+  const history = buildAssistantHistory(turns);
+  assert.deepEqual(history, [
+    { role: "user", content: "привет" },
+    { role: "user", content: "Я выпил пиво" },
+  ]);
+  assert.equal(truncateAssistantMessages(history, 1).length, 1);
 });
 
 test("parseAssistantMode defaults", () => {
