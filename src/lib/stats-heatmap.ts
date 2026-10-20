@@ -21,8 +21,8 @@ export function heatmapCellTone(
 
 export const HEATMAP_TONE_CLASS: Record<HeatmapTone, string> = {
   empty: "bg-[var(--surface-mist)] text-[var(--muted)]",
-  under: "bg-sky-200 text-sky-900",
-  good: "bg-teal-500 text-white",
+  under: "bg-[var(--accent-water-soft)] text-[var(--accent-ink)]",
+  good: "bg-[var(--accent)] text-white",
   over: "bg-rose-400 text-white",
-  logged: "bg-teal-200 text-teal-900",
+  logged: "bg-[var(--accent-soft)] text-[var(--accent-ink)]",
 };

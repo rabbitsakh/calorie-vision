@@ -130,7 +130,7 @@ export function DayCalendar({ selectedDate, onSelect, refreshKey, disabled }: Da
               {Number(date.slice(-2))}
               {hasData ? (
                 <span
-                  className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-teal-600"}`}
+                  className={`absolute bottom-1 h-1 w-1 rounded-full ${isSelected ? "bg-white" : "bg-[var(--accent)]"}`}
                 />
               ) : null}
             </button>

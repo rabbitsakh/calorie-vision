@@ -504,7 +504,7 @@ function MacroChart({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-3 text-xs text-[var(--muted-strong)]">
-        {[{ label: "Белки", color: "bg-[var(--accent)]" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-cyan-500" }].map((m) => (
+        {[{ label: "Белки", color: "bg-[var(--accent)]" }, { label: "Жиры", color: "bg-amber-400" }, { label: "Углеводы", color: "bg-[var(--accent-carbs)]" }].map((m) => (
           <span key={m.label} className="flex items-center gap-1">
             <span className={`h-2.5 w-2.5 rounded-sm ${m.color}`} />
             {m.label}
@@ -523,7 +523,7 @@ function MacroChart({
                   <div className="w-full overflow-hidden" style={{ height: `${barH}%` }} title={`Б ${day.protein}г · Ж ${day.fat}г · У ${day.carbs}г · клетчатка ${day.fiber ?? 0} г · сахар ${day.sugar ?? 0} г`}>
                     <div style={{ height: `${(day.protein / total) * 100}%` }} className="bg-[var(--accent)]" />
                     <div style={{ height: `${(day.fat / total) * 100}%` }} className="bg-amber-400" />
-                    <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-cyan-500" />
+                    <div style={{ height: `${(day.carbs / total) * 100}%` }} className="bg-[var(--accent-carbs)]" />
                   </div>
                 ) : (
                   <div className="h-0.5 w-full rounded bg-[var(--accent-soft)]" />

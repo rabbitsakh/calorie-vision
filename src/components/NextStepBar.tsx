@@ -153,7 +153,7 @@ export function NextStepBar({ selectedDate, today }: NextStepBarProps) {
   if (!step) return null;
 
   return (
-    <div className="next-step-bar ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-white/80 px-3.5 py-2.5 shadow-[var(--shadow-card)]">
+    <div className="next-step-bar ration-soft-nudge flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/60 px-3.5 py-2.5">
       <p className="min-w-0 text-sm font-medium text-[var(--foreground)]">{step.label}</p>
       <button
         type="button"

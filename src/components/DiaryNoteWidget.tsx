@@ -91,7 +91,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
   }
 
   return (
-    <section className="card p-4 md:p-6">
+    <section className="rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/50 p-4 md:p-5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Заметка о дне</h2>
         <button
@@ -118,7 +118,9 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
               type="button"
               title={m.label}
               className={`flex-1 rounded-xl py-2 text-xl transition-all ${
-                mood === m.value ? "bg-teal-100 ring-2 ring-teal-400" : "hover:bg-[var(--accent-soft)]"
+                mood === m.value
+                  ? "bg-[var(--accent-soft)] ring-2 ring-[var(--accent)]"
+                  : "hover:bg-[var(--accent-soft)]"
               }`}
               onClick={() => setMood(mood === m.value ? null : m.value)}
             >
@@ -128,7 +130,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         </div>
 
         <textarea
-          className="min-h-[80px] w-full resize-none rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] px-3 py-2 text-sm focus:border-teal-400 focus:outline-none"
+          className="min-h-[80px] w-full resize-none rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--panel-wash)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
           placeholder="Как прошёл день? Что повлияло на питание?"
           maxLength={500}
           value={note}

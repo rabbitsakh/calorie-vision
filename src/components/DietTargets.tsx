@@ -32,7 +32,8 @@ function Meter({
   const percent = comparison.target <= 0 ? 0 : (comparison.actual / comparison.target) * 100;
   const capped = Math.min(100, percent);
   const overflow = percent > 105;
-  const barClass = tone === "warn" ? "bg-amber-500" : tone === "good" ? "bg-teal-600" : "bg-[var(--surface-mist)]0";
+  const barClass =
+    tone === "warn" ? "bg-amber-500" : tone === "good" ? "bg-[var(--accent)]" : "bg-[var(--surface-mist)]";
 
   return (
     <div className="flex flex-col gap-1">
@@ -99,7 +100,7 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex,
         Не медицинская рекомендация.{" "}
         <Link
           href={withBasePath("/disclaimer")}
-          className="text-teal-800 underline-offset-2 hover:underline"
+          className="text-[var(--accent-ink)] underline-offset-2 hover:underline"
         >
           Дисклеймер
         </Link>

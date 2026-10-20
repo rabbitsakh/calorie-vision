@@ -107,6 +107,14 @@ export function ChromePreviewClient() {
           </article>
         </div>
 
+        {/* D16 — next-step on mist wash (no card shadow) */}
+        <div className="next-step-bar ration-soft-nudge mt-3 flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border-hairline)] bg-[var(--surface-mist)]/60 px-3.5 py-2.5">
+          <p className="min-w-0 text-sm font-medium text-[var(--foreground)]">До вечера воды мало — один стакан</p>
+          <span className="shrink-0 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white">
+            Вода
+          </span>
+        </div>
+
         {/* D7 — day-more: hairline bands on the day wash */}
         <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1">
           <section

@@ -41,3 +41,6 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Assistant + empties (Wave D13): `.assistant-scene` drops card shadow; toolbar chips prefer `.assistant-scene-chip`; shared `.scene-empty` for diary filter / favorites / templates / gym history.
 - Water + streak (Wave D14): daily water/freeze use `--accent-water*` / `--accent-ink` (no Tailwind `sky-*`); weight chart marks follow `--accent-water`.
 - First hour (Wave D15): onboarding + PWA wizard share habits/food-add wash panels; auth avatar/menu and stage screens use accent tokens (no `teal-*` shells).
+- Day chrome leftovers (Wave D16): next-step / diary note / shopping chip / referral / diet meters / day-calendar dots / meal photo picker / food-add tiles use accent wash — no mint hex walls or nested `.card` shadow.
+- Trust confirm + stats (Wave D17): confidence badges and calorie heatmap on `--accent*` / `--accent-water*`; carbs legend uses `--accent-carbs` (no `cyan-*` / `emerald-*` / `sky-*`).
+- Celebration + companion (Wave D18): fullscreen / soft celeb stages stay teal–amber (no purple badge stage); mascot companion drops card shadow and `teal-*` Tailwind.

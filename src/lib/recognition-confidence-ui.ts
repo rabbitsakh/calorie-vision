@@ -35,9 +35,9 @@ export function getConfidenceTone(confidence: number, lowThreshold: number): Con
 export function confidenceToneClasses(tone: ConfidenceTone): string {
   switch (tone) {
     case "high":
-      return "border-emerald-200/80 bg-emerald-50/90 text-emerald-950";
+      return "border-[var(--accent)]/25 bg-[var(--accent-soft)]/90 text-[var(--accent-ink)]";
     case "medium":
-      return "border-teal-200/80 bg-teal-50/90 text-teal-950";
+      return "border-[var(--border-quiet)] bg-[var(--surface-mist)]/90 text-[var(--foreground)]";
     case "low":
       return "border-amber-200/80 bg-amber-50/90 text-amber-950";
   }

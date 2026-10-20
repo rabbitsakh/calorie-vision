@@ -37,7 +37,7 @@ type SoftCelebrationProps = {
 function ringClass(pose: MascotPose, variant?: CelebrationVariant): string {
   if (pose === "streak" || variant === "streak") return "soft-celeb-ring soft-celeb-ring-streak";
   if (pose === "goal" || variant === "goal") return "soft-celeb-ring soft-celeb-ring-goal";
-  return "soft-celeb-ring bg-teal-100/80";
+  return "soft-celeb-ring bg-[var(--accent-soft)]/80";
 }
 
 /**
@@ -115,7 +115,7 @@ export function SoftCelebration({
           {badge ? (
             <span
               className={`mt-1 rounded-md px-2 py-0.5 text-xs font-semibold text-white ${
-                pose === "streak" || variant === "streak" ? "bg-amber-700" : "bg-teal-800"
+                pose === "streak" || variant === "streak" ? "bg-amber-700" : "bg-[var(--accent-ink)]"
               }`}
             >
               {badge}

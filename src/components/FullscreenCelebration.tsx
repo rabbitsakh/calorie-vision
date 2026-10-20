@@ -71,45 +71,45 @@ const VARIANT_THEME: Record<
 > = {
   cheer: {
     pose: "cheer",
-    colors: ["#5eead4", "#14b8a6", "#99f6e4", "#fbbf24", "#ffffff"],
+    colors: ["#5eead4", "#0d7377", "#99f6e4", "#fbbf24", "#ffffff"],
     glow: "fs-celeb-glow-teal",
-    badgeClass: "bg-teal-500/90",
+    badgeClass: "bg-[var(--accent)]/90",
   },
   streak: {
     pose: "streak",
-    colors: ["#f59e0b", "#fbbf24", "#14b8a6", "#5eead4", "#ffffff"],
+    colors: ["#f59e0b", "#fbbf24", "#0d7377", "#5eead4", "#ffffff"],
     glow: "fs-celeb-glow-amber",
-    badgeClass: "bg-amber-500/95",
+    badgeClass: "bg-[var(--accent-streak)]/95",
   },
   goal: {
     pose: "goal",
-    colors: ["#34d399", "#5eead4", "#14b8a6", "#a7f3d0", "#ffffff"],
-    glow: "fs-celeb-glow-emerald",
-    badgeClass: "bg-emerald-500/95",
+    colors: ["#5eead4", "#0d7377", "#99f6e4", "#fbbf24", "#ffffff"],
+    glow: "fs-celeb-glow-teal",
+    badgeClass: "bg-[var(--accent)]/95",
   },
   badge: {
     pose: "cheer",
     colors: ["#2dd4bf", "#5eead4", "#fbbf24", "#99f6e4", "#ffffff"],
-    glow: "fs-celeb-glow-emerald",
-    badgeClass: "bg-teal-500/95",
+    glow: "fs-celeb-glow-teal",
+    badgeClass: "bg-[var(--accent)]/95",
   },
   challenge: {
     pose: "goal",
-    colors: ["#34d399", "#fbbf24", "#5eead4", "#6ee7b7", "#ffffff"],
-    glow: "fs-celeb-glow-emerald",
-    badgeClass: "bg-emerald-500/95",
+    colors: ["#5eead4", "#fbbf24", "#0d7377", "#99f6e4", "#ffffff"],
+    glow: "fs-celeb-glow-teal",
+    badgeClass: "bg-[var(--accent)]/95",
   },
   milestone: {
     pose: "streak",
-    colors: ["#f59e0b", "#14b8a6", "#5eead4", "#fde68a", "#ffffff"],
+    colors: ["#f59e0b", "#0d7377", "#5eead4", "#fde68a", "#ffffff"],
     glow: "fs-celeb-glow-amber",
-    badgeClass: "bg-amber-500/95",
+    badgeClass: "bg-[var(--accent-streak)]/95",
   },
   chest: {
     pose: "cheer",
     colors: ["#fbbf24", "#f59e0b", "#5eead4", "#fde68a", "#ffffff"],
     glow: "fs-celeb-glow-amber",
-    badgeClass: "bg-amber-500/95",
+    badgeClass: "bg-[var(--accent-streak)]/95",
   },
 };
 
@@ -385,7 +385,7 @@ export function FullscreenCelebration({
               {title}
             </h2>
             {subtitle ? (
-              <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-teal-50/90 sm:text-lg">
+              <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-white/90 sm:text-lg">
                 {subtitle}
               </p>
             ) : null}
