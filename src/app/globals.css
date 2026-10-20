@@ -1232,8 +1232,8 @@ select {
 }
 
 .food-add-mode-tile:hover {
-  background: linear-gradient(165deg, #f0fdfa 0%, #ecfeff 100%);
-  border-color: rgba(15, 118, 110, 0.35);
+  background: linear-gradient(165deg, var(--accent-soft) 0%, var(--surface-mist) 100%);
+  border-color: rgba(13, 115, 119, 0.35);
 }
 
 .food-add-mode-tile:active {
@@ -1241,9 +1241,9 @@ select {
 }
 
 .food-add-mode-tile--primary {
-  background: linear-gradient(160deg, var(--accent-soft) 0%, #e6fffa 55%, #f0fdfa 100%);
-  border-color: rgba(15, 118, 110, 0.32);
-  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.1);
+  background: linear-gradient(160deg, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 70%, #fff) 55%, var(--panel-wash) 100%);
+  border-color: rgba(13, 115, 119, 0.32);
+  box-shadow: 0 6px 16px rgba(13, 115, 119, 0.1);
 }
 
 .food-add-mode-tile--primary:hover {
@@ -1342,8 +1342,8 @@ select {
 }
 
 .food-add-photo-source:hover {
-  background: linear-gradient(165deg, #f0fdfa 0%, #ecfeff 100%);
-  border-color: rgba(15, 118, 110, 0.35);
+  background: linear-gradient(165deg, var(--accent-soft) 0%, var(--surface-mist) 100%);
+  border-color: rgba(13, 115, 119, 0.35);
 }
 
 .food-add-photo-source:active {
@@ -1351,9 +1351,9 @@ select {
 }
 
 .food-add-photo-source--primary {
-  background: linear-gradient(160deg, var(--accent-soft) 0%, #e6fffa 55%, #f0fdfa 100%);
-  border-color: rgba(15, 118, 110, 0.32);
-  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.1);
+  background: linear-gradient(160deg, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 70%, #fff) 55%, var(--panel-wash) 100%);
+  border-color: rgba(13, 115, 119, 0.32);
+  box-shadow: 0 6px 16px rgba(13, 115, 119, 0.1);
 }
 
 .food-add-photo-source-icon {
@@ -1652,8 +1652,8 @@ select {
 }
 
 .food-add-quick-chip:hover:not(:disabled) {
-  background: #f0fdfa;
-  border-color: rgba(15, 118, 110, 0.35);
+  background: var(--accent-soft);
+  border-color: rgba(13, 115, 119, 0.35);
 }
 
 .food-add-quick-chip:disabled {
@@ -1878,8 +1878,8 @@ select {
 }
 
 .meal-type-badge-lunch {
-  background: #ccfbf1;
-  color: #115e59;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .meal-type-badge-dinner {
@@ -1926,7 +1926,7 @@ select {
 }
 
 .meal-time-input {
-  border: 1px solid #99f6e4;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 0.5rem;
   /* ≥16px — avoid iOS/Android focus zoom on time edit */
   font-size: 16px !important;
@@ -4254,7 +4254,7 @@ select {
 }
 
 .soft-celeb-ring-goal {
-  background: rgb(204 251 241 / 0.95);
+  background: color-mix(in srgb, var(--accent-soft) 95%, transparent);
 }
 
 /* —— Marketing landing (guests on /) —— */
@@ -5951,32 +5951,32 @@ select {
 
 .fs-celeb-bg {
   background:
-    radial-gradient(ellipse 90% 70% at 50% 20%, rgba(94, 234, 212, 0.35), transparent 55%),
+    radial-gradient(ellipse 90% 70% at 50% 20%, rgba(13, 115, 119, 0.35), transparent 55%),
     radial-gradient(ellipse 70% 50% at 80% 90%, rgba(245, 158, 11, 0.2), transparent 50%),
-    linear-gradient(165deg, #0f766e 0%, #115e59 42%, #134e4a 100%);
+    linear-gradient(165deg, #0a5c52 0%, #0d7377 42%, #0f3f3c 100%);
 }
 
 .fs-celeb-streak .fs-celeb-bg,
 .fs-celeb-milestone .fs-celeb-bg {
   background:
     radial-gradient(ellipse 90% 70% at 50% 18%, rgba(251, 191, 36, 0.4), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 15% 85%, rgba(94, 234, 212, 0.25), transparent 50%),
-    linear-gradient(165deg, #92400e 0%, #b45309 35%, #0f766e 100%);
+    radial-gradient(ellipse 60% 40% at 15% 85%, rgba(13, 115, 119, 0.25), transparent 50%),
+    linear-gradient(165deg, #92400e 0%, #b45309 35%, #0d7377 100%);
 }
 
 .fs-celeb-goal .fs-celeb-bg,
 .fs-celeb-challenge .fs-celeb-bg {
   background:
-    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(52, 211, 153, 0.4), transparent 55%),
-    radial-gradient(ellipse 55% 45% at 90% 80%, rgba(94, 234, 212, 0.22), transparent 50%),
-    linear-gradient(165deg, #064e3b 0%, #047857 45%, #0f766e 100%);
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(94, 234, 212, 0.35), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 90% 80%, rgba(13, 115, 119, 0.22), transparent 50%),
+    linear-gradient(165deg, #0a5c52 0%, #0d7377 45%, #0f3f3c 100%);
 }
 
 .fs-celeb-badge .fs-celeb-bg {
   background:
-    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(167, 139, 250, 0.4), transparent 55%),
-    radial-gradient(ellipse 55% 45% at 10% 85%, rgba(94, 234, 212, 0.25), transparent 50%),
-    linear-gradient(165deg, #4c1d95 0%, #0f766e 55%, #115e59 100%);
+    radial-gradient(ellipse 90% 70% at 50% 18%, rgba(251, 191, 36, 0.35), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 10% 85%, rgba(13, 115, 119, 0.28), transparent 50%),
+    linear-gradient(165deg, #0a5c52 0%, #0d7377 55%, #0f3f3c 100%);
 }
 
 .fs-celeb-chest .fs-celeb-bg {

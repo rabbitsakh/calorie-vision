@@ -5,13 +5,13 @@ import type { MascotPose } from "@/components/Mascot";
 type MascotCompanionTone = "teal" | "orange" | "amber";
 
 const TONE_CLASS: Record<MascotCompanionTone, string> = {
-  teal: "border-[rgba(13,115,119,0.14)] bg-gradient-to-r from-[var(--surface-mist)] to-teal-50/40",
+  teal: "border-[var(--border-quiet)] bg-gradient-to-r from-[var(--surface-mist)] to-[var(--accent-soft)]/40",
   orange: "border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50",
   amber: "border-amber-200 bg-amber-50/90",
 };
 
 const TITLE_CLASS: Record<MascotCompanionTone, string> = {
-  teal: "text-teal-700",
+  teal: "text-[var(--accent-ink)]",
   orange: "text-orange-900",
   amber: "text-amber-950",
 };
@@ -43,7 +43,7 @@ export function MascotCompanionCard({
   animate = true,
 }: MascotCompanionCardProps) {
   return (
-    <div className={`rounded-2xl border p-4 shadow-sm ${TONE_CLASS[tone]} ${className}`.trim()}>
+    <div className={`rounded-2xl border p-4 ${TONE_CLASS[tone]} ${className}`.trim()}>
       <div className="flex items-start gap-3">
         <LiveMascot
           pose={pose}

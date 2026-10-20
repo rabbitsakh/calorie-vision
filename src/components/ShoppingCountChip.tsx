@@ -62,7 +62,7 @@ export function ShoppingCountChip({ date }: ShoppingCountChipProps) {
   return (
     <Link
       href={href}
-      className="ml-1.5 inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-teal-800 hover:bg-teal-100"
+      className="ml-1.5 inline-flex items-center rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]/80"
       onClick={(e) => e.stopPropagation()}
     >
       покупки {count}

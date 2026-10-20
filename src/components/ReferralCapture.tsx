@@ -64,7 +64,7 @@ export function ReferralCapture({ signedIn }: { signedIn?: boolean }) {
 
   if (!status) return null;
   return (
-    <p className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+    <p className="rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-3 py-2 text-sm text-[var(--accent-ink)]">
       {status}
     </p>
   );
