@@ -53,9 +53,42 @@ export function parseAssistantMode(raw: unknown): AssistantMode {
   return "all";
 }
 
+/**
+ * Keep the newest turns within the API budget, preferring a user-start boundary
+ * so a long localStorage history (up to 80) never 400s the chat.
+ */
+export function truncateAssistantMessages(
+  messages: AssistantChatMessage[],
+  max = ADMIN_ASSISTANT_MAX_MESSAGES,
+): AssistantChatMessage[] {
+  if (messages.length <= max) return messages;
+  let slice = messages.slice(-max);
+  const firstUser = slice.findIndex((m) => m.role === "user");
+  if (firstUser > 0) slice = slice.slice(firstUser);
+  return slice;
+}
+
+/** Client helper: strip empties/welcome, then truncate for the API. */
+export function buildAssistantHistory(
+  turns: Array<{ id?: string; role: string; content?: string | null }>,
+  max = ADMIN_ASSISTANT_MAX_MESSAGES,
+): AssistantChatMessage[] {
+  const out: AssistantChatMessage[] = [];
+  for (const t of turns) {
+    if (t.id === "welcome") continue;
+    if (t.role !== "user" && t.role !== "assistant") continue;
+    const content = String(t.content ?? "").trim();
+    if (!content) continue;
+    out.push({
+      role: t.role,
+      content: content.slice(0, ADMIN_ASSISTANT_MAX_CONTENT),
+    });
+  }
+  return truncateAssistantMessages(out, max);
+}
+
 export function parseAssistantMessages(raw: unknown): AssistantChatMessage[] | null {
   if (!Array.isArray(raw) || raw.length === 0) return null;
-  if (raw.length > ADMIN_ASSISTANT_MAX_MESSAGES) return null;
   const out: AssistantChatMessage[] = [];
   for (const item of raw) {
     if (!item || typeof item !== "object") return null;
@@ -66,12 +99,12 @@ export function parseAssistantMessages(raw: unknown): AssistantChatMessage[] | n
     if (typeof content !== "string") continue;
     const trimmed = content.trim();
     if (!trimmed) continue;
-    if (trimmed.length > ADMIN_ASSISTANT_MAX_CONTENT) return null;
-    out.push({ role, content: trimmed });
+    out.push({ role, content: trimmed.slice(0, ADMIN_ASSISTANT_MAX_CONTENT) });
   }
-  if (out.length === 0) return null;
-  if (out[out.length - 1]?.role !== "user") return null;
-  return out;
+  const truncated = truncateAssistantMessages(out);
+  if (truncated.length === 0) return null;
+  if (truncated[truncated.length - 1]?.role !== "user") return null;
+  return truncated;
 }
 
 const MODE_HINT: Record<AssistantMode, string> = {

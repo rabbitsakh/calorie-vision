@@ -5,7 +5,9 @@ import {
   assistantWroteFlag,
   assistantWriteMissNote,
   extractActionsJson,
+  heuristicRepairWriteActions,
   needsWriteRepair,
+  parsePortionGramsFromMessage,
 } from "./assistant-repair.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
@@ -71,4 +73,22 @@ test("extractActionsJson from fence and raw object", () => {
 
 test("extractActionsJson ignores empty apply false", () => {
   assert.equal(extractActionsJson('{"apply":false}'), null);
+});
+
+test("parsePortionGramsFromMessage liters and grams", () => {
+  assert.equal(parsePortionGramsFromMessage("Я выпил 3 литра светлого пива"), 3000);
+  assert.equal(parsePortionGramsFromMessage("500 мл колы"), 500);
+  assert.equal(parsePortionGramsFromMessage("нога индейки 300гр"), 300);
+});
+
+test("heuristicRepairWriteActions builds beer meal for liters", () => {
+  const actions = heuristicRepairWriteActions("Я выпил 3 литра светлого лёгкого пива");
+  assert.ok(actions?.meals?.length);
+  assert.match(actions!.meals![0]!.name, /Пиво/i);
+  assert.ok((actions!.meals![0]!.kcal ?? 0) >= 900);
+  assert.equal(actions!.apply, true);
+  assert.equal(
+    needsWriteRepair("Я выпил 3 литра светлого лёгкого пива", actions),
+    false,
+  );
 });

@@ -48,6 +48,23 @@ export function shouldOfferWriteRetry(opts: {
   return opts.wantsWrite && opts.wrote === false;
 }
 
+/** Map raw API validation errors to short user-facing Russian copy. */
+export function friendlyAssistantError(raw: string | null | undefined): string {
+  const text = String(raw ?? "").trim();
+  if (!text) return "Не удалось получить ответ";
+  if (/нужен массив messages/i.test(text) || /последнее\s*[—-]\s*от user/i.test(text)) {
+    return "Чат слишком длинный или сообщение не дошло. Отправь ещё раз — возьму только последние реплики.";
+  }
+  if (/некорректный json/i.test(text)) {
+    return "Сообщение не отправилось. Попробуй ещё раз.";
+  }
+  if (/ассистент сейчас недоступен/i.test(text)) {
+    return text;
+  }
+  if (text.length > 160) return `${text.slice(0, 157)}…`;
+  return text;
+}
+
 export const ASSISTANT_MODE_PILLS: Array<{ id: "all" | "food" | "gym" | "week"; label: string }> = [
   { id: "all", label: "Всё" },
   { id: "food", label: "Еда" },

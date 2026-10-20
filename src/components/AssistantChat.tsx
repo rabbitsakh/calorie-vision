@@ -9,12 +9,13 @@ import type {
   AssistantContextSnapshot,
   AssistantMode,
 } from "@/lib/admin-assistant";
-import { parseAssistantMode } from "@/lib/admin-assistant";
+import { buildAssistantHistory, parseAssistantMode } from "@/lib/admin-assistant";
 import {
   ASSISTANT_MODE_PILLS,
   ASSISTANT_ONBOARD_KEY,
   ASSISTANT_ONBOARD_STARTERS,
   emptyUndo,
+  friendlyAssistantError,
   popUndoStack,
   pushUndoStack,
   shouldOfferWriteRetry,
@@ -934,6 +935,12 @@ export function AssistantChat() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const flushingApply = useRef(false);
+  /** Sync guard — iOS can double-fire send before React re-renders busy. */
+  const busyRef = useRef(false);
+  const turnsRef = useRef(turns);
+  useEffect(() => {
+    turnsRef.current = turns;
+  }, [turns]);
 
   useEffect(() => {
     const stored = loadStored(userId);
@@ -1186,7 +1193,7 @@ export function AssistantChat() {
     }
     const hasPhoto = Boolean(photo);
     const content = text.trim() || (hasPhoto ? "Что на фото?" : "");
-    if ((!content && !hasPhoto) || busy) return;
+    if ((!content && !hasPhoto) || busy || busyRef.current) return;
 
     dismissOnboard();
 
@@ -1235,23 +1242,25 @@ export function AssistantChat() {
       content,
       imagePreview: preview,
     };
-    const nextTurns = [...turns, userTurn];
+    const nextTurns = [...turnsRef.current, userTurn];
     setTurns(nextTurns);
+    turnsRef.current = nextTurns;
     clearPhoto();
+    busyRef.current = true;
     setBusy(true);
     if (imageBase64) {
       setStatus("Смотрю фото — сейчас покажу, что увидел…");
     }
 
-    // Drop empty/placeholder turns so parseAssistantMessages never 400s.
-    const history = nextTurns
-      .filter((t) => t.id !== "welcome")
-      .filter((t) => t.role === "user" || t.role === "assistant")
-      .map((t) => ({ role: t.role as "user" | "assistant", content: String(t.content ?? "").trim() }))
-      .filter((t) => t.content.length > 0);
+    // Truncate long local history so iOS/Android never hit messages 400.
+    const history = buildAssistantHistory(nextTurns);
 
     const assistantId = newId();
-    setTurns((prev) => [...prev, { id: assistantId, role: "assistant", content: "" }]);
+    setTurns((prev) => {
+      const withShell = [...prev, { id: assistantId, role: "assistant" as const, content: "" }];
+      turnsRef.current = withShell;
+      return withShell;
+    });
 
     // Always preview photos first — user confirms via PhotoConfirm.
     const payload = {
@@ -1274,6 +1283,14 @@ export function AssistantChat() {
         body: JSON.stringify(payload),
       });
       if (!resp.ok || !resp.body) {
+        // Prefer stream body error when present; else non-stream fallback.
+        let streamErr: string | null = null;
+        try {
+          const streamData = (await resp.json()) as { error?: string } | null;
+          streamErr = streamData?.error ?? null;
+        } catch {
+          // no json body
+        }
         const fallback = await fetch(withBasePath("/api/assistant"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1289,12 +1306,14 @@ export function AssistantChat() {
           prefs?: AssistantPrefs;
           error?: string;
         } | null;
-        if (!fallback.ok) throw new Error(data?.error || "Не удалось получить ответ");
+        if (!fallback.ok) {
+          throw new Error(friendlyAssistantError(data?.error || streamErr || "Не удалось получить ответ"));
+        }
         if (data?.snapshot) setSnapshot(data.snapshot);
         if (data?.prefs) setPrefs(data.prefs);
         rememberUndo(data?.undo);
-        setTurns((prev) =>
-          prev.map((t) =>
+        setTurns((prev) => {
+          const next = prev.map((t) =>
             t.id === assistantId
               ? {
                   ...t,
@@ -1305,8 +1324,10 @@ export function AssistantChat() {
                   wrote: typeof data?.wrote === "boolean" ? data.wrote : null,
                 }
               : t,
-          ),
-        );
+          );
+          turnsRef.current = next;
+          return next;
+        });
         void refreshSnapshot(date);
         return;
       }
@@ -1362,8 +1383,8 @@ export function AssistantChat() {
             const undo = (json.undo as UndoPayload | undefined) ?? null;
             rememberUndo(undo);
             const wrote = typeof json.wrote === "boolean" ? json.wrote : null;
-            setTurns((prev) =>
-              prev.map((t) =>
+            setTurns((prev) => {
+              const next = prev.map((t) =>
                 t.id === assistantId
                   ? {
                       ...t,
@@ -1374,11 +1395,13 @@ export function AssistantChat() {
                       wrote,
                     }
                   : t,
-              ),
-            );
+              );
+              turnsRef.current = next;
+              return next;
+            });
           }
           if (ev.event === "error") {
-            throw new Error(String(json.error || "Ошибка стрима"));
+            throw new Error(friendlyAssistantError(String(json.error || "Ошибка стрима")));
           }
         }
       }
@@ -1390,8 +1413,8 @@ export function AssistantChat() {
         );
       }
       if (!sawDone && liveTools.length > 0) {
-        setTurns((prev) =>
-          prev.map((t) =>
+        setTurns((prev) => {
+          const next = prev.map((t) =>
             t.id === assistantId
               ? {
                   ...t,
@@ -1399,28 +1422,33 @@ export function AssistantChat() {
                   tools: liveTools,
                 }
               : t,
-          ),
-        );
+          );
+          turnsRef.current = next;
+          return next;
+        });
       }
       void refreshSnapshot(date);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+      setError(friendlyAssistantError(err instanceof Error ? err.message : "Ошибка"));
       // Drop empty assistant shells (even with tools) so next send stays valid.
-      setTurns((prev) =>
-        prev.filter((t) => {
+      setTurns((prev) => {
+        const next = prev.filter((t) => {
           if (t.id !== assistantId) return true;
           return Boolean(String(t.content ?? "").trim());
-        }),
-      );
+        });
+        turnsRef.current = next;
+        return next;
+      });
     } finally {
+      busyRef.current = false;
       setBusy(false);
       setStatus(null);
     }
   }
 
   async function retryWrite(assistantTurnId: string) {
-    const userText = lastUserContentBefore(turns, assistantTurnId);
-    if (!userText || busy || !online) return;
+    const userText = lastUserContentBefore(turnsRef.current, assistantTurnId);
+    if (!userText || busy || busyRef.current || !online) return;
     await send(userText);
   }
 

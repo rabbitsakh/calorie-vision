@@ -75,7 +75,13 @@ export async function POST(request: NextRequest) {
 
   const messages = parseAssistantMessages(body.messages);
   if (!messages) {
-    return new Response(JSON.stringify({ error: "Нужен массив messages" }), { status: 400 });
+    return new Response(
+      JSON.stringify({
+        error:
+          "Чат слишком длинный или сообщение не дошло. Отправь ещё раз — возьму только последние реплики.",
+      }),
+      { status: 400 },
+    );
   }
   const mode = parseAssistantMode(body.mode);
 

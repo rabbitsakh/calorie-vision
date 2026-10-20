@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   emptyUndo,
+  friendlyAssistantError,
   popUndoStack,
   pushUndoStack,
   shouldOfferWriteRetry,
@@ -37,4 +38,13 @@ test("shouldOfferWriteRetry only on explicit miss", () => {
   assert.equal(shouldOfferWriteRetry({ wrote: true, wantsWrite: true }), false);
   assert.equal(shouldOfferWriteRetry({ wrote: false, wantsWrite: false }), false);
   assert.equal(shouldOfferWriteRetry({ wrote: null, wantsWrite: true }), false);
+});
+
+test("friendlyAssistantError maps messages validation", () => {
+  assert.match(
+    friendlyAssistantError("Нужен массив messages (последнее — от user)"),
+    /последние реплики/i,
+  );
+  assert.equal(friendlyAssistantError("Ассистент сейчас недоступен. Попробуйте чуть позже."), 
+    "Ассистент сейчас недоступен. Попробуйте чуть позже.");
 });
