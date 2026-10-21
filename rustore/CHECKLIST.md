@@ -32,7 +32,7 @@
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`
 - иконка: `rustore/icon-512-store.png`
-- скриншоты: `rustore/screenshots/submit/` (01→09)
+- скриншоты: `rustore/screenshots/submit/` (01→10, +11-offline-queue)
 - обложка канала VK: `rustore/channel/cover-1590x400.png` + `vk-channel-fields.ru.md`
 - промо-ролик: `rustore/promo-tour/`
 - Capacitor shell + offline stub (не TWA)

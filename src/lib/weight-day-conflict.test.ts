@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   formatWeightDayConflictPrompt,
+  formatWeightKeepCta,
+  formatWeightReplaceCta,
   isWeightDayConflictPayload,
   weightsDiffer,
 } from "./weight-day-conflict.ts";
@@ -18,6 +20,11 @@ test("formatWeightDayConflictPrompt is Russian and strips .0", () => {
     formatWeightDayConflictPrompt(78, 78.5),
     "Сегодня уже записано 78 кг. Заменить на 78.5 кг?",
   );
+});
+
+test("weight conflict CTAs are short Russian one-taps", () => {
+  assert.equal(formatWeightReplaceCta(78.5), "Заменить на 78.5 кг");
+  assert.equal(formatWeightKeepCta(78), "Оставить 78 кг");
 });
 
 test("isWeightDayConflictPayload validates shape", () => {

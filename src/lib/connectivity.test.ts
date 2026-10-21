@@ -17,6 +17,7 @@ describe("isLikelyOfflineError", () => {
     assert.equal(isLikelyOfflineError(new Error("Фото не найдено")), false);
     assert.equal(isLikelyOfflineError(null), false);
     assert.equal(isLikelyOfflineError("offline"), false);
+    assert.equal(isLikelyOfflineError(new TypeError("Cannot read properties of undefined")), false);
   });
 });
 

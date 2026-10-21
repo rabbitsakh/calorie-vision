@@ -6,10 +6,12 @@ import {
   getCachedLoggedDaysTotal,
   isFirstWeekQuiet,
   markFirstShareNudgeSeen,
+  markOfflineQueueCoachSeen,
   markOpenCameraAfterOnboarding,
   markSevenDayAhaSeen,
   shouldShowFirstShareNudge,
   shouldShowGrowthNudges,
+  shouldShowOfflineQueueCoach,
   shouldShowSevenDayAha,
 } from "./first-hour-trust.ts";
 
@@ -53,6 +55,14 @@ test("open camera after onboarding is one-shot", () => {
     markOpenCameraAfterOnboarding();
     assert.equal(claimOpenCameraAfterOnboarding(), true);
     assert.equal(claimOpenCameraAfterOnboarding(), false);
+  });
+});
+
+test("offline queue coach is once", () => {
+  withStorage(() => {
+    assert.equal(shouldShowOfflineQueueCoach(), true);
+    markOfflineQueueCoachSeen();
+    assert.equal(shouldShowOfflineQueueCoach(), false);
   });
 });
 

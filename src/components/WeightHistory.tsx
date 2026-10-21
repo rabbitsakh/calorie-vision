@@ -214,7 +214,13 @@ export function WeightHistory({ refreshKey, timezone, onChanged }: WeightHistory
       await finishSaveOk();
     } catch (err) {
       if (isLikelyOfflineError(err)) {
-        enqueueWeightDraft({ date: dateKey, weightKg: nextKg, measuredAt, note });
+        enqueueWeightDraft({
+          date: dateKey,
+          weightKg: nextKg,
+          measuredAt,
+          note,
+          confirmReplace: true,
+        });
         setWeightInput("");
         setNoteInput("");
         setPendingConflict(null);

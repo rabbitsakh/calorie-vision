@@ -16,13 +16,24 @@ export function weightsDiffer(a: number, b: number, epsilon = 0.05): boolean {
   return Math.abs(a - b) > epsilon;
 }
 
+function fmtKg(kg: number): string {
+  return Number(kg).toFixed(1).replace(/\.0$/, "");
+}
+
 export function formatWeightDayConflictPrompt(
   existingKg: number,
   nextKg: number,
 ): string {
-  const a = Number(existingKg).toFixed(1).replace(/\.0$/, "");
-  const b = Number(nextKg).toFixed(1).replace(/\.0$/, "");
-  return `Сегодня уже записано ${a} кг. Заменить на ${b} кг?`;
+  return `Сегодня уже записано ${fmtKg(existingKg)} кг. Заменить на ${fmtKg(nextKg)} кг?`;
+}
+
+/** Short CTA labels for offline queue / confirm sheets. */
+export function formatWeightReplaceCta(nextKg: number): string {
+  return `Заменить на ${fmtKg(nextKg)} кг`;
+}
+
+export function formatWeightKeepCta(existingKg: number): string {
+  return `Оставить ${fmtKg(existingKg)} кг`;
 }
 
 export function isWeightDayConflictPayload(

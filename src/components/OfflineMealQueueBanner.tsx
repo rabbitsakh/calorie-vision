@@ -31,6 +31,10 @@ import {
 } from "@/lib/weight-draft-queue";
 import { OfflineQueueSheet } from "@/components/OfflineQueueSheet";
 import {
+  markOfflineQueueCoachSeen,
+  shouldShowOfflineQueueCoach,
+} from "@/lib/first-hour-trust";
+import {
   countDiaryNoteDrafts,
   listDiaryNoteDrafts,
   removeDiaryNoteDraft,
@@ -107,10 +111,15 @@ export function OfflineMealQueueBanner({
   const [sheetOpen, setSheetOpen] = useState(false);
   /** T1: brief «Ушло N» after a flush so the queue doesn't vanish without feedback. */
   const [flushSummary, setFlushSummary] = useState<string | null>(null);
+  const [showCoach, setShowCoach] = useState(false);
   // Optimistic online — Android WebView lies about navigator.onLine.
   const [online, setOnline] = useState(true);
   const { data: session } = useSession();
   const shoppingUserId = session?.user?.id ?? null;
+
+  useEffect(() => {
+    setShowCoach(shouldShowOfflineQueueCoach());
+  }, []);
 
   const refreshCounts = useCallback(() => {
     setFailedCount(countFailedSaves());
@@ -617,22 +626,42 @@ export function OfflineMealQueueBanner({
             ))}
           </ul>
           {!flushing ? (
-            <p className="mt-1 text-[11px] text-[var(--offline-glass-muted)]">
-              {online
-                ? "Нажмите очередь — список и отмена; «Отправить» — синхронизация."
-                : "Черновики на телефоне. Откройте очередь или нажмите «Отправить»."}
-            </p>
+            showCoach ? (
+              <p className="mt-1 text-[11px] font-medium text-[var(--offline-glass-muted)]">
+                Черновики на телефоне → «Очередь» или «Отправить». Появятся статусы
+                «Ждёт сеть» / «Конфликт».
+              </p>
+            ) : (
+              <p className="mt-1 text-[11px] text-[var(--offline-glass-muted)]">
+                {online
+                  ? "Нажмите очередь — список и отмена; «Отправить» — синхронизация."
+                  : "Черновики на телефоне. Откройте очередь или нажмите «Отправить»."}
+              </p>
+            )
           ) : null}
         </button>
         <div className="flex shrink-0 flex-col gap-1.5">
-          <button
-            type="button"
-            className="offline-chrome-cta"
-            disabled={flushing}
-            onClick={() => void flush()}
-          >
-            {flushing ? "Отправка…" : "Отправить"}
-          </button>
+          {showCoach ? (
+            <button
+              type="button"
+              className="offline-chrome-cta"
+              onClick={() => {
+                markOfflineQueueCoachSeen();
+                setShowCoach(false);
+              }}
+            >
+              Понятно
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="offline-chrome-cta"
+              disabled={flushing}
+              onClick={() => void flush()}
+            >
+              {flushing ? "Отправка…" : "Отправить"}
+            </button>
+          )}
           <button
             type="button"
             className="offline-chrome-link px-1 py-0.5 text-left"

@@ -92,8 +92,19 @@ export function WeightQuickSheet() {
     window.setTimeout(() => setOpen(false), 700);
   }
 
-  function queueOffline(dateKey: string, weightKg: number, measuredAt: string) {
-    enqueueWeightDraft({ date: dateKey, weightKg, measuredAt, note: null });
+  function queueOffline(
+    dateKey: string,
+    weightKg: number,
+    measuredAt: string,
+    opts?: { confirmReplace?: boolean },
+  ) {
+    enqueueWeightDraft({
+      date: dateKey,
+      weightKg,
+      measuredAt,
+      note: null,
+      confirmReplace: opts?.confirmReplace === true,
+    });
     setDoneMsg("Не удалось отправить — вес в очереди на устройстве");
     setWeightInput("");
     setPendingConflict(null);
@@ -178,7 +189,7 @@ export function WeightQuickSheet() {
       finishOk(nextKg);
     } catch (err) {
       if (isLikelyOfflineError(err)) {
-        queueOffline(dateKey, nextKg, measuredAt);
+        queueOffline(dateKey, nextKg, measuredAt, { confirmReplace: true });
       } else {
         setError(err instanceof Error ? err.message : "Ошибка сохранения");
       }
