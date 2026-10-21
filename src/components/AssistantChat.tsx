@@ -220,7 +220,7 @@ function PhotoDraftWhy({ draft }: { draft: PhotoDraft }) {
     calories: draft.calories,
     photoKind,
     source: draft.recognitionSource,
-    confidence: draft.confidence,
+    confidence: typeof draft.confidence === "number" ? draft.confidence : 1,
   });
   return (
     <details className="confirm-why-so mt-1.5 group">
