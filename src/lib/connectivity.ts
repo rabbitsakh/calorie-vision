@@ -16,8 +16,13 @@ const OFFLINE_REPROBE_MS = 8_000;
 /** True when a real fetch failure suggests the device cannot reach the API. */
 export function isLikelyOfflineError(error: unknown): boolean {
   if (isNetworkFetchError(error)) return true;
-  if (error instanceof TypeError) return true;
-  if (error instanceof Error && /failed to fetch|network|offline/i.test(error.message)) {
+  // Bare TypeError is too broad (Safari parse/DOM) — only network-ish messages.
+  if (
+    error instanceof Error &&
+    /failed to fetch|networkerror|network request failed|load failed|offline|net::err/i.test(
+      error.message,
+    )
+  ) {
     return true;
   }
   return false;

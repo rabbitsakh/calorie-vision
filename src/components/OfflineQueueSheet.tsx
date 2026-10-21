@@ -58,6 +58,10 @@ import {
   hasOfflineQueueFlushError,
   subscribeOfflineQueueFlushErrors,
 } from "@/lib/offline-queue-flush-errors";
+import {
+  formatWeightKeepCta,
+  formatWeightReplaceCta,
+} from "@/lib/weight-day-conflict";
 
 const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
   photo: "AI · фото",
@@ -83,6 +87,38 @@ type QueueRow = {
   onDiscard: () => void;
   weightConflict?: WeightDraftItem;
 };
+
+type QueueCategory = "food" | "gym" | "ai" | "other";
+
+function categoryForKind(kind: string): QueueCategory {
+  if (kind.startsWith("assistant-") || kind.startsWith("AI")) return "ai";
+  if (kind.startsWith("gym-")) return "gym";
+  if (
+    kind === "photo" ||
+    kind === "meal" ||
+    kind === "patch" ||
+    kind === "delete" ||
+    kind === "water" ||
+    kind === "weight" ||
+    kind === "diary"
+  ) {
+    return "food";
+  }
+  return "other";
+}
+
+function categoryPill(cat: QueueCategory): { label: string; className: string } {
+  if (cat === "food") {
+    return { label: "Еда", className: "bg-[var(--accent-soft)] text-[var(--accent-ink)]" };
+  }
+  if (cat === "gym") {
+    return { label: "Зал", className: "bg-[var(--surface-mist)] text-[var(--foreground)]" };
+  }
+  if (cat === "ai") {
+    return { label: "AI", className: "bg-[var(--accent)]/15 text-[var(--accent-ink)]" };
+  }
+  return { label: "Прочее", className: "bg-[var(--border-quiet)]/60 text-[var(--muted-strong)]" };
+}
 
 function statusPill(status: QueueRowStatus, flushing: boolean): { label: string; className: string } {
   if (flushing) {
@@ -378,11 +414,17 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
           <ul className="space-y-2">
             {rows.map((row) => {
               const pill = statusPill(row.status, flushing);
+              const cat = categoryPill(categoryForKind(row.kind));
               return (
               <li key={`${row.kind}-${row.id}`} className="offline-queue-row">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${cat.className}`}
+                      >
+                        {cat.label}
+                      </span>
                       <p className="truncate text-sm font-semibold text-[var(--ink)]">
                         {row.label}
                       </p>
@@ -420,8 +462,19 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
                         setTick((n) => n + 1);
                       }}
                     >
-                      Заменить {row.weightConflict.conflictExistingKg} кг →{" "}
-                      {row.weightConflict.weightKg} кг
+                      {formatWeightReplaceCta(row.weightConflict.weightKg)}
+                    </button>
+                    <button
+                      type="button"
+                      className="confirm-family-secondary !min-h-8 !px-2.5 !text-[11px]"
+                      disabled={flushing}
+                      onClick={() => {
+                        removeWeightDraft(row.weightConflict!.id);
+                        onChanged();
+                        setTick((n) => n + 1);
+                      }}
+                    >
+                      {formatWeightKeepCta(row.weightConflict.conflictExistingKg!)}
                     </button>
                   </div>
                 ) : null}

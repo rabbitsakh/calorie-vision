@@ -6,6 +6,7 @@ const OPEN_CAMERA_AFTER_ONBOARDING_KEY = "cv-open-camera-after-onboarding";
 const FIRST_SHARE_NUDGE_KEY = "cv-first-share-nudge-seen";
 const SEVEN_DAY_AHA_KEY = "cv-seven-day-aha-seen";
 const LOGGED_DAYS_CACHE_KEY = "cv-logged-days-count-v1";
+const OFFLINE_QUEUE_COACH_KEY = "cv-offline-queue-coach-seen";
 
 function store(): Storage | null {
   try {
@@ -43,6 +44,17 @@ export function shouldShowFirstShareNudge(mealCountToday: number): boolean {
 
 export function markFirstShareNudgeSeen(): void {
   store()?.setItem(FIRST_SHARE_NUDGE_KEY, "1");
+}
+
+/** One-shot coach on the offline queue banner. */
+export function shouldShowOfflineQueueCoach(): boolean {
+  const s = store();
+  if (!s || s.getItem(OFFLINE_QUEUE_COACH_KEY) === "1") return false;
+  return true;
+}
+
+export function markOfflineQueueCoachSeen(): void {
+  store()?.setItem(OFFLINE_QUEUE_COACH_KEY, "1");
 }
 
 /** Cache days-logged total from streak payload for quiet gates. */
