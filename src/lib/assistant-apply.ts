@@ -30,6 +30,35 @@ export function muscleGroupsFromFocus(focus: string): MuscleGroupKey[] {
   return found.length ? found : ["other"];
 }
 
+/** Fallback real names when AI omits workoutDays[].notes — never «упражнение N». */
+const FOCUS_DEFAULT_EXERCISES: Record<MuscleGroupKey, string[]> = {
+  chest: ["Жим лёжа", "Разводка гантелей", "Отжимания"],
+  back: ["Тяга верхнего блока", "Тяга гантели", "Подтягивания"],
+  legs: ["Приседания", "Жим ногами", "Выпады"],
+  shoulders: ["Жим стоя", "Разведение в стороны", "Тяга к подбородку"],
+  biceps: ["Сгибания со штангой", "Молотковые сгибания", "Сгибания на скамье"],
+  triceps: ["Разгибания на блоке", "Французский жим", "Отжимания на брусьях"],
+  abs: ["Скручивания", "Планка", "Подъёмы ног"],
+  cardio: ["Бег", "Велотренажёр", "Эллипс"],
+  other: ["Жим гантелей", "Тяга блока", "Планка"],
+};
+
+export function defaultExercisesForFocus(focus: string): string[] {
+  const groups = muscleGroupsFromFocus(focus);
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const g of groups) {
+    for (const n of FOCUS_DEFAULT_EXERCISES[g] ?? FOCUS_DEFAULT_EXERCISES.other) {
+      const key = n.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      names.push(n);
+      if (names.length >= 3) return names;
+    }
+  }
+  return names.length ? names : FOCUS_DEFAULT_EXERCISES.other.slice(0, 3);
+}
+
 export function exercisesFromWorkoutDay(day: {
   focus: string;
   notes?: string;
@@ -45,9 +74,7 @@ export function exercisesFromWorkoutDay(day: {
     }
   }
   if (names.length === 0) {
-    names.push(`${day.focus} — упражнение 1`.slice(0, 80));
-    names.push(`${day.focus} — упражнение 2`.slice(0, 80));
-    names.push(`${day.focus} — упражнение 3`.slice(0, 80));
+    names.push(...defaultExercisesForFocus(day.focus));
   }
   return names.map((name, i) => ({
     name,

@@ -1,8 +1,10 @@
 /**
- * Parse / enrich meal wall-clock times from assistant cv-actions and user text.
+ * Parse / enrich meal wall-clock times and meal-type notes from assistant cv-actions + user text.
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+
+export type MealNoteLabel = "завтрак" | "обед" | "ужин" | "перекус";
 
 /** Normalize "10:30" / "10.30" / "9:05" → "HH:MM", or null. */
 export function parseMealTimeHHMM(raw: unknown): string | null {
@@ -56,4 +58,55 @@ export function enrichAssistantActionsMealTimes(
     return { ...m, time: fromMsg };
   });
   return changed ? { ...actions, meals } : actions;
+}
+
+/** End of a Russian token (JS `\b` is ASCII-only). */
+const RU_TOKEN_END = "(?=$|[\\s.,;:!?…»\"')\\]])";
+
+/**
+ * Pull meal-type label from Russian free text («на перекус», «на завтрак»).
+ */
+export function extractMealTypeFromMessage(message: string): MealNoteLabel | null {
+  const text = message.trim();
+  if (!text) return null;
+  if (new RegExp(`(?:на\\s+)?завтрак${RU_TOKEN_END}`, "i").test(text)) return "завтрак";
+  if (new RegExp(`(?:на\\s+)?обед${RU_TOKEN_END}`, "i").test(text)) return "обед";
+  if (new RegExp(`(?:на\\s+)?ужин${RU_TOKEN_END}`, "i").test(text)) return "ужин";
+  if (new RegExp(`(?:на\\s+)?перекус${RU_TOKEN_END}|снек|snack`, "i").test(text)) {
+    return "перекус";
+  }
+  return null;
+}
+
+/** True when note already encodes a meal type the save path understands. */
+export function noteHasMealType(note: string | undefined): boolean {
+  if (!note?.trim()) return false;
+  return /завтрак|обед|ужин|перекус|снек|snack/i.test(note);
+}
+
+/** Fill missing meals[].note meal-type from the user message when present. */
+export function enrichAssistantActionsMealNotes(
+  actions: AssistantActions | null | undefined,
+  userMessage: string,
+): AssistantActions | null {
+  if (!actions?.meals?.length) return actions ?? null;
+  const fromMsg = extractMealTypeFromMessage(userMessage);
+  if (!fromMsg) return actions;
+
+  let changed = false;
+  const meals = actions.meals.map((m) => {
+    if (noteHasMealType(m.note)) return m;
+    changed = true;
+    return { ...m, note: fromMsg };
+  });
+  return changed ? { ...actions, meals } : actions;
+}
+
+/** Time + meal-type enrich in one pass (stream / route). */
+export function enrichAssistantActionsMealMeta(
+  actions: AssistantActions | null | undefined,
+  userMessage: string,
+): AssistantActions | null {
+  const withTime = enrichAssistantActionsMealTimes(actions, userMessage);
+  return enrichAssistantActionsMealNotes(withTime, userMessage);
 }

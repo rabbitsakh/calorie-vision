@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  enrichAssistantActionsMealMeta,
+  enrichAssistantActionsMealNotes,
   enrichAssistantActionsMealTimes,
   extractMealTimeFromMessage,
+  extractMealTypeFromMessage,
   parseMealTimeHHMM,
 } from "./assistant-meal-time.ts";
 
@@ -42,4 +45,30 @@ test("enrichAssistantActionsMealTimes keeps existing time", () => {
     "Я съел в 10:30 протеин",
   );
   assert.equal(enriched?.meals?.[0]?.time, "11:00");
+});
+
+test("extractMealTypeFromMessage finds перекус / завтрак", () => {
+  assert.equal(
+    extractMealTypeFromMessage("Я съел на перекус в 10:30 паротеин изолят 70г"),
+    "перекус",
+  );
+  assert.equal(extractMealTypeFromMessage("на завтрак омлет"), "завтрак");
+  assert.equal(extractMealTypeFromMessage("просто банан"), null);
+});
+
+test("enrichAssistantActionsMealNotes fills missing note", () => {
+  const enriched = enrichAssistantActionsMealNotes(
+    { meals: [{ name: "Протеин изолят", kcal: 260 }] },
+    "Я съел на перекус протеин изолят 70г",
+  );
+  assert.equal(enriched?.meals?.[0]?.note, "перекус");
+});
+
+test("enrichAssistantActionsMealMeta fills time and note together", () => {
+  const enriched = enrichAssistantActionsMealMeta(
+    { meals: [{ name: "Протеин изолят", kcal: 260 }] },
+    "Я съел на перекус в 10:30 паротеин изолят 70г",
+  );
+  assert.equal(enriched?.meals?.[0]?.time, "10:30");
+  assert.equal(enriched?.meals?.[0]?.note, "перекус");
 });
