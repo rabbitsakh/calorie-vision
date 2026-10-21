@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildRoutinePayloadFromActions,
+  exercisesFromWorkoutDay,
   mealsPayloadFromActions,
   muscleGroupsFromFocus,
 } from "./assistant-apply.ts";
@@ -39,6 +40,24 @@ test("mealsPayloadFromActions maps kcal and macros", () => {
   assert.equal(meals[0]?.carbs, 4);
   assert.equal(meals[0]?.recognitionSource, "assistant");
   assert.equal(meals[0]?.eatenAt, undefined);
+});
+
+test("exercisesFromWorkoutDay never emits упражнение N", () => {
+  const exs = exercisesFromWorkoutDay({ focus: "Грудь" });
+  assert.ok(exs.length >= 3);
+  for (const ex of exs) {
+    assert.doesNotMatch(ex.name, /упражнение\s*\d/i);
+  }
+  assert.ok(exs.some((e) => /жим/i.test(e.name)));
+});
+
+test("exercisesFromWorkoutDay prefers notes when present", () => {
+  const exs = exercisesFromWorkoutDay({
+    focus: "Грудь",
+    notes: "Жим гантелей, Кроссовер",
+  });
+  assert.equal(exs.length, 2);
+  assert.equal(exs[0]?.name, "Жим гантелей");
 });
 
 test("mealsPayloadFromActions maps meals.time to eatenAt", () => {

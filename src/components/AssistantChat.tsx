@@ -37,6 +37,8 @@ import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import { formatDateInput, requireDateKey } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
+import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
+import type { PhotoKind } from "@/lib/food-types";
 import {
   formatConfidencePercent,
   getConfidenceTone,
@@ -203,6 +205,36 @@ function lastUserContentBefore(turns: ChatTurn[], assistantId: string): string |
   return null;
 }
 
+function PhotoDraftWhy({ draft }: { draft: PhotoDraft }) {
+  const photoKind =
+    draft.photoKind === "meal" ||
+    draft.photoKind === "package" ||
+    draft.photoKind === "label" ||
+    draft.photoKind === "barcode"
+      ? (draft.photoKind as PhotoKind)
+      : undefined;
+  const why = explainWhyTheseCalories({
+    dishName: draft.dishName,
+    brand: draft.brand,
+    portionGrams: draft.portionGrams,
+    calories: draft.calories,
+    photoKind,
+    source: draft.recognitionSource,
+    confidence: typeof draft.confidence === "number" ? draft.confidence : 1,
+  });
+  return (
+    <details className="confirm-why-so mt-1.5 group">
+      <summary className="cursor-pointer list-none text-[10px] font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden">
+        Почему так
+      </summary>
+      <p className="mt-1 text-[10px] leading-snug text-[var(--muted)]">{why.summary}</p>
+      {why.detail ? (
+        <p className="mt-0.5 text-[10px] leading-snug text-[var(--muted)]">{why.detail}</p>
+      ) : null}
+    </details>
+  );
+}
+
 function ToolChips({ tools }: { tools: ToolResult[] }) {
   if (!tools.length) return null;
   return (
@@ -314,12 +346,22 @@ function PhotoConfirm({
         result?: ToolResult;
       } | null;
       if (!resp.ok || !json?.result) throw new Error(json?.error || "Не удалось");
-      const meals = (json.result.data as { meals?: Array<{ id: string }> } | undefined)?.meals ?? [];
+      const resultData = (json.result.data ?? {}) as {
+        meals?: Array<{ id: string }>;
+        partial?: boolean;
+        saved?: number;
+        skipped?: number;
+      };
+      const meals = resultData.meals ?? [];
       onDone(json.result, {
         ...emptyUndo(),
         mealIds: meals.map((m) => m.id).filter(Boolean),
       });
-      onFlash("Добавил в рацион");
+      if (resultData.partial && resultData.saved != null && resultData.skipped) {
+        onFlash(`Сохранено ${resultData.saved} из ${resultData.saved + resultData.skipped}`);
+      } else {
+        onFlash(json.result.message?.startsWith("Сохранено") ? json.result.message : "Добавил в рацион");
+      }
     } catch (err) {
       onFlash(err instanceof Error ? err.message : "Ошибка");
     } finally {
@@ -420,6 +462,7 @@ function PhotoConfirm({
                   </button>
                 ) : null}
               </div>
+              <PhotoDraftWhy draft={d} />
             </div>
           );
         })}
@@ -720,19 +763,24 @@ function ActionCard({
         </p>
       ) : null}
       {actions.meals?.length ? (
-        <ul className="confirm-family-dish space-y-1">
-          {actions.meals.map((m) => (
-            <li key={m.name}>
-              <span className="font-semibold">{m.name}</span>
-              {m.kcal != null ? ` — ${m.kcal} ккал` : ""}
-              {m.protein != null || m.fat != null || m.carbs != null
-                ? ` · Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"}`
-                : ""}
-              {m.note ? ` · ${m.note}` : ""}
-              {m.time ? ` · ${m.time}` : ""}
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="confirm-family-dish space-y-1">
+            {actions.meals.map((m) => (
+              <li key={m.name}>
+                <span className="font-semibold">{m.name}</span>
+                {m.kcal != null ? ` — ${m.kcal} ккал` : ""}
+                {m.protein != null || m.fat != null || m.carbs != null
+                  ? ` · Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"}`
+                  : ""}
+                {m.note ? ` · ${m.note}` : ""}
+                {m.time ? ` · ${m.time}` : ""}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-[10px] leading-snug text-[var(--muted)]">
+            Оценка ассистента · проверь ккал перед записью
+          </p>
+        </>
       ) : null}
       {actions.workoutDays?.length ? (
         <ul className="confirm-family-dish mt-1.5 space-y-1">

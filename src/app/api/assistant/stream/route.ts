@@ -15,6 +15,7 @@ import {
   rateLimitResponse,
 } from "@/lib/assistant-rate-limit";
 import {
+  actionsHaveWritablePayload,
   assistantWroteFlag,
   assistantWriteMissNote,
   needsWriteRepair,
@@ -23,9 +24,10 @@ import {
 import {
   hasPhotoPreviewPending,
   photoPreviewSystemAppendix,
+  sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
-import { enrichAssistantActionsMealTimes } from "@/lib/assistant-meal-time";
+import { enrichAssistantActionsMealMeta } from "@/lib/assistant-meal-time";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -210,7 +212,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (!previewPending && actions?.meals?.length) {
-          actions = enrichAssistantActionsMealTimes(actions, lastUser);
+          actions = enrichAssistantActionsMealMeta(actions, lastUser);
         }
 
         const targetDate =
@@ -256,6 +258,8 @@ export async function POST(request: NextRequest) {
         );
         if (previewPending) {
           reply = sanitizePhotoPreviewReply(reply);
+        } else if (actionsHaveWritablePayload(actions) && !wroteOk) {
+          reply = sanitizePendingWriteReply(reply);
         }
         const toolNote = formatToolResultsForReply(writeResults);
         // Confirm-gate: writable actions go to ActionCard — not a write miss.

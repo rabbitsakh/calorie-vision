@@ -830,11 +830,23 @@ export async function toolSavePhotoDrafts(opts: {
   if (!created.length) {
     return { ok: false, tool: "save_photo_drafts", message: "Не удалось сохранить" };
   }
+  const skipped = drafts.length - created.length;
+  const partial = skipped > 0;
   return {
     ok: true,
     tool: "save_photo_drafts",
-    message: `В рацион: ${created.map((m) => `${m.dishName} — ${m.calories} ккал`).join("; ")}`,
-    data: { meals: created, date: opts.date },
+    message: partial
+      ? `Сохранено ${created.length} из ${drafts.length}: ${created
+          .map((m) => `${m.dishName} — ${m.calories} ккал`)
+          .join("; ")}`
+      : `В рацион: ${created.map((m) => `${m.dishName} — ${m.calories} ккал`).join("; ")}`,
+    data: {
+      meals: created,
+      date: opts.date,
+      saved: created.length,
+      skipped,
+      partial,
+    },
   };
 }
 

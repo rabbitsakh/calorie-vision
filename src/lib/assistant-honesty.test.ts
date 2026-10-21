@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   hasPhotoPreviewPending,
   replyClaimsSaved,
+  sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
 } from "./assistant-honesty.ts";
 
@@ -32,4 +33,15 @@ test("sanitizePhotoPreviewReply keeps honest preview copy", () => {
 test("replyClaimsSaved", () => {
   assert.equal(replyClaimsSaved("Добавил в рацион"), true);
   assert.equal(replyClaimsSaved("На фото вижу суп"), false);
+});
+
+test("sanitizePendingWriteReply strips ActionCard false claim", () => {
+  const out = sanitizePendingWriteReply("Добавил протеин в рацион, приятного!");
+  assert.match(out, /не записал|подтвержден/i);
+  assert.ok(!/^добавил/i.test(out));
+});
+
+test("sanitizePendingWriteReply keeps honest confirm CTA", () => {
+  const honest = "Протеин ~260 ккал. Подтверди «В дневник» ниже.";
+  assert.equal(sanitizePendingWriteReply(honest), honest);
 });
