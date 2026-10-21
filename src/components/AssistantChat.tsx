@@ -729,6 +729,7 @@ function ActionCard({
                 ? ` · Б${m.protein ?? "—"} Ж${m.fat ?? "—"} У${m.carbs ?? "—"}`
                 : ""}
               {m.note ? ` · ${m.note}` : ""}
+              {m.time ? ` · ${m.time}` : ""}
             </li>
           ))}
         </ul>

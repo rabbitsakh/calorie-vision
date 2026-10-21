@@ -38,4 +38,28 @@ test("mealsPayloadFromActions maps kcal and macros", () => {
   assert.equal(meals[0]?.fat, 22);
   assert.equal(meals[0]?.carbs, 4);
   assert.equal(meals[0]?.recognitionSource, "assistant");
+  assert.equal(meals[0]?.eatenAt, undefined);
+});
+
+test("mealsPayloadFromActions maps meals.time to eatenAt", () => {
+  const meals = mealsPayloadFromActions(
+    {
+      meals: [
+        {
+          name: "Протеин изолят",
+          kcal: 260,
+          protein: 60,
+          fat: 1,
+          carbs: 2,
+          note: "перекус",
+          time: "10:30",
+        },
+      ],
+    },
+    "2026-10-21",
+    "Europe/Moscow",
+  );
+  assert.ok(meals[0]?.eatenAt);
+  // 10:30 MSK = 07:30 UTC
+  assert.equal(meals[0]?.eatenAt, "2026-10-21T07:30:00.000Z");
 });
