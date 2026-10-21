@@ -26,6 +26,7 @@ import {
 import {
   formatLeverStreakHint,
   getLeverHitStreak,
+  isEarlyGymUser,
   recordLeverOutcome,
 } from "@/lib/workouts/lever-outcome-history";
 import { formatRecoveryOutcomeLine } from "@/lib/workouts/lever-session-apply";
@@ -244,7 +245,8 @@ export function WorkoutSessionSummary({
       setTip(null);
       return;
     }
-    setTip(ruleNextSessionTip(snapshot, { recoveryHitNames }));
+    const earlyUser = isEarlyGymUser();
+    setTip(ruleNextSessionTip(snapshot, { recoveryHitNames, earlyUser }));
     setTipLever(snapshot.find((t) => t.leverRemembered)?.primaryLever ?? snapshot[0]?.primaryLever ?? null);
     setTipExercise(
       snapshot.find((t) => t.leverRemembered)?.name ?? snapshot[0]?.name ?? null,
@@ -257,6 +259,7 @@ export function WorkoutSessionSummary({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             recoveryHitNames,
+            earlyUser,
             targets: snapshot.map((t) => ({
               name: t.name,
               adviceKind: t.adviceKind,
@@ -416,15 +419,15 @@ export function WorkoutSessionSummary({
           </p>
           {anyHit ? (
             <p className="mt-1.5 text-sm font-semibold text-[var(--accent-soft)]">
-              Цель по рычагу взята — оставляем на следующий раз
+              Цель взята — оставляем на следующий раз
             </p>
           ) : anyMiss ? (
             <p className="mt-1.5 text-sm font-semibold text-amber-100">
-              Цель не добрана — можно сменить рычаг
+              Цель не добрана — можно сменить
             </p>
           ) : (
             <p className="mt-1 text-[11px] leading-snug text-white/55">
-              От макс. рабочего веса (без дроп-сетов). Нажмите рычаг — запомним до
+              От макс. рабочего веса (без дроп-сетов). Выберите цель — запомним до
               следующей.
             </p>
           )}
@@ -432,9 +435,20 @@ export function WorkoutSessionSummary({
             {targets.map((t) => {
               const selected = chosen[t.name] ?? t.primaryLever;
               const outcome = leverOutcomes[t.name];
-              const showChangeCta = outcome === "miss" && !changeOpen[t.name];
+              const early = isEarlyGymUser();
+              const showChangeCta =
+                !changeOpen[t.name] &&
+                (outcome === "miss" || (early && t.options.length > 1));
+              // Early gym: one tip line; full picker after 3 days or via «Другая цель».
               const showLevers =
-                t.options.length > 0 && (outcome !== "miss" || changeOpen[t.name] || outcome == null);
+                t.options.length > 0 &&
+                (early
+                  ? Boolean(changeOpen[t.name])
+                  : outcome !== "miss" || changeOpen[t.name] || outcome == null);
+              const earlyLine =
+                early && !changeOpen[t.name]
+                  ? (t.options.find((o) => o.lever === selected)?.line ?? t.line)
+                  : null;
               return (
                 <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
                   <p className="font-semibold">
@@ -460,6 +474,9 @@ export function WorkoutSessionSummary({
                         })()
                       : null}
                   </p>
+                  {earlyLine ? (
+                    <p className="mt-1 text-[13px] text-white/75">{earlyLine}</p>
+                  ) : null}
                   {showChangeCta ? (
                     <button
                       type="button"
@@ -468,11 +485,11 @@ export function WorkoutSessionSummary({
                         setChangeOpen((prev) => ({ ...prev, [t.name]: true }))
                       }
                     >
-                      Сменить рычаг
+                      Другая цель
                     </button>
                   ) : null}
                   {showLevers ? (
-                    <ul className="mt-1.5 space-y-1" role="listbox" aria-label={`Рычаг для ${t.name}`}>
+                    <ul className="mt-1.5 space-y-1" role="listbox" aria-label={`Цель для ${t.name}`}>
                       {t.options.map((opt) => {
                         const primary = opt.lever === selected;
                         return (

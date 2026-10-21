@@ -184,20 +184,20 @@ export function buildNextSessionTargets(
 /** Compact rule tip when GigaChat is unavailable — always one lever (G3). */
 export function ruleNextSessionTip(
   targets: readonly NextSessionTarget[],
-  opts?: { recoveryHitNames?: readonly string[] },
+  opts?: { recoveryHitNames?: readonly string[]; earlyUser?: boolean },
 ): string {
   if (targets.length === 0) {
-    return "В следующий раз зафиксируйте рабочие веса — подскажем прогрессию.";
+    return "В следующий раз зафиксируйте рабочие веса — подскажем, как прогрессировать.";
   }
   const pick = pickTipFocus(targets);
   if (!pick) {
     const name = targets[0]!.name;
-    return `Варианты на следующую для «${name}» — выберите один рычаг.`;
+    return `Варианты на следующую для «${name}» — выберите одну цель.`;
   }
   const recoveryHit = Boolean(
     opts?.recoveryHitNames?.some(
       (n) => n.trim().toLowerCase() === pick.exerciseName.trim().toLowerCase(),
     ),
   );
-  return ruleTipForFocus(pick, { recoveryHit });
+  return ruleTipForFocus(pick, { recoveryHit, earlyUser: opts?.earlyUser });
 }

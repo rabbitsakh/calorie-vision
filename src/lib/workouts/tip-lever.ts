@@ -73,29 +73,41 @@ export function pickTipFocus(targets: readonly TipTarget[]): TipLeverPick | null
 /** Rule one-liner locked to the picked lever (no multi-lever advice). */
 export function ruleTipForFocus(
   pick: TipLeverPick,
-  opts?: { recoveryHit?: boolean },
+  opts?: { recoveryHit?: boolean; earlyUser?: boolean },
 ): string {
   const name = pick.exerciseName;
+  const early = Boolean(opts?.earlyUser);
   // O: celebrate recovery hit before miss/stall nudges.
   if (opts?.recoveryHit) {
-    return `Восстановление сработало на «${name}» — держим рычаг: ${pick.line}.`;
+    return early
+      ? `Восстановление сработало на «${name}» — оставляем цель: ${pick.line}.`
+      : `Восстановление сработало на «${name}» — держим цель: ${pick.line}.`;
   }
   // N: after L recovery, don't blindly re-nudge soft deload.
   const recovery = getLeverMemory(name)?.recovery;
   if (recovery && pick.missStreak >= 1) {
-    return `«${name}» после восстановления мимо — смените рычаг: ${pick.line}.`;
+    return `«${name}» после восстановления мимо — смените цель: ${pick.line}.`;
   }
   if (pick.missStreak >= 2) {
     if (pick.lever === "weight") {
-      return `Два раза мимо на «${name}» — soft deload или смените рычаг: ${pick.line}.`;
+      return early
+        ? `Два раза не добрали «${name}» — чуть легче или другая цель: ${pick.line}.`
+        : `Два раза не добрали «${name}» — облегчите вес или смените цель: ${pick.line}.`;
     }
-    return `Два раза мимо на «${name}» — смените рычаг или облегчите: ${pick.label.toLowerCase()} (${pick.line}).`;
+    return early
+      ? `Два раза не добрали «${name}» — облегчите или смените цель: ${pick.line}.`
+      : `Два раза не добрали «${name}» — смените цель или облегчите: ${pick.label.toLowerCase()} (${pick.line}).`;
   }
   if (pick.adviceKind === "stall" || pick.adviceKind === "deload") {
     if (pick.lever === "weight") {
-      return `Плато на «${name}» — soft deload: ${pick.line}.`;
+      return early
+        ? `Плато на «${name}» — чуть легче: ${pick.line}.`
+        : `Плато на «${name}» — облегчите вес: ${pick.line}.`;
     }
     return `Плато на «${name}» — без нового веса: ${pick.label.toLowerCase()} (${pick.line}).`;
+  }
+  if (early) {
+    return `В следующий раз на «${name}»: чуть тяжелее или +1 повтор — ${pick.line}.`;
   }
   if (pick.lever === "volume") {
     return `Следующий раз на «${name}»: ${pick.line}.`;
@@ -120,24 +132,28 @@ export function detectLeverInTip(
 }
 
 /** Build GigaChat prompt that locks tip to one exercise and optional fixed lever. */
-export function buildTipPrompt(pick: TipLeverPick): string {
-  const opts = pick.options
+export function buildTipPrompt(pick: TipLeverPick, opts?: { earlyUser?: boolean }): string {
+  const lines = pick.options
     .map((o) => `- ${o.lever} / ${o.label}: ${o.line}`)
     .join("\n");
+  const early = Boolean(opts?.earlyUser);
   const lock = pick.missStreak >= 2
-    ? `Пользователь ${pick.missStreak} раза подряд не взял цель на рычаге «${pick.label}» (${pick.lever}). Мягко предложи soft deload или смену рычага; цель: ${pick.line}. Не стыди.`
+    ? `Пользователь ${pick.missStreak} раза подряд не взял цель «${pick.label}» (${pick.lever}). Мягко предложи чуть легче или смену цели; цель: ${pick.line}. Не стыди. Не говори «рычаг» и «soft deload».`
     : pick.fromPreference
-      ? `Пользователь уже выбрал рычаг «${pick.label}» (${pick.lever}): ${pick.line}. Перефразируй ТОЛЬКО этот выбор — не предлагай другие рычаги.`
-      : `Выбери РОВНО ОДИН рычаг из списка (weight|volume|reps) и опиши только его. Не упоминай остальные.`;
+      ? `Пользователь уже выбрал цель «${pick.label}» (${pick.lever}): ${pick.line}. Перефразируй ТОЛЬКО этот выбор — не предлагай другие. Не говори «рычаг».`
+      : early
+        ? `Выбери РОВНО ОДНУ цель из списка (weight|volume|reps) простым языком. Без слова «рычаг».`
+        : `Выбери РОВНО ОДНУ цель из списка (weight|volume|reps) и опиши только её. Не упоминай остальные.`;
   return [
     "Ты — краткий тренер. Одно предложение на русском, макс 140 символов.",
     "Без списков, без медицины, без стыда. Не выдумывай упражнения и веса.",
+    early ? "Язык для новичка: «цель», «чуть тяжелее», «+1 повтор» — без жаргона." : "",
     `Упражнение: ${pick.exerciseName} (${pick.adviceKind}).`,
     lock,
-    opts ? `Допустимые варианты:\n${opts}` : `Цель: ${pick.line}`,
+    lines ? `Допустимые варианты:\n${lines}` : `Цель: ${pick.line}`,
     pick.fromPreference
       ? ""
-      : `В конце ответа в скобках укажи код рычага: (weight) или (volume) или (reps).`,
+      : `В конце ответа в скобках укажи код: (weight) или (volume) или (reps).`,
   ]
     .filter(Boolean)
     .join("\n");

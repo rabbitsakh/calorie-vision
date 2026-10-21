@@ -346,11 +346,56 @@ export function WorkoutWeekPlan({
             >
               Продолжить
             </button>
+          ) : primary === "open_draft" && drafts[0] ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              onClick={() => onOpenSession(drafts[0]!.id)}
+            >
+              Открыть
+            </button>
+          ) : primary === "start_plan" && planned[0] ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              onClick={() => onStartRoutine(planned[0]!.id)}
+            >
+              Старт
+            </button>
+          ) : primary === "blank_start" || isFirstEmpty ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              onClick={onStartBlank}
+            >
+              Старт
+            </button>
+          ) : primary === "rest" ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[1rem] border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-40"
+              onClick={onStartBlank}
+            >
+              Вне плана
+            </button>
+          ) : primary === "finished" ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              onClick={onStartBlank}
+            >
+              Ещё
+            </button>
           ) : null}
         </div>
       </section>
 
-      {/* M: lever hit streaks · O: armed recovery · R5: equipped collection wear */}
+      {/* Levers / wear sit below the one primary CTA */}
       <div className="mt-2 flex flex-col gap-1.5 px-0.5">
         <LeverStreakStrip />
         <LeverRecoveryStrip />
@@ -419,16 +464,8 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">Первая тренировка</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Один тап — и вы в зале. Подходы и кардио можно добавить сразу.
+                  Кнопка «Старт» выше — и вы в зале. Подходы и кардио можно добавить сразу.
                 </p>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
-                  onClick={onStartBlank}
-                >
-                  Начать тренировку
-                </button>
               </>
             ) : loading ? (
               <SceneSkeleton inline label="Загрузка плана…" />
@@ -512,16 +549,8 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">День отдыха</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  В плане на сегодня пусто. Можно восстановиться или потренироваться вне плана.
+                  В плане пусто. «Вне плана» выше — если всё же хотите потренироваться.
                 </p>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="mt-3 w-full rounded-[var(--radius-control)] border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 py-3 text-base font-semibold text-[var(--accent-ink)] disabled:opacity-40"
-                  onClick={onStartBlank}
-                >
-                  Тренировка вне плана
-                </button>
                 {showRepeatInStart && lastRepeat && onRepeatLast ? (
                   <div className="mt-3">
                     <button
@@ -551,16 +580,8 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">Начать тренировку</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Пустая сессия на сегодня — упражнения добавите сами.
+                  «Старт» / «Ещё» выше — пустая сессия, упражнения добавите сами.
                 </p>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="mt-3 w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
-                  onClick={onStartBlank}
-                >
-                  Новая тренировка
-                </button>
                 {showRepeatInStart && lastRepeat && onRepeatLast ? (
                   <div className="mt-3">
                     <button

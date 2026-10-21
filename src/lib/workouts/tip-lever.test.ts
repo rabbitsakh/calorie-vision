@@ -119,7 +119,14 @@ test("K1: 2× miss prefers struggling exercise and deload tip", () => {
   ])!;
   assert.equal(pick.exerciseName, "Присед");
   assert.ok(pick.missStreak >= 2);
-  assert.match(ruleTipForFocus(pick), /Два раза мимо/);
+  assert.match(ruleTipForFocus(pick), /Два раза не добрали/);
+});
+
+test("earlyUser tip avoids рычаг / soft deload jargon", () => {
+  const pick = pickTipFocus([target({ primaryLever: "weight" })])!;
+  const tip = ruleTipForFocus(pick, { earlyUser: true });
+  assert.match(tip, /следующий раз|чуть/i);
+  assert.doesNotMatch(tip, /рычаг|soft deload/i);
 });
 
 test("N: recovery-armed tip prefers switch wording over soft deload", () => {
