@@ -37,10 +37,10 @@ type ApiResponse = {
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   protein: { label: "Белковое", color: "bg-[var(--accent-soft)] text-[var(--accent-ink)]" },
-  carbs: { label: "Углеводы", color: "bg-cyan-100 text-cyan-900" },
+  carbs: { label: "Углеводы", color: "bg-[var(--accent-carbs-soft)] text-[var(--accent-ink)]" },
   fat: { label: "Жиры", color: "bg-amber-100 text-amber-800" },
   balanced: { label: "Баланс", color: "bg-[var(--accent-soft)] text-[var(--muted-strong)]" },
-  light: { label: "Лёгкое", color: "bg-sky-100 text-sky-800" },
+  light: { label: "Лёгкое", color: "bg-[var(--accent-water-soft)] text-[var(--accent-ink)]" },
 };
 
 function MacroBar({
@@ -242,7 +242,7 @@ export function MealSuggestions({
           <div className="grid grid-cols-3 gap-2">
             <MacroBar label="Белки" eaten={data.eaten.protein} target={data.target.protein} color="bg-[var(--accent)]" />
             <MacroBar label="Жиры" eaten={data.eaten.fat} target={data.target.fat} color="bg-amber-400" />
-            <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-cyan-500" />
+            <MacroBar label="Углеводы" eaten={data.eaten.carbs} target={data.target.carbs} color="bg-[var(--accent-carbs)]" />
           </div>
           {data.tip ? (
             <p className="mt-2 text-xs text-[var(--muted)]">{data.tip}</p>

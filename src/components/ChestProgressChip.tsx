@@ -71,18 +71,22 @@ export function ChestProgressChip({
     <div className="pt-2">
       <Link
         href={href}
-        className="inline-flex max-w-full flex-col gap-1 rounded-lg border border-[var(--border-quiet)] bg-white/80 px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] hover:border-[var(--accent)]/40"
+        className="inline-flex max-w-full flex-col gap-1 rounded-lg border border-[var(--accent)]/35 bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] shadow-[0_1px_0_rgba(13,115,119,0.08)] hover:border-[var(--accent)]/55"
         title="Прогресс к сундуку за сегодня · привычки"
       >
         <span className="inline-flex min-w-0 items-center gap-1.5">
-          <span aria-hidden>✦</span>
+          <span aria-hidden className="text-[var(--accent)]">
+            ✦
+          </span>
           <span className="truncate">{model.label}</span>
           {model.metaLabel ? (
-            <span className="shrink-0 font-medium text-[var(--muted)]">· {model.metaLabel}</span>
+            <span className="shrink-0 font-medium text-[var(--accent-ink)]/70">
+              · {model.metaLabel}
+            </span>
           ) : null}
         </span>
         <span
-          className="block h-1 w-full min-w-[7.5rem] overflow-hidden rounded-full bg-[var(--accent-soft)]"
+          className="block h-1.5 w-full min-w-[7.5rem] overflow-hidden rounded-full bg-white/70"
           aria-hidden
         >
           <span

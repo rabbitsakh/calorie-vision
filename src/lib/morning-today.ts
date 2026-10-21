@@ -78,8 +78,8 @@ export function buildMorningTodayBrief(input: MorningTodayInput): MorningTodayBr
   } else {
     gym = "Отдых";
     cta = {
-      label: "С AI",
-      href: "/assistant?mode=week&q=" + encodeURIComponent("Спланируй тренировку на сегодня или день отдыха"),
+      label: "Попробуй сегодня",
+      href: "/workouts?new=1",
     };
   }
 
