@@ -156,6 +156,23 @@ export function shouldSuggestLeverSwitch(name: string): boolean {
   return getLeverMissStreak(name) >= 2;
 }
 
+/** Distinct calendar days with any lever outcome — proxy for gym tenure. */
+export function countLeverOutcomeDays(): number {
+  const store = readStore();
+  const dates = new Set<string>();
+  for (const list of Object.values(store)) {
+    for (const row of list ?? []) {
+      if (row?.at) dates.add(row.at);
+    }
+  }
+  return dates.size;
+}
+
+/** First ~3 logged gym days — softer tip language, simpler summary. */
+export function isEarlyGymUser(maxDays = 3): boolean {
+  return countLeverOutcomeDays() < maxDays;
+}
+
 export type LeverStreakListItem = {
   name: string;
   streak: LeverStreak;

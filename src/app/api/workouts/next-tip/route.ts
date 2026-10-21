@@ -99,11 +99,13 @@ export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => ({}))) as {
       targets?: unknown;
       recoveryHitNames?: unknown;
+      earlyUser?: unknown;
     };
     const targets = parseTargets(body.targets);
     const recoveryHitNames = Array.isArray(body.recoveryHitNames)
       ? body.recoveryHitNames.filter((n): n is string => typeof n === "string")
       : [];
+    const earlyUser = body.earlyUser === true;
     const focus = pickTipFocus(targets);
     const recoveryHit = Boolean(
       focus &&
@@ -112,8 +114,8 @@ export async function POST(request: NextRequest) {
         ),
     );
     let tip = focus
-      ? ruleTipForFocus(focus, { recoveryHit })
-      : ruleNextSessionTip(targets, { recoveryHitNames });
+      ? ruleTipForFocus(focus, { recoveryHit, earlyUser })
+      : ruleNextSessionTip(targets, { recoveryHitNames, earlyUser });
     let source: "gigachat" | "rules" = "rules";
     let lever: ProgressionLever | null = focus?.lever ?? null;
     const exerciseName: string | null = focus?.exerciseName ?? null;
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (hasCreds && focus) {
       try {
-        const prompt = buildTipPrompt(focus);
+        const prompt = buildTipPrompt(focus, { earlyUser });
         const ai = await completeChat([{ role: "user", content: prompt }], 0.4, {
           retries: 1,
         });

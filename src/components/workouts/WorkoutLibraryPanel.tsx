@@ -194,7 +194,12 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
         ))}
       </ul>
       {!loading && entries.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">Библиотека пуста — добавьте упражнения выше.</p>
+        <div className="scene-empty">
+          <p className="scene-empty__title">Библиотека пуста</p>
+          <p className="scene-empty__hint">
+            Добавьте упражнения выше — быстрее старт из шаблона.
+          </p>
+        </div>
       ) : null}
     </div>
   );

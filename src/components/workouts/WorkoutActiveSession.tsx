@@ -960,10 +960,13 @@ export function WorkoutActiveSession({
 
     {/* List is always a vertical stack. One-exercise paging lives only in «К подходам» stage. */}
     {detail.exercises.length === 0 && detail.clockStatus !== "finished" ? (
-      <p className="rounded-2xl border border-dashed border-[var(--border-quiet)] bg-[var(--accent-soft)]/40 px-4 py-3 text-sm text-[var(--muted-strong)]">
-        Пока нет упражнений. Добавьте первое ниже — потом «Старт» таймера или «К
-        подходам» для записи весов.
-      </p>
+      <div className="scene-empty">
+        <p className="scene-empty__title">Пока нет упражнений</p>
+        <p className="scene-empty__hint">
+          Добавьте первое ниже — потом «Старт» таймера или «К подходам» для записи
+          весов.
+        </p>
+      </div>
     ) : null}
     <div className="flex flex-col gap-3">
       {detail.exercises.map((ex, exIndex) => {

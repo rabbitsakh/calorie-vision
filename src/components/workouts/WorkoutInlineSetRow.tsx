@@ -296,11 +296,11 @@ export function WorkoutInlineSetRow({
           ) : null}
           <button
             type="button"
-            disabled={saving}
+            disabled={busy || saving}
             className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
             onClick={() => void save()}
           >
-            Ок
+            {saving ? "Сохраняем…" : "Ок"}
           </button>
           <button
             type="button"
