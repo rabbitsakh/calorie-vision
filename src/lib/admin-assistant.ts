@@ -21,6 +21,8 @@ export type AssistantActions = {
     fat?: number;
     carbs?: number;
     note?: string;
+    /** Wall-clock HH:MM when the meal was eaten (user timezone). */
+    time?: string;
   }>;
   /** Delete meals on targetDate matching dish name (substring). */
   deleteMeals?: Array<{ match: string }>;
@@ -135,7 +137,8 @@ export function buildAssistantSystemPrompt(
     "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280}].",
     "Вес: weightKg. Если на день уже есть вес — сервер спросит подтверждение; не ставь overwriteWeight сам.",
     "Совет без просьбы записать — без apply / без блока.",
-    "meals.note = завтрак|обед|ужин|перекус. workoutDays.day = Пн/Вт/… или сегодня/завтра.",
+    "meals.note = завтрак|обед|ужин|перекус. meals.time = HH:MM если пользователь сказал время («в 10:30»).",
+    "workoutDays.day = Пн/Вт/… или сегодня/завтра.",
     "План зала (workoutDays): не пиши «добавил в план» — пользователь подтвердит кнопкой «В план зала». В summary коротко опиши дни.",
     "Блюда (meals) и вода (waterMl): не пиши «добавил» — пользователь подтвердит «В дневник» / «В воду».",
     "Покупки (shopping) и старт (startWorkout): тоже только после подтверждения.",
@@ -143,7 +146,7 @@ export function buildAssistantSystemPrompt(
     "",
     "Пример (обязательный хвост при записи):",
     "```cv-actions",
-    '{"apply":true,"targetDate":"сегодня","meals":[{"name":"Булочка с изюмом","kcal":300,"protein":6,"fat":10,"carbs":40,"note":"перекус"},{"name":"Финиковая паста","kcal":350,"protein":3,"fat":1,"carbs":80,"note":"перекус"}],"summary":"добавил в рацион"}',
+    '{"apply":true,"targetDate":"сегодня","meals":[{"name":"Протеин изолят","kcal":260,"protein":60,"fat":1,"carbs":2,"note":"перекус","time":"10:30"}],"summary":"перекус в 10:30 — подтверди"}',
     "```",
     "Пример плана зала (клиент покажет CTA):",
     "```cv-actions",
@@ -226,6 +229,23 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
       const num = (v: unknown) =>
         typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : undefined;
       const kcal = row.kcal;
+      const timeRaw =
+        typeof row.time === "string"
+          ? row.time
+          : typeof row.eatenAt === "string"
+            ? row.eatenAt
+            : undefined;
+      let time: string | undefined;
+      if (typeof timeRaw === "string") {
+        const hhmm = /^(\d{1,2})[:.](\d{2})$/.exec(timeRaw.trim());
+        if (hhmm) {
+          const h = Number(hhmm[1]);
+          const mi = Number(hhmm[2]);
+          if (Number.isFinite(h) && Number.isFinite(mi) && h <= 23 && mi <= 59) {
+            time = `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}`;
+          }
+        }
+      }
       meals.push({
         name: name.trim().slice(0, 120),
         kcal: typeof kcal === "number" && Number.isFinite(kcal) ? Math.round(kcal) : undefined,
@@ -233,6 +253,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         fat: num(row.fat),
         carbs: num(row.carbs),
         note: typeof row.note === "string" ? row.note.trim().slice(0, 120) : undefined,
+        ...(time ? { time } : {}),
       });
     }
     if (meals.length) out.meals = meals;

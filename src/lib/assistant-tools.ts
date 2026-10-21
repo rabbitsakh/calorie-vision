@@ -169,8 +169,9 @@ export async function toolSaveMeals(opts: {
   userId: string;
   date: string;
   actions: AssistantActions;
+  timezone?: string | null;
 }): Promise<AssistantToolResult> {
-  const entries = mealsPayloadFromActions(opts.actions, opts.date);
+  const entries = mealsPayloadFromActions(opts.actions, opts.date, opts.timezone);
   if (!entries.length) {
     return { ok: false, tool: "save_meals", message: "Нет блюд для записи" };
   }

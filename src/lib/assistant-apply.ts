@@ -3,6 +3,8 @@
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
+import { dateKeyAndTimeToIso } from "@/lib/dates";
 import { isMuscleGroupKey, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
 const FOCUS_HINTS: Array<{ re: RegExp; key: MuscleGroupKey }> = [
@@ -98,6 +100,7 @@ export function buildRoutinePayloadFromActions(
 export function mealsPayloadFromActions(
   actions: AssistantActions,
   date: string,
+  timezone?: string | null,
 ): Array<{
   date: string;
   dishName: string;
@@ -106,23 +109,31 @@ export function mealsPayloadFromActions(
   fat?: number;
   carbs?: number;
   recognitionSource: string;
+  eatenAt?: string;
 }> {
   const meals = actions.meals ?? [];
   return meals
     .filter((m) => m.name.trim())
     .slice(0, 12)
-    .map((m) => ({
-      date,
-      dishName: m.name.trim().slice(0, 200),
-      calories:
-        typeof m.kcal === "number" && Number.isFinite(m.kcal) ? Math.max(1, Math.round(m.kcal)) : 200,
-      ...(typeof m.protein === "number" && Number.isFinite(m.protein)
-        ? { protein: Math.max(0, m.protein) }
-        : {}),
-      ...(typeof m.fat === "number" && Number.isFinite(m.fat) ? { fat: Math.max(0, m.fat) } : {}),
-      ...(typeof m.carbs === "number" && Number.isFinite(m.carbs)
-        ? { carbs: Math.max(0, m.carbs) }
-        : {}),
-      recognitionSource: "assistant",
-    }));
+    .map((m) => {
+      const time = parseMealTimeHHMM(m.time);
+      const eatenAt = time ? dateKeyAndTimeToIso(date, time, timezone) : null;
+      return {
+        date,
+        dishName: m.name.trim().slice(0, 200),
+        calories:
+          typeof m.kcal === "number" && Number.isFinite(m.kcal)
+            ? Math.max(1, Math.round(m.kcal))
+            : 200,
+        ...(typeof m.protein === "number" && Number.isFinite(m.protein)
+          ? { protein: Math.max(0, m.protein) }
+          : {}),
+        ...(typeof m.fat === "number" && Number.isFinite(m.fat) ? { fat: Math.max(0, m.fat) } : {}),
+        ...(typeof m.carbs === "number" && Number.isFinite(m.carbs)
+          ? { carbs: Math.max(0, m.carbs) }
+          : {}),
+        recognitionSource: "assistant",
+        ...(eatenAt ? { eatenAt } : {}),
+      };
+    });
 }

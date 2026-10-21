@@ -25,6 +25,7 @@ import {
   photoPreviewSystemAppendix,
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
+import { enrichAssistantActionsMealTimes } from "@/lib/assistant-meal-time";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -206,6 +207,10 @@ export async function POST(request: NextRequest) {
             date,
           });
           if (repaired) actions = repaired;
+        }
+
+        if (!previewPending && actions?.meals?.length) {
+          actions = enrichAssistantActionsMealTimes(actions, lastUser);
         }
 
         const targetDate =
