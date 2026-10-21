@@ -1296,52 +1296,68 @@ export function WorkoutsView({
   const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
     if (!detail) return;
     const name = (nameOverride ?? exerciseName).trim();
-    if (!name) return;
-    setError(null);
-    const kind = kindOverride ?? newExerciseKind;
-
-    if (isLocalSessionId(detail.id)) {
-      const next = addLocalWorkoutExercise(detail.id, { name, kind });
-      if (!next) {
-        setError("Не удалось добавить упражнение на устройстве");
-        return;
-      }
-      setExerciseName("");
-      setLibraryHits([]);
-      setDetail(localSessionToDetail(next) as SessionDetail);
-      setFocusExerciseId(next.exercises.at(-1)?.id ?? null);
+    if (!name) {
+      setError("Введите название упражнения");
       return;
     }
+    if (busy) return;
+    setError(null);
+    setBusy(true);
+    const kind = kindOverride ?? newExerciseKind;
+    const prevIds = new Set(detail.exercises.map((e) => e.id));
 
     try {
-      const data = await readJson<{ session: SessionDetail }>(
-        await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, kind }),
-        }),
-      );
-      setExerciseName("");
-      setLibraryHits([]);
-      await refreshDetail(data.session);
-    } catch (err) {
-      if (isLikelyOfflineError(err) && !isLocalSessionId(detail.id)) {
-        const draftId = enqueueWorkoutExerciseDraft({
-          sessionId: detail.id,
-          name,
-          exerciseKind: kind,
-        });
-        if (!draftId) {
+      if (isLocalSessionId(detail.id)) {
+        const next = addLocalWorkoutExercise(detail.id, { name, kind });
+        if (!next) {
           setError("Не удалось добавить упражнение на устройстве");
           return;
         }
         setExerciseName("");
         setLibraryHits([]);
-        setFocusExerciseId(draftId);
-        setError("Упражнение на устройстве — отправим при связи");
+        setDetail(localSessionToDetail(next) as SessionDetail);
+        setFocusExerciseId(next.exercises.at(-1)?.id ?? null);
         return;
       }
-      setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
+
+      try {
+        const data = await readJson<{ session: SessionDetail }>(
+          await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, kind }),
+          }),
+        );
+        setExerciseName("");
+        setLibraryHits([]);
+        const created =
+          data.session.exercises.find((e) => !prevIds.has(e.id)) ??
+          data.session.exercises.at(-1);
+        if (created) setFocusExerciseId(created.id);
+        await refreshDetail(data.session);
+      } catch (err) {
+        if (isLikelyOfflineError(err) && !isLocalSessionId(detail.id)) {
+          const draftId = enqueueWorkoutExerciseDraft({
+            sessionId: detail.id,
+            name,
+            exerciseKind: kind,
+          });
+          if (!draftId) {
+            setError("Не удалось добавить упражнение на устройстве");
+            return;
+          }
+          setExerciseName("");
+          setLibraryHits([]);
+          setFocusExerciseId(draftId);
+          // Ensure merge re-runs even if localStorage notify was skipped (quota).
+          setQueueRev((n) => n + 1);
+          setError("Упражнение на устройстве — отправим при связи");
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Не удалось добавить упражнение");
+      }
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -1544,8 +1560,12 @@ export function WorkoutsView({
 
   const addSet = async (exerciseId: string, draftOverride?: SetDraft) => {
     if (!detail) return;
-    const ex = detail.exercises.find((e) => e.id === exerciseId);
-    if (!ex) return;
+    // Resolve against merged view — offline-queued exercises only exist on displayDetail.
+    const ex = (displayDetail ?? detail).exercises.find((e) => e.id === exerciseId);
+    if (!ex) {
+      setError("Упражнение не найдено — обновите экран и попробуйте снова");
+      return;
+    }
     const draft = draftOverride ?? setDrafts[exerciseId] ?? EMPTY_DRAFT;
     const spec = fieldsForKind(ex.kind);
     const rpeRaw = draft.rpe.trim() ? Number(draft.rpe.replace(",", ".")) : null;
@@ -1755,7 +1775,9 @@ export function WorkoutsView({
     }
   };
 
-  const focusExForStage = detail?.exercises.find((e) => e.id === focusExerciseId) ?? detail?.exercises[0];
+  const focusExForStage =
+    (displayDetail ?? detail)?.exercises.find((e) => e.id === focusExerciseId) ??
+    (displayDetail ?? detail)?.exercises[0];
   const stageAdvice = useMemo(() => {
     if (!detail || !focusExForStage) return null;
     if (focusExForStage.kind === "cardio") {

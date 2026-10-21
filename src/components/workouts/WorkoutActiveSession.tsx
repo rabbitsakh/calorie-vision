@@ -1478,6 +1478,7 @@ export function WorkoutActiveSession({
             key={s.name}
             type="button"
             className="rounded-full bg-[var(--accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted-strong)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-ink)]"
+            disabled={busy}
             onClick={() => void addExercise(s.name)}
           >
             {s.name}
@@ -1518,14 +1519,16 @@ export function WorkoutActiveSession({
               }
             }}
             autoComplete="off"
+            disabled={busy}
           />
         </label>
         <button
           type="button"
-          className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)]"
+          className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--foreground)] disabled:opacity-50"
+          disabled={busy || !exerciseName.trim()}
           onClick={() => void addExercise()}
         >
-          Добавить упражнение
+          {busy ? "Добавляем…" : "Добавить упражнение"}
         </button>
         {libraryHits.length > 0 ? (
           <ul className="absolute left-0 right-0 top-full z-10 mt-1 max-h-48 overflow-auto rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-md">
@@ -1533,7 +1536,8 @@ export function WorkoutActiveSession({
               <li key={hit.id}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)]"
+                  disabled={busy}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--accent-soft)] disabled:opacity-50"
                   onClick={() => {
                     setNewExerciseKind(hit.kind);
                     void addExercise(hit.name, hit.kind);
