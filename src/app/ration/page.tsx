@@ -244,8 +244,13 @@ function RationBody({
   useEffect(() => {
     if (showSplash) return;
     if (!claimOpenCameraAfterOnboarding()) return;
-    const t = window.setTimeout(() => requestOpenFoodCamera(true), 500);
-    return () => window.clearTimeout(t);
+    // Double ping: FoodAddHost may still be wiring listeners after splash.
+    const t1 = window.setTimeout(() => requestOpenFoodCamera(true), 400);
+    const t2 = window.setTimeout(() => requestOpenFoodCamera(true), 1100);
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
   }, [showSplash]);
 
   return (

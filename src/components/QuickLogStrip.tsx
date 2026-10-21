@@ -220,7 +220,7 @@ export function QuickLogStrip({
         {showYesterday ? (
           <button
             type="button"
-            className="chip min-h-9 bg-teal-100 font-semibold text-teal-900"
+            className="chip min-h-9 bg-[var(--accent-soft)] font-semibold text-[var(--accent-ink)]"
             disabled={busy !== null}
             onClick={() => void copyYesterday()}
           >

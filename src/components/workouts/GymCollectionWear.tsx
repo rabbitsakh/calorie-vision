@@ -64,19 +64,19 @@ export function GymCollectionWear({
   const art = size === "lg" ? 30 : 24;
   const phraseClass =
     size === "lg"
-      ? "text-sm font-medium leading-snug text-[var(--muted-strong)]"
-      : "text-xs font-medium text-[var(--muted-strong)]";
+      ? "text-sm font-medium leading-snug text-[var(--accent-ink)]"
+      : "max-w-[9rem] truncate text-[11px] font-semibold text-[var(--accent-ink)]";
 
   return (
     <Link
       href={withBasePath("/profile#rewards")}
-      className={`flex flex-wrap items-center gap-2.5 ${className}`.trim()}
+      className={`flex flex-wrap items-center gap-2 ${className}`.trim()}
       aria-label="Коллекция наград"
       title="Открыть коллекцию"
     >
       {sticker || frameClass ? (
         <span
-          className={`inline-flex ${avatar} items-center justify-center rounded-full bg-white/20 shadow-sm ${frameClass}`.trim()}
+          className={`inline-flex ${avatar} items-center justify-center rounded-full bg-[var(--accent-soft)] shadow-sm ${frameClass}`.trim()}
         >
           {sticker ? (
             <StickerArt stickerKey={sticker} size={art} title="Наклейка из коллекции" />
