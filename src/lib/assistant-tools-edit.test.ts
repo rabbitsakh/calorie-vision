@@ -22,4 +22,17 @@ describe("Wave I assistant edit intents", () => {
     assert.equal(actions!.patchMeals?.[0]?.protein, 12);
     assert.equal(shouldAutoApply(actions, "удали омлет"), true);
   });
+
+  it("normalizes patchMeals.time for eatenAt updates", () => {
+    const actions = normalizeAssistantActions({
+      apply: true,
+      targetDate: "сегодня",
+      patchMeals: [
+        { match: "Печенье", time: "6:30" },
+        { match: "Оладьи", time: "06:30" },
+      ],
+    });
+    assert.equal(actions!.patchMeals?.[0]?.time, "6:30");
+    assert.equal(actions!.patchMeals?.[1]?.time, "06:30");
+  });
 });

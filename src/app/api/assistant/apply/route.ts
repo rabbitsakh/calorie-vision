@@ -311,6 +311,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         date: patchDate,
         patches,
+        timezone: user?.timezone,
       });
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });

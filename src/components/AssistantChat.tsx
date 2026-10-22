@@ -842,6 +842,7 @@ function ActionCard({
           {actions.patchMeals!.map((p) => (
             <li key={`patch-${p.match}`}>
               <span className="font-semibold">Правка</span>: {p.match}
+              {p.time ? ` · ${p.time}` : ""}
               {p.kcal != null ? ` · ${p.kcal} ккал` : ""}
               {p.protein != null || p.fat != null || p.carbs != null
                 ? ` · Б${p.protein ?? "—"} Ж${p.fat ?? "—"} У${p.carbs ?? "—"}`
@@ -1876,7 +1877,10 @@ export function AssistantChat() {
                   streamDone={streamDone}
                   online={online}
                   onFlash={showFlash}
-                  onApplied={(undo) => rememberUndo(undo)}
+                  onApplied={(undo) => {
+                    rememberUndo(undo);
+                    void refreshSnapshot(date);
+                  }}
                 />
               ) : null}
             </div>

@@ -13,6 +13,8 @@ import {
   muscleGroupsFromFocus,
 } from "@/lib/assistant-apply";
 import { resolveAssistantDate, weekdayIndexFromLabel } from "@/lib/assistant-date";
+import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
+import { dateKeyAndTimeToIso } from "@/lib/dates";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { prisma } from "@/lib/prisma";
@@ -486,6 +488,7 @@ export async function toolPatchMeals(opts: {
   userId: string;
   date: string;
   patches: NonNullable<AssistantActions["patchMeals"]>;
+  timezone?: string | null;
 }): Promise<AssistantToolResult> {
   const patches = opts.patches.slice(0, 20);
   if (!patches.length) {
@@ -495,25 +498,42 @@ export async function toolPatchMeals(opts: {
     where: { userId: opts.userId, date: opts.date },
     orderBy: { createdAt: "asc" },
   });
-  const updated: Array<{ id: string; dishName: string; calories: number }> = [];
+  const updated: Array<{
+    id: string;
+    dishName: string;
+    calories: number;
+    time?: string;
+  }> = [];
   for (const patch of patches) {
     const row = rows.find((r) => mealMatchesQuery(r.dishName, patch.match));
     if (!row) continue;
+    const time = parseMealTimeHHMM(patch.time);
+    const eatenAtIso = time ? dateKeyAndTimeToIso(opts.date, time, opts.timezone) : null;
     const nextName = patch.name?.trim() || row.dishName;
     const nextKcal =
       typeof patch.kcal === "number" && Number.isFinite(patch.kcal)
         ? Math.round(patch.kcal)
         : row.calories;
-    const data: Prisma.MealEntryUpdateInput = {
-      dishName: nextName.slice(0, 120),
-      calories: nextKcal,
-    };
+    const data: Prisma.MealEntryUpdateInput = {};
+    if (patch.name?.trim() && nextName !== row.dishName) {
+      data.dishName = nextName.slice(0, 120);
+    }
+    if (typeof patch.kcal === "number" && Number.isFinite(patch.kcal)) {
+      data.calories = nextKcal;
+    }
     if (typeof patch.protein === "number") data.protein = patch.protein;
     if (typeof patch.fat === "number") data.fat = patch.fat;
     if (typeof patch.carbs === "number") data.carbs = patch.carbs;
     if (typeof patch.portionGrams === "number") data.portionGrams = patch.portionGrams;
+    if (eatenAtIso) data.eatenAt = new Date(eatenAtIso);
+    if (!Object.keys(data).length) continue;
     const saved = await prisma.mealEntry.update({ where: { id: row.id }, data });
-    updated.push({ id: saved.id, dishName: saved.dishName, calories: saved.calories });
+    updated.push({
+      id: saved.id,
+      dishName: saved.dishName,
+      calories: saved.calories,
+      ...(time ? { time } : {}),
+    });
   }
   if (!updated.length) {
     return {
@@ -522,7 +542,9 @@ export async function toolPatchMeals(opts: {
       message: `Не нашёл блюда для правки на ${opts.date}`,
     };
   }
-  const names = updated.map((m) => `${m.dishName} (${m.calories} ккал)`).join(", ");
+  const names = updated
+    .map((m) => `${m.dishName} (${m.calories} ккал${m.time ? ` · ${m.time}` : ""})`)
+    .join(", ");
   return {
     ok: true,
     tool: "patch_meals",

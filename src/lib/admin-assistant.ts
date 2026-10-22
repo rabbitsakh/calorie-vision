@@ -35,6 +35,8 @@ export type AssistantActions = {
     fat?: number;
     carbs?: number;
     portionGrams?: number;
+    /** Wall-clock HH:MM — updates eatenAt. */
+    time?: string;
   }>;
   workoutDays?: Array<{ day: string; focus: string; notes?: string }>;
   summary?: string;
@@ -134,7 +136,8 @@ export function buildAssistantSystemPrompt(
     "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
     "Несколько блюд/единиц = несколько объектов в meals[] (2 батончика → 2 объекта; «печень и чебурек» → 2). Оцени kcal/БЖУ, если не указали.",
     "Можно совмещать действия в одном cv-actions: meals + waterMl + weightKg + shopping + workoutDays и т.д. — клиент покажет кнопки по видам.",
-    "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280}].",
+    "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280,\"time\":\"06:30\"}].",
+    "Время приёма: patchMeals[].time = HH:MM (как meals.time). «Исправь завтрак на 6:30» → всем блюдам завтрака patch с time, без смены ккал.",
     "Вес: weightKg. Если на день уже есть вес — сервер спросит подтверждение; не ставь overwriteWeight сам.",
     "Совет без просьбы записать — без apply / без блока.",
     "meals.note = завтрак|обед|ужин|перекус. meals.time = HH:MM если пользователь сказал время («в 10:30»).",
@@ -153,6 +156,10 @@ export function buildAssistantSystemPrompt(
     "Пример вчерашнего ужина (несколько блюд):",
     "```cv-actions",
     '{"apply":true,"targetDate":"вчера","meals":[{"name":"Картофельное пюре","kcal":200,"protein":4,"fat":3,"carbs":35,"note":"ужин"},{"name":"Котлета рыбная","kcal":150,"protein":20,"fat":5,"carbs":5,"note":"ужин"},{"name":"Пиво светлое (3000 мл)","kcal":900,"protein":0,"fat":0,"carbs":90,"note":"ужин"}],"summary":"вчерашний ужин — подтверди"}',
+    "```",
+    "Пример правки времени завтрака:",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","patchMeals":[{"match":"Оладьи","time":"06:30"},{"match":"Печенье","time":"06:30"}],"summary":"время завтрака 6:30 — подтверди"}',
     "```",
     "Пример плана зала (клиент покажет CTA):",
     "```cv-actions",
@@ -320,6 +327,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
       const row = item as Record<string, unknown>;
       if (typeof row.match !== "string" || !row.match.trim()) continue;
       const kcal = row.kcal;
+      const timeRaw = typeof row.time === "string" ? row.time.trim().slice(0, 8) : undefined;
       patchMeals.push({
         match: row.match.trim().slice(0, 120),
         name: typeof row.name === "string" ? row.name.trim().slice(0, 120) : undefined,
@@ -328,6 +336,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         fat: num(row.fat),
         carbs: num(row.carbs),
         portionGrams: num(row.portionGrams),
+        time: timeRaw || undefined,
       });
     }
     if (patchMeals.length) out.patchMeals = patchMeals;
