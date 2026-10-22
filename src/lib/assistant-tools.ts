@@ -12,7 +12,7 @@ import {
   mealsPayloadFromActions,
   muscleGroupsFromFocus,
 } from "@/lib/assistant-apply";
-import { requireDateKey, shiftDateKey } from "@/lib/dates";
+import { resolveAssistantDate, weekdayIndexFromLabel } from "@/lib/assistant-date";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +36,8 @@ import {
 } from "@/lib/workouts/weekdays";
 import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
 
+export { resolveAssistantDate, weekdayIndexFromLabel };
+
 export type AssistantToolResult = {
   ok: boolean;
   tool: string;
@@ -51,50 +53,6 @@ export type AssistantUndoPayload = {
 };
 
 export { userWantsStartWorkout, userWantsWrite };
-
-/** Resolve «сегодня» / «завтра» / YYYY-MM-DD / weekday label → date key. */
-export function resolveAssistantDate(
-  raw: string | undefined | null,
-  today: string,
-): string | null {
-  if (!raw) return null;
-  const t = raw.trim().toLowerCase();
-  if (!t) return null;
-  if (t === "сегодня" || t === "today") return today;
-  if (t === "завтра" || t === "tomorrow") return shiftDateKey(today, 1);
-  if (t === "послезавтра") return shiftDateKey(today, 2);
-  const exact = requireDateKey(raw.trim());
-  if (exact) return exact;
-
-  const wd = weekdayIndexFromLabel(raw.trim());
-  if (wd == null) return null;
-  const todayWd = planWeekdayFromDateKey(today);
-  if (todayWd == null) return null;
-  let delta = wd - todayWd;
-  if (delta < 0) delta += 7;
-  return shiftDateKey(today, delta);
-}
-
-export function weekdayIndexFromLabel(label: string): number | null {
-  const t = label.trim().toLowerCase();
-  if (!t) return null;
-  const map: Array<[RegExp, number]> = [
-    [/^(пн|понедельник|mon)/i, 0],
-    [/^(вт|вторник|tue)/i, 1],
-    [/^(ср|среда|wed)/i, 2],
-    [/^(чт|четверг|thu)/i, 3],
-    [/^(пт|пятница|fri)/i, 4],
-    [/^(сб|суббота|sat)/i, 5],
-    [/^(вс|воскресенье|sun)/i, 6],
-  ];
-  for (const [re, idx] of map) {
-    if (re.test(t)) return idx;
-  }
-  const exact = (WEEKDAY_LABELS_RU as readonly string[]).findIndex(
-    (l) => l.toLowerCase() === t,
-  );
-  return exact >= 0 ? exact : null;
-}
 
 function mealTypeFromNote(
   note?: string,

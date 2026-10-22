@@ -8,6 +8,10 @@ import {
   type AssistantActions,
 } from "@/lib/admin-assistant";
 import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-intent";
+import {
+  extractMealTypeFromMessage,
+  extractTargetDateFromMessage,
+} from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
 
 export function actionsHaveWritablePayload(actions: AssistantActions | null | undefined): boolean {
@@ -139,12 +143,155 @@ function drinkLookupQuery(message: string): string | null {
   return null;
 }
 
+/** Solid-food cues — when present with a drink, do not collapse to drink-only. */
+const FOODISH_RE =
+  /пюре|картош|картофел|котлет|рис\b|гречк|макарон|паста|омлет|яиц|яйц|курин|мясо|салат|суп\b|борщ|хлеб|сыр\b|творог|рыба|рыбн|стейк|сосиск|колбас|пельмен|вареник|блины|каша|овсян|творож|фарш|индейк|говядин|свинин|лосос|треск/i;
+
+/** True when the message clearly lists several dishes (not a single drink). */
+export function messageLooksLikeMultiDish(message: string): boolean {
+  const text = message.trim();
+  if (!text) return false;
+  const bullets = text.match(/^\s*[-•*]\s+\S+/gm) ?? [];
+  if (bullets.length >= 2) return true;
+  const numbered = text.match(/^\s*\d+[.)]\s+\S+/gm) ?? [];
+  if (numbered.length >= 2) return true;
+  const drink = drinkLookupQuery(text);
+  if (drink && FOODISH_RE.test(text)) return true;
+  return false;
+}
+
+type ParsedMealLine = NonNullable<AssistantActions["meals"]>[number];
+
+/**
+ * Parse bullet / numbered lines with optional «~200 ккал, Б4 Ж3 У35».
+ * Used for offline multi-dish repair from user text or assistant draft.
+ */
+export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
+  const lines = text.split(/\r?\n/);
+  const meals: ParsedMealLine[] = [];
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const m =
+      /^[-•*]\s+(.+)$/.exec(line) ??
+      /^\d+[.)]\s+(.+)$/.exec(line);
+    if (!m?.[1]) continue;
+    let rest = m[1].trim();
+    let kcal: number | undefined;
+    let protein: number | undefined;
+    let fat: number | undefined;
+    let carbs: number | undefined;
+
+    const macroBlock =
+      /[—(]\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[уucс]\s*(\d+(?:[.,]\d+)?)?)?\s*\)?\s*$/iu.exec(
+        rest,
+      );
+    if (macroBlock) {
+      const n = (v?: string) => {
+        if (!v) return undefined;
+        const x = Number(v.replace(",", "."));
+        return Number.isFinite(x) ? Math.round(x * 10) / 10 : undefined;
+      };
+      kcal = Math.round(Number(macroBlock[1]!.replace(",", ".")));
+      protein = n(macroBlock[2]);
+      fat = n(macroBlock[3]);
+      carbs = n(macroBlock[4]);
+      rest = rest.slice(0, macroBlock.index).trim().replace(/[—\-–:]\s*$/, "").trim();
+    }
+
+    if (!rest || rest.length < 2) continue;
+
+    const portion = parsePortionGramsFromMessage(rest);
+    const drinkQ = drinkLookupQuery(rest);
+    const cleaned = rest
+      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const pack =
+      (drinkQ ? lookupRuNutritionTable(drinkQ) : null) ??
+      lookupRuNutritionTable(cleaned) ??
+      lookupRuNutritionTable(rest);
+
+    if (kcal == null && pack) {
+      const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
+      const grams = portion ?? baseGrams;
+      const scale = grams / baseGrams;
+      kcal = Math.round(pack.calories * scale);
+      protein =
+        pack.protein == null ? undefined : Math.round(pack.protein * scale * 10) / 10;
+      fat = pack.fat == null ? undefined : Math.round(pack.fat * scale * 10) / 10;
+      carbs = pack.carbs == null ? undefined : Math.round(pack.carbs * scale * 10) / 10;
+    }
+
+    const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
+    const baseName = pack?.dishName ?? cleaned;
+    const name =
+      portion != null && portion > 0
+        ? `${baseName} (${portion} ${unit})`
+        : baseName;
+
+    if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) continue;
+
+    meals.push({
+      name: name.slice(0, 120),
+      kcal,
+      protein,
+      fat,
+      carbs,
+    });
+  }
+  return meals;
+}
+
+function mealMetaFromMessage(userMessage: string): {
+  note: string;
+  targetDate: string;
+} {
+  return {
+    note: extractMealTypeFromMessage(userMessage) ?? "перекус",
+    targetDate: extractTargetDateFromMessage(userMessage) ?? "сегодня",
+  };
+}
+
+/**
+ * Offline multi-dish repair from bullet lists in the user message / assistant draft.
+ */
+export function heuristicRepairMultiDishActions(
+  userMessage: string,
+  assistantReply?: string,
+): AssistantActions | null {
+  if (!userWantsWrite(userMessage)) return null;
+  if (!messageLooksLikeMultiDish(userMessage) && !messageLooksLikeMultiDish(assistantReply ?? "")) {
+    return null;
+  }
+
+  let meals = parseStructuredMealsFromText(userMessage);
+  if (meals.length < 2 && assistantReply) {
+    meals = parseStructuredMealsFromText(assistantReply);
+  }
+  if (meals.length < 2) return null;
+
+  const { note, targetDate } = mealMetaFromMessage(userMessage);
+  const withNote = meals.map((m) => ({ ...m, note }));
+  const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
+
+  return {
+    apply: true,
+    targetDate,
+    meals: withNote,
+    summary: `к подтверждению: ${names}`,
+  };
+}
+
 /**
  * Offline repair for clear drink/food write intents (beer liters, etc.)
  * when the model moralizes without cv-actions.
+ * Skips when the message is a multi-dish list (beer + food) — use multi-dish path.
  */
 export function heuristicRepairWriteActions(userMessage: string): AssistantActions | null {
   if (!userWantsWrite(userMessage)) return null;
+  if (messageLooksLikeMultiDish(userMessage)) return null;
+
   const drinkQ = drinkLookupQuery(userMessage);
   const cleaned = userMessage
     .replace(/^\s*я\s+(съел|выпил|поел)\s+/i, "")
@@ -165,10 +312,11 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
   const unit = drinkQ || /мл|литр|\bл\b/i.test(userMessage) ? "мл" : "г";
   const name =
     portion !== baseGrams ? `${pack.dishName} (${portion} ${unit})` : pack.dishName;
+  const { note, targetDate } = mealMetaFromMessage(userMessage);
 
   return {
     apply: true,
-    targetDate: "сегодня",
+    targetDate,
     meals: [
       {
         name: name.slice(0, 120),
@@ -176,7 +324,7 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
         protein: num(pack.protein),
         fat: num(pack.fat),
         carbs: num(pack.carbs),
-        note: "перекус",
+        note,
       },
     ],
     summary: `к подтверждению: ${pack.dishName}`,
@@ -184,8 +332,24 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
 }
 
 /**
+ * When the model (or drink heuristic) collapsed a multi-dish log to one meal,
+ * replace with the offline multi-dish parse.
+ */
+export function preferMultiDishActions(
+  userMessage: string,
+  assistantReply: string,
+  actions: AssistantActions | null | undefined,
+): AssistantActions | null {
+  if (!messageLooksLikeMultiDish(userMessage)) return actions ?? null;
+  const mealCount = actions?.meals?.length ?? 0;
+  if (mealCount >= 2) return actions ?? null;
+  const multi = heuristicRepairMultiDishActions(userMessage, assistantReply);
+  return multi ?? actions ?? null;
+}
+
+/**
  * Second cheap call: force structured cv-actions from the user request + draft reply.
- * Tries offline heuristic first (drinks/staples), then a small GigaChat extract.
+ * Tries offline heuristic first (multi-dish, then drinks/staples), then a small GigaChat extract.
  */
 export async function repairAssistantWriteActions(opts: {
   userMessage: string;
@@ -193,6 +357,9 @@ export async function repairAssistantWriteActions(opts: {
   today: string;
   date: string;
 }): Promise<AssistantActions | null> {
+  const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
+  if (multi) return multi;
+
   const heuristic = heuristicRepairWriteActions(opts.userMessage);
   if (heuristic) return heuristic;
 
@@ -202,10 +369,12 @@ export async function repairAssistantWriteActions(opts: {
     'Обязательно: "apply": true если есть что записать.',
     'Поля: meals[{name,kcal,protein,fat,carbs,note}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
+    "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",
     "Даже если в черновике только совет «не пей» — всё равно собери meals из запроса пользователя.",
-    `Сегодня=${opts.today}. Контекст дня=${opts.date}. targetDate обычно «сегодня», если не сказали иначе.`,
+    `Сегодня=${opts.today}. Контекст дня=${opts.date}.`,
+    'targetDate: «вчера» / «сегодня» / «завтра» / YYYY-MM-DD. «Вчерашний ужин» → targetDate «вчера», note «ужин».',
     'Если нечего писать: {"apply":false}',
   ].join("\n");
 
