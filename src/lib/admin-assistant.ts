@@ -24,11 +24,17 @@ export type AssistantActions = {
     /** Wall-clock HH:MM when the meal was eaten (user timezone). */
     time?: string;
   }>;
-  /** Delete meals on targetDate matching dish name (substring). */
-  deleteMeals?: Array<{ match: string }>;
-  /** Patch meals on targetDate matching dish name. */
+  /** Delete meals on targetDate matching dish name and/or mealType slot. */
+  deleteMeals?: Array<{
+    match: string;
+    /** When set (or match is «завтрак»…), delete all meals of that slot. */
+    mealType?: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+  }>;
+  /** Patch meals on targetDate matching dish name and/or mealType slot. */
   patchMeals?: Array<{
     match: string;
+    /** When set (or match is «завтрак»…), patch all meals of that slot. */
+    mealType?: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
     name?: string;
     kcal?: number;
     protein?: number;
@@ -136,8 +142,10 @@ export function buildAssistantSystemPrompt(
     "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
     "Несколько блюд/единиц = несколько объектов в meals[] (2 батончика → 2 объекта; «печень и чебурек» → 2). Оцени kcal/БЖУ, если не указали.",
     "Можно совмещать действия в одном cv-actions: meals + waterMl + weightKg + shopping + workoutDays и т.д. — клиент покажет кнопки по видам.",
-    "Удалить блюдо: deleteMeals:[{\"match\":\"омлет\"}]. Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280,\"time\":\"06:30\"}].",
-    "Время приёма: patchMeals[].time = HH:MM (как meals.time). «Исправь завтрак на 6:30» → всем блюдам завтрака patch с time, без смены ккал.",
+    "Удалить: deleteMeals:[{\"match\":\"омлет\"}] или весь слот deleteMeals:[{\"match\":\"ужин\",\"mealType\":\"DINNER\"}].",
+    "Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280,\"time\":\"06:30\"}].",
+    "Весь слот без перечисления блюд: patchMeals:[{\"match\":\"завтрак\",\"mealType\":\"BREAKFAST\",\"time\":\"06:30\"}] — «исправь завтрак на 6:30».",
+    "mealType = BREAKFAST|LUNCH|DINNER|SNACK. match «завтрак|обед|ужин|перекус» тоже считается слотом.",
     "Вес: weightKg. Если на день уже есть вес — сервер спросит подтверждение; не ставь overwriteWeight сам.",
     "Совет без просьбы записать — без apply / без блока.",
     "meals.note = завтрак|обед|ужин|перекус. meals.time = HH:MM если пользователь сказал время («в 10:30»).",
@@ -157,9 +165,13 @@ export function buildAssistantSystemPrompt(
     "```cv-actions",
     '{"apply":true,"targetDate":"вчера","meals":[{"name":"Картофельное пюре","kcal":200,"protein":4,"fat":3,"carbs":35,"note":"ужин"},{"name":"Котлета рыбная","kcal":150,"protein":20,"fat":5,"carbs":5,"note":"ужин"},{"name":"Пиво светлое (3000 мл)","kcal":900,"protein":0,"fat":0,"carbs":90,"note":"ужин"}],"summary":"вчерашний ужин — подтверди"}',
     "```",
-    "Пример правки времени завтрака:",
+    "Пример правки времени всего завтрака:",
     "```cv-actions",
-    '{"apply":true,"targetDate":"сегодня","patchMeals":[{"match":"Оладьи","time":"06:30"},{"match":"Печенье","time":"06:30"}],"summary":"время завтрака 6:30 — подтверди"}',
+    '{"apply":true,"targetDate":"сегодня","patchMeals":[{"match":"завтрак","mealType":"BREAKFAST","time":"06:30"}],"summary":"завтрак → 6:30 — подтверди"}',
+    "```",
+    "Пример удаления ужина:",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","deleteMeals":[{"match":"ужин","mealType":"DINNER"}],"summary":"удалить ужин — подтверди"}',
     "```",
     "Пример плана зала (клиент покажет CTA):",
     "```cv-actions",
@@ -216,6 +228,18 @@ export function splitAssistantReply(raw: string): {
   }
 
   return { reply: text, actions: null };
+}
+
+function normalizeMealTypeKey(
+  raw: unknown,
+): "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" | undefined {
+  if (typeof raw !== "string") return undefined;
+  const t = raw.trim().toLowerCase().replace(/ё/g, "е");
+  if (t === "breakfast" || t === "завтрак") return "BREAKFAST";
+  if (t === "lunch" || t === "обед") return "LUNCH";
+  if (t === "dinner" || t === "ужин") return "DINNER";
+  if (t === "snack" || t === "перекус" || t === "снек") return "SNACK";
+  return undefined;
 }
 
 export function normalizeAssistantActions(raw: unknown): AssistantActions | null {
@@ -311,9 +335,25 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
     const deleteMeals: NonNullable<AssistantActions["deleteMeals"]> = [];
     for (const item of obj.deleteMeals.slice(0, 20)) {
       if (!item || typeof item !== "object") continue;
-      const match = (item as { match?: unknown }).match;
-      if (typeof match !== "string" || !match.trim()) continue;
-      deleteMeals.push({ match: match.trim().slice(0, 120) });
+      const row = item as Record<string, unknown>;
+      const mealType = normalizeMealTypeKey(row.mealType) ?? normalizeMealTypeKey(row.match);
+      const matchRaw = typeof row.match === "string" ? row.match.trim() : "";
+      const match =
+        matchRaw ||
+        (mealType === "BREAKFAST"
+          ? "завтрак"
+          : mealType === "LUNCH"
+            ? "обед"
+            : mealType === "DINNER"
+              ? "ужин"
+              : mealType === "SNACK"
+                ? "перекус"
+                : "");
+      if (!match) continue;
+      deleteMeals.push({
+        match: match.slice(0, 120),
+        ...(mealType ? { mealType } : {}),
+      });
     }
     if (deleteMeals.length) out.deleteMeals = deleteMeals;
   }
@@ -325,11 +365,25 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
     for (const item of obj.patchMeals.slice(0, 20)) {
       if (!item || typeof item !== "object") continue;
       const row = item as Record<string, unknown>;
-      if (typeof row.match !== "string" || !row.match.trim()) continue;
+      const mealType = normalizeMealTypeKey(row.mealType) ?? normalizeMealTypeKey(row.match);
+      const matchRaw = typeof row.match === "string" ? row.match.trim() : "";
+      const match =
+        matchRaw ||
+        (mealType === "BREAKFAST"
+          ? "завтрак"
+          : mealType === "LUNCH"
+            ? "обед"
+            : mealType === "DINNER"
+              ? "ужин"
+              : mealType === "SNACK"
+                ? "перекус"
+                : "");
+      if (!match) continue;
       const kcal = row.kcal;
       const timeRaw = typeof row.time === "string" ? row.time.trim().slice(0, 8) : undefined;
       patchMeals.push({
-        match: row.match.trim().slice(0, 120),
+        match: match.slice(0, 120),
+        ...(mealType ? { mealType } : {}),
         name: typeof row.name === "string" ? row.name.trim().slice(0, 120) : undefined,
         kcal: typeof kcal === "number" && Number.isFinite(kcal) ? Math.round(kcal) : undefined,
         protein: num(row.protein),

@@ -7,8 +7,61 @@ import type { AssistantActions } from "@/lib/admin-assistant";
 
 export type MealNoteLabel = "завтрак" | "обед" | "ужин" | "перекус";
 
+/** Prisma MealType keys used by diary / assistant patch-delete. */
+export type MealTypeKey = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+
 /** Relative / absolute day label extracted from free text. */
 export type MealTargetDateLabel = "сегодня" | "вчера" | "позавчера" | "завтра" | "послезавтра";
+
+const NOTE_TO_MEAL_TYPE: Record<MealNoteLabel, MealTypeKey> = {
+  завтрак: "BREAKFAST",
+  обед: "LUNCH",
+  ужин: "DINNER",
+  перекус: "SNACK",
+};
+
+const MEAL_TYPE_TO_NOTE: Record<MealTypeKey, MealNoteLabel> = {
+  BREAKFAST: "завтрак",
+  LUNCH: "обед",
+  DINNER: "ужин",
+  SNACK: "перекус",
+};
+
+export function mealTypeKeyFromLabel(label: MealNoteLabel | null | undefined): MealTypeKey | null {
+  if (!label) return null;
+  return NOTE_TO_MEAL_TYPE[label] ?? null;
+}
+
+export function mealNoteFromTypeKey(key: MealTypeKey | null | undefined): MealNoteLabel | null {
+  if (!key) return null;
+  return MEAL_TYPE_TO_NOTE[key] ?? null;
+}
+
+/** Parse BREAKFAST / завтрак / snack → MealTypeKey. */
+export function parseMealTypeKey(raw: unknown): MealTypeKey | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim().toLowerCase().replace(/ё/g, "е");
+  if (!t) return null;
+  if (t === "breakfast" || t === "завтрак") return "BREAKFAST";
+  if (t === "lunch" || t === "обед") return "LUNCH";
+  if (t === "dinner" || t === "ужин") return "DINNER";
+  if (t === "snack" || t === "перекус" || t === "снек") return "SNACK";
+  if (t === "BREAKFAST".toLowerCase()) return "BREAKFAST";
+  if (t === "LUNCH".toLowerCase()) return "LUNCH";
+  if (t === "DINNER".toLowerCase()) return "DINNER";
+  if (t === "SNACK".toLowerCase()) return "SNACK";
+  return null;
+}
+
+/**
+ * True when `match` is only a meal-slot word (весь завтрак), not a dish name.
+ * «омлет на завтрак» → false; «завтрак» → true.
+ */
+export function matchIsMealSlot(match: string | undefined | null): MealTypeKey | null {
+  if (!match?.trim()) return null;
+  const t = match.trim().toLowerCase().replace(/ё/g, "е");
+  return parseMealTypeKey(t);
+}
 
 /** Normalize "10:30" / "10.30" / "9:05" → "HH:MM", or null. */
 export function parseMealTimeHHMM(raw: unknown): string | null {

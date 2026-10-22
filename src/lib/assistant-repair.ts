@@ -9,17 +9,49 @@ import {
 } from "@/lib/admin-assistant";
 import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-intent";
 import {
+  extractMealTimeFromMessage,
   extractMealTypeFromMessage,
   extractTargetDateFromMessage,
+  mealTypeKeyFromLabel,
+  parseMealTimeHHMM,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+
+/** True when a patch would change something (not a bare match-only noop). */
+export function patchMealHasEffect(
+  patch: NonNullable<AssistantActions["patchMeals"]>[number],
+): boolean {
+  return Boolean(
+    parseMealTimeHHMM(patch.time) ||
+      patch.name?.trim() ||
+      typeof patch.kcal === "number" ||
+      typeof patch.protein === "number" ||
+      typeof patch.fat === "number" ||
+      typeof patch.carbs === "number" ||
+      typeof patch.portionGrams === "number",
+  );
+}
+
+/** Drop patchMeals that only name a dish and change nothing — avoids empty ActionCards. */
+export function pruneNoopAssistantActions(
+  actions: AssistantActions | null | undefined,
+): AssistantActions | null {
+  if (!actions) return null;
+  if (!actions.patchMeals?.length) return actions;
+  const patchMeals = actions.patchMeals.filter(patchMealHasEffect);
+  if (patchMeals.length === actions.patchMeals.length) return actions;
+  const next = { ...actions };
+  if (patchMeals.length) next.patchMeals = patchMeals;
+  else delete next.patchMeals;
+  return actionsHaveWritablePayload(next) ? next : null;
+}
 
 export function actionsHaveWritablePayload(actions: AssistantActions | null | undefined): boolean {
   if (!actions) return false;
   return Boolean(
     actions.meals?.length ||
       actions.deleteMeals?.length ||
-      actions.patchMeals?.length ||
+      actions.patchMeals?.some(patchMealHasEffect) ||
       actions.workoutDays?.length ||
       actions.shopping?.length ||
       actions.waterMl != null ||
@@ -332,6 +364,39 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
 }
 
 /**
+ * Offline slot edit: «исправь завтрак на 6:30», «удали ужин» — без перечисления блюд.
+ */
+export function heuristicRepairSlotEditActions(userMessage: string): AssistantActions | null {
+  if (!userWantsWrite(userMessage)) return null;
+  const note = extractMealTypeFromMessage(userMessage);
+  const mealType = mealTypeKeyFromLabel(note);
+  if (!note || !mealType) return null;
+  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+  const time = extractMealTimeFromMessage(userMessage);
+  const text = userMessage.trim();
+
+  if (/удал|убери/i.test(text)) {
+    return {
+      apply: true,
+      targetDate,
+      deleteMeals: [{ match: note, mealType }],
+      summary: `удалить ${note} — подтверди`,
+    };
+  }
+
+  if (time && /исправ|поправ|поставь|смени|измени|перенес/i.test(text)) {
+    return {
+      apply: true,
+      targetDate,
+      patchMeals: [{ match: note, mealType, time }],
+      summary: `${note} → ${time} — подтверди`,
+    };
+  }
+
+  return null;
+}
+
+/**
  * When the model (or drink heuristic) collapsed a multi-dish log to one meal,
  * replace with the offline multi-dish parse.
  */
@@ -348,8 +413,28 @@ export function preferMultiDishActions(
 }
 
 /**
+ * Prefer one slot patch/delete over dish lists / meals when the user asked by slot.
+ */
+export function preferSlotEditActions(
+  userMessage: string,
+  actions: AssistantActions | null | undefined,
+): AssistantActions | null {
+  const slot = heuristicRepairSlotEditActions(userMessage);
+  if (!slot) return actions ?? null;
+  if (slot.deleteMeals?.length) {
+    if (actions?.deleteMeals?.length) return actions;
+    return slot;
+  }
+  if (slot.patchMeals?.length) {
+    // Whole-slot time fix beats per-dish patches / accidental meals[].
+    return slot;
+  }
+  return actions ?? null;
+}
+
+/**
  * Second cheap call: force structured cv-actions from the user request + draft reply.
- * Tries offline heuristic first (multi-dish, then drinks/staples), then a small GigaChat extract.
+ * Tries offline heuristic first (slot edit, multi-dish, drinks/staples), then GigaChat extract.
  */
 export async function repairAssistantWriteActions(opts: {
   userMessage: string;
@@ -357,6 +442,9 @@ export async function repairAssistantWriteActions(opts: {
   today: string;
   date: string;
 }): Promise<AssistantActions | null> {
+  const slot = heuristicRepairSlotEditActions(opts.userMessage);
+  if (slot) return slot;
+
   const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
   if (multi) return multi;
 
@@ -367,8 +455,10 @@ export async function repairAssistantWriteActions(opts: {
     "Ты извлекаешь действия записи для Calorie Vision.",
     "Верни ТОЛЬКО один JSON-объект (без markdown и без текста вокруг).",
     'Обязательно: "apply": true если есть что записать.',
-    'Поля: meals[{name,kcal,protein,fat,carbs,note}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
+    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,time,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
+    "«Исправь завтрак на 6:30» → patchMeals:[{match:\"завтрак\",mealType:\"BREAKFAST\",time:\"06:30\"}] (один объект на весь слот).",
+    "«Удали ужин» → deleteMeals:[{match:\"ужин\",mealType:\"DINNER\"}].",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",

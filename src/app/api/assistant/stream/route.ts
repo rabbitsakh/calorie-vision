@@ -20,6 +20,8 @@ import {
   assistantWriteMissNote,
   needsWriteRepair,
   preferMultiDishActions,
+  preferSlotEditActions,
+  pruneNoopAssistantActions,
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
 import {
@@ -214,13 +216,18 @@ export async function POST(request: NextRequest) {
 
         if (!previewPending) {
           actions = preferMultiDishActions(lastUser, reply, actions);
+          actions = preferSlotEditActions(lastUser, actions);
         }
 
         if (
           !previewPending &&
-          (actions?.meals?.length || actions?.patchMeals?.length)
+          (actions?.meals?.length || actions?.patchMeals?.length || actions?.deleteMeals?.length)
         ) {
           actions = enrichAssistantActionsMealMeta(actions, lastUser);
+        }
+
+        if (!previewPending) {
+          actions = pruneNoopAssistantActions(actions);
         }
 
         // Pin absolute day on actions so ActionCard / apply don't fall back to UI "сегодня".

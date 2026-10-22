@@ -8,7 +8,9 @@ import {
   extractMealTimeFromMessage,
   extractMealTypeFromMessage,
   extractTargetDateFromMessage,
+  matchIsMealSlot,
   parseMealTimeHHMM,
+  parseMealTypeKey,
 } from "./assistant-meal-time.ts";
 
 test("parseMealTimeHHMM normalizes HH:MM", () => {
@@ -72,6 +74,13 @@ test("extractMealTypeFromMessage finds перекус / завтрак", () => {
   assert.equal(extractMealTypeFromMessage("на завтрак омлет"), "завтрак");
   assert.equal(extractMealTypeFromMessage("Вчерашний ужин:"), "ужин");
   assert.equal(extractMealTypeFromMessage("просто банан"), null);
+});
+
+test("matchIsMealSlot and parseMealTypeKey", () => {
+  assert.equal(matchIsMealSlot("завтрак"), "BREAKFAST");
+  assert.equal(matchIsMealSlot("омлет"), null);
+  assert.equal(parseMealTypeKey("DINNER"), "DINNER");
+  assert.equal(parseMealTypeKey("ужин"), "DINNER");
 });
 
 test("enrichAssistantActionsMealNotes fills missing note", () => {

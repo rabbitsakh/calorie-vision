@@ -35,4 +35,20 @@ describe("Wave I assistant edit intents", () => {
     assert.equal(actions!.patchMeals?.[0]?.time, "6:30");
     assert.equal(actions!.patchMeals?.[1]?.time, "06:30");
   });
+
+  it("normalizes slot mealType on delete/patch", () => {
+    const del = normalizeAssistantActions({
+      apply: true,
+      deleteMeals: [{ match: "ужин" }],
+    });
+    assert.equal(del!.deleteMeals?.[0]?.mealType, "DINNER");
+
+    const patch = normalizeAssistantActions({
+      apply: true,
+      patchMeals: [{ mealType: "BREAKFAST", time: "06:30" }],
+    });
+    assert.equal(patch!.patchMeals?.[0]?.match, "завтрак");
+    assert.equal(patch!.patchMeals?.[0]?.mealType, "BREAKFAST");
+    assert.equal(patch!.patchMeals?.[0]?.time, "06:30");
+  });
 });
