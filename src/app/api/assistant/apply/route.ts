@@ -139,12 +139,13 @@ export async function POST(request: NextRequest) {
       const parsedDrafts = drafts
         .filter((d): d is Record<string, unknown> => Boolean(d) && typeof d === "object")
         .map((d) => {
+          const rawSlot = d.mealType;
           const draftMealType =
-            d.mealType === "BREAKFAST" ||
-            d.mealType === "LUNCH" ||
-            d.mealType === "DINNER" ||
-            d.mealType === "SNACK"
-              ? d.mealType
+            rawSlot === "BREAKFAST" ||
+            rawSlot === "LUNCH" ||
+            rawSlot === "DINNER" ||
+            rawSlot === "SNACK"
+              ? (rawSlot as "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK")
               : undefined;
           return {
             dishName: typeof d.dishName === "string" ? d.dishName : "Блюдо",
