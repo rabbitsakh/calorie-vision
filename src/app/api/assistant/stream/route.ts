@@ -216,7 +216,10 @@ export async function POST(request: NextRequest) {
           actions = preferMultiDishActions(lastUser, reply, actions);
         }
 
-        if (!previewPending && actions?.meals?.length) {
+        if (
+          !previewPending &&
+          (actions?.meals?.length || actions?.patchMeals?.length)
+        ) {
           actions = enrichAssistantActionsMealMeta(actions, lastUser);
         }
 

@@ -24,6 +24,7 @@ test("extractMealTimeFromMessage finds в 10:30", () => {
     "10:30",
   );
   assert.equal(extractMealTimeFromMessage("около 9.15 протеин"), "09:15");
+  assert.equal(extractMealTimeFromMessage("Исправь завтрак — время 6:30"), "06:30");
   assert.equal(extractMealTimeFromMessage("съел банан в 10"), null);
 });
 
@@ -37,6 +38,20 @@ test("enrichAssistantActionsMealTimes fills missing meals.time", () => {
     "Я съел на перекус в 10:30 паротеин изолят 70г",
   );
   assert.equal(enriched?.meals?.[0]?.time, "10:30");
+});
+
+test("enrichAssistantActionsMealTimes fills patchMeals.time", () => {
+  const enriched = enrichAssistantActionsMealTimes(
+    {
+      patchMeals: [
+        { match: "Печенье с льняными семечками" },
+        { match: "Ореховая паста" },
+      ],
+    },
+    "Исправь сегодняшний завтрак - время 6:30",
+  );
+  assert.equal(enriched?.patchMeals?.[0]?.time, "06:30");
+  assert.equal(enriched?.patchMeals?.[1]?.time, "06:30");
 });
 
 test("enrichAssistantActionsMealTimes keeps existing time", () => {

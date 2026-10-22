@@ -33,6 +33,7 @@ export function extractMealTimeFromMessage(message: string): string | null {
   if (!text) return null;
 
   const patterns = [
+    /(?:время|на)\s*(\d{1,2})\s*[:.]\s*(\d{2})\b/iu,
     /(?:в|около|к)\s*(\d{1,2})\s*[:.]\s*(\d{2})\b/iu,
     /(?:в|около|к)\s*(\d{1,2})\s+(\d{2})\b/iu,
     /\b(\d{1,2}):(\d{2})\b/,
@@ -46,22 +47,41 @@ export function extractMealTimeFromMessage(message: string): string | null {
   return null;
 }
 
-/** Fill missing meals[].time from the user message when present. */
+/** Fill missing meals[].time / patchMeals[].time from the user message when present. */
 export function enrichAssistantActionsMealTimes(
   actions: AssistantActions | null | undefined,
   userMessage: string,
 ): AssistantActions | null {
-  if (!actions?.meals?.length) return actions ?? null;
+  if (!actions) return null;
   const fromMsg = extractMealTimeFromMessage(userMessage);
   if (!fromMsg) return actions;
 
   let changed = false;
-  const meals = actions.meals.map((m) => {
-    if (parseMealTimeHHMM(m.time)) return m;
-    changed = true;
-    return { ...m, time: fromMsg };
-  });
-  return changed ? { ...actions, meals } : actions;
+  let next: AssistantActions = actions;
+
+  if (actions.meals?.length) {
+    const meals = actions.meals.map((m) => {
+      if (parseMealTimeHHMM(m.time)) return m;
+      changed = true;
+      return { ...m, time: fromMsg };
+    });
+    if (changed) next = { ...next, meals };
+  }
+
+  if (actions.patchMeals?.length) {
+    let patchChanged = false;
+    const patchMeals = actions.patchMeals.map((p) => {
+      if (parseMealTimeHHMM(p.time)) return p;
+      patchChanged = true;
+      return { ...p, time: fromMsg };
+    });
+    if (patchChanged) {
+      changed = true;
+      next = { ...next, patchMeals };
+    }
+  }
+
+  return changed ? next : actions;
 }
 
 /** End of a Russian token (JS `\b` is ASCII-only). */
