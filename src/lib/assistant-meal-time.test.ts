@@ -4,8 +4,10 @@ import {
   enrichAssistantActionsMealMeta,
   enrichAssistantActionsMealNotes,
   enrichAssistantActionsMealTimes,
+  enrichAssistantActionsTargetDate,
   extractMealTimeFromMessage,
   extractMealTypeFromMessage,
+  extractTargetDateFromMessage,
   parseMealTimeHHMM,
 } from "./assistant-meal-time.ts";
 
@@ -53,6 +55,7 @@ test("extractMealTypeFromMessage finds перекус / завтрак", () => {
     "перекус",
   );
   assert.equal(extractMealTypeFromMessage("на завтрак омлет"), "завтрак");
+  assert.equal(extractMealTypeFromMessage("Вчерашний ужин:"), "ужин");
   assert.equal(extractMealTypeFromMessage("просто банан"), null);
 });
 
@@ -62,6 +65,28 @@ test("enrichAssistantActionsMealNotes fills missing note", () => {
     "Я съел на перекус протеин изолят 70г",
   );
   assert.equal(enriched?.meals?.[0]?.note, "перекус");
+});
+
+test("enrichAssistantActionsMealNotes overrides heuristic перекус with ужин", () => {
+  const enriched = enrichAssistantActionsMealNotes(
+    { meals: [{ name: "Пиво светлое", kcal: 900, note: "перекус" }] },
+    "Вчерашний ужин:\n- Пиво светлое 3 л",
+  );
+  assert.equal(enriched?.meals?.[0]?.note, "ужин");
+});
+
+test("extractTargetDateFromMessage finds вчерашний", () => {
+  assert.equal(extractTargetDateFromMessage("Вчерашний ужин: пюре"), "вчера");
+  assert.equal(extractTargetDateFromMessage("добавь на сегодня"), "сегодня");
+  assert.equal(extractTargetDateFromMessage("просто банан"), null);
+});
+
+test("enrichAssistantActionsTargetDate overrides сегодня with вчера", () => {
+  const enriched = enrichAssistantActionsTargetDate(
+    { targetDate: "сегодня", meals: [{ name: "Пиво", kcal: 900 }] },
+    "Вчерашний ужин: пиво",
+  );
+  assert.equal(enriched?.targetDate, "вчера");
 });
 
 test("enrichAssistantActionsMealMeta fills time and note together", () => {

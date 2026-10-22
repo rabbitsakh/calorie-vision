@@ -27,6 +27,9 @@ test("userWantsStartWorkout", () => {
 
 test("resolveAssistantDate handles relative and weekday labels", () => {
   assert.equal(resolveAssistantDate("сегодня", "2026-10-10"), "2026-10-10");
+  assert.equal(resolveAssistantDate("вчера", "2026-10-10"), "2026-10-09");
+  assert.equal(resolveAssistantDate("yesterday", "2026-10-10"), "2026-10-09");
+  assert.equal(resolveAssistantDate("позавчера", "2026-10-10"), "2026-10-08");
   assert.equal(resolveAssistantDate("завтра", "2026-10-10"), "2026-10-11");
   assert.equal(resolveAssistantDate("2026-10-12", "2026-10-10"), "2026-10-12");
   // 2026-10-10 is Saturday (5) → next Monday is +2

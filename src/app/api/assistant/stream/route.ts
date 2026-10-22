@@ -19,6 +19,7 @@ import {
   assistantWroteFlag,
   assistantWriteMissNote,
   needsWriteRepair,
+  preferMultiDishActions,
   repairAssistantWriteActions,
 } from "@/lib/assistant-repair";
 import {
@@ -211,8 +212,18 @@ export async function POST(request: NextRequest) {
           if (repaired) actions = repaired;
         }
 
+        if (!previewPending) {
+          actions = preferMultiDishActions(lastUser, reply, actions);
+        }
+
         if (!previewPending && actions?.meals?.length) {
           actions = enrichAssistantActionsMealMeta(actions, lastUser);
+        }
+
+        // Pin absolute day on actions so ActionCard / apply don't fall back to UI "сегодня".
+        if (actions?.targetDate) {
+          const pinned = resolveAssistantDate(actions.targetDate, today);
+          if (pinned) actions = { ...actions, targetDate: pinned };
         }
 
         const targetDate =

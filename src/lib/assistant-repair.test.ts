@@ -5,10 +5,15 @@ import {
   assistantWroteFlag,
   assistantWriteMissNote,
   extractActionsJson,
+  heuristicRepairMultiDishActions,
   heuristicRepairWriteActions,
+  messageLooksLikeMultiDish,
   needsWriteRepair,
   parsePortionGramsFromMessage,
+  parseStructuredMealsFromText,
+  preferMultiDishActions,
 } from "./assistant-repair.ts";
+import { userWantsWrite } from "./assistant-intent.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -87,8 +92,53 @@ test("heuristicRepairWriteActions builds beer meal for liters", () => {
   assert.match(actions!.meals![0]!.name, /Пиво/i);
   assert.ok((actions!.meals![0]!.kcal ?? 0) >= 900);
   assert.equal(actions!.apply, true);
+  assert.equal(actions!.targetDate, "сегодня");
   assert.equal(
     needsWriteRepair("Я выпил 3 литра светлого лёгкого пива", actions),
     false,
   );
+});
+
+const YESTERDAY_DINNER = `Вчерашний ужин:
+
+- Картошка пюре (~200 ккал, Б4 Ж3 У35)
+- Котлета рыбная (~150 ккал, Б20 Ж5 У5)
+- Пиво светлое 3 л (~900 ккал, Б0 Ж0 У90)
+
+Всего около 1250 ккал.`;
+
+test("yesterday dinner is write intent and multi-dish", () => {
+  assert.equal(userWantsWrite(YESTERDAY_DINNER), true);
+  assert.equal(messageLooksLikeMultiDish(YESTERDAY_DINNER), true);
+  assert.equal(heuristicRepairWriteActions(YESTERDAY_DINNER), null);
+});
+
+test("parseStructuredMealsFromText reads bullet macros", () => {
+  const meals = parseStructuredMealsFromText(YESTERDAY_DINNER);
+  assert.equal(meals.length, 3);
+  assert.match(meals[0]!.name, /пюре|Картоф/i);
+  assert.equal(meals[0]!.kcal, 200);
+  assert.equal(meals[1]!.kcal, 150);
+  assert.ok((meals[2]!.kcal ?? 0) >= 900);
+});
+
+test("heuristicRepairMultiDishActions logs yesterday dinner as 3 meals", () => {
+  const actions = heuristicRepairMultiDishActions(YESTERDAY_DINNER);
+  assert.ok(actions?.meals);
+  assert.equal(actions!.meals!.length, 3);
+  assert.equal(actions!.targetDate, "вчера");
+  assert.ok(actions!.meals!.every((m) => m.note === "ужин"));
+  assert.match(actions!.summary ?? "", /пюре|Пиво|Котлет/i);
+});
+
+test("preferMultiDishActions replaces beer-only model collapse", () => {
+  const collapsed = {
+    apply: true as const,
+    targetDate: "сегодня",
+    meals: [{ name: "Пиво светлое (3000 мл)", kcal: 1273, note: "перекус" }],
+  };
+  const fixed = preferMultiDishActions(YESTERDAY_DINNER, "", collapsed);
+  assert.equal(fixed?.meals?.length, 3);
+  assert.equal(fixed?.targetDate, "вчера");
+  assert.ok(fixed?.meals?.every((m) => m.note === "ужин"));
 });

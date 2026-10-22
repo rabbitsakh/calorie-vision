@@ -35,7 +35,8 @@ import {
 import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
 import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
-import { formatDateInput, requireDateKey } from "@/lib/dates";
+import { resolveAssistantDate } from "@/lib/assistant-date";
+import { formatDateInput, isDateKey, requireDateKey } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
 import type { PhotoKind } from "@/lib/food-types";
@@ -500,6 +501,7 @@ function PhotoConfirm({
 function ActionCard({
   actions,
   date,
+  today,
   streamDone,
   online,
   onFlash,
@@ -507,6 +509,8 @@ function ActionCard({
 }: {
   actions: AssistantActions;
   date: string;
+  /** Profile timezone "today" — base for relative targetDate (вчера/завтра). */
+  today: string;
   /** K–N: per-kind stream writes — gated kinds stay confirmable. */
   streamDone: {
     meals: boolean;
@@ -522,6 +526,10 @@ function ActionCard({
   onFlash: (msg: string) => void;
   onApplied: (undo: UndoPayload) => void;
 }) {
+  const applyDate =
+    resolveAssistantDate(actions.targetDate, today) ??
+    (actions.targetDate && isDateKey(actions.targetDate) ? actions.targetDate : null) ??
+    date;
   const [busy, setBusy] = useState<string | null>(null);
   const [localDone, setLocalDone] = useState({
     meals: false,
@@ -583,7 +591,11 @@ function ActionCard({
   async function apply(kind: ApplyKind): Promise<boolean> {
     setBusy(kind);
     try {
-      const body = { kind, date, actions };
+      const body = {
+        kind,
+        date: applyDate,
+        actions: { ...actions, targetDate: applyDate },
+      };
       if (!online) {
         enqueueAssistantApply(kind, body);
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
@@ -737,7 +749,7 @@ function ActionCard({
                 ? "Удаление · уже записано"
                 : patchOnly
                   ? "Правка · уже записано"
-                  : `День ${date} · уже записано`
+                  : `День ${applyDate} · уже записано`
     : gymOnly
       ? "План зала · подтверди запись"
       : shoppingOnly
@@ -752,7 +764,7 @@ function ActionCard({
                 ? "Удаление · подтверди"
                 : patchOnly
                   ? "Правка · подтверди"
-                  : `День ${date} · подтверди запись`;
+                  : `День ${applyDate} · подтверди запись`;
 
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
@@ -1860,6 +1872,7 @@ export function AssistantChat() {
                 <ActionCard
                   actions={turn.actions}
                   date={date}
+                  today={todayKey}
                   streamDone={streamDone}
                   online={online}
                   onFlash={showFlash}

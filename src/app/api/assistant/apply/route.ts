@@ -173,9 +173,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.kind === "meals") {
+      const mealDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
       const result = await toolSaveMeals({
         userId: session.user.id,
-        date,
+        date: mealDate,
         actions,
         timezone: user?.timezone,
       });

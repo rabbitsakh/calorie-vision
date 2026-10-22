@@ -1,10 +1,14 @@
 /**
- * Parse / enrich meal wall-clock times and meal-type notes from assistant cv-actions + user text.
+ * Parse / enrich meal wall-clock times, meal-type notes, and targetDate
+ * from assistant cv-actions + user text.
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
 
 export type MealNoteLabel = "завтрак" | "обед" | "ужин" | "перекус";
+
+/** Relative / absolute day label extracted from free text. */
+export type MealTargetDateLabel = "сегодня" | "вчера" | "позавчера" | "завтра" | "послезавтра";
 
 /** Normalize "10:30" / "10.30" / "9:05" → "HH:MM", or null. */
 export function parseMealTimeHHMM(raw: unknown): string | null {
@@ -84,7 +88,20 @@ export function noteHasMealType(note: string | undefined): boolean {
   return /завтрак|обед|ужин|перекус|снек|snack/i.test(note);
 }
 
-/** Fill missing meals[].note meal-type from the user message when present. */
+/** Meal-type label already stored on a note, if any. */
+export function mealTypeFromNoteLabel(note: string | undefined): MealNoteLabel | null {
+  if (!note?.trim()) return null;
+  if (/завтрак/i.test(note)) return "завтрак";
+  if (/обед/i.test(note)) return "обед";
+  if (/ужин/i.test(note)) return "ужин";
+  if (/перекус|снек|snack/i.test(note)) return "перекус";
+  return null;
+}
+
+/**
+ * Fill / correct meals[].note from the user message.
+ * Explicit user meal type wins over heuristic defaults (e.g. «перекус»).
+ */
 export function enrichAssistantActionsMealNotes(
   actions: AssistantActions | null | undefined,
   userMessage: string,
@@ -95,18 +112,57 @@ export function enrichAssistantActionsMealNotes(
 
   let changed = false;
   const meals = actions.meals.map((m) => {
-    if (noteHasMealType(m.note)) return m;
+    const existing = mealTypeFromNoteLabel(m.note);
+    if (existing === fromMsg) return m;
+    // Missing note, or wrong slot (heuristic «перекус» vs user «ужин»).
     changed = true;
     return { ...m, note: fromMsg };
   });
   return changed ? { ...actions, meals } : actions;
 }
 
-/** Time + meal-type enrich in one pass (stream / route). */
+/**
+ * Pull relative day from Russian free text («вчерашний ужин», «сегодня»).
+ * Prefer more specific: позавчера before вчера, послезавтра before завтра.
+ */
+export function extractTargetDateFromMessage(message: string): MealTargetDateLabel | null {
+  const text = message.trim().toLowerCase().replace(/ё/g, "е");
+  if (!text) return null;
+  if (new RegExp(`позавчера${RU_TOKEN_END}`, "i").test(text)) return "позавчера";
+  if (/вчерашн/i.test(text) || new RegExp(`вчера${RU_TOKEN_END}`, "i").test(text)) {
+    return "вчера";
+  }
+  if (/yesterday/i.test(text)) return "вчера";
+  if (new RegExp(`послезавтра${RU_TOKEN_END}`, "i").test(text)) return "послезавтра";
+  if (/завтрашн/i.test(text) || new RegExp(`завтра${RU_TOKEN_END}`, "i").test(text)) {
+    return "завтра";
+  }
+  if (/tomorrow/i.test(text)) return "завтра";
+  if (/сегодняшн/i.test(text) || new RegExp(`сегодня${RU_TOKEN_END}`, "i").test(text)) {
+    return "сегодня";
+  }
+  if (/today/i.test(text)) return "сегодня";
+  return null;
+}
+
+/** Fill / correct targetDate from the user message when present. */
+export function enrichAssistantActionsTargetDate(
+  actions: AssistantActions | null | undefined,
+  userMessage: string,
+): AssistantActions | null {
+  if (!actions) return null;
+  const fromMsg = extractTargetDateFromMessage(userMessage);
+  if (!fromMsg) return actions;
+  if (actions.targetDate === fromMsg) return actions;
+  return { ...actions, targetDate: fromMsg };
+}
+
+/** Time + meal-type + targetDate enrich in one pass (stream / route). */
 export function enrichAssistantActionsMealMeta(
   actions: AssistantActions | null | undefined,
   userMessage: string,
 ): AssistantActions | null {
   const withTime = enrichAssistantActionsMealTimes(actions, userMessage);
-  return enrichAssistantActionsMealNotes(withTime, userMessage);
+  const withNotes = enrichAssistantActionsMealNotes(withTime, userMessage);
+  return enrichAssistantActionsTargetDate(withNotes, userMessage);
 }
