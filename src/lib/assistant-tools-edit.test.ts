@@ -51,4 +51,22 @@ describe("Wave I assistant edit intents", () => {
     assert.equal(patch!.patchMeals?.[0]?.mealType, "BREAKFAST");
     assert.equal(patch!.patchMeals?.[0]?.time, "06:30");
   });
+
+  it("detects portion and slot-move write intent", () => {
+    assert.equal(userWantsWrite("сделай омлет 200 г"), true);
+    assert.equal(userWantsWrite("перенеси обед в ужин"), true);
+  });
+
+  it("normalizes toMealType and portionGrams on patch", () => {
+    const actions = normalizeAssistantActions({
+      apply: true,
+      patchMeals: [
+        { match: "обед", toMealType: "DINNER" },
+        { match: "омлет", portionGrams: 200 },
+      ],
+    });
+    assert.equal(actions!.patchMeals?.[0]?.mealType, "LUNCH");
+    assert.equal(actions!.patchMeals?.[0]?.toMealType, "DINNER");
+    assert.equal(actions!.patchMeals?.[1]?.portionGrams, 200);
+  });
 });

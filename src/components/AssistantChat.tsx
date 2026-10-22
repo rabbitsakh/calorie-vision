@@ -46,6 +46,8 @@ import {
   confidenceToneClasses,
 } from "@/lib/recognition-confidence-ui";
 import { DEFAULT_LOW_CONFIDENCE } from "@/lib/confirm-card-draft";
+import { scalePhotoDraftPortion } from "@/lib/assistant-meal-patch";
+import type { MealTypeKey } from "@/lib/assistant-meal-time";
 
 type ChatRole = "user" | "assistant";
 
@@ -65,12 +67,20 @@ type PhotoDraft = {
   fiber?: number;
   sugar?: number;
   portionGrams?: number;
+  mealType?: MealTypeKey;
   confidence?: number;
   photoKind?: string;
   barcode?: string;
   brand?: string;
   recognitionSource?: string;
 };
+
+const PHOTO_MEAL_SLOTS: Array<{ key: MealTypeKey; label: string }> = [
+  { key: "BREAKFAST", label: "Завтрак" },
+  { key: "LUNCH", label: "Обед" },
+  { key: "DINNER", label: "Ужин" },
+  { key: "SNACK", label: "Перекус" },
+];
 
 type ChatTurn = {
   id: string;
@@ -237,10 +247,12 @@ function PhotoDraftWhy({ draft }: { draft: PhotoDraft }) {
 }
 
 function ToolChips({ tools }: { tools: ToolResult[] }) {
-  if (!tools.length) return null;
+  // Preview has its own PhotoConfirm CTA — hide duplicate chip.
+  const visible = tools.filter((t) => t.tool !== "recognize_meal_preview");
+  if (!visible.length) return null;
   return (
     <div className="mt-1.5 space-y-0.5">
-      {tools.map((t, i) => (
+      {visible.map((t, i) => (
         <p
           key={`${t.tool}-${i}`}
           className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-snug ${
@@ -279,10 +291,13 @@ function PhotoConfirm({
     date?: string;
   };
   const [pending, setPending] = useState(false);
+  const [mealType, setMealType] = useState<MealTypeKey | undefined>(undefined);
   const [drafts, setDrafts] = useState<PhotoDraft[]>(() =>
     (data.drafts ?? []).map((d) => ({ ...d })),
   );
+  const [dismissed, setDismissed] = useState(false);
 
+  if (dismissed) return null;
   if (!tool.ok) {
     return (
       <p className="mt-1.5 rounded-md bg-rose-50 px-1.5 py-1 text-[10px] font-medium text-rose-900">
@@ -290,10 +305,53 @@ function PhotoConfirm({
       </p>
     );
   }
-  if (!data.pending || !data.imagePath || !data.drafts?.length) return null;
+  if (!data.pending || !data.imagePath || !data.drafts?.length) {
+    return (
+      <p className="mt-1.5 rounded-md bg-amber-50 px-1.5 py-1 text-[10px] font-medium text-amber-950">
+        {tool.message || "Фото разобрано, но карточка пустая — попробуй ещё раз"}
+      </p>
+    );
+  }
 
   function updateDraft(index: number, patch: Partial<PhotoDraft>) {
     setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
+  }
+
+  function updateDraftPortion(index: number, raw: string) {
+    const n = raw === "" ? undefined : Number(raw);
+    if (n == null || !Number.isFinite(n)) {
+      updateDraft(index, { portionGrams: undefined });
+      return;
+    }
+    setDrafts((prev) =>
+      prev.map((d, i) => {
+        if (i !== index) return d;
+        const scaled = scalePhotoDraftPortion(
+          {
+            dishName: d.dishName,
+            calories: d.calories,
+            protein: d.protein ?? null,
+            fat: d.fat ?? null,
+            carbs: d.carbs ?? null,
+            fiber: d.fiber ?? null,
+            sugar: d.sugar ?? null,
+            portionGrams: d.portionGrams ?? null,
+            mealType: d.mealType ?? null,
+          },
+          n,
+        );
+        return {
+          ...d,
+          portionGrams: scaled.portionGrams ?? n,
+          calories: scaled.calories,
+          protein: scaled.protein ?? undefined,
+          fat: scaled.fat ?? undefined,
+          carbs: scaled.carbs ?? undefined,
+          fiber: scaled.fiber ?? undefined,
+          sugar: scaled.sugar ?? undefined,
+        };
+      }),
+    );
   }
 
   function addDraft() {
@@ -323,18 +381,33 @@ function PhotoConfirm({
   async function confirm() {
     setPending(true);
     try {
+      const draftsWithSlot = drafts.map((d) => ({
+        ...d,
+        ...(mealType ? { mealType } : {}),
+      }));
       const body = {
         kind: "photo" as const,
         // Always the day currently selected in the chat — not a stale
         // recognition payload date (UTC / yesterday from storage).
         date,
         imagePath: data.imagePath,
-        drafts,
+        drafts: draftsWithSlot,
+        ...(mealType ? { mealType } : {}),
       };
       // Wave A6 — already recognized: queue apply offline (no LLM).
       if (!online) {
         enqueueAssistantApply("photo", body);
         onFlash("Офлайн — добавлю в рацион, когда появится сеть");
+        setDismissed(true);
+        onDone(
+          {
+            ok: true,
+            tool: "save_photo_drafts",
+            message: "В очереди офлайн",
+            data: { queued: true },
+          },
+          emptyUndo(),
+        );
         return;
       }
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
@@ -354,6 +427,7 @@ function PhotoConfirm({
         skipped?: number;
       };
       const meals = resultData.meals ?? [];
+      setDismissed(true);
       onDone(json.result, {
         ...emptyUndo(),
         mealIds: meals.map((m) => m.id).filter(Boolean),
@@ -381,6 +455,23 @@ function PhotoConfirm({
       <p className="confirm-family-skim">
         День {date} · проверь и подтверди — пока не в дневнике
       </p>
+      <div className="mb-2 flex flex-wrap gap-1">
+        {PHOTO_MEAL_SLOTS.map((slot) => (
+          <button
+            key={slot.key}
+            type="button"
+            disabled={busy || pending}
+            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
+              mealType === slot.key
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                : "border-[var(--border)] text-[var(--muted-strong)]"
+            }`}
+            onClick={() => setMealType((prev) => (prev === slot.key ? undefined : slot.key))}
+          >
+            {slot.label}
+          </button>
+        ))}
+      </div>
       <div className="space-y-2.5">
         {drafts.map((d, i) => {
           const tone =
@@ -443,12 +534,7 @@ function PhotoConfirm({
                     inputMode="numeric"
                     value={d.portionGrams ?? ""}
                     disabled={busy || pending}
-                    onChange={(e) => {
-                      const n = e.target.value === "" ? undefined : Number(e.target.value);
-                      updateDraft(i, {
-                        portionGrams: n != null && Number.isFinite(n) ? n : undefined,
-                      });
-                    }}
+                    onChange={(e) => updateDraftPortion(i, e.target.value)}
                     className="confirm-family-input w-24"
                   />
                 </label>
@@ -841,10 +927,24 @@ function ActionCard({
       {needsPatch ? (
         <ul className="confirm-family-dish mt-1.5 space-y-1">
           {actions.patchMeals!.map((p) => (
-            <li key={`patch-${p.match}-${p.mealType ?? ""}-${p.time ?? ""}`}>
+            <li
+              key={`patch-${p.match}-${p.mealType ?? ""}-${p.toMealType ?? ""}-${p.time ?? ""}-${p.portionGrams ?? ""}`}
+            >
               <span className="font-semibold">Правка</span>:{" "}
               {p.mealType ? `весь ${p.match}` : p.match}
+              {p.toMealType
+                ? ` → ${
+                    p.toMealType === "BREAKFAST"
+                      ? "завтрак"
+                      : p.toMealType === "LUNCH"
+                        ? "обед"
+                        : p.toMealType === "DINNER"
+                          ? "ужин"
+                          : "перекус"
+                  }`
+                : ""}
               {p.time ? ` · ${p.time}` : ""}
+              {p.portionGrams != null ? ` · ${p.portionGrams} г` : ""}
               {p.kcal != null ? ` · ${p.kcal} ккал` : ""}
               {p.protein != null || p.fat != null || p.carbs != null
                 ? ` · Б${p.protein ?? "—"} Ж${p.fat ?? "—"} У${p.carbs ?? "—"}`

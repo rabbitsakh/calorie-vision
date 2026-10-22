@@ -144,6 +144,8 @@ const RU_TOKEN_END = "(?=$|[\\s.,;:!?…»\"')\\]])";
  * Pull meal-type label from Russian free text («на перекус», «на завтрак»).
  */
 export function extractMealTypeFromMessage(message: string): MealNoteLabel | null {
+  const move = extractMealSlotMoveFromMessage(message);
+  if (move) return move.from;
   const text = message.trim();
   if (!text) return null;
   if (new RegExp(`(?:на\\s+)?завтрак${RU_TOKEN_END}`, "i").test(text)) return "завтрак";
@@ -153,6 +155,30 @@ export function extractMealTypeFromMessage(message: string): MealNoteLabel | nul
     return "перекус";
   }
   return null;
+}
+
+const SLOT_WORD = "(завтрак|обед|ужин|перекус)";
+
+/**
+ * «перенеси обед в ужин» / «перенеси завтрак на обед» → from/to labels.
+ */
+export function extractMealSlotMoveFromMessage(
+  message: string,
+): { from: MealNoteLabel; to: MealNoteLabel } | null {
+  const text = message.trim().toLowerCase().replace(/ё/g, "е");
+  if (!text || !/перенес/i.test(text)) return null;
+  const m = new RegExp(
+    `перенес\\S*\\s+${SLOT_WORD}\\s+(?:в|на)\\s+${SLOT_WORD}${RU_TOKEN_END}`,
+    "i",
+  ).exec(text);
+  if (!m?.[1] || !m[2]) return null;
+  const from = parseMealTypeKey(m[1]);
+  const to = parseMealTypeKey(m[2]);
+  if (!from || !to || from === to) return null;
+  const fromNote = mealNoteFromTypeKey(from);
+  const toNote = mealNoteFromTypeKey(to);
+  if (!fromNote || !toNote) return null;
+  return { from: fromNote, to: toNote };
 }
 
 /** True when note already encodes a meal type the save path understands. */

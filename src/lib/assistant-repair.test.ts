@@ -6,6 +6,7 @@ import {
   assistantWriteMissNote,
   extractActionsJson,
   heuristicRepairMultiDishActions,
+  heuristicRepairPortionPatchActions,
   heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
@@ -193,4 +194,33 @@ test("pruneNoopAssistantActions drops match-only patches", () => {
     })?.patchMeals?.length,
     1,
   );
+});
+
+test("heuristicRepairSlotEditActions moves lunch to dinner", () => {
+  const actions = heuristicRepairSlotEditActions("перенеси обед в ужин");
+  assert.equal(actions?.patchMeals?.[0]?.mealType, "LUNCH");
+  assert.equal(actions?.patchMeals?.[0]?.toMealType, "DINNER");
+  assert.equal(actions?.patchMeals?.[0]?.match, "обед");
+});
+
+test("heuristicRepairSlotEditActions portions whole breakfast", () => {
+  const actions = heuristicRepairSlotEditActions("исправь завтрак на 200 г");
+  assert.equal(actions?.patchMeals?.[0]?.mealType, "BREAKFAST");
+  assert.equal(actions?.patchMeals?.[0]?.portionGrams, 200);
+});
+
+test("heuristicRepairPortionPatchActions patches dish grams", () => {
+  assert.equal(userWantsWrite("сделай омлет 200 г"), true);
+  const actions = heuristicRepairPortionPatchActions("сделай омлет 200 г");
+  assert.equal(actions?.patchMeals?.[0]?.match, "омлет");
+  assert.equal(actions?.patchMeals?.[0]?.portionGrams, 200);
+});
+
+test("preferSlotEditActions wins for slot move", () => {
+  const fixed = preferSlotEditActions("перенеси обед на ужин", {
+    apply: true,
+    meals: [{ name: "Суп", kcal: 200 }],
+  });
+  assert.equal(fixed?.patchMeals?.[0]?.toMealType, "DINNER");
+  assert.equal(fixed?.meals, undefined);
 });

@@ -18,6 +18,7 @@ import {
   parseMealTimeHHMM,
   type MealTypeKey,
 } from "@/lib/assistant-meal-time";
+import { buildMealPatchFields } from "@/lib/assistant-meal-patch";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
@@ -543,6 +544,7 @@ export async function toolPatchMeals(opts: {
     dishName: string;
     calories: number;
     time?: string;
+    mealType?: string;
   }> = [];
   for (const patch of patches) {
     const targets = rowsForMealEdit(rows, patch);
@@ -550,23 +552,33 @@ export async function toolPatchMeals(opts: {
     const time = parseMealTimeHHMM(patch.time);
     const eatenAtIso = time ? dateKeyAndTimeToIso(opts.date, time, opts.timezone) : null;
     for (const row of targets) {
-      const nextName = patch.name?.trim() || row.dishName;
-      const nextKcal =
-        typeof patch.kcal === "number" && Number.isFinite(patch.kcal)
-          ? Math.round(patch.kcal)
-          : row.calories;
+      const fields = buildMealPatchFields(
+        {
+          dishName: row.dishName,
+          calories: row.calories,
+          protein: row.protein,
+          fat: row.fat,
+          carbs: row.carbs,
+          fiber: row.fiber,
+          sugar: row.sugar,
+          portionGrams: row.portionGrams,
+          mealType: row.mealType,
+        },
+        patch,
+        { eatenAtIso },
+      );
+      if (!fields) continue;
       const data: Prisma.MealEntryUpdateInput = {};
-      if (patch.name?.trim() && nextName !== row.dishName) {
-        data.dishName = nextName.slice(0, 120);
-      }
-      if (typeof patch.kcal === "number" && Number.isFinite(patch.kcal)) {
-        data.calories = nextKcal;
-      }
-      if (typeof patch.protein === "number") data.protein = patch.protein;
-      if (typeof patch.fat === "number") data.fat = patch.fat;
-      if (typeof patch.carbs === "number") data.carbs = patch.carbs;
-      if (typeof patch.portionGrams === "number") data.portionGrams = patch.portionGrams;
-      if (eatenAtIso) data.eatenAt = new Date(eatenAtIso);
+      if (fields.dishName != null) data.dishName = fields.dishName;
+      if (fields.calories != null) data.calories = fields.calories;
+      if (fields.protein !== undefined) data.protein = fields.protein;
+      if (fields.fat !== undefined) data.fat = fields.fat;
+      if (fields.carbs !== undefined) data.carbs = fields.carbs;
+      if (fields.fiber !== undefined) data.fiber = fields.fiber;
+      if (fields.sugar !== undefined) data.sugar = fields.sugar;
+      if (fields.portionGrams !== undefined) data.portionGrams = fields.portionGrams;
+      if (fields.mealType != null) data.mealType = fields.mealType;
+      if (fields.eatenAt) data.eatenAt = fields.eatenAt;
       if (!Object.keys(data).length) continue;
       const saved = await prisma.mealEntry.update({ where: { id: row.id }, data });
       updated.push({
@@ -574,6 +586,7 @@ export async function toolPatchMeals(opts: {
         dishName: saved.dishName,
         calories: saved.calories,
         ...(time ? { time } : {}),
+        ...(fields.mealType ? { mealType: fields.mealType } : {}),
       });
     }
   }
@@ -808,6 +821,7 @@ export async function toolSavePhotoDrafts(opts: {
     fiber?: number;
     sugar?: number;
     portionGrams?: number;
+    mealType?: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
     confidence?: number;
     photoKind?: string;
     barcode?: string;
@@ -823,6 +837,13 @@ export async function toolSavePhotoDrafts(opts: {
   const mealGroupId = drafts.length > 1 ? randomUUID() : undefined;
   const created: Array<{ id: string; dishName: string; calories: number }> = [];
   for (const draft of drafts) {
+    const draftMealType =
+      draft.mealType === "BREAKFAST" ||
+      draft.mealType === "LUNCH" ||
+      draft.mealType === "DINNER" ||
+      draft.mealType === "SNACK"
+        ? draft.mealType
+        : opts.mealType;
     const input: SaveMealInput = {
       date: opts.date,
       dishName: draft.dishName || "Блюдо",
@@ -840,7 +861,7 @@ export async function toolSavePhotoDrafts(opts: {
       photoKind: draft.photoKind,
       barcode: draft.barcode,
       brand: draft.brand,
-      mealType: opts.mealType,
+      mealType: draftMealType,
     };
     const validated = validateSaveMealInput(input);
     if (validated.error || !validated.date) continue;
