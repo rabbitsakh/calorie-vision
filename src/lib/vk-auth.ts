@@ -7,6 +7,14 @@ const VK_TOKEN_URL = "https://id.vk.ru/oauth2/auth";
 const VK_USERINFO_URL = "https://id.vk.ru/oauth2/user_info";
 const DEVICE_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * VK ID scopes for authorize (`scope`, space-separated).
+ * App must have email/phone enabled in the VK ID cabinet; then they must also
+ * be requested here — otherwise the token stays on vkid.personal_info only.
+ * Docs: https://id.vk.ru/about/business/go/docs/ru/vkid/latest/vk-id/connection/work-with-user-info/scopes
+ */
+export const VK_OAUTH_SCOPE = "vkid.personal_info email phone";
+
 export type VkIdUser = {
   user_id?: string | number;
   first_name?: string;
@@ -206,7 +214,11 @@ export function createVkIdProvider(options: {
       url: VK_AUTHORIZE_URL,
       params: {
         response_type: "code",
-        scope: "email phone",
+        // Must match scopes enabled for the app in the VK ID cabinet.
+        scope: VK_OAUTH_SCOPE,
+        // Re-show the permission form so tokens minted after cabinet approval
+        // include email/phone (users who consented earlier may only have personal_info).
+        prompt: "consent",
         lang_id: 0,
         redirect_uri: redirectUri,
       },
