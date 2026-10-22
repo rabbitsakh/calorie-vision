@@ -1877,7 +1877,10 @@ export function AssistantChat() {
                   streamDone={streamDone}
                   online={online}
                   onFlash={showFlash}
-                  onApplied={(undo) => rememberUndo(undo)}
+                  onApplied={(undo) => {
+                    rememberUndo(undo);
+                    void refreshSnapshot(date);
+                  }}
                 />
               ) : null}
             </div>
