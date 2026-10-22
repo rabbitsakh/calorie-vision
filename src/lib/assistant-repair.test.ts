@@ -6,12 +6,15 @@ import {
   assistantWriteMissNote,
   extractActionsJson,
   heuristicRepairMultiDishActions,
+  heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
   needsWriteRepair,
   parsePortionGramsFromMessage,
   parseStructuredMealsFromText,
   preferMultiDishActions,
+  preferSlotEditActions,
+  pruneNoopAssistantActions,
 } from "./assistant-repair.ts";
 import { userWantsWrite } from "./assistant-intent.ts";
 
@@ -141,4 +144,53 @@ test("preferMultiDishActions replaces beer-only model collapse", () => {
   assert.equal(fixed?.meals?.length, 3);
   assert.equal(fixed?.targetDate, "вчера");
   assert.ok(fixed?.meals?.every((m) => m.note === "ужин"));
+});
+
+test("heuristicRepairSlotEditActions patches whole breakfast time", () => {
+  const actions = heuristicRepairSlotEditActions(
+    "Исправь сегодняшний завтрак - время 6:30",
+  );
+  assert.equal(actions?.patchMeals?.length, 1);
+  assert.equal(actions?.patchMeals?.[0]?.mealType, "BREAKFAST");
+  assert.equal(actions?.patchMeals?.[0]?.time, "06:30");
+  assert.equal(actions?.targetDate, "сегодня");
+});
+
+test("heuristicRepairSlotEditActions deletes whole dinner", () => {
+  const actions = heuristicRepairSlotEditActions("удали ужин");
+  assert.equal(actions?.deleteMeals?.[0]?.mealType, "DINNER");
+  assert.equal(actions?.deleteMeals?.[0]?.match, "ужин");
+});
+
+test("preferSlotEditActions wins over dish-list patches for slot time", () => {
+  const model = {
+    apply: true as const,
+    patchMeals: [
+      { match: "Печенье" },
+      { match: "Оладьи" },
+    ],
+  };
+  const fixed = preferSlotEditActions(
+    "Исправь сегодняшний завтрак - время 6:30",
+    model,
+  );
+  assert.equal(fixed?.patchMeals?.length, 1);
+  assert.equal(fixed?.patchMeals?.[0]?.mealType, "BREAKFAST");
+  assert.equal(fixed?.patchMeals?.[0]?.time, "06:30");
+});
+
+test("pruneNoopAssistantActions drops match-only patches", () => {
+  assert.equal(
+    actionsHaveWritablePayload({
+      patchMeals: [{ match: "Печенье" }],
+    }),
+    false,
+  );
+  assert.equal(
+    pruneNoopAssistantActions({
+      apply: true,
+      patchMeals: [{ match: "Печенье" }, { match: "Оладьи", time: "06:30" }],
+    })?.patchMeals?.length,
+    1,
+  );
 });

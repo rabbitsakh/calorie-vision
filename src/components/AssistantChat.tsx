@@ -831,8 +831,9 @@ function ActionCard({
       {needsDelete ? (
         <ul className="confirm-family-dish mt-1.5 space-y-1">
           {actions.deleteMeals!.map((d) => (
-            <li key={`del-${d.match}`}>
-              <span className="font-semibold">Удалить</span>: {d.match}
+            <li key={`del-${d.match}-${d.mealType ?? ""}`}>
+              <span className="font-semibold">Удалить</span>:{" "}
+              {d.mealType ? `весь ${d.match}` : d.match}
             </li>
           ))}
         </ul>
@@ -840,8 +841,9 @@ function ActionCard({
       {needsPatch ? (
         <ul className="confirm-family-dish mt-1.5 space-y-1">
           {actions.patchMeals!.map((p) => (
-            <li key={`patch-${p.match}`}>
-              <span className="font-semibold">Правка</span>: {p.match}
+            <li key={`patch-${p.match}-${p.mealType ?? ""}-${p.time ?? ""}`}>
+              <span className="font-semibold">Правка</span>:{" "}
+              {p.mealType ? `весь ${p.match}` : p.match}
               {p.time ? ` · ${p.time}` : ""}
               {p.kcal != null ? ` · ${p.kcal} ккал` : ""}
               {p.protein != null || p.fat != null || p.carbs != null
