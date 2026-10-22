@@ -197,14 +197,15 @@ npm run start
 3. Добавьте доверенный Redirect URL:
    - `https://calorievision.ru/api/auth/callback/vk`
    - `http://localhost:3000/api/auth/callback/vk` (для локальной разработки)
-4. Скопируйте ID приложения и **сервисный ключ** (или защищённый ключ) в `.env`:
+4. В доступах приложения включите **email** и **phone** (плюс базовый `vkid.personal_info`). Без этого VK вернёт `invalid_scope` или выдаст токен только с именем/фото.
+5. Скопируйте ID приложения и **сервисный ключ** (или защищённый ключ) в `.env`:
    ```env
    VK_CLIENT_ID=...
    VK_CLIENT_SECRET=...
    ```
    Redirect URL должен совпадать **байт в байт**, без слэша на конце:
    `https://calorievision.ru/api/auth/callback/vk`
-5. Перезапустите сервер. Без `VK_CLIENT_ID` кнопка VK скрывается.
+6. Перезапустите сервер. Без `VK_CLIENT_ID` кнопка VK скрывается. На authorize приложение запрашивает `vkid.personal_info email phone` (и `prompt=consent`, чтобы форма разрешений показала почту/телефон после выдачи доступов в кабинете).
 
 После обновления схемы БД (поля `phone`, `phoneVerified` у `User`) выполните:
 

@@ -3,12 +3,24 @@ import { test } from "node:test";
 import {
   applyVkCallbackToSearchParams,
   buildVkTokenRequestBody,
+  createVkIdProvider,
   getVkRedirectUri,
   parseVkCallbackParams,
   takeVkDeviceId,
   toNextAuthTokens,
+  VK_OAUTH_SCOPE,
   vkProfileToUser,
 } from "./vk-auth.ts";
+
+test("VK authorize scope includes personal_info email phone", () => {
+  assert.equal(VK_OAUTH_SCOPE, "vkid.personal_info email phone");
+  const provider = createVkIdProvider({ clientId: "7915193", clientSecret: "secret" });
+  const params = provider.authorization && typeof provider.authorization === "object"
+    ? (provider.authorization as { params?: Record<string, unknown> }).params
+    : undefined;
+  assert.equal(params?.scope, VK_OAUTH_SCOPE);
+  assert.equal(params?.prompt, "consent");
+});
 
 test("reads VK callback query params", () => {
   const parsed = parseVkCallbackParams({
