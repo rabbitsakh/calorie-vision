@@ -39,7 +39,6 @@ import {
   formatToolResultsForReply,
   resolveAssistantDate,
   toolRecognizeAndSaveMeal,
-  userWantsWrite,
   type AssistantToolResult,
   type ExecutableActions,
 } from "@/lib/assistant-tools";
@@ -134,8 +133,8 @@ export async function POST(request: NextRequest) {
           "Фото не удалось прочитать (слишком большое или битое). Попробуй ещё раз.",
       });
     } else if (image) {
-      const savePhoto =
-        body.savePhoto === true || (body.savePhoto !== false && userWantsWrite(lastUser));
+      // Preview-first: only explicit savePhoto:true writes silently.
+      const savePhoto = body.savePhoto === true;
       const photoResult = await toolRecognizeAndSaveMeal({
         userId: session.user.id,
         date,

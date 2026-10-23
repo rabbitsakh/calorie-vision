@@ -138,22 +138,33 @@ export async function POST(request: NextRequest) {
           : undefined;
       const parsedDrafts = drafts
         .filter((d): d is Record<string, unknown> => Boolean(d) && typeof d === "object")
-        .map((d) => ({
-          dishName: typeof d.dishName === "string" ? d.dishName : "Блюдо",
-          calories: typeof d.calories === "number" ? d.calories : 200,
-          protein: typeof d.protein === "number" ? d.protein : undefined,
-          fat: typeof d.fat === "number" ? d.fat : undefined,
-          carbs: typeof d.carbs === "number" ? d.carbs : undefined,
-          fiber: typeof d.fiber === "number" ? d.fiber : undefined,
-          sugar: typeof d.sugar === "number" ? d.sugar : undefined,
-          portionGrams: typeof d.portionGrams === "number" ? d.portionGrams : undefined,
-          confidence: typeof d.confidence === "number" ? d.confidence : undefined,
-          photoKind: typeof d.photoKind === "string" ? d.photoKind : undefined,
-          barcode: typeof d.barcode === "string" ? d.barcode : undefined,
-          brand: typeof d.brand === "string" ? d.brand : undefined,
-          recognitionSource:
-            typeof d.recognitionSource === "string" ? d.recognitionSource : undefined,
-        }));
+        .map((d) => {
+          const rawSlot = d.mealType;
+          const draftMealType =
+            rawSlot === "BREAKFAST" ||
+            rawSlot === "LUNCH" ||
+            rawSlot === "DINNER" ||
+            rawSlot === "SNACK"
+              ? (rawSlot as "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK")
+              : undefined;
+          return {
+            dishName: typeof d.dishName === "string" ? d.dishName : "Блюдо",
+            calories: typeof d.calories === "number" ? d.calories : 200,
+            protein: typeof d.protein === "number" ? d.protein : undefined,
+            fat: typeof d.fat === "number" ? d.fat : undefined,
+            carbs: typeof d.carbs === "number" ? d.carbs : undefined,
+            fiber: typeof d.fiber === "number" ? d.fiber : undefined,
+            sugar: typeof d.sugar === "number" ? d.sugar : undefined,
+            portionGrams: typeof d.portionGrams === "number" ? d.portionGrams : undefined,
+            mealType: draftMealType,
+            confidence: typeof d.confidence === "number" ? d.confidence : undefined,
+            photoKind: typeof d.photoKind === "string" ? d.photoKind : undefined,
+            barcode: typeof d.barcode === "string" ? d.barcode : undefined,
+            brand: typeof d.brand === "string" ? d.brand : undefined,
+            recognitionSource:
+              typeof d.recognitionSource === "string" ? d.recognitionSource : undefined,
+          };
+        });
       const result = await toolSavePhotoDrafts({
         userId: session.user.id,
         date,

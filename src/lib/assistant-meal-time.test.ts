@@ -5,6 +5,7 @@ import {
   enrichAssistantActionsMealNotes,
   enrichAssistantActionsMealTimes,
   enrichAssistantActionsTargetDate,
+  extractMealSlotMoveFromMessage,
   extractMealTimeFromMessage,
   extractMealTypeFromMessage,
   extractTargetDateFromMessage,
@@ -74,6 +75,18 @@ test("extractMealTypeFromMessage finds перекус / завтрак", () => {
   assert.equal(extractMealTypeFromMessage("на завтрак омлет"), "завтрак");
   assert.equal(extractMealTypeFromMessage("Вчерашний ужин:"), "ужин");
   assert.equal(extractMealTypeFromMessage("просто банан"), null);
+});
+
+test("extractMealSlotMoveFromMessage finds from/to", () => {
+  assert.deepEqual(extractMealSlotMoveFromMessage("перенеси обед в ужин"), {
+    from: "обед",
+    to: "ужин",
+  });
+  assert.deepEqual(extractMealSlotMoveFromMessage("Перенеси завтрак на обед"), {
+    from: "завтрак",
+    to: "обед",
+  });
+  assert.equal(extractMealSlotMoveFromMessage("перенеси завтрак на 6:30"), null);
 });
 
 test("matchIsMealSlot and parseMealTypeKey", () => {

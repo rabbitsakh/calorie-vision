@@ -9,9 +9,11 @@ import {
 } from "@/lib/admin-assistant";
 import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-intent";
 import {
+  extractMealSlotMoveFromMessage,
   extractMealTimeFromMessage,
   extractMealTypeFromMessage,
   extractTargetDateFromMessage,
+  matchIsMealSlot,
   mealTypeKeyFromLabel,
   parseMealTimeHHMM,
 } from "@/lib/assistant-meal-time";
@@ -24,6 +26,7 @@ export function patchMealHasEffect(
   return Boolean(
     parseMealTimeHHMM(patch.time) ||
       patch.name?.trim() ||
+      patch.toMealType ||
       typeof patch.kcal === "number" ||
       typeof patch.protein === "number" ||
       typeof patch.fat === "number" ||
@@ -364,16 +367,30 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
 }
 
 /**
- * Offline slot edit: «исправь завтрак на 6:30», «удали ужин» — без перечисления блюд.
+ * Offline slot edit: «исправь завтрак на 6:30», «удали ужин», «перенеси обед в ужин».
  */
 export function heuristicRepairSlotEditActions(userMessage: string): AssistantActions | null {
   if (!userWantsWrite(userMessage)) return null;
+  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+  const text = userMessage.trim();
+  const move = extractMealSlotMoveFromMessage(userMessage);
+  if (move) {
+    const fromType = mealTypeKeyFromLabel(move.from);
+    const toType = mealTypeKeyFromLabel(move.to);
+    if (!fromType || !toType) return null;
+    return {
+      apply: true,
+      targetDate,
+      patchMeals: [{ match: move.from, mealType: fromType, toMealType: toType }],
+      summary: `${move.from} → ${move.to} — подтверди`,
+    };
+  }
+
   const note = extractMealTypeFromMessage(userMessage);
   const mealType = mealTypeKeyFromLabel(note);
   if (!note || !mealType) return null;
-  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
   const time = extractMealTimeFromMessage(userMessage);
-  const text = userMessage.trim();
+  const grams = parsePortionGramsFromMessage(userMessage);
 
   if (/удал|убери/i.test(text)) {
     return {
@@ -393,7 +410,63 @@ export function heuristicRepairSlotEditActions(userMessage: string): AssistantAc
     };
   }
 
+  if (
+    grams &&
+    /исправ|поправ|сделай|поставь|измени|порци/i.test(text) &&
+    !/добав|съел|запиш|закинь|положи/i.test(text)
+  ) {
+    return {
+      apply: true,
+      targetDate,
+      patchMeals: [{ match: note, mealType, portionGrams: grams }],
+      summary: `${note} → ${grams} г — подтверди`,
+    };
+  }
+
   return null;
+}
+
+/** Pull dish name for portion patch («сделай омлет 200 г»). */
+function extractDishMatchForPortionPatch(message: string): string | null {
+  let t = message.trim().toLowerCase().replace(/ё/g, "е");
+  t = t.replace(
+    /исправ\S*|поправ\S*|сделай|поставь|измени\S*|порци\S*|пожалуйста|сегодня|вчера|позавчера|завтра/gi,
+    " ",
+  );
+  // No `\b` — JS word boundaries are ASCII-only and break on Cyrillic «г».
+  t = t.replace(/\d+(?:[.,]\d+)?\s*(?:грамм(?:а|ов)?|гр|г|мл|литр(?:а|ов|ы)?|л)/gi, " ");
+  t = t.replace(/(?:^|\s)(?:на|в|у|к|с|и|или|время)(?=$|\s)/gi, " ");
+  t = t.replace(/\s+/g, " ").trim();
+  if (!t || t.length < 2) return null;
+  if (matchIsMealSlot(t)) return null;
+  return t.slice(0, 120);
+}
+
+/**
+ * Offline portion patch: «сделай омлет 200 г», «исправь кашу на 150г».
+ * Slot-wide portion is handled by heuristicRepairSlotEditActions.
+ */
+export function heuristicRepairPortionPatchActions(
+  userMessage: string,
+): AssistantActions | null {
+  if (!userWantsWrite(userMessage)) return null;
+  const text = userMessage.trim();
+  if (!/исправ|поправ|сделай|поставь|измени|порци/i.test(text)) return null;
+  if (/добав|съел|запиш|закинь|положи|внеси/i.test(text)) return null;
+  if (extractMealSlotMoveFromMessage(userMessage)) return null;
+  const grams = parsePortionGramsFromMessage(userMessage);
+  if (!grams) return null;
+  // Slot-wide portion is handled by heuristicRepairSlotEditActions.
+  if (extractMealTypeFromMessage(userMessage)) return null;
+  const match = extractDishMatchForPortionPatch(userMessage);
+  if (!match) return null;
+  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+  return {
+    apply: true,
+    targetDate,
+    patchMeals: [{ match, portionGrams: grams }],
+    summary: `${match} → ${grams} г — подтверди`,
+  };
 }
 
 /**
@@ -420,14 +493,23 @@ export function preferSlotEditActions(
   actions: AssistantActions | null | undefined,
 ): AssistantActions | null {
   const slot = heuristicRepairSlotEditActions(userMessage);
-  if (!slot) return actions ?? null;
-  if (slot.deleteMeals?.length) {
-    if (actions?.deleteMeals?.length) return actions;
-    return slot;
+  if (slot) {
+    if (slot.deleteMeals?.length) {
+      if (actions?.deleteMeals?.length) return actions;
+      return slot;
+    }
+    if (slot.patchMeals?.length) {
+      // Whole-slot time / move / portion beats per-dish patches / accidental meals[].
+      return slot;
+    }
   }
-  if (slot.patchMeals?.length) {
-    // Whole-slot time fix beats per-dish patches / accidental meals[].
-    return slot;
+  const portion = heuristicRepairPortionPatchActions(userMessage);
+  if (portion?.patchMeals?.length) {
+    const modelPatches = actions?.patchMeals?.filter(patchMealHasEffect) ?? [];
+    if (modelPatches.some((p) => typeof p.portionGrams === "number" || p.toMealType)) {
+      return actions ?? null;
+    }
+    return portion;
   }
   return actions ?? null;
 }
@@ -445,6 +527,9 @@ export async function repairAssistantWriteActions(opts: {
   const slot = heuristicRepairSlotEditActions(opts.userMessage);
   if (slot) return slot;
 
+  const portion = heuristicRepairPortionPatchActions(opts.userMessage);
+  if (portion) return portion;
+
   const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
   if (multi) return multi;
 
@@ -455,10 +540,12 @@ export async function repairAssistantWriteActions(opts: {
     "Ты извлекаешь действия записи для Calorie Vision.",
     "Верни ТОЛЬКО один JSON-объект (без markdown и без текста вокруг).",
     'Обязательно: "apply": true если есть что записать.',
-    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,time,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
+    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,toMealType,time,portionGrams,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
     "«Исправь завтрак на 6:30» → patchMeals:[{match:\"завтрак\",mealType:\"BREAKFAST\",time:\"06:30\"}] (один объект на весь слот).",
     "«Удали ужин» → deleteMeals:[{match:\"ужин\",mealType:\"DINNER\"}].",
+    "«Перенеси обед в ужин» → patchMeals:[{match:\"обед\",mealType:\"LUNCH\",toMealType:\"DINNER\"}].",
+    "«Сделай омлет 200 г» → patchMeals:[{match:\"омлет\",portionGrams:200}].",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",
