@@ -4,6 +4,7 @@ import {
   applyPause,
   applyResume,
   formatSessionClock,
+  normalizeSessionClockTimes,
   sessionClockStatus,
   sessionElapsedSec,
 } from "./session-clock.ts";
@@ -44,6 +45,29 @@ describe("sessionElapsedSec", () => {
       }),
       28 * 60,
     );
+  });
+});
+
+describe("normalizeSessionClockTimes", () => {
+  it("accepts valid start/end", () => {
+    const r = normalizeSessionClockTimes({
+      startedAt: "2026-09-20T10:00:00.000Z",
+      endedAt: "2026-09-20T11:00:00.000Z",
+    });
+    assert.equal(r.ok, true);
+    if (r.ok) {
+      assert.equal(r.data.pausedAt, null);
+      assert.equal(r.data.startedAt?.toISOString(), "2026-09-20T10:00:00.000Z");
+      assert.equal(r.data.endedAt?.toISOString(), "2026-09-20T11:00:00.000Z");
+    }
+  });
+
+  it("rejects end before start", () => {
+    const r = normalizeSessionClockTimes({
+      startedAt: "2026-09-20T11:00:00.000Z",
+      endedAt: "2026-09-20T10:00:00.000Z",
+    });
+    assert.equal(r.ok, false);
   });
 });
 

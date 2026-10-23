@@ -118,6 +118,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       progressRate?: unknown;
       /** start | pause | resume | finish — live session clock */
       clock?: "start" | "pause" | "resume" | "finish";
+      /** Manual wall-clock edit (ISO). Prefer over `clock` when both sent. */
+      startedAt?: string | null;
+      endedAt?: string | null;
+      pausedMs?: number;
     };
 
     const data: {
@@ -147,7 +151,27 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       data.progressRate = parseProgressRate(body.progressRate);
     }
 
-    if (body.clock === "start") {
+    const wantsTimeEdit =
+      body.startedAt !== undefined || body.endedAt !== undefined;
+    if (wantsTimeEdit) {
+      const { normalizeSessionClockTimes } = await import("@/lib/workouts/session-clock");
+      const nextStart =
+        body.startedAt !== undefined ? body.startedAt : existing.startedAt?.toISOString() ?? null;
+      const nextEnd =
+        body.endedAt !== undefined ? body.endedAt : existing.endedAt?.toISOString() ?? null;
+      const normalized = normalizeSessionClockTimes({
+        startedAt: nextStart,
+        endedAt: nextEnd,
+        pausedMs:
+          typeof body.pausedMs === "number" && Number.isFinite(body.pausedMs)
+            ? body.pausedMs
+            : 0,
+      });
+      if (!normalized.ok) {
+        return NextResponse.json({ error: normalized.error }, { status: 400 });
+      }
+      Object.assign(data, normalized.data);
+    } else if (body.clock === "start") {
       data.startedAt = existing.startedAt ?? new Date();
       data.endedAt = null;
       data.pausedAt = null;

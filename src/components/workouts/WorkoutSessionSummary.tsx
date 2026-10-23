@@ -369,11 +369,9 @@ export function WorkoutSessionSummary({
           ? { label: "К рациону", onClick: onGoToRation }
           : { label: "К списку", onClick: onBackToList }
       }
-      secondaryAction={
-        onGoToRation
-          ? { label: "К списку", onClick: onBackToList }
-          : { label: "Остаться в тренировке", onClick: onClose }
-      }
+      secondaryAction={{ label: "Изменить тренировку", onClick: onClose }}
+      onDismiss={onBackToList}
+      dismissLabel="К списку"
     >
       {/* R6: equipped collection wear on finish summary */}
       <GymCollectionWear className="mb-3 [&_p]:text-white/70" />

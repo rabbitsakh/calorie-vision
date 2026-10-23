@@ -1,10 +1,12 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import {
+  dateKeyAndTimeToIso,
   formatDateShort,
   formatDateWords,
+  toTimeInputValue,
 } from "@/lib/dates";
 import {
   formatDistanceKm,
@@ -381,6 +383,8 @@ export type WorkoutActiveSessionProps = {
   addAndCompleteOnStage: () => Promise<void>;
   restPauseOnStage: () => void;
   patchClock: (action: "start" | "pause" | "resume" | "finish") => Promise<void>;
+  /** Manual start/end ISO for finished (or finishing) sessions. */
+  patchSessionTimes: (times: { startedAt: string; endedAt: string }) => Promise<void>;
   saveAsRoutine: (sessionId: string, name: string) => Promise<void>;
   deleteSession: () => Promise<void>;
   toggleExerciseHistory: (name: string, kind: ExerciseKind) => Promise<void>;
@@ -469,6 +473,7 @@ export function WorkoutActiveSession({
   addAndCompleteOnStage,
   restPauseOnStage,
   patchClock,
+  patchSessionTimes,
   saveAsRoutine,
   deleteSession,
   toggleExerciseHistory,
@@ -489,6 +494,19 @@ export function WorkoutActiveSession({
   addExercise,
   applyPasteLog,
 }: WorkoutActiveSessionProps) {
+  const [editStartTime, setEditStartTime] = useState(() =>
+    detail.startedAt ? toTimeInputValue(detail.startedAt) : "12:00",
+  );
+  const [editEndTime, setEditEndTime] = useState(() =>
+    detail.endedAt ? toTimeInputValue(detail.endedAt) : toTimeInputValue(new Date()),
+  );
+  const [timeBusy, setTimeBusy] = useState(false);
+
+  useEffect(() => {
+    if (detail.startedAt) setEditStartTime(toTimeInputValue(detail.startedAt));
+    if (detail.endedAt) setEditEndTime(toTimeInputValue(detail.endedAt));
+  }, [detail.id, detail.startedAt, detail.endedAt]);
+
   const delta = formatPct(progress?.deltaPctVsPrevious);
   const vsTarget = formatPct(progress?.deltaPctVsTarget);
   const summaryExercises = detail.exercises.map((ex) => {
@@ -754,7 +772,7 @@ export function WorkoutActiveSession({
       </details>
     </div>
 
-    {detail.date === todayKey || detail.startedAt ? (
+    {detail.date === todayKey || detail.startedAt || detail.clockStatus === "finished" ? (
       <section className="gym-plane border-[var(--border-quiet)] bg-[var(--accent-soft)]/60">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -804,13 +822,15 @@ export function WorkoutActiveSession({
               </button>
             ) : null}
             {detail.clockStatus === "finished" ? (
-              <button
-                type="button"
-                className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]"
-                onClick={() => setShowSummary(true)}
-              >
-                Итог
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]"
+                  onClick={() => setShowSummary(true)}
+                >
+                  Итог
+                </button>
+              </>
             ) : null}
             {detail.clockStatus === "running" ? (
               <button
@@ -854,6 +874,60 @@ export function WorkoutActiveSession({
             clearRest={clearRest}
             options={restOptions}
           />
+        ) : null}
+        {detail.clockStatus === "finished" ? (
+          <div className="mt-3 border-t border-[var(--border-quiet)] pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Время тренировки
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Подходы ниже можно править в любой момент — здесь только часы.
+            </p>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <label className="text-xs font-medium text-[var(--muted-strong)]">
+                Начало
+                <input
+                  type="time"
+                  value={editStartTime}
+                  disabled={busy || timeBusy}
+                  onChange={(e) => setEditStartTime(e.target.value)}
+                  className="mt-1 block rounded-lg border border-[var(--border-quiet)] bg-white px-2 py-1.5 text-sm tabular-nums text-[var(--foreground)]"
+                />
+              </label>
+              <label className="text-xs font-medium text-[var(--muted-strong)]">
+                Конец
+                <input
+                  type="time"
+                  value={editEndTime}
+                  disabled={busy || timeBusy}
+                  onChange={(e) => setEditEndTime(e.target.value)}
+                  className="mt-1 block rounded-lg border border-[var(--border-quiet)] bg-white px-2 py-1.5 text-sm tabular-nums text-[var(--foreground)]"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={busy || timeBusy}
+                className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                onClick={() => {
+                  const startIso = dateKeyAndTimeToIso(detail.date, editStartTime);
+                  let endIso = dateKeyAndTimeToIso(detail.date, editEndTime);
+                  if (!startIso || !endIso) return;
+                  // Overnight finish (e.g. 23:30 → 00:45).
+                  if (new Date(endIso).getTime() < new Date(startIso).getTime()) {
+                    endIso = new Date(
+                      new Date(endIso).getTime() + 24 * 60 * 60 * 1000,
+                    ).toISOString();
+                  }
+                  setTimeBusy(true);
+                  void patchSessionTimes({ startedAt: startIso, endedAt: endIso }).finally(() =>
+                    setTimeBusy(false),
+                  );
+                }}
+              >
+                {timeBusy ? "…" : "Сохранить время"}
+              </button>
+            </div>
+          </div>
         ) : null}
       </section>
     ) : null}

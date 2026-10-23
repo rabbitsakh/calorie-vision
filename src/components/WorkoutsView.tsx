@@ -869,6 +869,47 @@ export function WorkoutsView({
     return formatSessionClock(sec);
   }, [detail, clockTick]);
 
+  const patchSessionTimes = async (times: { startedAt: string; endedAt: string }) => {
+    if (!detail) return;
+    setError(null);
+    if (isLocalSessionId(detail.id)) {
+      updateLocalWorkoutSession(detail.id, {
+        clockStatus: "finished",
+        startedAt: times.startedAt,
+        endedAt: times.endedAt,
+        pausedAt: null,
+        pausedMs: 0,
+      });
+      setDetail({
+        ...detail,
+        clockStatus: "finished",
+        startedAt: times.startedAt,
+        endedAt: times.endedAt,
+        pausedAt: null,
+        pausedMs: 0,
+      });
+      return;
+    }
+    try {
+      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        await fetch(withBasePath(`/api/workouts/${detail.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            startedAt: times.startedAt,
+            endedAt: times.endedAt,
+            pausedMs: 0,
+          }),
+        }),
+      );
+      setDetail(data.session);
+      setProgress(data.progress);
+      void loadList();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сохранить время");
+    }
+  };
+
   const patchClock = async (clock: "start" | "pause" | "resume" | "finish") => {
     if (!detail) return;
     setError(null);
@@ -2321,6 +2362,7 @@ export function WorkoutsView({
         addAndCompleteOnStage={addAndCompleteOnStage}
         restPauseOnStage={restPauseOnStage}
         patchClock={patchClock}
+        patchSessionTimes={patchSessionTimes}
         saveAsRoutine={saveAsRoutine}
         deleteSession={deleteSession}
         toggleExerciseHistory={toggleExerciseHistory}
@@ -2467,7 +2509,7 @@ export function WorkoutsView({
               clockStatus: s.clockStatus,
               elapsedLabel: s.elapsedLabel,
             }))}
-          onOpenSession={(id) => {
+          onOpenSession={(id, opts) => {
             void (async () => {
               const s = sessions.find((x) => x.id === id);
               // Resume live logger only for an in-progress clock.
@@ -2476,7 +2518,10 @@ export function WorkoutsView({
                 return;
               }
               await openSession(id);
-              if (s?.clockStatus === "finished") setShowSummary(true);
+              if (s?.clockStatus === "finished") {
+                // Итог → overlay; Изменить → editor (summary: false).
+                setShowSummary(opts?.summary ?? true);
+              }
             })();
           }}
           onStartBlank={() => {
@@ -2564,12 +2609,14 @@ export function WorkoutsView({
             )
           }
           onFlushQueue={() => void flushQueuedSets()}
-          onOpenSession={(id) => {
+          onOpenSession={(id, opts) => {
             void (async () => {
               const s = sessions.find((x) => x.id === id);
               await openSession(id);
-              // Finished sessions open the summary so PR lines stay visible (Wave V).
-              if (s?.clockStatus === "finished") setShowSummary(true);
+              if (s?.clockStatus === "finished") {
+                // History row → editor by default; pass summary:true for overlay.
+                setShowSummary(opts?.summary ?? false);
+              }
             })();
           }}
           onRepeat={(id) => void repeatSession(id)}
