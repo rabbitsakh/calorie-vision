@@ -79,7 +79,8 @@ type Props = {
   onToggleCardio: () => void;
   onToggleGroup: (key: MuscleGroupKey) => void;
   onFlushQueue: () => void;
-  onOpenSession: (id: string) => void;
+  /** Finished sessions: pass `summary: true` for overlay, else open editor. */
+  onOpenSession: (id: string, opts?: { summary?: boolean }) => void;
   onRepeat: (id: string) => void;
   onSaveAsRoutine: (id: string, name: string) => void;
 };

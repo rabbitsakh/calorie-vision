@@ -60,6 +60,61 @@ export function sessionClockStatus(clock: SessionClock): ClockStatus {
   return "running";
 }
 
+/** Parse ISO / Date to a valid Date, or null. */
+export function parseClockInstant(raw: unknown): Date | null {
+  if (raw == null) return null;
+  if (raw instanceof Date) {
+    return Number.isFinite(raw.getTime()) ? raw : null;
+  }
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const d = new Date(raw.trim());
+  return Number.isFinite(d.getTime()) ? d : null;
+}
+
+export type ClockTimesPatch = {
+  startedAt?: Date | null;
+  endedAt?: Date | null;
+  /** Cleared when manually setting finished times (pause no longer applies). */
+  pausedAt?: null;
+  pausedMs?: number;
+};
+
+/**
+ * Validate / normalize manual start/end edits for a finished (or finishing) session.
+ * Both must be finite; endedAt >= startedAt; span ≤ 24h.
+ */
+export function normalizeSessionClockTimes(opts: {
+  startedAt: unknown;
+  endedAt: unknown;
+  /** Keep accumulated pause when only shifting wall-clock (default 0 on manual edit). */
+  pausedMs?: number;
+}): { ok: true; data: ClockTimesPatch } | { ok: false; error: string } {
+  const startedAt = parseClockInstant(opts.startedAt);
+  const endedAt = parseClockInstant(opts.endedAt);
+  if (!startedAt) {
+    return { ok: false, error: "Укажите время начала" };
+  }
+  if (!endedAt) {
+    return { ok: false, error: "Укажите время окончания" };
+  }
+  if (endedAt.getTime() < startedAt.getTime()) {
+    return { ok: false, error: "Окончание не может быть раньше начала" };
+  }
+  const spanMs = endedAt.getTime() - startedAt.getTime();
+  if (spanMs > 24 * 60 * 60 * 1000) {
+    return { ok: false, error: "Тренировка дольше 24 часов — проверьте время" };
+  }
+  return {
+    ok: true,
+    data: {
+      startedAt,
+      endedAt,
+      pausedAt: null,
+      pausedMs: Math.max(0, Math.floor(Number(opts.pausedMs) || 0)),
+    },
+  };
+}
+
 /** Apply pause: freeze clock, accumulate nothing yet (pausedMs updated on resume). */
 export function applyPause(
   clock: SessionClock,

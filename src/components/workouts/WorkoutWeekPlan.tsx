@@ -91,7 +91,8 @@ type Props = {
   routinesFallback?: SerializedRoutine[];
   /** Open the week fold (e.g. after saving a template). */
   preferWeekOpen?: boolean;
-  onOpenSession: (id: string) => void;
+  /** `summary: true` opens finish overlay; omit/false opens editable session. */
+  onOpenSession: (id: string, opts?: { summary?: boolean }) => void;
   onStartBlank: () => void;
   onRepeatLast?: (sessionId: string) => void;
   onStartRoutine: (routineId: string) => void;
@@ -616,13 +617,22 @@ export function WorkoutWeekPlan({
                     </p>
                     <p className="text-xs text-[var(--muted)]">{sessionMetric(s)}</p>
                   </div>
-                  <button
-                    type="button"
-                    className="shrink-0 text-sm font-semibold text-[var(--accent-ink)]"
-                    onClick={() => onOpenSession(s.id)}
-                  >
-                    Итог
-                  </button>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-[var(--accent-ink)]"
+                      onClick={() => onOpenSession(s.id, { summary: true })}
+                    >
+                      Итог
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                      onClick={() => onOpenSession(s.id, { summary: false })}
+                    >
+                      Изменить
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
