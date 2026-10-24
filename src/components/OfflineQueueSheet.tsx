@@ -69,6 +69,7 @@ const ASSISTANT_APPLY_LABEL: Record<AssistantApplyKind, string> = {
   routine: "AI · план зала",
   shopping: "AI · покупки",
   start: "AI · старт",
+  repeat: "AI · повтор зала",
   water: "AI · вода",
   weight: "AI · вес",
   deleteMeals: "AI · удаление",

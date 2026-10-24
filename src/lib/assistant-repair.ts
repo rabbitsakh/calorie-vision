@@ -7,7 +7,11 @@ import {
   normalizeAssistantActions,
   type AssistantActions,
 } from "@/lib/admin-assistant";
-import { userWantsWrite, userWantsStartWorkout } from "@/lib/assistant-intent";
+import {
+  userWantsWrite,
+  userWantsStartWorkout,
+  userWantsRepeatWorkout,
+} from "@/lib/assistant-intent";
 import {
   extractMealSlotMoveFromMessage,
   extractMealTimeFromMessage,
@@ -59,7 +63,8 @@ export function actionsHaveWritablePayload(actions: AssistantActions | null | un
       actions.shopping?.length ||
       actions.waterMl != null ||
       actions.weightKg != null ||
-      actions.startWorkout,
+      actions.startWorkout ||
+      actions.repeatWorkout,
   );
 }
 
@@ -67,8 +72,36 @@ export function needsWriteRepair(
   userMessage: string,
   actions: AssistantActions | null | undefined,
 ): boolean {
-  if (!userWantsWrite(userMessage) && !userWantsStartWorkout(userMessage)) return false;
+  if (
+    !userWantsWrite(userMessage) &&
+    !userWantsStartWorkout(userMessage) &&
+    !userWantsRepeatWorkout(userMessage)
+  ) {
+    return false;
+  }
   return !actionsHaveWritablePayload(actions);
+}
+
+/** Offline: «повтори вчерашний зал» / «повтори последнюю тренировку». */
+export function heuristicRepairRepeatWorkoutActions(
+  userMessage: string,
+): AssistantActions | null {
+  if (!userWantsRepeatWorkout(userMessage)) return null;
+  const text = userMessage.trim().toLowerCase().replace(/ё/g, "е");
+  // Explicit «на сегодня/вчера» wins; «вчерашний зал» alone → clone onto сегодня.
+  const onDay = /(?:на|к)\s+(сегодня|вчера|завтра|позавчера)/i.exec(text);
+  let targetDate = "сегодня";
+  if (onDay?.[1]) {
+    targetDate = onDay[1];
+  } else if (!/вчерашн/i.test(text)) {
+    targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+  }
+  return {
+    apply: true,
+    targetDate,
+    repeatWorkout: true,
+    summary: `повторить последнюю → ${targetDate} — подтверди`,
+  };
 }
 
 /**
@@ -84,7 +117,11 @@ export function assistantWroteFlag(opts: {
 }): boolean | null {
   if (opts.wroteOk) return true;
   if (actionsHaveWritablePayload(opts.actions)) return null;
-  if (userWantsWrite(opts.userMessage) || userWantsStartWorkout(opts.userMessage)) {
+  if (
+    userWantsWrite(opts.userMessage) ||
+    userWantsStartWorkout(opts.userMessage) ||
+    userWantsRepeatWorkout(opts.userMessage)
+  ) {
     return false;
   }
   return null;
@@ -530,6 +567,9 @@ export async function repairAssistantWriteActions(opts: {
   const portion = heuristicRepairPortionPatchActions(opts.userMessage);
   if (portion) return portion;
 
+  const repeat = heuristicRepairRepeatWorkoutActions(opts.userMessage);
+  if (repeat) return repeat;
+
   const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
   if (multi) return multi;
 
@@ -540,12 +580,14 @@ export async function repairAssistantWriteActions(opts: {
     "Ты извлекаешь действия записи для Calorie Vision.",
     "Верни ТОЛЬКО один JSON-объект (без markdown и без текста вокруг).",
     'Обязательно: "apply": true если есть что записать.',
-    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,toMealType,time,portionGrams,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, targetDate, summary.',
+    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,toMealType,time,portionGrams,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, repeatWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
     "«Исправь завтрак на 6:30» → patchMeals:[{match:\"завтрак\",mealType:\"BREAKFAST\",time:\"06:30\"}] (один объект на весь слот).",
     "«Удали ужин» → deleteMeals:[{match:\"ужин\",mealType:\"DINNER\"}].",
     "«Перенеси обед в ужин» → patchMeals:[{match:\"обед\",mealType:\"LUNCH\",toMealType:\"DINNER\"}].",
     "«Сделай омлет 200 г» → patchMeals:[{match:\"омлет\",portionGrams:200}].",
+    "«Повтори вчерашний зал» / «повтори последнюю» → repeatWorkout:true, targetDate сегодня (или как сказал).",
+    "«Начни тренировку» → startWorkout:true.",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",

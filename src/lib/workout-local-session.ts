@@ -148,6 +148,7 @@ export function updateLocalWorkoutSession(
   patch: Partial<
     Pick<
       LocalWorkoutSession,
+      | "date"
       | "exercises"
       | "clockStatus"
       | "startedAt"

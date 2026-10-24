@@ -41,7 +41,11 @@ import {
   parseWeekdays,
   WEEKDAY_LABELS_RU,
 } from "@/lib/workouts/weekdays";
-import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
+import {
+  userWantsRepeatWorkout,
+  userWantsStartWorkout,
+  userWantsWrite,
+} from "@/lib/assistant-intent";
 
 export { resolveAssistantDate, weekdayIndexFromLabel };
 
@@ -59,7 +63,7 @@ export type AssistantUndoPayload = {
   weightIds: string[];
 };
 
-export { userWantsStartWorkout, userWantsWrite };
+export { userWantsRepeatWorkout, userWantsStartWorkout, userWantsWrite };
 
 function mealTypeFromNote(
   note?: string,
@@ -627,7 +631,8 @@ export async function toolStartTodaysRoutine(opts: {
     return {
       ok: false,
       tool: "start_routine",
-      message: `На ${WEEKDAY_LABELS_RU[weekday]} в плане нет тренировки`,
+      message: `На ${WEEKDAY_LABELS_RU[weekday]} в плане нет тренировки. Можно «повторить последнюю» или открыть зал и начать пустую.`,
+      data: { suggestRepeat: true },
     };
   }
   if (!routine.muscles.length || !routine.exercises.length) {
@@ -699,6 +704,120 @@ export async function toolStartTodaysRoutine(opts: {
     tool: "start_routine",
     message: `Стартовал «${routine.name}» на ${opts.date}`,
     data: { sessionId: session.id, routineId: routine.id, name: routine.name },
+  };
+}
+
+/**
+ * Clone the most recent finished session (exercises + sets) onto `date`.
+ * Optional `sourceDate` prefers a finished session on that calendar day.
+ */
+export async function toolRepeatLastWorkout(opts: {
+  userId: string;
+  date: string;
+  sourceDate?: string | null;
+  copySets?: boolean;
+}): Promise<AssistantToolResult> {
+  const copySets = opts.copySets !== false;
+  const source = await prisma.workoutSession.findFirst({
+    where: {
+      userId: opts.userId,
+      endedAt: { not: null },
+      ...(opts.sourceDate ? { date: opts.sourceDate } : {}),
+    },
+    include: sessionInclude,
+    orderBy: [{ date: "desc" }, { endedAt: "desc" }, { createdAt: "desc" }],
+  });
+  if (!source) {
+    return {
+      ok: false,
+      tool: "repeat_workout",
+      message: opts.sourceDate
+        ? `Нет тренировки за ${opts.sourceDate} для повтора`
+        : "Нет завершённой тренировки для повтора",
+    };
+  }
+  const muscleKeys = source.muscles.map((m) => m.groupKey);
+  if (!muscleKeys.length) {
+    return {
+      ok: false,
+      tool: "repeat_workout",
+      message: "У исходной тренировки нет групп мышц",
+    };
+  }
+
+  const created = await prisma.$transaction(async (tx) => {
+    const row = await tx.workoutSession.create({
+      data: {
+        userId: opts.userId,
+        date: opts.date,
+        progressRate: source.progressRate ?? DEFAULT_PROGRESS_RATE,
+        note: source.note,
+        startedAt: new Date(),
+        muscles: { create: muscleKeys.map((groupKey) => ({ groupKey })) },
+      },
+    });
+    const exercises = [...source.exercises].sort(
+      (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+    );
+    for (const [i, ex] of exercises.entries()) {
+      const createdEx = await tx.workoutExercise.create({
+        data: {
+          sessionId: row.id,
+          name: ex.name,
+          kind: ex.kind ?? "strength",
+          muscleGroup: ex.muscleGroup,
+          note: ex.note,
+          sortOrder: i,
+        },
+      });
+      if (copySets) {
+        const sets = [...ex.sets].sort(
+          (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+        );
+        if (sets.length) {
+          await tx.workoutSet.createMany({
+            data: sets.map((s, j) => ({
+              exerciseId: createdEx.id,
+              weightKg: s.weightKg,
+              reps: s.reps,
+              distanceKm: s.distanceKm,
+              durationSec: s.durationSec,
+              setType: s.setType ?? "working",
+              completed: false,
+              rpe: s.rpe,
+              sortOrder: j,
+            })),
+          });
+        }
+      }
+    }
+    await touchExerciseLibraryMany(
+      tx,
+      opts.userId,
+      exercises.map((ex) => ({
+        name: ex.name,
+        kind: ex.kind,
+        muscleGroup: ex.muscleGroup,
+      })),
+    );
+    return tx.workoutSession.findUniqueOrThrow({
+      where: { id: row.id },
+      include: sessionInclude,
+    });
+  });
+
+  const session = serializeSessionDetail(created);
+  const muscles = source.muscles.map((m) => m.groupKey).join(", ");
+  return {
+    ok: true,
+    tool: "repeat_workout",
+    message: `Повторил тренировку ${source.date}${muscles ? ` (${muscles})` : ""} → ${opts.date}`,
+    data: {
+      sessionId: session.id,
+      sourceId: source.id,
+      sourceDate: source.date,
+      date: opts.date,
+    },
   };
 }
 
@@ -954,6 +1073,7 @@ export type ExecutableActions = AssistantActions & {
   waterMl?: number;
   weightKg?: number;
   startWorkout?: boolean;
+  repeatWorkout?: boolean;
 };
 
 export function shouldAutoApply(
@@ -962,7 +1082,11 @@ export function shouldAutoApply(
 ): boolean {
   if (!actions) return false;
   if (actions.apply === true) return true;
-  if (!userWantsWrite(lastUserMessage) && !userWantsStartWorkout(lastUserMessage)) {
+  if (
+    !userWantsWrite(lastUserMessage) &&
+    !userWantsStartWorkout(lastUserMessage) &&
+    !userWantsRepeatWorkout(lastUserMessage)
+  ) {
     return false;
   }
   return Boolean(
@@ -974,7 +1098,9 @@ export function shouldAutoApply(
       actions.waterMl != null ||
       actions.weightKg != null ||
       actions.startWorkout ||
-      userWantsStartWorkout(lastUserMessage),
+      actions.repeatWorkout ||
+      userWantsStartWorkout(lastUserMessage) ||
+      userWantsRepeatWorkout(lastUserMessage),
   );
 }
 

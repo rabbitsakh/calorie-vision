@@ -58,6 +58,11 @@ export type AssistantActions = {
   overwriteWeight?: boolean;
   /** Start today's planned routine as a live session. */
   startWorkout?: boolean;
+  /**
+   * Clone last finished workout (sets included) onto targetDate.
+   * «Повтори вчерашний зал» / «повтори последнюю тренировку».
+   */
+  repeatWorkout?: boolean;
 };
 
 export function parseAssistantMode(raw: unknown): AssistantMode {
@@ -157,8 +162,10 @@ export function buildAssistantSystemPrompt(
     "Несколько блюд в одном сообщении = несколько meals[] (пюре + котлета + пиво → 3 объекта, не только напиток).",
     "workoutDays.day = Пн/Вт/… или сегодня/завтра.",
     "План зала (workoutDays): в notes — реальные упражнения через запятую («Жим лёжа, Разводка»). Не пиши «добавил в план» — подтвердят кнопкой «В план зала».",
+    "Старт по плану на день: startWorkout:true (targetDate сегодня/завтра).",
+    "Повторить последнюю завершённую: repeatWorkout:true + targetDate (сегодня/вчера). Копирует упражнения и подходы.",
     "Блюда (meals) и вода (waterMl): не пиши «добавил» / «записал» — пользователь подтвердит «В дневник» / «В воду».",
-    "Покупки (shopping) и старт (startWorkout): тоже только после подтверждения.",
+    "Покупки (shopping), старт и повтор зала: тоже только после подтверждения.",
     "weightKg, deleteMeals, patchMeals, targetDate.",
     "",
     "Пример (обязательный хвост при записи):",
@@ -184,6 +191,13 @@ export function buildAssistantSystemPrompt(
     "Пример плана зала (клиент покажет CTA):",
     "```cv-actions",
     '{"apply":true,"workoutDays":[{"day":"Пн","focus":"Грудь","notes":"Жим лёжа, Разводка гантелей, Отжимания"},{"day":"Ср","focus":"Спина","notes":"Тяга верхнего блока, Подтягивания"}],"summary":"план на 2 дня — подтверди"}',
+    "```",
+    "Пример старта / повтора зала:",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","startWorkout":true,"summary":"старт по плану — подтверди"}',
+    "```",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","repeatWorkout":true,"summary":"повторить последнюю — подтверди"}',
     "```",
     "",
     "=== Данные пользователя ===",
@@ -338,6 +352,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
   }
   if (obj.overwriteWeight === true) out.overwriteWeight = true;
   if (obj.startWorkout === true) out.startWorkout = true;
+  if (obj.repeatWorkout === true) out.repeatWorkout = true;
 
   if (Array.isArray(obj.deleteMeals)) {
     const deleteMeals: NonNullable<AssistantActions["deleteMeals"]> = [];

@@ -179,6 +179,16 @@ test("normalizeAssistantActions keeps apply and targetDate", () => {
   assert.equal(ok?.targetDate, "завтра");
 });
 
+test("normalizeAssistantActions keeps repeatWorkout", () => {
+  const ok = normalizeAssistantActions({
+    apply: true,
+    targetDate: "сегодня",
+    repeatWorkout: true,
+  });
+  assert.equal(ok?.repeatWorkout, true);
+  assert.equal(ok?.startWorkout, undefined);
+});
+
 test("buildAssistantSystemPrompt includes mode + fence + prefs", () => {
   const prompt = buildAssistantSystemPrompt("Вес: 80 кг.", "food", "Не предлагает: творог");
   assert.match(prompt, /Фокус на питании/);

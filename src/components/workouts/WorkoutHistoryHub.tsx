@@ -30,6 +30,8 @@ export type HistorySessionRow = {
   note?: string | null;
   /** Exercises that set a new PR in this session (Wave V). */
   prCount?: number;
+  clockStatus?: "idle" | "running" | "paused" | "finished" | null;
+  elapsedLabel?: string | null;
 };
 
 export type HistoryInsights = {
@@ -379,11 +381,20 @@ export function WorkoutHistoryHub({
             <button
               type="button"
               className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--surface-mist)]"
-              onClick={() => onOpenSession(s.id)}
+              onClick={() => onOpenSession(s.id, { summary: false })}
             >
               <div className="min-w-0">
                 <p className="font-semibold text-[var(--foreground)]">
                   {formatDateWords(s.date)}
+                  {s.clockStatus === "finished" ? (
+                    <span className="ml-2 inline-flex rounded-md bg-[var(--surface-mist)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted-strong)]">
+                      итог{s.elapsedLabel ? ` · ${s.elapsedLabel}` : ""}
+                    </span>
+                  ) : s.clockStatus === "running" || s.clockStatus === "paused" ? (
+                    <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
+                      {s.clockStatus === "paused" ? "пауза" : "идёт"}
+                    </span>
+                  ) : null}
                   {(s.prCount ?? 0) > 0 ? (
                     <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
                       {s.prCount === 1 ? "1 PR" : `${s.prCount} PR`}
@@ -404,6 +415,15 @@ export function WorkoutHistoryHub({
                   : formatWorkoutLoad(s.totalLoad)}
               </p>
             </button>
+            {s.clockStatus === "finished" ? (
+              <button
+                type="button"
+                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
+                onClick={() => onOpenSession(s.id, { summary: true })}
+              >
+                Итог
+              </button>
+            ) : null}
             <button
               type="button"
               disabled={busy}

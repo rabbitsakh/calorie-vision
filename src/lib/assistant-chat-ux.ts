@@ -77,6 +77,6 @@ export const ASSISTANT_ONBOARD_KEY = "cv-assistant-onboarded";
 export const ASSISTANT_ONBOARD_STARTERS = [
   { label: "Рацион на сегодня", text: "Запиши обед: курица с рисом ~500 ккал" },
   { label: "План зала", text: "Составь план на завтра и добавь в план" },
-  { label: "Неделя", text: "Составь неделю: рацион + 3 тренировки" },
+  { label: "Повторить зал", text: "Повтори последнюю тренировку на сегодня" },
   { label: "Фото", text: "Кинь фото еды — распознаю и покажу перед записью" },
 ];

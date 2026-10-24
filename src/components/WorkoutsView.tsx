@@ -6,6 +6,7 @@ import {
   formatDateShort,
   formatDateWords,
   mondayOfWeek,
+  requireDateKey,
   shiftDateKey,
   shiftYearMonth,
 } from "@/lib/dates";
@@ -2131,12 +2132,58 @@ export function WorkoutsView({
     }
   };
 
+  const patchSessionDate = async (nextDate: string) => {
+    if (!detail) return;
+    const date = requireDateKey(nextDate);
+    if (!date) {
+      setError("Некорректная дата");
+      return;
+    }
+    setError(null);
+    if (isLocalSessionId(detail.id)) {
+      updateLocalWorkoutSession(detail.id, { date });
+      setDetail({ ...detail, date });
+      void loadList();
+      return;
+    }
+    try {
+      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+        await fetch(withBasePath(`/api/workouts/${detail.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date }),
+        }),
+      );
+      setDetail(data.session);
+      setProgress(data.progress);
+      void loadList();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось сменить дату");
+    }
+  };
+
   const applyLastSet = (exerciseId: string, set: HistorySet, kind: ExerciseKind) => {
     setSetDrafts((prev) => ({
       ...prev,
       [exerciseId]: draftFromHistorySet(set, kind),
     }));
     clearDraftError(exerciseId);
+  };
+
+  const applyAllLastSets = () => {
+    if (!detail) return;
+    setSetDrafts((prev) => {
+      const next = { ...prev };
+      for (const ex of detail.exercises) {
+        const last = ex.lastTime?.sets?.[0];
+        if (!last) continue;
+        next[ex.id] = draftFromHistorySet(last, ex.kind);
+      }
+      return next;
+    });
+    for (const ex of detail.exercises) {
+      if (ex.lastTime?.sets?.[0]) clearDraftError(ex.id);
+    }
   };
 
   const toggleExerciseHistory = async (name: string, kind: ExerciseKind) => {
@@ -2363,6 +2410,8 @@ export function WorkoutsView({
         restPauseOnStage={restPauseOnStage}
         patchClock={patchClock}
         patchSessionTimes={patchSessionTimes}
+        patchSessionDate={patchSessionDate}
+        applyAllLastSets={applyAllLastSets}
         saveAsRoutine={saveAsRoutine}
         deleteSession={deleteSession}
         toggleExerciseHistory={toggleExerciseHistory}

@@ -60,6 +60,18 @@ test("Assistant K: shopping and start kinds enqueue", () => {
   assert.deepEqual(kinds, ["shopping", "start"]);
 });
 
+test("repeat kind enqueues", () => {
+  store.clear();
+  clearAssistantApplyQueue();
+  enqueueAssistantApply("repeat", {
+    kind: "repeat",
+    date: "2026-10-14",
+    actions: { repeatWorkout: true },
+  });
+  assert.equal(countAssistantApplyQueue(), 1);
+  assert.equal(listAssistantApplyQueue()[0]?.kind, "repeat");
+});
+
 test("Assistant L: water kind enqueues", () => {
   store.clear();
   clearAssistantApplyQueue();
