@@ -195,7 +195,7 @@ export function WorkoutRestTimerBanner({
   if (!restEndsAt || !Number.isFinite(restEndsAt)) return null;
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <div className="pointer-events-auto flex w-full max-w-lg items-center justify-between gap-3 rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 shadow-lg">
+      <div className="pointer-events-auto flex w-full max-w-lg items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">Отдых</p>
           <p className="text-3xl font-semibold tabular-nums text-[var(--foreground)]">

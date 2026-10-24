@@ -53,7 +53,7 @@ export function WorkoutCreateSessionPanel({
   return (
     <section
       ref={formRef}
-      className="gym-plane rounded-2xl border border-[var(--border-quiet)] p-4"
+      className="gym-plane"
     >
       <h2 className="font-semibold text-[var(--foreground)]">Новая тренировка</h2>
       {fromPlusMenu ? (

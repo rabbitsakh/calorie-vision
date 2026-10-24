@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.12",
+    "date": "2026-10-24",
+    "summary": "design: D26–D28 — confirm flat, gym planes, one nudge",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Confirm/FoodAdd без второго shadow; sticky actions на wash"
+      },
+      {
+        "kind": "improvement",
+        "text": "Зал: library/create/rest/PR на gym-plane; легче CTA"
+      },
+      {
+        "kind": "improvement",
+        "text": "Рацион: один tip и один install-nudge за раз"
+      }
+    ]
+  },
+  {
     "version": "3.0.11",
     "date": "2026-10-24",
     "summary": "landing: D23–D25 — ритм, без конкурентов, один install",

@@ -108,7 +108,7 @@ export function WorkoutLibraryPanel({ onPick }: Props) {
         onChange={(e) => setQ(e.target.value)}
       />
 
-      <section className="rounded-2xl border border-dashed border-[var(--border-quiet)] p-4">
+      <section className="gym-plane border-dashed">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Добавить в библиотеку
         </p>

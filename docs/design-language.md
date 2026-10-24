@@ -51,3 +51,6 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Landing rhythm (Wave D23): below-fold = stats → how → recognition → trust → inside (≤5 features) → install → FAQ — no pulse/audience/free catalog stack.
 - No competitor names (Wave D24): differentiate without CalZen/FatSecret (or other brand) headlines; soft “не ручной справочник” in trust/how.
 - One install path (Wave D25): RuStore → APK → iPhone only under `#install`; nav/footer/FAQ link there, no duplicate badges above.
+- Confirm sheet (Wave D26): FoodAdd sheet owns elevation; `.confirm-family` / sticky actions flat inside sheet; standalone confirm is hairline plane (no teal shadow stack).
+- Gym planes (Wave D27): library/create/add-exercise/PR toast/rest dock use `.gym-plane` or quiet chrome — no `rounded-2xl` + heavy shadow cascade on scene CTAs.
+- First-hour nudges (Wave D28): tips and install prompts each use one `MotivationQueue` slot (aha with tip/referral; share → PWA → push).
