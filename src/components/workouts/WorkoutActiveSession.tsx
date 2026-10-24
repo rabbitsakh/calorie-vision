@@ -387,8 +387,8 @@ export type WorkoutActiveSessionProps = {
   patchSessionTimes: (times: { startedAt: string; endedAt: string }) => Promise<void>;
   /** Move session to another calendar day (backdate / forward). */
   patchSessionDate: (date: string) => Promise<void>;
-  /** Prefill every exercise draft from lastTime sets (first set each). */
-  applyAllLastSets: () => void;
+  /** Copy every lastTime set into the live session (one addSet per historical set). */
+  applyAllLastSets: () => void | Promise<void>;
   saveAsRoutine: (sessionId: string, name: string) => Promise<void>;
   deleteSession: () => Promise<void>;
   toggleExerciseHistory: (name: string, kind: ExerciseKind) => Promise<void>;
@@ -1059,12 +1059,12 @@ export function WorkoutActiveSession({
           type="button"
           disabled={busy}
           className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
-          onClick={applyAllLastSets}
+          onClick={() => void applyAllLastSets()}
         >
           Вставить прошлые подходы
         </button>
         <p className="text-xs text-[var(--muted)]">
-          В черновики — по одному подходу на упражнение из прошлого раза
+          Все подходы прошлого раза — в текущую тренировку
         </p>
       </div>
     ) : null}

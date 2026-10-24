@@ -63,6 +63,25 @@ export type AssistantActions = {
    * «Повтори вчерашний зал» / «повтори последнюю тренировку».
    */
   repeatWorkout?: boolean;
+  /** Start a blank session (no plan) on targetDate. */
+  startEmptyWorkout?: boolean;
+  /**
+   * Edit open / finished session on targetDate:
+   * add exercises and/or log sets («добавь жим», «поставь 80×8»).
+   */
+  patchWorkout?: {
+    sessionId?: string;
+    addExercises?: Array<{
+      name: string;
+      muscleGroup?: string;
+      sets?: Array<{ weightKg?: number; reps?: number }>;
+    }>;
+    logSets?: Array<{
+      match: string;
+      weightKg?: number;
+      reps?: number;
+    }>;
+  };
 };
 
 export function parseAssistantMode(raw: unknown): AssistantMode {
@@ -163,9 +182,13 @@ export function buildAssistantSystemPrompt(
     "workoutDays.day = Пн/Вт/… или сегодня/завтра.",
     "План зала (workoutDays): в notes — реальные упражнения через запятую («Жим лёжа, Разводка»). Не пиши «добавил в план» — подтвердят кнопкой «В план зала».",
     "Старт по плану на день: startWorkout:true (targetDate сегодня/завтра).",
+    "Пустая сессия без плана: startEmptyWorkout:true.",
     "Повторить последнюю завершённую: repeatWorkout:true + targetDate (сегодня/вчера). Копирует упражнения и подходы.",
+    "Правка текущей/завершённой: patchWorkout.addExercises / patchWorkout.logSets (match = имя упражнения).",
+    "«Добавь жим лёжа» → patchWorkout:{addExercises:[{name:\"Жим лёжа\",sets:[{weightKg:60,reps:8}]}]}.",
+    "«Поставь 80×8 на жим» → patchWorkout:{logSets:[{match:\"жим\",weightKg:80,reps:8}]}.",
     "Блюда (meals) и вода (waterMl): не пиши «добавил» / «записал» — пользователь подтвердит «В дневник» / «В воду».",
-    "Покупки (shopping), старт и повтор зала: тоже только после подтверждения.",
+    "Покупки (shopping), старт, повтор и правка зала: тоже только после подтверждения.",
     "weightKg, deleteMeals, patchMeals, targetDate.",
     "",
     "Пример (обязательный хвост при записи):",
@@ -198,6 +221,12 @@ export function buildAssistantSystemPrompt(
     "```",
     "```cv-actions",
     '{"apply":true,"targetDate":"сегодня","repeatWorkout":true,"summary":"повторить последнюю — подтверди"}',
+    "```",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","startEmptyWorkout":true,"summary":"пустая тренировка — подтверди"}',
+    "```",
+    "```cv-actions",
+    '{"apply":true,"targetDate":"сегодня","patchWorkout":{"addExercises":[{"name":"Жим лёжа","sets":[{"weightKg":80,"reps":8}]}],"logSets":[]},"summary":"добавить жим — подтверди"}',
     "```",
     "",
     "=== Данные пользователя ===",
@@ -367,6 +396,81 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
   if (obj.overwriteWeight === true) out.overwriteWeight = true;
   if (obj.startWorkout === true) out.startWorkout = true;
   if (obj.repeatWorkout === true) out.repeatWorkout = true;
+  if (obj.startEmptyWorkout === true) out.startEmptyWorkout = true;
+
+  if (obj.patchWorkout && typeof obj.patchWorkout === "object") {
+    const raw = obj.patchWorkout as Record<string, unknown>;
+    const addExercises: NonNullable<
+      NonNullable<AssistantActions["patchWorkout"]>["addExercises"]
+    > = [];
+    if (Array.isArray(raw.addExercises)) {
+      for (const item of raw.addExercises.slice(0, 12)) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        const name = typeof row.name === "string" ? row.name.trim() : "";
+        if (!name) continue;
+        const sets: Array<{ weightKg?: number; reps?: number }> = [];
+        if (Array.isArray(row.sets)) {
+          for (const s of row.sets.slice(0, 12)) {
+            if (!s || typeof s !== "object") continue;
+            const sr = s as Record<string, unknown>;
+            const weightKg =
+              typeof sr.weightKg === "number" && Number.isFinite(sr.weightKg)
+                ? sr.weightKg
+                : undefined;
+            const reps =
+              typeof sr.reps === "number" && Number.isFinite(sr.reps)
+                ? Math.round(sr.reps)
+                : undefined;
+            sets.push({
+              ...(weightKg != null ? { weightKg } : {}),
+              ...(reps != null ? { reps } : {}),
+            });
+          }
+        }
+        addExercises.push({
+          name: name.slice(0, 120),
+          ...(typeof row.muscleGroup === "string" && row.muscleGroup.trim()
+            ? { muscleGroup: row.muscleGroup.trim().slice(0, 32) }
+            : {}),
+          ...(sets.length ? { sets } : {}),
+        });
+      }
+    }
+    const logSets: NonNullable<
+      NonNullable<AssistantActions["patchWorkout"]>["logSets"]
+    > = [];
+    if (Array.isArray(raw.logSets)) {
+      for (const item of raw.logSets.slice(0, 20)) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        const match = typeof row.match === "string" ? row.match.trim() : "";
+        if (!match) continue;
+        const weightKg =
+          typeof row.weightKg === "number" && Number.isFinite(row.weightKg)
+            ? row.weightKg
+            : undefined;
+        const reps =
+          typeof row.reps === "number" && Number.isFinite(row.reps)
+            ? Math.round(row.reps)
+            : undefined;
+        logSets.push({
+          match: match.slice(0, 120),
+          ...(weightKg != null ? { weightKg } : {}),
+          ...(reps != null ? { reps } : {}),
+        });
+      }
+    }
+    if (addExercises.length || logSets.length) {
+      out.patchWorkout = {
+        ...(typeof raw.sessionId === "string" && raw.sessionId.trim()
+          ? { sessionId: raw.sessionId.trim().slice(0, 64) }
+          : {}),
+        ...(addExercises.length ? { addExercises } : {}),
+        ...(logSets.length ? { logSets } : {}),
+      };
+    }
+  }
 
   if (Array.isArray(obj.deleteMeals)) {
     const deleteMeals: NonNullable<AssistantActions["deleteMeals"]> = [];

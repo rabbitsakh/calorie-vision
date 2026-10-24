@@ -8,6 +8,7 @@ import {
   resolveAssistantDate,
   shouldAutoApply,
   undoPayloadHasItems,
+  userWantsGymEdit,
   userWantsRepeatWorkout,
   userWantsStartWorkout,
   userWantsWrite,
@@ -30,6 +31,12 @@ test("userWantsRepeatWorkout", () => {
   assert.equal(userWantsRepeatWorkout("Повтори последнюю тренировку"), true);
   assert.equal(userWantsRepeatWorkout("повтори вчерашний зал"), true);
   assert.equal(userWantsRepeatWorkout("Что в плане?"), false);
+});
+
+test("userWantsGymEdit", () => {
+  assert.equal(userWantsGymEdit("Добавь жим лёжа"), true);
+  assert.equal(userWantsGymEdit("поставь 80×8 на жим"), true);
+  assert.equal(userWantsGymEdit("Повтори последнюю"), false);
 });
 
 test("resolveAssistantDate handles relative and weekday labels", () => {

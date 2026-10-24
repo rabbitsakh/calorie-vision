@@ -7,6 +7,7 @@ import {
   extractActionsJson,
   heuristicRepairMultiDishActions,
   heuristicRepairPortionPatchActions,
+  heuristicRepairPatchWorkoutActions,
   heuristicRepairRepeatWorkoutActions,
   heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
@@ -18,7 +19,11 @@ import {
   preferSlotEditActions,
   pruneNoopAssistantActions,
 } from "./assistant-repair.ts";
-import { userWantsRepeatWorkout, userWantsWrite } from "./assistant-intent.ts";
+import {
+  userWantsGymEdit,
+  userWantsRepeatWorkout,
+  userWantsWrite,
+} from "./assistant-intent.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -224,6 +229,21 @@ test("preferSlotEditActions wins for slot move", () => {
   });
   assert.equal(fixed?.patchMeals?.[0]?.toMealType, "DINNER");
   assert.equal(fixed?.meals, undefined);
+});
+
+test("userWantsGymEdit and heuristicRepairPatchWorkoutActions", () => {
+  assert.equal(userWantsGymEdit("Добавь жим лёжа"), true);
+  assert.equal(userWantsGymEdit("поставь 80×8 на жим"), true);
+  assert.equal(userWantsGymEdit("Что поесть?"), false);
+
+  const add = heuristicRepairPatchWorkoutActions("Добавь жим лёжа 80x8");
+  assert.ok(add?.patchWorkout?.addExercises?.length);
+  assert.match(add!.patchWorkout!.addExercises![0]!.name, /жим/i);
+
+  const log = heuristicRepairPatchWorkoutActions("поставь 80×8 на жим");
+  assert.ok(log?.patchWorkout?.logSets?.length);
+  assert.equal(log!.patchWorkout!.logSets![0]!.weightKg, 80);
+  assert.equal(log!.patchWorkout!.logSets![0]!.reps, 8);
 });
 
 test("userWantsRepeatWorkout and heuristicRepairRepeatWorkoutActions", () => {

@@ -198,6 +198,20 @@ test("normalizeAssistantActions keeps repeatWorkout", () => {
   assert.equal(ok?.startWorkout, undefined);
 });
 
+test("normalizeAssistantActions keeps patchWorkout and startEmpty", () => {
+  const ok = normalizeAssistantActions({
+    apply: true,
+    startEmptyWorkout: true,
+    patchWorkout: {
+      addExercises: [{ name: "Жим", sets: [{ weightKg: 80, reps: 8 }] }],
+      logSets: [{ match: "тяга", weightKg: 60, reps: 10 }],
+    },
+  });
+  assert.equal(ok?.startEmptyWorkout, true);
+  assert.equal(ok?.patchWorkout?.addExercises?.[0]?.name, "Жим");
+  assert.equal(ok?.patchWorkout?.logSets?.[0]?.match, "тяга");
+});
+
 test("buildAssistantSystemPrompt includes mode + fence + prefs", () => {
   const prompt = buildAssistantSystemPrompt("Вес: 80 кг.", "food", "Не предлагает: творог");
   assert.match(prompt, /Фокус на питании/);

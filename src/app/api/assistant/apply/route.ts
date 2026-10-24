@@ -23,7 +23,9 @@ import {
   toolPatchMeals,
   toolSaveMeals,
   toolSavePhotoDrafts,
+  toolPatchWorkout,
   toolRepeatLastWorkout,
+  toolStartEmptyWorkout,
   toolStartTodaysRoutine,
   toolUndoWrites,
   type AssistantUndoPayload,
@@ -291,6 +293,36 @@ export async function POST(request: NextRequest) {
         date: startDate,
       });
       if (!result.ok) {
+        // Soft fail: client can offer empty start / repeat without treating as hard error.
+        const soft = Boolean(
+          result.data &&
+            typeof result.data === "object" &&
+            (result.data as { suggestRepeat?: unknown }).suggestRepeat,
+        );
+        if (soft) {
+          return NextResponse.json({
+            ok: false,
+            result,
+            tools: [result],
+            suggestEmpty: true,
+            suggestRepeat: true,
+          });
+        }
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "startEmpty") {
+      const startDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolStartEmptyWorkout({
+        userId: session.user.id,
+        date: startDate,
+      });
+      if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
       return NextResponse.json({ ok: true, result, tools: [result] });
@@ -304,6 +336,26 @@ export async function POST(request: NextRequest) {
       const result = await toolRepeatLastWorkout({
         userId: session.user.id,
         date: repeatDate,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "patchWorkout") {
+      const patch = actions.patchWorkout;
+      if (!patch) {
+        return NextResponse.json({ error: "Нет правок тренировки" }, { status: 400 });
+      }
+      const patchDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolPatchWorkout({
+        userId: session.user.id,
+        date: patchDate,
+        patch,
       });
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });
