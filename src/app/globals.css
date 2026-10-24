@@ -1105,7 +1105,9 @@ select {
 
 .food-add-sheet .confirm-card-actions {
   bottom: 0;
-  box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 252, 248, 0.94);
+  box-shadow: none;
+  border-top: 1px solid var(--border-hairline);
   margin-left: -0.75rem;
   margin-right: -0.75rem;
   margin-top: 0.5rem;
@@ -1115,12 +1117,21 @@ select {
 }
 
 /* Keep skim CTAs visible on first paint after recognition (Wave 1). */
-/* D7: nested confirm is flat inside the sheet — no second card shadow. */
+/* D7/D26: nested confirm is flat inside the sheet — no second card shadow. */
 .food-add-sheet .confirm-card-section {
   padding-bottom: 0.25rem;
   box-shadow: none !important;
   border-radius: 0 !important;
   animation: none;
+}
+
+.food-add-sheet .confirm-family {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 @media (min-width: 768px) {
@@ -1726,10 +1737,10 @@ select {
   margin-bottom: 0.25rem;
   position: relative;
   z-index: 5;
-  border: none !important;
-  /* D7: quiet plane — sheet/parent owns elevation */
-  box-shadow: 0 8px 24px rgba(13, 115, 119, 0.06) !important;
-  border-radius: 1.35rem !important;
+  /* D26: hairline plane — parent/sheet owns elevation */
+  box-shadow: none !important;
+  border: 1px solid var(--border-quiet) !important;
+  border-radius: var(--radius-panel) !important;
   overflow: hidden;
   animation: ration-scene-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

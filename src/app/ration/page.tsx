@@ -450,11 +450,12 @@ function RationBody({
                   Подсказки
                 </summary>
                 <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">
+                  {/* D28: one soft tip at a time */}
                   <MotivationQueue>
                     <MotivationTip today={today} selectedDate={date} quietHide />
                     <ReferralNudge today={today} selectedDate={date} quietHide />
+                    <SevenDayAhaCard today={today} selectedDate={date} />
                   </MotivationQueue>
-                  <SevenDayAhaCard today={today} selectedDate={date} />
                 </div>
               </details>
 
@@ -464,11 +465,14 @@ function RationBody({
                 </summary>
                 <div className="flex flex-col gap-2 border-t border-[var(--border-hairline)] px-3 py-2.5">
                   {!showShareNudge ? <ShareMenu date={date} className="px-0.5" /> : null}
-                  <FirstShareNudge date={date} today={today} mealCount={mealCount} />
-                  {!isCapacitorNative() ? (
-                    <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
-                  ) : null}
-                  <PushNotificationPrompt />
+                  {/* D28: share nudge → PWA → push — one install prompt at a time */}
+                  <MotivationQueue>
+                    <FirstShareNudge date={date} today={today} mealCount={mealCount} />
+                    {!isCapacitorNative() ? (
+                      <PwaInstallOnboardingPrompt onOpenWizard={() => setPwaWizardOpen(true)} />
+                    ) : null}
+                    <PushNotificationPrompt />
+                  </MotivationQueue>
                 </div>
               </details>
             </div>
