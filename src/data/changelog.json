@@ -1,5 +1,20 @@
 [
   {
+    "version": "3.0.11",
+    "date": "2026-10-24",
+    "summary": "landing: D23–D25 — ритм, без конкурентов, один install",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Лендинг: короче ниже fold — how → showcase → trust → 5 фич → install → FAQ"
+      },
+      {
+        "kind": "improvement",
+        "text": "Без имён CalZen/FatSecret; один блок установки #install"
+      }
+    ]
+  },
+  {
     "version": "3.0.10",
     "date": "2026-10-24",
     "summary": "design: D19–D22 — рацион без дашборда, токены, лендинг, motion",

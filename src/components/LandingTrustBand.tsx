@@ -21,8 +21,8 @@ export function LandingTrustBand() {
         <p className="landing-kicker">Доверие</p>
         <h2 className="landing-section-title">Вы решаете — ИИ только предлагает</h2>
         <p className="landing-section-text landing-section-text-wide">
-          Калории по фото — оценка, не лаборатория. Поэтому каждая запись проходит через проверку,
-          а сбои сети не теряют ваш снимок.
+          Не ручной справочник: ИИ предлагает, вы решаете. Калории по фото — оценка, не лаборатория;
+          каждая запись через проверку, сбои сети не теряют снимок.
         </p>
       </div>
       <ul className="landing-trust-columns landing-stagger">
