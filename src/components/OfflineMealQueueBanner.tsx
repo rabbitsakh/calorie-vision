@@ -79,6 +79,8 @@ import { loadList } from "@/lib/shopping-list";
 import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
+import { notifyFoodSaved } from "@/lib/open-food-camera";
+import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
@@ -435,6 +437,15 @@ export function OfflineMealQueueBanner({
           }
           clearOfflineQueueFlushError(item.id);
           removeAssistantApply(item.id);
+          if (
+            item.kind === "photo" ||
+            item.kind === "meals" ||
+            item.kind === "patchMeals" ||
+            item.kind === "deleteMeals"
+          ) {
+            notifyFoodSaved();
+          }
+          if (item.kind === "water") notifyWaterLogged();
           savedAny = true;
           flushedCount += 1;
         } catch (err) {

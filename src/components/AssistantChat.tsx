@@ -41,6 +41,8 @@ import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import { resolveAssistantDate } from "@/lib/assistant-date";
 import { formatDateInput, isDateKey, requireDateKey } from "@/lib/dates";
+import { notifyFoodSaved } from "@/lib/open-food-camera";
+import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
 import type { PhotoKind } from "@/lib/food-types";
@@ -431,7 +433,11 @@ function PhotoConfirm({
         skipped?: number;
       };
       const meals = resultData.meals ?? [];
+      if (!meals.length && !resultData.partial) {
+        throw new Error(json.result.message || "Не удалось сохранить блюда");
+      }
       setDismissed(true);
+      notifyFoodSaved();
       onDone(json.result, {
         ...emptyUndo(),
         mealIds: meals.map((m) => m.id).filter(Boolean),
@@ -726,53 +732,91 @@ function ActionCard({
         error?: string;
         meals?: Array<{ id: string }>;
         routines?: Array<{ id: string }>;
+        tools?: Array<{
+          ok?: boolean;
+          tool?: string;
+          message?: string;
+          data?: {
+            meals?: Array<{ id: string }>;
+            waterId?: string;
+            weightId?: string;
+          };
+        }>;
         result?: {
           message?: string;
-          data?: { waterId?: string; weightId?: string; mealIds?: string[] };
+          data?: {
+            meals?: Array<{ id: string }>;
+            waterId?: string;
+            weightId?: string;
+            mealIds?: string[];
+          };
         };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
-      setLocalDone((prev) => ({ ...prev, [kind]: true }));
+      const toolResult =
+        data?.result ??
+        data?.tools?.find((t) => t.ok) ??
+        data?.tools?.[0] ??
+        null;
+      const mealsSaved =
+        data?.meals ??
+        toolResult?.data?.meals ??
+        [];
       if (kind === "meals") {
-        onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
+        if (!mealsSaved.length) {
+          throw new Error(toolResult?.message || data?.error || "Нет блюд для записи");
+        }
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? `В дневник: ${mealsSaved.length}`);
         onApplied({
           ...emptyUndo(),
-          mealIds: (data?.meals ?? []).map((m) => m.id).filter(Boolean),
+          mealIds: mealsSaved.map((m) => m.id).filter(Boolean),
         });
       } else if (kind === "routine") {
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
         onFlash("В план зала");
         onApplied({
           ...emptyUndo(),
           routineIds: (data?.routines ?? []).map((r) => r.id).filter(Boolean),
         });
       } else if (kind === "shopping") {
-        onFlash(data?.result?.message ?? "В покупки");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        onFlash(toolResult?.message ?? data?.result?.message ?? "В покупки");
         onApplied(emptyUndo());
       } else if (kind === "water") {
-        const waterId = data?.result?.data?.waterId;
-        onFlash(data?.result?.message ?? "Вода записана");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        const waterId = toolResult?.data?.waterId ?? data?.result?.data?.waterId;
+        notifyWaterLogged();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Вода записана");
         onApplied({
           ...emptyUndo(),
           waterIds: waterId ? [waterId] : [],
         });
       } else if (kind === "weight") {
-        const weightId = data?.result?.data?.weightId;
-        onFlash(data?.result?.message ?? "Вес записан");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        const weightId = toolResult?.data?.weightId ?? data?.result?.data?.weightId;
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Вес записан");
         onApplied({
           ...emptyUndo(),
           weightIds: weightId ? [weightId] : [],
         });
       } else if (kind === "deleteMeals") {
-        onFlash(data?.result?.message ?? "Удалил из рациона");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Удалил из рациона");
         onApplied(emptyUndo());
       } else if (kind === "patchMeals") {
-        onFlash(data?.result?.message ?? "Обновил в рационе");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Обновил в рационе");
         onApplied(emptyUndo());
       } else if (kind === "repeat") {
         onFlash(data?.result?.message ?? "Тренировка повторена");
         onApplied(emptyUndo());
       } else {
-        onFlash(data?.result?.message ?? "Тренировка начата");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
       }
       return true;
@@ -1308,10 +1352,21 @@ export function AssistantChat() {
           });
           if (!resp.ok) continue;
           removeAssistantApply(item.id);
+          if (
+            item.kind === "photo" ||
+            item.kind === "meals" ||
+            item.kind === "patchMeals" ||
+            item.kind === "deleteMeals"
+          ) {
+            notifyFoodSaved();
+          }
+          if (item.kind === "water") notifyWaterLogged();
           showFlash(
             item.kind === "photo" || item.kind === "meals"
               ? "Офлайн-очередь: добавил в рацион"
-              : "Офлайн-очередь: план зала",
+              : item.kind === "water"
+                ? "Офлайн-очередь: вода записана"
+                : "Офлайн-очередь: план зала",
           );
           void refreshSnapshot(date);
         } catch {

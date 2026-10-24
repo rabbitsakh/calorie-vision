@@ -169,6 +169,15 @@ test("normalizeAssistantActions filters junk", () => {
   assert.equal(ok?.meals?.[0]?.name, "Суп");
 });
 
+test("normalizeAssistantActions accepts calories/dishName aliases", () => {
+  const ok = normalizeAssistantActions({
+    apply: true,
+    meals: [{ dishName: "Омлет", calories: 320 }],
+  });
+  assert.equal(ok?.meals?.[0]?.name, "Омлет");
+  assert.equal(ok?.meals?.[0]?.kcal, 320);
+});
+
 test("normalizeAssistantActions keeps apply and targetDate", () => {
   const ok = normalizeAssistantActions({
     apply: true,

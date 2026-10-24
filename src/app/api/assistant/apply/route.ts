@@ -198,7 +198,13 @@ export async function POST(request: NextRequest) {
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
-      return NextResponse.json({ ok: true, ...(result.data as object), tools: [result] });
+      // Top-level meals for older clients; `result` for ActionCard flash/undo.
+      return NextResponse.json({
+        ok: true,
+        ...(result.data as object),
+        result,
+        tools: [result],
+      });
     }
 
     if (body.kind === "weight") {
