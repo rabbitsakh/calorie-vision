@@ -257,36 +257,53 @@ export function LandingPage() {
           <p className="landing-brand">Calorie Vision</p>
           <h1 className="landing-headline">Сфотографировали — калории уже в дневнике</h1>
           <p className="landing-lead">
-            Не ещё один ручной дневник вроде CalZen или FatSecret: сфотографировали тарелку или
-            этикетку — порция и КБЖУ уже в записи; штрихкод, текст и зал (подходы, прогрессия) в том
-            же приложении. Сейчас всё бесплатно, без подписки.
+            Тарелка или этикетка — порция и КБЖУ в записи. Штрихкод, текст и зал в одном приложении.
+            Сейчас бесплатно.
           </p>
           <div className="landing-cta">
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
               Начать бесплатно
             </Link>
-            {rustoreUrl ? (
-              <RustoreBadgeLink className="landing-rustore-badge--hero" />
-            ) : (
+            {!rustoreUrl ? (
               <a href="#install" className="btn btn-secondary landing-cta-primary">
                 Скачать APK
               </a>
+            ) : (
+              <a href="#install" className="landing-cta-secondary">
+                Установить на телефон
+              </a>
             )}
           </div>
-          {rustoreUrl ? (
-            <p className="landing-hero-apk-note">
-              <a href="#install">Установка на iPhone</a>
-              {" · "}
-              <a href={getApkDownloadUrl()} download>
-                APK напрямую
-              </a>
-            </p>
-          ) : null}
         </div>
       </section>
 
       <LandingScrollReveal>
         <LandingStatsStrip />
+      </LandingScrollReveal>
+
+      <LandingScrollReveal>
+        <section className="landing-section landing-vs-band" aria-label="Чем отличается">
+          <div className="landing-section-head">
+            <p className="landing-kicker">Не ручной дневник</p>
+            <h2 className="landing-section-title">Не CalZen и не FatSecret</h2>
+            <p className="landing-section-text landing-section-text-wide">
+              Без поиска продукта по справочнику: фото, штрихкод или короткое название — и запись уже
+              в рационе. Зал с подходами и прогрессией рядом, без второй подписки.
+            </p>
+          </div>
+          {rustoreUrl ? (
+            <div className="landing-cta landing-cta-row mt-4">
+              <RustoreBadgeLink />
+              <p className="landing-hero-apk-note" style={{ margin: 0 }}>
+                <a href="#install">iPhone</a>
+                {" · "}
+                <a href={apkUrl} download>
+                  APK
+                </a>
+              </p>
+            </div>
+          ) : null}
+        </section>
       </LandingScrollReveal>
 
       <LandingScrollReveal>

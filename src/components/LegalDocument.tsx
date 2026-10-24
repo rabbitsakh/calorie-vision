@@ -16,7 +16,7 @@ export function LegalDocument({ title, updated, children }: LegalDocumentProps) 
       <header className="legal-page-header mb-8">
         <Link
           href={withBasePath("/")}
-          className="inline-flex items-center gap-2 text-teal-800 no-underline hover:opacity-90"
+          className="inline-flex items-center gap-2 text-[var(--accent-ink)] no-underline hover:opacity-90"
         >
           <BrandMark size={48} decorative={false} />
           <span className="font-display text-lg font-semibold tracking-tight">Calorie Vision</span>
@@ -28,13 +28,13 @@ export function LegalDocument({ title, updated, children }: LegalDocumentProps) 
       <article className="legal-prose card p-5 md:p-8">{children}</article>
 
       <nav className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm text-[var(--muted-strong)]" aria-label="Юридические документы">
-        <Link href={withBasePath("/privacy")} className="text-teal-800 underline-offset-2 hover:underline">
+        <Link href={withBasePath("/privacy")} className="text-[var(--accent-ink)] underline-offset-2 hover:underline">
           Конфиденциальность
         </Link>
-        <Link href={withBasePath("/terms")} className="text-teal-800 underline-offset-2 hover:underline">
+        <Link href={withBasePath("/terms")} className="text-[var(--accent-ink)] underline-offset-2 hover:underline">
           Условия использования
         </Link>
-        <Link href={withBasePath("/disclaimer")} className="text-teal-800 underline-offset-2 hover:underline">
+        <Link href={withBasePath("/disclaimer")} className="text-[var(--accent-ink)] underline-offset-2 hover:underline">
           Медицинский дисклеймер
         </Link>
         <Link href={withBasePath("/")} className="text-[var(--muted)] underline-offset-2 hover:underline">

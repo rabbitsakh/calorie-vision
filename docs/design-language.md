@@ -44,3 +44,7 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Day chrome leftovers (Wave D16): next-step / diary note / shopping chip / referral / diet meters / day-calendar dots / meal photo picker / food-add tiles use accent wash — no mint hex walls or nested `.card` shadow.
 - Trust confirm + stats (Wave D17): confidence badges and calorie heatmap on `--accent*` / `--accent-water*`; carbs legend uses `--accent-carbs` (no `cyan-*` / `emerald-*` / `sky-*`).
 - Celebration + companion (Wave D18): fullscreen / soft celeb stages stay teal–amber (no purple badge stage); mascot companion drops card shadow and `teal-*` Tailwind.
+- Ration first viewport (Wave D19): day scene = date + hero + pending/offline/queue + meal feed; morning / next-step / chest sit in `.ration-day-soft` after the diary; «Ещё на сегодня» keeps habits/plan.
+- Scene tokens (Wave D20): `:root --line` aliases hairline; product UI prefers `--accent*` (no Tailwind `teal-*`); login uses `.login-panel` on `--panel-wash`; share canvases use Unbounded/Manrope; leftover violet celeb glow maps to teal.
+- Landing + auth (Wave D21): hero budget = brand + one headline + short lead + one CTA group; competitor / RuStore / APK below fold; Capacitor welcome uses product `--panel-wash`.
+- Motion (Wave D22): keep `ration-scene-in` / `meal-row-in` / landing sheen + soft-stack enter — presence, not noise.

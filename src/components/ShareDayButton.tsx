@@ -174,17 +174,17 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
   ctx.fill();
 
   ctx.fillStyle = "#ecfdf5";
-  ctx.font = "600 28px system-ui, sans-serif";
+  ctx.font = "600 28px Unbounded, Manrope, system-ui, sans-serif";
   ctx.fillText("Calorie Vision", 48, 72);
 
   ctx.fillStyle = "rgba(236,253,245,0.8)";
-  ctx.font = "500 22px system-ui, sans-serif";
+  ctx.font = "500 22px Manrope, system-ui, sans-serif";
   ctx.fillText(date, 48, 110);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 96px system-ui, sans-serif";
+  ctx.font = "700 96px Unbounded, Manrope, system-ui, sans-serif";
   ctx.fillText(String(totals.totalCalories), 48, 260);
-  ctx.font = "600 28px system-ui, sans-serif";
+  ctx.font = "600 28px Manrope, system-ui, sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   if (totals.targetCalories != null) {
     ctx.fillText(`из ${totals.targetCalories} ккал`, 48, 310);
@@ -203,10 +203,10 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
     roundRect(ctx, x, 360, 200, 110, 20);
     ctx.fill();
     ctx.fillStyle = "rgba(236,253,245,0.75)";
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px Manrope, system-ui, sans-serif";
     ctx.fillText(label, x + 18, 400);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "700 32px system-ui, sans-serif";
+    ctx.font = "700 32px Manrope, system-ui, sans-serif";
     ctx.fillText(value, x + 18, 444);
     x += 220;
   }
@@ -227,7 +227,7 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
   }
   if (fiberSugarParts.length > 0) {
     ctx.fillStyle = "rgba(236,253,245,0.85)";
-    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.font = "500 20px Manrope, system-ui, sans-serif";
     ctx.fillText(fiberSugarParts.join(" · "), 48, 510);
   }
 
@@ -237,12 +237,12 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
     roundRect(ctx, 48, streakY, 624, 100, 24);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
-    ctx.font = "700 36px system-ui, sans-serif";
+    ctx.font = "700 36px Manrope, system-ui, sans-serif";
     ctx.fillText(`Серия ${totals.streak} ${daysWord(totals.streak)}`, 72, streakY + 62);
   }
 
   ctx.fillStyle = "rgba(236,253,245,0.65)";
-  ctx.font = "500 20px system-ui, sans-serif";
+  ctx.font = "500 20px Manrope, system-ui, sans-serif";
   ctx.fillText("calorievision.ru", 48, 840);
 
   return await new Promise((resolve, reject) => {

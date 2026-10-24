@@ -133,17 +133,17 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
   ctx.fill();
 
   ctx.fillStyle = "#ecfdf5";
-  ctx.font = "600 28px system-ui, sans-serif";
+  ctx.font = "600 28px Unbounded, Manrope, system-ui, sans-serif";
   ctx.fillText("Calorie Vision", 48, 72);
 
   ctx.fillStyle = "rgba(236,253,245,0.85)";
-  ctx.font = "500 22px system-ui, sans-serif";
+  ctx.font = "500 22px Manrope, system-ui, sans-serif";
   ctx.fillText(data.weekLabel || "Неделя", 48, 110);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "700 88px system-ui, sans-serif";
+  ctx.font = "700 88px Unbounded, Manrope, system-ui, sans-serif";
   ctx.fillText(String(Math.round(data.avgCalories || 0)), 48, 250);
-  ctx.font = "600 26px system-ui, sans-serif";
+  ctx.font = "600 26px Manrope, system-ui, sans-serif";
   ctx.fillStyle = "rgba(255,255,255,0.85)";
   if (data.calorieTarget != null) {
     ctx.fillText(`ср. ккал / цель ${Math.round(data.calorieTarget)}`, 48, 300);
@@ -161,10 +161,10 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
     roundRect(ctx, x, 360, 300, 110, 20);
     ctx.fill();
     ctx.fillStyle = "rgba(236,253,245,0.75)";
-    ctx.font = "500 18px system-ui, sans-serif";
+    ctx.font = "500 18px Manrope, system-ui, sans-serif";
     ctx.fillText(label, x + 18, 400);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "700 32px system-ui, sans-serif";
+    ctx.font = "700 32px Manrope, system-ui, sans-serif";
     ctx.fillText(value, x + 18, 444);
     x += 320;
   }
@@ -182,7 +182,7 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
   }
   if (fiberSugarParts.length > 0) {
     ctx.fillStyle = "rgba(236,253,245,0.85)";
-    ctx.font = "500 20px system-ui, sans-serif";
+    ctx.font = "500 20px Manrope, system-ui, sans-serif";
     ctx.fillText(fiberSugarParts.join(" · "), 48, 510);
   }
 
@@ -191,12 +191,12 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
     roundRect(ctx, 48, fiberSugarParts.length > 0 ? 540 : 520, 624, 100, 24);
     ctx.fill();
     ctx.fillStyle = "#ffffff";
-    ctx.font = "700 36px system-ui, sans-serif";
+    ctx.font = "700 36px Manrope, system-ui, sans-serif";
     ctx.fillText(`Серия ${data.streak} дн.`, 72, fiberSugarParts.length > 0 ? 602 : 582);
   }
 
   ctx.fillStyle = "rgba(236,253,245,0.65)";
-  ctx.font = "500 20px system-ui, sans-serif";
+  ctx.font = "500 20px Manrope, system-ui, sans-serif";
   ctx.fillText("без оценок — просто спокойная неделя", 48, 780);
   ctx.fillText("calorievision.ru", 48, 840);
 
