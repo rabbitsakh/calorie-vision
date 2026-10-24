@@ -3,6 +3,7 @@ import { afterEach, test } from "node:test";
 import {
   FOOD_SAVED_EVENT,
   OPEN_FOOD_ADD_EVENT,
+  notifyFoodSaved,
   openFoodAdd,
   requestOpenFoodAddPicker,
   requestOpenFoodBarcode,
@@ -62,4 +63,16 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   assert.deepEqual(captured[5], { mode: "text" });
   assert.deepEqual(captured[6], { mode: "barcode" });
   assert.deepEqual(captured[7], { resumePending: true });
+});
+
+test("notifyFoodSaved dispatches cv-food-saved", () => {
+  let saw = false;
+  globalThis.window = {
+    dispatchEvent(event: Event) {
+      if (event.type === FOOD_SAVED_EVENT) saw = true;
+      return true;
+    },
+  } as unknown as Window & typeof globalThis;
+  notifyFoodSaved();
+  assert.equal(saw, true);
 });

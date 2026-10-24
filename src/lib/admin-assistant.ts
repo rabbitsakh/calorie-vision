@@ -269,11 +269,25 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
     for (const item of obj.meals.slice(0, 20)) {
       if (!item || typeof item !== "object") continue;
       const row = item as Record<string, unknown>;
-      const name = row.name;
+      const name =
+        typeof row.name === "string"
+          ? row.name
+          : typeof row.dishName === "string"
+            ? row.dishName
+            : typeof row.title === "string"
+              ? row.title
+              : null;
       if (typeof name !== "string" || !name.trim()) continue;
       const num = (v: unknown) =>
         typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : undefined;
-      const kcal = row.kcal;
+      // Models sometimes emit `calories` instead of `kcal`.
+      const kcalRaw = row.kcal ?? row.calories;
+      const kcal =
+        typeof kcalRaw === "number" && Number.isFinite(kcalRaw)
+          ? Math.round(kcalRaw)
+          : typeof kcalRaw === "string" && kcalRaw.trim() && Number.isFinite(Number(kcalRaw))
+            ? Math.round(Number(kcalRaw))
+            : undefined;
       const timeRaw =
         typeof row.time === "string"
           ? row.time
@@ -293,7 +307,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
       }
       meals.push({
         name: name.trim().slice(0, 120),
-        kcal: typeof kcal === "number" && Number.isFinite(kcal) ? Math.round(kcal) : undefined,
+        ...(kcal != null ? { kcal } : {}),
         protein: num(row.protein),
         fat: num(row.fat),
         carbs: num(row.carbs),
