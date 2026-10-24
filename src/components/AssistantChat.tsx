@@ -33,6 +33,7 @@ import {
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
 import {
+  userWantsGymEdit,
   userWantsRepeatWorkout,
   userWantsStartWorkout,
   userWantsWrite,
@@ -613,7 +614,9 @@ function ActionCard({
     routine: boolean;
     shopping: boolean;
     start: boolean;
+    startEmpty: boolean;
     repeat: boolean;
+    patchWorkout: boolean;
     water: boolean;
     weight: boolean;
     deleteMeals: boolean;
@@ -633,18 +636,28 @@ function ActionCard({
     routine: false,
     shopping: false,
     start: false,
+    startEmpty: false,
     repeat: false,
+    patchWorkout: false,
     water: false,
     weight: false,
     deleteMeals: false,
     patchMeals: false,
   });
+  /** After start fails with no plan — offer empty / repeat without hiding CTAs. */
+  const [startFallback, setStartFallback] = useState<{
+    empty: boolean;
+    repeat: boolean;
+    message: string;
+  } | null>(null);
 
   const mealsDone = streamDone.meals || localDone.meals;
   const routineDone = streamDone.routine || localDone.routine;
   const shoppingDone = streamDone.shopping || localDone.shopping;
   const startDone = streamDone.start || localDone.start;
+  const startEmptyDone = streamDone.startEmpty || localDone.startEmpty;
   const repeatDone = streamDone.repeat || localDone.repeat;
+  const patchWorkoutDone = streamDone.patchWorkout || localDone.patchWorkout;
   const waterDone = streamDone.water || localDone.water;
   const weightDone = streamDone.weight || localDone.weight;
   const deleteDone = streamDone.deleteMeals || localDone.deleteMeals;
@@ -654,7 +667,14 @@ function ActionCard({
   const needsRoutine = Boolean(actions.workoutDays?.length);
   const needsShopping = Boolean(actions.shopping?.length);
   const needsStart = Boolean(actions.startWorkout);
-  const needsRepeat = Boolean(actions.repeatWorkout);
+  const needsStartEmpty =
+    Boolean(actions.startEmptyWorkout) || Boolean(startFallback?.empty);
+  const needsRepeat =
+    Boolean(actions.repeatWorkout) || Boolean(startFallback?.repeat);
+  const needsPatchWorkout = Boolean(
+    actions.patchWorkout?.addExercises?.length ||
+      actions.patchWorkout?.logSets?.length,
+  );
   const needsWater = typeof actions.waterMl === "number" && actions.waterMl > 0;
   const needsWeight = typeof actions.weightKg === "number" && actions.weightKg > 0;
   const needsDelete = Boolean(actions.deleteMeals?.length);
@@ -664,8 +684,10 @@ function ActionCard({
     (!needsMeals || mealsDone) &&
     (!needsRoutine || routineDone) &&
     (!needsShopping || shoppingDone) &&
-    (!needsStart || startDone) &&
+    (!needsStart || startDone || Boolean(startFallback)) &&
+    (!needsStartEmpty || startEmptyDone) &&
     (!needsRepeat || repeatDone) &&
+    (!needsPatchWorkout || patchWorkoutDone) &&
     (!needsWater || waterDone) &&
     (!needsWeight || weightDone) &&
     (!needsDelete || deleteDone) &&
@@ -674,7 +696,9 @@ function ActionCard({
       needsRoutine ||
       needsShopping ||
       needsStart ||
+      needsStartEmpty ||
       needsRepeat ||
+      needsPatchWorkout ||
       needsWater ||
       needsWeight ||
       needsDelete ||
@@ -685,7 +709,9 @@ function ActionCard({
     | "routine"
     | "shopping"
     | "start"
+    | "startEmpty"
     | "repeat"
+    | "patchWorkout"
     | "water"
     | "weight"
     | "deleteMeals"
@@ -719,7 +745,11 @@ function ActionCard({
                         ? "Офлайн — правка в очереди"
                         : kind === "repeat"
                           ? "Офлайн — повтор тренировки в очереди"
-                          : "Офлайн — старт тренировки в очереди",
+                          : kind === "patchWorkout"
+                            ? "Офлайн — правка зала в очереди"
+                            : kind === "startEmpty"
+                              ? "Офлайн — пустая тренировка в очереди"
+                              : "Офлайн — старт тренировки в очереди",
         );
         return true;
       }
@@ -730,6 +760,9 @@ function ActionCard({
       });
       const data = (await resp.json().catch(() => null)) as {
         error?: string;
+        ok?: boolean;
+        suggestEmpty?: boolean;
+        suggestRepeat?: boolean;
         meals?: Array<{ id: string }>;
         routines?: Array<{ id: string }>;
         tools?: Array<{
@@ -753,6 +786,15 @@ function ActionCard({
         };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
+      if (kind === "start" && data?.ok === false && (data.suggestEmpty || data.suggestRepeat)) {
+        setStartFallback({
+          empty: Boolean(data.suggestEmpty),
+          repeat: Boolean(data.suggestRepeat),
+          message: data.result?.message ?? "В плане на этот день пусто",
+        });
+        onFlash(data.result?.message ?? "В плане пусто — выбери пустую или повтор");
+        return false;
+      }
       const toolResult =
         data?.result ??
         data?.tools?.find((t) => t.ok) ??
@@ -812,10 +854,22 @@ function ActionCard({
         onFlash(toolResult?.message ?? data?.result?.message ?? "Обновил в рационе");
         onApplied(emptyUndo());
       } else if (kind === "repeat") {
-        onFlash(data?.result?.message ?? "Тренировка повторена");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        setStartFallback(null);
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка повторена");
+        onApplied(emptyUndo());
+      } else if (kind === "patchWorkout") {
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Зал обновлён");
+        onApplied(emptyUndo());
+      } else if (kind === "startEmpty") {
+        setLocalDone((prev) => ({ ...prev, startEmpty: true, start: true }));
+        setStartFallback(null);
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Пустая тренировка");
         onApplied(emptyUndo());
       } else {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        setStartFallback(null);
         onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
       }
@@ -837,8 +891,10 @@ function ActionCard({
     if (needsPatch && !patchDone) kinds.push("patchMeals");
     if (needsShopping && !shoppingDone) kinds.push("shopping");
     if (needsRoutine && !routineDone) kinds.push("routine");
-    if (needsStart && !startDone) kinds.push("start");
+    if (needsStart && !startDone && !startFallback) kinds.push("start");
+    if (needsStartEmpty && !startEmptyDone) kinds.push("startEmpty");
     if (needsRepeat && !repeatDone) kinds.push("repeat");
+    if (needsPatchWorkout && !patchWorkoutDone) kinds.push("patchWorkout");
     return kinds;
   }
 
@@ -1028,10 +1084,38 @@ function ActionCard({
           Старт тренировки по плану · {applyDate}
         </p>
       ) : null}
-      {actions.repeatWorkout ? (
+      {actions.repeatWorkout || startFallback?.repeat ? (
         <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
           Повторить последнюю завершённую · на {applyDate}
         </p>
+      ) : null}
+      {actions.startEmptyWorkout || startFallback?.empty ? (
+        <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
+          Пустая тренировка · {applyDate}
+          {startFallback?.message ? ` · ${startFallback.message}` : ""}
+        </p>
+      ) : null}
+      {needsPatchWorkout ? (
+        <ul className="confirm-family-dish mt-1.5 space-y-1">
+          {(actions.patchWorkout?.addExercises ?? []).map((ex) => (
+            <li key={`add-${ex.name}`}>
+              <span className="font-semibold">+</span> {ex.name}
+              {ex.sets?.length
+                ? ` · ${ex.sets
+                    .map((s) => `${s.weightKg ?? "—"}×${s.reps ?? "—"}`)
+                    .join(", ")}`
+                : ""}
+            </li>
+          ))}
+          {(actions.patchWorkout?.logSets ?? []).map((s) => (
+            <li key={`log-${s.match}-${s.weightKg}-${s.reps}`}>
+              <span className="font-semibold">Подход</span>: {s.match}
+              {s.weightKg != null || s.reps != null
+                ? ` · ${s.weightKg ?? "—"}×${s.reps ?? "—"}`
+                : ""}
+            </li>
+          ))}
+        </ul>
       ) : null}
       {needsWater ? (
         <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
@@ -1084,7 +1168,11 @@ function ActionCard({
       ) : null}
       <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
-          needsRoutine || needsStart || needsRepeat ? (
+          needsRoutine ||
+          needsStart ||
+          needsStartEmpty ||
+          needsRepeat ||
+          needsPatchWorkout ? (
             <Link href="/workouts" className="confirm-family-secondary">
               Открыть зал
             </Link>
@@ -1176,7 +1264,7 @@ function ActionCard({
                 {busy === "shopping" ? "…" : online ? "В покупки" : "В очередь"}
               </button>
             ) : null}
-            {needsStart && !startDone ? (
+            {needsStart && !startDone && !startFallback ? (
               <>
                 <button
                   type="button"
@@ -1185,6 +1273,21 @@ function ActionCard({
                   onClick={() => void apply("start")}
                 >
                   {busy === "start" ? "…" : online ? "Начать тренировку" : "В очередь"}
+                </button>
+                <Link href="/workouts" className="confirm-family-secondary">
+                  Зал
+                </Link>
+              </>
+            ) : null}
+            {needsStartEmpty && !startEmptyDone ? (
+              <>
+                <button
+                  type="button"
+                  className="confirm-family-cta"
+                  disabled={busy === "startEmpty"}
+                  onClick={() => void apply("startEmpty")}
+                >
+                  {busy === "startEmpty" ? "…" : online ? "Начать пустую" : "В очередь"}
                 </button>
                 <Link href="/workouts" className="confirm-family-secondary">
                   Зал
@@ -1200,6 +1303,21 @@ function ActionCard({
                   onClick={() => void apply("repeat")}
                 >
                   {busy === "repeat" ? "…" : online ? "Повторить тренировку" : "В очередь"}
+                </button>
+                <Link href="/workouts" className="confirm-family-secondary">
+                  Зал
+                </Link>
+              </>
+            ) : null}
+            {needsPatchWorkout && !patchWorkoutDone ? (
+              <>
+                <button
+                  type="button"
+                  className="confirm-family-cta"
+                  disabled={busy === "patchWorkout"}
+                  onClick={() => void apply("patchWorkout")}
+                >
+                  {busy === "patchWorkout" ? "…" : online ? "В зал" : "В очередь"}
                 </button>
                 <Link href="/workouts" className="confirm-family-secondary">
                   Зал
@@ -2024,7 +2142,9 @@ export function AssistantChat() {
             routine: toolOk("plan") || toolOk("routine"),
             shopping: toolOk("shopping"),
             start: toolOk("start_routine") || toolOk("start"),
+            startEmpty: toolOk("start_empty"),
             repeat: toolOk("repeat_workout") || toolOk("repeat"),
+            patchWorkout: toolOk("patch_workout"),
             water: toolOk("water"),
             weight: toolOk("weight") || toolOk("log_weight"),
             deleteMeals: toolOk("delete"),
@@ -2051,7 +2171,8 @@ export function AssistantChat() {
               wantsWrite:
                 userWantsWrite(prevUser) ||
                 userWantsStartWorkout(prevUser) ||
-                userWantsRepeatWorkout(prevUser),
+                userWantsRepeatWorkout(prevUser) ||
+                userWantsGymEdit(prevUser),
             });
           return (
             <div

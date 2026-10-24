@@ -397,7 +397,7 @@ export function WorkoutHistoryHub({
                   ) : null}
                   {(s.prCount ?? 0) > 0 ? (
                     <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
-                      {s.prCount === 1 ? "1 PR" : `${s.prCount} PR`}
+                      {s.prCount === 1 ? "1 рекорд" : `${s.prCount} рекорда`}
                     </span>
                   ) : null}
                 </p>

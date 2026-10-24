@@ -11,6 +11,7 @@ import {
   userWantsWrite,
   userWantsStartWorkout,
   userWantsRepeatWorkout,
+  userWantsGymEdit,
 } from "@/lib/assistant-intent";
 import {
   extractMealSlotMoveFromMessage,
@@ -64,7 +65,12 @@ export function actionsHaveWritablePayload(actions: AssistantActions | null | un
       actions.waterMl != null ||
       actions.weightKg != null ||
       actions.startWorkout ||
-      actions.repeatWorkout,
+      actions.repeatWorkout ||
+      actions.startEmptyWorkout ||
+      Boolean(
+        actions.patchWorkout?.addExercises?.length ||
+          actions.patchWorkout?.logSets?.length,
+      ),
   );
 }
 
@@ -75,7 +81,8 @@ export function needsWriteRepair(
   if (
     !userWantsWrite(userMessage) &&
     !userWantsStartWorkout(userMessage) &&
-    !userWantsRepeatWorkout(userMessage)
+    !userWantsRepeatWorkout(userMessage) &&
+    !userWantsGymEdit(userMessage)
   ) {
     return false;
   }
@@ -104,6 +111,75 @@ export function heuristicRepairRepeatWorkoutActions(
   };
 }
 
+/** Offline: «добавь жим», «поставь 80×8 на жим». */
+export function heuristicRepairPatchWorkoutActions(
+  userMessage: string,
+): AssistantActions | null {
+  if (!userWantsGymEdit(userMessage)) return null;
+  const text = userMessage.trim();
+  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+
+  const setMatch =
+    /(\d+[.,]?\d*)\s*(?:кг|kg)?\s*[xх×*]\s*(\d+)/i.exec(text) ??
+    /(\d+[.,]?\d*)\s*(?:на|по)\s*(\d+)/i.exec(text);
+  const weightKg = setMatch
+    ? Number(String(setMatch[1]).replace(",", "."))
+    : undefined;
+  const reps = setMatch ? Math.round(Number(setMatch[2])) : undefined;
+
+  const nameMatch =
+    /(?:добав\S*|запиш\S*|поставь\S*)\s+(?:упражнение\s+)?([а-яёa-z0-9][а-яёa-z0-9\s-]{1,40}?)(?:\s+\d|\s*$|,|\.|!)/i.exec(
+      text,
+    ) ??
+    /(?:на|в)\s+([а-яёa-z][а-яёa-z\s-]{1,30}?)(?:\s*$|,|\.|!)/i.exec(text);
+  let name = nameMatch?.[1]?.trim() ?? "";
+  name = name
+    .replace(/\b\d+[.,]?\d*\s*(кг|kg|x|х|×)?\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (name.length < 2) {
+    // Fallback short exercise nouns.
+    const noun = /(жим(?:\s+л[её]жа)?|тяга(?:\s+\S+)?|присед(?:ания)?|разводк\S*|подтягиван\S*)/i.exec(
+      text,
+    );
+    name = noun?.[1]?.trim() ?? "";
+  }
+  if (!name) return null;
+
+  const hasAdd = /добав|запиш\S*\s+упражн|новое\s+упражн/i.test(text);
+  if (hasAdd || !setMatch) {
+    return {
+      apply: true,
+      targetDate,
+      patchWorkout: {
+        addExercises: [
+          {
+            name: name.slice(0, 120),
+            ...(weightKg != null && Number.isFinite(weightKg) && reps != null
+              ? { sets: [{ weightKg, reps }] }
+              : {}),
+          },
+        ],
+      },
+      summary: `добавить «${name}» — подтверди`,
+    };
+  }
+  return {
+    apply: true,
+    targetDate,
+    patchWorkout: {
+      logSets: [
+        {
+          match: name.slice(0, 120),
+          ...(weightKg != null && Number.isFinite(weightKg) ? { weightKg } : {}),
+          ...(reps != null && Number.isFinite(reps) ? { reps } : {}),
+        },
+      ],
+    },
+    summary: `подход ${name} — подтверди`,
+  };
+}
+
 /**
  * After confirm-gate (J–N), stream never silent-writes. Distinguish:
  * - wrote true → tools already applied
@@ -120,7 +196,8 @@ export function assistantWroteFlag(opts: {
   if (
     userWantsWrite(opts.userMessage) ||
     userWantsStartWorkout(opts.userMessage) ||
-    userWantsRepeatWorkout(opts.userMessage)
+    userWantsRepeatWorkout(opts.userMessage) ||
+    userWantsGymEdit(opts.userMessage)
   ) {
     return false;
   }
@@ -570,6 +647,9 @@ export async function repairAssistantWriteActions(opts: {
   const repeat = heuristicRepairRepeatWorkoutActions(opts.userMessage);
   if (repeat) return repeat;
 
+  const gymPatch = heuristicRepairPatchWorkoutActions(opts.userMessage);
+  if (gymPatch) return gymPatch;
+
   const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
   if (multi) return multi;
 
@@ -580,14 +660,15 @@ export async function repairAssistantWriteActions(opts: {
     "Ты извлекаешь действия записи для Calorie Vision.",
     "Верни ТОЛЬКО один JSON-объект (без markdown и без текста вокруг).",
     'Обязательно: "apply": true если есть что записать.',
-    'Поля: meals[{name,kcal,protein,fat,carbs,note}], deleteMeals[{match,mealType}], patchMeals[{match,mealType,toMealType,time,portionGrams,kcal,...}], shopping[], workoutDays[{day,focus,notes}], waterMl, weightKg, startWorkout, repeatWorkout, targetDate, summary.',
+    'Поля: meals[{name,kcal,...}], deleteMeals[], patchMeals[], shopping[], workoutDays[], waterMl, weightKg, startWorkout, startEmptyWorkout, repeatWorkout, patchWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
     "«Исправь завтрак на 6:30» → patchMeals:[{match:\"завтрак\",mealType:\"BREAKFAST\",time:\"06:30\"}] (один объект на весь слот).",
     "«Удали ужин» → deleteMeals:[{match:\"ужин\",mealType:\"DINNER\"}].",
     "«Перенеси обед в ужин» → patchMeals:[{match:\"обед\",mealType:\"LUNCH\",toMealType:\"DINNER\"}].",
     "«Сделай омлет 200 г» → patchMeals:[{match:\"омлет\",portionGrams:200}].",
     "«Повтори вчерашний зал» / «повтори последнюю» → repeatWorkout:true, targetDate сегодня (или как сказал).",
-    "«Начни тренировку» → startWorkout:true.",
+    "«Начни тренировку» → startWorkout:true. Нет плана → startEmptyWorkout:true.",
+    "«Добавь жим» / «поставь 80×8» → patchWorkout.addExercises или patchWorkout.logSets.",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",

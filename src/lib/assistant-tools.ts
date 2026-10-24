@@ -31,6 +31,7 @@ import {
 import { saveImageBuffer } from "@/lib/upload";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
+import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { parsePlannedSets, plannedSetsToJson, routineInclude, serializeRoutine } from "@/lib/workouts/routines";
 import {
   serializeSessionDetail,
@@ -42,6 +43,7 @@ import {
   WEEKDAY_LABELS_RU,
 } from "@/lib/workouts/weekdays";
 import {
+  userWantsGymEdit,
   userWantsRepeatWorkout,
   userWantsStartWorkout,
   userWantsWrite,
@@ -63,7 +65,12 @@ export type AssistantUndoPayload = {
   weightIds: string[];
 };
 
-export { userWantsRepeatWorkout, userWantsStartWorkout, userWantsWrite };
+export {
+  userWantsGymEdit,
+  userWantsRepeatWorkout,
+  userWantsStartWorkout,
+  userWantsWrite,
+};
 
 function mealTypeFromNote(
   note?: string,
@@ -707,6 +714,175 @@ export async function toolStartTodaysRoutine(opts: {
   };
 }
 
+/** Blank live session when there is no plan for the day. */
+export async function toolStartEmptyWorkout(opts: {
+  userId: string;
+  date: string;
+  muscleGroup?: string | null;
+}): Promise<AssistantToolResult> {
+  const group =
+    opts.muscleGroup && isMuscleGroupKey(opts.muscleGroup) ? opts.muscleGroup : "other";
+  const created = await prisma.workoutSession.create({
+    data: {
+      userId: opts.userId,
+      date: opts.date,
+      progressRate: DEFAULT_PROGRESS_RATE,
+      startedAt: new Date(),
+      muscles: { create: [{ groupKey: group }] },
+    },
+    include: sessionInclude,
+  });
+  const session = serializeSessionDetail(created);
+  return {
+    ok: true,
+    tool: "start_empty",
+    message: `Открыл пустую тренировку на ${opts.date} — добавь упражнения`,
+    data: { sessionId: session.id, date: opts.date },
+  };
+}
+
+/**
+ * Add exercises / log sets on the open (or last finished) session for `date`.
+ * «Добавь жим», «поставь 80×8 на жим».
+ */
+export async function toolPatchWorkout(opts: {
+  userId: string;
+  date: string;
+  patch: NonNullable<AssistantActions["patchWorkout"]>;
+}): Promise<AssistantToolResult> {
+  const addExercises = opts.patch.addExercises ?? [];
+  const logSets = opts.patch.logSets ?? [];
+  if (!addExercises.length && !logSets.length) {
+    return { ok: false, tool: "patch_workout", message: "Нет правок тренировки" };
+  }
+
+  let session = await prisma.workoutSession.findFirst({
+    where: {
+      userId: opts.userId,
+      date: opts.date,
+      ...(opts.patch.sessionId ? { id: opts.patch.sessionId } : {}),
+    },
+    include: sessionInclude,
+    orderBy: [{ endedAt: "desc" }, { createdAt: "desc" }],
+  });
+  if (!session && !opts.patch.sessionId) {
+    // Prefer any open session today; else last finished that day already queried.
+    session = await prisma.workoutSession.findFirst({
+      where: {
+        userId: opts.userId,
+        date: opts.date,
+        endedAt: null,
+      },
+      include: sessionInclude,
+      orderBy: [{ createdAt: "desc" }],
+    });
+  }
+  if (!session) {
+    return {
+      ok: false,
+      tool: "patch_workout",
+      message: `Нет тренировки на ${opts.date}. Сначала начни или повтори зал.`,
+    };
+  }
+
+  const notes: string[] = [];
+  await prisma.$transaction(async (tx) => {
+    for (const ex of addExercises.slice(0, 12)) {
+      const name = ex.name.trim().slice(0, 120);
+      if (!name) continue;
+      const groupRaw = ex.muscleGroup?.trim() ?? "";
+      const muscleGroup =
+        groupRaw && isMuscleGroupKey(groupRaw)
+          ? groupRaw
+          : muscleGroupsFromFocus(name)[0] ?? "other";
+      const maxOrder = await tx.workoutExercise.aggregate({
+        where: { sessionId: session!.id },
+        _max: { sortOrder: true },
+      });
+      const createdEx = await tx.workoutExercise.create({
+        data: {
+          sessionId: session!.id,
+          name,
+          kind: muscleGroup === "cardio" ? "cardio" : "strength",
+          muscleGroup,
+          sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+        },
+      });
+      const sets = (ex.sets ?? []).slice(0, 12);
+      if (sets.length) {
+        await tx.workoutSet.createMany({
+          data: sets.map((s, i) => ({
+            exerciseId: createdEx.id,
+            weightKg:
+              typeof s.weightKg === "number" && Number.isFinite(s.weightKg) ? s.weightKg : null,
+            reps: typeof s.reps === "number" && Number.isFinite(s.reps) ? Math.round(s.reps) : null,
+            setType: "working",
+            completed: false,
+            sortOrder: i,
+          })),
+        });
+      }
+      notes.push(sets.length ? `${name} (+${sets.length} подх.)` : name);
+      await touchExerciseLibraryMany(tx, opts.userId, [
+        { name, kind: muscleGroup === "cardio" ? "cardio" : "strength", muscleGroup },
+      ]);
+    }
+
+    const fresh = await tx.workoutSession.findUniqueOrThrow({
+      where: { id: session!.id },
+      include: { exercises: true },
+    });
+    for (const log of logSets.slice(0, 20)) {
+      const match = log.match.trim().toLowerCase();
+      if (!match) continue;
+      const exercises = [...fresh.exercises].sort(
+        (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
+      );
+      const target =
+        exercises.find((e) => e.name.toLowerCase() === match) ??
+        exercises.find((e) => e.name.toLowerCase().includes(match));
+      if (!target) {
+        notes.push(`не нашёл «${log.match}»`);
+        continue;
+      }
+      const maxOrder = await tx.workoutSet.aggregate({
+        where: { exerciseId: target.id },
+        _max: { sortOrder: true },
+      });
+      await tx.workoutSet.create({
+        data: {
+          exerciseId: target.id,
+          weightKg:
+            typeof log.weightKg === "number" && Number.isFinite(log.weightKg)
+              ? log.weightKg
+              : null,
+          reps:
+            typeof log.reps === "number" && Number.isFinite(log.reps)
+              ? Math.round(log.reps)
+              : null,
+          setType: "working",
+          completed: true,
+          sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+        },
+      });
+      const w =
+        typeof log.weightKg === "number" ? `${log.weightKg}` : "—";
+      const r = typeof log.reps === "number" ? `${Math.round(log.reps)}` : "—";
+      notes.push(`${target.name} ${w}×${r}`);
+    }
+  });
+
+  if (!notes.length) {
+    return { ok: false, tool: "patch_workout", message: "Не удалось применить правки" };
+  }
+  return {
+    ok: true,
+    tool: "patch_workout",
+    message: `Зал ${opts.date}: ${notes.join(", ")}`,
+    data: { sessionId: session.id, date: opts.date, notes },
+  };
+}
+
 /**
  * Clone the most recent finished session (exercises + sets) onto `date`.
  * Optional `sourceDate` prefers a finished session on that calendar day.
@@ -1074,6 +1250,8 @@ export type ExecutableActions = AssistantActions & {
   weightKg?: number;
   startWorkout?: boolean;
   repeatWorkout?: boolean;
+  startEmptyWorkout?: boolean;
+  patchWorkout?: AssistantActions["patchWorkout"];
 };
 
 export function shouldAutoApply(
@@ -1085,7 +1263,8 @@ export function shouldAutoApply(
   if (
     !userWantsWrite(lastUserMessage) &&
     !userWantsStartWorkout(lastUserMessage) &&
-    !userWantsRepeatWorkout(lastUserMessage)
+    !userWantsRepeatWorkout(lastUserMessage) &&
+    !userWantsGymEdit(lastUserMessage)
   ) {
     return false;
   }
@@ -1099,8 +1278,12 @@ export function shouldAutoApply(
       actions.weightKg != null ||
       actions.startWorkout ||
       actions.repeatWorkout ||
+      actions.startEmptyWorkout ||
+      actions.patchWorkout?.addExercises?.length ||
+      actions.patchWorkout?.logSets?.length ||
       userWantsStartWorkout(lastUserMessage) ||
-      userWantsRepeatWorkout(lastUserMessage),
+      userWantsRepeatWorkout(lastUserMessage) ||
+      userWantsGymEdit(lastUserMessage),
   );
 }
 

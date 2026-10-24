@@ -133,6 +133,8 @@ import {
   lastSessionRepeatHint,
   lastSessionRepeatLabel,
   pickLastFinishedSession,
+  pickRecentFinishedSessions,
+  sessionRepeatChoiceLabel,
 } from "@/lib/workouts/last-finished-session";
 import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity";
 import {
@@ -797,6 +799,21 @@ export function WorkoutsView({
       hint: lastSessionRepeatHint(picked),
     };
   }, [sessions]);
+
+  const recentRepeats = useMemo(() => {
+    const recent = pickRecentFinishedSessions(sessions, 5);
+    if (recent.length <= 1) return [];
+    // Skip the primary lastRepeat row — show alternatives only.
+    const primaryId = lastRepeat?.id;
+    return recent
+      .filter((s) => s.id !== primaryId)
+      .slice(0, 4)
+      .map((s) => ({
+        id: s.id,
+        label: sessionRepeatChoiceLabel(s),
+        hint: lastSessionRepeatHint(s),
+      }));
+  }, [sessions, lastRepeat?.id]);
 
   useEffect(() => {
     if (!creating) return;
@@ -2170,19 +2187,16 @@ export function WorkoutsView({
     clearDraftError(exerciseId);
   };
 
-  const applyAllLastSets = () => {
+  /** Materialize every lastTime set into the session (not just the next-draft slot). */
+  const applyAllLastSets = async () => {
     if (!detail) return;
-    setSetDrafts((prev) => {
-      const next = { ...prev };
-      for (const ex of detail.exercises) {
-        const last = ex.lastTime?.sets?.[0];
-        if (!last) continue;
-        next[ex.id] = draftFromHistorySet(last, ex.kind);
-      }
-      return next;
-    });
+    setError(null);
     for (const ex of detail.exercises) {
-      if (ex.lastTime?.sets?.[0]) clearDraftError(ex.id);
+      const hist = ex.lastTime?.sets ?? [];
+      if (!hist.length) continue;
+      for (const s of hist) {
+        await addSet(ex.id, draftFromHistorySet(s, ex.kind));
+      }
     }
   };
 
@@ -2543,6 +2557,7 @@ export function WorkoutsView({
           busy={busy}
           firstWorkout={sessions.length === 0}
           lastRepeat={lastRepeat}
+          recentRepeats={recentRepeats}
           routinesFallback={routines}
           sessions={sessions
             .filter((s) => s.date === viewDate)
@@ -2557,6 +2572,7 @@ export function WorkoutsView({
               cardioDurationSec: s.cardioDurationSec,
               clockStatus: s.clockStatus,
               elapsedLabel: s.elapsedLabel,
+              prCount: s.prCount,
             }))}
           onOpenSession={(id, opts) => {
             void (async () => {

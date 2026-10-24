@@ -33,6 +33,24 @@ export function pickLastFinishedSession<T extends LastFinishedCandidate>(
   return usable.find((s) => s.exerciseCount > 0) ?? null;
 }
 
+/** Up to `limit` finished sessions for a «повторить другую» picker (newest first). */
+export function pickRecentFinishedSessions<T extends LastFinishedCandidate>(
+  sessions: T[],
+  limit = 5,
+  opts?: { skipLocal?: boolean },
+): T[] {
+  const skipLocal = opts?.skipLocal !== false;
+  const out: T[] = [];
+  for (const s of sessions) {
+    if (!s.id) continue;
+    if (skipLocal && s.id.startsWith("local-sess-")) continue;
+    if (!isFinishedSession(s) && !(s.exerciseCount > 0)) continue;
+    out.push(s);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 export function lastSessionRepeatLabel(s: LastFinishedCandidate): string {
   return s.cardioOnly ? "Повторить кардио" : "Повторить последнюю";
 }
@@ -44,4 +62,11 @@ export function lastSessionRepeatHint(s: LastFinishedCandidate): string {
     return `${base} · ${s.exerciseCount} упр.`;
   }
   return base;
+}
+
+/** Short label for alternate repeat rows (date + muscles). */
+export function sessionRepeatChoiceLabel(s: LastFinishedCandidate): string {
+  const muscles = s.muscleLabels.filter(Boolean).join(" · ");
+  const base = muscles || (s.cardioOnly ? "Кардио" : "Тренировка");
+  return `${s.date.slice(5)} · ${base}`;
 }

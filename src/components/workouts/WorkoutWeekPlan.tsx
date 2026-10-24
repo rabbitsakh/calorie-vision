@@ -72,6 +72,8 @@ export type TodaySessionCard = {
   cardioDurationSec: number;
   clockStatus?: "idle" | "running" | "paused" | "finished";
   elapsedLabel?: string;
+  /** Exercises that set a new PR in this session. */
+  prCount?: number;
 };
 
 export type LastWorkoutRepeat = {
@@ -87,6 +89,8 @@ type Props = {
   firstWorkout?: boolean;
   /** One-tap clone of the most recent finished session. */
   lastRepeat?: LastWorkoutRepeat | null;
+  /** Alternate past sessions to repeat (not including lastRepeat). */
+  recentRepeats?: LastWorkoutRepeat[];
   /** Cached routines for offline plan (Wave Q). */
   routinesFallback?: SerializedRoutine[];
   /** Open the week fold (e.g. after saving a template). */
@@ -126,6 +130,38 @@ function sessionMetric(s: TodaySessionCard): string {
   return s.totalLoad > 0 ? `${formatLoad(s.totalLoad)} кг·повт` : "—";
 }
 
+function RepeatAlternatives({
+  items,
+  busy,
+  onRepeat,
+}: {
+  items: LastWorkoutRepeat[];
+  busy?: boolean;
+  onRepeat: (id: string) => void;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      <p className="text-[11px] font-medium text-[var(--muted)]">Или другую:</p>
+      <ul className="flex flex-col gap-1">
+        {items.map((r) => (
+          <li key={r.id}>
+            <button
+              type="button"
+              disabled={busy}
+              title={r.hint}
+              className="w-full rounded-md px-2 py-1.5 text-left text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-40"
+              onClick={() => onRepeat(r.id)}
+            >
+              {r.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * D5: Today hub as one day scene (atmosphere + actions), not a card stack.
  */
@@ -134,6 +170,7 @@ export function WorkoutWeekPlan({
   sessions,
   firstWorkout = false,
   lastRepeat = null,
+  recentRepeats = [],
   routinesFallback = [],
   preferWeekOpen = false,
   onOpenSession,
@@ -536,14 +573,21 @@ export function WorkoutWeekPlan({
                   Тренировка вне плана
                 </button>
                 {showRepeatInStart && lastRepeat && onRepeatLast ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="mt-2 block text-sm font-medium text-[var(--muted-strong)] disabled:opacity-40"
-                    onClick={() => onRepeatLast(lastRepeat.id)}
-                  >
-                    {busy ? "Копируем…" : lastRepeat.label}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="mt-2 block text-sm font-medium text-[var(--muted-strong)] disabled:opacity-40"
+                      onClick={() => onRepeatLast(lastRepeat.id)}
+                    >
+                      {busy ? "Копируем…" : lastRepeat.label}
+                    </button>
+                    <RepeatAlternatives
+                      items={recentRepeats}
+                      busy={busy}
+                      onRepeat={onRepeatLast}
+                    />
+                  </>
                 ) : null}
               </>
             ) : primary === "rest" ? (
@@ -565,6 +609,11 @@ export function WorkoutWeekPlan({
                     <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
                       {lastRepeat.hint}
                     </p>
+                    <RepeatAlternatives
+                      items={recentRepeats}
+                      busy={busy}
+                      onRepeat={onRepeatLast}
+                    />
                   </div>
                 ) : null}
                 <button
@@ -596,6 +645,11 @@ export function WorkoutWeekPlan({
                     <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
                       {lastRepeat.hint}
                     </p>
+                    <RepeatAlternatives
+                      items={recentRepeats}
+                      busy={busy}
+                      onRepeat={onRepeatLast}
+                    />
                   </div>
                 ) : null}
               </>
@@ -614,6 +668,11 @@ export function WorkoutWeekPlan({
                   <div className="min-w-0">
                     <p className="truncate font-medium text-[var(--foreground)]">
                       {s.muscleLabels.join(" · ") || "Тренировка"}
+                      {(s.prCount ?? 0) > 0 ? (
+                        <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
+                          {s.prCount === 1 ? "1 рекорд" : `${s.prCount} рекорда`}
+                        </span>
+                      ) : null}
                     </p>
                     <p className="text-xs text-[var(--muted)]">{sessionMetric(s)}</p>
                   </div>
@@ -647,15 +706,22 @@ export function WorkoutWeekPlan({
                   + Ещё одна сегодня
                 </button>
                 {showRepeatInFinished && lastRepeat && onRepeatLast ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
-                    onClick={() => onRepeatLast(lastRepeat.id)}
-                    title={lastRepeat.hint}
-                  >
-                    {busy ? "Копируем…" : lastRepeat.label}
-                  </button>
+                  <div>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
+                      onClick={() => onRepeatLast(lastRepeat.id)}
+                      title={lastRepeat.hint}
+                    >
+                      {busy ? "Копируем…" : lastRepeat.label}
+                    </button>
+                    <RepeatAlternatives
+                      items={recentRepeats}
+                      busy={busy}
+                      onRepeat={onRepeatLast}
+                    />
+                  </div>
                 ) : null}
               </div>
             )}

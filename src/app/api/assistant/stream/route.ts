@@ -246,7 +246,11 @@ export async function POST(request: NextRequest) {
             actions.shopping?.length ||
             actions.waterMl != null ||
             actions.weightKg != null ||
-            actions.startWorkout)
+            actions.startWorkout ||
+            actions.repeatWorkout ||
+            actions.startEmptyWorkout ||
+            actions.patchWorkout?.addExercises?.length ||
+            actions.patchWorkout?.logSets?.length)
         ) {
           // Confirm-gate: nothing is written until ActionCard CTA.
           send("status", { text: "Готовлю подтверждение…" });

@@ -4,6 +4,8 @@ import {
   lastSessionRepeatHint,
   lastSessionRepeatLabel,
   pickLastFinishedSession,
+  pickRecentFinishedSessions,
+  sessionRepeatChoiceLabel,
 } from "./last-finished-session.ts";
 
 test("pickLastFinishedSession prefers finished over newer draft", () => {
@@ -68,4 +70,39 @@ test("fallback to newest with exercises", () => {
 
 test("empty list", () => {
   assert.equal(pickLastFinishedSession([]), null);
+});
+
+test("pickRecentFinishedSessions returns up to limit", () => {
+  const recent = pickRecentFinishedSessions(
+    [
+      {
+        id: "a",
+        date: "2026-10-10",
+        muscleLabels: ["Грудь"],
+        cardioOnly: false,
+        exerciseCount: 3,
+        clockStatus: "finished",
+      },
+      {
+        id: "b",
+        date: "2026-10-08",
+        muscleLabels: ["Спина"],
+        cardioOnly: false,
+        exerciseCount: 4,
+        clockStatus: "finished",
+      },
+      {
+        id: "c",
+        date: "2026-10-06",
+        muscleLabels: ["Ноги"],
+        cardioOnly: false,
+        exerciseCount: 2,
+        clockStatus: "finished",
+      },
+    ],
+    2,
+  );
+  assert.equal(recent.length, 2);
+  assert.equal(recent[0]?.id, "a");
+  assert.match(sessionRepeatChoiceLabel(recent[0]!), /10-10/);
 });
