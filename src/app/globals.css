@@ -34,6 +34,8 @@
 
   --border-quiet: rgba(13, 115, 119, 0.14);
   --border-hairline: rgba(44, 53, 48, 0.08);
+  /* Alias for hairline borders (Assistant / gym; RuStore shell also uses --line) */
+  --line: var(--border-hairline);
   --success: #0d7377;
   --warn: #d97706;
   --danger: #dc2626;
@@ -92,10 +94,8 @@ html:not(.capacitor-native) .capacitor-native-only {
   min-height: 100dvh;
   flex-direction: column;
   padding: max(1.25rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
-  color: #0f172a;
-  background:
-    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(45, 212, 191, 0.35), transparent 55%),
-    linear-gradient(165deg, #ecfdf5 0%, #f4f7fb 42%, #e0f2fe 100%);
+  color: var(--ink);
+  background: var(--panel-wash);
   overflow: hidden;
 }
 
@@ -107,7 +107,7 @@ html:not(.capacitor-native) .capacitor-native-only {
 .app-welcome-boot-copy {
   margin: 0;
   font-size: 0.95rem;
-  color: #0f766e;
+  color: var(--accent-ink);
 }
 
 .app-welcome-atmosphere {
@@ -2527,6 +2527,11 @@ select {
   background: rgba(255, 252, 248, 0.92);
 }
 
+/* Wave D19/D22 — soft prompts enter after diary, one quiet rise */
+.ration-day-soft {
+  animation: ration-scene-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
 /* C5 — Plan week mural, full atmosphere */
 .plan-week {
   display: flex;
@@ -3031,10 +3036,12 @@ select {
   .day-hero-ring,
   .day-hero-glow,
   .ration-day-scene,
+  .ration-day-soft,
   .ration-meal-feed .meal-card,
   .ration-empty-day,
   .stats-page-scene,
   .confirm-card-section,
+  .confirm-family-cta,
   .gym-day,
   .gym-session-scene,
   .gym-hub-scene,
@@ -3141,10 +3148,16 @@ select {
 }
 
 .login-screen {
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 42%),
-    var(--landing-cream, #f4fbf8);
+  background: var(--panel-wash);
   min-height: 100vh;
+}
+
+/* Wave D20 — auth panel on product wash, not a heavy card shell */
+.login-screen .login-panel {
+  background: rgba(255, 252, 248, 0.88);
+  border: 1px solid var(--border-quiet);
+  border-radius: var(--radius-panel);
+  box-shadow: none;
 }
 
 @media (min-width: 768px) {
@@ -6023,8 +6036,9 @@ select {
   box-shadow: 0 0 60px 18px rgba(52, 211, 153, 0.35);
 }
 
+/* Violet stage removed (D18) — map leftover class to teal so no purple flash */
 .fs-celeb-glow-violet .fs-celeb-halo {
-  box-shadow: 0 0 60px 18px rgba(167, 139, 250, 0.35);
+  box-shadow: 0 0 60px 18px rgba(94, 234, 212, 0.35);
 }
 
 .fs-celeb-mascot {
@@ -7064,6 +7078,7 @@ select {
   font-size: 0.75rem;
   font-weight: 700;
   border: none;
+  animation: meal-row-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
 }
 
 .confirm-family-cta:disabled {

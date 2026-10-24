@@ -288,11 +288,9 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          {/* One soft stack: pending → morning OR next-step (not both). Chest moves below queue. */}
+          {/* Wave D19: first viewport = hero + ops + diary. Soft prompts live after the feed. */}
           <div className="flex flex-col gap-2 pt-2">
             <PendingConfirmBanner selectedDate={date} />
-            <MorningTodayCard selectedDate={date} today={today} />
-            <NextStepBar selectedDate={date} today={today} />
           </div>
 
           {/* Offline / error — above the meal feed so the day is usable without scrolling */}
@@ -344,7 +342,6 @@ function RationBody({
               }}
             />
           </div>
-          <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
 
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">
@@ -362,11 +359,18 @@ function RationBody({
           </div>
         </DaySwipeRegion>
 
-        {/* Layer 3 — day more (Wave A/B): water, habits, soft motivation — after the feed */}
+        {/* Layer 3 — soft day voice + water + «Ещё» after the diary composition */}
         <div className="ration-day-more mt-3 flex flex-col gap-3 px-0.5 pb-1 md:gap-3.5">
           <ProfileCompletionBanner />
           <TimezoneConflictBanner />
           <FastingWindowBanner isToday={date === today} />
+
+          {/* Soft prompts after diary — morning OR next-step (not both), then chest */}
+          <div className="ration-day-soft flex flex-col gap-2">
+            <MorningTodayCard selectedDate={date} today={today} />
+            <NextStepBar selectedDate={date} today={today} />
+            <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
+          </div>
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}
           <WaterTracker selectedDate={date} onChanged={bump} compact />
@@ -389,7 +393,7 @@ function RationBody({
           >
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left md:px-5 [&::-webkit-details-marker]:hidden">
               <div className="min-w-0">
-                <p className="font-semibold text-[var(--foreground)]">Ещё</p>
+                <p className="font-semibold text-[var(--foreground)]">Ещё на сегодня</p>
                 <p className="mt-0.5 text-xs text-[var(--muted)]">
                   Привычки, план, итог, установка
                 </p>

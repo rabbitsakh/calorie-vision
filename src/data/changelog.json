@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.10",
+    "date": "2026-10-24",
+    "summary": "design: D19–D22 — рацион без дашборда, токены, лендинг, motion",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Рацион: первый экран = герой + дневник; утро/шаг/сундук после ленты"
+      },
+      {
+        "kind": "improvement",
+        "text": "Единые токены (--line, accent), login wash, share Manrope/Unbounded"
+      },
+      {
+        "kind": "improvement",
+        "text": "Лендинг: короткий hero; RuStore/конкуренты ниже; welcome = panel-wash"
+      }
+    ]
+  },
+  {
     "version": "3.0.9",
     "date": "2026-10-16",
     "summary": "feat(gym,trust,ai,design): Gym N+R6, T5+K, D7",

@@ -10,7 +10,7 @@ export function MedicalDisclaimerNote({ className = "" }: { className?: string }
       Приложение не является медицинской консультацией. Нормы и калории — справочная оценка.{" "}
       <Link
         href={withBasePath("/disclaimer")}
-        className="text-teal-800 underline-offset-2 hover:underline"
+        className="text-[var(--accent-ink)] underline-offset-2 hover:underline"
       >
         Подробнее
       </Link>
