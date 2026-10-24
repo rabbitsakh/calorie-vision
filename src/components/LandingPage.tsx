@@ -1,9 +1,6 @@
 import Link from "next/link";
-import { LandingAudience } from "@/components/LandingAudience";
-import { LandingDayPulse } from "@/components/LandingDayPulse";
 import { LandingFeatureGrid } from "@/components/LandingFeatureGrid";
 import { LandingFooterCta } from "@/components/LandingFooterCta";
-import { LandingFreeHighlight } from "@/components/LandingFreeHighlight";
 import { LandingRecognitionShowcase } from "@/components/LandingRecognitionShowcase";
 import { LandingScrollReveal } from "@/components/LandingScrollReveal";
 import { LandingShell } from "@/components/LandingShell";
@@ -198,7 +195,7 @@ function RustoreBadgeLink({ className = "" }: { className?: string }) {
   );
 }
 
-/** Android: RuStore first, APK fallback — under #install. */
+/** Android: RuStore first, APK fallback — only under #install. */
 function AndroidApkCta() {
   const apkUrl = getApkDownloadUrl();
   const rustoreUrl = getRustoreUrl();
@@ -211,8 +208,8 @@ function AndroidApkCta() {
           Android · RuStore
         </h3>
         <p className="landing-apk-text">
-          Поставьте из официального магазина — обновления приходят сами. Тот же дневник: иконка,
-          напоминания и камера. Без Google Play.
+          Сначала официальный магазин — обновления сами. Нет RuStore — APK. Тот же дневник: иконка,
+          напоминания и камера.
         </p>
       </div>
       <div className="landing-apk-actions">
@@ -231,7 +228,6 @@ function AndroidApkCta() {
 }
 
 export function LandingPage() {
-  const apkUrl = getApkDownloadUrl();
   const rustoreUrl = getRustoreUrl();
 
   return (
@@ -277,33 +273,9 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* D23 rhythm: proof → how → showcase → trust → inside → install → FAQ */}
       <LandingScrollReveal>
         <LandingStatsStrip />
-      </LandingScrollReveal>
-
-      <LandingScrollReveal>
-        <section className="landing-section landing-vs-band" aria-label="Чем отличается">
-          <div className="landing-section-head">
-            <p className="landing-kicker">Не ручной дневник</p>
-            <h2 className="landing-section-title">Не CalZen и не FatSecret</h2>
-            <p className="landing-section-text landing-section-text-wide">
-              Без поиска продукта по справочнику: фото, штрихкод или короткое название — и запись уже
-              в рационе. Зал с подходами и прогрессией рядом, без второй подписки.
-            </p>
-          </div>
-          {rustoreUrl ? (
-            <div className="landing-cta landing-cta-row mt-4">
-              <RustoreBadgeLink />
-              <p className="landing-hero-apk-note" style={{ margin: 0 }}>
-                <a href="#install">iPhone</a>
-                {" · "}
-                <a href={apkUrl} download>
-                  APK
-                </a>
-              </p>
-            </div>
-          ) : null}
-        </section>
       </LandingScrollReveal>
 
       <LandingScrollReveal>
@@ -312,7 +284,7 @@ export function LandingPage() {
             <p className="landing-kicker">Как это работает</p>
             <h2 className="landing-section-title">Три шага от фото до записи</h2>
             <p className="landing-section-text">
-              Не нужно искать продукт в справочнике и вбивать граммы — достаточно камеры или названия.
+              Без поиска продукта в справочнике — камера, штрихкод или короткое название.
             </p>
           </div>
           <ol className="landing-steps landing-stagger">
@@ -323,8 +295,8 @@ export function LandingPage() {
               <div>
                 <h3 className="landing-step-title">Снимите или опишите еду</h3>
                 <p className="landing-section-text">
-                  Тарелка в кафе, упаковка, этикетка КБЖУ или штрихкод. Можно написать или надиктовать
-                  «гречка с курицей». Нет сети — фото сохранится в офлайн-очереди.
+                  Тарелка, упаковка, этикетка или штрихкод. Можно написать «гречка с курицей». Нет
+                  сети — фото уйдёт в офлайн-очередь.
                 </p>
               </div>
             </li>
@@ -333,10 +305,10 @@ export function LandingPage() {
                 02
               </span>
               <div>
-                <h3 className="landing-step-title">Проверьте порцию и уверенность</h3>
+                <h3 className="landing-step-title">Проверьте порцию</h3>
                 <p className="landing-section-text">
-                  Подправьте граммы или название — калории и БЖУ пересчитаются. При низкой уверенности
-                  — «Уточнить по названию». Несколько блюд с одного фото — по отдельности.
+                  Подправьте граммы или название — КБЖУ пересчитаются. Низкая уверенность —
+                  уточните по названию.
                 </p>
               </div>
             </li>
@@ -347,8 +319,7 @@ export function LandingPage() {
               <div>
                 <h3 className="landing-step-title">Следите за днём</h3>
                 <p className="landing-section-text">
-                  Завтрак, обед, ужин и перекусы в рационе. Видно, сколько осталось до нормы, как
-                  идёт вода, серия и недельный план.
+                  Приёмы пищи в рационе: остаток до нормы, вода, серия и план недели.
                 </p>
               </div>
             </li>
@@ -370,8 +341,7 @@ export function LandingPage() {
             <p className="landing-kicker">Что внутри</p>
             <h2 className="landing-section-title">Ежедневный учёт — в одном месте</h2>
             <p className="landing-section-text landing-section-text-wide">
-              Быстро добавить еду, не потерять привычку и понимать, куда уходит калорийный бюджет дня —
-              даже если сеть пропала на минуту.
+              Еда, вода и зал без второй подписки — даже если сеть пропала на минуту.
             </p>
           </div>
           <LandingFeatureGrid />
@@ -379,30 +349,17 @@ export function LandingPage() {
       </LandingScrollReveal>
 
       <LandingScrollReveal>
-        <LandingDayPulse />
-      </LandingScrollReveal>
-
-      <LandingScrollReveal>
-        <LandingAudience />
-      </LandingScrollReveal>
-
-      <LandingScrollReveal>
-        <LandingFreeHighlight />
-      </LandingScrollReveal>
-
-      <LandingScrollReveal>
         <section id="install" className="landing-section landing-section-band landing-parallax-band">
           <div className="landing-section-head">
             <p className="landing-kicker">На телефон</p>
-            <h2 className="landing-section-title">Установите на экран «Домой»</h2>
+            <h2 className="landing-section-title">Один путь установки</h2>
             <p className="landing-section-text landing-section-text-wide">
-              Calorie Vision — PWA. Откройте{" "}
-              <strong className="landing-inline-strong">calorievision.ru</strong> в браузере и
-              добавьте на главный экран: иконка и полноэкранный режим без App Store и Google Play.
-              На Android удобнее ставить из RuStore — или скачать APK. Напоминания на iPhone работают
-              только с иконки (iOS 16.4+).
+              Android — RuStore (или APK). iPhone — Safari → на экран «Домой». Уведомления на iOS
+              работают только с иконки (16.4+).
             </p>
           </div>
+
+          <AndroidApkCta />
 
           <div className="landing-install-grid landing-stagger">
             <div className="landing-install-col">
@@ -411,36 +368,28 @@ export function LandingPage() {
                 iPhone · Safari
               </h3>
               <ol className="landing-install-steps">
-                <li>Откройте сайт в Safari.</li>
+                <li>Откройте calorievision.ru в Safari.</li>
                 <li>
-                  Нажмите «Поделиться» <ShareIcon /> внизу экрана.
+                  «Поделиться» <ShareIcon /> → «На экран „Домой“».
                 </li>
-                <li>Выберите «На экран „Домой“» → «Добавить».</li>
-                <li>Запускайте с иконки — так работают уведомления.</li>
-                <li>
-                  Если push запретили — удалите иконку, добавьте снова и включите напоминания в
-                  профиле.
-                </li>
+                <li>Запускайте с иконки — так работают напоминания.</li>
               </ol>
             </div>
 
             <div className="landing-install-col">
               <h3 className="landing-install-heading">
                 <MenuIcon />
-                Android · Chrome
+                Android · Chrome (PWA)
               </h3>
               <ol className="landing-install-steps">
-                <li>Откройте сайт в Chrome.</li>
+                <li>Если не ставите из RuStore — откройте сайт в Chrome.</li>
                 <li>
-                  Меню <MenuIcon /> → «Установить приложение» или «На главный экран».
+                  Меню <MenuIcon /> → «Установить приложение».
                 </li>
-                <li>Подтвердите установку.</li>
-                <li>Открывайте с иконки — удобнее дневник и напоминания.</li>
+                <li>Открывайте с иконки.</li>
               </ol>
             </div>
           </div>
-
-          <AndroidApkCta />
         </section>
       </LandingScrollReveal>
 
@@ -454,73 +403,43 @@ export function LandingPage() {
             <div className="landing-faq-item">
               <dt>Это правда бесплатно?</dt>
               <dd>
-                Да. Сейчас весь функционал дневника — без подписки и оплаты. Сообщим заранее, если
-                появятся платные возможности; базовый учёт останется доступным.
+                Да. Сейчас весь дневник — без подписки. Сообщим заранее, если появятся платные
+                возможности; базовый учёт останется доступным.
               </dd>
             </div>
             <div className="landing-faq-item">
-              <dt>Нужно скачивать из App Store или Google Play?</dt>
+              <dt>Как установить на телефон?</dt>
               <dd>
-                Нет. Добавьте сайт на экран «Домой» — появится иконка и почти нативное ощущение
-                приложения. На Android также можно{" "}
-                <a href={apkUrl} download>
-                  скачать APK
-                </a>
-                {rustoreUrl ? (
-                  <>
-                    {" "}
-                    или поставить из{" "}
-                    <a href={rustoreUrl} target="_blank" rel="noopener noreferrer">
-                      RuStore
-                    </a>
-                  </>
-                ) : null}
-                .
+                Один блок выше —{" "}
+                <a href="#install">установка</a>: RuStore / APK на Android и Safari «На экран Домой»
+                на iPhone.
               </dd>
             </div>
             <div className="landing-faq-item">
               <dt>Насколько точны калории по фото?</dt>
               <dd>
-                Это умная оценка, а не лабораторный анализ. Перед сохранением вы видите порцию и
-                уровень уверенности — можно поправить название или граммы; приложение запомнит
-                исправления.
-              </dd>
-            </div>
-            <div className="landing-faq-item">
-              <dt>Что распознаётся кроме тарелки?</dt>
-              <dd>
-                Этикетки с КБЖУ (включая клетчатку и сахар), упаковки, напитки, штрихкоды и готовые
-                блюда со стикерами. Можно ввести название текстом или голосом.
+                Умная оценка, не лаборатория. Перед сохранением видны порция и уверенность — можно
+                поправить; приложение запомнит правки.
               </dd>
             </div>
             <div className="landing-faq-item">
               <dt>Что если нет интернета?</dt>
               <dd>
-                Фото и неудавшиеся сохранения попадают в офлайн-очередь на устройстве. Когда сеть
-                появится — распознаем и отправим; черновик можно продолжить с экрана рациона.
+                Фото и сохранения остаются в офлайн-очереди. Когда сеть появится — распознаем и
+                отправим.
               </dd>
             </div>
             <div className="landing-faq-item">
-              <dt>Есть ли учёт воды и напоминания?</dt>
+              <dt>Можно ли без фото?</dt>
               <dd>
-                Да. В «Рационе» — трекер воды с быстрыми кнопками. Push о еде и воде включаются в
-                профиле (на iOS — после добавления на домашний экран; при запрете — переустановите
-                ярлык).
+                Да — название, избранное или штрихкод. Фото просто быстрее дома и в кафе.
               </dd>
             </div>
             <div className="landing-faq-item">
-              <dt>Где хранятся мои данные?</dt>
+              <dt>Где хранятся данные?</dt>
               <dd>
-                Дневник привязан к аккаунту и хранится на сервере Calorie Vision. После входа записи
-                доступны с любого устройства. Подробнее — в{" "}
+                Дневник привязан к аккаунту на сервере Calorie Vision. Подробнее — в{" "}
                 <Link href="/privacy">Политике конфиденциальности</Link>.
-              </dd>
-            </div>
-            <div className="landing-faq-item">
-              <dt>Можно ли вести дневник без фото?</dt>
-              <dd>
-                Да. Напишите название, выберите избранное или отсканируйте штрихкод — калорийность
-                подтянется из базы. Фото просто быстрее дома и в кафе.
               </dd>
             </div>
           </dl>

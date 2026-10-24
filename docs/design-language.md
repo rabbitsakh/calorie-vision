@@ -48,3 +48,6 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Scene tokens (Wave D20): `:root --line` aliases hairline; product UI prefers `--accent*` (no Tailwind `teal-*`); login uses `.login-panel` on `--panel-wash`; share canvases use Unbounded/Manrope; leftover violet celeb glow maps to teal.
 - Landing + auth (Wave D21): hero budget = brand + one headline + short lead + one CTA group; competitor / RuStore / APK below fold; Capacitor welcome uses product `--panel-wash`.
 - Motion (Wave D22): keep `ration-scene-in` / `meal-row-in` / landing sheen + soft-stack enter — presence, not noise.
+- Landing rhythm (Wave D23): below-fold = stats → how → recognition → trust → inside (≤5 features) → install → FAQ — no pulse/audience/free catalog stack.
+- No competitor names (Wave D24): differentiate without CalZen/FatSecret (or other brand) headlines; soft “не ручной справочник” in trust/how.
+- One install path (Wave D25): RuStore → APK → iPhone only under `#install`; nav/footer/FAQ link there, no duplicate badges above.

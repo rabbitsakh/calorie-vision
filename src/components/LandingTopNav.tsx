@@ -10,8 +10,7 @@ const LINKS = [
   { href: "#recognition", label: "Распознавание" },
   { href: "#trust", label: "Доверие" },
   { href: "#inside", label: "Внутри" },
-  { href: "#free", label: "Бесплатно" },
-  { href: "/install", label: "Установка" },
+  { href: "#install", label: "Установка" },
   { href: "#faq", label: "Вопросы" },
 ] as const;
 
