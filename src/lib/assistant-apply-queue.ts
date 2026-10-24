@@ -11,6 +11,7 @@ export type AssistantApplyKind =
   | "routine"
   | "shopping"
   | "start"
+  | "repeat"
   | "water"
   | "weight"
   | "deleteMeals"

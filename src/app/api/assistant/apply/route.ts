@@ -23,6 +23,7 @@ import {
   toolPatchMeals,
   toolSaveMeals,
   toolSavePhotoDrafts,
+  toolRepeatLastWorkout,
   toolStartTodaysRoutine,
   toolUndoWrites,
   type AssistantUndoPayload,
@@ -197,7 +198,13 @@ export async function POST(request: NextRequest) {
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });
       }
-      return NextResponse.json({ ok: true, ...(result.data as object), tools: [result] });
+      // Top-level meals for older clients; `result` for ActionCard flash/undo.
+      return NextResponse.json({
+        ok: true,
+        ...(result.data as object),
+        result,
+        tools: [result],
+      });
     }
 
     if (body.kind === "weight") {
@@ -282,6 +289,21 @@ export async function POST(request: NextRequest) {
       const result = await toolStartTodaysRoutine({
         userId: session.user.id,
         date: startDate,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.message }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, result, tools: [result] });
+    }
+
+    if (body.kind === "repeat") {
+      const repeatDate =
+        resolveAssistantDate(actions.targetDate, today) ??
+        requireDateKey(typeof body.date === "string" ? body.date : null) ??
+        date;
+      const result = await toolRepeatLastWorkout({
+        userId: session.user.id,
+        date: repeatDate,
       });
       if (!result.ok) {
         return NextResponse.json({ error: result.message }, { status: 400 });

@@ -7,6 +7,7 @@ import {
   extractActionsJson,
   heuristicRepairMultiDishActions,
   heuristicRepairPortionPatchActions,
+  heuristicRepairRepeatWorkoutActions,
   heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
@@ -17,7 +18,7 @@ import {
   preferSlotEditActions,
   pruneNoopAssistantActions,
 } from "./assistant-repair.ts";
-import { userWantsWrite } from "./assistant-intent.ts";
+import { userWantsRepeatWorkout, userWantsWrite } from "./assistant-intent.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -223,4 +224,43 @@ test("preferSlotEditActions wins for slot move", () => {
   });
   assert.equal(fixed?.patchMeals?.[0]?.toMealType, "DINNER");
   assert.equal(fixed?.meals, undefined);
+});
+
+test("userWantsRepeatWorkout and heuristicRepairRepeatWorkoutActions", () => {
+  assert.equal(userWantsRepeatWorkout("Повтори последнюю тренировку"), true);
+  assert.equal(userWantsRepeatWorkout("повтори вчерашний зал"), true);
+  assert.equal(userWantsRepeatWorkout("Что поесть?"), false);
+  assert.equal(userWantsWrite("Повтори последнюю тренировку"), true);
+
+  const last = heuristicRepairRepeatWorkoutActions("Повтори последнюю тренировку");
+  assert.equal(last?.repeatWorkout, true);
+  assert.equal(last?.targetDate, "сегодня");
+  assert.equal(last?.apply, true);
+
+  // «вчерашний зал» alone → clone onto сегодня (not onto вчера)
+  const yday = heuristicRepairRepeatWorkoutActions("Повтори вчерашний зал");
+  assert.equal(yday?.repeatWorkout, true);
+  assert.equal(yday?.targetDate, "сегодня");
+
+  const onYday = heuristicRepairRepeatWorkoutActions(
+    "Повтори последнюю тренировку на вчера",
+  );
+  assert.equal(onYday?.targetDate, "вчера");
+
+  assert.equal(
+    needsWriteRepair("Повтори вчерашний зал", null),
+    true,
+  );
+  assert.equal(
+    needsWriteRepair("Повтори вчерашний зал", {
+      apply: true,
+      repeatWorkout: true,
+      targetDate: "сегодня",
+    }),
+    false,
+  );
+  assert.equal(
+    actionsHaveWritablePayload({ repeatWorkout: true }),
+    true,
+  );
 });

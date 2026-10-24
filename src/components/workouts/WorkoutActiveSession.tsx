@@ -385,6 +385,10 @@ export type WorkoutActiveSessionProps = {
   patchClock: (action: "start" | "pause" | "resume" | "finish") => Promise<void>;
   /** Manual start/end ISO for finished (or finishing) sessions. */
   patchSessionTimes: (times: { startedAt: string; endedAt: string }) => Promise<void>;
+  /** Move session to another calendar day (backdate / forward). */
+  patchSessionDate: (date: string) => Promise<void>;
+  /** Prefill every exercise draft from lastTime sets (first set each). */
+  applyAllLastSets: () => void;
   saveAsRoutine: (sessionId: string, name: string) => Promise<void>;
   deleteSession: () => Promise<void>;
   toggleExerciseHistory: (name: string, kind: ExerciseKind) => Promise<void>;
@@ -474,6 +478,8 @@ export function WorkoutActiveSession({
   restPauseOnStage,
   patchClock,
   patchSessionTimes,
+  patchSessionDate,
+  applyAllLastSets,
   saveAsRoutine,
   deleteSession,
   toggleExerciseHistory,
@@ -726,12 +732,27 @@ export function WorkoutActiveSession({
         >
           ← К списку
         </button>
-        <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-          {formatDateWords(detail.date)}
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <h2 className="text-xl font-semibold text-[var(--foreground)]">
+            {formatDateWords(detail.date)}
+          </h2>
+          <label className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-strong)]">
+            Дата
+            <input
+              type="date"
+              value={detail.date}
+              disabled={busy}
+              className="rounded-lg border border-[var(--border-quiet)] bg-white px-2 py-1 text-sm text-[var(--foreground)]"
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next && next !== detail.date) void patchSessionDate(next);
+              }}
+            />
+          </label>
           {detail.date !== todayKey ? (
-            <span className="ml-2 text-sm font-medium text-amber-700">задним числом</span>
+            <span className="text-sm font-medium text-amber-700">задним числом</span>
           ) : null}
-        </h2>
+        </div>
         <p className="mt-1 text-sm text-[var(--muted-strong)]">{detail.muscleLabels.join(" · ")}</p>
         {detail.clockStatus === "finished" ? (
           <button
@@ -1032,13 +1053,30 @@ export function WorkoutActiveSession({
     ) : null}
     {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
+    {detail.exercises.some((ex) => (ex.lastTime?.sets?.length ?? 0) > 0) ? (
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
+          onClick={applyAllLastSets}
+        >
+          Вставить прошлые подходы
+        </button>
+        <p className="text-xs text-[var(--muted)]">
+          В черновики — по одному подходу на упражнение из прошлого раза
+        </p>
+      </div>
+    ) : null}
+
     {/* List is always a vertical stack. One-exercise paging lives only in «К подходам» stage. */}
-    {detail.exercises.length === 0 && detail.clockStatus !== "finished" ? (
+    {detail.exercises.length === 0 ? (
       <div className="scene-empty">
         <p className="scene-empty__title">Пока нет упражнений</p>
         <p className="scene-empty__hint">
-          Добавьте первое ниже — потом «Старт» таймера или «К подходам» для записи
-          весов.
+          {detail.clockStatus === "finished"
+            ? "Можно добавить упражнения и подходы к уже завершённой тренировке."
+            : "Добавьте первое ниже — потом «Старт» таймера или «К подходам» для записи весов."}
         </p>
       </div>
     ) : null}

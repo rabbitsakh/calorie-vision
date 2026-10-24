@@ -8,6 +8,7 @@ import {
   resolveAssistantDate,
   shouldAutoApply,
   undoPayloadHasItems,
+  userWantsRepeatWorkout,
   userWantsStartWorkout,
   userWantsWrite,
   weekdayIndexFromLabel,
@@ -23,6 +24,12 @@ test("userWantsWrite detects Russian write intents", () => {
 test("userWantsStartWorkout", () => {
   assert.equal(userWantsStartWorkout("Начни сегодняшнюю тренировку"), true);
   assert.equal(userWantsStartWorkout("Что поесть?"), false);
+});
+
+test("userWantsRepeatWorkout", () => {
+  assert.equal(userWantsRepeatWorkout("Повтори последнюю тренировку"), true);
+  assert.equal(userWantsRepeatWorkout("повтори вчерашний зал"), true);
+  assert.equal(userWantsRepeatWorkout("Что в плане?"), false);
 });
 
 test("resolveAssistantDate handles relative and weekday labels", () => {
@@ -113,6 +120,17 @@ test("shouldAutoApply for water and start", () => {
   assert.equal(shouldAutoApply({ startWorkout: true }, "начни"), true);
 });
 
+test("shouldAutoApply for repeatWorkout", () => {
+  assert.equal(
+    shouldAutoApply({ apply: true, repeatWorkout: true }, "ок"),
+    true,
+  );
+  assert.equal(
+    shouldAutoApply({ repeatWorkout: true }, "повтори последнюю"),
+    true,
+  );
+});
+
 test("Assistant J: stream path never silent-writes workoutDays", async () => {
   const results = await executeAssistantWriteTools({
     userId: "u1",
@@ -145,6 +163,15 @@ test("Assistant K: stream path never silent-writes shopping or startWorkout", as
     lastUserMessage: "начни тренировку",
   });
   assert.equal(start.length, 0);
+
+  const repeat = await executeAssistantWriteTools({
+    userId: "u1",
+    today: "2026-10-14",
+    date: "2026-10-14",
+    actions: { apply: true, repeatWorkout: true },
+    lastUserMessage: "повтори последнюю тренировку",
+  });
+  assert.equal(repeat.length, 0);
 });
 
 test("Assistant L: stream path never silent-writes meals or water", async () => {

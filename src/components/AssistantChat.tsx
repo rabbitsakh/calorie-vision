@@ -32,11 +32,17 @@ import {
   removeAssistantApply,
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
-import { userWantsStartWorkout, userWantsWrite } from "@/lib/assistant-intent";
+import {
+  userWantsRepeatWorkout,
+  userWantsStartWorkout,
+  userWantsWrite,
+} from "@/lib/assistant-intent";
 import { prepareAssistantImage } from "@/lib/assistant-image-client";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import { resolveAssistantDate } from "@/lib/assistant-date";
 import { formatDateInput, isDateKey, requireDateKey } from "@/lib/dates";
+import { notifyFoodSaved } from "@/lib/open-food-camera";
+import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
 import type { PhotoKind } from "@/lib/food-types";
@@ -427,7 +433,11 @@ function PhotoConfirm({
         skipped?: number;
       };
       const meals = resultData.meals ?? [];
+      if (!meals.length && !resultData.partial) {
+        throw new Error(json.result.message || "Не удалось сохранить блюда");
+      }
       setDismissed(true);
+      notifyFoodSaved();
       onDone(json.result, {
         ...emptyUndo(),
         mealIds: meals.map((m) => m.id).filter(Boolean),
@@ -603,6 +613,7 @@ function ActionCard({
     routine: boolean;
     shopping: boolean;
     start: boolean;
+    repeat: boolean;
     water: boolean;
     weight: boolean;
     deleteMeals: boolean;
@@ -622,6 +633,7 @@ function ActionCard({
     routine: false,
     shopping: false,
     start: false,
+    repeat: false,
     water: false,
     weight: false,
     deleteMeals: false,
@@ -632,6 +644,7 @@ function ActionCard({
   const routineDone = streamDone.routine || localDone.routine;
   const shoppingDone = streamDone.shopping || localDone.shopping;
   const startDone = streamDone.start || localDone.start;
+  const repeatDone = streamDone.repeat || localDone.repeat;
   const waterDone = streamDone.water || localDone.water;
   const weightDone = streamDone.weight || localDone.weight;
   const deleteDone = streamDone.deleteMeals || localDone.deleteMeals;
@@ -641,6 +654,7 @@ function ActionCard({
   const needsRoutine = Boolean(actions.workoutDays?.length);
   const needsShopping = Boolean(actions.shopping?.length);
   const needsStart = Boolean(actions.startWorkout);
+  const needsRepeat = Boolean(actions.repeatWorkout);
   const needsWater = typeof actions.waterMl === "number" && actions.waterMl > 0;
   const needsWeight = typeof actions.weightKg === "number" && actions.weightKg > 0;
   const needsDelete = Boolean(actions.deleteMeals?.length);
@@ -651,6 +665,7 @@ function ActionCard({
     (!needsRoutine || routineDone) &&
     (!needsShopping || shoppingDone) &&
     (!needsStart || startDone) &&
+    (!needsRepeat || repeatDone) &&
     (!needsWater || waterDone) &&
     (!needsWeight || weightDone) &&
     (!needsDelete || deleteDone) &&
@@ -659,6 +674,7 @@ function ActionCard({
       needsRoutine ||
       needsShopping ||
       needsStart ||
+      needsRepeat ||
       needsWater ||
       needsWeight ||
       needsDelete ||
@@ -669,6 +685,7 @@ function ActionCard({
     | "routine"
     | "shopping"
     | "start"
+    | "repeat"
     | "water"
     | "weight"
     | "deleteMeals"
@@ -700,7 +717,9 @@ function ActionCard({
                       ? "Офлайн — удаление в очереди"
                       : kind === "patchMeals"
                         ? "Офлайн — правка в очереди"
-                        : "Офлайн — старт тренировки в очереди",
+                        : kind === "repeat"
+                          ? "Офлайн — повтор тренировки в очереди"
+                          : "Офлайн — старт тренировки в очереди",
         );
         return true;
       }
@@ -713,50 +732,91 @@ function ActionCard({
         error?: string;
         meals?: Array<{ id: string }>;
         routines?: Array<{ id: string }>;
+        tools?: Array<{
+          ok?: boolean;
+          tool?: string;
+          message?: string;
+          data?: {
+            meals?: Array<{ id: string }>;
+            waterId?: string;
+            weightId?: string;
+          };
+        }>;
         result?: {
           message?: string;
-          data?: { waterId?: string; weightId?: string; mealIds?: string[] };
+          data?: {
+            meals?: Array<{ id: string }>;
+            waterId?: string;
+            weightId?: string;
+            mealIds?: string[];
+          };
         };
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
-      setLocalDone((prev) => ({ ...prev, [kind]: true }));
+      const toolResult =
+        data?.result ??
+        data?.tools?.find((t) => t.ok) ??
+        data?.tools?.[0] ??
+        null;
+      const mealsSaved =
+        data?.meals ??
+        toolResult?.data?.meals ??
+        [];
       if (kind === "meals") {
-        onFlash(`В дневник: ${data?.meals?.length ?? 0}`);
+        if (!mealsSaved.length) {
+          throw new Error(toolResult?.message || data?.error || "Нет блюд для записи");
+        }
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? `В дневник: ${mealsSaved.length}`);
         onApplied({
           ...emptyUndo(),
-          mealIds: (data?.meals ?? []).map((m) => m.id).filter(Boolean),
+          mealIds: mealsSaved.map((m) => m.id).filter(Boolean),
         });
       } else if (kind === "routine") {
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
         onFlash("В план зала");
         onApplied({
           ...emptyUndo(),
           routineIds: (data?.routines ?? []).map((r) => r.id).filter(Boolean),
         });
       } else if (kind === "shopping") {
-        onFlash(data?.result?.message ?? "В покупки");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        onFlash(toolResult?.message ?? data?.result?.message ?? "В покупки");
         onApplied(emptyUndo());
       } else if (kind === "water") {
-        const waterId = data?.result?.data?.waterId;
-        onFlash(data?.result?.message ?? "Вода записана");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        const waterId = toolResult?.data?.waterId ?? data?.result?.data?.waterId;
+        notifyWaterLogged();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Вода записана");
         onApplied({
           ...emptyUndo(),
           waterIds: waterId ? [waterId] : [],
         });
       } else if (kind === "weight") {
-        const weightId = data?.result?.data?.weightId;
-        onFlash(data?.result?.message ?? "Вес записан");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        const weightId = toolResult?.data?.weightId ?? data?.result?.data?.weightId;
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Вес записан");
         onApplied({
           ...emptyUndo(),
           weightIds: weightId ? [weightId] : [],
         });
       } else if (kind === "deleteMeals") {
-        onFlash(data?.result?.message ?? "Удалил из рациона");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Удалил из рациона");
         onApplied(emptyUndo());
       } else if (kind === "patchMeals") {
-        onFlash(data?.result?.message ?? "Обновил в рационе");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        notifyFoodSaved();
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Обновил в рационе");
+        onApplied(emptyUndo());
+      } else if (kind === "repeat") {
+        onFlash(data?.result?.message ?? "Тренировка повторена");
         onApplied(emptyUndo());
       } else {
-        onFlash(data?.result?.message ?? "Тренировка начата");
+        setLocalDone((prev) => ({ ...prev, [kind]: true }));
+        onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка начата");
         onApplied(emptyUndo());
       }
       return true;
@@ -778,6 +838,7 @@ function ActionCard({
     if (needsShopping && !shoppingDone) kinds.push("shopping");
     if (needsRoutine && !routineDone) kinds.push("routine");
     if (needsStart && !startDone) kinds.push("start");
+    if (needsRepeat && !repeatDone) kinds.push("repeat");
     return kinds;
   }
 
@@ -791,66 +852,129 @@ function ActionCard({
   }
 
   const alone = (flag: boolean, ...rest: boolean[]) => flag && rest.every((x) => !x);
-  const othersOf = (...flags: boolean[]) => flags;
-  const gymOnly = alone(
-    needsRoutine,
-    ...othersOf(needsMeals, needsShopping, needsStart, needsWater, needsWeight, needsDelete, needsPatch),
-  );
   const shoppingOnly = alone(
     needsShopping,
-    ...othersOf(needsMeals, needsRoutine, needsStart, needsWater, needsWeight, needsDelete, needsPatch),
+    needsMeals,
+    needsRoutine,
+    needsStart,
+    needsRepeat,
+    needsWater,
+    needsWeight,
+    needsDelete,
+    needsPatch,
   );
   const startOnly = alone(
     needsStart,
-    ...othersOf(needsMeals, needsRoutine, needsShopping, needsWater, needsWeight, needsDelete, needsPatch),
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsRepeat,
+    needsWater,
+    needsWeight,
+    needsDelete,
+    needsPatch,
+  );
+  const repeatOnly = alone(
+    needsRepeat,
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsStart,
+    needsWater,
+    needsWeight,
+    needsDelete,
+    needsPatch,
   );
   const waterOnly = alone(
     needsWater,
-    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWeight, needsDelete, needsPatch),
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsStart,
+    needsRepeat,
+    needsWeight,
+    needsDelete,
+    needsPatch,
   );
   const weightOnly = alone(
     needsWeight,
-    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsDelete, needsPatch),
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsStart,
+    needsRepeat,
+    needsWater,
+    needsDelete,
+    needsPatch,
   );
   const deleteOnly = alone(
     needsDelete,
-    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsWeight, needsPatch),
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsStart,
+    needsRepeat,
+    needsWater,
+    needsWeight,
+    needsPatch,
   );
   const patchOnly = alone(
     needsPatch,
-    ...othersOf(needsMeals, needsRoutine, needsShopping, needsStart, needsWater, needsWeight, needsDelete),
+    needsMeals,
+    needsRoutine,
+    needsShopping,
+    needsStart,
+    needsRepeat,
+    needsWater,
+    needsWeight,
+    needsDelete,
+  );
+  const planOnly = alone(
+    needsRoutine,
+    needsMeals,
+    needsShopping,
+    needsStart,
+    needsRepeat,
+    needsWater,
+    needsWeight,
+    needsDelete,
+    needsPatch,
   );
   const skim = alreadyApplied
-    ? gymOnly
+    ? planOnly
       ? "План зала · уже записано"
       : shoppingOnly
         ? "Покупки · уже записано"
         : startOnly
           ? "Тренировка · уже записано"
-          : waterOnly
-            ? "Вода · уже записано"
-            : weightOnly
-              ? "Вес · уже записано"
-              : deleteOnly
-                ? "Удаление · уже записано"
-                : patchOnly
-                  ? "Правка · уже записано"
-                  : `День ${applyDate} · уже записано`
-    : gymOnly
+          : repeatOnly
+            ? "Повтор · уже записано"
+            : waterOnly
+              ? "Вода · уже записано"
+              : weightOnly
+                ? "Вес · уже записано"
+                : deleteOnly
+                  ? "Удаление · уже записано"
+                  : patchOnly
+                    ? "Правка · уже записано"
+                    : `День ${applyDate} · уже записано`
+    : planOnly
       ? "План зала · подтверди запись"
       : shoppingOnly
         ? "Покупки · подтверди запись"
         : startOnly
           ? "Тренировка · подтверди старт"
-          : waterOnly
-            ? "Вода · подтверди запись"
-            : weightOnly
-              ? "Вес · подтверди запись"
-              : deleteOnly
-                ? "Удаление · подтверди"
-                : patchOnly
-                  ? "Правка · подтверди"
-                  : `День ${applyDate} · подтверди запись`;
+          : repeatOnly
+            ? "Повтор · подтверди"
+            : waterOnly
+              ? "Вода · подтверди запись"
+              : weightOnly
+                ? "Вес · подтверди запись"
+                : deleteOnly
+                  ? "Удаление · подтверди"
+                  : patchOnly
+                    ? "Правка · подтверди"
+                    : `День ${applyDate} · подтверди запись`;
 
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
@@ -901,7 +1025,12 @@ function ActionCard({
       ) : null}
       {actions.startWorkout ? (
         <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
-          Старт сегодняшней тренировки по плану
+          Старт тренировки по плану · {applyDate}
+        </p>
+      ) : null}
+      {actions.repeatWorkout ? (
+        <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
+          Повторить последнюю завершённую · на {applyDate}
         </p>
       ) : null}
       {needsWater ? (
@@ -955,7 +1084,7 @@ function ActionCard({
       ) : null}
       <div className="confirm-family-actions flex flex-wrap gap-1.5">
         {alreadyApplied ? (
-          needsRoutine || needsStart ? (
+          needsRoutine || needsStart || needsRepeat ? (
             <Link href="/workouts" className="confirm-family-secondary">
               Открыть зал
             </Link>
@@ -1056,6 +1185,21 @@ function ActionCard({
                   onClick={() => void apply("start")}
                 >
                   {busy === "start" ? "…" : online ? "Начать тренировку" : "В очередь"}
+                </button>
+                <Link href="/workouts" className="confirm-family-secondary">
+                  Зал
+                </Link>
+              </>
+            ) : null}
+            {needsRepeat && !repeatDone ? (
+              <>
+                <button
+                  type="button"
+                  className="confirm-family-cta"
+                  disabled={busy === "repeat"}
+                  onClick={() => void apply("repeat")}
+                >
+                  {busy === "repeat" ? "…" : online ? "Повторить тренировку" : "В очередь"}
                 </button>
                 <Link href="/workouts" className="confirm-family-secondary">
                   Зал
@@ -1208,10 +1352,21 @@ export function AssistantChat() {
           });
           if (!resp.ok) continue;
           removeAssistantApply(item.id);
+          if (
+            item.kind === "photo" ||
+            item.kind === "meals" ||
+            item.kind === "patchMeals" ||
+            item.kind === "deleteMeals"
+          ) {
+            notifyFoodSaved();
+          }
+          if (item.kind === "water") notifyWaterLogged();
           showFlash(
             item.kind === "photo" || item.kind === "meals"
               ? "Офлайн-очередь: добавил в рацион"
-              : "Офлайн-очередь: план зала",
+              : item.kind === "water"
+                ? "Офлайн-очередь: вода записана"
+                : "Офлайн-очередь: план зала",
           );
           void refreshSnapshot(date);
         } catch {
@@ -1868,7 +2023,8 @@ export function AssistantChat() {
             meals: toolOk("save") || toolOk("photo"),
             routine: toolOk("plan") || toolOk("routine"),
             shopping: toolOk("shopping"),
-            start: toolOk("start"),
+            start: toolOk("start_routine") || toolOk("start"),
+            repeat: toolOk("repeat_workout") || toolOk("repeat"),
             water: toolOk("water"),
             weight: toolOk("weight") || toolOk("log_weight"),
             deleteMeals: toolOk("delete"),
@@ -1892,7 +2048,10 @@ export function AssistantChat() {
             turn.role === "assistant" &&
             shouldOfferWriteRetry({
               wrote: turn.wrote,
-              wantsWrite: userWantsWrite(prevUser) || userWantsStartWorkout(prevUser),
+              wantsWrite:
+                userWantsWrite(prevUser) ||
+                userWantsStartWorkout(prevUser) ||
+                userWantsRepeatWorkout(prevUser),
             });
           return (
             <div
