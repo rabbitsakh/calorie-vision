@@ -900,7 +900,7 @@ export function StatsView({ endDate }: StatsViewProps) {
   return (
     <div className="stats-page-scene flex flex-col gap-4">
       {/* Sticky under the notch — scrollport is `.cv-app-main`, so top:0 sticks to its top edge */}
-      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--background)]/92 px-2.5 py-1.5 backdrop-blur-sm md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+      <div className="sticky top-0 z-20 -mx-2.5 bg-[var(--surface-panel)]/88 px-2.5 py-1.5 backdrop-blur-sm md:static md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <div className="stats-period-tabs sm:max-w-md" role="tablist" aria-label="Период статистики">
           {([
             ["week", "7 дней"],
