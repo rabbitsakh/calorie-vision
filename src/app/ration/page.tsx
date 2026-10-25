@@ -288,51 +288,48 @@ function RationBody({
             />
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-          {/* Wave D19: first viewport = hero + ops + diary. Soft prompts live after the feed. */}
-          <div className="flex flex-col gap-2 pt-2">
-            <PendingConfirmBanner selectedDate={date} />
-          </div>
 
-          {/* Offline / error — above the meal feed so the day is usable without scrolling */}
-          {day.error ? (
-            <div className="mx-0.5 mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800">
-              <p className="min-w-0 flex-1 font-medium">
-                Не удалось загрузить день. {day.error}
-              </p>
-              <button
-                type="button"
-                className="shrink-0 font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-                disabled={day.loading}
-                onClick={() => void day.refresh()}
-              >
-                Обновить
-              </button>
-            </div>
-          ) : day.fromCache ? (
-            <div
-              className="offline-chrome offline-chrome-pad mx-0.5 mt-2 flex flex-wrap items-center gap-2 text-sm"
-              role="status"
-            >
-              <p className="min-w-0 flex-1 font-medium text-[var(--offline-glass-ink)]">
-                {day.data?.meals.entries?.length
-                  ? "День с устройства — при связи обновим; новые записи уйдут в очередь"
-                  : "День ещё подгружается — можно листать; при связи обновим"}
-              </p>
-              <button
-                type="button"
-                className="offline-chrome-link shrink-0"
-                disabled={day.loading}
-                onClick={() => void day.refresh(false)}
-              >
-                Обновить
-              </button>
-            </div>
-          ) : null}
-
-          {/* T1: queue above the meal feed so sync status is visible without scrolling */}
-          <div className="mx-0.5 mt-2">
+          {/* First viewport ops: pending ∪ offline ∪ queue — one strip, then meal feed */}
+          <div className="ration-day-ops">
+            <PendingConfirmBanner selectedDate={date} compact />
+            {day.error ? (
+              <div className="ration-day-ops-row" role="alert">
+                <div className="ration-day-ops-chip ration-day-ops-chip--warn flex items-center gap-2 text-sm">
+                  <p className="min-w-0 flex-1 truncate font-semibold">
+                    Не загрузился · {day.error}
+                  </p>
+                  <button
+                    type="button"
+                    className="offline-chrome-cta shrink-0"
+                    disabled={day.loading}
+                    onClick={() => void day.refresh()}
+                  >
+                    Обновить
+                  </button>
+                </div>
+              </div>
+            ) : day.fromCache ? (
+              <div className="ration-day-ops-row" role="status">
+                <div className="ration-day-ops-chip flex items-center gap-2 text-sm">
+                  <p className="min-w-0 flex-1 truncate font-semibold text-[var(--offline-glass-ink)]">
+                    {day.data?.meals.entries?.length
+                      ? "День с устройства"
+                      : "День подгружается"}
+                  </p>
+                  <button
+                    type="button"
+                    className="offline-chrome-link shrink-0"
+                    disabled={day.loading}
+                    onClick={() => void day.refresh(false)}
+                  >
+                    Обновить
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <OfflineMealQueueBanner
               selectedDate={date}
+              compact
               onFlushed={bump}
               onRecognitionReady={(readyDate) => {
                 bump();

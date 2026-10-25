@@ -2181,7 +2181,7 @@ select {
 
 .day-hero--theater .day-hero-theater-inner {
   z-index: 1;
-  min-height: 13.5rem;
+  min-height: 0;
 }
 
 /* Standalone scene heroes (stats/gym) keep a soft panel; ration embeds flush. */
@@ -2391,20 +2391,66 @@ select {
 
 .ration-day-scene .day-hero-theater-inner {
   min-height: 0;
-  padding: 1.1rem 0.15rem 0.35rem !important;
+  padding: 0.55rem 0.15rem 0.15rem !important;
 }
 
 .ration-day-scene .day-hero-phrase {
-  margin-top: 0.55rem;
+  margin-top: 0.35rem;
+  font-size: clamp(1.05rem, 3.8vw, 1.3rem);
+  max-width: 26rem;
 }
 
 .ration-day-scene .day-hero-arc {
-  margin-top: 1.35rem;
+  margin-top: 0.75rem;
+}
+
+.ration-day-scene .day-hero-arc__track {
+  height: 0.4rem;
+}
+
+.ration-day-scene .day-hero-giant {
+  font-size: clamp(3rem, 12vw, 4rem);
+}
+
+/* Single ops strip: pending / offline / queue — one row each, then meal feed */
+.ration-day-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.35rem 0.1rem 0.55rem;
+  min-height: 0;
+}
+
+.ration-day-ops:empty {
+  display: none;
+  margin: 0;
+}
+
+.ration-day-ops-row {
+  min-width: 0;
+}
+
+.ration-day-ops-chip {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-hairline);
+  background: color-mix(in srgb, var(--surface-mist) 88%, #fff);
+  padding: 0.4rem 0.55rem;
+}
+
+.ration-day-ops-chip--accent {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-hairline));
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+}
+
+.ration-day-ops-chip--warn {
+  border-color: color-mix(in srgb, #b42318 28%, var(--border-hairline));
+  background: color-mix(in srgb, #b42318 8%, #fff);
+  color: #8a1c14;
 }
 
 @media (min-width: 768px) {
   .ration-day-scene .day-hero-theater-inner {
-    padding: 1.35rem 0.25rem 0.65rem !important;
+    padding: 0.75rem 0.25rem 0.25rem !important;
   }
 }
 

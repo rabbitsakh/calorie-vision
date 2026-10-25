@@ -43,7 +43,14 @@ function draftMultiCount(draft: PendingConfirmDraft): number {
 }
 
 /** Soft resume CTA when a confirm draft sits on device (1.11.0 — no auto-hijack). */
-export function PendingConfirmBanner({ selectedDate }: { selectedDate: string }) {
+export function PendingConfirmBanner({
+  selectedDate,
+  compact = false,
+}: {
+  selectedDate: string;
+  /** Single-line ops strip for ration first viewport. */
+  compact?: boolean;
+}) {
   const [draft, setDraft] = useState<PendingConfirmDraft | null>(null);
 
   const refresh = useCallback(() => {
@@ -66,6 +73,37 @@ export function PendingConfirmBanner({ selectedDate }: { selectedDate: string })
     photoKind: draft.result.recognition.photoKind,
     multiCount,
   });
+
+  if (compact) {
+    return (
+      <div className="ration-day-ops-row" role="status">
+        <div className="ration-day-ops-chip ration-day-ops-chip--accent flex items-center gap-2 text-sm">
+          <button
+            type="button"
+            className="min-w-0 flex-1 truncate text-left font-semibold text-[var(--accent-ink)]"
+            onClick={() => requestOpenPendingConfirm()}
+            title={hint}
+          >
+            Проверка · {dishName || "фото"}
+          </button>
+          <button
+            type="button"
+            className="confirm-family-cta shrink-0 !min-h-0 !px-3 !py-1.5"
+            onClick={() => requestOpenPendingConfirm()}
+          >
+            Дальше
+          </button>
+          <button
+            type="button"
+            className="offline-chrome-link shrink-0"
+            onClick={() => clearPendingConfirmDraft(selectedDate)}
+          >
+            Сброс
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="confirm-family text-sm text-[var(--ink)]" role="status">

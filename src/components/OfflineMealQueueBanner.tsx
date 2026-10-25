@@ -88,6 +88,8 @@ type OfflineMealQueueBannerProps = {
   onFlushed?: () => void;
   /** Fired when a queued photo was recognized — parent can open confirm card. */
   onRecognitionReady?: (selectedDate: string) => void;
+  /** Single-line ops strip for ration first viewport (details stay in sheet). */
+  compact?: boolean;
 };
 
 /** Sync surface for offline drafts (photos, meals, water, weight, gym sets). */
@@ -95,6 +97,7 @@ export function OfflineMealQueueBanner({
   selectedDate: _selectedDate,
   onFlushed,
   onRecognitionReady,
+  compact = false,
 }: OfflineMealQueueBannerProps) {
   const [failedCount, setFailedCount] = useState(0);
   const [patchCount, setPatchCount] = useState(0);
@@ -521,106 +524,159 @@ export function OfflineMealQueueBanner({
 
   if (totalCount <= 0 && flushSummary) {
     return (
-      <div className="flex flex-col gap-2" role="status">
-        <div className="offline-chrome offline-chrome-pad text-sm">
-          <p className="font-semibold text-[var(--accent-ink)]">{flushSummary}</p>
+      <div className={compact ? "ration-day-ops-row" : "flex flex-col gap-2"} role="status">
+        <div
+          className={
+            compact
+              ? "ration-day-ops-chip text-sm font-semibold text-[var(--accent-ink)]"
+              : "offline-chrome offline-chrome-pad text-sm"
+          }
+        >
+          <p className={compact ? "m-0" : "font-semibold text-[var(--accent-ink)]"}>{flushSummary}</p>
         </div>
       </div>
     );
   }
 
   const lines: string[] = [];
-  if (recognitionCount > 0) {
-    lines.push(
-      recognitionCount === 1
-        ? "1 фото ждёт отправку — распознаем при связи с сервером"
-        : `${recognitionCount} фото ждут отправку — распознаем при связи с сервером`,
-    );
-  }
-  if (failedCount > 0) {
-    lines.push(
-      failedCount === 1
-        ? "1 блюдо ждёт отправку — отправим в дневник"
-        : `${failedCount} блюда ждут отправку — отправим в дневник`,
-    );
-  }
-  if (patchCount > 0) {
-    lines.push(
-      patchCount === 1
-        ? "1 правка в дневнике ждёт отправку"
-        : `${patchCount} правки в дневнике ждут отправку`,
-    );
-  }
-  if (deleteCount > 0) {
-    lines.push(
-      deleteCount === 1
-        ? "1 удаление в дневнике ждёт отправку"
-        : `${deleteCount} удаления в дневнике ждут отправку`,
-    );
-  }
-  if (waterCount > 0) {
-    lines.push(
-      waterCount === 1 ? "1 запись воды ждёт отправку" : `${waterCount} записи воды ждут отправку`,
-    );
-  }
-  if (weightCount > 0) {
-    lines.push(
-      weightCount === 1 ? "1 запись веса ждёт отправку" : `${weightCount} записи веса ждут отправку`,
-    );
-  }
-  if (diaryNoteCount > 0) {
-    lines.push(
-      diaryNoteCount === 1
-        ? "1 вечерний чек-ин ждёт отправку"
-        : `${diaryNoteCount} вечерних чек-ина ждут отправку`,
-    );
-  }
-  if (workoutLocalCount > 0) {
-    lines.push(
-      workoutLocalCount === 1
-        ? "1 тренировка создана на устройстве"
-        : `${workoutLocalCount} тренировки на устройстве ждут отправку`,
-    );
-  }
-  if (workoutExerciseCount > 0) {
-    lines.push(
-      workoutExerciseCount === 1
-        ? "1 упражнение ждёт отправку"
-        : `${workoutExerciseCount} упражнения ждут отправку`,
-    );
-  }
-  if (workoutSetCount > 0) {
-    lines.push(
-      workoutSetCount === 1
-        ? "1 подход в зале ждёт отправку"
-        : `${workoutSetCount} подхода в зале ждут отправку`,
-    );
-  }
-  if (workoutFinishCount > 0) {
-    lines.push(
-      workoutFinishCount === 1
-        ? "1 завершение тренировки ждёт отправку"
-        : `${workoutFinishCount} завершения тренировок ждут отправку`,
-    );
-  }
-  if (shoppingSyncCount > 0) {
-    lines.push("Список покупок ждёт синхронизацию");
-  }
-  if (assistantApplyCount > 0) {
-    lines.push(
-      assistantApplyCount === 1
-        ? "1 запись AI ждёт подтверждение / сеть"
-        : `${assistantApplyCount} записи AI ждут подтверждение / сеть`,
-    );
+  if (!compact) {
+    if (recognitionCount > 0) {
+      lines.push(
+        recognitionCount === 1
+          ? "1 фото ждёт отправку — распознаем при связи с сервером"
+          : `${recognitionCount} фото ждут отправку — распознаем при связи с сервером`,
+      );
+    }
+    if (failedCount > 0) {
+      lines.push(
+        failedCount === 1
+          ? "1 блюдо ждёт отправку — отправим в дневник"
+          : `${failedCount} блюда ждут отправку — отправим в дневник`,
+      );
+    }
+    if (patchCount > 0) {
+      lines.push(
+        patchCount === 1
+          ? "1 правка в дневнике ждёт отправку"
+          : `${patchCount} правки в дневнике ждут отправку`,
+      );
+    }
+    if (deleteCount > 0) {
+      lines.push(
+        deleteCount === 1
+          ? "1 удаление в дневнике ждёт отправку"
+          : `${deleteCount} удаления в дневнике ждут отправку`,
+      );
+    }
+    if (waterCount > 0) {
+      lines.push(
+        waterCount === 1 ? "1 запись воды ждёт отправку" : `${waterCount} записи воды ждут отправку`,
+      );
+    }
+    if (weightCount > 0) {
+      lines.push(
+        weightCount === 1 ? "1 запись веса ждёт отправку" : `${weightCount} записи веса ждут отправку`,
+      );
+    }
+    if (diaryNoteCount > 0) {
+      lines.push(
+        diaryNoteCount === 1
+          ? "1 вечерний чек-ин ждёт отправку"
+          : `${diaryNoteCount} вечерних чек-ина ждут отправку`,
+      );
+    }
+    if (workoutLocalCount > 0) {
+      lines.push(
+        workoutLocalCount === 1
+          ? "1 тренировка создана на устройстве"
+          : `${workoutLocalCount} тренировки на устройстве ждут отправку`,
+      );
+    }
+    if (workoutExerciseCount > 0) {
+      lines.push(
+        workoutExerciseCount === 1
+          ? "1 упражнение ждёт отправку"
+          : `${workoutExerciseCount} упражнения ждут отправку`,
+      );
+    }
+    if (workoutSetCount > 0) {
+      lines.push(
+        workoutSetCount === 1
+          ? "1 подход в зале ждёт отправку"
+          : `${workoutSetCount} подхода в зале ждут отправку`,
+      );
+    }
+    if (workoutFinishCount > 0) {
+      lines.push(
+        workoutFinishCount === 1
+          ? "1 завершение тренировки ждёт отправку"
+          : `${workoutFinishCount} завершения тренировок ждут отправку`,
+      );
+    }
+    if (shoppingSyncCount > 0) {
+      lines.push("Список покупок ждёт синхронизацию");
+    }
+    if (assistantApplyCount > 0) {
+      lines.push(
+        assistantApplyCount === 1
+          ? "1 запись AI ждёт подтверждение / сеть"
+          : `${assistantApplyCount} записи AI ждут подтверждение / сеть`,
+      );
+    }
   }
 
   const queueTitle = flushing
-    ? "Отправляем черновики…"
+    ? "Отправляем…"
     : flushSummary
       ? flushSummary
       : !online
-        ? `Ждёт сеть · ${totalCount} на устройстве`
-        : `Ждёт отправку · ${totalCount} на устройстве`;
+        ? `Ждёт сеть · ${totalCount}`
+        : `Очередь · ${totalCount}`;
+
+  if (compact) {
+    return (
+      <div className="ration-day-ops-row" role="status">
+        <div className="ration-day-ops-chip flex items-center gap-2 text-sm">
+          <button
+            type="button"
+            className="min-w-0 flex-1 truncate text-left font-semibold text-[var(--offline-glass-ink)]"
+            onClick={() => setSheetOpen(true)}
+          >
+            {queueTitle}
+          </button>
+          {showCoach ? (
+            <button
+              type="button"
+              className="offline-chrome-cta shrink-0"
+              onClick={() => {
+                markOfflineQueueCoachSeen();
+                setShowCoach(false);
+              }}
+            >
+              Понятно
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="offline-chrome-cta shrink-0"
+              disabled={flushing}
+              onClick={() => void flush()}
+            >
+              {flushing ? "…" : "Отправить"}
+            </button>
+          )}
+        </div>
+        {sheetOpen ? (
+          <OfflineQueueSheet
+            flushing={flushing}
+            onClose={() => setSheetOpen(false)}
+            onFlush={() => void flush()}
+            onChanged={refreshCounts}
+          />
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2" role="status">
