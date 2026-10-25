@@ -2434,6 +2434,190 @@ select {
 }
 
 /* Single ops strip: pending / offline / queue — one row each, then meal feed */
+/* Chests 2.0 — dock under DayHero */
+.chest-dock {
+  margin: 0.35rem 0.1rem 0.45rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--border-hairline);
+  background: color-mix(in srgb, var(--accent-soft) 55%, #fff);
+  padding: 0.65rem 0.75rem;
+}
+
+.chest-dock--ready {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-hairline));
+  background: color-mix(in srgb, var(--accent) 14%, #fff);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.chest-dock-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.chest-dock-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.chest-dock-label {
+  margin: 0;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.chest-dock-detail {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-strong);
+}
+
+.chest-dock-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent-ink) 75%, transparent);
+}
+
+.chest-dock-bar {
+  margin-top: 0.4rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+}
+
+.chest-dock-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #14919b, var(--accent));
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chest-dock-cta {
+  flex-shrink: 0;
+  min-height: 2.35rem;
+  border: none;
+  border-radius: 0.7rem;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.chest-dock-cta:disabled {
+  opacity: 0.55;
+}
+
+.chest-dock-quiet {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.loot-reveal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border-hairline);
+  background: #fff;
+  padding: 0.7rem 0.8rem;
+}
+
+.loot-reveal--ceremony {
+  flex-direction: column;
+  text-align: center;
+  gap: 0.55rem;
+  padding: 1rem 1rem 1.1rem;
+}
+
+.loot-reveal-art {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.85rem;
+  background: var(--accent-soft);
+}
+
+.loot-reveal--ceremony .loot-reveal-art {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 1.15rem;
+}
+
+.loot-reveal--rare .loot-reveal-art {
+  background: color-mix(in srgb, var(--accent) 18%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.loot-reveal--festive .loot-reveal-art {
+  background: color-mix(in srgb, #d97706 16%, #fff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #d97706 30%, transparent);
+}
+
+.loot-reveal-rarity {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-strong);
+}
+
+.loot-reveal-title {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.loot-reveal--ceremony .loot-reveal-title {
+  font-size: 1.35rem;
+}
+
+.loot-reveal-desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted-strong);
+  line-height: 1.35;
+}
+
+.loot-reveal--on-dark {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.loot-reveal--on-dark .loot-reveal-title,
+.loot-reveal--on-dark .loot-reveal-rarity,
+.loot-reveal--on-dark .loot-reveal-desc {
+  color: #fff;
+}
+
+.loot-reveal--on-dark .loot-reveal-desc,
+.loot-reveal--on-dark .loot-reveal-rarity {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.loot-reveal--on-dark .loot-reveal-art {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .ration-day-ops {
   display: flex;
   flex-direction: column;
@@ -6517,10 +6701,10 @@ select {
   }
 }
 
-/* --- Equipped avatar frames (wave 8 / R3d) --- */
+/* --- Equipped avatar frames (chests 2.0 — thicker, more visible) --- */
 .cv-avatar-frame {
   border-radius: 9999px;
-  padding: 3px;
+  padding: 4px;
   line-height: 0;
   box-sizing: border-box;
 }
@@ -6530,38 +6714,38 @@ select {
 }
 
 .cv-avatar-frame-teal {
-  background: linear-gradient(135deg, #5eead4, #0f766e);
+  background: linear-gradient(145deg, #99f6e4 0%, #0d7377 55%, #134e4a 100%);
   box-shadow:
-    0 0 0 2px rgba(15, 118, 110, 0.35),
-    0 2px 8px rgba(15, 118, 110, 0.22);
+    0 0 0 3px rgba(13, 115, 119, 0.28),
+    0 3px 12px rgba(13, 115, 119, 0.28);
 }
 
 .cv-avatar-frame-amber {
-  background: linear-gradient(135deg, #fde68a, #d97706);
+  background: linear-gradient(145deg, #fde68a 0%, #d97706 55%, #92400e 100%);
   box-shadow:
-    0 0 0 2px rgba(217, 119, 6, 0.4),
-    0 2px 8px rgba(217, 119, 6, 0.22);
+    0 0 0 3px rgba(217, 119, 6, 0.32),
+    0 3px 12px rgba(217, 119, 6, 0.28);
 }
 
 .cv-avatar-frame-mint {
-  background: linear-gradient(135deg, #a7f3d0, #059669);
+  background: linear-gradient(145deg, #a7f3d0 0%, #059669 55%, #065f46 100%);
   box-shadow:
-    0 0 0 2px rgba(5, 150, 105, 0.35),
-    0 2px 8px rgba(5, 150, 105, 0.2);
+    0 0 0 3px rgba(5, 150, 105, 0.28),
+    0 3px 12px rgba(5, 150, 105, 0.24);
 }
 
 .cv-avatar-frame-sky {
-  background: linear-gradient(135deg, #bae6fd, #0284c7);
+  background: linear-gradient(145deg, #bae6fd 0%, #0284c7 55%, #075985 100%);
   box-shadow:
-    0 0 0 2px rgba(2, 132, 199, 0.35),
-    0 2px 8px rgba(2, 132, 199, 0.2);
+    0 0 0 3px rgba(2, 132, 199, 0.28),
+    0 3px 12px rgba(2, 132, 199, 0.24);
 }
 
 .cv-avatar-frame-fest {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b 40%, #14b8a6);
+  background: linear-gradient(145deg, #fde68a 0%, #f59e0b 40%, #0d7377 100%);
   box-shadow:
-    0 0 0 2px rgba(251, 191, 36, 0.45),
-    0 2px 12px rgba(251, 191, 36, 0.35);
+    0 0 0 3px rgba(245, 158, 11, 0.35),
+    0 3px 14px rgba(245, 158, 11, 0.32);
 }
 
 /* --- Mascot seasonal skins --- */

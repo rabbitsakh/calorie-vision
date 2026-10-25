@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.18",
+    "date": "2026-10-25",
+    "summary": "chests 2.0: meter, ready open, loot art",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Сундук на рационе: meter 0–3 и CTA «Открыть» когда готов"
+      },
+      {
+        "kind": "feature",
+        "text": "Mark дня отдельно от open — без авто-гранта в «Ещё»"
+      },
+      {
+        "kind": "improvement",
+        "text": "RewardArt + LootRevealCard вместо emoji в reveal/inbox"
+      },
+      {
+        "kind": "improvement",
+        "text": "Рамки аватара толще и заметнее"
+      }
+    ]
+  },
+  {
     "version": "3.0.17",
     "date": "2026-10-25",
     "summary": "fix(confirm): layout — no duplicate title, dock last",

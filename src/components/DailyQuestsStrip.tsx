@@ -1,25 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import {
-  flushPendingMetaChests,
-  openChest,
-  presentChestGrant,
-} from "@/lib/chest-client";
-import type { RewardRarity } from "@/lib/rewards";
+import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { shouldDeferQuestChestForPostWorkout } from "@/lib/post-workout-nudge";
 import {
-  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
-  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
-  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
-import { toDateKey } from "@/lib/dates";
 import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
 import { withBasePath } from "@/lib/paths";
 import { withDateQuery } from "@/lib/use-selected-date";
@@ -36,17 +26,8 @@ type DailyQuestsStripProps = {
  */
 export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuestsStripProps) {
   const day = useOptionalRationDay();
-  const [celebrate, setCelebrate] = useState(false);
-  const [loot, setLoot] = useState<{
-    key?: string;
-    title: string;
-    description: string;
-    rarity?: RewardRarity;
-    rarityLabel?: string;
-  } | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const claimedRef = useRef<string | null>(null);
-  const todayKey = toDateKey(new Date());
 
   const [gymSessionCount, setGymSessionCount] = useState(0);
 
@@ -103,40 +84,22 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
       return;
     }
 
-    const muted = isSoftCelebrationsMutedToday(todayKey);
-    const quiet = isSoftCelebrationQuietBlocked();
-
     claimedRef.current = today;
-    const result = await openChest({ source: "quest", date: today });
+    // Chests 2.0: mark calm day only — open happens on ChestDock «Открыть».
+    const result = await openChest({ source: "quest", action: "mark", date: today });
     if (!result) {
       claimedRef.current = null;
       return;
     }
 
     markSoftCelebrationSeen("quest-chest", today);
+    flushPendingMetaChests();
 
-    if (result.reward) {
-      setHint(null);
-      presentChestGrant(result.reward, {
-        quiet,
-        muted,
-        fallbackTitle: "Сундук за ритм!",
-        fallbackSubtitle: "Несколько спокойных дней — награда в коллекции.",
-        onFullscreen: (reward) => {
-          setLoot({
-            key: reward.key,
-            title: reward.title,
-            description: reward.description,
-            rarity: reward.rarity,
-            rarityLabel: reward.rarityLabel,
-          });
-          setCelebrate(true);
-        },
-      });
+    if ((result.readyCount ?? 0) > 0) {
+      setHint("Сундук готов · открой выше на дне");
       return;
     }
 
-    flushPendingMetaChests();
     const nextIn = result.nextChestIn ?? QUEST_DAYS_PER_CHEST;
     setHint(
       nextIn <= 0
@@ -147,7 +110,6 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     progress?.allDone,
     selectedDate,
     today,
-    todayKey,
     day?.data?.meals?.totalProtein,
     day?.data?.meals?.target?.protein,
   ]);
@@ -206,32 +168,10 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
           </p>
         ) : null}
         {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}
-        {progress.allDone && !hint && !celebrate ? (
+        {progress.allDone && !hint ? (
           <p className="mt-1.5 text-xs text-[var(--accent-ink)]">День закрыт мягко — так и надо.</p>
         ) : null}
       </div>
-
-      <FullscreenCelebration
-        open={celebrate}
-        variant="chest"
-        pose="cheer"
-        title={loot?.title ?? "Сундук за ритм!"}
-        subtitle={
-          loot ? loot.description : "Несколько спокойных дней — и вот награда."
-        }
-        lootKey={loot?.key}
-        lootRarity={loot?.rarity}
-        lootRarityLabel={loot?.rarityLabel}
-        badge="✦"
-        durationMs={0}
-        ctaLabel="Круто!"
-        onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
-        onClose={() => {
-          setCelebrate(false);
-          setLoot(null);
-          flushPendingMetaChests();
-        }}
-      />
     </>
   );
 }

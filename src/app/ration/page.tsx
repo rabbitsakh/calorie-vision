@@ -25,7 +25,7 @@ import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { MorningTodayCard } from "@/components/MorningTodayCard";
 import { NextStepBar } from "@/components/NextStepBar";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
-import { ChestProgressChip } from "@/components/ChestProgressChip";
+import { ChestDock } from "@/components/ChestDock";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
 import { DailyQuestsStrip } from "@/components/DailyQuestsStrip";
 import { OfflineMealQueueBanner } from "@/components/OfflineMealQueueBanner";
@@ -289,6 +289,14 @@ function RationBody({
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
 
+          {/* Chests 2.0 — meter / ready open under the day scene */}
+          <ChestDock
+            selectedDate={date}
+            today={today}
+            refreshKey={refreshKey}
+            onOpened={bump}
+          />
+
           {/* First viewport ops: pending ∪ offline ∪ queue — one strip, then meal feed */}
           <div className="ration-day-ops">
             <PendingConfirmBanner selectedDate={date} compact />
@@ -366,7 +374,6 @@ function RationBody({
           <div className="ration-day-soft flex flex-col gap-2">
             <MorningTodayCard selectedDate={date} today={today} />
             <NextStepBar selectedDate={date} today={today} />
-            <ChestProgressChip selectedDate={date} today={today} refreshKey={refreshKey} />
           </div>
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { StickerArt } from "@/components/StickerArt";
+import { LootRevealCard } from "@/components/LootRevealCard";
 import { maybeAutoEquipReward } from "@/lib/auto-equip-reward";
 import {
   CHEST_INBOX_EVENT,
@@ -14,12 +14,7 @@ import { persistEquippedCheerKey } from "@/lib/equipped-cheer";
 import { persistEquippedFrameKey } from "@/lib/equipped-frame";
 import { persistEquippedStickerKey } from "@/lib/equipped-sticker";
 import { withBasePath } from "@/lib/paths";
-import {
-  cheerPhrase,
-  frameAvatarClass,
-  lootGlyph,
-  rewardDef,
-} from "@/lib/rewards";
+import { cheerPhrase, rewardDef } from "@/lib/rewards";
 
 const TOAST_MS = 5600;
 const HOST_ID = "cv-chest-inbox-toast-host";
@@ -149,46 +144,31 @@ export function ChestInboxToast() {
           className="h-1.5 bg-gradient-to-r from-amber-300 via-[var(--accent)] to-amber-200"
           aria-hidden
         />
-        <div className="px-4 py-3 text-center">
+        <div className="px-3 py-2.5 text-center">
           {payload.rewardKey && def ? (
-            <div className="mb-2 flex justify-center">
-              {def.group === "frame" ? (
-                <div
-                  className={`h-12 w-12 rounded-full bg-[var(--accent-soft)] ${frameAvatarClass(payload.rewardKey)}`}
-                  aria-hidden
-                />
-              ) : def.group === "sticker" ? (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-soft)] shadow-sm">
-                  <StickerArt
-                    stickerKey={payload.rewardKey}
-                    size={32}
-                    title={def.title}
-                  />
-                </div>
-              ) : (
-                <div
-                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-soft)] text-xl shadow-sm"
-                  aria-hidden
-                >
-                  {lootGlyph(payload.rewardKey)}
-                </div>
-              )}
-            </div>
+            <LootRevealCard
+              rewardKey={payload.rewardKey}
+              title={payload.title}
+              description={
+                phrase ? `«${phrase}»` : payload.subtitle || "В коллекции · Профиль"
+              }
+              rarity={def.rarity}
+              size="toast"
+              className="mb-1 border-0 bg-transparent p-0 shadow-none"
+            />
           ) : (
-            <div
-              className="mb-2 flex justify-center text-lg text-[var(--accent)]"
-              aria-hidden
-            >
-              ✦
-            </div>
-          )}
-          <p className="text-sm font-semibold text-[var(--foreground)]">{payload.title}</p>
-          {phrase ? (
-            <p className="mt-0.5 text-xs font-medium text-[var(--accent-ink)]">«{phrase}»</p>
-          ) : payload.subtitle ? (
-            <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">{payload.subtitle}</p>
-          ) : (
-            <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">В коллекции · Профиль</p>
+            <>
+              <div
+                className="mb-2 flex justify-center text-lg text-[var(--accent)]"
+                aria-hidden
+              >
+                ✦
+              </div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{payload.title}</p>
+              <p className="mt-0.5 text-xs font-medium text-[var(--muted)]">
+                {payload.subtitle || "В коллекции · Профиль"}
+              </p>
+            </>
           )}
           <div className="mt-2.5 flex flex-col gap-1.5">
             {canEquip ? (

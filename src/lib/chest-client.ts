@@ -2,6 +2,7 @@ import { withBasePath } from "@/lib/paths";
 import { notifyChestInbox } from "@/lib/chest-inbox";
 import { trackChestOpenedGoal, trackMetaChestGoal } from "@/lib/metrika-funnel";
 import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
+import type { ChestMeterModel } from "@/lib/chest-progress";
 import type { ChestSource, RewardRarity } from "@/lib/rewards";
 
 export type ChestRewardPayload = {
@@ -18,10 +19,15 @@ export type OpenChestResult = {
   metaRewards?: ChestRewardPayload[];
   questDayCount?: number;
   nextChestIn?: number;
+  readyCount?: number;
+  openedQuestChests?: number;
+  chest?: ChestMeterModel;
 };
 
 type OpenChestArgs = {
   source: ChestSource;
+  /** Quest: mark calm day (default) or open a ready chest. */
+  action?: "mark" | "open";
   weekStart?: string;
   challengeKey?: string;
   milestone?: number;

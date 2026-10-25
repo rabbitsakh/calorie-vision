@@ -10,7 +10,6 @@ import {
   isFrameReward,
   isStickerReward,
   cheerPhrase,
-  lootGlyph,
   nextMetaProgress,
   rewardDef,
   type ChestSource,
@@ -18,7 +17,7 @@ import {
   type RewardRarity,
 } from "@/lib/rewards";
 import { DiarySticker } from "@/components/DiarySticker";
-import { StickerArt } from "@/components/StickerArt";
+import { RewardArt } from "@/components/RewardArt";
 import { withBasePath } from "@/lib/paths";
 import {
   getEquippedFrameKey,
@@ -407,24 +406,17 @@ export function RewardsPanel() {
                           : "border-[var(--border-hairline)] bg-[var(--surface-mist)]/80 text-[var(--muted)]"
                       }`}
                     >
-                      {isFrame && reward.unlocked ? (
-                        <div
-                          className={`mb-2 mx-auto h-10 w-10 rounded-full bg-[var(--accent-soft)] ${frameAvatarClass(reward.key)}`}
-                          aria-hidden
-                        />
-                      ) : null}
-                      {isSticker && reward.unlocked ? (
-                        <div className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
-                          <StickerArt stickerKey={reward.key} size={28} title={reward.title} />
-                        </div>
-                      ) : null}
-                      {isCheer && reward.unlocked ? (
-                        <div
-                          className="mb-2 mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg shadow-sm"
-                          aria-hidden
-                          title={cheerPhrase(reward.key) ?? undefined}
-                        >
-                          {lootGlyph(reward.key)}
+                      {reward.unlocked ? (
+                        <div className="mb-2 mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
+                          <RewardArt
+                            rewardKey={reward.key}
+                            size={30}
+                            title={
+                              isCheer
+                                ? cheerPhrase(reward.key) ?? reward.title
+                                : reward.title
+                            }
+                          />
                         </div>
                       ) : null}
                       <p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
