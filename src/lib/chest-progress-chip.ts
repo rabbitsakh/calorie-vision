@@ -1,83 +1,69 @@
-import { nextMetaProgress, QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
+/**
+ * Legacy chip adapter — prefer {@link buildChestMeter} / ChestDock (chests 2.0).
+ */
+
+import { buildChestMeter } from "@/lib/chest-progress";
+import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
 
 export type ChestProgressChipModel = {
   label: string;
-  /** Optional meta collection progress (R3c). */
   metaLabel: string | null;
-  /** Ration habits panel vs profile collection. */
   href: "habits" | "rewards";
   nextIn: number;
   filled: number;
   per: number;
 };
 
-function withMeta(
-  base: Omit<ChestProgressChipModel, "metaLabel">,
-  ownedCount?: number | null,
-): ChestProgressChipModel {
-  const meta =
-    ownedCount != null && Number.isFinite(ownedCount)
-      ? nextMetaProgress(Math.max(0, Math.floor(ownedCount)))
-      : null;
-  return {
-    ...base,
-    metaLabel: meta ? `мета ${meta.current}/${meta.target}` : null,
-  };
-}
-
 /**
- * Soft chip copy for quest-chest progress (R1d / R2d / R3c).
- * After a chest lands (count % per === 0), next cycle needs a full `per` days.
+ * Soft chip copy for quest-chest progress.
+ * After a chest is earned but unopened, label points at open (ready).
  */
 export function buildChestProgressChip(input: {
   questDayCount: number;
   questDaysPerChest?: number;
-  /** Unique owned cosmetics — drives meta line. */
   ownedCount?: number | null;
+  /** Opened quest-chest rows; default assumes auto-grant era (caught up). */
+  openedQuestChests?: number;
 }): ChestProgressChipModel {
   const per = Math.max(1, input.questDaysPerChest ?? QUEST_DAYS_PER_CHEST);
-  const count = Math.max(0, Math.floor(input.questDayCount) || 0);
-  const remainder = count % per;
-  const nextIn = remainder === 0 ? per : per - remainder;
-  const filled = remainder;
-  const owned = input.ownedCount;
+  const days = Math.max(0, Math.floor(input.questDayCount) || 0);
+  const opened =
+    input.openedQuestChests != null
+      ? Math.max(0, Math.floor(input.openedQuestChests) || 0)
+      : Math.floor(days / per);
 
-  if (count === 0) {
-    return withMeta(
-      {
-        label: `Сундук · сегодня · ${per} ${pluralDays(per)}`,
-        href: "habits",
-        nextIn: per,
-        filled: 0,
-        per,
-      },
-      owned,
-    );
-  }
+  const meter = buildChestMeter({
+    questDayCount: days,
+    openedQuestChests: opened,
+    questDaysPerChest: per,
+    ownedCount: input.ownedCount,
+  });
 
-  if (nextIn === 1) {
-    return withMeta(
-      {
-        label: "Сундук · закрой сегодня",
-        href: "habits",
-        nextIn: 1,
-        filled,
-        per,
-      },
-      owned,
-    );
-  }
-
-  // Mid-cycle still points at today's habits (R10) — not the collection.
-  return withMeta(
-    {
-      label: `Сундук · сегодня · ещё ${nextIn} ${pluralDays(nextIn)}`,
+  if (meter.state === "ready") {
+    return {
+      label: meter.label,
+      metaLabel: meter.metaLabel,
       href: "habits",
-      nextIn,
-      filled,
-      per,
-    },
-    owned,
-  );
+      nextIn: 0,
+      filled: meter.filled,
+      per: meter.per,
+    };
+  }
+
+  const label =
+    meter.state === "empty"
+      ? `Сундук · сегодня · ${meter.per} ${pluralDays(meter.per)}`
+      : meter.nextIn === 1
+        ? "Сундук · закрой сегодня"
+        : `Сундук · сегодня · ещё ${meter.nextIn} ${pluralDays(meter.nextIn)}`;
+
+  return {
+    label,
+    metaLabel: meter.metaLabel,
+    href: "habits",
+    nextIn: meter.nextIn,
+    filled: meter.filled,
+    per: meter.per,
+  };
 }

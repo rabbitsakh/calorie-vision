@@ -7,6 +7,7 @@ import {
   assertStreakChestEligible,
   assertWeekChestEligible,
 } from "@/lib/chest-eligibility";
+import { buildChestMeter, nextQuestChestBatchIndex } from "@/lib/chest-progress";
 import { grantChestReward, markQuestDayComplete } from "@/lib/reward-grant";
 import {
   challengeChestSourceKey,
@@ -22,6 +23,16 @@ import {
 } from "@/lib/rewards";
 
 export const dynamic = "force-dynamic";
+
+async function countOpenedQuestChests(userId: string): Promise<number> {
+  return prisma.userReward.count({
+    where: {
+      userId,
+      source: "quest",
+      sourceKey: { startsWith: "quest-chest:" },
+    },
+  });
+}
 
 export async function GET() {
   try {
@@ -51,6 +62,13 @@ export async function GET() {
     const questDayCount = await prisma.userReward.count({
       where: { userId: session.user.id, rewardKey: "quest_day" },
     });
+    const openedQuestChests = await countOpenedQuestChests(session.user.id);
+    const chest = buildChestMeter({
+      questDayCount,
+      openedQuestChests,
+      questDaysPerChest: QUEST_DAYS_PER_CHEST,
+      ownedCount: ownedUnique,
+    });
 
     return NextResponse.json({
       rewards,
@@ -58,6 +76,10 @@ export async function GET() {
       total: REWARD_DEFS.length,
       questDayCount,
       questDaysPerChest: QUEST_DAYS_PER_CHEST,
+      openedQuestChests,
+      readyCount: chest.readyCount,
+      nextChestIn: chest.nextIn,
+      chest,
       metaNext: nextMetaProgress(ownedUnique),
     });
   } catch (error) {
@@ -68,6 +90,8 @@ export async function GET() {
 
 type GrantBody = {
   source?: ChestSource;
+  /** Chests 2.0: mark calm day vs open ready chest (quest only). */
+  action?: "mark" | "open";
   weekStart?: string;
   challengeKey?: string;
   milestone?: number;
@@ -90,7 +114,6 @@ export async function POST(request: NextRequest) {
       if (!eligible.ok) {
         return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
-      // Always derive sourceKey server-side — never trust client-supplied keys.
       const sourceKey = challengeChestSourceKey(weekStart, challengeKey);
       const result = await grantChestReward(userId, "challenge", sourceKey, sourceKey);
       return NextResponse.json(result);
@@ -119,31 +142,79 @@ export async function POST(request: NextRequest) {
     }
 
     if (source === "quest") {
+      const action = body.action === "open" ? "open" : "mark";
       const date = body.date?.trim() ?? "";
+
+      if (action === "open") {
+        // Open does not require today's quest eligibility — only earned unopened batches.
+        const questDayCount = await prisma.userReward.count({
+          where: { userId, rewardKey: "quest_day" },
+        });
+        const openedQuestChests = await countOpenedQuestChests(userId);
+        const batchIndex = nextQuestChestBatchIndex(
+          questDayCount,
+          openedQuestChests,
+          QUEST_DAYS_PER_CHEST,
+        );
+        if (batchIndex == null) {
+          const chest = buildChestMeter({
+            questDayCount,
+            openedQuestChests,
+            questDaysPerChest: QUEST_DAYS_PER_CHEST,
+          });
+          return NextResponse.json({
+            newlyGranted: false,
+            reward: null,
+            questDayCount,
+            questDaysPerChest: QUEST_DAYS_PER_CHEST,
+            openedQuestChests,
+            readyCount: chest.readyCount,
+            nextChestIn: chest.nextIn,
+            chest,
+            error: "Нет готового сундука",
+          });
+        }
+        const sourceKey = questChestSourceKey(batchIndex);
+        const result = await grantChestReward(userId, "quest", sourceKey, sourceKey);
+        const openedAfter = await countOpenedQuestChests(userId);
+        const chest = buildChestMeter({
+          questDayCount,
+          openedQuestChests: openedAfter,
+          questDaysPerChest: QUEST_DAYS_PER_CHEST,
+        });
+        return NextResponse.json({
+          ...result,
+          questDayCount,
+          questDaysPerChest: QUEST_DAYS_PER_CHEST,
+          openedQuestChests: openedAfter,
+          readyCount: chest.readyCount,
+          nextChestIn: chest.nextIn,
+          chest,
+        });
+      }
+
+      // mark — record calm day; do not auto-grant (open is explicit via ChestDock).
       const eligible = await assertQuestDayEligible(userId, date);
       if (!eligible.ok) {
         return NextResponse.json({ error: eligible.error }, { status: eligible.status });
       }
       const dayKey = questDaySourceKey(date);
       const { questDayCount } = await markQuestDayComplete(userId, date, dayKey);
-
-      if (questDayCount <= 0 || questDayCount % QUEST_DAYS_PER_CHEST !== 0) {
-        return NextResponse.json({
-          newlyGranted: false,
-          questDayCount,
-          questDaysPerChest: QUEST_DAYS_PER_CHEST,
-          reward: null,
-          nextChestIn: QUEST_DAYS_PER_CHEST - (questDayCount % QUEST_DAYS_PER_CHEST),
-        });
-      }
-
-      const batchIndex = questDayCount / QUEST_DAYS_PER_CHEST;
-      const sourceKey = questChestSourceKey(batchIndex);
-      const result = await grantChestReward(userId, "quest", sourceKey, sourceKey);
+      const openedQuestChests = await countOpenedQuestChests(userId);
+      const chest = buildChestMeter({
+        questDayCount,
+        openedQuestChests,
+        questDaysPerChest: QUEST_DAYS_PER_CHEST,
+      });
       return NextResponse.json({
-        ...result,
+        newlyGranted: false,
+        reward: null,
         questDayCount,
         questDaysPerChest: QUEST_DAYS_PER_CHEST,
+        openedQuestChests,
+        readyCount: chest.readyCount,
+        nextChestIn: chest.nextIn,
+        chest,
       });
     }
 

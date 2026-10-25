@@ -7,7 +7,7 @@ import { ChestOpenStage } from "@/components/ChestOpenStage";
 import { useCelebrationGate } from "@/components/CelebrationOrchestrator";
 import { MascotRenderer } from "@/components/MascotRenderer";
 import type { MascotPose } from "@/components/Mascot";
-import { StickerArt } from "@/components/StickerArt";
+import { LootRevealCard } from "@/components/LootRevealCard";
 import {
   bindCelebrationPortalViewport,
   closeCelebrationPortal,
@@ -26,8 +26,6 @@ import { persistEquippedFrameKey } from "@/lib/equipped-frame";
 import { persistEquippedStickerKey } from "@/lib/equipped-sticker";
 import {
   cheerPhrase,
-  frameAvatarClass,
-  lootGlyph,
   rewardDef,
   type RewardRarity,
 } from "@/lib/rewards";
@@ -324,37 +322,20 @@ export function FullscreenCelebration({
         ) : (
           <>
             {isChest && lootKey ? (
-              <div className="fs-chest-loot-reveal mb-6 flex flex-col items-center">
-                {rewardDef(lootKey)?.group === "frame" ? (
-                  <div
-                    className={`fs-chest-loot-frame mb-3 h-20 w-20 rounded-full bg-white/25 ${frameAvatarClass(lootKey)}`}
-                    aria-hidden
-                  />
-                ) : rewardDef(lootKey)?.group === "sticker" ? (
-                  <div className="fs-chest-loot-glyph mb-2 flex items-center justify-center">
-                    <StickerArt
-                      stickerKey={lootKey}
-                      size={72}
-                      title={rewardDef(lootKey)?.title}
-                    />
-                  </div>
-                ) : (
-                  <div className="fs-chest-loot-glyph mb-2" aria-hidden>
-                    {lootGlyph(lootKey)}
-                  </div>
-                )}
-                {rewardDef(lootKey)?.group === "cheer" && cheerPhrase(lootKey) ? (
-                  <p className="fs-chest-loot-quote mb-3 max-w-xs text-lg font-semibold text-amber-50">
-                    «{cheerPhrase(lootKey)}»
-                  </p>
-                ) : null}
-                {lootRarityLabel ? (
-                  <span
-                    className={`fs-chest-rarity-pill fs-chest-rarity-${lootRarity ?? "common"} mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide`}
-                  >
-                    {lootRarityLabel}
-                  </span>
-                ) : null}
+              <div className="fs-chest-loot-reveal mb-6 flex w-full max-w-sm flex-col items-center">
+                <LootRevealCard
+                  rewardKey={lootKey}
+                  title={title}
+                  description={
+                    rewardDef(lootKey)?.group === "cheer" && cheerPhrase(lootKey)
+                      ? `«${cheerPhrase(lootKey)}»`
+                      : subtitle
+                  }
+                  rarity={lootRarity}
+                  rarityLabel={lootRarityLabel}
+                  size="ceremony"
+                  className="loot-reveal--on-dark w-full"
+                />
               </div>
             ) : (
               <div className={`fs-celeb-mascot-wrap relative mb-6 ${theme.glow}`}>
@@ -378,17 +359,26 @@ export function FullscreenCelebration({
               </span>
             ) : null}
 
-            <h2
-              id="fs-celeb-title"
-              className="fs-celeb-title max-w-sm text-3xl font-extrabold tracking-tight text-white drop-shadow-sm sm:text-4xl"
-            >
-              {title}
-            </h2>
-            {subtitle ? (
-              <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-white/90 sm:text-lg">
-                {subtitle}
-              </p>
-            ) : null}
+            {/* LootRevealCard already owns title when chest loot is on screen */}
+            {!(isChest && lootKey) ? (
+              <>
+                <h2
+                  id="fs-celeb-title"
+                  className="fs-celeb-title max-w-sm text-3xl font-extrabold tracking-tight text-white drop-shadow-sm sm:text-4xl"
+                >
+                  {title}
+                </h2>
+                {subtitle ? (
+                  <p className="fs-celeb-subtitle mt-3 max-w-xs text-base text-white/90 sm:text-lg">
+                    {subtitle}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <h2 id="fs-celeb-title" className="sr-only">
+                {title}
+              </h2>
+            )}
 
             {!autoClose ? (
               <div className="mt-10 flex w-full max-w-xs flex-col gap-2">
