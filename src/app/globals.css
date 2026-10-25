@@ -7089,7 +7089,9 @@ select {
   font-size: 0.75rem;
   font-weight: 700;
   border: none;
-  animation: meal-row-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  /* Base opacity must stay visible — animation must not leave CTA at 0 */
+  opacity: 1;
+  animation: meal-row-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .confirm-family-cta:disabled {

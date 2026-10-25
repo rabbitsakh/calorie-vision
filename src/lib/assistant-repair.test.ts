@@ -5,6 +5,7 @@ import {
   assistantWroteFlag,
   assistantWriteMissNote,
   extractActionsJson,
+  heuristicRepairFromDraftReply,
   heuristicRepairMultiDishActions,
   heuristicRepairPortionPatchActions,
   heuristicRepairPatchWorkoutActions,
@@ -35,6 +36,27 @@ test("needsWriteRepair when user asked to add but no meals", () => {
     false,
   );
   assert.equal(needsWriteRepair("что поесть?", null), false);
+  assert.equal(needsWriteRepair("Протеин изолят 60г на перекус", null), true);
+});
+
+test("heuristicRepairWriteActions for protein isolate snack", () => {
+  const actions = heuristicRepairWriteActions("Протеин изолят 60г на перекус");
+  assert.ok(actions?.meals?.length);
+  assert.match(actions!.meals![0]!.name, /протеин/i);
+  assert.equal(actions!.meals![0]!.note, "перекус");
+  assert.ok((actions!.meals![0]!.kcal ?? 0) > 100);
+});
+
+test("heuristicRepairFromDraftReply builds ActionCard from bullet draft", () => {
+  const reply =
+    "Ок, кидаю в план:\n\n- Перекус: протеин изолят 60 г (~220 ккал, Б50 Ж0 У0)\n\nНажми кнопку подтверждения, чтобы сохранить.";
+  const actions = heuristicRepairFromDraftReply("Протеин изолят 60г на перекус", reply);
+  assert.ok(actions?.meals?.length);
+  assert.equal(actions!.meals![0]!.kcal, 220);
+  assert.equal(actions!.meals![0]!.protein, 50);
+  assert.equal(actions!.meals![0]!.note, "перекус");
+  assert.match(actions!.meals![0]!.name, /протеин/i);
+  assert.doesNotMatch(actions!.meals![0]!.name, /^перекус/i);
 });
 
 test("confirm-gate: pending ActionCard is not a write miss", () => {
