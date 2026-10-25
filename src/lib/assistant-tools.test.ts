@@ -20,6 +20,9 @@ test("userWantsWrite detects Russian write intents", () => {
   assert.equal(userWantsWrite("Добавь омлет в рацион"), true);
   assert.equal(userWantsWrite("Выпил 250 мл воды"), true);
   assert.equal(userWantsWrite("Что ещё съесть сегодня?"), false);
+  assert.equal(userWantsWrite("Протеин изолят 60г на перекус"), true);
+  assert.equal(userWantsWrite("на ужин курица 200г"), true);
+  assert.equal(userWantsWrite("что на перекус?"), false);
 });
 
 test("userWantsStartWorkout", () => {

@@ -127,6 +127,13 @@ test("lookupRuNutritionTable matches expanded staples", () => {
   assert.match(pie!.dishName, /Пирожок/i);
 });
 
+test("lookupRuNutritionTable matches protein isolate powder", () => {
+  const hit = lookupRuNutritionTable("протеин изолят");
+  assert.ok(hit);
+  assert.match(hit!.dishName, /Протеин изолят/i);
+  assert.ok(hit!.protein != null && hit!.protein >= 80);
+});
+
 test("lookupRuNutritionTable matches brand packs", () => {
   const doshirak = lookupRuNutritionTable("доширак");
   assert.ok(doshirak);
