@@ -34,6 +34,14 @@ export function setEquippedFrameKey(key: string | null): void {
 /** Persist equipped frame to account (best-effort). */
 export async function persistEquippedFrameKey(key: string | null): Promise<void> {
   setEquippedFrameKey(key);
+  if (key) {
+    try {
+      const { emitEquipPulse } = await import("@/lib/equip-pulse");
+      emitEquipPulse("frame", key);
+    } catch {
+      // ignore
+    }
+  }
   try {
     const { withBasePath } = await import("@/lib/paths");
     await fetch(withBasePath("/api/account"), {

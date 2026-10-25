@@ -16,7 +16,6 @@ import {
   type RewardGroup,
   type RewardRarity,
 } from "@/lib/rewards";
-import { DiarySticker } from "@/components/DiarySticker";
 import { RewardArt } from "@/components/RewardArt";
 import { withBasePath } from "@/lib/paths";
 import {
@@ -302,12 +301,20 @@ export function RewardsPanel() {
         </p>
         {hasWear ? (
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            {equipped || equippedSticker ? (
+            {equipped || equippedSticker || equippedCheer ? (
               <span
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full bg-white ${frameAvatarClass(equipped)}`.trim()}
+                className={`inline-flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm ${frameAvatarClass(equipped)}`.trim()}
                 aria-hidden
               >
-                {equippedSticker ? <DiarySticker /> : null}
+                {equippedSticker || equipped || equippedCheer ? (
+                  <RewardArt
+                    rewardKey={equippedSticker ?? equipped ?? equippedCheer}
+                    size={28}
+                    title={
+                      wearingSticker ?? wearingFrame ?? wearingCheer ?? "Награда"
+                    }
+                  />
+                ) : null}
               </span>
             ) : null}
             <div className="min-w-0 text-sm font-medium text-[var(--foreground)]">

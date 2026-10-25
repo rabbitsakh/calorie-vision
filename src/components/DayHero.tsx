@@ -1,9 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { RewardArt } from "@/components/RewardArt";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
+import { EQUIP_PULSE_MS, subscribeEquipPulse } from "@/lib/equip-pulse";
+import {
+  getEquippedCheerKey,
+  hydrateEquippedCheerFromAccount,
+  subscribeEquippedCheer,
+} from "@/lib/equipped-cheer";
+import {
+  getEquippedFrameKey,
+  hydrateEquippedFrameFromAccount,
+  subscribeEquippedFrame,
+} from "@/lib/equipped-frame";
+import {
+  getEquippedStickerKey,
+  hydrateEquippedStickerFromAccount,
+  subscribeEquippedSticker,
+} from "@/lib/equipped-sticker";
 import { applyHolidayBuffer, isHolidayBufferOn } from "@/lib/holiday-buffer";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
@@ -11,6 +28,7 @@ import {
   hasFreshPostWorkoutNudge,
   shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
+import { cheerPhrase, frameAvatarClass, rewardDef } from "@/lib/rewards";
 import { useTimezone } from "@/lib/use-timezone";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import {
@@ -89,8 +107,80 @@ function DayHeroSkeleton() {
   );
 }
 
+/** C2 — compact equipped wear in DayHero corner (sticker / frame / cheer cue). */
+function DayHeroWear() {
+  const [sticker, setSticker] = useState<string | null>(null);
+  const [frameKey, setFrameKey] = useState<string | null>(null);
+  const [cheerKey, setCheerKey] = useState<string | null>(null);
+  const [pulse, setPulse] = useState(false);
+
+  useEffect(() => {
+    setSticker(getEquippedStickerKey());
+    setFrameKey(getEquippedFrameKey());
+    setCheerKey(getEquippedCheerKey());
+    void hydrateEquippedStickerFromAccount().then(setSticker);
+    void hydrateEquippedFrameFromAccount().then(setFrameKey);
+    void hydrateEquippedCheerFromAccount().then(setCheerKey);
+    const unsubS = subscribeEquippedSticker(setSticker);
+    const unsubF = subscribeEquippedFrame(setFrameKey);
+    const unsubC = subscribeEquippedCheer(setCheerKey);
+    return () => {
+      unsubS();
+      unsubF();
+      unsubC();
+    };
+  }, []);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const unsub = subscribeEquipPulse(() => {
+      setPulse(true);
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(() => setPulse(false), EQUIP_PULSE_MS);
+    });
+    return () => {
+      unsub();
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
+  const frameClass = frameAvatarClass(frameKey);
+  const phrase = cheerKey ? cheerPhrase(cheerKey) : null;
+  if (!sticker && !frameClass && !phrase) return null;
+
+  const title =
+    (sticker && rewardDef(sticker)?.title) ||
+    (frameKey && rewardDef(frameKey)?.title) ||
+    phrase ||
+    "Награда из коллекции";
+
+  return (
+    <div
+      className={`day-hero-wear ${pulse ? "day-hero-wear--pulse" : ""}`}
+      aria-label={title}
+      title={title}
+    >
+      {sticker || frameClass ? (
+        <span
+          className={`day-hero-wear__badge inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/85 ${frameClass}`.trim()}
+        >
+          <RewardArt
+            rewardKey={sticker ?? frameKey}
+            size={22}
+            title={title}
+          />
+        </span>
+      ) : null}
+      {phrase && !sticker && !frameClass ? (
+        <p className="day-hero-wear__cheer">{phrase}</p>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * C1 day theater: giant % as the first signal, phrase + arc as one composition.
+ * C2 — equipped sticker/frame peek in the corner after «Надеть».
  */
 export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
@@ -277,8 +367,9 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     >
       <div className="day-hero-glow" aria-hidden />
       <div className="day-hero-wash" aria-hidden />
-      {/* First viewport: giant % + short phrase + thin arc — meta/wear live elsewhere */}
+      {/* First viewport: giant % + short phrase + thin arc; wear is a quiet corner badge */}
       <div className="day-hero-theater-inner relative flex flex-col px-5 py-5 md:px-8 md:py-6">
+        <DayHeroWear />
         {pctShow != null ? (
           <p
             className={`day-hero-giant tabular-nums ${over ? "day-hero-giant--over" : ""}`}

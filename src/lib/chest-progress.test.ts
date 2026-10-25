@@ -56,6 +56,24 @@ describe("buildChestMeter", () => {
     assert.ok(m.metaLabel);
     assert.match(m.metaLabel!, /мета/);
   });
+
+  test("near meta uses full queue cue copy", () => {
+    const m = buildChestMeter({
+      questDayCount: 0,
+      openedQuestChests: 0,
+      ownedCount: 4,
+    });
+    assert.match(m.metaLabel!, /Ещё 1 до мета-сундука/);
+  });
+
+  test("far meta stays compact", () => {
+    const m = buildChestMeter({
+      questDayCount: 0,
+      openedQuestChests: 0,
+      ownedCount: 0,
+    });
+    assert.equal(m.metaLabel, "мета 0/5");
+  });
 });
 
 describe("nextQuestChestBatchIndex", () => {

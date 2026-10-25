@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DailyLogEmpty } from "@/components/DailyLogEmpty";
+import { DiarySticker } from "@/components/DiarySticker";
 import { DietTargets } from "@/components/DietTargets";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { FlameIcon } from "@/components/StreakIcon";
@@ -878,19 +879,25 @@ export function DailyLog({
         >
           {!compact && !sceneFeed ? (
             <div>
-              <h2 className="text-xl font-bold">Дневник питания</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-bold">Дневник питания</h2>
+                <DiarySticker />
+              </div>
               <p className="mt-1 text-sm text-[var(--muted)]">{displayDate}</p>
             </div>
           ) : (
-            <h2
-              className={
-                sceneFeed
-                  ? "font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]"
-                  : "text-base font-bold"
-              }
-            >
-              {sceneFeed ? "Дневник" : "Дневник питания"}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2
+                className={
+                  sceneFeed
+                    ? "font-display text-[0.95rem] font-semibold tracking-tight text-[var(--foreground)]"
+                    : "text-base font-bold"
+                }
+              >
+                {sceneFeed ? "Дневник" : "Дневник питания"}
+              </h2>
+              <DiarySticker />
+            </div>
           )}
           {/* Scene feed: one flow — Дневник → Фильтры → Клетч./Сахар (no justify-between). */}
           {sceneFeed && !loading && !error && entries.length > 0 ? (

@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.19",
+    "date": "2026-10-25",
+    "summary": "chests 2.0 C2: wear on DayHero / header / gym",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Надетая наклейка/рамка видны на DayHero и в дневнике"
+      },
+      {
+        "kind": "feature",
+        "text": "Pulse «новое» 2с после авто-equip и «Надеть»"
+      },
+      {
+        "kind": "feature",
+        "text": "Зал: cue «Сундук готов · рацион» когда можно открыть"
+      },
+      {
+        "kind": "improvement",
+        "text": "Мета-очередь на доке: ближе к порогу — полная фраза"
+      }
+    ]
+  },
+  {
     "version": "3.0.18",
     "date": "2026-10-25",
     "summary": "chests 2.0: meter, ready open, loot art",
