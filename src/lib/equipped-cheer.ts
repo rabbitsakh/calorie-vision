@@ -34,6 +34,14 @@ export function setEquippedCheerKey(key: string | null): void {
 /** Persist equipped cheer to account (best-effort). */
 export async function persistEquippedCheerKey(key: string | null): Promise<void> {
   setEquippedCheerKey(key);
+  if (key) {
+    try {
+      const { emitEquipPulse } = await import("@/lib/equip-pulse");
+      emitEquipPulse("cheer", key);
+    } catch {
+      // ignore
+    }
+  }
   try {
     const { withBasePath } = await import("@/lib/paths");
     await fetch(withBasePath("/api/account"), {

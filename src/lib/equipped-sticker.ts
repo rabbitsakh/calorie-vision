@@ -34,6 +34,14 @@ export function setEquippedStickerKey(key: string | null): void {
 /** Persist equipped sticker to account (best-effort). */
 export async function persistEquippedStickerKey(key: string | null): Promise<void> {
   setEquippedStickerKey(key);
+  if (key) {
+    try {
+      const { emitEquipPulse } = await import("@/lib/equip-pulse");
+      emitEquipPulse("sticker", key);
+    } catch {
+      // ignore
+    }
+  }
   try {
     const { withBasePath } = await import("@/lib/paths");
     await fetch(withBasePath("/api/account"), {

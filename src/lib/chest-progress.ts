@@ -44,7 +44,12 @@ export function buildChestMeter(input: {
     input.ownedCount != null && Number.isFinite(input.ownedCount)
       ? nextMetaProgress(Math.max(0, Math.floor(input.ownedCount)))
       : null;
-  const metaLabel = meta ? `мета ${meta.current}/${meta.target}` : null;
+  // Queue cue on dock — same voice as profile meta hint.
+  const metaLabel = meta
+    ? meta.remaining <= 2
+      ? meta.label
+      : `мета ${meta.current}/${meta.target}`
+    : null;
 
   if (readyCount > 0) {
     return {
