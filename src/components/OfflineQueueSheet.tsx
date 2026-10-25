@@ -55,6 +55,11 @@ import {
   type AssistantApplyKind,
 } from "@/lib/assistant-apply-queue";
 import {
+  listRewardsDrafts,
+  removeRewardsDraft,
+  subscribeRewardsDraftQueue,
+} from "@/lib/rewards-draft-queue";
+import {
   hasOfflineQueueFlushError,
   subscribeOfflineQueueFlushErrors,
 } from "@/lib/offline-queue-flush-errors";
@@ -91,11 +96,12 @@ type QueueRow = {
   weightConflict?: WeightDraftItem;
 };
 
-type QueueCategory = "food" | "gym" | "ai" | "other";
+type QueueCategory = "food" | "gym" | "ai" | "rewards" | "other";
 
 function categoryForKind(kind: string): QueueCategory {
   if (kind.startsWith("assistant-") || kind.startsWith("AI")) return "ai";
   if (kind.startsWith("gym-")) return "gym";
+  if (kind.startsWith("rewards-")) return "rewards";
   if (
     kind === "photo" ||
     kind === "meal" ||
@@ -119,6 +125,9 @@ function categoryPill(cat: QueueCategory): { label: string; className: string } 
   }
   if (cat === "ai") {
     return { label: "AI", className: "bg-[var(--accent)]/15 text-[var(--accent-ink)]" };
+  }
+  if (cat === "rewards") {
+    return { label: "Сундук", className: "bg-teal-100 text-teal-950" };
   }
   return { label: "Прочее", className: "bg-[var(--border-quiet)]/60 text-[var(--muted-strong)]" };
 }
@@ -350,6 +359,21 @@ function buildRows(onChanged: () => void): QueueRow[] {
     });
   }
 
+  // Wave R/O — chest mark / open while offline.
+  for (const item of listRewardsDrafts()) {
+    rows.push({
+      id: item.id,
+      kind: `rewards-${item.kind}`,
+      label: item.kind === "open" ? "Открыть сундук" : "Отметить день сундука",
+      detail: typeof item.body.date === "string" ? item.body.date : item.body.source,
+      status: rowStatus(item.id, "waiting"),
+      onDiscard: () => {
+        removeRewardsDraft(item.id);
+        onChanged();
+      },
+    });
+  }
+
   return rows;
 }
 
@@ -370,6 +394,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
       subscribeWorkoutSetDraftQueue(bump),
       subscribeShoppingSyncDraft(bump),
       subscribeAssistantApplyQueue(bump),
+      subscribeRewardsDraftQueue(bump),
       subscribeOfflineQueueFlushErrors(bump),
     ];
     return () => {
@@ -403,7 +428,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
           <div className="confirm-family my-4 border-dashed py-6 text-center">
             <p className="confirm-family-skim !mb-1">Очередь пуста</p>
             <p className="text-xs text-[var(--muted-strong)]">
-              Офлайн-записи появятся здесь — фото, дневник, зал, AI.
+              Офлайн-записи появятся здесь — фото, дневник, зал, AI, сундуки.
             </p>
             <button
               type="button"

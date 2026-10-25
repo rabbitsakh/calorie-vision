@@ -38,6 +38,7 @@ export function ChestDock({
 }: ChestDockProps) {
   const [meter, setMeter] = useState<ChestMeterModel | null>(null);
   const [busy, setBusy] = useState(false);
+  const [offlineHint, setOfflineHint] = useState<string | null>(null);
   const [quietLoot, setQuietLoot] = useState<ChestRewardPayload | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [loot, setLoot] = useState<{
@@ -79,6 +80,12 @@ export function ChestDock({
       // C3 — pop FIFO ready queue (quest or milestone).
       const result = await openChest({ source: "next", action: "open", date: today });
       if (!result) return;
+
+      if (result.queuedOffline) {
+        setOfflineHint("Открытие в очереди — уйдёт при связи");
+        window.setTimeout(() => setOfflineHint(null), 5200);
+        return;
+      }
 
       if (result.chest) setMeter(result.chest);
       else void reload();
@@ -138,6 +145,7 @@ export function ChestDock({
             <p className="chest-dock-label">{meter.label}</p>
             <p className="chest-dock-detail">{meter.detail}</p>
             {queueExtra ? <p className="chest-dock-meta">{queueExtra}</p> : null}
+            {offlineHint ? <p className="chest-dock-meta">{offlineHint}</p> : null}
             {meter.metaLabel ? (
               <p className="chest-dock-meta">{meter.metaLabel}</p>
             ) : null}

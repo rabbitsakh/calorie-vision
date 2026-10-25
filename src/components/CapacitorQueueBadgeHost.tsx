@@ -12,9 +12,11 @@ import { subscribeLocalWorkoutSessions } from "@/lib/workout-local-session";
 import { subscribeWorkoutExerciseDraftQueue } from "@/lib/workout-exercise-draft-queue";
 import { subscribeWorkoutSetDraftQueue } from "@/lib/workout-set-draft-queue";
 import { subscribeShoppingSyncDraft } from "@/lib/shopping-sync-draft";
+import { subscribeAssistantApplyQueue } from "@/lib/assistant-apply-queue";
+import { subscribeRewardsDraftQueue } from "@/lib/rewards-draft-queue";
 
 /**
- * Wave X — keep APK icon/notification badge in sync with offline drafts,
+ * Wave X / R/O — keep APK icon/notification badge in sync with offline drafts,
  * and refresh the resume token when the app returns to foreground.
  */
 export function CapacitorQueueBadgeHost() {
@@ -35,6 +37,8 @@ export function CapacitorQueueBadgeHost() {
       subscribeWorkoutExerciseDraftQueue(sync),
       subscribeWorkoutSetDraftQueue(sync),
       subscribeShoppingSyncDraft(sync),
+      subscribeAssistantApplyQueue(sync),
+      subscribeRewardsDraftQueue(sync),
     ];
 
     let removeAppListener: (() => void) | undefined;

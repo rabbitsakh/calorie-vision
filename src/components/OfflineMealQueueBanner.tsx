@@ -72,6 +72,12 @@ import {
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
 import {
+  countRewardsDrafts,
+  listRewardsDrafts,
+  removeRewardsDraft,
+  subscribeRewardsDraftQueue,
+} from "@/lib/rewards-draft-queue";
+import {
   clearOfflineQueueFlushError,
   markOfflineQueueFlushError,
 } from "@/lib/offline-queue-flush-errors";
@@ -81,6 +87,7 @@ import { isLikelyOfflineError, subscribeConnectivity } from "@/lib/connectivity"
 import { isNetworkFetchError, recognizePhotoFile } from "@/lib/recognize-photo-client";
 import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { notifyWaterLogged } from "@/lib/open-water-quick";
+import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { withBasePath } from "@/lib/paths";
 
 type OfflineMealQueueBannerProps = {
@@ -112,6 +119,7 @@ export function OfflineMealQueueBanner({
   const [workoutExerciseCount, setWorkoutExerciseCount] = useState(0);
   const [shoppingSyncCount, setShoppingSyncCount] = useState(0);
   const [assistantApplyCount, setAssistantApplyCount] = useState(0);
+  const [rewardsCount, setRewardsCount] = useState(0);
   const [flushing, setFlushing] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   /** T1: brief «Ушло N» after a flush so the queue doesn't vanish without feedback. */
@@ -140,6 +148,7 @@ export function OfflineMealQueueBanner({
     setWorkoutExerciseCount(countWorkoutExerciseDrafts());
     setShoppingSyncCount(countShoppingSyncDrafts());
     setAssistantApplyCount(countAssistantApplyQueue());
+    setRewardsCount(countRewardsDrafts());
   }, []);
 
   useEffect(() => {
@@ -154,6 +163,7 @@ export function OfflineMealQueueBanner({
       subscribeWorkoutExerciseDraftQueue(refreshCounts),
       subscribeShoppingSyncDraft(refreshCounts),
       subscribeAssistantApplyQueue(refreshCounts),
+      subscribeRewardsDraftQueue(refreshCounts),
     ];
     return () => {
       for (const unsub of unsubs) unsub();
@@ -175,6 +185,8 @@ export function OfflineMealQueueBanner({
     const shoppingDirty = isShoppingSyncDirty();
     // T7: AI confirm payloads must flush from the banner too (not only chat).
     const assistantApplies = listAssistantApplyQueue();
+    // Wave R/O — chest mark/open drafts flush with the rest of the queue.
+    const rewardsDrafts = listRewardsDrafts();
     if (
       pending.length === 0 &&
       failed.length === 0 &&
@@ -188,7 +200,8 @@ export function OfflineMealQueueBanner({
       workoutLocals === 0 &&
       workoutExercises === 0 &&
       !shoppingDirty &&
-      assistantApplies.length === 0
+      assistantApplies.length === 0 &&
+      rewardsDrafts.length === 0
     ) {
       return;
     }
@@ -298,12 +311,17 @@ export function OfflineMealQueueBanner({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ date: item.selectedDate, ml: item.ml }),
           });
-          if (!response.ok) break;
+          if (!response.ok) {
+            // T8: keep draft + surface «Ошибка» instead of silent stall.
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeWaterDraft(item.id);
           savedAny = true;
           flushedCount += 1;
-        } catch {
-          break;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
         }
       }
 
@@ -332,12 +350,16 @@ export function OfflineMealQueueBanner({
             // Keep draft — surface in queue sheet; do not silent-overwrite.
             continue;
           }
-          if (!response.ok) break;
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeWeightDraft(item.id);
           savedAny = true;
           flushedCount += 1;
-        } catch {
-          break;
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
         }
       }
 
@@ -352,7 +374,11 @@ export function OfflineMealQueueBanner({
               mood: item.mood,
             }),
           });
-          if (!response.ok) continue;
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeDiaryNoteDraft(item.id);
           savedAny = true;
           flushedCount += 1;
@@ -415,9 +441,12 @@ export function OfflineMealQueueBanner({
             body: JSON.stringify({ items }),
           });
           if (response.ok) {
+            clearOfflineQueueFlushError("shopping-sync");
             clearShoppingSyncDirty();
             savedAny = true;
             flushedCount += 1;
+          } else {
+            markOfflineQueueFlushError("shopping-sync");
           }
         } catch (err) {
           if (isLikelyOfflineError(err)) {
@@ -455,6 +484,27 @@ export function OfflineMealQueueBanner({
           if (isLikelyOfflineError(err)) break;
         }
       }
+
+      for (const item of rewardsDrafts) {
+        try {
+          const response = await fetch(withBasePath("/api/rewards"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item.body),
+          });
+          if (!response.ok) {
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
+          removeRewardsDraft(item.id);
+          savedAny = true;
+          flushedCount += 1;
+          notifyChestQueueRefresh();
+        } catch (err) {
+          if (isLikelyOfflineError(err)) break;
+        }
+      }
     } finally {
       setFlushing(false);
       refreshCounts();
@@ -472,7 +522,8 @@ export function OfflineMealQueueBanner({
           countLocalWorkoutSessions() +
           countWorkoutExerciseDrafts() +
           countShoppingSyncDrafts() +
-          countAssistantApplyQueue();
+          countAssistantApplyQueue() +
+          countRewardsDrafts();
         setFlushSummary(
           remaining > 0
             ? `Ушло ${flushedCount} · ещё ждёт ${remaining}`
@@ -519,7 +570,8 @@ export function OfflineMealQueueBanner({
     workoutLocalCount +
     workoutExerciseCount +
     shoppingSyncCount +
-    assistantApplyCount;
+    assistantApplyCount +
+    rewardsCount;
   if (totalCount <= 0 && !flushSummary) return null;
 
   if (totalCount <= 0 && flushSummary) {
@@ -621,6 +673,13 @@ export function OfflineMealQueueBanner({
         assistantApplyCount === 1
           ? "1 запись AI ждёт подтверждение / сеть"
           : `${assistantApplyCount} записи AI ждут подтверждение / сеть`,
+      );
+    }
+    if (rewardsCount > 0) {
+      lines.push(
+        rewardsCount === 1
+          ? "1 действие с сундуком ждёт сеть"
+          : `${rewardsCount} действия с сундуком ждут сеть`,
       );
     }
   }

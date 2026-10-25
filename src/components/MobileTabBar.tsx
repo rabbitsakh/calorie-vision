@@ -15,6 +15,8 @@ import { subscribeLocalWorkoutSessions } from "@/lib/workout-local-session";
 import { subscribeWorkoutExerciseDraftQueue } from "@/lib/workout-exercise-draft-queue";
 import { subscribeWorkoutSetDraftQueue } from "@/lib/workout-set-draft-queue";
 import { subscribeShoppingSyncDraft } from "@/lib/shopping-sync-draft";
+import { subscribeAssistantApplyQueue } from "@/lib/assistant-apply-queue";
+import { subscribeRewardsDraftQueue } from "@/lib/rewards-draft-queue";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
 
@@ -44,6 +46,8 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
     const unsubEx = subscribeWorkoutExerciseDraftQueue(refresh);
     const unsubLocal = subscribeLocalWorkoutSessions(refresh);
     const unsubShopping = subscribeShoppingSyncDraft(refresh);
+    const unsubAi = subscribeAssistantApplyQueue(refresh);
+    const unsubRewards = subscribeRewardsDraftQueue(refresh);
     return () => {
       unsubMeal();
       unsubWater();
@@ -53,6 +57,8 @@ export function MobileTabBar({ date, showAdd = true }: MobileTabBarProps) {
       unsubEx();
       unsubSets();
       unsubShopping();
+      unsubAi();
+      unsubRewards();
     };
   }, []);
 
