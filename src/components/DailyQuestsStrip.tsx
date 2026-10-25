@@ -92,6 +92,12 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
       return;
     }
 
+    if (result.queuedOffline) {
+      // Keep claimedRef so we don't re-POST every render; draft flushes with the queue.
+      setHint("День в очереди — отметим сундук при связи");
+      return;
+    }
+
     markSoftCelebrationSeen("quest-chest", today);
     flushPendingMetaChests();
 

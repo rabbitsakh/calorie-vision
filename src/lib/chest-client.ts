@@ -1,7 +1,9 @@
 import { withBasePath } from "@/lib/paths";
 import { notifyChestInbox } from "@/lib/chest-inbox";
+import { isLikelyOfflineError } from "@/lib/connectivity";
 import { trackChestOpenedGoal, trackMetaChestGoal } from "@/lib/metrika-funnel";
 import type { ChestMeterModel } from "@/lib/chest-progress";
+import { enqueueRewardsDraft } from "@/lib/rewards-draft-queue";
 import type { ChestSource, RewardRarity } from "@/lib/rewards";
 
 export type ChestRewardPayload = {
@@ -24,6 +26,8 @@ export type OpenChestResult = {
   /** C4 — calm-day mark also got a gym/evening boost credit. */
   boosted?: boolean;
   boostKind?: "gym" | "evening" | null;
+  /** Wave R/O — POST queued until online. */
+  queuedOffline?: boolean;
 };
 
 type OpenChestArgs = {
@@ -127,7 +131,23 @@ export async function openChest(args: OpenChestArgs): Promise<OpenChestResult | 
       persistPending();
     }
     return data;
-  } catch {
+  } catch (err) {
+    // Wave R/O — don't drop mark/open silently when the APK is offline.
+    if (isLikelyOfflineError(err)) {
+      enqueueRewardsDraft({
+        source: args.source,
+        action: args.action,
+        date: args.date,
+        weekStart: args.weekStart,
+        challengeKey: args.challengeKey,
+        milestone: args.milestone,
+      });
+      return {
+        newlyGranted: false,
+        reward: null,
+        queuedOffline: true,
+      };
+    }
     return null;
   }
 }

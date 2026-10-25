@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.22",
+    "date": "2026-10-25",
+    "summary": "offline + RuStore: rewards queue, T8 flush, badge parity",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Сундук mark/open в офлайн-очереди — без тихого дропа"
+      },
+      {
+        "kind": "improvement",
+        "text": "Бейдж вкладки и APK считает AI + сундуки"
+      },
+      {
+        "kind": "improvement",
+        "text": "T8: вода / вес / чек-ин / покупки — «Ошибка» + Повторить"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подсказки на ChestDock и квестах, если действие ждёт сеть"
+      }
+    ]
+  },
+  {
     "version": "3.0.21",
     "date": "2026-10-25",
     "summary": "chests 2.0 C4: meter boost + quieter meta",
