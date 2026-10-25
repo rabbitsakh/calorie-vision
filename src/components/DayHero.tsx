@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { buildDayHeroCopy } from "@/lib/day-hero-copy";
@@ -16,7 +15,6 @@ import { useTimezone } from "@/lib/use-timezone";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
 import {
   estimateDayWorkoutBurnKcal,
-  formatWorkoutBurnHint,
   type WorkoutBurnSessionLike,
 } from "@/lib/workout-day-burn";
 
@@ -82,8 +80,7 @@ function DayHeroSkeleton() {
   return (
     <section className="day-hero day-hero--scene day-hero--theater" aria-busy="true" aria-label="Сводка дня">
       <div className="day-hero-glow" aria-hidden />
-      <div className="day-hero-theater-inner relative flex flex-col gap-4 px-5 py-8 md:px-8 md:py-10">
-        <div className="skeleton-line !h-2 w-16" />
+      <div className="day-hero-theater-inner relative flex flex-col gap-3 px-5 py-5 md:px-8 md:py-6">
         <div className="skeleton-line !h-12 w-40" />
         <div className="skeleton-line !h-3 w-56 max-w-full" />
         <div className="skeleton-line !h-2.5 w-full !rounded-full" />
@@ -254,29 +251,24 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     return <DayHeroSkeleton />;
   }
 
-  const burnHint = formatWorkoutBurnHint(workoutBurnKcal, workoutSessionCount);
   const hasTarget = effectiveTarget != null && effectiveTarget > 0;
   const pctShow = hasTarget ? Math.round(Math.min(999, Math.max(0, caloriePct))) : null;
-  const remaining =
-    hasTarget && data ? Math.max(0, Math.round(effectiveTarget! - data.calories)) : null;
   // Phrase without leading "N% …" — the giant number owns that signal.
   const phrase = copy.headline.replace(/^\d+%\s*[·—–-]?\s*/u, "").replace(/\.$/, "") || copy.headline;
   const over = hasTarget && caloriePct > 105;
-
-  const metaParts = [
+  const srDetail = [
     data?.calorieTarget != null
-      ? `${data.calories} / ${Math.round(effectiveTarget ?? data.calorieTarget)} ккал`
+      ? `${data.calories} из ${Math.round(effectiveTarget ?? data.calorieTarget)} килокалорий`
       : data
-        ? `${data.calories} ккал`
+        ? `${data.calories} килокалорий`
         : null,
     data?.proteinTarget != null && data.proteinTarget > 0
-      ? `белок ${Math.round(data.protein)} / ${Math.round(data.proteinTarget)} г`
-      : data && data.protein > 0
-        ? `белок ${Math.round(data.protein)} г`
-        : null,
-    burnHint,
-    holiday ? "праздн. запас" : null,
-  ].filter(Boolean);
+      ? `белок ${Math.round(data.protein)} из ${Math.round(data.proteinTarget)} граммов`
+      : null,
+    holiday ? "праздничный запас" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <section
@@ -285,44 +277,28 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     >
       <div className="day-hero-glow" aria-hidden />
       <div className="day-hero-wash" aria-hidden />
-      <div className="day-hero-theater-inner relative flex flex-col px-5 py-8 md:px-8 md:py-10">
-        <div className="flex items-center justify-between gap-2">
-          <p className="day-hero-eyebrow">{copy.eyebrow}</p>
-          {/* Compact wear pill — doesn't compete with giant % */}
-          <GymCollectionWear
-            className="day-hero-wear shrink-0 justify-end rounded-full bg-[var(--surface-mist)]/90 px-2 py-1"
-            size="md"
-          />
-        </div>
+      {/* First viewport: giant % + short phrase + thin arc — meta/wear live elsewhere */}
+      <div className="day-hero-theater-inner relative flex flex-col px-5 py-5 md:px-8 md:py-6">
+        {pctShow != null ? (
+          <p
+            className={`day-hero-giant tabular-nums ${over ? "day-hero-giant--over" : ""}`}
+            aria-label={`${pctShow} процентов от цели по калориям${srDetail ? `. ${srDetail}` : ""}`}
+          >
+            {pctShow}
+            <span className="day-hero-giant__unit">%</span>
+          </p>
+        ) : (
+          <p
+            className="day-hero-giant day-hero-giant--muted tabular-nums"
+            aria-label={`Нет цели по калориям${srDetail ? `. ${srDetail}` : ""}`}
+          >
+            —
+          </p>
+        )}
 
-        <div className="mt-2.5 flex flex-wrap items-end gap-x-3 gap-y-1">
-          {pctShow != null ? (
-            <p
-              className={`day-hero-giant tabular-nums ${over ? "day-hero-giant--over" : ""}`}
-              aria-label={`${pctShow} процентов от цели по калориям`}
-            >
-              {pctShow}
-              <span className="day-hero-giant__unit">%</span>
-            </p>
-          ) : (
-            <p className="day-hero-giant day-hero-giant--muted tabular-nums" aria-label="Нет цели по калориям">
-              —
-            </p>
-          )}
-          {remaining != null && !over ? (
-            <p className="day-hero-remain pb-1.5">
-              ещё <span className="tabular-nums font-semibold text-[var(--foreground)]">{remaining}</span> ккал
-            </p>
-          ) : null}
-        </div>
-
-        <p className="day-hero-phrase mt-2">{phrase}.</p>
+        <p className="day-hero-phrase mt-1.5">{phrase}.</p>
 
         {hasTarget ? <HeroArc pct={caloriePct} /> : <div className="day-hero-arc day-hero-arc--idle" aria-hidden />}
-
-        {metaParts.length > 0 ? (
-          <p className="day-hero-meta mt-3">{metaParts.join(" · ")}</p>
-        ) : null}
       </div>
     </section>
   );
