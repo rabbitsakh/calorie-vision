@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.14",
+    "date": "2026-10-25",
+    "summary": "design: D29–D31 — wash, tab chrome, RuStore shell",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Стат/план/профиль: wash без card-shadow; mist tiles"
+      },
+      {
+        "kind": "improvement",
+        "text": "Tab bar и «+»: тихий dock, один active cue"
+      },
+      {
+        "kind": "improvement",
+        "text": "RuStore shell на cream/teal продукта"
+      }
+    ]
+  },
+  {
     "version": "3.0.12",
     "date": "2026-10-24",
     "summary": "design: D26–D28 — confirm flat, gym planes, one nudge",

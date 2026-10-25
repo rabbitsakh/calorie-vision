@@ -328,8 +328,8 @@ body {
 }
 
 .meal-list li {
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 252, 248, 0.72);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 0.9rem;
   padding: 0.85rem 1rem;
   display: flex;
