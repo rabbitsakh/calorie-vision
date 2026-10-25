@@ -1,5 +1,20 @@
 [
   {
+    "version": "3.0.13",
+    "date": "2026-10-25",
+    "summary": "fix(assistant): кнопка «В дневник» для «…на перекус»",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«Протеин 60г на перекус» снова даёт ActionCard с подтверждением"
+      },
+      {
+        "kind": "fix",
+        "text": "Repair из черновика с ккал; изолят в таблице питания"
+      }
+    ]
+  },
+  {
     "version": "3.0.12",
     "date": "2026-10-24",
     "summary": "design: D26–D28 — confirm flat, gym planes, one nudge",
