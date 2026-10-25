@@ -64,140 +64,140 @@ export const REWARD_DEFS: RewardDef[] = [
   {
     key: "sticker_sprout",
     title: "Росток",
-    description: "Наклейка: маленький росток в дневнике",
+    description: "Тихое начало дня",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_cup",
     title: "Чашка воды",
-    description: "Наклейка: вода — тоже победа",
+    description: "Вода — тоже победа",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_sunrise",
     title: "Утренний свет",
-    description: "Наклейка: за завтраки без спешки",
+    description: "Завтрак без спешки",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_plate",
     title: "Тёплая тарелка",
-    description: "Наклейка: за спокойный обед",
+    description: "Спокойный обед с собой",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_moon",
     title: "Мягкий вечер",
-    description: "Наклейка: день закрыт без давления",
+    description: "День закрыт без давления",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_leaf",
     title: "Листок",
-    description: "Наклейка: ещё один спокойный шаг",
+    description: "Ещё один спокойный шаг",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_berry",
     title: "Ягодка",
-    description: "Наклейка: маленькая радость в дневнике",
+    description: "Маленькая радость в дневнике",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_steam",
     title: "Тёплый пар",
-    description: "Наклейка: за уютный горячий напиток",
+    description: "Уютный глоток — тоже забота",
     rarity: "common",
     group: "sticker",
   },
   {
     key: "sticker_path",
     title: "Тропинка",
-    description: "Наклейка: путь важнее скорости",
+    description: "Путь важнее скорости",
     rarity: "rare",
     group: "sticker",
   },
   {
     key: "cheer_steady",
     title: "Ровный ход",
-    description: "Фраза маскота: «Главное — ритм, не идеал»",
+    description: "Главное — ритм, не идеал",
     rarity: "rare",
     group: "cheer",
   },
   {
     key: "cheer_week",
     title: "Неделя в копилку",
-    description: "Фраза маскота: «Ещё одна спокойная неделя»",
+    description: "Ещё одна спокойная неделя",
     rarity: "rare",
     group: "cheer",
   },
   {
     key: "cheer_streak",
     title: "Серия жива",
-    description: "Фраза маскота: «Мы продолжаем — этого достаточно»",
+    description: "Мы продолжаем — этого достаточно",
     rarity: "rare",
     group: "cheer",
   },
   {
     key: "cheer_sip",
     title: "Глоток спокойствия",
-    description: "Фраза маскота: «Вода — тоже забота о себе»",
+    description: "Вода — тоже забота о себе",
     rarity: "common",
     group: "cheer",
   },
   {
     key: "cheer_gentle",
     title: "Мягкий старт",
-    description: "Фраза маскота: «Можно начать с малого»",
+    description: "Можно начать с малого",
     rarity: "common",
     group: "cheer",
   },
   {
     key: "cheer_festive",
     title: "Праздничный настрой",
-    description: "Фраза маскота: «Сегодня можно улыбнуться чуть шире»",
+    description: "Сегодня можно улыбнуться шире",
     rarity: "festive",
     group: "cheer",
   },
   {
     key: "frame_teal",
     title: "Бирюзовая рамка",
-    description: "Мягкая рамка для аватара",
+    description: "Мягкий ореол вокруг вас",
     rarity: "rare",
     group: "frame",
   },
   {
     key: "frame_amber",
     title: "Янтарная рамка",
-    description: "Тёплая рамка за долгую серию",
+    description: "Тёплый свет долгой серии",
     rarity: "festive",
     group: "frame",
   },
   {
     key: "frame_mint",
     title: "Мятная рамка",
-    description: "Свежая рамка для аватара",
+    description: "Свежий акцент на аватаре",
     rarity: "rare",
     group: "frame",
   },
   {
     key: "frame_sky",
     title: "Небесная рамка",
-    description: "Лёгкая голубая рамка",
+    description: "Лёгкий голубой ободок",
     rarity: "common",
     group: "frame",
   },
   {
     key: "cheer_collector",
     title: "Коллекционер",
-    description: "Фраза маскота: «Смотри, какая копилка!»",
+    description: "Смотри, какая копилка",
     rarity: "festive",
     group: "cheer",
     metaOnly: true,
@@ -205,7 +205,7 @@ export const REWARD_DEFS: RewardDef[] = [
   {
     key: "sticker_star",
     title: "Звезда коллекции",
-    description: "Наклейка: за полный набор группы",
+    description: "За полный набор группы",
     rarity: "festive",
     group: "sticker",
     metaOnly: true,
@@ -213,7 +213,7 @@ export const REWARD_DEFS: RewardDef[] = [
   {
     key: "frame_fest",
     title: "Праздничная рамка",
-    description: "Сияющая рамка за всю коллекцию",
+    description: "Сияние за всю коллекцию",
     rarity: "festive",
     group: "frame",
     metaOnly: true,
@@ -247,13 +247,16 @@ export function isCheerReward(key: string): boolean {
   return rewardDef(key)?.group === "cheer";
 }
 
-/** Soft phrase text for cheer rewards (strip catalog prefix). */
+/** Soft phrase text for cheer rewards (strip catalog prefix / quotes). */
 export function cheerPhrase(key: string): string | null {
   const def = rewardDef(key);
   if (!def || def.group !== "cheer") return null;
   const m = def.description.match(/«([^»]+)»/);
   if (m?.[1]) return m[1];
-  const stripped = def.description.replace(/^Фраза маскота:\s*/i, "").trim();
+  const stripped = def.description
+    .replace(/^Фраза маскота:\s*/i, "")
+    .replace(/^["«]|["»]$/g, "")
+    .trim();
   return stripped || null;
 }
 

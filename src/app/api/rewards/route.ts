@@ -7,6 +7,7 @@ import {
   assertStreakChestEligible,
   assertWeekChestEligible,
 } from "@/lib/chest-eligibility";
+import { maybeGrantQuestDayBoost } from "@/lib/chest-day-boost";
 import { buildChestMeter, nextQuestChestBatchIndex } from "@/lib/chest-progress";
 import { listReadyChests } from "@/lib/chest-ready-list";
 import type { ReadyChestItem } from "@/lib/chest-ready-queue";
@@ -275,10 +276,14 @@ export async function POST(request: NextRequest) {
       }
       const dayKey = questDaySourceKey(date);
       await markQuestDayComplete(userId, date, dayKey);
+      // C4 — gym or evening check-in accelerates the 3-day meter (+1 credit).
+      const boost = await maybeGrantQuestDayBoost(userId, date);
       const chestPayload = await buildChestResponse(userId);
       return NextResponse.json({
         newlyGranted: false,
         reward: null,
+        boosted: boost.boosted,
+        boostKind: boost.kind,
         ...chestPayload,
       });
     }

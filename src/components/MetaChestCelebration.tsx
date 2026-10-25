@@ -1,58 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import { useEffect } from "react";
 import {
   flushPendingMetaChests,
   hydratePendingMetaChests,
-  type ChestRewardPayload,
 } from "@/lib/chest-client";
-import type { RewardRarity } from "@/lib/rewards";
-
-const EVENT = "cv-meta-chest";
 
 /**
- * Shows a follow-up celebration when a collection meta chest drops (wave 9).
- * Mount once in AppShell. On mount, hydrate + flush session-persisted meta (R1e).
+ * C4 — meta loot is inbox-only (no fullscreen competing with ChestDock).
+ * Mount once in AppShell to hydrate + flush session-persisted meta (R1e).
  */
 export function MetaChestCelebration() {
-  const [queue, setQueue] = useState<ChestRewardPayload[]>([]);
-  const current = queue[0] ?? null;
-
   useEffect(() => {
-    function onMeta(event: Event) {
-      const detail = (event as CustomEvent<ChestRewardPayload[]>).detail;
-      if (!Array.isArray(detail) || detail.length === 0) return;
-      setQueue((prev) => [...prev, ...detail]);
-    }
-    window.addEventListener(EVENT, onMeta);
     hydratePendingMetaChests();
-    // After listener is attached — flush meta that survived navigation (R1e).
     flushPendingMetaChests();
-    return () => window.removeEventListener(EVENT, onMeta);
   }, []);
 
-  const close = useCallback(() => {
-    setQueue((prev) => prev.slice(1));
-  }, []);
-
-  if (!current) return null;
-
-  return (
-    <FullscreenCelebration
-      open
-      variant="chest"
-      pose="cheer"
-      title={current.title}
-      subtitle={current.description || "Мета-сундук коллекции"}
-      lootKey={current.key}
-      lootRarity={current.rarity as RewardRarity | undefined}
-      lootRarityLabel={current.rarityLabel}
-      badge="★"
-      durationMs={0}
-      ctaLabel="Круто!"
-      skipDailyCap
-      onClose={close}
-    />
-  );
+  return null;
 }
