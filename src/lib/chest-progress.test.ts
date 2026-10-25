@@ -36,6 +36,27 @@ describe("buildChestMeter", () => {
     assert.equal(m.cta, "open");
     assert.equal(m.nextIn, 0);
     assert.equal(m.filled, 3);
+    assert.equal(m.queue[0]?.source, "quest");
+  });
+
+  test("bonus milestone alone → ready without quest", () => {
+    const m = buildChestMeter({
+      questDayCount: 1,
+      openedQuestChests: 0,
+      questDaysPerChest: 3,
+      bonusQueue: [
+        {
+          source: "streak",
+          sourceKey: "streak:7",
+          label: "Серия · 7",
+          detail: "открой",
+          milestone: 7,
+        },
+      ],
+    });
+    assert.equal(m.state, "ready");
+    assert.equal(m.queue[0]?.source, "streak");
+    assert.equal(m.cta, "open");
   });
 
   test("after open, next cycle starts empty fill", () => {

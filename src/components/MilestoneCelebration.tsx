@@ -1,26 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FullscreenCelebration } from "@/components/FullscreenCelebration";
-import {
-  flushPendingMetaChests,
-  openChest,
-  presentChestGrant,
-} from "@/lib/chest-client";
-import type { RewardRarity } from "@/lib/rewards";
-import { pluralDays } from "@/lib/russian-text";
-import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
+import { useEffect, useRef } from "react";
+import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
-
-const MILESTONE_COPY: Record<number, string> = {
-  7: "Неделя без пропусков — это уже привычка!",
-  14: "Две недели подряд. Вы в форме!",
-  30: "Месяц дневника — невероятно!",
-  60: "Два месяца. Вы мастер регулярности!",
-  100: "Сто дней! Легендарный результат!",
-  200: "200 дней подряд. Вы вдохновляете!",
-  365: "Год дневника! Это уровень чемпиона!",
-};
 
 function seenKey(milestone: number): string {
   return `milestone-seen-${milestone}`;
@@ -43,7 +25,7 @@ function markMilestoneSeen(milestone: number): void {
   }
 }
 
-/** Highest reached celebration milestone that hasn't been shown yet. */
+/** Highest reached celebration milestone that hasn't been nudged yet. */
 export function findUnseenMilestone(streak: number): number | null {
   const reached = CELEBRATION_STREAK_MILESTONES.filter((m) => streak >= m);
   for (let i = reached.length - 1; i >= 0; i--) {
@@ -58,71 +40,19 @@ type MilestoneCelebrationProps = {
 };
 
 /**
- * Big streak milestones — fullscreen chest with loot (wave 3).
+ * C3 — streak milestone no longer auto-opens a chest.
+ * Nudges ChestDock ready queue once per milestone.
  */
 export function MilestoneCelebration({ streak }: MilestoneCelebrationProps) {
-  const [milestone, setMilestone] = useState<number | null>(null);
-  const [loot, setLoot] = useState<{
-    key?: string;
-    title: string;
-    description: string;
-    rarity?: RewardRarity;
-    rarityLabel?: string;
-  } | null>(null);
+  const nudged = useRef<number | null>(null);
 
   useEffect(() => {
     const next = findUnseenMilestone(streak);
-    if (next == null) return;
+    if (next == null || nudged.current === next) return;
+    nudged.current = next;
     markMilestoneSeen(next);
-    const quiet = isSoftCelebrationQuietBlocked();
-    void (async () => {
-      const result = await openChest({ source: "streak", milestone: next });
-      if (!result?.reward) {
-        flushPendingMetaChests();
-        return;
-      }
-      presentChestGrant(result.reward, {
-        quiet,
-        fallbackTitle: `${next} ${pluralDays(next)} — сундук!`,
-        fallbackSubtitle: MILESTONE_COPY[next] ?? `Вы достигли ${next} дней подряд!`,
-        onFullscreen: (reward) => {
-          setLoot({
-            key: reward.key,
-            title: reward.title,
-            description: reward.description,
-            rarity: reward.rarity,
-            rarityLabel: reward.rarityLabel,
-          });
-          setMilestone(next);
-        },
-      });
-    })();
+    notifyChestQueueRefresh();
   }, [streak]);
 
-  if (milestone == null) return null;
-
-  const subtitle = loot
-    ? loot.description
-    : (MILESTONE_COPY[milestone] ?? `Вы достигли ${milestone} дней подряд!`);
-
-  return (
-    <FullscreenCelebration
-      open
-      variant="chest"
-      pose="cheer"
-      badge={String(milestone)}
-      title={loot?.title ?? `${milestone} ${pluralDays(milestone)} — сундук!`}
-      subtitle={subtitle}
-      lootKey={loot?.key}
-      lootRarity={loot?.rarity}
-      lootRarityLabel={loot?.rarityLabel}
-      durationMs={0}
-      ctaLabel="Круто!"
-      onClose={() => {
-        setMilestone(null);
-        setLoot(null);
-        flushPendingMetaChests();
-      }}
-    />
-  );
+  return null;
 }
