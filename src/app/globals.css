@@ -1088,13 +1088,13 @@ select {
 
 .food-add-sheet .confirm-card-actions {
   bottom: 0;
-  background: rgba(255, 252, 248, 0.94);
+  background: rgba(255, 252, 248, 0.96);
   box-shadow: none;
   border-top: 1px solid var(--border-hairline);
   margin-left: -0.75rem;
   margin-right: -0.75rem;
-  margin-top: 0.5rem;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  margin-top: 0.65rem;
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
   position: sticky;
   z-index: 12;
 }
@@ -1115,6 +1115,27 @@ select {
   box-shadow: none;
   padding-left: 0;
   padding-right: 0;
+}
+
+/* Sheet already titles the flow — don't repeat h2 inside the card */
+.food-add-sheet .confirm-card-titleblock {
+  display: none;
+}
+
+/* Compact package/meal hero inside the add sheet */
+.food-add-sheet .confirm-hero,
+.food-add-sheet .confirm-hero img {
+  min-height: 10.5rem;
+  height: 10.5rem;
+}
+
+.food-add-sheet .confirm-hero-overlay {
+  padding: 1rem 1rem 0.8rem;
+  background: linear-gradient(180deg, transparent 40%, rgba(8, 36, 38, 0.7));
+}
+
+.food-add-sheet .confirm-details-fold {
+  margin-top: 0.15rem;
 }
 
 @media (min-width: 768px) {
@@ -3116,7 +3137,7 @@ select {
   }
 }
 
-/* D3: one disclosure under sticky save — not a card wall */
+/* D3: disclosure above sticky save — not a card wall under CTAs */
 .confirm-details-fold {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
@@ -3150,20 +3171,27 @@ select {
 }
 
 .confirm-hero-overlay {
-  background: linear-gradient(180deg, transparent 10%, rgba(8, 36, 38, 0.82));
+  background: linear-gradient(180deg, transparent 35%, rgba(8, 36, 38, 0.78));
   bottom: 0;
   color: #fff;
   left: 0;
-  padding: 1.75rem 1.2rem 1.2rem;
+  padding: 1.35rem 1.1rem 0.95rem;
   position: absolute;
   right: 0;
 }
 
-.confirm-hero-overlay h2 {
+.confirm-hero-caption {
   font-family: var(--font-display), var(--font-body), sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
+
+.confirm-portion-meta {
+  min-width: 0;
 }
 
 .skeleton-ring {

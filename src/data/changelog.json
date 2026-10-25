@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.17",
+    "date": "2026-10-25",
+    "summary": "fix(confirm): layout — no duplicate title, dock last",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Hero на фото без второго «Проверьте и сохраните»"
+      },
+      {
+        "kind": "fix",
+        "text": "«Подробнее» выше sticky Save/Cancel"
+      },
+      {
+        "kind": "fix",
+        "text": "Чипы порции и клетчатка/сахар на всю ширину под полями"
+      }
+    ]
+  },
+  {
     "version": "3.0.16",
     "date": "2026-10-25",
     "summary": "ration: calm first viewport — % + phrase + ops strip",
