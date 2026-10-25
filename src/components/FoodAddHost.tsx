@@ -179,7 +179,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
               {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
             </p>
             {confirmOpen ? (
-              <p className="mt-0.5 text-xs text-[var(--muted)]">Сохраните или отмените</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Порция и ккал — затем сохранить</p>
             ) : null}
           </div>
           {confirmOpen ? null : (

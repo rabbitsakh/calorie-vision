@@ -199,8 +199,8 @@ export function DishFields({
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="field sm:col-span-2">
+      <div className="confirm-dish-grid grid grid-cols-2 gap-3">
+        <div className="field col-span-2">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <label htmlFor={fieldId("dishName")}>Блюдо</label>
             <button
@@ -316,22 +316,6 @@ export function DishFields({
             value={dish.portionGrams}
             onChange={(event) => onPortionChange(event.target.value)}
           />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {portionChipOptions(dish, historyPortions).map((chip, chipIndex) => {
-              const active = Number(dish.portionGrams) === chip.grams;
-              return (
-                <Chip
-                  key={chip.label}
-                  active={active}
-                  disabled={formDisabled}
-                  className={chipIndex === 0 && /упаковка|шт/i.test(chip.label) ? "min-h-11" : ""}
-                  onClick={() => onPortionChange(String(chip.grams))}
-                >
-                  {chip.label}
-                </Chip>
-              );
-            })}
-          </div>
         </div>
 
         <div className="field">
@@ -347,9 +331,38 @@ export function DishFields({
             value={dish.calories}
             onChange={(event) => onBaselineChange({ calories: event.target.value })}
           />
-          {/* W1: one skim micro-hint — BJU stay collapsed. */}
+        </div>
+
+        {/* Full-width under the pair — chips / fiber no longer orphan under one column */}
+        <div className="confirm-portion-meta col-span-2">
+          <div className="flex flex-wrap gap-1.5">
+            {portionChipOptions(dish, historyPortions).map((chip, chipIndex) => {
+              const active = Number(dish.portionGrams) === chip.grams;
+              return (
+                <Chip
+                  key={chip.label}
+                  active={active}
+                  disabled={formDisabled}
+                  className={chipIndex === 0 && /упаковка|шт/i.test(chip.label) ? "min-h-11" : ""}
+                  onClick={() => onPortionChange(String(chip.grams))}
+                >
+                  {chip.label}
+                </Chip>
+              );
+            })}
+          </div>
+          {dish.fiber.trim() || dish.sugar.trim() ? (
+            <p className="mt-1.5 text-xs text-[var(--muted)]">
+              {[
+                dish.fiber.trim() ? `клетчатка ${dish.fiber.trim()} г` : null,
+                dish.sugar.trim() ? `сахар ${dish.sugar.trim()} г` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
           {showReviewCta && !showAdvanced ? (
-            <p className="mt-1 text-xs font-medium text-amber-800">
+            <p className="mt-1.5 text-xs font-medium text-amber-800">
               {review.missingCalories
                 ? "Без ккал сохранить нельзя — уточните название или введите число."
                 : review.missingMacros
@@ -359,19 +372,9 @@ export function DishFields({
                     : null}
             </p>
           ) : null}
-          {dish.fiber.trim() || dish.sugar.trim() ? (
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              {[
-                dish.fiber.trim() ? `клетчатка ${dish.fiber.trim()} г` : null,
-                dish.sugar.trim() ? `сахар ${dish.sugar.trim()} г` : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          ) : null}
         </div>
 
-        <div className="sm:col-span-2">
+        <div className="col-span-2">
           <button
             type="button"
             className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
@@ -384,21 +387,21 @@ export function DishFields({
         {showAdvanced ? (
           <>
             {review.missingMacros && !review.missingCalories ? (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+              <p className="col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
                 Есть калории, но БЖУ неполные — нажмите «Уточнить БЖУ» или заполните белки/жиры/углеводы
                 вручную.
               </p>
             ) : null}
 
             {review.lowConfidence ? (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+              <p className="col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
                 Низкая уверенность ({formatConfidencePercent(dish.original.confidence)}) — проверьте
                 название или нажмите «Уточнить по названию».
               </p>
             ) : null}
 
             {dishLooksLikeAlcohol(dish.dishName) ? (
-              <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900 sm:col-span-2">
+              <p className="col-span-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
                 Алкоголь — «пустые» калории: учтите в дневной норме без нутриентной пользы.
               </p>
             ) : null}

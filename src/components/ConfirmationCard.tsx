@@ -876,9 +876,9 @@ export function ConfirmationCard({
     >
       <div className="flex flex-col gap-5 p-4 md:p-0">
         {hasImage ? (
-          <div className="confirm-hero confirm-family-hero !max-h-none -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-[1.35rem]">
+          <div className="confirm-hero -mx-4 -mt-4 md:mx-0 md:mt-0 md:rounded-[1.35rem]">
             {!imageLoaded ? (
-              <div className="absolute inset-0 min-h-64 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
+              <div className="absolute inset-0 animate-pulse bg-[var(--accent-soft)]" aria-hidden />
             ) : null}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -889,17 +889,17 @@ export function ConfirmationCard({
               onError={handleHeroError}
               className={imageLoaded ? "" : "opacity-0"}
             />
+            {/* Sheet already titles «Проверьте…» — overlay only names the dish */}
             <div className="confirm-hero-overlay">
-              <h2 className="text-xl font-semibold tracking-tight">Проверьте и сохраните</h2>
-              <p className="mt-1 text-sm text-white/88">
+              <p className="confirm-hero-caption">
                 {multi
-                  ? `${dishes.length} позиций · всего ${totalCalories || "—"} ккал`
+                  ? `${dishes.length} позиций · ${totalCalories || "—"} ккал`
                   : dishes[0]?.dishName || "Порция и калории"}
               </p>
             </div>
           </div>
         ) : (
-          <div>
+          <div className="confirm-card-titleblock">
             <h2 className="font-display text-xl font-semibold tracking-tight">Проверьте и сохраните</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {multi
@@ -1058,6 +1058,26 @@ export function ConfirmationCard({
           enriching={enriching}
         />
 
+        {/* Details above sticky dock — otherwise «Подробнее» hangs under Save/Cancel */}
+        <ConfirmDetailsFold
+          multi={multi}
+          dishes={dishes}
+          skimTone={skimTone}
+          anyLowConfidence={anyLowConfidence}
+          lowConfidenceDishesLength={lowConfidenceDishes.length}
+          lowConfidenceThreshold={lowConfidenceThreshold}
+          mealType={mealType}
+          eatenTime={eatenTime}
+          saving={saving}
+          searching={searching}
+          onRerunWithContext={onRerunWithContext}
+          lowestConfidenceDish={lowestConfidenceDish}
+          recognition={recognition}
+          totalCalories={totalCalories}
+          onMealTypeToggle={setMealType}
+          onEatenTimeChange={setEatenTime}
+        />
+
         <ConfirmStickyActions
           multi={multi}
           dishesLength={dishes.length}
@@ -1083,25 +1103,6 @@ export function ConfirmationCard({
             stopPersistingDraft({ clearDraft: true });
             onCancel();
           }}
-        />
-
-        <ConfirmDetailsFold
-          multi={multi}
-          dishes={dishes}
-          skimTone={skimTone}
-          anyLowConfidence={anyLowConfidence}
-          lowConfidenceDishesLength={lowConfidenceDishes.length}
-          lowConfidenceThreshold={lowConfidenceThreshold}
-          mealType={mealType}
-          eatenTime={eatenTime}
-          saving={saving}
-          searching={searching}
-          onRerunWithContext={onRerunWithContext}
-          lowestConfidenceDish={lowestConfidenceDish}
-          recognition={recognition}
-          totalCalories={totalCalories}
-          onMealTypeToggle={setMealType}
-          onEatenTimeChange={setEatenTime}
         />
       </div>
     </section>
