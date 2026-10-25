@@ -5,8 +5,33 @@
 const WRITE_INTENT_RE =
   /добав|сохран|запиш|создай|состав(ь|и)|внеси|закинь|положи|в\s*план|в\s*дневник|в\s*рацион|залог|назнач|запланиру|выпил|воды|взвес|завес|начни|старт|съел|поел|залог(и|ить)?\s*еду|прием[ыа]?\s*пищ|удал|убери|исправ|поправ|замени|переимен|перенес|сделай|измени|порци|повтор|поставь|(?:вчерашн|сегодняшн)\S*\s+(?:завтрак|обед|ужин|перекус|зал|трен)/i;
 
+/** «протеин 60г на перекус» / «на ужин курица» — slot + dish without «добавь». */
+// `\b` is ASCII-only — use Unicode-safe end like portion parsing.
+const MEAL_SLOT_END = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+const MEAL_SLOT_LOG_RE = new RegExp(
+  String.raw`(?:на\s+)?(?:завтрак|обед|ужин|перекус)${MEAL_SLOT_END}`,
+  "iu",
+);
+const MEAL_SLOT_STRIP_RE = new RegExp(
+  String.raw`(?:на\s+)?(?:завтрак|обед|ужин|перекус)${MEAL_SLOT_END}`,
+  "giu",
+);
+
 export function userWantsWrite(message: string): boolean {
-  return WRITE_INTENT_RE.test(message.trim());
+  const t = message.trim();
+  if (!t) return false;
+  if (WRITE_INTENT_RE.test(t)) return true;
+  // Questions stay read-only («что на перекус?»).
+  if (/[?？]\s*$/.test(t) || /^(что|как|сколько|какой|какая|какие|чем)\s/i.test(t)) {
+    return false;
+  }
+  if (!MEAL_SLOT_LOG_RE.test(t)) return false;
+  const withoutSlot = t.replace(MEAL_SLOT_STRIP_RE, " ").replace(/\s+/g, " ").trim();
+  // Need a dish/portion cue beyond the slot word alone.
+  return (
+    withoutSlot.length >= 3 &&
+    (/\d/.test(withoutSlot) || /[а-яёa-z]{3,}/i.test(withoutSlot))
+  );
 }
 
 export function userWantsStartWorkout(message: string): boolean {

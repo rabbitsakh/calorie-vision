@@ -519,6 +519,25 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     brand: "Bombbar",
   },
   {
+    // Whey isolate powder — dry scoop, per 100 g (≈370 kcal / 85P).
+    keys: [
+      "протеин изолят",
+      "изолят протеина",
+      "сывороточный изолят",
+      "whey isolate",
+      "protein isolate",
+      "протеин",
+      "сывороточный протеин",
+    ],
+    dishName: "Протеин изолят",
+    calories: 370,
+    protein: 85,
+    fat: 1,
+    carbs: 3,
+    sugar: 2,
+    portionGrams: 100,
+  },
+  {
     keys: ["простоквашино творог", "творог простоквашино", "творог простоквашино 5%"],
     dishName: "Творог Простоквашино 5%",
     calories: 170,

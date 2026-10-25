@@ -326,6 +326,12 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
       /^\d+[.)]\s+(.+)$/.exec(line);
     if (!m?.[1]) continue;
     let rest = m[1].trim();
+    let lineNote: string | undefined;
+    const slotPrefix = /^(завтрак|обед|ужин|перекус)\s*[:—–-]\s*/i.exec(rest);
+    if (slotPrefix?.[1]) {
+      lineNote = slotPrefix[1].toLowerCase();
+      rest = rest.slice(slotPrefix[0].length).trim();
+    }
     let kcal: number | undefined;
     let protein: number | undefined;
     let fat: number | undefined;
@@ -387,6 +393,7 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
       protein,
       fat,
       carbs,
+      ...(lineNote ? { note: lineNote } : {}),
     });
   }
   return meals;
@@ -433,6 +440,52 @@ export function heuristicRepairMultiDishActions(
 }
 
 /**
+ * Offline: model listed one dish with kcal in a bullet but forgot cv-actions
+ * («Ок, кидаю в план: - Перекус: протеин … (~220 ккал)»).
+ */
+export function heuristicRepairFromDraftReply(
+  userMessage: string,
+  assistantReply: string,
+): AssistantActions | null {
+  if (!userWantsWrite(userMessage)) return null;
+  if (!assistantReply.trim()) return null;
+
+  const meals = parseStructuredMealsFromText(assistantReply);
+  if (meals.length < 1) return null;
+  // Prefer lines that already carry kcal from the draft.
+  const withKcal = meals.filter((m) => typeof m.kcal === "number" && m.kcal > 0);
+  const picked = withKcal.length ? withKcal : meals;
+  if (!picked.length) return null;
+
+  const { note, targetDate } = mealMetaFromMessage(userMessage);
+  const withNote = picked.map((m) => ({
+    ...m,
+    note: m.note && isMealNoteLabel(m.note) ? m.note : note,
+    name: stripMealSlotPrefix(m.name),
+  }));
+  const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
+
+  return {
+    apply: true,
+    targetDate,
+    meals: withNote,
+    summary: `к подтверждению: ${names}`,
+  };
+}
+
+function isMealNoteLabel(note: string): boolean {
+  return /^(завтрак|обед|ужин|перекус)$/i.test(note.trim());
+}
+
+/** «Перекус: протеин изолят 60 г» → «протеин изолят 60 г». */
+function stripMealSlotPrefix(name: string): string {
+  return name
+    .replace(/^(?:завтрак|обед|ужин|перекус)\s*[:—–-]\s*/i, "")
+    .trim()
+    .slice(0, 120);
+}
+
+/**
  * Offline repair for clear drink/food write intents (beer liters, etc.)
  * when the model moralizes without cv-actions.
  * Skips when the message is a multi-dish list (beer + food) — use multi-dish path.
@@ -445,6 +498,7 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
   const cleaned = userMessage
     .replace(/^\s*я\s+(съел|выпил|поел)\s+/i, "")
     .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)\b/gi, " ")
+    .replace(/(?:на\s+)?(?:завтрак|обед|ужин|перекус)(?=$|\s|[^\p{L}\p{N}])/giu, " ")
     .replace(/\s+/g, " ")
     .trim();
   const pack =
@@ -652,6 +706,9 @@ export async function repairAssistantWriteActions(opts: {
 
   const multi = heuristicRepairMultiDishActions(opts.userMessage, opts.assistantReply);
   if (multi) return multi;
+
+  const fromDraft = heuristicRepairFromDraftReply(opts.userMessage, opts.assistantReply);
+  if (fromDraft) return fromDraft;
 
   const heuristic = heuristicRepairWriteActions(opts.userMessage);
   if (heuristic) return heuristic;
