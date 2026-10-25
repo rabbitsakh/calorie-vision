@@ -7033,6 +7033,34 @@ select {
   color: var(--muted-strong);
 }
 
+.confirm-family-note {
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: calc(var(--radius-lg) - 4px);
+  border: 1px solid var(--border-hairline);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.confirm-family-note--ok {
+  background: color-mix(in srgb, var(--accent) 10%, #fff);
+  color: var(--accent-ink);
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--border-hairline));
+}
+
+.confirm-family-note--soft {
+  background: color-mix(in srgb, #c9862a 12%, #fff);
+  color: #6b4a12;
+  border-color: color-mix(in srgb, #c9862a 28%, var(--border-hairline));
+}
+
+.confirm-family-note--err {
+  background: color-mix(in srgb, #b42318 8%, #fff);
+  color: #8a1c14;
+  border-color: color-mix(in srgb, #b42318 22%, var(--border-hairline));
+}
+
 .confirm-family-dish {
   border-radius: calc(var(--radius-lg) - 4px);
   background: var(--panel-wash);

@@ -294,18 +294,19 @@ export async function POST(request: NextRequest) {
       });
       if (!result.ok) {
         // Soft fail: client can offer empty start / repeat without treating as hard error.
-        const soft = Boolean(
-          result.data &&
-            typeof result.data === "object" &&
-            (result.data as { suggestRepeat?: unknown }).suggestRepeat,
-        );
-        if (soft) {
+        const data =
+          result.data && typeof result.data === "object"
+            ? (result.data as { suggestEmpty?: unknown; suggestRepeat?: unknown })
+            : null;
+        const suggestEmpty = Boolean(data?.suggestEmpty);
+        const suggestRepeat = Boolean(data?.suggestRepeat);
+        if (suggestEmpty || suggestRepeat) {
           return NextResponse.json({
             ok: false,
             result,
             tools: [result],
-            suggestEmpty: true,
-            suggestRepeat: true,
+            suggestEmpty: suggestEmpty || suggestRepeat,
+            suggestRepeat,
           });
         }
         return NextResponse.json({ error: result.message }, { status: 400 });

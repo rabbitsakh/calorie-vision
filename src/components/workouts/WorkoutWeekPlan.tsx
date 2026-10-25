@@ -318,6 +318,7 @@ export function WorkoutWeekPlan({
     finishedCount: finished.length,
     plannedCount: planned.length,
     firstEmpty: Boolean(isFirstEmpty),
+    hasRepeat: Boolean(canRepeat && lastRepeat),
   });
 
   const sceneHeadline = active
@@ -326,13 +327,15 @@ export function WorkoutWeekPlan({
       ? "Есть незавершённая"
       : finished.length > 0
         ? "Уже потренировались"
-        : primary === "rest"
-          ? "День отдыха"
-          : isFirstEmpty
-            ? "Первая тренировка"
-            : planned.length > 0
-              ? "По плану сегодня"
-              : "Начать сегодня";
+        : primary === "repeat"
+          ? "Повторить прошлую"
+          : primary === "rest"
+            ? "День отдыха"
+            : isFirstEmpty
+              ? "Первая тренировка"
+              : planned.length > 0
+                ? "По плану сегодня"
+                : "Начать сегодня";
 
   const sceneMeta = active
     ? [
@@ -342,11 +345,13 @@ export function WorkoutWeekPlan({
       ]
         .filter(Boolean)
         .join(" · ")
-    : primary === "rest"
-      ? "В плане нет тренировки — можно восстановиться или потренироваться вне плана"
-      : data
-        ? data.weekdayLabel
-        : "Зал";
+    : primary === "repeat" && lastRepeat
+      ? lastRepeat.hint || "Скопировать последнюю завершённую и начать"
+      : primary === "rest"
+        ? "В плане пусто и нечего повторить — отдых или пустая вне плана"
+        : data
+          ? data.weekdayLabel
+          : "Зал";
 
   return (
     <div className="gym-day">
@@ -365,7 +370,13 @@ export function WorkoutWeekPlan({
         <div className={`relative flex items-center gap-4 px-5 py-7 md:px-7 md:py-8 ${active ? "gym-console-active" : ""}`}>
           <div className="min-w-0 flex-1">
             <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.22em] ${active ? "gym-live-pulse text-[var(--on-ink)]/90" : "text-[var(--accent-ink)]/70"}`}>
-              {active ? "Сейчас" : primary === "rest" ? "Отдых" : "Сегодня"}
+              {active
+                ? "Сейчас"
+                : primary === "repeat"
+                  ? "Повтор"
+                  : primary === "rest"
+                    ? "Отдых"
+                    : "Сегодня"}
               {data ? ` · ${data.weekdayLabel}` : ""}
             </p>
             <p className={`font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight sm:text-[1.7rem] ${active ? "text-white" : "text-[var(--foreground)]"}`}>
@@ -410,6 +421,15 @@ export function WorkoutWeekPlan({
               onClick={onStartBlank}
             >
               Старт
+            </button>
+          ) : primary === "repeat" && lastRepeat && onRepeatLast ? (
+            <button
+              type="button"
+              disabled={busy}
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
+              onClick={() => onRepeatLast(lastRepeat.id)}
+            >
+              {busy ? "…" : "Повторить"}
             </button>
           ) : primary === "rest" ? (
             <button
@@ -590,32 +610,54 @@ export function WorkoutWeekPlan({
                   </>
                 ) : null}
               </>
+            ) : primary === "repeat" && lastRepeat && onRepeatLast ? (
+              <>
+                <p className="text-sm font-semibold text-[var(--foreground)]">Повторить прошлую</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  В плане пусто — удобнее скопировать последнюю завершённую.
+                </p>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
+                    onClick={() => onRepeatLast(lastRepeat.id)}
+                  >
+                    {busy ? "Копируем…" : lastRepeat.label}
+                  </button>
+                  <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
+                    {lastRepeat.hint}
+                  </p>
+                  <RepeatAlternatives
+                    items={recentRepeats}
+                    busy={busy}
+                    onRepeat={onRepeatLast}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="mt-3 text-sm font-medium text-[var(--accent-ink)] disabled:opacity-40"
+                  onClick={onStartBlank}
+                >
+                  Или пустая вне плана
+                </button>
+                <button
+                  type="button"
+                  className="mt-2 text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                  onClick={() =>
+                    onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
+                  }
+                >
+                  Назначить план на сегодня
+                </button>
+              </>
             ) : primary === "rest" ? (
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">День отдыха</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  В плане пусто. «Вне плана» выше — если всё же хотите потренироваться.
+                  В плане пусто и нечего повторить. «Вне плана» выше — если всё же хотите потренироваться.
                 </p>
-                {showRepeatInStart && lastRepeat && onRepeatLast ? (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="w-full rounded-[var(--radius-control)] border border-[var(--line)] bg-white py-3 text-base font-semibold text-[var(--foreground)] disabled:opacity-40"
-                      onClick={() => onRepeatLast(lastRepeat.id)}
-                    >
-                      {busy ? "Копируем…" : lastRepeat.label}
-                    </button>
-                    <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
-                      {lastRepeat.hint}
-                    </p>
-                    <RepeatAlternatives
-                      items={recentRepeats}
-                      busy={busy}
-                      onRepeat={onRepeatLast}
-                    />
-                  </div>
-                ) : null}
                 <button
                   type="button"
                   className="mt-3 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
