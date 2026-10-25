@@ -962,7 +962,7 @@ export function WorkoutActiveSession({
     ) : null}
 
     {!stageOpen && prToast ? (
-      <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm font-bold text-amber-950">
+      <div className="gym-plane border-[var(--accent-streak)]/40 bg-[var(--accent-streak-soft)] px-4 py-3 text-center text-sm font-bold text-[var(--accent-ink)]">
         {prToast}
       </div>
     ) : null}
@@ -1602,7 +1602,7 @@ export function WorkoutActiveSession({
       </div>
     ) : null}
 
-    <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-[var(--border-quiet)] p-4">
+    <div className="gym-plane flex flex-col gap-2 border-dashed">
       <div className="flex flex-wrap gap-1">
         {EXERCISE_KINDS.map((key) => (
           <button

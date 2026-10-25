@@ -40,7 +40,7 @@ function PlanUndoToast({
     return () => window.clearTimeout(t);
   }, [onExpired]);
   return (
-    <div className="fixed inset-x-0 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-xl bg-[var(--accent-ink)] px-4 py-3 text-sm text-white shadow-lg">
+    <div className="fixed inset-x-0 bottom-[max(5.5rem,env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-lg items-center justify-between gap-3 rounded-[var(--radius-lg)] bg-[var(--accent-ink)] px-4 py-3 text-sm text-white">
       <span className="min-w-0 truncate">Убрано: {label}</span>
       <button
         type="button"
@@ -379,7 +379,7 @@ export function WorkoutWeekPlan({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[1rem] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] shadow-[0_8px_24px_rgba(0,0,0,0.18)] disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-40"
               onClick={() => onOpenSession(active.id)}
             >
               Продолжить
@@ -388,7 +388,7 @@ export function WorkoutWeekPlan({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
               onClick={() => onOpenSession(drafts[0]!.id)}
             >
               Открыть
@@ -397,7 +397,7 @@ export function WorkoutWeekPlan({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
               onClick={() => onStartRoutine(planned[0]!.id)}
             >
               Старт
@@ -406,7 +406,7 @@ export function WorkoutWeekPlan({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
               onClick={onStartBlank}
             >
               Старт
@@ -424,7 +424,7 @@ export function WorkoutWeekPlan({
             <button
               type="button"
               disabled={busy}
-              className="shrink-0 rounded-[1rem] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_rgba(13,115,119,0.28)] disabled:opacity-40"
+              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
               onClick={onStartBlank}
             >
               Ещё
