@@ -54,6 +54,20 @@ test("resolveTodayPrimary empty plan is rest", () => {
   );
 });
 
+test("resolveTodayPrimary empty plan with last session is repeat", () => {
+  assert.equal(
+    resolveTodayPrimary({
+      hasActive: false,
+      draftCount: 0,
+      finishedCount: 0,
+      plannedCount: 0,
+      firstEmpty: false,
+      hasRepeat: true,
+    }),
+    "repeat",
+  );
+});
+
 test("resolveTodayPrimary first empty is blank_start", () => {
   assert.equal(
     resolveTodayPrimary({
@@ -62,6 +76,20 @@ test("resolveTodayPrimary first empty is blank_start", () => {
       finishedCount: 0,
       plannedCount: 0,
       firstEmpty: true,
+    }),
+    "blank_start",
+  );
+});
+
+test("resolveTodayPrimary first empty beats hasRepeat", () => {
+  assert.equal(
+    resolveTodayPrimary({
+      hasActive: false,
+      draftCount: 0,
+      finishedCount: 0,
+      plannedCount: 0,
+      firstEmpty: true,
+      hasRepeat: true,
     }),
     "blank_start",
   );

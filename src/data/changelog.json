@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.15",
+    "date": "2026-10-25",
+    "summary": "assistant+gym: soft-fail note, repeat on empty day",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Ассистент: в карточке остаётся «почему не вышло» / «что записалось»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Пустой шаблон плана тоже даёт пустую/повтор вместо жёсткой ошибки"
+      },
+      {
+        "kind": "improvement",
+        "text": "Зал: без плана, но есть прошлый — «Повторить» как главный CTA"
+      }
+    ]
+  },
+  {
     "version": "3.0.14",
     "date": "2026-10-25",
     "summary": "design: D29–D31 — wash, tab chrome, RuStore shell",

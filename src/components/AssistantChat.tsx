@@ -650,6 +650,12 @@ function ActionCard({
     repeat: boolean;
     message: string;
   } | null>(null);
+  /** Durable card note — survives flash fade (soft-fail reason / what was written). */
+  const [cardNote, setCardNote] = useState<{
+    tone: "soft" | "ok" | "err";
+    text: string;
+  } | null>(null);
+  const [lastOkMessage, setLastOkMessage] = useState<string | null>(null);
 
   const mealsDone = streamDone.meals || localDone.meals;
   const routineDone = streamDone.routine || localDone.routine;
@@ -717,7 +723,7 @@ function ActionCard({
     | "deleteMeals"
     | "patchMeals";
 
-  async function apply(kind: ApplyKind): Promise<boolean> {
+  async function apply(kind: ApplyKind): Promise<"ok" | "soft" | "err"> {
     setBusy(kind);
     try {
       const body = {
@@ -728,7 +734,7 @@ function ActionCard({
       if (!online) {
         enqueueAssistantApply(kind, body);
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
-        onFlash(
+        const offlineMsg =
           kind === "meals"
             ? "Офлайн — запись в дневник в очереди"
             : kind === "routine"
@@ -749,9 +755,11 @@ function ActionCard({
                             ? "Офлайн — правка зала в очереди"
                             : kind === "startEmpty"
                               ? "Офлайн — пустая тренировка в очереди"
-                              : "Офлайн — старт тренировки в очереди",
-        );
-        return true;
+                              : "Офлайн — старт тренировки в очереди";
+        setLastOkMessage(offlineMsg);
+        setCardNote({ tone: "ok", text: offlineMsg });
+        onFlash(offlineMsg);
+        return "ok";
       }
       const resp = await fetch(withBasePath("/api/assistant/apply"), {
         method: "POST",
@@ -787,13 +795,16 @@ function ActionCard({
       } | null;
       if (!resp.ok) throw new Error(data?.error || "Не удалось");
       if (kind === "start" && data?.ok === false && (data.suggestEmpty || data.suggestRepeat)) {
+        const softMsg =
+          data.result?.message ?? "В плане пусто — выбери пустую или повтор";
         setStartFallback({
           empty: Boolean(data.suggestEmpty),
           repeat: Boolean(data.suggestRepeat),
-          message: data.result?.message ?? "В плане на этот день пусто",
+          message: softMsg,
         });
-        onFlash(data.result?.message ?? "В плане пусто — выбери пустую или повтор");
-        return false;
+        setCardNote({ tone: "soft", text: softMsg });
+        onFlash(softMsg);
+        return "soft";
       }
       const toolResult =
         data?.result ??
@@ -804,33 +815,38 @@ function ActionCard({
         data?.meals ??
         toolResult?.data?.meals ??
         [];
+      const markOk = (msg: string) => {
+        setLastOkMessage(msg);
+        setCardNote({ tone: "ok", text: msg });
+        onFlash(msg);
+      };
       if (kind === "meals") {
         if (!mealsSaved.length) {
           throw new Error(toolResult?.message || data?.error || "Нет блюд для записи");
         }
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         notifyFoodSaved();
-        onFlash(toolResult?.message ?? `В дневник: ${mealsSaved.length}`);
+        markOk(toolResult?.message ?? `В дневник: ${mealsSaved.length}`);
         onApplied({
           ...emptyUndo(),
           mealIds: mealsSaved.map((m) => m.id).filter(Boolean),
         });
       } else if (kind === "routine") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
-        onFlash("В план зала");
+        markOk(toolResult?.message ?? data?.result?.message ?? "В план зала");
         onApplied({
           ...emptyUndo(),
           routineIds: (data?.routines ?? []).map((r) => r.id).filter(Boolean),
         });
       } else if (kind === "shopping") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
-        onFlash(toolResult?.message ?? data?.result?.message ?? "В покупки");
+        markOk(toolResult?.message ?? data?.result?.message ?? "В покупки");
         onApplied(emptyUndo());
       } else if (kind === "water") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         const waterId = toolResult?.data?.waterId ?? data?.result?.data?.waterId;
         notifyWaterLogged();
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Вода записана");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Вода записана");
         onApplied({
           ...emptyUndo(),
           waterIds: waterId ? [waterId] : [],
@@ -838,7 +854,7 @@ function ActionCard({
       } else if (kind === "weight") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         const weightId = toolResult?.data?.weightId ?? data?.result?.data?.weightId;
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Вес записан");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Вес записан");
         onApplied({
           ...emptyUndo(),
           weightIds: weightId ? [weightId] : [],
@@ -846,37 +862,45 @@ function ActionCard({
       } else if (kind === "deleteMeals") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         notifyFoodSaved();
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Удалил из рациона");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Удалил из рациона");
         onApplied(emptyUndo());
       } else if (kind === "patchMeals") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         notifyFoodSaved();
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Обновил в рационе");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Обновил в рационе");
         onApplied(emptyUndo());
       } else if (kind === "repeat") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         setStartFallback(null);
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка повторена");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Тренировка повторена");
         onApplied(emptyUndo());
       } else if (kind === "patchWorkout") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Зал обновлён");
+        markOk(toolResult?.message ?? data?.result?.message ?? "Зал обновлён");
         onApplied(emptyUndo());
       } else if (kind === "startEmpty") {
         setLocalDone((prev) => ({ ...prev, startEmpty: true, start: true }));
         setStartFallback(null);
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Пустая тренировка");
+        markOk(
+          toolResult?.message ??
+            data?.result?.message ??
+            `Пустая тренировка · ${applyDate}`,
+        );
         onApplied(emptyUndo());
       } else {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         setStartFallback(null);
-        onFlash(toolResult?.message ?? data?.result?.message ?? "Тренировка начата");
+        markOk(
+          toolResult?.message ?? data?.result?.message ?? `Тренировка начата · ${applyDate}`,
+        );
         onApplied(emptyUndo());
       }
-      return true;
+      return "ok";
     } catch (err) {
-      onFlash(err instanceof Error ? err.message : "Ошибка");
-      return false;
+      const msg = err instanceof Error ? err.message : "Ошибка";
+      setCardNote({ tone: "err", text: msg });
+      onFlash(msg);
+      return "err";
     } finally {
       setBusy(null);
     }
@@ -901,9 +925,22 @@ function ActionCard({
   async function applyAll() {
     const kinds = pendingKinds();
     if (kinds.length < 2) return;
+    let okCount = 0;
+    let stopped: "soft" | "err" | null = null;
     for (const kind of kinds) {
-      const ok = await apply(kind);
-      if (!ok) break;
+      const status = await apply(kind);
+      if (status !== "ok") {
+        stopped = status;
+        break;
+      }
+      okCount += 1;
+    }
+    if (okCount > 0 && (stopped || okCount < kinds.length)) {
+      const partial = `Записал ${okCount} из ${kinds.length}${
+        stopped === "soft" ? " — дальше выбери пустую или повтор" : ""
+      }`;
+      setCardNote({ tone: stopped === "soft" ? "soft" : "ok", text: partial });
+      onFlash(partial);
     }
   }
 
@@ -996,45 +1033,63 @@ function ActionCard({
     needsDelete,
     needsPatch,
   );
-  const skim = alreadyApplied
-    ? planOnly
-      ? "План зала · уже записано"
-      : shoppingOnly
-        ? "Покупки · уже записано"
-        : startOnly
-          ? "Тренировка · уже записано"
-          : repeatOnly
-            ? "Повтор · уже записано"
-            : waterOnly
-              ? "Вода · уже записано"
-              : weightOnly
-                ? "Вес · уже записано"
-                : deleteOnly
-                  ? "Удаление · уже записано"
-                  : patchOnly
-                    ? "Правка · уже записано"
-                    : `День ${applyDate} · уже записано`
-    : planOnly
-      ? "План зала · подтверди запись"
-      : shoppingOnly
-        ? "Покупки · подтверди запись"
-        : startOnly
-          ? "Тренировка · подтверди старт"
-          : repeatOnly
-            ? "Повтор · подтверди"
-            : waterOnly
-              ? "Вода · подтверди запись"
-              : weightOnly
-                ? "Вес · подтверди запись"
-                : deleteOnly
-                  ? "Удаление · подтверди"
-                  : patchOnly
-                    ? "Правка · подтверди"
-                    : `День ${applyDate} · подтверди запись`;
+  const skim = startFallback
+    ? "План пуст · выбери дальше"
+    : alreadyApplied
+      ? lastOkMessage
+        ? "Записано"
+        : planOnly
+          ? "План зала · уже записано"
+          : shoppingOnly
+            ? "Покупки · уже записано"
+            : startOnly
+              ? "Тренировка · уже записано"
+              : repeatOnly
+                ? "Повтор · уже записано"
+                : waterOnly
+                  ? "Вода · уже записано"
+                  : weightOnly
+                    ? "Вес · уже записано"
+                    : deleteOnly
+                      ? "Удаление · уже записано"
+                      : patchOnly
+                        ? "Правка · уже записано"
+                        : `День ${applyDate} · уже записано`
+      : planOnly
+        ? "План зала · подтверди запись"
+        : shoppingOnly
+          ? "Покупки · подтверди запись"
+          : startOnly
+            ? "Тренировка · подтверди старт"
+            : repeatOnly
+              ? "Повтор · подтверди"
+              : waterOnly
+                ? "Вода · подтверди запись"
+                : weightOnly
+                  ? "Вес · подтверди запись"
+                  : deleteOnly
+                    ? "Удаление · подтверди"
+                    : patchOnly
+                      ? "Правка · подтверди"
+                      : `День ${applyDate} · подтверди запись`;
 
   return (
     <div className="confirm-family mt-2 text-[12px] leading-snug text-[var(--ink)]">
       <p className="confirm-family-skim">{skim}</p>
+      {cardNote ? (
+        <p
+          className={
+            cardNote.tone === "soft"
+              ? "confirm-family-note confirm-family-note--soft"
+              : cardNote.tone === "err"
+                ? "confirm-family-note confirm-family-note--err"
+                : "confirm-family-note confirm-family-note--ok"
+          }
+          role="status"
+        >
+          {cardNote.text}
+        </p>
+      ) : null}
       {actions.summary ? (
         <p className="mb-1.5 font-display text-[13px] font-semibold text-[var(--accent-ink)]">
           {actions.summary}
@@ -1092,7 +1147,6 @@ function ActionCard({
       {actions.startEmptyWorkout || startFallback?.empty ? (
         <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
           Пустая тренировка · {applyDate}
-          {startFallback?.message ? ` · ${startFallback.message}` : ""}
         </p>
       ) : null}
       {needsPatchWorkout ? (

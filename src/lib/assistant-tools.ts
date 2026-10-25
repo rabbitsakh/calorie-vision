@@ -638,12 +638,17 @@ export async function toolStartTodaysRoutine(opts: {
     return {
       ok: false,
       tool: "start_routine",
-      message: `На ${WEEKDAY_LABELS_RU[weekday]} в плане нет тренировки. Можно «повторить последнюю» или открыть зал и начать пустую.`,
-      data: { suggestRepeat: true },
+      message: `На ${WEEKDAY_LABELS_RU[weekday]} в плане пусто — пустая или повтор.`,
+      data: { suggestEmpty: true, suggestRepeat: true },
     };
   }
   if (!routine.muscles.length || !routine.exercises.length) {
-    return { ok: false, tool: "start_routine", message: `Шаблон «${routine.name}» пустой` };
+    return {
+      ok: false,
+      tool: "start_routine",
+      message: `Шаблон «${routine.name}» пустой — начни пустую или повтори прошлую.`,
+      data: { suggestEmpty: true, suggestRepeat: true },
+    };
   }
 
   const muscleKeys = routine.muscles.map((m) => m.groupKey);
