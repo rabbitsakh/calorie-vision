@@ -96,16 +96,28 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     flushPendingMetaChests();
 
     if ((result.readyCount ?? 0) > 0) {
-      setHint("Сундук готов · открой выше на дне");
+      setHint(
+        result.boosted
+          ? "Сундук готов · бонус за день · открой выше"
+          : "Сундук готов · открой выше на дне",
+      );
       return;
     }
 
     const nextIn = result.nextChestIn ?? QUEST_DAYS_PER_CHEST;
-    setHint(
-      nextIn <= 0
-        ? null
-        : `Ещё ${nextIn} лёгких дня до сундука`,
-    );
+    if (nextIn <= 0) {
+      setHint(null);
+      return;
+    }
+    if (result.boosted) {
+      setHint(
+        result.boostKind === "gym"
+          ? `Зал сегодня · ещё ${nextIn} до сундука`
+          : `Вечер отмечен · ещё ${nextIn} до сундука`,
+      );
+      return;
+    }
+    setHint(`Ещё ${nextIn} лёгких дня до сундука`);
   }, [
     progress?.allDone,
     selectedDate,

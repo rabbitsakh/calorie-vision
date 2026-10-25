@@ -1,7 +1,6 @@
 import { withBasePath } from "@/lib/paths";
 import { notifyChestInbox } from "@/lib/chest-inbox";
 import { trackChestOpenedGoal, trackMetaChestGoal } from "@/lib/metrika-funnel";
-import { isSoftCelebrationQuietBlocked } from "@/lib/soft-celebration";
 import type { ChestMeterModel } from "@/lib/chest-progress";
 import type { ChestSource, RewardRarity } from "@/lib/rewards";
 
@@ -22,6 +21,9 @@ export type OpenChestResult = {
   readyCount?: number;
   openedQuestChests?: number;
   chest?: ChestMeterModel;
+  /** C4 — calm-day mark also got a gym/evening boost credit. */
+  boosted?: boolean;
+  boostKind?: "gym" | "evening" | null;
 };
 
 type OpenChestArgs = {
@@ -35,7 +37,6 @@ type OpenChestArgs = {
   date?: string;
 };
 
-const META_EVENT = "cv-meta-chest";
 const PENDING_META_KEY = "cv-pending-meta-chests";
 
 let pendingMeta: ChestRewardPayload[] = [];
@@ -102,11 +103,6 @@ function persistPending(): void {
   writePendingToStorage(pendingMeta);
 }
 
-function dispatchMeta(rewards: ChestRewardPayload[]): void {
-  if (typeof window === "undefined" || rewards.length === 0) return;
-  window.dispatchEvent(new CustomEvent(META_EVENT, { detail: rewards }));
-}
-
 /**
  * Open a chest via API. Meta rewards are buffered until
  * {@link flushPendingMetaChests} (call after the primary celebration closes).
@@ -138,7 +134,7 @@ export async function openChest(args: OpenChestArgs): Promise<OpenChestResult | 
 
 /**
  * Fire buffered meta-chest celebrations (after primary CTA / dismiss).
- * Under quiet mode → inbox toasts instead of fullscreen (R1a + R1e).
+ * C4 — always inbox (no competing fullscreen MetaChestCelebration).
  */
 export function flushPendingMetaChests(): void {
   hydratePendingMetaChests();
@@ -147,18 +143,13 @@ export function flushPendingMetaChests(): void {
   pendingMeta = [];
   persistPending();
 
-  if (isSoftCelebrationQuietBlocked()) {
-    for (const reward of batch) {
-      notifyChestInbox({
-        title: reward.title,
-        subtitle: reward.description || "Мета-сундук · в коллекции",
-        rewardKey: reward.key,
-      });
-    }
-    return;
+  for (const reward of batch) {
+    notifyChestInbox({
+      title: reward.title,
+      subtitle: reward.description || "Мета-сундук · в коллекции",
+      rewardKey: reward.key,
+    });
   }
-
-  dispatchMeta(batch);
 }
 
 /**
