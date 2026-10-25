@@ -10,6 +10,7 @@ import {
   type ChestRewardPayload,
 } from "@/lib/chest-client";
 import type { ChestMeterModel } from "@/lib/chest-progress";
+import { subscribeChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { withBasePath } from "@/lib/paths";
 import type { RewardRarity } from "@/lib/rewards";
 import {
@@ -27,7 +28,7 @@ type ChestDockProps = {
 
 /**
  * Chests 2.0 — primary ration surface under DayHero.
- * Filling meter or ready «Открыть» CTA (open is explicit, not buried in «Ещё»).
+ * C3 — opens head of unified ready queue (quest + milestones).
  */
 export function ChestDock({
   selectedDate,
@@ -67,39 +68,44 @@ export function ChestDock({
     void reload();
   }, [reload, refreshKey]);
 
+  useEffect(() => subscribeChestQueueRefresh(() => void reload()), [reload]);
+
   async function handleOpen() {
     if (busy || selectedDate !== today) return;
     setBusy(true);
     try {
       const muted = isSoftCelebrationsMutedToday(todayKey);
       const quiet = isSoftCelebrationQuietBlocked();
-      const result = await openChest({ source: "quest", action: "open", date: today });
+      // C3 — pop FIFO ready queue (quest or milestone).
+      const result = await openChest({ source: "next", action: "open", date: today });
       if (!result) return;
 
       if (result.chest) setMeter(result.chest);
       else void reload();
 
       if (result.reward) {
-        presentChestGrant(result.reward, {
-          quiet,
-          muted,
-          fallbackTitle: "Сундук открыт",
-          fallbackSubtitle: "Награда в коллекции",
-          onFullscreen: (reward) => {
-            setLoot({
-              key: reward.key,
-              title: reward.title,
-              description: reward.description,
-              rarity: reward.rarity,
-              rarityLabel: reward.rarityLabel,
-            });
-            setCelebrate(true);
-          },
-        });
-        // Quiet path: show in-dock reveal (stronger than inbox alone).
+        // Quiet: only in-dock LootRevealCard (no duplicate inbox for primary loot).
         if (quiet && !muted) {
           setQuietLoot(result.reward);
           window.setTimeout(() => setQuietLoot(null), 5200);
+          flushPendingMetaChests();
+        } else {
+          presentChestGrant(result.reward, {
+            quiet: false,
+            muted,
+            fallbackTitle: "Сундук открыт",
+            fallbackSubtitle: "Награда в коллекции",
+            onFullscreen: (reward) => {
+              setLoot({
+                key: reward.key,
+                title: reward.title,
+                description: reward.description,
+                rarity: reward.rarity,
+                rarityLabel: reward.rarityLabel,
+              });
+              setCelebrate(true);
+            },
+          });
         }
       } else {
         flushPendingMetaChests();
@@ -115,6 +121,8 @@ export function ChestDock({
   const pct =
     meter.per > 0 ? Math.min(100, Math.round((meter.filled / meter.per) * 100)) : 0;
   const ready = meter.state === "ready";
+  const queueExtra =
+    ready && meter.queue.length > 1 ? `Ещё в очереди: ${meter.queue.length - 1}` : null;
 
   return (
     <>
@@ -129,6 +137,7 @@ export function ChestDock({
           <div className="min-w-0 flex-1">
             <p className="chest-dock-label">{meter.label}</p>
             <p className="chest-dock-detail">{meter.detail}</p>
+            {queueExtra ? <p className="chest-dock-meta">{queueExtra}</p> : null}
             {meter.metaLabel ? (
               <p className="chest-dock-meta">{meter.metaLabel}</p>
             ) : null}

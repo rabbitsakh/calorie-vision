@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { SoftCelebration } from "@/components/SoftCelebration";
+import { useEffect } from "react";
 import { notifyChestInbox } from "@/lib/chest-inbox";
+import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { withBasePath } from "@/lib/paths";
 import {
-  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
   isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
@@ -25,15 +24,10 @@ function todayKey(): string {
 }
 
 /**
- * Soft toast for the inviter when a referral chest was granted while they were away.
- * Quiet mode → inbox toast with equip/collection CTA (R2c); loud → SoftCelebration.
+ * C3 — referral loot is already granted server-side.
+ * Inbox only (no SoftCelebration competing with ChestDock).
  */
 export function ReferralChestToast() {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("Друг присоединился!");
-  const [subtitle, setSubtitle] = useState<string | undefined>();
-  const [seenKey, setSeenKey] = useState<string | null>(null);
-
   useEffect(() => {
     const today = todayKey();
     if (isSoftCelebrationsMutedToday(today)) return;
@@ -53,44 +47,17 @@ export function ReferralChestToast() {
         const next = pending[0];
         if (!next?.sourceKey) return;
         markSoftCelebrationSeen("referral-chest", next.sourceKey);
-        setSeenKey(next.sourceKey);
-
-        const quiet = isSoftCelebrationQuietBlocked();
-        if (quiet) {
-          notifyChestInbox({
-            title: "Друг открыл приложение по вашей ссылке",
-            subtitle: `В коллекции: ${next.title}`,
-            rewardKey: next.key,
-          });
-          return;
-        }
-
-        setTitle("Друг открыл приложение по вашей ссылке");
-        setSubtitle(`В коллекции: ${next.title}`);
-        setOpen(true);
+        notifyChestQueueRefresh();
+        notifyChestInbox({
+          title: "Друг открыл приложение по вашей ссылке",
+          subtitle: `В коллекции: ${next.title}`,
+          rewardKey: next.key,
+        });
       } catch {
         // non-critical
       }
     })();
   }, []);
 
-  const close = useCallback(() => {
-    setOpen(false);
-    if (seenKey) markSoftCelebrationSeen("referral-chest", seenKey);
-  }, [seenKey]);
-
-  return (
-    <SoftCelebration
-      open={open}
-      variant="cheer"
-      pose="cheer"
-      title={title}
-      subtitle={subtitle}
-      badge="✦"
-      durationMs={4200}
-      ctaLabel="Круто"
-      muteDate={todayKey()}
-      onClose={close}
-    />
-  );
+  return null;
 }

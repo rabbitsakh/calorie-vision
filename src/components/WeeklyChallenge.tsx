@@ -1,27 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FullscreenCelebration } from "@/components/FullscreenCelebration";
+import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import {
-  isSoftCelebrationQuietBlocked,
   isSoftCelebrationSeen,
-  isSoftCelebrationsMutedToday,
   markSoftCelebrationSeen,
-  muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
-import {
-  flushPendingMetaChests,
-  openChest,
-  presentChestGrant,
-} from "@/lib/chest-client";
-import type { RewardRarity } from "@/lib/rewards";
 import { withBasePath } from "@/lib/paths";
 import {
   hidePanelForWeek,
   isPanelHiddenForWeek,
   showPanelForWeek,
 } from "@/lib/panel-visibility";
-import { toDateKey } from "@/lib/dates";
 
 const PANEL_ID = "challenge";
 
@@ -80,60 +70,7 @@ export function WeeklyChallenge({
   const [hidden, setHidden] = useState(false);
   const [starting, setStarting] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
-  const [chestReward, setChestReward] = useState<{
-    key?: string;
-    title: string;
-    description: string;
-    rarity?: RewardRarity;
-    rarityLabel?: string;
-  } | null>(null);
   const prevCompleted = useRef<boolean | null>(null);
-  const todayKey = toDateKey(new Date());
-
-  const closeCelebrate = useCallback(() => {
-    setCelebrate(false);
-    setChestReward(null);
-    flushPendingMetaChests();
-  }, []);
-
-  const openChallengeChest = useCallback(
-    async (
-      weekStart: string,
-      challengeKey: string,
-      challengeTitle: string,
-      opts: { quiet: boolean; muted: boolean },
-    ) => {
-      const result = await openChest({ source: "challenge", weekStart, challengeKey });
-      if (result?.reward) {
-        presentChestGrant(result.reward, {
-          quiet: opts.quiet,
-          muted: opts.muted,
-          fallbackTitle: challengeTitle,
-          fallbackSubtitle: `${challengeTitle} — неделя в копилку.`,
-          onFullscreen: (reward) => {
-            setChestReward({
-              key: reward.key,
-              title: reward.title,
-              description: reward.description || `${challengeTitle} — неделя в копилку.`,
-              rarity: reward.rarity,
-              rarityLabel: reward.rarityLabel,
-            });
-            setCelebrate(true);
-          },
-        });
-        return;
-      }
-      flushPendingMetaChests();
-      if (opts.muted || opts.quiet) return;
-      setChestReward({
-        title: challengeTitle,
-        description: "Неделя в копилку — сундук чуть позже.",
-      });
-      setCelebrate(true);
-    },
-    [],
-  );
 
   const load = useCallback(async () => {
     try {
@@ -158,24 +95,20 @@ export function WeeklyChallenge({
         active.completed &&
         !isSoftCelebrationSeen("challenge-done", doneKey);
 
+      // C3 — enqueue on ChestDock; do not auto-open / fullscreen here.
       if (
         (justCompleted || firstSightDone) &&
         !isSoftCelebrationSeen("challenge-done", doneKey)
       ) {
-        const muted = isSoftCelebrationsMutedToday(todayKey);
-        const quiet = isSoftCelebrationQuietBlocked();
         markSoftCelebrationSeen("challenge-done", doneKey);
-        void openChallengeChest(active.weekStart, active.challengeKey, active.title, {
-          quiet,
-          muted,
-        });
+        notifyChestQueueRefresh();
       }
 
       prevCompleted.current = active.completed;
     } catch {
       // non-critical
     }
-  }, [todayKey, openChallengeChest]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -221,31 +154,7 @@ export function WeeklyChallenge({
     }
   }
 
-  const celebration = (
-    <FullscreenCelebration
-      open={celebrate}
-      variant="chest"
-      pose="cheer"
-      title={chestReward?.title ?? "Сундук открыт!"}
-      subtitle={
-        chestReward
-          ? chestReward.description
-          : data?.active
-            ? `${data.active.title} — неделя в копилку.`
-            : "Отличная работа на этой неделе."
-      }
-      lootKey={chestReward?.key}
-      lootRarity={chestReward?.rarity}
-      lootRarityLabel={chestReward?.rarityLabel}
-      badge="✦"
-      durationMs={0}
-      ctaLabel="Круто!"
-      onMuteToday={() => muteSoftCelebrationsToday(todayKey)}
-      onClose={closeCelebrate}
-    />
-  );
-
-  if (!data) return celebration;
+  if (!data) return null;
 
   if (mini) {
     const active = data.active;
@@ -277,7 +186,6 @@ export function WeeklyChallenge({
             {miniLabel}
           </div>
         )}
-        {celebration}
       </>
     );
   }
@@ -296,7 +204,6 @@ export function WeeklyChallenge({
           <span>Челлендж недели</span>
           <span className="text-xs">Показать</span>
         </button>
-        {celebration}
       </>
     );
   }
@@ -456,7 +363,6 @@ export function WeeklyChallenge({
           </div>
         ) : null}
       </div>
-      {celebration}
     </>
   );
 }

@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.20",
+    "date": "2026-10-25",
+    "summary": "chests 2.0 C3: milestone queue + quieter opens",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Серия / неделя / челлендж — в очередь ChestDock, без авто-open"
+      },
+      {
+        "kind": "improvement",
+        "text": "Quiet open: один LootRevealCard на доке, без дубля inbox"
+      },
+      {
+        "kind": "improvement",
+        "text": "Rare/festive loot — лёгкий sheen/spark в ceremony"
+      },
+      {
+        "kind": "improvement",
+        "text": "Реферал: только inbox, без SoftCelebration"
+      }
+    ]
+  },
+  {
     "version": "3.0.19",
     "date": "2026-10-25",
     "summary": "chests 2.0 C2: wear on DayHero / header / gym",

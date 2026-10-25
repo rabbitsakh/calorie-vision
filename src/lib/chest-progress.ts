@@ -1,8 +1,14 @@
 /**
- * Chests 2.0 — single active meter + ready queue derived from quest days.
+ * Chests 2.0 — single active meter + ready queue derived from quest days
+ * and milestone bonus chests (C3).
  * Keeps existing `quest-day:*` / `quest-chest:{n}` sourceKeys.
  */
 
+import {
+  mergeReadyQueue,
+  readyQueueDockCopy,
+  type ReadyChestItem,
+} from "@/lib/chest-ready-queue";
 import { nextMetaProgress, QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { pluralDays } from "@/lib/russian-text";
 
@@ -10,58 +16,78 @@ export type ChestMeterState = "empty" | "filling" | "ready";
 
 export type ChestMeterModel = {
   state: ChestMeterState;
-  /** Days filled in the current cycle (0..per). Ready → per. */
+  /** Days filled in the current cycle (0..per). Ready → per when quest drives ready. */
   filled: number;
   per: number;
-  /** Calm days until ready (0 when ready). */
+  /** Calm days until quest ready (0 when quest or bonus ready). */
   nextIn: number;
-  /** Unopened earned quest chests (usually 0 or 1). */
+  /** Items waiting to open (quest + milestones). */
   readyCount: number;
   label: string;
   detail: string;
   metaLabel: string | null;
   /** Primary dock action. */
   cta: "open" | "none";
+  /** FIFO ready queue — head is next «Открыть». */
+  queue: ReadyChestItem[];
 };
 
 /**
- * Derive dock meter from quest-day markers vs opened quest-chest rows.
+ * Derive dock meter from quest-day markers vs opened quest-chest rows,
+ * plus optional milestone queue (streak / week / challenge).
+ *
+ * Pass either `bonusQueue` (milestones only) or a full `queue` (already merged).
  */
 export function buildChestMeter(input: {
   questDayCount: number;
   openedQuestChests: number;
   questDaysPerChest?: number;
   ownedCount?: number | null;
+  /** Milestone items only — quest head is prepended. */
+  bonusQueue?: ReadyChestItem[];
+  /** Full FIFO queue (skips merge). */
+  queue?: ReadyChestItem[];
 }): ChestMeterModel {
   const per = Math.max(1, input.questDaysPerChest ?? QUEST_DAYS_PER_CHEST);
   const days = Math.max(0, Math.floor(input.questDayCount) || 0);
   const opened = Math.max(0, Math.floor(input.openedQuestChests) || 0);
   const earned = Math.floor(days / per);
-  const readyCount = Math.max(0, earned - opened);
+  const questReadyCount = Math.max(0, earned - opened);
   const remainder = days % per;
 
   const meta =
     input.ownedCount != null && Number.isFinite(input.ownedCount)
       ? nextMetaProgress(Math.max(0, Math.floor(input.ownedCount)))
       : null;
-  // Queue cue on dock — same voice as profile meta hint.
   const metaLabel = meta
     ? meta.remaining <= 2
       ? meta.label
       : `мета ${meta.current}/${meta.target}`
     : null;
 
-  if (readyCount > 0) {
+  const finalQueue =
+    input.queue ??
+    mergeReadyQueue({
+      questReadyCount,
+      streak: (input.bonusQueue ?? []).filter((i) => i.source === "streak"),
+      week: (input.bonusQueue ?? []).find((i) => i.source === "week") ?? null,
+      challenge: (input.bonusQueue ?? []).filter((i) => i.source === "challenge"),
+      referral: (input.bonusQueue ?? []).filter((i) => i.source === "referral"),
+    });
+
+  if (finalQueue.length > 0) {
+    const copy = readyQueueDockCopy(finalQueue);
     return {
       state: "ready",
-      filled: per,
+      filled: questReadyCount > 0 ? per : remainder === 0 ? 0 : remainder,
       per,
       nextIn: 0,
-      readyCount,
-      label: readyCount > 1 ? `Сундук готов · ${readyCount}` : "Сундук готов",
-      detail: "Открой — награда в коллекцию",
+      readyCount: copy.readyCount,
+      label: copy.label,
+      detail: copy.detail,
       metaLabel,
       cta: "open",
+      queue: finalQueue,
     };
   }
 
@@ -76,6 +102,7 @@ export function buildChestMeter(input: {
       detail: `Еда + вода · ${per} ${pluralDays(per)}`,
       metaLabel,
       cta: "none",
+      queue: [],
     };
   }
 
@@ -93,6 +120,7 @@ export function buildChestMeter(input: {
       detail: "Закрой сегодня — еда и вода",
       metaLabel,
       cta: "none",
+      queue: [],
     };
   }
 
@@ -106,6 +134,7 @@ export function buildChestMeter(input: {
     detail: `Ещё ${nextIn} ${pluralDays(nextIn)} спокойствия`,
     metaLabel,
     cta: "none",
+    queue: [],
   };
 }
 

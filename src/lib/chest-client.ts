@@ -25,7 +25,8 @@ export type OpenChestResult = {
 };
 
 type OpenChestArgs = {
-  source: ChestSource;
+  /** `next` — open head of C3 unified ready queue (ChestDock). */
+  source: ChestSource | "next";
   /** Quest: mark calm day (default) or open a ready chest. */
   action?: "mark" | "open";
   weekStart?: string;
