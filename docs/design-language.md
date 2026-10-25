@@ -54,3 +54,6 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Confirm sheet (Wave D26): FoodAdd sheet owns elevation; `.confirm-family` / sticky actions flat inside sheet; standalone confirm is hairline plane (no teal shadow stack).
 - Gym planes (Wave D27): library/create/add-exercise/PR toast/rest dock use `.gym-plane` or quiet chrome — no `rounded-2xl` + heavy shadow cascade on scene CTAs.
 - First-hour nudges (Wave D28): tips and install prompts each use one `MotivationQueue` slot (aha with tip/referral; share → PWA → push).
+- Stats/plan/profile wash (Wave D29): `.plan-week` drops card shadow; profile items + stats tiles are mist/hairline on the wash (not opaque cream cards).
+- Tab + «+» chrome (Wave D30): quiet dock (no card shadow); one active tab cue; flat accent «+»/split and FoodAdd primary tile (no lift/glow).
+- RuStore shell (Wave D31): `rustore/cap-www` `:root` matches product cream/teal (`#f5f3ee` / `#0d7377`); Manrope stack.

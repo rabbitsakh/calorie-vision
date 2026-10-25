@@ -1,14 +1,15 @@
+/* D31 — product cream + teal (match app :root) */
 :root {
-  --bg: #f4f7fb;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --teal: #0f766e;
-  --teal-dark: #115e59;
+  --bg: #f5f3ee;
+  --ink: #14181f;
+  --muted: #5a635c;
+  --teal: #0d7377;
+  --teal-dark: #0f5c5e;
   --card: #ffffff;
-  --line: #e2e8f0;
+  --line: rgba(44, 53, 48, 0.08);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --accent: #0f766e;
+  --accent: #0d7377;
 }
 
 * {
@@ -21,7 +22,7 @@ body {
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-family: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -43,7 +44,7 @@ body {
   place-content: center;
   justify-items: center;
   gap: 0.75rem;
-  background: linear-gradient(165deg, #0f766e 0%, #134e4a 100%);
+  background: linear-gradient(165deg, #0d7377 0%, #0f5c5e 100%);
   color: #ecfdf5;
   padding-bottom: var(--safe-bottom);
 }
@@ -198,8 +199,8 @@ body {
 
 .ring-card {
   margin-top: 1.25rem;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 252, 248, 0.72);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 1.25rem;
   padding: 1.25rem;
   display: grid;
@@ -215,7 +216,7 @@ body {
 
 .ring-bg {
   fill: none;
-  stroke: #e2e8f0;
+  stroke: rgba(13, 115, 119, 0.14);
   stroke-width: 10;
 }
 
@@ -327,8 +328,8 @@ body {
 }
 
 .meal-list li {
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 252, 248, 0.72);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 0.9rem;
   padding: 0.85rem 1rem;
   display: flex;
@@ -392,8 +393,8 @@ body {
 
 .stats-card {
   margin-top: 1.25rem;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 252, 248, 0.72);
+  border: 1px solid rgba(13, 115, 119, 0.14);
   border-radius: 1.25rem;
   padding: 1.25rem;
 }
