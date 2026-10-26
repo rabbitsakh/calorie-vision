@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.27",
+    "date": "2026-10-26",
+    "summary": "recog plate/pack + assistant gym write",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Стикер/пачка с макросами не схлопывается как ложный kJ"
+      },
+      {
+        "kind": "fix",
+        "text": "Vision net 930 г/мл важнее OFF 100 г; сет/комбо → plate"
+      },
+      {
+        "kind": "improvement",
+        "text": "Фрукт без ложного «Уточнить БЖУ»; merge тарелки дописывает макросы"
+      },
+      {
+        "kind": "improvement",
+        "text": "AI зал: пустой старт, «подход», «80 на 8», «скопируй прошлую»"
+      }
+    ]
+  },
+  {
     "version": "3.0.26",
     "date": "2026-10-26",
     "summary": "AI: snack/slot/time write-depth",
