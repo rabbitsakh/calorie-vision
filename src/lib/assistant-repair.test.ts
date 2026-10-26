@@ -237,6 +237,41 @@ test("heuristicRepairSlotEditActions portions whole breakfast", () => {
   assert.equal(actions?.patchMeals?.[0]?.portionGrams, 200);
 });
 
+test("write depth: genitive slot time patch", () => {
+  const actions = heuristicRepairSlotEditActions("измени время завтрака на 6:30");
+  assert.equal(actions?.patchMeals?.[0]?.mealType, "BREAKFAST");
+  assert.equal(actions?.patchMeals?.[0]?.time, "06:30");
+});
+
+test("write depth: slot move synonyms", () => {
+  assert.equal(
+    heuristicRepairSlotEditActions("перемести обед в ужин")?.patchMeals?.[0]?.toMealType,
+    "DINNER",
+  );
+  assert.equal(
+    heuristicRepairSlotEditActions("сделай обед ужином")?.patchMeals?.[0]?.toMealType,
+    "DINNER",
+  );
+});
+
+test("write depth: inline yesterday dinner without bullets", () => {
+  const msg = "Вчерашний ужин: пюре, котлета, пиво 3л";
+  assert.equal(messageLooksLikeMultiDish(msg), true);
+  const actions = heuristicRepairMultiDishActions(msg);
+  assert.ok((actions?.meals?.length ?? 0) >= 2);
+  assert.equal(actions?.targetDate, "вчера");
+  assert.ok(actions?.meals?.every((m) => m.note === "ужин"));
+});
+
+test("write depth: snack в перекус / снек", () => {
+  assert.equal(userWantsWrite("снек протеин 40г"), true);
+  assert.equal(userWantsWrite("добавь банан в перекус"), true);
+  const banana = heuristicRepairWriteActions("добавь банан в перекус");
+  assert.ok(banana?.meals?.length);
+  assert.equal(banana!.meals![0]!.note, "перекус");
+  assert.match(banana!.meals![0]!.name, /банан/i);
+});
+
 test("heuristicRepairPortionPatchActions patches dish grams", () => {
   assert.equal(userWantsWrite("сделай омлет 200 г"), true);
   const actions = heuristicRepairPortionPatchActions("сделай омлет 200 г");

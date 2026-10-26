@@ -300,9 +300,17 @@ function PhotoConfirm({
     imagePath?: string;
     drafts?: PhotoDraft[];
     date?: string;
+    mealType?: MealTypeKey | null;
   };
   const [pending, setPending] = useState(false);
-  const [mealType, setMealType] = useState<MealTypeKey | undefined>(undefined);
+  const seededMealType =
+    data.mealType === "BREAKFAST" ||
+    data.mealType === "LUNCH" ||
+    data.mealType === "DINNER" ||
+    data.mealType === "SNACK"
+      ? data.mealType
+      : undefined;
+  const [mealType, setMealType] = useState<MealTypeKey | undefined>(seededMealType);
   const [drafts, setDrafts] = useState<PhotoDraft[]>(() =>
     (data.drafts ?? []).map((d) => ({ ...d })),
   );

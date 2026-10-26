@@ -30,7 +30,11 @@ import {
   sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
-import { enrichAssistantActionsMealMeta } from "@/lib/assistant-meal-time";
+import {
+  enrichAssistantActionsMealMeta,
+  extractMealTypeFromMessage,
+  mealTypeKeyFromLabel,
+} from "@/lib/assistant-meal-time";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -156,6 +160,9 @@ export async function POST(request: NextRequest) {
               filename: image.filename,
               mimeType: image.mimeType,
               save: savePhoto,
+              mealType:
+                mealTypeKeyFromLabel(extractMealTypeFromMessage(lastUser)) ??
+                undefined,
             });
           } finally {
             clearInterval(heartbeat);

@@ -37,15 +37,22 @@ export function mealNoteFromTypeKey(key: MealTypeKey | null | undefined): MealNo
   return MEAL_TYPE_TO_NOTE[key] ?? null;
 }
 
-/** Parse BREAKFAST / завтрак / snack → MealTypeKey. */
+/**
+ * Slot stem with common Russian case endings (nom/gen/dat/acc/prep/instr).
+ * «завтрака», «ужину», «ужином», «перекусе» → same MealTypeKey as nominative.
+ */
+export const MEAL_SLOT_STEM_RE =
+  "(завтрак(?:ом|а|у|е)?|обед(?:ом|а|у|е)?|ужин(?:ом|а|у|е)?|перекус(?:ом|а|у|е)?|снек|snack)";
+
+/** Parse BREAKFAST / завтрак / snack → MealTypeKey (incl. case forms). */
 export function parseMealTypeKey(raw: unknown): MealTypeKey | null {
   if (typeof raw !== "string") return null;
   const t = raw.trim().toLowerCase().replace(/ё/g, "е");
   if (!t) return null;
-  if (t === "breakfast" || t === "завтрак") return "BREAKFAST";
-  if (t === "lunch" || t === "обед") return "LUNCH";
-  if (t === "dinner" || t === "ужин") return "DINNER";
-  if (t === "snack" || t === "перекус" || t === "снек") return "SNACK";
+  if (t === "breakfast" || /^завтрак(?:ом|а|у|е)?$/.test(t)) return "BREAKFAST";
+  if (t === "lunch" || /^обед(?:ом|а|у|е)?$/.test(t)) return "LUNCH";
+  if (t === "dinner" || /^ужин(?:ом|а|у|е)?$/.test(t)) return "DINNER";
+  if (t === "snack" || /^перекус(?:ом|а|у|е)?$/.test(t) || t === "снек") return "SNACK";
   if (t === "BREAKFAST".toLowerCase()) return "BREAKFAST";
   if (t === "LUNCH".toLowerCase()) return "LUNCH";
   if (t === "DINNER".toLowerCase()) return "DINNER";
@@ -78,7 +85,7 @@ export function parseMealTimeHHMM(raw: unknown): string | null {
 }
 
 /**
- * Pull wall-clock time from Russian free text («в 10:30», «около 9.15»).
+ * Pull wall-clock time from Russian free text («в 10:30», «около 9.15», «на 6 30»).
  * Prefer explicit HH:MM; bare «в 10» alone is ignored (ambiguous).
  */
 export function extractMealTimeFromMessage(message: string): string | null {
@@ -87,8 +94,8 @@ export function extractMealTimeFromMessage(message: string): string | null {
 
   const patterns = [
     /(?:время|на)\s*(\d{1,2})\s*[:.]\s*(\d{2})\b/iu,
-    /(?:в|около|к)\s*(\d{1,2})\s*[:.]\s*(\d{2})\b/iu,
-    /(?:в|около|к)\s*(\d{1,2})\s+(\d{2})\b/iu,
+    /(?:в|около|к|на)\s*(\d{1,2})\s*[:.]\s*(\d{2})\b/iu,
+    /(?:в|около|к|на)\s*(\d{1,2})\s+(\d{2})\b/iu,
     /\b(\d{1,2}):(\d{2})\b/,
   ];
   for (const re of patterns) {
@@ -141,44 +148,58 @@ export function enrichAssistantActionsMealTimes(
 const RU_TOKEN_END = "(?=$|[\\s.,;:!?…»\"')\\]])";
 
 /**
- * Pull meal-type label from Russian free text («на перекус», «на завтрак»).
+ * Pull meal-type label from Russian free text («на перекус», «время завтрака»).
+ * Accepts case forms: завтрака / ужину / перекусе.
  */
 export function extractMealTypeFromMessage(message: string): MealNoteLabel | null {
   const move = extractMealSlotMoveFromMessage(message);
   if (move) return move.from;
-  const text = message.trim();
+  const text = message.trim().toLowerCase().replace(/ё/g, "е");
   if (!text) return null;
-  if (new RegExp(`(?:на\\s+)?завтрак${RU_TOKEN_END}`, "i").test(text)) return "завтрак";
-  if (new RegExp(`(?:на\\s+)?обед${RU_TOKEN_END}`, "i").test(text)) return "обед";
-  if (new RegExp(`(?:на\\s+)?ужин${RU_TOKEN_END}`, "i").test(text)) return "ужин";
-  if (new RegExp(`(?:на\\s+)?перекус${RU_TOKEN_END}|снек|snack`, "i").test(text)) {
-    return "перекус";
-  }
-  return null;
+  const m = new RegExp(
+    `(?:(?:на|в|во)\\s+)?${MEAL_SLOT_STEM_RE}${RU_TOKEN_END}`,
+    "i",
+  ).exec(text);
+  if (!m?.[1]) return null;
+  const key = parseMealTypeKey(m[1]);
+  return mealNoteFromTypeKey(key);
 }
 
-const SLOT_WORD = "(завтрак|обед|ужин|перекус)";
-
 /**
- * «перенеси обед в ужин» / «перенеси завтрак на обед» → from/to labels.
+ * «перенеси обед в ужин» / «перемести завтрак на обед» / «сделай обед ужином».
  */
 export function extractMealSlotMoveFromMessage(
   message: string,
 ): { from: MealNoteLabel; to: MealNoteLabel } | null {
   const text = message.trim().toLowerCase().replace(/ё/g, "е");
-  if (!text || !/перенес/i.test(text)) return null;
-  const m = new RegExp(
-    `перенес\\S*\\s+${SLOT_WORD}\\s+(?:в|на)\\s+${SLOT_WORD}${RU_TOKEN_END}`,
-    "i",
-  ).exec(text);
-  if (!m?.[1] || !m[2]) return null;
-  const from = parseMealTypeKey(m[1]);
-  const to = parseMealTypeKey(m[2]);
-  if (!from || !to || from === to) return null;
-  const fromNote = mealNoteFromTypeKey(from);
-  const toNote = mealNoteFromTypeKey(to);
-  if (!fromNote || !toNote) return null;
-  return { from: fromNote, to: toNote };
+  if (!text) return null;
+
+  const patterns = [
+    new RegExp(
+      `(?:перенес|перемест|перекин)\\S*\\s+${MEAL_SLOT_STEM_RE}\\s+(?:в|на)\\s+${MEAL_SLOT_STEM_RE}${RU_TOKEN_END}`,
+      "i",
+    ),
+    new RegExp(
+      `(?:сделай|поставь)\\s+${MEAL_SLOT_STEM_RE}\\s+${MEAL_SLOT_STEM_RE}${RU_TOKEN_END}`,
+      "i",
+    ),
+    new RegExp(
+      `${MEAL_SLOT_STEM_RE}\\s+сделай\\s+${MEAL_SLOT_STEM_RE}${RU_TOKEN_END}`,
+      "i",
+    ),
+  ];
+  for (const re of patterns) {
+    const m = re.exec(text);
+    if (!m?.[1] || !m[2]) continue;
+    const from = parseMealTypeKey(m[1]);
+    const to = parseMealTypeKey(m[2]);
+    if (!from || !to || from === to) continue;
+    const fromNote = mealNoteFromTypeKey(from);
+    const toNote = mealNoteFromTypeKey(to);
+    if (!fromNote || !toNote) continue;
+    return { from: fromNote, to: toNote };
+  }
+  return null;
 }
 
 /** True when note already encodes a meal type the save path understands. */

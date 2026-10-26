@@ -19,8 +19,11 @@ import {
   extractMealTypeFromMessage,
   extractTargetDateFromMessage,
   matchIsMealSlot,
+  mealNoteFromTypeKey,
   mealTypeKeyFromLabel,
+  MEAL_SLOT_STEM_RE,
   parseMealTimeHHMM,
+  parseMealTypeKey,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
 
@@ -306,13 +309,134 @@ export function messageLooksLikeMultiDish(message: string): boolean {
   if (numbered.length >= 2) return true;
   const drink = drinkLookupQuery(text);
   if (drink && FOODISH_RE.test(text)) return true;
+  // Inline: «Вчерашний ужин: пюре, котлета, пиво» / «на ужин пюре и котлета».
+  if (parseInlineMealsFromText(text).length >= 2) return true;
   return false;
 }
 
 type ParsedMealLine = NonNullable<AssistantActions["meals"]>[number];
 
+function mealLineFromFragment(
+  fragment: string,
+  lineNote?: string,
+): ParsedMealLine | null {
+  let rest = fragment.trim();
+  if (!rest || rest.length < 2) return null;
+
+  let kcal: number | undefined;
+  let protein: number | undefined;
+  let fat: number | undefined;
+  let carbs: number | undefined;
+
+  const macroBlock =
+    /[—(]\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[уucс]\s*(\d+(?:[.,]\d+)?)?)?\s*\)?\s*$/iu.exec(
+      rest,
+    );
+  if (macroBlock) {
+    const n = (v?: string) => {
+      if (!v) return undefined;
+      const x = Number(v.replace(",", "."));
+      return Number.isFinite(x) ? Math.round(x * 10) / 10 : undefined;
+    };
+    kcal = Math.round(Number(macroBlock[1]!.replace(",", ".")));
+    protein = n(macroBlock[2]);
+    fat = n(macroBlock[3]);
+    carbs = n(macroBlock[4]);
+    rest = rest.slice(0, macroBlock.index).trim().replace(/[—\-–:]\s*$/, "").trim();
+  }
+
+  if (!rest || rest.length < 2) return null;
+
+  const portion = parsePortionGramsFromMessage(rest);
+  const drinkQ = drinkLookupQuery(rest);
+  const cleaned = rest
+    .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const pack =
+    (drinkQ ? lookupRuNutritionTable(drinkQ) : null) ??
+    lookupRuNutritionTable(cleaned) ??
+    lookupRuNutritionTable(rest);
+
+  if (kcal == null && pack) {
+    const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
+    const grams = portion ?? baseGrams;
+    const scale = grams / baseGrams;
+    kcal = Math.round(pack.calories * scale);
+    protein =
+      pack.protein == null ? undefined : Math.round(pack.protein * scale * 10) / 10;
+    fat = pack.fat == null ? undefined : Math.round(pack.fat * scale * 10) / 10;
+    carbs = pack.carbs == null ? undefined : Math.round(pack.carbs * scale * 10) / 10;
+  }
+
+  const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
+  const baseName = pack?.dishName ?? cleaned;
+  if (!baseName || baseName.length < 2) return null;
+  const name =
+    portion != null && portion > 0
+      ? `${baseName} (${portion} ${unit})`
+      : baseName;
+
+  if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) return null;
+
+  return {
+    name: name.slice(0, 120),
+    kcal,
+    protein,
+    fat,
+    carbs,
+    ...(lineNote ? { note: lineNote } : {}),
+  };
+}
+
+/**
+ * Inline multi-dish without bullets: «Вчерашний ужин: пюре, котлета, пиво 3л»
+ * or «вчера на ужин пюре и котлета и пиво».
+ */
+export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
+  const raw = text.trim();
+  if (!raw) return [];
+  // Prefer a slot header / colon list; else whole message after stripping day words.
+  const header = new RegExp(
+    `(?:(?:вчерашн|сегодняшн|завтрашн)\\S*\\s+)?${MEAL_SLOT_STEM_RE}\\s*[:—–-]\\s*(.+)`,
+    "iu",
+  ).exec(raw);
+  const onSlot = new RegExp(
+    `(?:на|в)\\s+${MEAL_SLOT_STEM_RE}\\s+(.+)`,
+    "iu",
+  ).exec(raw);
+  let body = header?.[2] ?? onSlot?.[2] ?? "";
+  if (!body.trim()) {
+    // «вчера на ужин пюре и котлета» already covered by onSlot; bare comma list needs food cues.
+    if (!/,/.test(raw) && !/\sи\s/i.test(raw)) return [];
+    body = raw
+      .replace(/(?:вчерашн|сегодняшн|завтрашн)\S*/giu, " ")
+      .replace(/(?:вчера|сегодня|завтра|позавчера)/giu, " ")
+      .replace(new RegExp(`(?:на|в)\\s+${MEAL_SLOT_STEM_RE}`, "giu"), " ")
+      .replace(new RegExp(MEAL_SLOT_STEM_RE, "giu"), " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+  body = body.replace(/\s*всего\b[\s\S]*$/i, "").trim();
+  if (!body) return [];
+
+  const parts = body
+    .split(/\s*,\s*|\s+и\s+/i)
+    .map((p) => p.trim())
+    .filter((p) => p.length >= 2);
+  if (parts.length < 2) return [];
+
+  const meals: ParsedMealLine[] = [];
+  for (const part of parts) {
+    const meal = mealLineFromFragment(part);
+    if (meal) meals.push(meal);
+  }
+  return meals;
+}
+
 /**
  * Parse bullet / numbered lines with optional «~200 ккал, Б4 Ж3 У35».
+ * Falls back to inline comma / «и» lists when no bullets.
  * Used for offline multi-dish repair from user text or assistant draft.
  */
 export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
@@ -327,76 +451,20 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
     if (!m?.[1]) continue;
     let rest = m[1].trim();
     let lineNote: string | undefined;
-    const slotPrefix = /^(завтрак|обед|ужин|перекус)\s*[:—–-]\s*/i.exec(rest);
+    const slotPrefix = new RegExp(
+      `^${MEAL_SLOT_STEM_RE}\\s*[:—–-]\\s*`,
+      "i",
+    ).exec(rest);
     if (slotPrefix?.[1]) {
-      lineNote = slotPrefix[1].toLowerCase();
+      lineNote = mealNoteFromTypeKey(parseMealTypeKey(slotPrefix[1])) ?? undefined;
       rest = rest.slice(slotPrefix[0].length).trim();
     }
-    let kcal: number | undefined;
-    let protein: number | undefined;
-    let fat: number | undefined;
-    let carbs: number | undefined;
-
-    const macroBlock =
-      /[—(]\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[уucс]\s*(\d+(?:[.,]\d+)?)?)?\s*\)?\s*$/iu.exec(
-        rest,
-      );
-    if (macroBlock) {
-      const n = (v?: string) => {
-        if (!v) return undefined;
-        const x = Number(v.replace(",", "."));
-        return Number.isFinite(x) ? Math.round(x * 10) / 10 : undefined;
-      };
-      kcal = Math.round(Number(macroBlock[1]!.replace(",", ".")));
-      protein = n(macroBlock[2]);
-      fat = n(macroBlock[3]);
-      carbs = n(macroBlock[4]);
-      rest = rest.slice(0, macroBlock.index).trim().replace(/[—\-–:]\s*$/, "").trim();
-    }
-
-    if (!rest || rest.length < 2) continue;
-
-    const portion = parsePortionGramsFromMessage(rest);
-    const drinkQ = drinkLookupQuery(rest);
-    const cleaned = rest
-      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    const pack =
-      (drinkQ ? lookupRuNutritionTable(drinkQ) : null) ??
-      lookupRuNutritionTable(cleaned) ??
-      lookupRuNutritionTable(rest);
-
-    if (kcal == null && pack) {
-      const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-      const grams = portion ?? baseGrams;
-      const scale = grams / baseGrams;
-      kcal = Math.round(pack.calories * scale);
-      protein =
-        pack.protein == null ? undefined : Math.round(pack.protein * scale * 10) / 10;
-      fat = pack.fat == null ? undefined : Math.round(pack.fat * scale * 10) / 10;
-      carbs = pack.carbs == null ? undefined : Math.round(pack.carbs * scale * 10) / 10;
-    }
-
-    const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
-    const baseName = pack?.dishName ?? cleaned;
-    const name =
-      portion != null && portion > 0
-        ? `${baseName} (${portion} ${unit})`
-        : baseName;
-
-    if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) continue;
-
-    meals.push({
-      name: name.slice(0, 120),
-      kcal,
-      protein,
-      fat,
-      carbs,
-      ...(lineNote ? { note: lineNote } : {}),
-    });
+    const meal = mealLineFromFragment(rest, lineNote);
+    if (meal) meals.push(meal);
   }
-  return meals;
+  if (meals.length >= 2) return meals;
+  const inline = parseInlineMealsFromText(text);
+  return inline.length >= 2 ? inline : meals;
 }
 
 function mealMetaFromMessage(userMessage: string): {
@@ -497,8 +565,15 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
   const drinkQ = drinkLookupQuery(userMessage);
   const cleaned = userMessage
     .replace(/^\s*я\s+(съел|выпил|поел)\s+/i, "")
+    .replace(
+      /(?:^|\s)(?:добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)(?=$|\s)/giu,
+      " ",
+    )
     .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)\b/gi, " ")
-    .replace(/(?:на\s+)?(?:завтрак|обед|ужин|перекус)(?=$|\s|[^\p{L}\p{N}])/giu, " ")
+    .replace(
+      new RegExp(`(?:(?:на|в|во)\\s+)?${MEAL_SLOT_STEM_RE}(?=$|\\s|[^\\p{L}\\p{N}])`, "giu"),
+      " ",
+    )
     .replace(/\s+/g, " ")
     .trim();
   const pack =
@@ -569,7 +644,14 @@ export function heuristicRepairSlotEditActions(userMessage: string): AssistantAc
     };
   }
 
-  if (time && /исправ|поправ|поставь|смени|измени|перенес/i.test(text)) {
+  // Time patch: verb optional when «время … HH:MM» / slot + clock are explicit.
+  if (
+    time &&
+    (/исправ|поправ|поставь|смени|измени|перенес|перемест|время/i.test(text) ||
+      new RegExp(`${MEAL_SLOT_STEM_RE}.{0,24}\\d{1,2}\\s*[:.\\s]\\s*\\d{2}`, "i").test(
+        text,
+      ))
+  ) {
     return {
       apply: true,
       targetDate,
@@ -603,6 +685,7 @@ function extractDishMatchForPortionPatch(message: string): string | null {
   );
   // No `\b` — JS word boundaries are ASCII-only and break on Cyrillic «г».
   t = t.replace(/\d+(?:[.,]\d+)?\s*(?:грамм(?:а|ов)?|гр|г|мл|литр(?:а|ов|ы)?|л)/gi, " ");
+  t = t.replace(new RegExp(`(?:^|\\s)${MEAL_SLOT_STEM_RE}(?=$|\\s)`, "gi"), " ");
   t = t.replace(/(?:^|\s)(?:на|в|у|к|с|и|или|время)(?=$|\s)/gi, " ");
   t = t.replace(/\s+/g, " ").trim();
   if (!t || t.length < 2) return null;

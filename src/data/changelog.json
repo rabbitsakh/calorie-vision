@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.26",
+    "date": "2026-10-26",
+    "summary": "AI: snack/slot/time write-depth",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«время завтрака / ужина» и падежи слотов → patch, не write-miss"
+      },
+      {
+        "kind": "fix",
+        "text": "Вчерашний ужин списком через запятую / «и» без маркеров"
+      },
+      {
+        "kind": "improvement",
+        "text": "«в перекус», «снек», «перемести / сделай обед ужином»; фото seed слота из подписи"
+      }
+    ]
+  },
+  {
     "version": "3.0.25",
     "date": "2026-10-26",
     "summary": "gym: soft-deload at finish after 2× miss",
