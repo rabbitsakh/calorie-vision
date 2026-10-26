@@ -1754,10 +1754,10 @@ select {
   flex: 1 1 8rem;
 }
 
+/* In-place diary undo — stay in document flow where the meal was (not sticky top/bottom). */
 .undo-toast {
-  bottom: 0.5rem;
-  position: sticky;
-  z-index: 28;
+  position: relative;
+  z-index: 1;
 }
 
 .meal-stripe {
@@ -3585,9 +3585,6 @@ select {
     padding-bottom: 0;
   }
 
-  .undo-toast {
-    bottom: 1rem;
-  }
 
   .confirm-hero img {
     height: 12rem;

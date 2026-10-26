@@ -1,5 +1,20 @@
 [
   {
+    "version": "3.0.30",
+    "date": "2026-10-26",
+    "summary": "ration: undo delete stays in place",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«Удалено — отменить» на месте записи, не сверху списка"
+      },
+      {
+        "kind": "fix",
+        "text": "Якорь undo по секциям приёмов, не по хронологии"
+      }
+    ]
+  },
+  {
     "version": "3.0.29",
     "date": "2026-10-26",
     "summary": "assistant: multi-dish names and carbs",

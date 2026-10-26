@@ -20,9 +20,9 @@ import {
   buildDiaryDisplayRows,
   collectHiddenMealIds,
   filterMealsResponse,
-  findMealListIndex,
   mealListItemKey,
   mergeEntriesAfterUndo,
+  pendingDeleteAnchor,
   pruneConfirmedTombstones,
   subtractMealTotals,
   type PendingDeleteSlot,
@@ -606,11 +606,13 @@ export function DailyLog({
       tombstoneMealIdsRef.current.add(id);
     }
 
-    const items = groupMealEntries(entries);
-    const index = findMealListIndex(items, ids);
-    const removedKey = index >= 0 ? mealListItemKey(items[index]!) : null;
-    const nextItem = index >= 0 ? items[index + 1] : undefined;
-    const afterKey = nextItem ? mealListItemKey(nextItem) : null;
+    // Same order as the visible feed (sections + filters). Chronological
+    // groupMealEntries alone puts a snack undo above breakfast.
+    const displayItems = organizeDiaryByMealType(groupMealEntries(entries)).filter((item) => {
+      if (mealFilter !== "ALL" && mealTypeForListItem(item) !== mealFilter) return false;
+      return matchesDiarySourceFilter(item, sourceFilter, DEFAULT_LOW_CONFIDENCE_THRESHOLD);
+    });
+    const { removedKey, afterKey } = pendingDeleteAnchor(displayItems, ids);
     const slot: PendingDeleteSlot = {
       key: `del-${ids.slice().sort().join("-")}-${Date.now()}`,
       ids,
