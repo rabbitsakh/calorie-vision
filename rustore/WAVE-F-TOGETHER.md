@@ -53,7 +53,7 @@ npm run rustore:cap:build     # → rustore/dist/app-release.apk
 - [ ] Офлайн → очередь → пилюли статуса (Ждёт сеть / Ошибка / Конфликт) → Отправить / Убрать
       (сундуки + AI apply тоже в очереди с 3.0.22+)
 - [x] Зал: после 2× мимо → soft deload; повторный мимо → смена рычага (не второй deload) — 3.0.25 arm at finish + Today strip
-- [ ] Итог сессии: wear/cheer из коллекции, если надето
+- [x] Итог сессии: wear/cheer из коллекции, если надето — 3.0.28 cheer art + stage tone above metrics
 - [ ] План → Итог недели → «Разобрать с AI»
 
 ---

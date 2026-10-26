@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RewardArt } from "@/components/RewardArt";
 import type { ChestMeterModel } from "@/lib/chest-progress";
+import { collectionWearModel } from "@/lib/collection-wear";
 import { EQUIP_PULSE_MS, subscribeEquipPulse } from "@/lib/equip-pulse";
 import {
   getEquippedCheerKey,
@@ -21,21 +22,25 @@ import {
   subscribeEquippedFrame,
 } from "@/lib/equipped-frame";
 import { withBasePath } from "@/lib/paths";
-import { cheerPhrase, frameAvatarClass, rewardDef } from "@/lib/rewards";
 
 type WearSize = "md" | "lg";
+type WearTone = "light" | "stage";
 
 /**
  * R5–R9 / R16 / C2 — equipped collection wear on gym surfaces.
  * Ready chest → cue back to ration (open lives on ChestDock).
+ * Cheer alone shows RewardArt (not only a text line).
  */
 export function GymCollectionWear({
   className = "",
   size = "lg",
+  tone = "light",
 }: {
   className?: string;
   /** R16 — default larger so frame/sticker/cheer read on DayHero and gym. */
   size?: WearSize;
+  /** Dark StageScreen / live stage — light text + soft wash. */
+  tone?: WearTone;
 }) {
   const [sticker, setSticker] = useState<string | null>(null);
   const [cheerKey, setCheerKey] = useState<string | null>(null);
@@ -90,52 +95,59 @@ export function GymCollectionWear({
     };
   }, []);
 
-  const phrase = cheerKey ? cheerPhrase(cheerKey) : null;
-  const frameClass = frameAvatarClass(frameKey);
-  if (!sticker && !phrase && !frameClass && !chestReady) return null;
+  const model = collectionWearModel({ sticker, cheerKey, frameKey, chestReady });
+  if (!model.visible) return null;
 
+  const stage = tone === "stage";
   const avatar = size === "lg" ? "h-11 w-11" : "h-9 w-9";
   const art = size === "lg" ? 30 : 24;
-  const phraseClass =
-    size === "lg"
+  const phraseClass = stage
+    ? size === "lg"
+      ? "text-sm font-medium leading-snug text-white/90"
+      : "max-w-[9rem] truncate text-[11px] font-semibold text-white/85"
+    : size === "lg"
       ? "text-sm font-medium leading-snug text-[var(--accent-ink)]"
       : "max-w-[9rem] truncate text-[11px] font-semibold text-[var(--accent-ink)]";
-  const stickerTitle = sticker ? rewardDef(sticker)?.title ?? "Наклейка" : null;
+  const badgeWash = stage
+    ? "bg-white/15 shadow-sm ring-1 ring-white/20"
+    : "bg-[var(--accent-soft)] shadow-sm";
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`.trim()}>
-      {chestReady ? (
+    <div
+      className={`gym-collection-wear flex flex-col gap-1.5 ${stage ? "gym-collection-wear--stage" : ""} ${className}`.trim()}
+    >
+      {model.chestReady ? (
         <Link
           href={withBasePath("/ration")}
-          className="gym-chest-ready-cue"
+          className={`gym-chest-ready-cue ${stage ? "gym-chest-ready-cue--stage" : ""}`.trim()}
           aria-label="Сундук готов — открыть на рационе"
         >
           Сундук готов · рацион
         </Link>
       ) : null}
-      {sticker || phrase || frameClass ? (
+      {model.hasBadge ? (
         <Link
           href={withBasePath("/profile#rewards")}
           className={`flex flex-wrap items-center gap-2 ${pulse ? "gym-collection-wear--pulse" : ""}`.trim()}
           aria-label="Коллекция наград"
           title="Открыть коллекцию"
         >
-          {sticker || frameClass ? (
+          {model.artKey || model.frameClass ? (
             <span
-              className={`inline-flex ${avatar} items-center justify-center rounded-full bg-[var(--accent-soft)] shadow-sm ${frameClass}`.trim()}
+              className={`inline-flex ${avatar} items-center justify-center rounded-full ${badgeWash} ${model.frameClass}`.trim()}
             >
-              {sticker ? (
+              {model.artKey ? (
                 <RewardArt
-                  rewardKey={sticker}
+                  rewardKey={model.artKey}
                   size={art}
-                  title={stickerTitle ?? "Наклейка из коллекции"}
+                  title={model.artTitle}
                 />
-              ) : frameKey ? (
-                <RewardArt rewardKey={frameKey} size={art} title="Рамка из коллекции" />
               ) : null}
             </span>
           ) : null}
-          {phrase ? <p className={`max-w-[14rem] ${phraseClass}`}>{phrase}</p> : null}
+          {model.phrase ? (
+            <p className={`max-w-[14rem] ${phraseClass}`}>{model.phrase}</p>
+          ) : null}
         </Link>
       ) : null}
     </div>

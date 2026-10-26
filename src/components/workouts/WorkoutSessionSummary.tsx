@@ -392,6 +392,7 @@ export function WorkoutSessionSummary({
       eyebrow="Итог тренировки"
       headline={card.headline}
       subline={`${card.elapsedLabel} · ${date}`}
+      lead={<GymCollectionWear tone="stage" />}
       metrics={metrics}
       primaryAction={
         onGoToRation
@@ -402,9 +403,6 @@ export function WorkoutSessionSummary({
       onDismiss={onBackToList}
       dismissLabel="К списку"
     >
-      {/* R6: equipped collection wear on finish summary */}
-      <GymCollectionWear className="mb-3 [&_p]:text-white/70" />
-
       {recoveryLine ? (
         <p
           className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2 text-sm font-semibold text-[var(--accent-soft)]"

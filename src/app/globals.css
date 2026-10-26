@@ -6953,6 +6953,18 @@ select {
   background: color-mix(in srgb, var(--accent) 18%, #fff);
 }
 
+/* Dark StageScreen / live stage — keep cue readable on teal→slate */
+.gym-chest-ready-cue--stage {
+  border-color: color-mix(in srgb, var(--accent-soft) 45%, transparent);
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: #fff;
+}
+
+.gym-chest-ready-cue--stage:hover {
+  border-color: color-mix(in srgb, var(--accent-soft) 65%, transparent);
+  background: color-mix(in srgb, #fff 18%, transparent);
+}
+
 /* --- Mascot seasonal skins --- */
 .mascot-skin-winter .mascot-aura {
   filter: hue-rotate(18deg) saturate(0.92);
