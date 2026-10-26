@@ -77,6 +77,13 @@ test("extractMealTypeFromMessage finds перекус / завтрак", () => {
   assert.equal(extractMealTypeFromMessage("просто банан"), null);
 });
 
+test("extractMealTypeFromMessage accepts case forms and в перекус", () => {
+  assert.equal(extractMealTypeFromMessage("измени время завтрака на 6:30"), "завтрак");
+  assert.equal(extractMealTypeFromMessage("исправь время ужина на 19:00"), "ужин");
+  assert.equal(extractMealTypeFromMessage("добавь банан в перекус"), "перекус");
+  assert.equal(extractMealTypeFromMessage("снек протеин 40г"), "перекус");
+});
+
 test("extractMealSlotMoveFromMessage finds from/to", () => {
   assert.deepEqual(extractMealSlotMoveFromMessage("перенеси обед в ужин"), {
     from: "обед",
@@ -87,6 +94,25 @@ test("extractMealSlotMoveFromMessage finds from/to", () => {
     to: "обед",
   });
   assert.equal(extractMealSlotMoveFromMessage("перенеси завтрак на 6:30"), null);
+});
+
+test("extractMealSlotMoveFromMessage synonyms and instrumental", () => {
+  assert.deepEqual(extractMealSlotMoveFromMessage("перемести обед в ужин"), {
+    from: "обед",
+    to: "ужин",
+  });
+  assert.deepEqual(extractMealSlotMoveFromMessage("перекинь обед в ужин"), {
+    from: "обед",
+    to: "ужин",
+  });
+  assert.deepEqual(extractMealSlotMoveFromMessage("сделай обед ужином"), {
+    from: "обед",
+    to: "ужин",
+  });
+});
+
+test("extractMealTimeFromMessage accepts на 6 30", () => {
+  assert.equal(extractMealTimeFromMessage("исправь завтрак на 6 30"), "06:30");
 });
 
 test("matchIsMealSlot and parseMealTypeKey", () => {
