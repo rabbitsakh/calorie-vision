@@ -28,6 +28,25 @@ export function findMealListIndex(items: MealListItem[], ids: string[]): number 
   });
 }
 
+/**
+ * Anchor an undo toast in the *visible* diary order (sections + filters).
+ * Using chronological `groupMealEntries` here puts snack undos above breakfast
+ * when meal-type sections reorder the feed.
+ */
+export function pendingDeleteAnchor(
+  displayItems: MealListItem[],
+  ids: string[],
+): { removedKey: string | null; afterKey: string | null } {
+  const index = findMealListIndex(displayItems, ids);
+  if (index < 0) return { removedKey: null, afterKey: null };
+  const removedKey = mealListItemKey(displayItems[index]!);
+  const nextItem = displayItems[index + 1];
+  return {
+    removedKey,
+    afterKey: nextItem ? mealListItemKey(nextItem) : null,
+  };
+}
+
 /** Remap undos that pointed at a removed meal so they sit above the new undo slot. */
 export function appendPendingDelete(
   prev: PendingDeleteSlot[],

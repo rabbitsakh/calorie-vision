@@ -9,9 +9,11 @@ import {
   filterMealsResponse,
   mealListItemKey,
   mergeEntriesAfterUndo,
+  pendingDeleteAnchor,
   pruneConfirmedTombstones,
   type PendingDeleteSlot,
 } from "./diary-delete-slots.ts";
+import { organizeDiaryByMealType } from "./diary-meal-sections.ts";
 
 function meal(id: string, name: string, createdAt: string): MealEntry {
   return {
@@ -58,6 +60,41 @@ describe("diary-delete-slots", () => {
         createdAt: "2026-01-01",
       }),
       "g:g1",
+    );
+  });
+
+  test("pendingDeleteAnchor uses visible order so snack undo stays after breakfast", () => {
+    const breakfast = meal("bf", "Омлет", "2026-08-24T08:00:00Z");
+    breakfast.mealType = "BREAKFAST";
+    const snack = meal("sn", "Дамплинги", "2026-08-24T19:00:00Z");
+    snack.mealType = "SNACK";
+    // Chronological newest-first: snack then breakfast — wrong for afterKey.
+    const chrono = [single(snack), single(breakfast)];
+    const visible = organizeDiaryByMealType(chrono);
+    assert.deepEqual(
+      visible.map((item) => mealListItemKey(item)),
+      ["e:bf", "e:sn"],
+    );
+
+    const chronoAnchor = pendingDeleteAnchor(chrono, ["sn"]);
+    assert.equal(chronoAnchor.afterKey, "e:bf"); // would place undo above breakfast
+
+    const visibleAnchor = pendingDeleteAnchor(visible, ["sn"]);
+    assert.equal(visibleAnchor.afterKey, null); // last in visible feed → stay at end
+
+    const rows = buildDiaryDisplayRows([single(breakfast)], [
+      {
+        key: "undo-sn",
+        ids: ["sn"],
+        label: "Дамплинги",
+        snapshot: [snack],
+        afterKey: visibleAnchor.afterKey,
+        expiresAt: Date.now() + 4000,
+      },
+    ]);
+    assert.deepEqual(
+      rows.map((row) => (row.kind === "meal" ? mealListItemKey(row.item) : row.pending.key)),
+      ["e:bf", "undo-sn"],
     );
   });
 
