@@ -9,6 +9,9 @@ const DEFAULT_PORTION_GRAMS = 100;
 /** Default glass/can when drink or barcode+per100 portion is absurdly small (e.g. 1 g). */
 export const DEFAULT_DRINK_SERVING_ML = 250;
 const MIN_CREDIBLE_DRINK_PORTION_ML = 50;
+/** Espresso / ristretto / shot — keep 15–49 ml, do not bump to a glass. */
+const SHOT_DRINK_RE =
+  /эспрессо|espresso|ристретто|ristretto|(?:^|[^\p{L}])шот(?:[^\p{L}]|$)|(?:^|[^\p{L}])shot(?:[^\p{L}]|$)/iu;
 const PER100G_REFERENCE_GRAMS = 100;
 const PER100G_MAX_CALORIES = 120;
 const LOW_DENSITY_KCAL_PER_GRAM = 0.25;
@@ -365,6 +368,19 @@ export function coalesceLabelPer100FromVision(result: FoodRecognitionResult): Fo
     return result;
   }
 
+  // Glass/cup servings (<330 ml, not label/package): top-level kcal is already the pour.
+  // Bottle-sized meal photos (e.g. beer 45@500) still coalesce for rescale.
+  const pourMl =
+    result.portionGrams && result.portionGrams > 0 ? result.portionGrams : 0;
+  if (
+    looksLikeDrinkName(result.dishName) &&
+    !isPackagedPhoto(result) &&
+    pourMl > 0 &&
+    pourMl < 330
+  ) {
+    return result;
+  }
+
   const existing = normalizePer100gEnergy(result.per100g);
   if (existing && existing.calories > 0) {
     return { ...result, per100g: existing };
@@ -450,7 +466,17 @@ export function resolvePer100gForScaling(
     looksLikePreparedFoodName(result.dishName!) &&
     !(normalized && normalized.calories > 0);
 
-  // Label rows and drinks: models often put kcal/100 ml (or kJ/100 ml) in calories while portionGrams is pack volume.
+  // Glass/cup (<330 ml, not packaged): top-level kcal is the pour — don't invent per-100
+  // (milk 120@250 → 300, tea 2@250 → 5). Bottle-sized meal photos still rescale.
+  const pourMl = portionGrams;
+  const pouredDrinkServing =
+    Boolean(result.dishName) &&
+    looksLikeDrinkName(result.dishName) &&
+    !isPackagedPhoto(result) &&
+    pourMl > 0 &&
+    pourMl < 330;
+
+  // Label rows and packaged drinks: models often put kcal/100 ml in calories while portionGrams is pack volume.
   const looksPer100Portion =
     portionGrams > 100 ||
     !explicitPortion ||
@@ -458,6 +484,7 @@ export function resolvePer100gForScaling(
 
   if (
     !readyMealPortionTotals &&
+    !pouredDrinkServing &&
     caloriesLookPer100g(topLevelCalories) &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     looksPer100Portion
@@ -472,15 +499,17 @@ export function resolvePer100gForScaling(
     };
   }
 
-  const inferred = readyMealPortionTotals
-    ? null
-    : inferPer100gValues(result, topLevelCalories, portionGrams);
+  const inferred =
+    readyMealPortionTotals || pouredDrinkServing
+      ? null
+      : inferPer100gValues(result, topLevelCalories, portionGrams);
   if (inferred) {
     return inferred;
   }
 
   if (
     !readyMealPortionTotals &&
+    !pouredDrinkServing &&
     (isPackagedPhoto(result) || looksLikeDrinkName(result.dishName)) &&
     portionGrams > 100 &&
     result.calories > PER100G_MAX_CALORIES
@@ -700,6 +729,17 @@ export function resolveDisplayPortionGrams(
   const fromText = inferDrinkPackMlFromText(item.dishName, item.brand);
 
   const absurdTiny = explicit !== undefined && explicit <= 1;
+  const shotName = SHOT_DRINK_RE.test(`${item.dishName} ${item.brand ?? ""}`);
+  // Espresso / shot cups are legitimately 15–49 ml — keep, don't bump to a glass.
+  if (
+    drink &&
+    shotName &&
+    explicit !== undefined &&
+    explicit >= 15 &&
+    explicit < MIN_CREDIBLE_DRINK_PORTION_ML
+  ) {
+    return explicit;
+  }
   // 100 ml/g is a common wrong default for bottles — treat like absurd when no label volume.
   const absurdDrink =
     drink &&

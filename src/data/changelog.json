@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.24",
+    "date": "2026-10-26",
+    "summary": "recog: drink glass/shot scale + Latin volumes",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Стакан молока/чая не раздувается через ложный per-100"
+      },
+      {
+        "kind": "fix",
+        "text": "Эспрессо 30 мл остаётся шотом, не стаканом 250 мл"
+      },
+      {
+        "kind": "improvement",
+        "text": "Объёмы 1.5L / 500ml в названии; barcode не жжёт drink-pass"
+      },
+      {
+        "kind": "improvement",
+        "text": "Offline eval: maxNormalizedCalories + фикстуры напитков"
+      }
+    ]
+  },
+  {
     "version": "3.0.23",
     "date": "2026-10-26",
     "summary": "trust + store: confirm edit, AI honesty, gym→AI",

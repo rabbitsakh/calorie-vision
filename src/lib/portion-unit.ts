@@ -38,14 +38,16 @@ export function looksLikeSnackBarName(...parts: Array<string | null | undefined>
 
 export const DEFAULT_SNACK_BAR_GRAMS = 60;
 
-/** Parse bottle volume from label text, e.g. «1.5 л» → 1500 ml. */
+/** Parse bottle volume from label text, e.g. «1.5 л» / `1.5L` → 1500 ml. */
 export function inferDrinkPackMlFromText(...parts: Array<string | null | undefined>): number | undefined {
   const text = parts.filter(Boolean).join(" ");
   if (!text.trim()) {
     return undefined;
   }
 
-  const liter = text.match(/(\d+(?:[.,]\d+)?)\s*л(?:ит(?:р|ра|ров)?)?(?:[^\p{L}\p{N}]|$)/iu);
+  const liter = text.match(
+    /(\d+(?:[.,]\d+)?)\s*(?:л(?:ит(?:р|ра|ров)?)?|l(?:iters?)?)(?:[^\p{L}\p{N}]|$)/iu,
+  );
   if (liter) {
     const value = Number(liter[1]!.replace(",", "."));
     if (value > 0 && value <= 10) {
@@ -53,7 +55,8 @@ export function inferDrinkPackMlFromText(...parts: Array<string | null | undefin
     }
   }
 
-  const ml = text.match(/(?:\bв|\bна)\s*(\d{3,4})\s*мл/u);
+  // Boundary after мл/ml must be Unicode-safe (`\b` fails after Cyrillic letters).
+  const ml = text.match(/(?:\bв|\bна)\s*(\d{3,4})\s*(?:мл|ml)(?:[^\p{L}\p{N}]|$)/iu);
   if (ml) {
     const value = Number(ml[1]);
     if (value >= 200 && value <= 5000) {
@@ -61,7 +64,7 @@ export function inferDrinkPackMlFromText(...parts: Array<string | null | undefin
     }
   }
 
-  const mlPlain = text.match(/(\d{2,4})\s*мл/u);
+  const mlPlain = text.match(/(\d{2,4})\s*(?:мл|ml)(?:[^\p{L}\p{N}]|$)/iu);
   if (mlPlain) {
     const value = Number(mlPlain[1]);
     if (value >= 50 && value <= 5000) {

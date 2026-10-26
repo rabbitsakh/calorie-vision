@@ -1,4 +1,5 @@
 import type { FoodRecognitionResult } from "../food-types";
+import { normalizeBarcode } from "../barcode";
 import { looksLikeDrinkName } from "../portion-unit";
 import { recognitionNeedsPortionRescale } from "../recognition-nutrition";
 
@@ -15,6 +16,9 @@ function hasDrinkMacros(result: FoodRecognitionResult): boolean {
 
 /** Whether a drink/bottle specialist pass is worth another call. */
 export function shouldRunDrinkPass(result: FoodRecognitionResult): boolean {
+  // Digits already read — let OFF / GigaChat barcode enrich own nutrition (don't burn the slot).
+  if (normalizeBarcode(result.barcode ?? null)) return false;
+
   const nameLooksDrink = looksLikeDrinkName(result.dishName, result.brand);
   if (!nameLooksDrink) return false;
 

@@ -13,8 +13,11 @@ export type RecognitionEvalCase = {
     minCalories?: number;
     /** After normalizeRecognitionNutrition — catches per-100 stuck on bottle volume. */
     minNormalizedCalories?: number;
+    /** Upper bound after normalize — catches glass milk/tea overscale. */
+    maxNormalizedCalories?: number;
     expectNormalized?: {
       portionGrams?: number;
+      calories?: number;
     };
     shouldRetry?: boolean;
     /** Optional specialist routing assert via pickSpecialistPass. */
@@ -342,6 +345,9 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       dishNameIncludes: "Молоко",
       photoKind: "meal",
       minCalories: 80,
+      minNormalizedCalories: 100,
+      maxNormalizedCalories: 140,
+      expectNormalized: { portionGrams: 250, calories: 120 },
       shouldRetry: false,
     },
   },
@@ -1102,7 +1108,13 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       items: [],
       per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
     }),
-    expect: { dishNameIncludes: "Чай", shouldRetry: false },
+    expect: {
+      dishNameIncludes: "Чай",
+      shouldRetry: false,
+      minNormalizedCalories: 1,
+      maxNormalizedCalories: 4,
+      expectNormalized: { portionGrams: 250, calories: 2 },
+    },
   },
   {
     id: "cheese-portion-50g",
@@ -1196,7 +1208,36 @@ export const RECOGNITION_EVAL_CASES: RecognitionEvalCase[] = [
       items: [],
       per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
     }),
-    expect: { dishNameIncludes: "Эспрессо", shouldRetry: false },
+    expect: {
+      dishNameIncludes: "Эспрессо",
+      shouldRetry: false,
+      minNormalizedCalories: 4,
+      maxNormalizedCalories: 8,
+      expectNormalized: { portionGrams: 30, calories: 5 },
+    },
+  },
+  {
+    id: "barcode-drink-skip-specialist",
+    description: "Barcode already present — do not burn drink specialist slot",
+    rawModelJson: JSON.stringify({
+      photoKind: "barcode",
+      dishName: "Молоко",
+      barcode: "4600697011288",
+      calories: 0,
+      protein: 0,
+      fat: 0,
+      carbs: 0,
+      portionGrams: 100,
+      confidence: 0.75,
+      alternatives: [],
+      items: [],
+      per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+    }),
+    expect: {
+      photoKind: "barcode",
+      specialistPass: null,
+      shouldRetry: false,
+    },
   },
   {
     id: "sushi-set",
