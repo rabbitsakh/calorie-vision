@@ -49,6 +49,16 @@ export function countWorkingSets(sets: readonly SetLike[]): number {
   return n;
 }
 
+/**
+ * Mutating lever apply (PATCH planned / POST volume +1) only on fresh create/start/repeat.
+ * Resume / list reopen must pass false — otherwise goal sets get re-appended.
+ */
+export function shouldMutateLeverOnOpen(opts?: {
+  applyLever?: boolean;
+}): boolean {
+  return Boolean(opts?.applyLever);
+}
+
 export function countIncompleteWorkingSets(sets: readonly SetLike[]): number {
   let n = 0;
   for (const s of sets) {

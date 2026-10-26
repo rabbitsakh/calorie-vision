@@ -10,6 +10,7 @@ import {
   needsVolumeExtraSet,
   persistLeverRecoveryMemory,
   resolveLeverSessionGoal,
+  shouldMutateLeverOnOpen,
   volumeExtraSetBody,
   type LeverSessionGoal,
 } from "./lever-session-apply.ts";
@@ -156,6 +157,13 @@ test("needsVolumeExtraSet for planned = last count", () => {
     false,
   );
   assert.equal(needsVolumeExtraSet([], 3, goal), false);
+});
+
+test("shouldMutateLeverOnOpen only when create/start opts.applyLever", () => {
+  assert.equal(shouldMutateLeverOnOpen(), false);
+  assert.equal(shouldMutateLeverOnOpen({}), false);
+  assert.equal(shouldMutateLeverOnOpen({ applyLever: false }), false);
+  assert.equal(shouldMutateLeverOnOpen({ applyLever: true }), true);
 });
 
 test("needsVolumeExtraSet false once a working set is logged (reopen mid-workout)", () => {

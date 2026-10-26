@@ -1,5 +1,20 @@
 [
   {
+    "version": "3.0.33",
+    "date": "2026-10-27",
+    "summary": "gym: goal sets only on create",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Подходы из цели (volume +1) только при создании/старте — не при возврате"
+      },
+      {
+        "kind": "fix",
+        "text": "Сравнение с прошлой тренировкой по рабочим подходам, без разминки"
+      }
+    ]
+  },
+  {
     "version": "3.0.32",
     "date": "2026-10-27",
     "summary": "gym: no set append on reopen",
