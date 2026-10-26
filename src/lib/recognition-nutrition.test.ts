@@ -616,6 +616,63 @@ test("inferDrinkPackMlFromText parses liter and ml volumes", () => {
   assert.equal(inferDrinkPackMlFromText("Пиво 1.5 л"), 1500);
   assert.equal(inferDrinkPackMlFromText("Кола 0,5 л"), 500);
   assert.equal(inferDrinkPackMlFromText("Сок 250 мл"), 250);
+  assert.equal(inferDrinkPackMlFromText("Cola 1.5L"), 1500);
+  assert.equal(inferDrinkPackMlFromText("Cola 500ml"), 500);
+  assert.equal(inferDrinkPackMlFromText("Sprite 330 ML"), 330);
+});
+
+test("poured drink glass keeps serving kcal (no fake per-100)", () => {
+  const milk = normalizeRecognitionNutrition({
+    dishName: "Молоко",
+    calories: 120,
+    protein: 3,
+    fat: 2.5,
+    carbs: 5,
+    portionGrams: 250,
+    confidence: 0.86,
+    photoKind: "meal",
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  });
+  assert.equal(milk.calories, 120);
+  assert.equal(milk.portionGrams, 250);
+
+  const tea = normalizeRecognitionNutrition({
+    dishName: "Чай без сахара",
+    calories: 2,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    portionGrams: 250,
+    confidence: 0.84,
+    photoKind: "meal",
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  });
+  assert.equal(tea.calories, 2);
+});
+
+test("espresso shot keeps 30 ml portion and 5 kcal", () => {
+  assert.equal(
+    resolveDisplayPortionGrams({
+      dishName: "Эспрессо",
+      calories: 5,
+      portionGrams: 30,
+      photoKind: "meal",
+    }),
+    30,
+  );
+  const norm = normalizeRecognitionNutrition({
+    dishName: "Эспрессо",
+    calories: 5,
+    protein: 0,
+    fat: 0,
+    carbs: 1,
+    portionGrams: 30,
+    confidence: 0.9,
+    photoKind: "meal",
+    per100g: { calories: 0, protein: 0, fat: 0, carbs: 0 },
+  });
+  assert.equal(norm.portionGrams, 30);
+  assert.equal(norm.calories, 5);
 });
 
 test("resolveDisplayPortionGrams uses label volume text for per-100 drinks", () => {

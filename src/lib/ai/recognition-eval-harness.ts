@@ -54,7 +54,9 @@ export function evaluateRecognitionCase(fixture: RecognitionEvalCase): EvalCaseR
   }
 
   const needsNormalized =
-    expect.minNormalizedCalories !== undefined || expect.expectNormalized !== undefined;
+    expect.minNormalizedCalories !== undefined ||
+    expect.maxNormalizedCalories !== undefined ||
+    expect.expectNormalized !== undefined;
   if (needsNormalized) {
     const normalized = normalizeRecognitionNutrition(parsed);
     if (
@@ -66,11 +68,27 @@ export function evaluateRecognitionCase(fixture: RecognitionEvalCase): EvalCaseR
       );
     }
     if (
+      expect.maxNormalizedCalories !== undefined &&
+      normalized.calories > expect.maxNormalizedCalories
+    ) {
+      errors.push(
+        `normalized calories ${normalized.calories} > ${expect.maxNormalizedCalories}`,
+      );
+    }
+    if (
       expect.expectNormalized?.portionGrams !== undefined &&
       normalized.portionGrams !== expect.expectNormalized.portionGrams
     ) {
       errors.push(
         `normalized portionGrams ${normalized.portionGrams} !== ${expect.expectNormalized.portionGrams}`,
+      );
+    }
+    if (
+      expect.expectNormalized?.calories !== undefined &&
+      normalized.calories !== expect.expectNormalized.calories
+    ) {
+      errors.push(
+        `normalized calories ${normalized.calories} !== ${expect.expectNormalized.calories}`,
       );
     }
   }

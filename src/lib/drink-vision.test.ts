@@ -54,6 +54,20 @@ test("drink pass skips when bottle volume and calories look good", () => {
   );
 });
 
+test("drink pass skips when barcode digits already present", () => {
+  assert.equal(
+    shouldRunDrinkPass({
+      dishName: "Молоко",
+      barcode: "4600697011288",
+      calories: 0,
+      confidence: 0.7,
+      photoKind: "barcode",
+      portionGrams: 100,
+    }),
+    false,
+  );
+});
+
 test("drink pass runs when macros look like per-100ml on bottle volume", () => {
   assert.equal(
     shouldRunDrinkPass({
