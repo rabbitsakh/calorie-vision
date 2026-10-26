@@ -45,3 +45,11 @@ test("sanitizePendingWriteReply keeps honest confirm CTA", () => {
   const honest = "Протеин ~260 ккал. Подтверди «В дневник» ниже.";
   assert.equal(sanitizePendingWriteReply(honest), honest);
 });
+
+test("sanitizePendingWriteReply strips false ✓ В рацион tool echo", () => {
+  const out = sanitizePendingWriteReply(
+    "Блины ~450 ккал.\n\n✓ В рацион 2026-10-18: Блины (450 ккал)\n\nПодтверди ниже.",
+  );
+  assert.doesNotMatch(out, /✓\s*В рацион/);
+  assert.match(out, /Блины|подтверд/i);
+});

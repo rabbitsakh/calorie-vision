@@ -293,6 +293,34 @@ function normalizeMealTypeKey(
   return undefined;
 }
 
+/** Cyrillic-safe end of token (`\b` is ASCII-only). */
+const TOKEN_END = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+
+/** Remove leaked macro/tool prefixes from a dish name («углеводы ✓ В рацион…»). */
+export function sanitizeAssistantMealName(name: string): string {
+  let s = name.trim();
+  if (!s) return s;
+  for (let i = 0; i < 6; i++) {
+    const next = s
+      .replace(/^[✓✗✔✖]\s*/u, "")
+      // Only БЖУ labels — not «протеин» (dish name «протеин изолят»).
+      .replace(
+        new RegExp(
+          String.raw`^(?:белки|жиры|углеводы)${TOKEN_END}\s*`,
+          "iu",
+        ),
+        "",
+      )
+      .replace(/^(?:[бbжfуu]\s*\d+(?:[.,]\d+)?\s*)+/iu, "")
+      .replace(/^[✓✗✔✖]?\s*В\s+рацион\s+\d{4}-\d{2}-\d{2}\s*:\s*/iu, "")
+      .replace(/^[✓✗✔✖]?\s*В\s+рацион\s*:\s*/iu, "")
+      .trim();
+    if (next === s) break;
+    s = next;
+  }
+  return s.slice(0, 120);
+}
+
 export function normalizeAssistantActions(raw: unknown): AssistantActions | null {
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
@@ -321,6 +349,8 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
               ? row.title
               : null;
       if (typeof name !== "string" || !name.trim()) continue;
+      const cleanName = sanitizeAssistantMealName(name);
+      if (!cleanName || /В\s+рацион\b/iu.test(cleanName)) continue;
       const num = (v: unknown) =>
         typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10) / 10 : undefined;
       // Models sometimes emit `calories` instead of `kcal`.
@@ -349,7 +379,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         }
       }
       meals.push({
-        name: name.trim().slice(0, 120),
+        name: cleanName.slice(0, 120),
         ...(kcal != null ? { kcal } : {}),
         protein: num(row.protein),
         fat: num(row.fat),

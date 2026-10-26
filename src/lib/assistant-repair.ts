@@ -5,8 +5,11 @@
 import { completeChat } from "@/lib/ai/gigachat";
 import {
   normalizeAssistantActions,
+  sanitizeAssistantMealName,
   type AssistantActions,
 } from "@/lib/admin-assistant";
+
+export { sanitizeAssistantMealName };
 import {
   userWantsWrite,
   userWantsStartWorkout,
@@ -349,6 +352,109 @@ export function messageLooksLikeMultiDish(message: string): boolean {
 
 type ParsedMealLine = NonNullable<AssistantActions["meals"]>[number];
 
+/** Drop tool-echo / false «✓ В рацион…» lines that poison comma-split repair. */
+export function stripAssistantToolNoise(text: string): string {
+  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  const toolLine = new RegExp(String.raw`^[✓✗✔✖]\s*В\s+рацион${end}`, "iu");
+  const dated = /^В\s+рацион\s+\d{4}-\d{2}-\d{2}\s*:/iu;
+  return text
+    .split(/\r?\n/)
+    .filter((line) => {
+      const t = line.trim();
+      if (!t) return true;
+      if (toolLine.test(t)) return false;
+      if (dated.test(t)) return false;
+      return true;
+    })
+    .join("\n");
+}
+
+function mealNameLooksPolluted(name: string): boolean {
+  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  return new RegExp(
+    String.raw`В\s+рацион${end}|^\s*(?:белки|жиры|углеводы)${end}|^[✓✗✔✖]`,
+    "iu",
+  ).test(name.trim());
+}
+
+function parseMacroRaw(v?: string): number | undefined {
+  if (!v) return undefined;
+  const x = Number(v.replace(",", "."));
+  return Number.isFinite(x) ? Math.round(x * 10) / 10 : undefined;
+}
+
+/**
+ * Trailing «~450 ккал, Б24 Ж15 У50» / «белки 24 г, жиры 15 г, углеводы 50 г».
+ * Also accepts «(3 шт.): ~450 ккал…» without a paren wrapping the kcal block.
+ * Note: `\w` is ASCII-only — use `\p{L}` for Cyrillic stems.
+ */
+function extractTrailingMacros(fragment: string): {
+  kcal: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  head: string;
+} | null {
+  const rest = fragment.trim();
+  if (!rest) return null;
+
+  const gram = String.raw`(?:г|гр|грамм(?:а|ов)?)?`;
+  // Full words first — avoid `[с]` matching the start of «с креветками».
+  const full = new RegExp(
+    String.raw`(?::\s*)?~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
+    "iu",
+  ).exec(rest);
+  if (full?.[1]) {
+    const kcal = Math.round(Number(full[1].replace(",", ".")));
+    if (Number.isFinite(kcal) && kcal > 0) {
+      return {
+        kcal,
+        protein: parseMacroRaw(full[2]),
+        fat: parseMacroRaw(full[3]),
+        carbs: parseMacroRaw(full[4]),
+        head: rest.slice(0, full.index).trim().replace(/[—\-–:]\s*$/, "").trim(),
+      };
+    }
+  }
+
+  // Abbrev Б/Ж/У (not «с» — that ate dish text after «ккал»).
+  const abbrev =
+    /[—(]?\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[уu]\s*(\d+(?:[.,]\d+)?))?\s*\)?\s*$/iu.exec(
+      rest,
+    );
+  if (abbrev?.[1]) {
+    const kcal = Math.round(Number(abbrev[1].replace(",", ".")));
+    if (Number.isFinite(kcal) && kcal > 0) {
+      return {
+        kcal,
+        protein: parseMacroRaw(abbrev[2]),
+        fat: parseMacroRaw(abbrev[3]),
+        carbs: parseMacroRaw(abbrev[4]),
+        head: rest
+          .slice(0, abbrev.index)
+          .trim()
+          .replace(/[—\-–:]\s*$/, "")
+          .trim(),
+      };
+    }
+  }
+
+  return null;
+}
+
+/** Strip БЖУ gram labels so «углеводы 10 г» is not treated as portion. */
+function stripMacroGramLabels(text: string): string {
+  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  return text
+    .replace(
+      /(?:белки|жиры|углеводы|протеин)\s*\d+(?:[.,]\d+)?\s*(?:г|гр|грамм(?:а|ов)?)?/giu,
+      " ",
+    )
+    .replace(new RegExp(String.raw`[бbжfуu]\s*\d+(?:[.,]\d+)?${end}`, "giu"), " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function mealLineFromFragment(
   fragment: string,
   lineNote?: string,
@@ -361,35 +467,30 @@ function mealLineFromFragment(
   let fat: number | undefined;
   let carbs: number | undefined;
 
-  const macroBlock =
-    /[—(]\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?)?)?\s*[,;]?\s*(?:[уucс]\s*(\d+(?:[.,]\d+)?)?)?\s*\)?\s*$/iu.exec(
-      rest,
-    );
-  if (macroBlock) {
-    const n = (v?: string) => {
-      if (!v) return undefined;
-      const x = Number(v.replace(",", "."));
-      return Number.isFinite(x) ? Math.round(x * 10) / 10 : undefined;
-    };
-    kcal = Math.round(Number(macroBlock[1]!.replace(",", ".")));
-    protein = n(macroBlock[2]);
-    fat = n(macroBlock[3]);
-    carbs = n(macroBlock[4]);
-    rest = rest.slice(0, macroBlock.index).trim().replace(/[—\-–:]\s*$/, "").trim();
+  const macros = extractTrailingMacros(rest);
+  if (macros) {
+    kcal = macros.kcal;
+    protein = macros.protein;
+    fat = macros.fat;
+    carbs = macros.carbs;
+    rest = macros.head;
   }
 
   if (!rest || rest.length < 2) return null;
 
-  const portion = parsePortionGramsFromMessage(rest);
+  const forPortion = stripMacroGramLabels(rest);
+  const portion = parsePortionGramsFromMessage(forPortion);
   const drinkQ = drinkLookupQuery(rest);
-  const cleaned = rest
-    .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const cleaned = sanitizeAssistantMealName(
+    forPortion
+      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
   const pack =
     (drinkQ ? lookupRuNutritionTable(drinkQ) : null) ??
     lookupRuNutritionTable(cleaned) ??
-    lookupRuNutritionTable(rest);
+    lookupRuNutritionTable(sanitizeAssistantMealName(rest));
 
   if (kcal == null && pack) {
     const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
@@ -403,8 +504,8 @@ function mealLineFromFragment(
   }
 
   const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
-  const baseName = pack?.dishName ?? cleaned;
-  if (!baseName || baseName.length < 2) return null;
+  const baseName = sanitizeAssistantMealName(pack?.dishName ?? cleaned);
+  if (!baseName || baseName.length < 2 || mealNameLooksPolluted(baseName)) return null;
   const name =
     portion != null && portion > 0
       ? `${baseName} (${portion} ${unit})`
@@ -427,7 +528,7 @@ function mealLineFromFragment(
  * or «вчера на ужин пюре и котлета и пиво».
  */
 export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
-  const raw = text.trim();
+  const raw = stripAssistantToolNoise(text).trim();
   if (!raw) return [];
   // Prefer a slot header / colon list; else whole message after stripping day words.
   const header = new RegExp(
@@ -468,13 +569,16 @@ export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
 }
 
 /**
- * Parse bullet / numbered lines with optional «~200 ккал, Б4 Ж3 У35».
- * Falls back to inline comma / «и» lists when no bullets.
+ * Parse bullet / numbered lines with optional «~200 ккал, Б4 Ж3 У35»
+ * or full-word «белки 24 г, жиры 15 г, углеводы 50 г».
+ * Falls back to inline comma / «и» lists only when the text is not a bullet list.
  * Used for offline multi-dish repair from user text or assistant draft.
  */
 export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
-  const lines = text.split(/\r?\n/);
+  const cleaned = stripAssistantToolNoise(text);
+  const lines = cleaned.split(/\r?\n/);
   const meals: ParsedMealLine[] = [];
+  let bulletLines = 0;
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
@@ -482,6 +586,7 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
       /^[-•*]\s+(.+)$/.exec(line) ??
       /^\d+[.)]\s+(.+)$/.exec(line);
     if (!m?.[1]) continue;
+    bulletLines += 1;
     let rest = m[1].trim();
     let lineNote: string | undefined;
     const slotPrefix = new RegExp(
@@ -496,7 +601,10 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
     if (meal) meals.push(meal);
   }
   if (meals.length >= 2) return meals;
-  const inline = parseInlineMealsFromText(text);
+  // Bullet drafts must not fall through to comma-split of the whole reply
+  // (that glued «углеводы» + «✓ В рацион…» into dish names).
+  if (bulletLines >= 2) return meals;
+  const inline = parseInlineMealsFromText(cleaned);
   return inline.length >= 2 ? inline : meals;
 }
 
@@ -529,7 +637,11 @@ export function heuristicRepairMultiDishActions(
   if (meals.length < 2) return null;
 
   const { note, targetDate } = mealMetaFromMessage(userMessage);
-  const withNote = meals.map((m) => ({ ...m, note }));
+  const withNote = meals.map((m) => ({
+    ...m,
+    note,
+    name: sanitizeAssistantMealName(stripMealSlotPrefix(m.name)),
+  }));
   const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
 
   return {
@@ -562,7 +674,7 @@ export function heuristicRepairFromDraftReply(
   const withNote = picked.map((m) => ({
     ...m,
     note: m.note && isMealNoteLabel(m.note) ? m.note : note,
-    name: stripMealSlotPrefix(m.name),
+    name: sanitizeAssistantMealName(stripMealSlotPrefix(m.name)),
   }));
   const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
 
@@ -755,17 +867,29 @@ export function heuristicRepairPortionPatchActions(
 
 /**
  * When the model (or drink heuristic) collapsed a multi-dish log to one meal,
- * replace with the offline multi-dish parse.
+ * or polluted names with tool/macro leftovers, replace with the offline parse.
  */
 export function preferMultiDishActions(
   userMessage: string,
   assistantReply: string,
   actions: AssistantActions | null | undefined,
 ): AssistantActions | null {
-  if (!messageLooksLikeMultiDish(userMessage)) return actions ?? null;
+  const looksMulti =
+    messageLooksLikeMultiDish(userMessage) ||
+    messageLooksLikeMultiDish(assistantReply);
+  if (!looksMulti) return actions ?? null;
+
+  const multi =
+    heuristicRepairMultiDishActions(userMessage, assistantReply) ??
+    heuristicRepairFromDraftReply(userMessage, assistantReply);
   const mealCount = actions?.meals?.length ?? 0;
-  if (mealCount >= 2) return actions ?? null;
-  const multi = heuristicRepairMultiDishActions(userMessage, assistantReply);
+  const multiCount = multi?.meals?.length ?? 0;
+  if (multiCount >= 2 && multiCount > mealCount) return multi;
+  if (mealCount >= 2) {
+    const polluted = (actions?.meals ?? []).some((m) => mealNameLooksPolluted(m.name));
+    if (polluted && multiCount >= 2) return multi;
+    return actions ?? null;
+  }
   return multi ?? actions ?? null;
 }
 
