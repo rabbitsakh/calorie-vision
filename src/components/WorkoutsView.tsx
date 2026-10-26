@@ -615,7 +615,12 @@ export function WorkoutsView({
    * H1/H2 after open: rewrite incomplete planned sets to lever targets,
    * and for volume add one incomplete working set when still short.
    */
+  /** Volume +1 / lever rewrite must run once per session — re-open must not recreate deleted sets. */
+  const leverAppliedRef = useRef(new Set<string>());
+
   const applyLeverGoalsOnOpen = useCallback(async (session: SessionDetail) => {
+    if (leverAppliedRef.current.has(session.id)) return;
+    leverAppliedRef.current.add(session.id);
     if (session.clockStatus === "finished") return;
     let latest = session;
     for (const ex of session.exercises) {
@@ -728,7 +733,7 @@ export function WorkoutsView({
 
     try {
       const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-        await fetch(withBasePath(`/api/workouts/${id}`)),
+        await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
       );
       setDetail(data.session);
       setProgress(data.progress);
@@ -1216,7 +1221,7 @@ export function WorkoutsView({
     async (session: SessionDetail) => {
       setDetail(session);
       const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-        await fetch(withBasePath(`/api/workouts/${session.id}`)),
+        await fetch(withBasePath(`/api/workouts/${session.id}`), { cache: "no-store" }),
       );
       setDetail(data.session);
       setProgress(data.progress);
@@ -2250,12 +2255,25 @@ export function WorkoutsView({
       setError(null);
       return;
     }
+    const previous = detail;
+    // Optimistic hide — reopen must not resurrect via cached GET / lever re-apply.
+    setDetail({
+      ...detail,
+      exercises: detail.exercises.map((ex) => ({
+        ...ex,
+        sets: ex.sets.filter((s) => s.id !== setId),
+      })),
+    });
     try {
       const data = await readJson<{ session: SessionDetail }>(
-        await fetch(withBasePath(`/api/workouts/sets/${setId}`), { method: "DELETE" }),
+        await fetch(withBasePath(`/api/workouts/sets/${setId}`), {
+          method: "DELETE",
+          cache: "no-store",
+        }),
       );
       await refreshDetail(data.session);
     } catch (err) {
+      setDetail(previous);
       setError(err instanceof Error ? err.message : "Не удалось удалить подход");
     }
   };

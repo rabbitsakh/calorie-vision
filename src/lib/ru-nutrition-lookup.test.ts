@@ -217,3 +217,10 @@ test("scaleRuNutritionToGrams scales portion macros", () => {
     assert.equal(half!.sugar, Math.round((full!.sugar / 2) * 10) / 10);
   }
 });
+
+test("lookupRuNutritionTable matches peanut butter not pasta", () => {
+  const hit = lookupRuNutritionTable("арахисовая паста 15г");
+  assert.ok(hit);
+  assert.match(hit!.dishName, /арахис/i);
+  assert.doesNotMatch(hit!.dishName, /макарон/i);
+});

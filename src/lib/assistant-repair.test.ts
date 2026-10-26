@@ -31,6 +31,7 @@ import {
   userWantsStartWorkout,
   userWantsWrite,
 } from "./assistant-intent.ts";
+import { lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -461,4 +462,55 @@ test("sanitizePendingWriteReply drops false ✓ В рацион line", () => {
   const out = sanitizePendingWriteReply(SCREENSHOT_REPLY);
   assert.doesNotMatch(out, /✓\s*В рацион/);
   assert.match(out, /подтверд|не записал/i);
+});
+
+/** Screenshot: four dairy/PB items — peanut butter must stay on ActionCard. */
+const USER =
+  "Я съел творог обезжиренный 200г, арахисовая паста 15г, молоко 100г, обезжиренный греческий йогурт 100г";
+
+const REPLY = `Хорошо, вот ваши продукты:
+
+- Творог обезжиренный (200 г): ~147 ккал, белки 44 г, жиры 0.7 г, углеводы 6.7 г
+- Арахисовая паста (15 г): ~90 ккал, белки 4 г, жиры 7 г, углеводы 3 г
+- Молоко 2,5% (100 г): ~48 ккал, белки 1.2 г, жиры 1 г, углеводы 2 г
+- Греческий йогурт обезжиренный (100 г): ~100 ккал, белки 8 г, жиры 4 г, углеводы 6.7 г
+
+Нажми кнопку подтверждения.`;
+
+test("lookup peanut butter not pasta", () => {
+  const hit = lookupRuNutritionTable("арахисовая паста");
+  assert.ok(hit);
+  assert.match(hit!.dishName, /арахис/i);
+  assert.doesNotMatch(hit!.dishName, /макарон/i);
+});
+
+test("screenshot: ActionCard keeps all 4 including peanut butter", () => {
+  const meals = parseStructuredMealsFromText(REPLY);
+  assert.equal(meals.length, 4);
+  assert.ok(meals.some((m) => /арахис/i.test(m.name)));
+  assert.ok(meals.every((m) => !/\(\s*\)/.test(m.name)));
+
+  const multi = heuristicRepairMultiDishActions(USER, REPLY);
+  assert.equal(multi?.meals?.length, 4);
+  assert.ok(multi!.meals!.some((m) => /арахис/i.test(m.name)));
+
+  const draft = heuristicRepairFromDraftReply(USER, REPLY);
+  assert.equal(draft?.meals?.length, 4);
+
+  const fixed = preferMultiDishActions(USER, REPLY, {
+    apply: true,
+    meals: [
+      { name: "Творог обезжиренный (200 г)", kcal: 147 },
+      { name: "Молоко 2,5% (100 г)", kcal: 48 },
+      { name: "Греческий йогурт (100 г)", kcal: 100 },
+    ],
+  });
+  assert.equal(fixed?.meals?.length, 4);
+  assert.ok(fixed!.meals!.some((m) => /арахис/i.test(m.name)));
+});
+
+test("user message alone finds peanut butter via table", () => {
+  const multi = heuristicRepairMultiDishActions(USER);
+  assert.ok((multi?.meals?.length ?? 0) >= 4);
+  assert.ok(multi!.meals!.some((m) => /арахис/i.test(m.name)));
 });
