@@ -642,11 +642,11 @@ export function heuristicRepairMultiDishActions(
   }
 
   let meals = parseStructuredMealsFromText(userMessage);
-  // Prefer the richer list — user inline may drop unknown staples (арахисовая паста)
-  // while the draft bullets already have kcal for every dish.
+  // Prefer the draft when it covers ≥ as many dishes: cleaner names + macros.
+  // User inline may drop staples (арахисовая паста) or keep «Я съел …» prefixes.
   if (assistantReply) {
     const fromReply = parseStructuredMealsFromText(assistantReply);
-    if (fromReply.length > meals.length) {
+    if (fromReply.length >= 2 && fromReply.length >= meals.length) {
       meals = fromReply;
     } else if (meals.length < 2 && fromReply.length >= 2) {
       meals = fromReply;

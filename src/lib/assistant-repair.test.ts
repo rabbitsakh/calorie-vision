@@ -507,6 +507,8 @@ test("screenshot: ActionCard keeps all 4 including peanut butter", () => {
   });
   assert.equal(fixed?.meals?.length, 4);
   assert.ok(fixed!.meals!.some((m) => /арахис/i.test(m.name)));
+  assert.ok(fixed!.meals!.every((m) => !/^я\s+съел/i.test(m.name)));
+  assert.match(fixed!.meals!.find((m) => /арахис/i.test(m.name))!.name, /^Арахисовая/i);
 });
 
 test("user message alone finds peanut butter via table", () => {
