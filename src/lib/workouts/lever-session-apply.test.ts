@@ -158,6 +158,28 @@ test("needsVolumeExtraSet for planned = last count", () => {
   assert.equal(needsVolumeExtraSet([], 3, goal), false);
 });
 
+test("needsVolumeExtraSet false once a working set is logged (reopen mid-workout)", () => {
+  const goal: LeverSessionGoal = {
+    lever: "volume",
+    fromMemory: true,
+    kg: 80,
+    reps: 5,
+    extraSet: true,
+  };
+  assert.equal(
+    needsVolumeExtraSet(
+      [
+        { weightKg: 80, reps: 5, setType: "working", completed: true },
+        { weightKg: 80, reps: 5, setType: "working", completed: false },
+        { weightKg: 80, reps: 5, setType: "working", completed: false },
+      ],
+      3,
+      goal,
+    ),
+    false,
+  );
+});
+
 test("mergeDraftWithLeverGoal overlays kg and reps", () => {
   const m = mergeDraftWithLeverGoal(
     { kg: "70", reps: "8" },

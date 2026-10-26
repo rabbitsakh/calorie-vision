@@ -77,6 +77,10 @@ import {
   volumeExtraSetBody,
 } from "@/lib/workouts/lever-session-apply";
 import {
+  hasLeverAppliedForSession,
+  markLeverAppliedForSession,
+} from "@/lib/workouts/lever-session-applied";
+import {
   compareSetToLeverGoal,
   formatLeverSetToast,
   leverGoalFromMemory,
@@ -614,13 +618,16 @@ export function WorkoutsView({
   /**
    * H1/H2 after open: rewrite incomplete planned sets to lever targets,
    * and for volume add one incomplete working set when still short.
+   * Once per session (memory + localStorage) — remount must not POST deleted sets back.
    */
-  /** Volume +1 / lever rewrite must run once per session — re-open must not recreate deleted sets. */
   const leverAppliedRef = useRef(new Set<string>());
 
   const applyLeverGoalsOnOpen = useCallback(async (session: SessionDetail) => {
-    if (leverAppliedRef.current.has(session.id)) return;
+    if (leverAppliedRef.current.has(session.id) || hasLeverAppliedForSession(session.id)) {
+      return;
+    }
     leverAppliedRef.current.add(session.id);
+    markLeverAppliedForSession(session.id);
     if (session.clockStatus === "finished") return;
     let latest = session;
     for (const ex of session.exercises) {
