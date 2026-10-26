@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.25",
+    "date": "2026-10-26",
+    "summary": "gym: soft-deload at finish after 2× miss",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "После 2× мимо soft deload ставится в конце сессии, не только при следующем открытии"
+      },
+      {
+        "kind": "improvement",
+        "text": "Повторный мимо после deload → смена рычага; Today strip видит armed recovery"
+      },
+      {
+        "kind": "improvement",
+        "text": "Следующий раз: primary рычаг совпадает с soft-deload / switch"
+      }
+    ]
+  },
+  {
     "version": "3.0.24",
     "date": "2026-10-26",
     "summary": "recog: drink glass/shot scale + Latin volumes",

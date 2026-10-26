@@ -169,6 +169,56 @@ export function persistLeverRecoveryMemory(
   });
 }
 
+/**
+ * Finish summary — after recording a miss, arm soft-deload / switch so Today strip
+ * and next open see recovery without waiting for applyLeverGoalsOnOpen.
+ */
+export function armMissRecoveryAfterFinish(input: {
+  name: string;
+  lever: ProgressionLever;
+  basisKg: number | null;
+  basisReps?: number | null;
+  at?: string;
+}): LeverSessionGoal | null {
+  let mem = getLeverMemory(input.name);
+  if (!mem) {
+    setLeverMemory({
+      name: input.name,
+      lever: input.lever,
+      basisKg: input.basisKg,
+      targetKg: input.basisKg,
+      targetReps: input.basisReps ?? null,
+      at: input.at,
+    });
+    mem = getLeverMemory(input.name);
+  }
+  if (!mem) return null;
+  // Keep memory lever aligned with the miss thread for streak matching.
+  if (mem.lever !== input.lever && !mem.recovery) {
+    setLeverMemory({
+      name: input.name,
+      lever: input.lever,
+      basisKg: input.basisKg ?? mem.basisKg,
+      targetKg: mem.targetKg,
+      targetReps: input.basisReps ?? mem.targetReps,
+      at: input.at ?? mem.at,
+    });
+    mem = getLeverMemory(input.name);
+    if (!mem) return null;
+  }
+  const basisKg = input.basisKg ?? mem.basisKg ?? 0;
+  if (!(basisKg > 0)) return null;
+  const goal = buildMissRecoveryGoal({
+    name: input.name,
+    mem,
+    basisKg,
+    basisReps: input.basisReps ?? mem.targetReps,
+  });
+  if (!goal) return null;
+  persistLeverRecoveryMemory(input.name, goal, basisKg);
+  return goal;
+}
+
 /** N: summary chrome for recovery outcome this session. */
 export function formatRecoveryOutcomeLine(
   recovery: LeverRecoveryKind | null | undefined,

@@ -13,6 +13,9 @@ import {
 } from "@/lib/workouts/progression";
 import { formatSuggestedKg } from "@/lib/workouts/suggested-load";
 import { pickTipFocus, ruleTipForFocus } from "@/lib/workouts/tip-lever";
+import { getLeverMissStreak } from "@/lib/workouts/lever-outcome-history";
+import { getLeverMemory } from "@/lib/workouts/progression-lever-memory";
+import { buildMissRecoveryGoal } from "@/lib/workouts/lever-session-apply";
 
 export type NextSessionTargetInput = {
   name: string;
@@ -120,6 +123,32 @@ function toTarget(
     primaryLever = preferredLever;
     leverRemembered = true;
   }
+
+  // Gym loop: armed recovery / 2× miss → primary matches soft-deload or switch.
+  // Prefer already-armed memory (don't re-run buildMissRecoveryGoal — that escalates deload→switch).
+  let suggestedKg = null as number | null;
+  const mem = !isCardio ? getLeverMemory(ex.name) : null;
+  if (!isCardio && mem?.recovery && options.some((o) => o.lever === mem.lever)) {
+    primaryLever = mem.lever;
+    leverRemembered = true;
+    suggestedKg = mem.targetKg;
+  } else if (!isCardio && getLeverMissStreak(ex.name) >= 2 && mem) {
+    const basisKg = advice.basisKg ?? ex.lastWorkingKg ?? mem.basisKg ?? 0;
+    if (basisKg > 0) {
+      const recovery = buildMissRecoveryGoal({
+        name: ex.name,
+        mem,
+        basisKg,
+        basisReps: ex.lastWorkingReps ?? mem.targetReps,
+      });
+      if (recovery && options.some((o) => o.lever === recovery.lever)) {
+        primaryLever = recovery.lever;
+        leverRemembered = true;
+        suggestedKg = recovery.kg;
+      }
+    }
+  }
+
   const withPrimary: ProgressionAdvice = { ...advice, primaryLever: primaryLever ?? undefined };
   const primaryOpt =
     options.find((o) => o.lever === primaryLever) ?? options[0] ?? null;
@@ -130,7 +159,7 @@ function toTarget(
     line: isCardio
       ? formatCardioLine(ex.name, advice)
       : formatStrengthLine(ex.name, withPrimary),
-    suggestedKg: primaryOpt?.suggestedKg ?? advice.suggestedKg,
+    suggestedKg: suggestedKg ?? primaryOpt?.suggestedKg ?? advice.suggestedKg,
     basisKg: advice.basisKg ?? ex.lastWorkingKg,
     primaryLever,
     leverRemembered,

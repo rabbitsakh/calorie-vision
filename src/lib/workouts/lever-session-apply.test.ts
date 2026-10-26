@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  armMissRecoveryAfterFinish,
   countWorkingSets,
   formatArmedRecoveryChromeLine,
   formatLeverRecoveryHint,
@@ -325,4 +326,85 @@ test("O: listArmedRecoveries + Today chrome line", () => {
   assert.equal(armed.length, 2);
   assert.match(formatArmedRecoveryChromeLine(armed[0]!) ?? "", /soft deload|новый рычаг/);
   assert.match(formatArmedRecoveryChromeLine({ name: "Тяга", recovery: "switch" }) ?? "", /новый рычаг/);
+});
+
+test("gym loop: armMissRecoveryAfterFinish 1× miss → null", () => {
+  installStorage();
+  recordLeverOutcome({ name: "Жим", lever: "weight", outcome: "miss", at: "2026-10-20" });
+  const g = armMissRecoveryAfterFinish({
+    name: "Жим",
+    lever: "weight",
+    basisKg: 80,
+    basisReps: 5,
+    at: "2026-10-20",
+  });
+  assert.equal(g, null);
+  assert.equal(listArmedRecoveries().length, 0);
+});
+
+test("gym loop: armMissRecoveryAfterFinish 2× miss → soft deload + Today strip", () => {
+  installStorage();
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-18" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-20" });
+  const g = armMissRecoveryAfterFinish({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    basisReps: 5,
+    at: "2026-10-20",
+  });
+  assert.equal(g?.recovery, "deload");
+  assert.equal(g?.lever, "weight");
+  assert.equal(g?.kg, 90);
+  const mem = getLeverMemory("Присед");
+  assert.equal(mem?.recovery, "deload");
+  assert.equal(mem?.targetKg, 90);
+  const armed = listArmedRecoveries(3);
+  assert.equal(armed.length, 1);
+  assert.equal(armed[0]!.name, "Присед");
+  assert.match(formatArmedRecoveryChromeLine(armed[0]!) ?? "", /soft deload/);
+});
+
+test("gym loop: armMissRecoveryAfterFinish deload + miss → switch", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 90,
+    targetReps: 5,
+    at: "2026-10-18",
+    recovery: "deload",
+  });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-18" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-20" });
+  const g = armMissRecoveryAfterFinish({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    basisReps: 5,
+    at: "2026-10-20",
+  });
+  assert.equal(g?.recovery, "switch");
+  assert.equal(g?.lever, "reps");
+  assert.equal(g?.kg, 100);
+  assert.equal(getLeverMemory("Присед")?.recovery, "switch");
+  assert.equal(getLeverMemory("Присед")?.lever, "reps");
+});
+
+test("gym loop: armMissRecoveryAfterFinish volume 2× miss → switch to reps", () => {
+  installStorage();
+  recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "miss", at: "2026-10-18" });
+  recordLeverOutcome({ name: "Тяга", lever: "volume", outcome: "miss", at: "2026-10-20" });
+  const g = armMissRecoveryAfterFinish({
+    name: "Тяга",
+    lever: "volume",
+    basisKg: 80,
+    basisReps: 8,
+    at: "2026-10-20",
+  });
+  assert.equal(g?.recovery, "switch");
+  assert.equal(g?.lever, "reps");
+  assert.equal(g?.extraSet, false);
+  assert.equal(listArmedRecoveries(1)[0]?.recovery, "switch");
 });
