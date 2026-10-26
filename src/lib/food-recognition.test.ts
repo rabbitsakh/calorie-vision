@@ -4,6 +4,27 @@ import { parseFoodRecognitionResponse } from "./ai/parse-response.ts";
 import { nutritionFromPer100g } from "./open-food-facts.ts";
 import { pickPortionGrams } from "./food-recognition.ts";
 
+test("pickPortionGrams trusts vision pack net over OFF 100g", () => {
+  const preferred = pickPortionGrams(
+    {
+      dishName: "Кефир 1%",
+      calories: 40,
+      portionGrams: 930,
+      confidence: 0.8,
+      photoKind: "package",
+    },
+    {
+      dishName: "Кефир",
+      calories: 40,
+      portionGrams: 100,
+      packGrams: 100,
+      explicitPackGrams: false,
+      per100g: { calories: 40 },
+    },
+  );
+  assert.equal(preferred, 930);
+});
+
 test("pickPortionGrams ignores vision 1g for drinks and prefers OFF pack", () => {
   const preferred = pickPortionGrams(
     {

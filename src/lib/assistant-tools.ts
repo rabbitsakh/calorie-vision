@@ -45,6 +45,7 @@ import {
 import {
   userWantsGymEdit,
   userWantsRepeatWorkout,
+  userWantsStartEmptyWorkout,
   userWantsStartWorkout,
   userWantsWrite,
 } from "@/lib/assistant-intent";
@@ -68,6 +69,7 @@ export type AssistantUndoPayload = {
 export {
   userWantsGymEdit,
   userWantsRepeatWorkout,
+  userWantsStartEmptyWorkout,
   userWantsStartWorkout,
   userWantsWrite,
 };

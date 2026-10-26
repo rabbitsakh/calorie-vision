@@ -312,6 +312,7 @@ export function normalizePer100gEnergy(
 export function normalizeTopLevelEnergyCalories(
   calories: number,
   portionGrams?: number | null,
+  macros?: Pick<Per100gValues, "protein" | "fat" | "carbs">,
 ): number {
   if (calories < 150 || calories > 500) {
     return calories;
@@ -325,7 +326,11 @@ export function normalizeTopLevelEnergyCalories(
     }
   }
 
-  const converted = convertLabelEnergyKjToKcal(calories);
+  // Cafe stickers / dense packs with macros: keep pack totals even when portion is 0/missing.
+  const converted = convertLabelEnergyKjToKcal(calories, macros);
+  if (converted === calories) {
+    return calories;
+  }
 
   // Portion totals like 190 kcal @ 500 ml must not be treated as 190 kJ → 45 kcal.
   if (portionGrams && portionGrams > 100) {
@@ -398,7 +403,11 @@ export function coalesceLabelPer100FromVision(result: FoodRecognitionResult): Fo
   }
 
   const portion = result.portionGrams && result.portionGrams > 0 ? result.portionGrams : undefined;
-  const topCal = normalizeTopLevelEnergyCalories(result.calories, portion);
+  const topCal = normalizeTopLevelEnergyCalories(result.calories, portion, {
+    protein: result.protein,
+    fat: result.fat,
+    carbs: result.carbs,
+  });
 
   if (!caloriesLookPer100g(topCal)) {
     return result;
@@ -457,7 +466,11 @@ export function resolvePer100gForScaling(
   const explicitPortion =
     result.portionGrams && result.portionGrams > 0 ? result.portionGrams : null;
   const portionGrams = explicitPortion ?? DEFAULT_PORTION_GRAMS;
-  const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories, portionGrams);
+  const topLevelCalories = normalizeTopLevelEnergyCalories(result.calories, portionGrams, {
+    protein: result.protein,
+    fat: result.fat,
+    carbs: result.carbs,
+  });
 
   // Ready-meal / cafe stickers often put pack totals in calories (e.g. 95 kcal @ 280 g).
   // Don't invent fake per-100 from those dense portion totals when per100g is empty.
@@ -692,13 +705,12 @@ export function isMissingCaloriesForReview(
 }
 
 /**
- * Kcal present but all macros zero — usually a bad plate pass / incomplete enrichment.
- * Skip drinks (often legitimately ~0 protein/fat).
- */
-/**
  * Trust: flag incomplete BJU when kcal exist but fewer than two of P/F/C are set.
- * Drinks often have near-zero macros — skip to avoid false «Уточнить БЖУ».
+ * Drinks and plain produce (fruit/veg with carbs only) skip false «Уточнить БЖУ».
  */
+const PRODUCE_SNACK_RE =
+  /яблок|банан|апельсин|мандарин|груш|виноград|киви|персик|абрикос|слив|клубник|черник|малин|арбуз|дыня|морков|огурец|помидор|томат|перец|капуст|салат\b|зелень|авокадо|грейпфрут|ананас|манго|хурма|гранат|лимон/i;
+
 export function isMissingMacrosForReview(
   item: Pick<FoodRecognitionResult, "dishName" | "brand" | "calories" | "protein" | "fat" | "carbs">,
 ): boolean {
@@ -708,6 +720,15 @@ export function isMissingMacrosForReview(
   const protein = Number(item.protein) || 0;
   const fat = Number(item.fat) || 0;
   const carbs = Number(item.carbs) || 0;
+  // Plain fruit/veg: carbs > 0 and near-zero fat is a complete snack macro set.
+  if (
+    PRODUCE_SNACK_RE.test(item.dishName) &&
+    carbs > 0 &&
+    fat <= 1 &&
+    protein <= 3
+  ) {
+    return false;
+  }
   const filled = [protein, fat, carbs].filter((value) => value > 0).length;
   return filled < 2;
 }

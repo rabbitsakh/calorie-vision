@@ -10,6 +10,7 @@ import {
   heuristicRepairPortionPatchActions,
   heuristicRepairPatchWorkoutActions,
   heuristicRepairRepeatWorkoutActions,
+  heuristicRepairStartWorkoutActions,
   heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
@@ -23,6 +24,8 @@ import {
 import {
   userWantsGymEdit,
   userWantsRepeatWorkout,
+  userWantsStartEmptyWorkout,
+  userWantsStartWorkout,
   userWantsWrite,
 } from "./assistant-intent.ts";
 
@@ -301,6 +304,36 @@ test("userWantsGymEdit and heuristicRepairPatchWorkoutActions", () => {
   assert.ok(log?.patchWorkout?.logSets?.length);
   assert.equal(log!.patchWorkout!.logSets![0]!.weightKg, 80);
   assert.equal(log!.patchWorkout!.logSets![0]!.reps, 8);
+});
+
+test("gym write: подход → logSets; empty start; копируй", () => {
+  assert.equal(userWantsGymEdit("Добавь подход на жим 80×8"), true);
+  const setLog = heuristicRepairPatchWorkoutActions("Добавь подход на жим 80×8");
+  assert.ok(setLog?.patchWorkout?.logSets?.length);
+  assert.match(setLog!.patchWorkout!.logSets![0]!.match ?? "", /жим/i);
+  assert.equal(setLog!.patchWorkout!.logSets![0]!.weightKg, 80);
+
+  assert.equal(userWantsGymEdit("Поставь 80 на 8 на жим"), true);
+  const na = heuristicRepairPatchWorkoutActions("Поставь 80 на 8 на жим");
+  assert.equal(na?.patchWorkout?.logSets?.[0]?.weightKg, 80);
+  assert.equal(na?.patchWorkout?.logSets?.[0]?.reps, 8);
+
+  assert.equal(userWantsStartEmptyWorkout("Начни пустую тренировку"), true);
+  assert.equal(userWantsStartWorkout("Начни тренировку"), true);
+  assert.equal(
+    heuristicRepairStartWorkoutActions("Начни пустую тренировку")?.startEmptyWorkout,
+    true,
+  );
+  assert.equal(
+    heuristicRepairStartWorkoutActions("Начни тренировку")?.startWorkout,
+    true,
+  );
+
+  assert.equal(userWantsRepeatWorkout("Скопируй прошлую тренировку"), true);
+  assert.equal(
+    heuristicRepairRepeatWorkoutActions("Скопируй прошлую тренировку")?.repeatWorkout,
+    true,
+  );
 });
 
 test("userWantsRepeatWorkout and heuristicRepairRepeatWorkoutActions", () => {

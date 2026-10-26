@@ -119,3 +119,47 @@ test("mergeMultiDishRecognition fills incomplete item without dropping good ones
   assert.equal(merged.items?.[1]?.calories, 220);
   assert.equal(merged.calories, 620);
 });
+
+test("mergeMultiDishRecognition fills missing macros when kcal already set", () => {
+  const merged = mergeMultiDishRecognition(
+    {
+      dishName: "Стейк, рис",
+      calories: 600,
+      confidence: 0.6,
+      photoKind: "meal",
+      items: [
+        { dishName: "Стейк", calories: 400, portionGrams: 180, confidence: 0.8 },
+        { dishName: "Рис", calories: 200, portionGrams: 150, confidence: 0.7 },
+      ],
+    },
+    {
+      dishName: "Стейк, рис",
+      calories: 600,
+      confidence: 0.7,
+      photoKind: "meal",
+      items: [
+        {
+          dishName: "Стейк",
+          calories: 400,
+          protein: 40,
+          fat: 20,
+          carbs: 0,
+          portionGrams: 180,
+          confidence: 0.8,
+        },
+        {
+          dishName: "Рис",
+          calories: 200,
+          protein: 4,
+          fat: 1,
+          carbs: 40,
+          portionGrams: 150,
+          confidence: 0.75,
+        },
+      ],
+    },
+  );
+  assert.equal(merged.items?.[0]?.protein, 40);
+  assert.equal(merged.items?.[0]?.fat, 20);
+  assert.equal(merged.items?.[1]?.carbs, 40);
+});

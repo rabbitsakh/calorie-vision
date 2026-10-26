@@ -737,6 +737,16 @@ test("isMissingCaloriesForReview ignores zero portion when per100g is present", 
 test("isMissingMacrosForReview flags kcal without complete BJU, skips drinks", () => {
   assert.equal(
     isMissingMacrosForReview({
+      dishName: "Яблоко",
+      calories: 95,
+      protein: 0,
+      fat: 0,
+      carbs: 22,
+    }),
+    false,
+  );
+  assert.equal(
+    isMissingMacrosForReview({
       dishName: "Котлета",
       calories: 320,
       protein: 0,
@@ -1026,6 +1036,17 @@ test("coalesceLabelPer100FromVision copies 38 kcal/100ml from calories field", (
 
   assert.equal(coalesced.per100g?.calories, 38);
   assert.equal(normalizeRecognitionNutrition(coalesced).calories, 570);
+});
+
+test("normalizeTopLevelEnergyCalories keeps dense pack totals via macros", () => {
+  assert.equal(
+    normalizeTopLevelEnergyCalories(280, 0, { protein: 12, fat: 18, carbs: 10 }),
+    280,
+  );
+  assert.equal(
+    normalizeTopLevelEnergyCalories(350, 180, { protein: 22, fat: 28, carbs: 2 }),
+    350,
+  );
 });
 
 test("normalizeTopLevelEnergyCalories keeps 190 kcal portion total (not kJ)", () => {

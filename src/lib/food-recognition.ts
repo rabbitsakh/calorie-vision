@@ -165,11 +165,13 @@ export function pickPortionGrams(
 
   const drink = looksLikeDrinkName(vision.dishName, vision.brand, off.dishName, off.brand);
   const minVision = drink ? MIN_VISION_DRINK_PORTION_ML : MIN_VISION_FOOD_PORTION_G;
+  // Pack net weights (930 ml kefir, 1.5 L) often exceed 500 — still trust vision over OFF 100 g.
+  const maxVision = drink ? 3000 : 2500;
   const visionGrams = vision.portionGrams;
   if (
     visionGrams !== undefined &&
     visionGrams >= minVision &&
-    visionGrams <= 500 &&
+    visionGrams <= maxVision &&
     visionGrams !== 100
   ) {
     return visionGrams;

@@ -10,6 +10,7 @@ import {
 import {
   userWantsWrite,
   userWantsStartWorkout,
+  userWantsStartEmptyWorkout,
   userWantsRepeatWorkout,
   userWantsGymEdit,
 } from "@/lib/assistant-intent";
@@ -103,7 +104,7 @@ export function heuristicRepairRepeatWorkoutActions(
   let targetDate = "сегодня";
   if (onDay?.[1]) {
     targetDate = onDay[1];
-  } else if (!/вчерашн/i.test(text)) {
+  } else if (!/вчерашн|прошл/i.test(text)) {
     targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
   }
   return {
@@ -114,7 +115,31 @@ export function heuristicRepairRepeatWorkoutActions(
   };
 }
 
-/** Offline: «добавь жим», «поставь 80×8 на жим». */
+/** Offline: «начни тренировку» / «начни пустую». */
+export function heuristicRepairStartWorkoutActions(
+  userMessage: string,
+): AssistantActions | null {
+  const empty = userWantsStartEmptyWorkout(userMessage);
+  const start = userWantsStartWorkout(userMessage);
+  if (!empty && !start) return null;
+  const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
+  if (empty) {
+    return {
+      apply: true,
+      targetDate,
+      startEmptyWorkout: true,
+      summary: "начать пустую тренировку — подтверди",
+    };
+  }
+  return {
+    apply: true,
+    targetDate,
+    startWorkout: true,
+    summary: "начать тренировку — подтверди",
+  };
+}
+
+/** Offline: «добавь жим», «поставь 80×8 на жим», «добавь подход на жим 80×8». */
 export function heuristicRepairPatchWorkoutActions(
   userMessage: string,
 ): AssistantActions | null {
@@ -130,27 +155,34 @@ export function heuristicRepairPatchWorkoutActions(
     : undefined;
   const reps = setMatch ? Math.round(Number(setMatch[2])) : undefined;
 
+  const mentionsSet = /подход/i.test(text);
   const nameMatch =
-    /(?:добав\S*|запиш\S*|поставь\S*)\s+(?:упражнение\s+)?([а-яёa-z0-9][а-яёa-z0-9\s-]{1,40}?)(?:\s+\d|\s*$|,|\.|!)/i.exec(
+    /(?:добав\S*|запиш\S*|поставь\S*)\s+(?:подход\S*\s+(?:на\s+|по\s+)?)?(?:упражнение\s+)?([а-яёa-z0-9][а-яёa-z0-9\s-]{1,40}?)(?:\s+\d|\s*$|,|\.|!)/i.exec(
       text,
     ) ??
     /(?:на|в)\s+([а-яёa-z][а-яёa-z\s-]{1,30}?)(?:\s*$|,|\.|!)/i.exec(text);
   let name = nameMatch?.[1]?.trim() ?? "";
   name = name
     .replace(/\b\d+[.,]?\d*\s*(кг|kg|x|х|×)?\b/gi, "")
+    .replace(/^(?:подход\S*|подхода\S*|подходов)\s+/i, "")
+    .replace(/\s+(?:подход\S*|подхода\S*|подходов)\s*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  if (name.length < 2) {
-    // Fallback short exercise nouns.
-    const noun = /(жим(?:\s+л[её]жа)?|тяга(?:\s+\S+)?|присед(?:ания)?|разводк\S*|подтягиван\S*)/i.exec(
-      text,
-    );
+  if (name.length < 2 || /^подход/i.test(name)) {
+    // Fallback short exercise nouns (incl. accusative).
+    const noun =
+      /(жим(?:\s+л[её]жа)?|тяг[уиа](?:\s+\S+)?|присед(?:ания)?|разводк\S*|подтягиван\S*)/i.exec(
+        text,
+      );
     name = noun?.[1]?.trim() ?? "";
   }
-  if (!name) return null;
+  if (!name || /^подход/i.test(name)) return null;
 
-  const hasAdd = /добав|запиш\S*\s+упражн|новое\s+упражн/i.test(text);
-  if (hasAdd || !setMatch) {
+  // «Добавь подход…» → logSets; «добавь жим» → addExercises; «поставь 80×8» → logSets.
+  const hasAddExercise =
+    (/добав/i.test(text) || /запиш\S*\s+упражн|новое\s+упражн/i.test(text)) &&
+    !mentionsSet;
+  if (hasAddExercise || (!setMatch && !mentionsSet)) {
     return {
       apply: true,
       targetDate,
@@ -199,6 +231,7 @@ export function assistantWroteFlag(opts: {
   if (
     userWantsWrite(opts.userMessage) ||
     userWantsStartWorkout(opts.userMessage) ||
+    userWantsStartEmptyWorkout(opts.userMessage) ||
     userWantsRepeatWorkout(opts.userMessage) ||
     userWantsGymEdit(opts.userMessage)
   ) {
@@ -780,6 +813,9 @@ export async function repairAssistantWriteActions(opts: {
 
   const portion = heuristicRepairPortionPatchActions(opts.userMessage);
   if (portion) return portion;
+
+  const start = heuristicRepairStartWorkoutActions(opts.userMessage);
+  if (start) return start;
 
   const repeat = heuristicRepairRepeatWorkoutActions(opts.userMessage);
   if (repeat) return repeat;

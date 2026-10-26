@@ -121,6 +121,10 @@ export function mergeMultiDishRecognition(
 
     const caloriesBroken = (item.calories ?? 0) <= 0;
     const portionBroken = !(item.portionGrams && item.portionGrams > 0);
+    const macrosFilled = [item.protein, item.fat, item.carbs].filter(
+      (v) => typeof v === "number" && v > 0,
+    ).length;
+    const macrosThin = macrosFilled < 2;
 
     return {
       ...item,
@@ -129,11 +133,26 @@ export function mergeMultiDishRecognition(
           ? other.dishName || item.dishName
           : item.dishName,
       calories: caloriesBroken && (other.calories ?? 0) > 0 ? other.calories : item.calories,
-      protein: caloriesBroken ? other.protein ?? item.protein : item.protein,
-      fat: caloriesBroken ? other.fat ?? item.fat : item.fat,
-      carbs: caloriesBroken ? other.carbs ?? item.carbs : item.carbs,
-      fiber: caloriesBroken ? other.fiber ?? item.fiber : item.fiber,
-      sugar: caloriesBroken ? other.sugar ?? item.sugar : item.sugar,
+      protein:
+        caloriesBroken || (macrosThin && !(typeof item.protein === "number" && item.protein > 0))
+          ? other.protein ?? item.protein
+          : item.protein,
+      fat:
+        caloriesBroken || (macrosThin && !(typeof item.fat === "number" && item.fat > 0))
+          ? other.fat ?? item.fat
+          : item.fat,
+      carbs:
+        caloriesBroken || (macrosThin && !(typeof item.carbs === "number" && item.carbs > 0))
+          ? other.carbs ?? item.carbs
+          : item.carbs,
+      fiber:
+        caloriesBroken || item.fiber == null
+          ? other.fiber ?? item.fiber
+          : item.fiber,
+      sugar:
+        caloriesBroken || item.sugar == null
+          ? other.sugar ?? item.sugar
+          : item.sugar,
       portionGrams:
         portionBroken && other.portionGrams && other.portionGrams > 0
           ? other.portionGrams
