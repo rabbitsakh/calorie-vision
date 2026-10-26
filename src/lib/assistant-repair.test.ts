@@ -20,7 +20,10 @@ import {
   preferMultiDishActions,
   preferSlotEditActions,
   pruneNoopAssistantActions,
+  sanitizeAssistantMealName,
 } from "./assistant-repair.ts";
+import { normalizeAssistantActions } from "./admin-assistant.ts";
+import { sanitizePendingWriteReply } from "./assistant-honesty.ts";
 import {
   userWantsGymEdit,
   userWantsRepeatWorkout,
@@ -373,4 +376,89 @@ test("userWantsRepeatWorkout and heuristicRepairRepeatWorkoutActions", () => {
     actionsHaveWritablePayload({ repeatWorkout: true }),
     true,
   );
+});
+
+/** Screenshot bug: full-word macros + hallucinated «✓ В рацион» line. */
+const SCREENSHOT_REPLY = `Ок, добавляю:
+
+- Блины с мясом (3 шт.): ~450 ккал, белки 24 г, жиры 15 г, углеводы 50 г
+- Дамплинги с креветками (7 шт.): ~420 ккал, белки 30 г, жиры 15 г, углеводы 40 г
+- Сельдерей с хумусом: ~150 ккал, белки 5 г, жиры 10 г, углеводы 10 г
+
+✓ В рацион 2026-10-18: Блины с мясом (450 ккал), Дамплинги (420 ккал), Сельдерей с хумусом (150 ккал)
+
+Нажми кнопку подтверждения.`;
+
+test("screenshot multi-dish: 3 meals, clean names, carbs not portion", () => {
+  const meals = parseStructuredMealsFromText(SCREENSHOT_REPLY);
+  assert.equal(meals.length, 3);
+  assert.match(meals[0]!.name, /Блины/i);
+  assert.doesNotMatch(meals[0]!.name, /углеводы|В рацион/i);
+  assert.doesNotMatch(meals[0]!.name, /\(10 г\)/);
+  assert.equal(meals[0]!.kcal, 450);
+  assert.equal(meals[0]!.carbs, 50);
+  assert.equal(meals[0]!.protein, 24);
+  assert.match(meals[1]!.name, /Дамплинг/i);
+  assert.equal(meals[1]!.kcal, 420);
+  assert.equal(meals[1]!.carbs, 40);
+  assert.match(meals[2]!.name, /Сельдерей|хумус/i);
+  assert.equal(meals[2]!.kcal, 150);
+  assert.equal(meals[2]!.carbs, 10);
+
+  const actions = heuristicRepairFromDraftReply(
+    "добавь блины дамплинги сельдерей",
+    SCREENSHOT_REPLY,
+  );
+  assert.equal(actions?.meals?.length, 3);
+  assert.match(actions!.summary ?? "", /Блины/i);
+  assert.doesNotMatch(actions!.summary ?? "", /углеводы|В рацион/i);
+});
+
+test("sanitizeAssistantMealName strips tool/macro leak", () => {
+  assert.match(
+    sanitizeAssistantMealName(
+      "углеводы ✓ В рацион 2026-10-18: Блины с мясом (10 г)",
+    ),
+    /^Блины/,
+  );
+});
+
+test("normalizeAssistantActions cleans polluted meal names", () => {
+  const ok = normalizeAssistantActions({
+    meals: [
+      {
+        name: "углеводы ✓ В рацион 2026-10-18: Блины с мясом",
+        kcal: 450,
+        carbs: 50,
+      },
+    ],
+  });
+  assert.match(ok?.meals?.[0]?.name ?? "", /^Блины/);
+  assert.equal(ok?.meals?.[0]?.carbs, 50);
+});
+
+test("preferMultiDishActions replaces polluted 2-meal card with 3", () => {
+  const polluted = {
+    apply: true as const,
+    meals: [
+      {
+        name: "углеводы ✓ В рацион 2026-10-18: Блины с мясом (10 г)",
+        kcal: 450,
+      },
+      { name: "Дамплинги", kcal: 420 },
+    ],
+  };
+  const fixed = preferMultiDishActions(
+    "добавь блины дамплинги сельдерей",
+    SCREENSHOT_REPLY,
+    polluted,
+  );
+  assert.equal(fixed?.meals?.length, 3);
+  assert.doesNotMatch(fixed!.meals![0]!.name, /углеводы|В рацион/i);
+});
+
+test("sanitizePendingWriteReply drops false ✓ В рацион line", () => {
+  const out = sanitizePendingWriteReply(SCREENSHOT_REPLY);
+  assert.doesNotMatch(out, /✓\s*В рацион/);
+  assert.match(out, /подтверд|не записал/i);
 });

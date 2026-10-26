@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.29",
+    "date": "2026-10-26",
+    "summary": "assistant: multi-dish names and carbs",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Все блюда из списка попадают в карточку подтверждения"
+      },
+      {
+        "kind": "fix",
+        "text": "Имя без «углеводы ✓ В рацион…»; граммы БЖУ не становятся порцией"
+      },
+      {
+        "kind": "fix",
+        "text": "Полные «белки/жиры/углеводы» в черновике читаются как макросы"
+      }
+    ]
+  },
+  {
     "version": "3.0.28",
     "date": "2026-10-26",
     "summary": "gym: wear/cheer visible on finish stage",

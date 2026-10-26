@@ -21,11 +21,30 @@ export function replyClaimsSaved(text: string): boolean {
   return CLAIMS_SAVED_RE.test(text);
 }
 
+/** Model often hallucinates «✓ В рацион DATE: …» before the user confirms. */
+function stripFalseRationToolLines(reply: string): string {
+  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  const toolLine = new RegExp(String.raw`^[✓✗✔✖]\s*В\s+рацион${end}`, "iu");
+  const dated = /^В\s+рацион\s+\d{4}-\d{2}-\d{2}\s*:/iu;
+  return reply
+    .split(/\r?\n/)
+    .filter((line) => {
+      const t = line.trim();
+      if (!t) return true;
+      if (toolLine.test(t)) return false;
+      if (dated.test(t)) return false;
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function sanitizeConfirmPendingReply(
   reply: string,
   opts: { emptyFallback: string; claimedFallback: string; cta: string },
 ): string {
-  const trimmed = reply.trim();
+  const trimmed = stripFalseRationToolLines(reply);
   if (!trimmed) return opts.cta;
   if (!replyClaimsSaved(trimmed)) {
     if (/подтверд|карточк|кнопк|ниже/i.test(trimmed)) return trimmed;
