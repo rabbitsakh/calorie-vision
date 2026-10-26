@@ -97,6 +97,20 @@ function expectedNutritionFromDraft(dish: ConfirmDishDraft): Pick<
   };
 }
 
+/** True when name or КБЖУ diverge from recognition+portion (not portion rescale alone). */
+export function dishHasHandEdits(dish: ConfirmDishDraft): boolean {
+  if (userEditedDishName(dish)) return true;
+  const expected = expectedNutritionFromDraft(dish);
+  return (
+    dish.calories !== expected.calories ||
+    dish.protein !== expected.protein ||
+    dish.fat !== expected.fat ||
+    dish.carbs !== expected.carbs ||
+    dish.fiber !== expected.fiber ||
+    dish.sugar !== expected.sugar
+  );
+}
+
 /**
  * Keep user-edited dish name and hand-edited КБЖУ when SSE enrichment updates recognition.
  * Portion-driven rescale is handled by mergeOneDishDraft; this only keeps true manual edits.

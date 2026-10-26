@@ -34,6 +34,16 @@ export function assistantWeekLink(opts?: { prefill?: string }): string {
   return `${base}?${params.toString()}`;
 }
 
+/** AI assistant in gym mode — post-session tip → next plan. */
+export function assistantGymLink(opts?: { prefill?: string }): string {
+  const base = withBasePath("/assistant");
+  const params = new URLSearchParams({ mode: "gym" });
+  if (opts?.prefill?.trim()) {
+    params.set("q", opts.prefill.trim().slice(0, 400));
+  }
+  return `${base}?${params.toString()}`;
+}
+
 /** Gym hub deep link. */
 export function workoutsDeepLink(): string {
   return withBasePath("/workouts");

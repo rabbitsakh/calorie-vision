@@ -170,12 +170,22 @@ export async function toolSaveMeals(opts: {
   if (!created.length) {
     return { ok: false, tool: "save_meals", message: "Не удалось сохранить блюда" };
   }
+  const skipped = entries.length - created.length;
+  const partial = skipped > 0;
   const names = created.map((m) => `${m.dishName} (${m.calories} ккал)`).join(", ");
   return {
     ok: true,
     tool: "save_meals",
-    message: `В рацион ${opts.date}: ${names}`,
-    data: { meals: created, date: opts.date },
+    message: partial
+      ? `В рацион ${opts.date}: ${names} · ${skipped} не прошло проверку`
+      : `В рацион ${opts.date}: ${names}`,
+    data: {
+      meals: created,
+      date: opts.date,
+      saved: created.length,
+      skipped,
+      partial,
+    },
   };
 }
 

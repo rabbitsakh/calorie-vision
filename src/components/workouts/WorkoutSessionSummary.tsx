@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import {
@@ -31,6 +32,7 @@ import {
 } from "@/lib/workouts/lever-outcome-history";
 import { formatRecoveryOutcomeLine } from "@/lib/workouts/lever-session-apply";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
+import { assistantGymLink } from "@/lib/push-deeplink";
 
 type Props = {
   date: string;
@@ -547,6 +549,25 @@ export function WorkoutSessionSummary({
               <p className="text-xs leading-relaxed text-white/65">{tip}</p>
             </div>
           ) : null}
+          <div className={`${tip ? "mt-2.5" : "mt-3 border-t border-white/10 pt-2.5"}`}>
+            <Link
+              href={assistantGymLink({
+                prefill: tip
+                  ? [
+                      `После тренировки ${date}.`,
+                      tipExercise ? `Фокус: ${tipExercise}.` : null,
+                      tip,
+                      "Подскажи план на следующий раз.",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                  : `После тренировки ${date}. Помоги с планом на следующий раз по целям сессии.`,
+              })}
+              className="inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
+            >
+              Разобрать с AI
+            </Link>
+          </div>
         </section>
       ) : null}
     </StageScreen>

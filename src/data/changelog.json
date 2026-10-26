@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.0.23",
+    "date": "2026-10-26",
+    "summary": "trust + store: confirm edit, AI honesty, gym→AI",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "После правки КБЖУ на confirm — не «Сохранить как есть»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Напиток/этикетка: подсказка порции даже при «уверенном» ккал"
+      },
+      {
+        "kind": "improvement",
+        "text": "AI: частичная запись блюд честно; flush очереди с T8"
+      },
+      {
+        "kind": "feature",
+        "text": "Итог тренировки → «Разобрать с AI» (mode=gym)"
+      }
+    ]
+  },
+  {
     "version": "3.0.22",
     "date": "2026-10-25",
     "summary": "offline + RuStore: rewards queue, T8 flush, badge parity",
