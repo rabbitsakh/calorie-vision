@@ -70,10 +70,12 @@ import {
   getLeverMemory,
 } from "@/lib/workouts/progression-lever-memory";
 import {
+  countWorkingSets,
   mergeDraftWithLeverGoal,
   needsVolumeExtraSet,
   persistLeverRecoveryMemory,
   resolveLeverSessionGoal,
+  shouldMutateLeverOnOpen,
   volumeExtraSetBody,
 } from "@/lib/workouts/lever-session-apply";
 import {
@@ -616,9 +618,9 @@ export function WorkoutsView({
   }, []);
 
   /**
-   * H1/H2 after open: rewrite incomplete planned sets to lever targets,
-   * and for volume add one incomplete working set when still short.
-   * Once per session (memory + localStorage) — remount must not POST deleted sets back.
+   * H1/H2 after create/start/repeat only ({ applyLever: true }):
+   * rewrite incomplete planned sets to lever targets, and for volume add +1 set.
+   * Resume/reopen must never call this — goal sets would be re-appended.
    */
   const leverAppliedRef = useRef(new Set<string>());
 
@@ -680,8 +682,10 @@ export function WorkoutsView({
       }
 
       const afterPatch = latest.exercises.find((e) => e.id === ex.id) ?? liveEx;
-      const lastWorking = ex.lastTime?.sets?.length ?? null;
-      if (!needsVolumeExtraSet(afterPatch.sets, lastWorking, goal)) continue;
+      const lastWorking = countWorkingSets(ex.lastTime?.sets ?? []);
+      if (!needsVolumeExtraSet(afterPatch.sets, lastWorking > 0 ? lastWorking : null, goal)) {
+        continue;
+      }
       const body = volumeExtraSetBody(goal);
       if (!body) continue;
 
@@ -709,58 +713,63 @@ export function WorkoutsView({
     }
   }, []);
 
-  const openSession = useCallback(async (id: string, opts?: { enterStage?: boolean }) => {
-    setError(null);
-    setActiveId(id);
+  const openSession = useCallback(
+    async (id: string, opts?: { enterStage?: boolean; applyLever?: boolean }) => {
+      setError(null);
+      setActiveId(id);
+      // Volume/goal mutations only on create·start·repeat — never on resume/reopen.
+      const mutateLever = shouldMutateLeverOnOpen(opts);
 
-    if (isLocalSessionId(id)) {
-      const local = getLocalWorkoutSession(id);
-      if (!local) {
-        setError("Локальная тренировка не найдена");
-        setActiveId(null);
+      if (isLocalSessionId(id)) {
+        const local = getLocalWorkoutSession(id);
+        if (!local) {
+          setError("Локальная тренировка не найдена");
+          setActiveId(null);
+          return;
+        }
+        const session = localSessionToDetail(local) as SessionDetail;
+        setDetail(session);
+        setProgress(null);
+        setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
+        const enterStage =
+          Boolean(opts?.enterStage) &&
+          session.clockStatus !== "finished" &&
+          session.exercises.length > 0;
+        setStageOpen(enterStage);
+        setShowSummary(session.clockStatus === "finished");
+        setCircuitRound(1);
+        setFocusExerciseId(session.exercises[0]?.id ?? null);
+        fillDraftsFromSession(session);
+        if (mutateLever) void applyLeverGoalsOnOpen(session);
+        setError("Тренировка на устройстве — отправим при связи");
         return;
       }
-      const session = localSessionToDetail(local) as SessionDetail;
-      setDetail(session);
-      setProgress(null);
-      setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
-      const enterStage =
-        Boolean(opts?.enterStage) &&
-        session.clockStatus !== "finished" &&
-        session.exercises.length > 0;
-      setStageOpen(enterStage);
-      setShowSummary(session.clockStatus === "finished");
-      setCircuitRound(1);
-      setFocusExerciseId(session.exercises[0]?.id ?? null);
-      fillDraftsFromSession(session);
-      void applyLeverGoalsOnOpen(session);
-      setError("Тренировка на устройстве — отправим при связи");
-      return;
-    }
 
-    try {
-      const data = await readJson<{ session: SessionDetail; progress: Progress }>(
-        await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
-      );
-      setDetail(data.session);
-      setProgress(data.progress);
-      setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-      // Fullscreen logger only when resuming a live clock — never on create / idle open.
-      const enterStage =
-        Boolean(opts?.enterStage) &&
-        data.session.clockStatus !== "finished" &&
-        data.session.exercises.length > 0;
-      setStageOpen(enterStage);
-      setShowSummary(false);
-      setCircuitRound(1);
-      setFocusExerciseId(data.session.exercises[0]?.id ?? null);
-      fillDraftsFromSession(data.session);
-      void applyLeverGoalsOnOpen(data.session);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
-      setActiveId(null);
-    }
-  }, [applyLeverGoalsOnOpen, fillDraftsFromSession]);
+      try {
+        const data = await readJson<{ session: SessionDetail; progress: Progress }>(
+          await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
+        );
+        setDetail(data.session);
+        setProgress(data.progress);
+        setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
+        // Fullscreen logger only when resuming a live clock — never on create / idle open.
+        const enterStage =
+          Boolean(opts?.enterStage) &&
+          data.session.clockStatus !== "finished" &&
+          data.session.exercises.length > 0;
+        setStageOpen(enterStage);
+        setShowSummary(false);
+        setCircuitRound(1);
+        setFocusExerciseId(data.session.exercises[0]?.id ?? null);
+        fillDraftsFromSession(data.session);
+        if (mutateLever) void applyLeverGoalsOnOpen(data.session);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Ошибка загрузки");
+        setActiveId(null);
+      }
+    },
+    [applyLeverGoalsOnOpen, fillDraftsFromSession],
+  );
 
   useEffect(() => {
     void loadList();
@@ -1084,7 +1093,7 @@ export function WorkoutsView({
         await loadList();
         await loadCalendar();
         // Land on session list — add/check exercises, then «Старт» / «К подходам».
-        await openSession(data.session.id);
+        await openSession(data.session.id, { applyLever: true });
         return;
       }
 
@@ -1103,7 +1112,7 @@ export function WorkoutsView({
       setFromPlusMenu(false);
       setNewGroups([]);
       await loadList();
-      await openSession(data.session.id);
+      await openSession(data.session.id, { applyLever: true });
     } catch (err) {
       if (isLikelyOfflineError(err) && newGroups.length > 0) {
         const local = createLocalWorkoutSession({
@@ -1115,7 +1124,7 @@ export function WorkoutsView({
         setFromPlusMenu(false);
         setNewGroups([]);
         await loadList();
-        await openSession(local.id);
+        await openSession(local.id, { applyLever: true });
         setError("Тренировка создана на устройстве — отправим при связи");
         return;
       }
@@ -1137,7 +1146,7 @@ export function WorkoutsView({
         }),
       );
       await loadList();
-      await openSession(data.session.id);
+      await openSession(data.session.id, { applyLever: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось повторить");
     } finally {
@@ -1158,7 +1167,7 @@ export function WorkoutsView({
       );
       await loadList();
       // Template → session sheet (exercises visible). Fullscreen only via «К подходам».
-      await openSession(data.session.id);
+      await openSession(data.session.id, { applyLever: true });
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         const routine =
@@ -1177,7 +1186,7 @@ export function WorkoutsView({
           return;
         }
         await loadList();
-        await openSession(local.sessionId);
+        await openSession(local.sessionId, { applyLever: true });
         setError("Шаблон запущен на устройстве — отправим при связи");
         return;
       }
