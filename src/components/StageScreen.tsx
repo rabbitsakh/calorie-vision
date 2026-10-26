@@ -19,6 +19,8 @@ type StageScreenProps = {
   eyebrow: string;
   headline: string;
   subline?: string;
+  /** Optional chrome above metrics (e.g. collection wear / cheer). */
+  lead?: ReactNode;
   metrics?: StageMetric[];
   children?: ReactNode;
   primaryAction?: StageAction;
@@ -37,6 +39,7 @@ export function StageScreen({
   eyebrow,
   headline,
   subline,
+  lead,
   metrics,
   children,
   primaryAction,
@@ -74,6 +77,8 @@ export function StageScreen({
         <p className="text-xs font-semibold uppercase tracking-widest text-white/75">{eyebrow}</p>
         <h2 className="mt-2 text-3xl font-semibold leading-tight">{headline}</h2>
         {subline ? <p className="mt-1 text-[var(--muted)]">{subline}</p> : null}
+
+        {lead ? <div className="mt-4">{lead}</div> : null}
 
         {metrics && metrics.length > 0 ? (
           <div className="mt-8 grid grid-cols-2 gap-3">

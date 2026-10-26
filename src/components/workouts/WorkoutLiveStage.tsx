@@ -178,7 +178,7 @@ export function WorkoutLiveStage({
 
       {/* R7 + Q: wear and armed recovery on live stage */}
       <div className="flex flex-col gap-1.5 px-4 pb-1">
-        <GymCollectionWear className="[&_p]:text-white/70" />
+        <GymCollectionWear tone="stage" />
         <LeverRecoveryStrip className="[&_span]:border-white/20 [&_span]:bg-white/10 [&_span]:text-white/85" />
       </div>
 

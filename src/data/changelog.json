@@ -1,5 +1,20 @@
 [
   {
+    "version": "3.0.28",
+    "date": "2026-10-26",
+    "summary": "gym: wear/cheer visible on finish stage",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Надетый cheer рисуется на итоге сессии, не только текстом"
+      },
+      {
+        "kind": "improvement",
+        "text": "Wear над метриками StageScreen; тон stage на live/итоге"
+      }
+    ]
+  },
+  {
     "version": "3.0.27",
     "date": "2026-10-26",
     "summary": "recog plate/pack + assistant gym write",
