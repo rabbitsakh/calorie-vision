@@ -33,6 +33,10 @@ import {
   subscribeAssistantApplyQueue,
 } from "@/lib/assistant-apply-queue";
 import {
+  clearOfflineQueueFlushError,
+  markOfflineQueueFlushError,
+} from "@/lib/offline-queue-flush-errors";
+import {
   userWantsGymEdit,
   userWantsRepeatWorkout,
   userWantsStartWorkout,
@@ -1522,7 +1526,12 @@ export function AssistantChat() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(item.body),
           });
-          if (!resp.ok) continue;
+          if (!resp.ok) {
+            // T8 — surface «Ошибка» in OfflineQueueSheet instead of silent stall.
+            markOfflineQueueFlushError(item.id);
+            continue;
+          }
+          clearOfflineQueueFlushError(item.id);
           removeAssistantApply(item.id);
           if (
             item.kind === "photo" ||

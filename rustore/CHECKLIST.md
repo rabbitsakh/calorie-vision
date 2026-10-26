@@ -12,8 +12,8 @@
 - [ ] Package name: `ru.calorievision.app` (уникален, не менять после первой версии)
 - [ ] Keystore создан, backup в сейфе (не в git)
 - [ ] `bash scripts/rustore-init.sh` отработал
-- [ ] `TWA_SHA256_FINGERPRINTS` на проде → `/.well-known/assetlinks.json` отдаёт JSON
-- [ ] `bash scripts/rustore-build.sh` → APK (и опционально AAB)
+- [ ] _(опц. TWA)_ `TWA_SHA256_FINGERPRINTS` → `/.well-known/assetlinks.json` (Capacitor APK без этого ок)
+- [ ] ~~`bash scripts/rustore-build.sh`~~ → устарело; билд: `rustore:cap:init` + `rustore:cap:build`
 - [ ] Windows: JDK 21 + `ANDROID_HOME` = корень SDK (см. `WINDOWS.md`)
 - [ ] Установка APK на телефон: локальный shell (не лендинг сайта)
 - [ ] Авиарежим: welcome + демо-рацион; «Войти» → экран «Нет интернета»

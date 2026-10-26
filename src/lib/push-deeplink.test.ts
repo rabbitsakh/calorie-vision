@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  assistantGymLink,
   assistantWeekLink,
   mealTypeForReminder,
   parseMealQueryParam,
@@ -31,6 +32,14 @@ test("assistantWeekLink sets mode and optional prefill", () => {
   assert.match(
     assistantWeekLink({ prefill: "Составь неделю" }),
     /mode=week.*q=|q=.*mode=week/,
+  );
+});
+
+test("assistantGymLink sets gym mode and optional prefill", () => {
+  assert.equal(assistantGymLink(), "/assistant?mode=gym");
+  assert.match(
+    assistantGymLink({ prefill: "Следующая тренировка" }),
+    /mode=gym.*q=|q=.*mode=gym/,
   );
 });
 

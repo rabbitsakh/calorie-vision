@@ -4,7 +4,10 @@ import {
   isMissingCaloriesForReview,
   isMissingMacrosForReview,
 } from "@/lib/recognition-nutrition";
-import type { ConfirmDishDraft } from "@/lib/confirm-dish-merge";
+import {
+  dishHasHandEdits,
+  type ConfirmDishDraft,
+} from "@/lib/confirm-dish-merge";
 import type { PendingConfirmDishUi, PendingConfirmUi } from "@/lib/meal-draft-queue";
 import { MEAL_TYPE_LABELS } from "@/types";
 
@@ -87,12 +90,22 @@ export function dishLookupDisabled(
   return searchingId === dishId;
 }
 
+/**
+ * User hand-edited name or КБЖУ — soft-save / low-confidence gate no longer applies.
+ * Portion-only rescale does not count (still AI numbers).
+ */
+export function dishTrustedByUserEdit(dish: DishDraft): boolean {
+  return dishHasHandEdits(dish);
+}
+
 export function dishNeedsReview(
   dish: DishDraft,
   lowConfidenceThreshold: number,
 ): { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean } {
+  const trusted = dishTrustedByUserEdit(dish);
   return {
-    lowConfidence: dish.original.confidence < lowConfidenceThreshold,
+    lowConfidence:
+      !trusted && dish.original.confidence < lowConfidenceThreshold,
     missingCalories: isMissingCaloriesForReview(
       Number(dish.calories),
       dish.original.per100g,

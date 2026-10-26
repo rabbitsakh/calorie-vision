@@ -271,4 +271,18 @@ test("confirmSkimTrustLine prefers drink/label portion hints from eval weak kind
     }) ?? "",
     /Этикетка|порци/i,
   );
+  // Weak kinds still surface when needsReview is false (kcal+БЖУ look fine).
+  assert.match(
+    confirmSkimTrustLine({
+      enriching: false,
+      enrichmentTimedOut: false,
+      needsReview: false,
+      anyMissingCalories: false,
+      anyMissingMacros: false,
+      anyLowConfidence: false,
+      multi: false,
+      photoKind: "drink",
+    }) ?? "",
+    /напиток|объём/i,
+  );
 });

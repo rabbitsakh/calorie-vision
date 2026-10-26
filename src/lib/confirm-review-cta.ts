@@ -217,11 +217,7 @@ export function confirmSkimTrustLine(input: {
   if (input.enrichmentTimedOut) {
     return "Уточнение не завершилось — проверьте ккал";
   }
-  if (!input.needsReview) return null;
-  if (input.anyMissingCalories) {
-    return "Нет калорий — уточните название или введите ккал";
-  }
-  // Weak eval paths: drink/label portion mistakes beat generic macros copy.
+  // Weak eval paths: drink/label portion mistakes — show even when BJU look fine.
   const kindHint =
     input.photoKind === "drink" ||
     input.photoKind === "label" ||
@@ -230,6 +226,12 @@ export function confirmSkimTrustLine(input: {
     input.photoKind === "sticker"
       ? confirmSkimHintForPhotoKind(input.photoKind)
       : null;
+  if (!input.needsReview) {
+    return kindHint;
+  }
+  if (input.anyMissingCalories) {
+    return "Нет калорий — уточните название или введите ккал";
+  }
   if (kindHint && (input.anyMissingMacros || input.anyLowConfidence)) {
     return kindHint;
   }
