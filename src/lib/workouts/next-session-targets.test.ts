@@ -4,6 +4,35 @@ import {
   buildNextSessionTargets,
   ruleNextSessionTip,
 } from "./next-session-targets.ts";
+import {
+  LEVER_OUTCOME_HISTORY_KEY,
+  recordLeverOutcome,
+  resetLeverOutcomeHistoryForTests,
+} from "./lever-outcome-history.ts";
+import {
+  PROGRESSION_LEVER_MEMORY_KEY,
+  setLeverMemory,
+} from "./progression-lever-memory.ts";
+
+function installStorage() {
+  const map = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    value: {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        map.set(k, v);
+      },
+      removeItem: (k: string) => {
+        map.delete(k);
+      },
+      clear: () => map.clear(),
+    },
+    configurable: true,
+  });
+  map.delete(PROGRESSION_LEVER_MEMORY_KEY);
+  map.delete(LEVER_OUTCOME_HISTORY_KEY);
+  resetLeverOutcomeHistoryForTests();
+}
 
 test("buildNextSessionTargets suggests kg bump for top load exercise", () => {
   const card = buildNextSessionTargets(
@@ -148,4 +177,39 @@ test("ruleNextSessionTip highlights stall", () => {
   ]);
   assert.match(tip, /плато/i);
   assert.match(tip, /Присед/);
+});
+
+test("gym loop: armed deload becomes next-session primary", () => {
+  installStorage();
+  setLeverMemory({
+    name: "Присед",
+    lever: "weight",
+    basisKg: 100,
+    targetKg: 90,
+    targetReps: 5,
+    at: "2026-10-20",
+    recovery: "deload",
+  });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-18" });
+  recordLeverOutcome({ name: "Присед", lever: "weight", outcome: "miss", at: "2026-10-20" });
+  const card = buildNextSessionTargets(
+    [
+      {
+        name: "Присед",
+        kind: "barbell",
+        lastWorkingKg: 100,
+        lastWorkingReps: 5,
+        points: [
+          { date: "a", topWeightKg: 100, topReps: 5, totalLoad: 500 },
+          { date: "b", topWeightKg: 100, topReps: 5, totalLoad: 500 },
+        ],
+        load: 3000,
+        completedCount: 3,
+      },
+    ],
+    0.05,
+  );
+  assert.equal(card.targets[0]!.primaryLever, "weight");
+  assert.equal(card.targets[0]!.leverRemembered, true);
+  assert.equal(card.targets[0]!.suggestedKg, 90);
 });

@@ -30,7 +30,10 @@ import {
   isEarlyGymUser,
   recordLeverOutcome,
 } from "@/lib/workouts/lever-outcome-history";
-import { formatRecoveryOutcomeLine } from "@/lib/workouts/lever-session-apply";
+import {
+  armMissRecoveryAfterFinish,
+  formatRecoveryOutcomeLine,
+} from "@/lib/workouts/lever-session-apply";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 import { assistantGymLink } from "@/lib/push-deeplink";
 
@@ -195,7 +198,9 @@ export function WorkoutSessionSummary({
   // I2: reinforce memory for hit levers (same choice kept for next time).
   // J1: append hit/miss/close into local lever outcome history.
   // N: clear recovery flag on hit so next open doesn't stack deload.
+  // Gym loop: after 2× miss arm soft-deload / switch at finish (Today strip next day).
   useEffect(() => {
+    const recoveryChosen: Record<string, ProgressionLever> = {};
     for (const t of targets) {
       const outcome = leverOutcomes[t.name];
       const lever = chosen[t.name] ?? t.primaryLever;
@@ -219,6 +224,21 @@ export function WorkoutSessionSummary({
         outcome,
         at: date,
       });
+      if (outcome === "miss") {
+        const goal = armMissRecoveryAfterFinish({
+          name: t.name,
+          lever,
+          basisKg: t.basisKg,
+          basisReps: t.sessionTopReps ?? null,
+          at: date,
+        });
+        if (goal?.lever) {
+          recoveryChosen[t.name] = goal.lever;
+        }
+      }
+    }
+    if (Object.keys(recoveryChosen).length > 0) {
+      setChosen((prev) => ({ ...prev, ...recoveryChosen }));
     }
     setHistoryTick((n) => n + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per summary open
@@ -319,6 +339,12 @@ export function WorkoutSessionSummary({
     basisKg: number | null,
     opt: { suggestedKg: number | null; suggestedReps: number | null },
   ) => {
+    const prev = getLeverMemory(name);
+    // Keep armed recovery; switching lever after miss → «switch» (not a second deload).
+    let recovery = prev?.recovery ?? null;
+    if (recovery && prev && prev.lever !== lever) {
+      recovery = "switch";
+    }
     setLeverMemory({
       name,
       lever,
@@ -326,8 +352,9 @@ export function WorkoutSessionSummary({
       targetKg: opt.suggestedKg,
       targetReps: opt.suggestedReps,
       at: date,
+      recovery,
     });
-    setChosen((prev) => ({ ...prev, [name]: lever }));
+    setChosen((prevChosen) => ({ ...prevChosen, [name]: lever }));
   };
 
   const metrics: StageMetric[] = [
