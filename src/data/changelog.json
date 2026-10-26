@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.31",
+    "date": "2026-10-27",
+    "summary": "assistant peanut + gym set delete",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Арахисовая паста не теряется в карточке подтверждения AI"
+      },
+      {
+        "kind": "fix",
+        "text": "Удалённые подходы в зале не возвращаются при повторном входе"
+      },
+      {
+        "kind": "fix",
+        "text": "Volume +1 / lever goals применяются один раз за сессию"
+      }
+    ]
+  },
+  {
     "version": "3.0.30",
     "date": "2026-10-26",
     "summary": "ration: undo delete stays in place",

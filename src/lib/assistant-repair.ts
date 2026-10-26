@@ -484,6 +484,7 @@ function mealLineFromFragment(
   const cleaned = sanitizeAssistantMealName(
     forPortion
       .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
+      .replace(/\(\s*\)/g, " ")
       .replace(/\s+/g, " ")
       .trim(),
   );
@@ -504,10 +505,20 @@ function mealLineFromFragment(
   }
 
   const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
-  const baseName = sanitizeAssistantMealName(pack?.dishName ?? cleaned);
+  // Prefer the user's dish wording when kcal came from the draft — pack names
+  // like «Макароны» must not replace «арахисовая паста».
+  const baseName = sanitizeAssistantMealName(
+    (kcal != null && cleaned.length >= 2 ? cleaned : null) ??
+      pack?.dishName ??
+      cleaned,
+  ).replace(/\(\s*\)/g, " ").replace(/\s+/g, " ").trim();
   if (!baseName || baseName.length < 2 || mealNameLooksPolluted(baseName)) return null;
+  const alreadyPortion = new RegExp(
+    String.raw`\(\s*${portion}\s*${unit}\s*\)\s*$`,
+    "i",
+  ).test(baseName);
   const name =
-    portion != null && portion > 0
+    portion != null && portion > 0 && !alreadyPortion
       ? `${baseName} (${portion} ${unit})`
       : baseName;
 
@@ -631,8 +642,15 @@ export function heuristicRepairMultiDishActions(
   }
 
   let meals = parseStructuredMealsFromText(userMessage);
-  if (meals.length < 2 && assistantReply) {
-    meals = parseStructuredMealsFromText(assistantReply);
+  // Prefer the draft when it covers ≥ as many dishes: cleaner names + macros.
+  // User inline may drop staples (арахисовая паста) or keep «Я съел …» prefixes.
+  if (assistantReply) {
+    const fromReply = parseStructuredMealsFromText(assistantReply);
+    if (fromReply.length >= 2 && fromReply.length >= meals.length) {
+      meals = fromReply;
+    } else if (meals.length < 2 && fromReply.length >= 2) {
+      meals = fromReply;
+    }
   }
   if (meals.length < 2) return null;
 

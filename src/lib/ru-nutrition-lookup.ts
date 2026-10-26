@@ -33,6 +33,22 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
   },
   { keys: ["рис", "рис белый", "рис отварной"], dishName: "Рис отварной", calories: 260, protein: 5, fat: 1, carbs: 58, portionGrams: 200 },
   { keys: ["овсянка", "овсяная каша"], dishName: "Овсяная каша", calories: 220, protein: 7, fat: 5, carbs: 36, fiber: 4, portionGrams: 250 },
+  // «арахисовая паста» before bare «паста» so peanut butter is not scored as pasta.
+  {
+    keys: [
+      "арахисовая паста",
+      "паста арахисовая",
+      "арахисовая паста без сахара",
+      "peanut butter",
+    ],
+    dishName: "Арахисовая паста",
+    calories: 588,
+    protein: 25,
+    fat: 50,
+    carbs: 20,
+    fiber: 6,
+    portionGrams: 100,
+  },
   { keys: ["макароны", "паста"], dishName: "Макароны отварные", calories: 280, protein: 9, fat: 2, carbs: 56, portionGrams: 200 },
   { keys: ["картофель", "картофельное пюре", "пюре"], dishName: "Картофельное пюре", calories: 240, protein: 5, fat: 8, carbs: 36, portionGrams: 200 },
   { keys: ["котлета", "котлета куриная", "куриная котлета"], dishName: "Котлета куриная", calories: 280, protein: 22, fat: 16, carbs: 12, portionGrams: 120 },
