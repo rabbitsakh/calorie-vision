@@ -313,6 +313,8 @@ export function needsVolumeExtraSet(
   goal: LeverSessionGoal | null,
 ): boolean {
   if (!goal?.extraSet) return false;
+  // Mid-workout reopen: user already logged a working set — do not auto-append.
+  if (hasLoggedWorkingSet(sets)) return false;
   const working = countWorkingSets(sets);
   if (working === 0) return false;
   const last =
@@ -320,6 +322,17 @@ export function needsVolumeExtraSet(
   // Already have a spare incomplete beyond last session's count.
   if (working > last && countIncompleteWorkingSets(sets) > 0) return false;
   return working <= last;
+}
+
+/** True when at least one non-warmup/drop set is completed (user is mid-exercise). */
+export function hasLoggedWorkingSet(sets: readonly SetLike[]): boolean {
+  for (const s of sets) {
+    if (s.completed === false) continue;
+    const t = s.setType ?? "working";
+    if (t === "warmup" || t === "drop") continue;
+    return true;
+  }
+  return false;
 }
 
 /** Overlay lever kg/reps onto an existing draft (strings). */

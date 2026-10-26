@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.0.32",
+    "date": "2026-10-27",
+    "summary": "gym: no set append on reopen",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "При возврате в тренировку volume +1 больше не дописывает подходы"
+      },
+      {
+        "kind": "fix",
+        "text": "Флаг lever-applied хранится в localStorage и переживает remount"
+      },
+      {
+        "kind": "fix",
+        "text": "После залогированного подхода auto-volume не срабатывает"
+      }
+    ]
+  },
+  {
     "version": "3.0.31",
     "date": "2026-10-27",
     "summary": "assistant peanut + gym set delete",
