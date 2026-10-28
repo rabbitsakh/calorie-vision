@@ -516,3 +516,52 @@ test("user message alone finds peanut butter via table", () => {
   assert.ok((multi?.meals?.length ?? 0) >= 4);
   assert.ok(multi!.meals!.some((m) => /арахис/i.test(m.name)));
 });
+
+/** Screenshot: eggs dropped + syrok 880 kcal from glazed 50г×4. */
+const EGGS_SYROK_USER = "Я съел 4 варёных яйца и творожный сырок 200г";
+const EGGS_SYROK_REPLY = `Замечательно, фиксирую завтрак:
+4 варёных яйца: около 280 ккал, белки 24 г, жиры 20 г, углеводы 2 г
+Творожный сырок (200 г): около 300 ккал, белки 16 г, жиры 20 г, углеводы 15 г
+Итого: около 580 ккал, белки 40 г, жиры 40 г, углеводы 17 г.
+Нажми подтвердить, чтобы внести в дневник.`;
+
+test("eggs+syrok: plain draft lines (no bullets) parse both dishes", () => {
+  const meals = parseStructuredMealsFromText(EGGS_SYROK_REPLY);
+  assert.equal(meals.length, 2);
+  assert.ok(meals.some((m) => /яйц/i.test(m.name)));
+  assert.ok(meals.some((m) => /сырок/i.test(m.name)));
+  assert.equal(meals.find((m) => /яйц/i.test(m.name))!.kcal, 280);
+  assert.equal(meals.find((m) => /сырок/i.test(m.name))!.kcal, 300);
+  assert.ok(meals.every((m) => !/около/i.test(m.name)));
+});
+
+test("eggs+syrok: preferMultiDish replaces syrok-only 880 card", () => {
+  const fixed = preferMultiDishActions(EGGS_SYROK_USER, EGGS_SYROK_REPLY, {
+    apply: true,
+    meals: [
+      {
+        name: "Творожный сырок (200 г)",
+        kcal: 880,
+        protein: 32,
+        fat: 48,
+        carbs: 80,
+        note: "перекус",
+      },
+    ],
+  });
+  assert.equal(fixed?.meals?.length, 2);
+  assert.ok(fixed!.meals!.some((m) => /яйц/i.test(m.name)));
+  const syrok = fixed!.meals!.find((m) => /сырок/i.test(m.name))!;
+  assert.equal(syrok.kcal, 300);
+  assert.ok((syrok.kcal ?? 0) < 500);
+  assert.ok(fixed!.meals!.every((m) => m.note === "завтрак"));
+});
+
+test("eggs+syrok: user inline keeps both with piece count", () => {
+  assert.equal(messageLooksLikeMultiDish(EGGS_SYROK_USER), true);
+  const multi = heuristicRepairMultiDishActions(EGGS_SYROK_USER);
+  assert.equal(multi?.meals?.length, 2);
+  const eggs = multi!.meals!.find((m) => /яйц/i.test(m.name))!;
+  assert.ok((eggs.kcal ?? 0) >= 250);
+  assert.ok((eggs.kcal ?? 0) <= 350);
+});

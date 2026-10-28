@@ -347,6 +347,8 @@ export function messageLooksLikeMultiDish(message: string): boolean {
   if (drink && FOODISH_RE.test(text)) return true;
   // Inline: «Вчерашний ужин: пюре, котлета, пиво» / «на ужин пюре и котлета».
   if (parseInlineMealsFromText(text).length >= 2) return true;
+  // Plain draft rows with kcal (no «-» bullets).
+  if (parsePlainMacroLines(text).length >= 2) return true;
   return false;
 }
 
@@ -400,8 +402,9 @@ function extractTrailingMacros(fragment: string): {
 
   const gram = String.raw`(?:г|гр|грамм(?:а|ов)?)?`;
   // Full words first — avoid `[с]` matching the start of «с креветками».
+  const approx = String.raw`(?:около|примерно|~)?\s*`;
   const full = new RegExp(
-    String.raw`(?::\s*)?~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
+    String.raw`(?::\s*)?${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
     "iu",
   ).exec(rest);
   if (full?.[1]) {
@@ -412,16 +415,16 @@ function extractTrailingMacros(fragment: string): {
         protein: parseMacroRaw(full[2]),
         fat: parseMacroRaw(full[3]),
         carbs: parseMacroRaw(full[4]),
-        head: rest.slice(0, full.index).trim().replace(/[—\-–:]\s*$/, "").trim(),
+        head: cleanMealHead(rest.slice(0, full.index)),
       };
     }
   }
 
   // Abbrev Б/Ж/У (not «с» — that ate dish text after «ккал»).
-  const abbrev =
-    /[—(]?\s*~?\s*(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[уu]\s*(\d+(?:[.,]\d+)?))?\s*\)?\s*$/iu.exec(
-      rest,
-    );
+  const abbrev = new RegExp(
+    String.raw`[—(]?\s*${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[уu]\s*(\d+(?:[.,]\d+)?))?\s*\)?\s*$`,
+    "iu",
+  ).exec(rest);
   if (abbrev?.[1]) {
     const kcal = Math.round(Number(abbrev[1].replace(",", ".")));
     if (Number.isFinite(kcal) && kcal > 0) {
@@ -430,16 +433,22 @@ function extractTrailingMacros(fragment: string): {
         protein: parseMacroRaw(abbrev[2]),
         fat: parseMacroRaw(abbrev[3]),
         carbs: parseMacroRaw(abbrev[4]),
-        head: rest
-          .slice(0, abbrev.index)
-          .trim()
-          .replace(/[—\-–:]\s*$/, "")
-          .trim(),
+        head: cleanMealHead(rest.slice(0, abbrev.index)),
       };
     }
   }
 
   return null;
+}
+
+/** Trim trailing «: около» / dashes left after macro extraction. */
+function cleanMealHead(head: string): string {
+  return head
+    .trim()
+    .replace(/\b(?:около|примерно)\s*$/iu, "")
+    .replace(/[—\-–:]\s*$/u, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Strip БЖУ gram labels so «углеводы 10 г» is not treated as portion. */
@@ -480,10 +489,11 @@ function mealLineFromFragment(
 
   const forPortion = stripMacroGramLabels(rest);
   const portion = parsePortionGramsFromMessage(forPortion);
+  const pieces = parsePieceCountFromMessage(forPortion);
   const drinkQ = drinkLookupQuery(rest);
   const cleaned = sanitizeAssistantMealName(
     forPortion
-      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)/gi, " ")
+      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?|шт(?:ук[аи]?)?\.?)/gi, " ")
       .replace(/\(\s*\)/g, " ")
       .replace(/\s+/g, " ")
       .trim(),
@@ -495,8 +505,14 @@ function mealLineFromFragment(
 
   if (kcal == null && pack) {
     const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-    const grams = portion ?? baseGrams;
-    const scale = grams / baseGrams;
+    let scale: number;
+    if (portion != null && portion > 0) {
+      scale = portion / baseGrams;
+    } else if (pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName)) {
+      scale = pieces;
+    } else {
+      scale = 1;
+    }
     kcal = Math.round(pack.calories * scale);
     protein =
       pack.protein == null ? undefined : Math.round(pack.protein * scale * 10) / 10;
@@ -517,10 +533,21 @@ function mealLineFromFragment(
     String.raw`\(\s*${portion}\s*${unit}\s*\)\s*$`,
     "i",
   ).test(baseName);
-  const name =
-    portion != null && portion > 0 && !alreadyPortion
-      ? `${baseName} (${portion} ${unit})`
-      : baseName;
+  const alreadyPieces = pieces != null && new RegExp(
+    String.raw`\(\s*${pieces}\s*шт`,
+    "i",
+  ).test(baseName);
+  let name = baseName;
+  if (portion != null && portion > 0 && !alreadyPortion) {
+    name = `${baseName} (${portion} ${unit})`;
+  } else if (
+    pieces != null &&
+    pieces > 1 &&
+    !alreadyPieces &&
+    packLooksPerPiece(pack?.dishName ?? baseName)
+  ) {
+    name = `${baseName} (${pieces} шт)`;
+  }
 
   if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) return null;
 
@@ -555,6 +582,7 @@ export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
     // «вчера на ужин пюре и котлета» already covered by onSlot; bare comma list needs food cues.
     if (!/,/.test(raw) && !/\sи\s/i.test(raw)) return [];
     body = raw
+      .replace(/^\s*я\s+(?:съел|выпил|поел|запил)\s+/iu, " ")
       .replace(/(?:вчерашн|сегодняшн|завтрашн)\S*/giu, " ")
       .replace(/(?:вчера|сегодня|завтра|позавчера)/giu, " ")
       .replace(new RegExp(`(?:на|в)\\s+${MEAL_SLOT_STEM_RE}`, "giu"), " ")
@@ -615,18 +643,94 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
   // Bullet drafts must not fall through to comma-split of the whole reply
   // (that glued «углеводы» + «✓ В рацион…» into dish names).
   if (bulletLines >= 2) return meals;
+
+  // Plain draft lines without «-»: «4 яйца: около 280 ккал, белки…»
+  const fromPlain = parsePlainMacroLines(cleaned);
+  if (fromPlain.length >= 2) return fromPlain;
+
   const inline = parseInlineMealsFromText(cleaned);
   return inline.length >= 2 ? inline : meals;
 }
 
-function mealMetaFromMessage(userMessage: string): {
+/**
+ * Non-bullet dish lines that already carry kcal (common GigaChat draft shape).
+ * Skips итог / prompt lines.
+ */
+export function parsePlainMacroLines(text: string): ParsedMealLine[] {
+  const meals: ParsedMealLine[] = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.length < 8) continue;
+    if (/^(?:итого|всего|сумма|нажми|подтверд)/i.test(line)) continue;
+    if (!/\d\s*ккал/i.test(line)) continue;
+    // Skip prose that isn't a dish row («фиксирую завтрак: …»).
+    if (/^(?:замечательно|отлично|хорошо|ок[,.]|фиксир)/i.test(line)) continue;
+    let rest = line;
+    let lineNote: string | undefined;
+    const slotPrefix = new RegExp(
+      `^${MEAL_SLOT_STEM_RE}\\s*[:—–-]\\s*`,
+      "i",
+    ).exec(rest);
+    if (slotPrefix?.[1]) {
+      lineNote = mealNoteFromTypeKey(parseMealTypeKey(slotPrefix[1])) ?? undefined;
+      rest = rest.slice(slotPrefix[0].length).trim();
+    }
+    const meal = mealLineFromFragment(rest, lineNote);
+    if (meal) meals.push(meal);
+  }
+  return meals;
+}
+
+function mealMetaFromMessage(
+  userMessage: string,
+  assistantReply?: string,
+): {
   note: string;
   targetDate: string;
 } {
   return {
-    note: extractMealTypeFromMessage(userMessage) ?? "перекус",
-    targetDate: extractTargetDateFromMessage(userMessage) ?? "сегодня",
+    note:
+      extractMealTypeFromMessage(userMessage) ??
+      extractMealTypeFromMessage(assistantReply ?? "") ??
+      "перекус",
+    targetDate:
+      extractTargetDateFromMessage(userMessage) ??
+      extractTargetDateFromMessage(assistantReply ?? "") ??
+      "сегодня",
   };
+}
+
+/** «4 варёных яйца», «яйца 3 шт» → piece count for per-item staples. */
+export function parsePieceCountFromMessage(text: string): number | null {
+  const end = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  const withUnit = new RegExp(
+    String.raw`(\d+)\s*(?:шт(?:ук[аи]?)?\.?)${end}`,
+    "iu",
+  ).exec(text);
+  if (withUnit?.[1]) {
+    const n = Number(withUnit[1]);
+    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
+  }
+  // Count glued to a piece food: «4 варёных яйца», «2 банана».
+  const beforeFood = new RegExp(
+    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+)?(?:яиц\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*)`,
+    "iu",
+  ).exec(text);
+  if (beforeFood?.[1]) {
+    const n = Number(beforeFood[1]);
+    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
+  }
+  // Leading count before any food word: «4 варёных…».
+  const leading = /^\s*(\d+)\s+(?=\p{L})/u.exec(text.trim());
+  if (leading?.[1]) {
+    const n = Number(leading[1]);
+    if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
+  }
+  return null;
+}
+
+function packLooksPerPiece(dishName: string): boolean {
+  return /яйц|сырок|банан|яблоко|апельсин|мандарин|сосиск|котлет/i.test(dishName);
 }
 
 /**
@@ -654,7 +758,7 @@ export function heuristicRepairMultiDishActions(
   }
   if (meals.length < 2) return null;
 
-  const { note, targetDate } = mealMetaFromMessage(userMessage);
+  const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
   const withNote = meals.map((m) => ({
     ...m,
     note,
@@ -688,7 +792,7 @@ export function heuristicRepairFromDraftReply(
   const picked = withKcal.length ? withKcal : meals;
   if (!picked.length) return null;
 
-  const { note, targetDate } = mealMetaFromMessage(userMessage);
+  const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
   const withNote = picked.map((m) => ({
     ...m,
     note: m.note && isMealNoteLabel(m.note) ? m.note : note,
