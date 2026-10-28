@@ -15,6 +15,22 @@ test("lookupRuNutritionTable matches boiled egg not pouch egg", () => {
   assert.equal(soft?.dishName, "Яйцо в мешочек");
   const fried = lookupRuNutritionTable("яичница");
   assert.equal(fried?.dishName, "Яичница");
+  assert.equal(lookupRuNutritionTable("варёных яйца")?.dishName, "Вареное яйцо");
+  assert.equal(lookupRuNutritionTable("вареные яйца")?.dishName, "Вареное яйцо");
+});
+
+test("творожный сырок is soft pack not glazed 50г bar", () => {
+  const soft = lookupRuNutritionTable("творожный сырок");
+  assert.ok(soft);
+  assert.match(soft!.dishName, /Творожный сырок/i);
+  assert.equal(soft!.portionGrams, 100);
+  const scaled = scaleRuNutritionToGrams("творожный сырок", 200);
+  assert.ok(scaled);
+  assert.equal(scaled!.calories, 300);
+  const glazed = lookupRuNutritionTable("глазированный сырок");
+  assert.ok(glazed);
+  assert.match(glazed!.dishName, /Глазирован/i);
+  assert.equal(glazed!.portionGrams, 50);
 });
 
 test("lookupRuNutritionTable matches borscht", () => {
