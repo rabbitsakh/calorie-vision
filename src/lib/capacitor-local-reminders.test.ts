@@ -7,11 +7,35 @@ import {
   cvReminders,
   diarySnapshotFromRationDay,
   enableCapacitorLocalReminders,
+  GYM_REMINDER_SUPPRESS_DATE_KEY,
   localReminderCopy,
   requestCapacitorNotificationPermission,
+  suppressGymReminderForDate,
   toCapacitorWeekday,
 } from "./capacitor-local-reminders.ts";
 import { quietFirstRunPrefs } from "./push-reminder-schedule.ts";
+
+function installStorage() {
+  const map = new Map<string, string>();
+  Object.defineProperty(globalThis, "localStorage", {
+    value: {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        map.set(k, v);
+      },
+      removeItem: (k: string) => {
+        map.delete(k);
+      },
+      clear: () => map.clear(),
+      key: () => null,
+      get length() {
+        return map.size;
+      },
+    },
+    configurable: true,
+  });
+  map.delete(GYM_REMINDER_SUPPRESS_DATE_KEY);
+}
 
 test("toCapacitorWeekday maps JS Sunday=0 to Capacitor 1", () => {
   assert.equal(toCapacitorWeekday(0), 1);
@@ -67,6 +91,30 @@ test("buildCapacitorReminderSchedule skips quiet hours", () => {
   );
   assert.ok(items.some((i) => i.kind === "lunch"));
   assert.ok(!items.some((i) => i.kind === "dinner"));
+});
+
+test("buildCapacitorReminderSchedule omits gym when suppressed for diary date", () => {
+  installStorage();
+  suppressGymReminderForDate("2026-10-27");
+  const snap = diarySnapshotFromRationDay({
+    date: "2026-10-27",
+    meals: { entries: [], totalCalories: 0, target: { calories: 1800 } },
+    water: { totalMl: 0, target: 2000 },
+    streak: { streak: 0, streakBeforeToday: 0, loggedToday: false },
+  });
+  const items = buildCapacitorReminderSchedule(
+    { gym: { enabled: true, hour: 10 }, lunch: { enabled: true, hour: 13 } },
+    null,
+    null,
+    snap,
+  );
+  assert.ok(!items.some((i) => i.kind === "gym"));
+  assert.ok(items.some((i) => i.kind === "lunch"));
+});
+
+test("localReminderCopy gym does not say continue", () => {
+  const copy = localReminderCopy("gym");
+  assert.doesNotMatch(copy.body, /продолж/i);
 });
 
 test("disabled kinds are omitted", () => {

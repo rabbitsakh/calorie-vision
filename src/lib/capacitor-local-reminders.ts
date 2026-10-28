@@ -16,6 +16,7 @@ import {
   type PushReminderPrefs,
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
+import { pickGymReminderCopy } from "@/lib/push-gym-reminder";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { getQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import { readRationDayCache } from "@/lib/ration-day-cache";
@@ -78,6 +79,8 @@ function normalizePermission(raw: string | null | undefined): CapLocalPermission
 
 export const CAP_REMINDERS_ENABLED_KEY = "cv-local-reminders-on";
 const CAP_REMINDER_PREFS_KEY = "cv-local-reminder-prefs";
+/** YYYY-MM-DD — skip scheduling gym nudge while user already trains / trained. */
+export const GYM_REMINDER_SUPPRESS_DATE_KEY = "cv-gym-reminder-suppress-date";
 
 /** Stable notification ids so we can cancel/reschedule by kind. */
 export const CAP_REMINDER_IDS: Record<ReminderKind, number> = {
@@ -330,13 +333,40 @@ export function localReminderCopy(
       return { title: "Итог недели", body: "Понедельник — короткий взгляд на прошлую неделю." };
     case "reactivation":
       return { title: "Мы рядом", body: "Без давления: можно просто открыть дневник." };
-    case "gym":
-      return {
-        title: "Сегодня зал?",
-        body: "Открой Зал — один следующий шаг: продолжить, старт или отдых.",
-      };
+    case "gym": {
+      const copy = pickGymReminderCopy({
+        today: s?.date ?? new Date().toISOString().slice(0, 10),
+      });
+      return { title: copy.title, body: copy.body };
+    }
     default:
       return { title: "Calorie Vision", body: "Напоминание из дневника." };
+  }
+}
+
+export function readGymReminderSuppressDate(): string | null {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(GYM_REMINDER_SUPPRESS_DATE_KEY);
+    return raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isGymReminderSuppressedForDate(todayKey: string): boolean {
+  if (!todayKey) return false;
+  return readGymReminderSuppressDate() === todayKey;
+}
+
+/** Mark today so APK does not fire «иди в зал» while training / after session. */
+export function suppressGymReminderForDate(todayKey: string): void {
+  if (!todayKey || !/^\d{4}-\d{2}-\d{2}$/.test(todayKey)) return;
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(GYM_REMINDER_SUPPRESS_DATE_KEY, todayKey);
+  } catch {
+    // private mode
   }
 }
 
@@ -366,9 +396,18 @@ export function buildCapacitorReminderSchedule(
 ): CapReminderScheduleItem[] {
   const slots = effectiveReminderSchedule(prefs);
   const diary = snapshot === undefined ? readLocalReminderDiarySnapshot() : snapshot;
+  const suppressGymDate = readGymReminderSuppressDate();
   const items: CapReminderScheduleItem[] = [];
   for (const slot of slots) {
     if (isInQuietHours(slot.hour, quietStart, quietEnd)) continue;
+    // Already in the gym / finished today — do not schedule «иди в зал».
+    if (slot.kind === "gym" && diary?.date && suppressGymDate === diary.date) {
+      continue;
+    }
+    if (slot.kind === "gym" && !diary?.date && suppressGymDate) {
+      const todayIso = new Date().toISOString().slice(0, 10);
+      if (suppressGymDate === todayIso) continue;
+    }
     const copy = localReminderCopy(slot.kind, diary);
     items.push({
       id: CAP_REMINDER_IDS[slot.kind],
@@ -731,6 +770,23 @@ export async function syncCapacitorLocalRemindersIfEnabled(
 ): Promise<void> {
   if (!(await isCapacitorRemindersEnabled())) return;
   await scheduleCapacitorLocalReminders(prefs, quietStart, quietEnd);
+}
+
+/**
+ * Call when a workout starts / resumes / finishes so APK will not nudge «в зал».
+ * Suppresses gym for today and rebuilds the local schedule without that slot.
+ */
+export async function suppressGymReminderTodayAndReschedule(
+  todayKey: string,
+): Promise<void> {
+  suppressGymReminderForDate(todayKey);
+  if (!inApkRemindersContext()) return;
+  try {
+    const quiet = getQuietHoursPrefs();
+    await syncCapacitorLocalRemindersIfEnabled(undefined, quiet.start, quiet.end);
+  } catch {
+    // best-effort
+  }
 }
 
 /** After ration day loads — refresh notification copy from diary cache. */

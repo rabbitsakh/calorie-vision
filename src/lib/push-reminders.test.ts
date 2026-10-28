@@ -40,6 +40,9 @@ const baseCtx = {
   daysLoggedLastWeek: 3,
   daysInLastWeek: 7,
   daysSinceLastMeal: null,
+  hasActiveWorkoutToday: false,
+  hasFinishedWorkoutToday: false,
+  hasLoggedWorkoutSetToday: false,
 };
 
 test("resolvePushTimezone falls back to Europe/Moscow", () => {
@@ -365,4 +368,34 @@ test("reactivation soft nudge after idle days", () => {
 test("remindersForLocalTime returns reactivation at 11 when enabled", () => {
   assert.deepEqual(remindersForLocalTime(11, 2, ALL_ON), ["reactivation"]);
   assert.deepEqual(remindersForLocalTime(11, 2), ["reactivation"]);
+});
+
+test("gym reminder skipped when workout is active", () => {
+  assert.equal(
+    buildReminderPayload("gym", { ...baseCtx, hasActiveWorkoutToday: true }, { userId: "u1" }),
+    null,
+  );
+});
+
+test("gym reminder skipped when workout finished today", () => {
+  assert.equal(
+    buildReminderPayload("gym", { ...baseCtx, hasFinishedWorkoutToday: true }, { userId: "u1" }),
+    null,
+  );
+});
+
+test("gym reminder skipped when sets already logged", () => {
+  assert.equal(
+    buildReminderPayload("gym", { ...baseCtx, hasLoggedWorkoutSetToday: true }, { userId: "u1" }),
+    null,
+  );
+});
+
+test("gym reminder motivates when no workout yet", () => {
+  const payload = buildReminderPayload("gym", baseCtx, { userId: "gym-user" });
+  assert.ok(payload);
+  assert.equal(payload.url, "/workouts");
+  assert.equal(payload.tag, "cv-gym");
+  assert.doesNotMatch(payload.body, /продолж/i);
+  assert.ok(payload.title.length > 0);
 });

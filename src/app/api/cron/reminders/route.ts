@@ -33,39 +33,52 @@ async function loadUserReminderContext(
   today: string,
   timezone: string,
 ): Promise<UserReminderContext> {
-  const [meals, waterTotal, diary, user, latestWeight, recentMeals, freezes] = await Promise.all([
-    prisma.mealEntry.findMany({
-      where: { userId, date: today },
-      select: { calories: true, mealType: true },
-    }),
-    prisma.waterEntry.aggregate({
-      where: { userId, date: today },
-      _sum: { ml: true },
-    }),
-    prisma.diaryNote.findUnique({
-      where: { userId_date: { userId, date: today } },
-      select: { mood: true },
-    }),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { ...DIET_PROFILE_SELECT, waterTargetMl: true },
-    }),
-    prisma.weightEntry.findFirst({
-      where: { userId },
-      orderBy: weightEntryOrderNewestFirst,
-      select: { weightKg: true },
-    }),
-    prisma.mealEntry.findMany({
-      where: { userId },
-      select: { date: true },
-      distinct: ["date"],
-      orderBy: { date: "desc" },
-    }),
-    prisma.streakFreeze.findMany({
-      where: { userId },
-      select: { date: true },
-    }),
-  ]);
+  const [meals, waterTotal, diary, user, latestWeight, recentMeals, freezes, workoutSessions] =
+    await Promise.all([
+      prisma.mealEntry.findMany({
+        where: { userId, date: today },
+        select: { calories: true, mealType: true },
+      }),
+      prisma.waterEntry.aggregate({
+        where: { userId, date: today },
+        _sum: { ml: true },
+      }),
+      prisma.diaryNote.findUnique({
+        where: { userId_date: { userId, date: today } },
+        select: { mood: true },
+      }),
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { ...DIET_PROFILE_SELECT, waterTargetMl: true },
+      }),
+      prisma.weightEntry.findFirst({
+        where: { userId },
+        orderBy: weightEntryOrderNewestFirst,
+        select: { weightKg: true },
+      }),
+      prisma.mealEntry.findMany({
+        where: { userId },
+        select: { date: true },
+        distinct: ["date"],
+        orderBy: { date: "desc" },
+      }),
+      prisma.streakFreeze.findMany({
+        where: { userId },
+        select: { date: true },
+      }),
+      prisma.workoutSession.findMany({
+        where: { userId, date: today },
+        select: {
+          startedAt: true,
+          endedAt: true,
+          exercises: {
+            select: {
+              sets: { select: { completed: true }, take: 8 },
+            },
+          },
+        },
+      }),
+    ]);
 
   const mealDates = recentMeals.map((entry) => entry.date);
   const frozenDates = freezes.map((entry) => entry.date);
@@ -88,6 +101,14 @@ async function loadUserReminderContext(
     }
   }
 
+  const hasActiveWorkoutToday = workoutSessions.some(
+    (s) => s.startedAt != null && s.endedAt == null,
+  );
+  const hasFinishedWorkoutToday = workoutSessions.some((s) => s.endedAt != null);
+  const hasLoggedWorkoutSetToday = workoutSessions.some((s) =>
+    s.exercises.some((ex) => ex.sets.some((set) => set.completed)),
+  );
+
   return {
     today,
     mealCount: meals.length,
@@ -105,6 +126,9 @@ async function loadUserReminderContext(
     daysLoggedLastWeek: weekStats.daysLoggedLastWeek,
     daysInLastWeek: weekStats.daysInLastWeek,
     daysSinceLastMeal,
+    hasActiveWorkoutToday,
+    hasFinishedWorkoutToday,
+    hasLoggedWorkoutSetToday,
   };
 }
 
