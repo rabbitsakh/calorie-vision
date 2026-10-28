@@ -12,6 +12,10 @@ import {
   emptyMealSlotTitle,
   streakAtRiskPushTitle,
 } from "@/lib/motivation-voice";
+import {
+  pickGymReminderCopy,
+  shouldSkipGymReminder,
+} from "@/lib/push-gym-reminder";
 
 export {
   REMINDER_SCHEDULE,
@@ -48,6 +52,12 @@ export type UserReminderContext = {
   daysInLastWeek: number;
   /** Days since last meal log; null if never logged. */
   daysSinceLastMeal: number | null;
+  /** Gym nudge: clock started, not finished (running/paused). */
+  hasActiveWorkoutToday?: boolean;
+  /** Gym nudge: session finished today. */
+  hasFinishedWorkoutToday?: boolean;
+  /** Gym nudge: at least one completed set logged today. */
+  hasLoggedWorkoutSetToday?: boolean;
 };
 
 export function resolvePushTimezone(timezone: string | null | undefined): string {
@@ -162,11 +172,15 @@ export function computeLastWeekStats(
 export type PushCopyVariant = "A" | "B";
 
 /**
- * Stable A/B assignment from userId (+ reminder kind).
- * Same user always gets the same variant for a given kind across cron runs.
+ * A/B assignment from userId + kind + local date.
+ * Rotates day-to-day so the same user sees more variety.
  */
-export function pickPushCopyVariant(userId: string, kind: ReminderKind): PushCopyVariant {
-  const key = `${userId}:${kind}`;
+export function pickPushCopyVariant(
+  userId: string,
+  kind: ReminderKind,
+  today?: string | null,
+): PushCopyVariant {
+  const key = today ? `${userId}:${kind}:${today}` : `${userId}:${kind}`;
   let hash = 0;
   for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
@@ -183,10 +197,11 @@ export type BuildReminderOptions = {
 
 function resolveCopyVariant(
   kind: ReminderKind,
+  ctx: UserReminderContext,
   options?: BuildReminderOptions,
 ): PushCopyVariant {
   if (options?.variant) return options.variant;
-  if (options?.userId) return pickPushCopyVariant(options.userId, kind);
+  if (options?.userId) return pickPushCopyVariant(options.userId, kind, ctx.today);
   return "A";
 }
 
@@ -201,7 +216,7 @@ export function buildReminderPayload(
   const breakfastUrl = rationMealLink("BREAKFAST");
   const lunchUrl = rationMealLink("LUNCH");
   const dinnerUrl = rationMealLink("DINNER");
-  const variant = resolveCopyVariant(kind, options);
+  const variant = resolveCopyVariant(kind, ctx, options);
   const isB = variant === "B";
 
   switch (kind) {
@@ -213,8 +228,8 @@ export function buildReminderPayload(
           ctx.streakBeforeToday >= 3
             ? breakfastStreakBody(ctx.streakBeforeToday, isB)
             : isB
-              ? "Отметьте завтрак сейчас — потом вспомнить сложнее."
-              : "Первая запись дня — завтрак. Это занимает меньше минуты.",
+              ? "Лёгкий старт дня: отметьте завтрак, пока всё свежо."
+              : "Первая запись дня — завтрак. Меньше минуты, и день уже открыт.",
         url: breakfastUrl,
         tag: "cv-breakfast",
       };
@@ -232,15 +247,15 @@ export function buildReminderPayload(
         };
       }
       return {
-        title: isB ? "Не забудьте обед" : "Время обеда",
+        title: isB ? "Обед — якорь дня" : "Время обеда",
         body:
           ctx.totalCalories > 0
             ? isB
-              ? `Уже ${ctx.totalCalories} ккал за день — запишите обед, пока свежо.`
-              : `Уже ${ctx.totalCalories} ккал — не забудьте записать обед.`
+              ? `Уже ${ctx.totalCalories} ккал — обед закрепит картину дня.`
+              : `Уже ${ctx.totalCalories} ккал. Запишите обед, пока помните порцию.`
             : isB
-              ? "Пара кликов — и обед в дневнике."
-              : "Запишите обед, пока помните состав и порцию.",
+              ? "Пара кликов — и обед в дневнике. День станет понятнее."
+              : "Запишите обед сейчас — вечером вспоминать сложнее.",
         url: lunchUrl,
         tag: "cv-lunch",
       };
@@ -258,15 +273,15 @@ export function buildReminderPayload(
         };
       }
       return {
-        title: isB ? "Не забудьте ужин" : "Время ужина",
+        title: isB ? "Ужин закроет день" : "Время ужина",
         body:
           ctx.totalCalories > 0
             ? isB
-              ? `Уже ${ctx.totalCalories} ккал — запишите ужин, пока помните.`
-              : `Уже ${ctx.totalCalories} ккал за день — не забудьте ужин.`
+              ? `Уже ${ctx.totalCalories} ккал — ужин дополнит картину без оценок.`
+              : `Уже ${ctx.totalCalories} ккал за день. Запишите ужин, пока свежо.`
             : isB
-              ? "Пара кликов — и ужин в дневнике."
-              : "Запишите ужин, пока помните состав и порцию.",
+              ? "Короткая запись ужина — и день можно спокойно закрыть."
+              : "Запишите ужин сейчас — потом вспомнить порцию сложнее.",
         url: dinnerUrl,
         tag: "cv-dinner",
       };
@@ -358,8 +373,8 @@ export function buildReminderPayload(
         return {
           title: streakAtRiskPushTitle(ctx.streakBeforeToday, isB),
           body: isB
-            ? "До полуночи ещё есть время — одна запись сохранит серию."
-            : "Сегодня ещё нет записей — добавьте хотя бы один приём пищи до полуночи.",
+            ? "Без давления: одна запись до полуночи сохранит ритм."
+            : "Сегодня ещё пусто — любой приём пищи до полуночи удержит серию.",
           url: rationUrl,
           tag: "cv-streak",
         };
@@ -367,8 +382,8 @@ export function buildReminderPayload(
       return {
         title: isB ? "Одна запись — и день ваш" : "Откройте день записью",
         body: isB
-          ? "Минута сейчас — и день уже засчитан."
-          : "Одна отметка — и день уже «открыт». Это занимает меньше минуты.",
+          ? "Минута сейчас — и день уже засчитан. Можно начать с чего угодно."
+          : "Одна отметка открывает день. Меньше минуты, без оценок.",
         url: rationUrl,
         tag: "cv-streak",
       };
@@ -413,14 +428,19 @@ export function buildReminderPayload(
       };
 
     case "gym":
-      return {
-        title: isB ? "Сегодня зал?" : "Время для зала",
-        body: isB
-          ? "Открой Today — один следующий шаг: продолжить, старт или день отдыха."
-          : "Загляни в Зал: продолжить тренировку, стартовать по плану или отметить отдых.",
-        url: workoutsDeepLink(),
-        tag: "cv-gym",
-      };
+      if (shouldSkipGymReminder(ctx)) return null;
+      {
+        const copy = pickGymReminderCopy({
+          userId: options?.userId,
+          today: ctx.today,
+        });
+        return {
+          title: copy.title,
+          body: copy.body,
+          url: workoutsDeepLink(),
+          tag: "cv-gym",
+        };
+      }
 
     default:
       return null;

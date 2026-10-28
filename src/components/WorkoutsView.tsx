@@ -82,6 +82,7 @@ import {
   hasLeverAppliedForSession,
   markLeverAppliedForSession,
 } from "@/lib/workouts/lever-session-applied";
+import { suppressGymReminderTodayAndReschedule } from "@/lib/capacitor-local-reminders";
 import {
   compareSetToLeverGoal,
   formatLeverSetToast,
@@ -713,6 +714,11 @@ export function WorkoutsView({
     }
   }, []);
 
+  /** APK: drop today's «иди в зал» once the user is training or done. */
+  const quietGymNudgeForToday = useCallback(() => {
+    void suppressGymReminderTodayAndReschedule(todayKey);
+  }, [todayKey]);
+
   const openSession = useCallback(
     async (id: string, opts?: { enterStage?: boolean; applyLever?: boolean }) => {
       setError(null);
@@ -741,6 +747,14 @@ export function WorkoutsView({
         setFocusExerciseId(session.exercises[0]?.id ?? null);
         fillDraftsFromSession(session);
         if (mutateLever) void applyLeverGoalsOnOpen(session);
+        if (
+          enterStage ||
+          session.clockStatus === "running" ||
+          session.clockStatus === "paused" ||
+          session.clockStatus === "finished"
+        ) {
+          quietGymNudgeForToday();
+        }
         setError("Тренировка на устройстве — отправим при связи");
         return;
       }
@@ -763,12 +777,20 @@ export function WorkoutsView({
         setFocusExerciseId(data.session.exercises[0]?.id ?? null);
         fillDraftsFromSession(data.session);
         if (mutateLever) void applyLeverGoalsOnOpen(data.session);
+        if (
+          enterStage ||
+          data.session.clockStatus === "running" ||
+          data.session.clockStatus === "paused" ||
+          data.session.clockStatus === "finished"
+        ) {
+          quietGymNudgeForToday();
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка загрузки");
         setActiveId(null);
       }
     },
-    [applyLeverGoalsOnOpen, fillDraftsFromSession],
+    [applyLeverGoalsOnOpen, fillDraftsFromSession, quietGymNudgeForToday],
   );
 
   useEffect(() => {
@@ -971,6 +993,7 @@ export function WorkoutsView({
         setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
+        quietGymNudgeForToday();
         setError("Итог на устройстве — отправим при связи");
         return;
       }
@@ -984,6 +1007,7 @@ export function WorkoutsView({
           clockStatus: "running",
           startedAt: detail.startedAt ?? now,
         });
+        quietGymNudgeForToday();
         return;
       }
       if (clock === "pause") {
@@ -992,6 +1016,7 @@ export function WorkoutsView({
           pausedAt: now,
         });
         setDetail({ ...detail, clockStatus: "paused", pausedAt: now });
+        quietGymNudgeForToday();
         return;
       }
       if (clock === "resume") {
@@ -1000,6 +1025,7 @@ export function WorkoutsView({
           pausedAt: null,
         });
         setDetail({ ...detail, clockStatus: "running", pausedAt: null });
+        quietGymNudgeForToday();
       }
       return;
     }
@@ -1014,6 +1040,9 @@ export function WorkoutsView({
       );
       setDetail(data.session);
       setProgress(data.progress);
+      if (clock === "start" || clock === "resume" || clock === "pause" || clock === "finish") {
+        quietGymNudgeForToday();
+      }
       if (clock === "finish") {
         setStageOpen(false);
         setShowSummary(true);
