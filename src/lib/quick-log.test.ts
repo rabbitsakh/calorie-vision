@@ -37,6 +37,20 @@ test("enrichQuickMealsFromText restores grams AI dropped from the name", () => {
   assert.equal(defaulted[0]!.name, "Творог (100 г)");
 });
 
+test("enrichQuickMealsFromText maps each dish to its own portion from the phrase", () => {
+  const enriched = enrichQuickMealsFromText(
+    [
+      { name: "Молоко (500 г)", kcal: 54, protein: 3, fat: 3, carbs: 5 },
+      { name: "Куриная грудка (500 г)", kcal: 550, protein: 120, fat: 5, carbs: 0 },
+    ],
+    "Молоко 100мл и Курина грудка 500гр",
+  );
+  assert.equal(enriched[0]!.name, "Молоко (100 мл)");
+  assert.equal(enriched[0]!.kcal, 54); // keep AI kcal — was for 100 мл
+  assert.equal(enriched[1]!.name, "Куриная грудка (500 г)");
+  assert.equal(enriched[1]!.kcal, 550);
+});
+
 test("rescaleQuickMeal scales kcal and macros with grams", () => {
   const next = rescaleQuickMeal(
     { name: "Подушечки (50 г)", kcal: 215, protein: 3.5, fat: 7.5, carbs: 33.5, note: "завтрак" },

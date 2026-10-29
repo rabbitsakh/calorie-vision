@@ -1307,6 +1307,37 @@ select {
   }
 }
 
+.quick-slots {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-slots::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-slot {
+  flex: 1 0 auto;
+  min-height: 2.25rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-quiet);
+  border-radius: 999px;
+  background: var(--surface-mist);
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.quick-slot--on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
 .quick-parse-head {
   display: flex;
   align-items: center;

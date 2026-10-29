@@ -2,7 +2,7 @@
   {
     "version": "3.1.7",
     "date": "2026-10-29",
-    "summary": "design D35: moment hero CTA layout, empty-day camera CTA",
+    "summary": "design D35: moment hero CTA, quick-log portions + meal slot",
     "items": [
       {
         "kind": "fix",
@@ -11,6 +11,14 @@
       {
         "kind": "improvement",
         "text": "Пустой день: «Сфоткать еду»; быстрый лог — горизонтальный скролл"
+      },
+      {
+        "kind": "fix",
+        "text": "«Проверь и запиши»: порции из фразы по каждому блюду (молоко 100 мл ≠ 500 г)"
+      },
+      {
+        "kind": "feature",
+        "text": "На листе быстрой записи — выбор завтрак / обед / ужин / перекус"
       }
     ]
   },
