@@ -58,3 +58,4 @@ Wave C0 — short contract for product UI. Prefer this over inventing a new look
 - Tab + «+» chrome (Wave D30): quiet dock (no card shadow); one active tab cue; flat accent «+»/split and FoodAdd primary tile (no lift/glow).
 - RuStore shell (Wave D31): `rustore/cap-www` `:root` matches product cream/teal (`#f5f3ee` / `#0d7377`); Manrope stack.
 - Recognition-first chrome (Wave D32): bottom composer camera is the thumb-zone primary; confirm dish rows show S/M/L · ½ · ×2 + confidence; «Как вчера»/favorites strip sits above the meal feed; moment ring/macros ≥15–16px; cookie consent is a thin strip; landing mobile keeps «Войти» in the header.
+- Recognition depth (Wave D33): confirm kcal as confidence range («450–550»); low confidence shows 2–3 alternatives on the row; onboarding is 3 screens (goal → params+norm → photo); landing mobile keeps hero + demo + FAQ; `/try` guest 1–2 photos; lazy `BarcodeScanner` / `WorkoutLiveStage`.

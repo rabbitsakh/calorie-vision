@@ -260,138 +260,138 @@ export function LandingPage() {
             <Link href="/login" className="btn btn-primary landing-cta-primary landing-cta-sheen">
               Начать бесплатно
             </Link>
-            {!rustoreUrl ? (
-              <a href="#install" className="btn btn-secondary landing-cta-primary">
-                Скачать APK
-              </a>
-            ) : (
-              <a href="#install" className="landing-cta-secondary">
-                Установить на телефон
-              </a>
-            )}
+            <Link href="/try" className="btn btn-secondary landing-cta-primary">
+              Попробовать без входа
+            </Link>
           </div>
+          <p className="landing-cta-note">
+            {rustoreUrl ? (
+              <a href="#install">Установить на телефон</a>
+            ) : (
+              <a href="#install">Скачать APK</a>
+            )}
+          </p>
         </div>
       </section>
 
-      {/* D23 rhythm: proof → how → showcase → trust → inside → install → FAQ */}
-      <LandingScrollReveal>
-        <LandingStatsStrip />
-      </LandingScrollReveal>
+      {/* D33 mobile: hero → demo → FAQ. Desktop keeps fuller rhythm. */}
+      <div className="landing-below-fold">
+        <LandingScrollReveal className="landing-mobile-hide">
+          <LandingStatsStrip />
+        </LandingScrollReveal>
 
-      <LandingScrollReveal>
-        <section id="how" className="landing-section">
-          <div className="landing-section-head">
-            <p className="landing-kicker">Как это работает</p>
-            <h2 className="landing-section-title">Три шага от фото до записи</h2>
-            <p className="landing-section-text">
-              Без поиска продукта в справочнике — камера, штрихкод или короткое название.
-            </p>
-          </div>
-          <ol className="landing-steps landing-stagger">
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                01
-              </span>
-              <div>
-                <h3 className="landing-step-title">Снимите или опишите еду</h3>
-                <p className="landing-section-text">
-                  Тарелка, упаковка, этикетка или штрихкод. Можно написать «гречка с курицей». Нет
-                  сети — фото уйдёт в офлайн-очередь.
-                </p>
-              </div>
-            </li>
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                02
-              </span>
-              <div>
-                <h3 className="landing-step-title">Проверьте порцию</h3>
-                <p className="landing-section-text">
-                  Подправьте граммы или название — КБЖУ пересчитаются. Низкая уверенность —
-                  уточните по названию.
-                </p>
-              </div>
-            </li>
-            <li className="landing-step">
-              <span className="landing-step-num" aria-hidden>
-                03
-              </span>
-              <div>
-                <h3 className="landing-step-title">Следите за днём</h3>
-                <p className="landing-section-text">
-                  Приёмы пищи в рационе: остаток до нормы, вода, серия и план недели.
-                </p>
-              </div>
-            </li>
-          </ol>
-        </section>
-      </LandingScrollReveal>
+        <LandingScrollReveal className="landing-mobile-hide">
+          <section id="how" className="landing-section">
+            <div className="landing-section-head">
+              <p className="landing-kicker">Как это работает</p>
+              <h2 className="landing-section-title">Три шага от фото до записи</h2>
+              <p className="landing-section-text">
+                Без поиска продукта в справочнике — камера, штрихкод или короткое название.
+              </p>
+            </div>
+            <ol className="landing-steps landing-stagger">
+              <li className="landing-step">
+                <span className="landing-step-num" aria-hidden>
+                  01
+                </span>
+                <div>
+                  <h3 className="landing-step-title">Снимите или опишите еду</h3>
+                  <p className="landing-section-text">
+                    Тарелка, упаковка, этикетка или штрихкод. Можно написать «гречка с курицей».
+                  </p>
+                </div>
+              </li>
+              <li className="landing-step">
+                <span className="landing-step-num" aria-hidden>
+                  02
+                </span>
+                <div>
+                  <h3 className="landing-step-title">Проверьте порцию</h3>
+                  <p className="landing-section-text">
+                    Подправьте граммы — КБЖУ пересчитаются. Низкая уверенность — выберите вариант.
+                  </p>
+                </div>
+              </li>
+              <li className="landing-step">
+                <span className="landing-step-num" aria-hidden>
+                  03
+                </span>
+                <div>
+                  <h3 className="landing-step-title">Следите за днём</h3>
+                  <p className="landing-section-text">
+                    Приёмы в рационе: остаток до нормы, вода, серия и план недели.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </section>
+        </LandingScrollReveal>
 
-      <LandingScrollReveal>
-        <LandingRecognitionShowcase />
-      </LandingScrollReveal>
+        <LandingScrollReveal>
+          <LandingRecognitionShowcase />
+        </LandingScrollReveal>
 
-      <LandingScrollReveal>
-        <LandingTrustBand />
-      </LandingScrollReveal>
+        <LandingScrollReveal className="landing-mobile-hide">
+          <LandingTrustBand />
+        </LandingScrollReveal>
 
-      <LandingScrollReveal>
-        <section id="inside" className="landing-section landing-section-band">
-          <div className="landing-section-head">
-            <p className="landing-kicker">Что внутри</p>
-            <h2 className="landing-section-title">Ежедневный учёт — в одном месте</h2>
-            <p className="landing-section-text landing-section-text-wide">
-              Еда, вода и зал без второй подписки — даже если сеть пропала на минуту.
-            </p>
-          </div>
-          <LandingFeatureGrid />
-        </section>
-      </LandingScrollReveal>
+        <LandingScrollReveal className="landing-desktop-only">
+          <section id="inside" className="landing-section landing-section-band">
+            <div className="landing-section-head">
+              <p className="landing-kicker">Что внутри</p>
+              <h2 className="landing-section-title">Ежедневный учёт — в одном месте</h2>
+              <p className="landing-section-text landing-section-text-wide">
+                Еда, вода и зал без второй подписки — даже если сеть пропала на минуту.
+              </p>
+            </div>
+            <LandingFeatureGrid />
+          </section>
+        </LandingScrollReveal>
 
-      <LandingScrollReveal>
-        <section id="install" className="landing-section landing-section-band landing-parallax-band">
-          <div className="landing-section-head">
-            <p className="landing-kicker">На телефон</p>
-            <h2 className="landing-section-title">Один путь установки</h2>
-            <p className="landing-section-text landing-section-text-wide">
-              Android — RuStore (или APK). iPhone — Safari → на экран «Домой». Уведомления на iOS
-              работают только с иконки (16.4+).
-            </p>
-          </div>
-
-          <AndroidApkCta />
-
-          <div className="landing-install-grid landing-stagger">
-            <div className="landing-install-col">
-              <h3 className="landing-install-heading">
-                <ShareIcon />
-                iPhone · Safari
-              </h3>
-              <ol className="landing-install-steps">
-                <li>Откройте calorievision.ru в Safari.</li>
-                <li>
-                  «Поделиться» <ShareIcon /> → «На экран „Домой“».
-                </li>
-                <li>Запускайте с иконки — так работают напоминания.</li>
-              </ol>
+        <LandingScrollReveal>
+          <section id="install" className="landing-section landing-section-band landing-parallax-band">
+            <div className="landing-section-head">
+              <p className="landing-kicker">На телефон</p>
+              <h2 className="landing-section-title">Один путь установки</h2>
+              <p className="landing-section-text landing-section-text-wide">
+                Android — RuStore (или APK). iPhone — Safari → на экран «Домой».
+              </p>
             </div>
 
-            <div className="landing-install-col">
-              <h3 className="landing-install-heading">
-                <MenuIcon />
-                Android · Chrome (PWA)
-              </h3>
-              <ol className="landing-install-steps">
-                <li>Если не ставите из RuStore — откройте сайт в Chrome.</li>
-                <li>
-                  Меню <MenuIcon /> → «Установить приложение».
-                </li>
-                <li>Открывайте с иконки.</li>
-              </ol>
+            <AndroidApkCta />
+
+            <div className="landing-install-grid landing-stagger landing-desktop-only">
+              <div className="landing-install-col">
+                <h3 className="landing-install-heading">
+                  <ShareIcon />
+                  iPhone · Safari
+                </h3>
+                <ol className="landing-install-steps">
+                  <li>Откройте calorievision.ru в Safari.</li>
+                  <li>
+                    «Поделиться» <ShareIcon /> → «На экран „Домой“».
+                  </li>
+                  <li>Запускайте с иконки — так работают напоминания.</li>
+                </ol>
+              </div>
+
+              <div className="landing-install-col">
+                <h3 className="landing-install-heading">
+                  <MenuIcon />
+                  Android · Chrome (PWA)
+                </h3>
+                <ol className="landing-install-steps">
+                  <li>Если не ставите из RuStore — откройте сайт в Chrome.</li>
+                  <li>
+                    Меню <MenuIcon /> → «Установить приложение».
+                  </li>
+                  <li>Открывайте с иконки.</li>
+                </ol>
+              </div>
             </div>
-          </div>
-        </section>
-      </LandingScrollReveal>
+          </section>
+        </LandingScrollReveal>
+      </div>
 
       <LandingScrollReveal>
         <section id="faq" className="landing-section landing-faq">
@@ -433,6 +433,13 @@ export function LandingPage() {
               <dt>Можно ли без фото?</dt>
               <dd>
                 Да — название, избранное или штрихкод. Фото просто быстрее дома и в кафе.
+              </dd>
+            </div>
+            <div className="landing-faq-item">
+              <dt>Можно попробовать без аккаунта?</dt>
+              <dd>
+                Да —{" "}
+                <Link href="/try">1–2 фото без входа</Link>. Чтобы сохранить в дневник, войдите.
               </dd>
             </div>
             <div className="landing-faq-item">

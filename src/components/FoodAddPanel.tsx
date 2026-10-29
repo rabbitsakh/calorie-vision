@@ -1,8 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { SceneBusy } from "@/components/SceneSkeleton";
+
+const BarcodeScanner = dynamic(
+  () => import("@/components/BarcodeScanner").then((m) => m.BarcodeScanner),
+  { ssr: false, loading: () => <p className="text-sm text-[var(--muted)]">Открываем сканер…</p> },
+);
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";

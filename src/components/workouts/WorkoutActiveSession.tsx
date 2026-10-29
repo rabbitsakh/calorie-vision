@@ -1,7 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+
+const WorkoutLiveStage = dynamic(
+  () => import("@/components/workouts/WorkoutLiveStage").then((m) => m.WorkoutLiveStage),
+  { ssr: false, loading: () => <SceneSkeleton compact /> },
+);
 import {
   dateKeyAndTimeToIso,
   formatDateShort,
@@ -57,7 +63,6 @@ import {
   WorkoutRestTimerBanner,
   WorkoutRestTimerControls,
 } from "@/components/workouts/WorkoutRestTimer";
-import { WorkoutLiveStage } from "@/components/workouts/WorkoutLiveStage";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import {
   EFFORT_FIELD_ARIA,

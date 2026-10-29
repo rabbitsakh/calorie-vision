@@ -4,42 +4,42 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
-import { ALLERGEN_OPTIONS, type AllergenId } from "@/lib/allergens";
-import { isCapacitorNative } from "@/lib/capacitor-bridge";
-import { markOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
+import {
+  GOAL_OPTIONS,
+  SEX_OPTIONS,
+  recommendDiet,
+  type Sex,
+  type WeightGoal,
+} from "@/lib/diet";
 import { ensureQuietDefaultForNewUsers } from "@/lib/gamification-quiet";
+import { markOpenCameraAfterOnboarding } from "@/lib/first-hour-trust";
 import { trackOnboardingCompleteGoal, trackOnboardingPhotoCtaGoal } from "@/lib/metrika-funnel";
 import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
+import { toDateKeyTz } from "@/lib/dates";
 
 const STORAGE_KEY = "cv-onboarding-v1";
 
-type StepId = "goal" | "allergens" | "photo" | "pwa";
+type StepId = "goal" | "params" | "photo";
 
-const ALL_STEPS: Array<{ id: StepId; title: string; body: string; pose: "tip" | "cheer" | "idle" }> = [
+const STEPS: Array<{ id: StepId; title: string; body: string; pose: "tip" | "cheer" | "idle" }> = [
   {
     id: "goal",
-    title: "Цель рядом",
-    body: "На рационе сверху — прогресс за день. Норму можно уточнить в профиле за минуту.",
+    title: "Какая цель?",
+    body: "От этого зависит дневная норма. Позже можно поменять в профиле.",
     pose: "tip",
   },
   {
-    id: "allergens",
-    title: "Мягкие аллергены",
-    body: "Отметьте, что важно избегать — подскажем на подтверждении и в дневнике. Это не диагноз.",
+    id: "params",
+    title: "Параметры и норма",
+    body: "Пол, вес и возраст — сразу посчитаем калории на день.",
     pose: "tip",
   },
   {
     id: "photo",
     title: "Первое фото",
-    body: "Сфотографируйте тарелку или этикетку — проверьте порцию и сохраните. Так начинается доверие к дневнику.",
+    body: "Сфотографируйте тарелку или этикетку — проверьте порцию и сохраните.",
     pose: "cheer",
-  },
-  {
-    id: "pwa",
-    title: "Ярлык на «Домой»",
-    body: "Добавьте приложение — быстрее открывается и удобнее напоминания. Можно позже в профиле.",
-    pose: "idle",
   },
 ];
 
@@ -59,30 +59,28 @@ function markDone(): void {
   }
 }
 
-async function saveAllergens(ids: AllergenId[]): Promise<void> {
-  try {
-    await fetch(withBasePath("/api/account"), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ allergens: ids }),
-    });
-  } catch {
-    // non-critical
-  }
-}
-
-/** First-visit guided run: goal → allergens → photo CTA → optional PWA (web only). */
+/** First-visit: цель → параметры с нормой → первое фото (3 экрана). */
 export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean } = {}) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
-  const [allergens, setAllergens] = useState<AllergenId[]>([]);
-  const [savingAllergens, setSavingAllergens] = useState(false);
+  const [goal, setGoal] = useState<WeightGoal>("LOSE");
+  const [sex, setSex] = useState<Sex>("FEMALE");
+  const [weightKg, setWeightKg] = useState("70");
+  const [age, setAge] = useState("30");
+  const [saving, setSaving] = useState(false);
 
-  const steps = useMemo(
-    () => (isCapacitorNative() ? ALL_STEPS.filter((s) => s.id !== "pwa") : ALL_STEPS),
-    [],
-  );
+  const steps = STEPS;
+  const birthYear = useMemo(() => {
+    const a = Number(age);
+    if (!Number.isFinite(a) || a < 14 || a > 90) return null;
+    return new Date().getFullYear() - Math.round(a);
+  }, [age]);
+  const weightNum = Number(weightKg);
+  const liveTarget = useMemo(() => {
+    if (!Number.isFinite(weightNum) || weightNum < 30 || weightNum > 250) return null;
+    return recommendDiet(weightNum, goal, "HEALTHY", sex, null, birthYear, "LIGHT");
+  }, [weightNum, goal, sex, birthYear]);
 
   useEffect(() => {
     setMounted(true);
@@ -106,29 +104,59 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
     }
   }, []);
 
+  const saveParams = useCallback(async () => {
+    setSaving(true);
+    try {
+      await fetch(withBasePath("/api/profile"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goal,
+          goalPace: goal === "MAINTAIN" ? null : "HEALTHY",
+        }),
+      });
+      await fetch(withBasePath("/api/account"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sex,
+          birthYear,
+          activityLevel: "LIGHT",
+        }),
+      });
+      if (Number.isFinite(weightNum) && weightNum >= 30 && weightNum <= 250) {
+        const today = toDateKeyTz(new Date());
+        await fetch(withBasePath("/api/weights"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: today, weightKg: weightNum, confirmReplace: true }),
+        });
+      }
+    } catch {
+      // non-critical — user can fix in profile
+    } finally {
+      setSaving(false);
+    }
+  }, [goal, sex, birthYear, weightNum]);
+
   const next = useCallback(async () => {
     const current = steps[step];
-    if (current?.id === "allergens") {
-      setSavingAllergens(true);
-      await saveAllergens(allergens);
-      setSavingAllergens(false);
+    if (current?.id === "params") {
+      await saveParams();
     }
     if (step >= steps.length - 1) {
       finish();
       return;
     }
     setStep((value) => value + 1);
-  }, [allergens, finish, step, steps]);
+  }, [finish, saveParams, step, steps]);
 
   if (!open || !mounted || typeof document === "undefined") return null;
 
   const current = steps[step] ?? steps[0]!;
   const isPhoto = current.id === "photo";
-  const isPwa = current.id === "pwa";
-
-  function toggleAllergen(id: AllergenId) {
-    setAllergens((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }
+  const isParams = current.id === "params";
+  const isGoal = current.id === "goal";
 
   const overlay = (
     <div
@@ -150,30 +178,89 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
             >
               {current.title}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">{current.body}</p>
+            <p className="mt-2 text-[0.9375rem] leading-relaxed text-[var(--muted-strong)]">
+              {current.body}
+            </p>
           </div>
         </div>
 
-        {current.id === "allergens" ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {ALLERGEN_OPTIONS.map((opt) => {
-              const on = allergens.includes(opt.id);
+        {isGoal ? (
+          <div className="mt-4 flex flex-col gap-2">
+            {GOAL_OPTIONS.map((opt) => {
+              const on = goal === opt.value;
               return (
                 <button
-                  key={opt.id}
+                  key={opt.value}
                   type="button"
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`rounded-2xl border px-3 py-2.5 text-left transition-colors ${
                     on
-                      ? "bg-amber-700 text-white"
-                      : "bg-[var(--accent-soft)] text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
+                      ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                      : "border-[var(--border-quiet)] bg-[var(--card)]"
                   }`}
                   aria-pressed={on}
-                  onClick={() => toggleAllergen(opt.id)}
+                  onClick={() => setGoal(opt.value)}
                 >
-                  {opt.label}
+                  <span className="block text-[0.975rem] font-semibold text-[var(--foreground)]">
+                    {opt.label}
+                  </span>
+                  <span className="block text-sm text-[var(--muted-strong)]">{opt.hint}</span>
                 </button>
               );
             })}
+          </div>
+        ) : null}
+
+        {isParams ? (
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-wrap gap-2">
+              {SEX_OPTIONS.map((opt) => {
+                const on = sex === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`min-h-10 rounded-full px-3.5 text-[0.9375rem] font-semibold ${
+                      on
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                    }`}
+                    aria-pressed={on}
+                    onClick={() => setSex(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="field">
+                <span className="text-sm font-semibold text-[var(--muted-strong)]">Вес, кг</span>
+                <input
+                  inputMode="decimal"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-3 py-2 text-base font-semibold"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  aria-label="Вес в килограммах"
+                />
+              </label>
+              <label className="field">
+                <span className="text-sm font-semibold text-[var(--muted-strong)]">Возраст</span>
+                <input
+                  inputMode="numeric"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-3 py-2 text-base font-semibold"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  aria-label="Возраст"
+                />
+              </label>
+            </div>
+            {liveTarget ? (
+              <p className="rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-[0.975rem] font-semibold text-[var(--accent-ink)]">
+                Норма ≈ {liveTarget.calories} ккал · белок {liveTarget.protein} г
+              </p>
+            ) : (
+              <p className="text-sm text-[var(--muted)]">Укажите вес 30–250 кг и возраст 14–90.</p>
+            )}
           </div>
         ) : null}
 
@@ -187,7 +274,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                 <button
                   type="button"
                   className="btn-quiet text-sm text-[var(--accent-ink)]"
-                  onClick={() => void next()}
+                  onClick={() => finish()}
                 >
                   Позже
                 </button>
@@ -199,32 +286,14 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                   Сфотографировать
                 </button>
               </>
-            ) : isPwa ? (
-              <>
-                <a
-                  href={withBasePath("/profile")}
-                  className="btn-quiet text-sm text-[var(--accent-ink)]"
-                  onClick={() => finish()}
-                >
-                  В профиль
-                </a>
-                <button
-                  type="button"
-                  className="btn btn-primary text-sm"
-                  disabled={savingAllergens}
-                  onClick={() => void next()}
-                >
-                  Готово
-                </button>
-              </>
             ) : (
               <button
                 type="button"
                 className="btn btn-primary text-sm"
-                disabled={savingAllergens}
+                disabled={saving || (isParams && !liveTarget)}
                 onClick={() => void next()}
               >
-                {savingAllergens ? "Сохраняем…" : "Дальше"}
+                {saving ? "Сохраняем…" : "Дальше"}
               </button>
             )}
           </div>

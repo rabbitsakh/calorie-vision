@@ -999,6 +999,32 @@ export function ConfirmationCard({
                       disabled={formDisabled}
                       onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
                       onPortion={(value) => handlePortionChange(dish, value)}
+                      onApplyAlternative={(alt) => {
+                        const targetPortion =
+                          Number(dish.portionGrams) > 0
+                            ? Number(dish.portionGrams)
+                            : Number(dish.original.portionGrams) || 100;
+                        const merged = applyAlternativeToPortion(
+                          dish.original,
+                          alt,
+                          targetPortion,
+                        );
+                        updateDish(dish.id, {
+                          dishName: decodeHtmlEntities(merged.dishName),
+                          calories: String(merged.calories),
+                          protein:
+                            merged.protein !== undefined ? formatMacro(merged.protein) : "",
+                          fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
+                          carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
+                          fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
+                          sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
+                          portionGrams: String(merged.portionGrams),
+                          baseline: nutritionBaselineFromRecognition({
+                            ...dish.original,
+                            ...merged,
+                          }),
+                        });
+                      }}
                     />
                     {index === activeDish ? renderDishFields(dish, index) : null}
                   </Fragment>
