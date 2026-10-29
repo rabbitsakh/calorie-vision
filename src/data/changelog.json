@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.1.5",
+    "date": "2026-10-29",
+    "summary": "design D34: daily photo quota, Pro allowlist, fork/card scale tip",
+    "items": [
+      {
+        "kind": "feature",
+        "text": "Мягкий дневной лимит фото для бесплатных (по умолчанию 20); Pro — без потолка"
+      },
+      {
+        "kind": "improvement",
+        "text": "Подсказка «вилка или карта рядом» на загрузке, подтверждении и в /try"
+      },
+      {
+        "kind": "improvement",
+        "text": "Pro пока через CV_PRO_USER_IDS / CV_PRO_EMAILS (биллинга нет)"
+      }
+    ]
+  },
+  {
     "version": "3.1.4",
     "date": "2026-10-29",
     "summary": "design D33: kcal ranges, confirm alts, 3-step onboarding, guest try, lean landing",

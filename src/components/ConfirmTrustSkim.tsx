@@ -2,6 +2,7 @@
 
 import type { RefObject } from "react";
 import { allergenLabel, type AllergenId } from "@/lib/allergens";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 type ConfirmTrustSkimProps = {
   allergenHits: AllergenId[];
@@ -59,6 +60,9 @@ export function ConfirmTrustSkim({
         >
           {skimTrustLine}
         </p>
+      ) : null}
+      {!skimTrustLine && !saving && !enriching ? (
+        <p className="text-center text-xs text-[var(--muted)]">{PHOTO_SCALE_TIP_SHORT}</p>
       ) : null}
       {saveAsIs && !saving ? (
         <p className="text-center text-xs text-[var(--muted)]">{softSaveHint}</p>

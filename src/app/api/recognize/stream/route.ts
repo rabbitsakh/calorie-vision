@@ -7,6 +7,10 @@ import { withTimeoutFallback } from "@/lib/async-pool";
 import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-recognition";
 import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
+import {
+  checkDailyRecognizeQuota,
+  dailyQuotaErrorBody,
+} from "@/lib/recognize-quota";
 import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { saveImageBuffer } from "@/lib/upload";
@@ -46,6 +50,20 @@ export async function POST(request: NextRequest) {
         },
       },
     );
+  }
+
+  const quota = await checkDailyRecognizeQuota({
+    userId: session.user.id,
+    email: session.user.email,
+  });
+  if (!quota.allowed) {
+    return new Response(JSON.stringify(dailyQuotaErrorBody(quota)), {
+      status: 429,
+      headers: {
+        "Content-Type": "application/json",
+        "Retry-After": String(quota.retryAfterSec),
+      },
+    });
   }
 
   let formData: FormData;
