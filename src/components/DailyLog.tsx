@@ -1,8 +1,13 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DayEventRow } from "@/components/DayEventRow";
-import { mealItemTimeMs, placeDayEvents, type DayFeedEvent } from "@/lib/day-feed-events";
+import { DayEventRow, FeedTimelineItem, PlannedSlotRow, feedTimeLabel } from "@/components/DayEventRow";
+import {
+  mealItemTimeMs,
+  placeDayEvents,
+  type DayFeedEvent,
+  type PlannedSlot,
+} from "@/lib/day-feed-events";
 import { DailyLogEmpty } from "@/components/DailyLogEmpty";
 import { DiarySticker } from "@/components/DiarySticker";
 import { DietTargets } from "@/components/DietTargets";
@@ -98,6 +103,8 @@ type DailyLogProps = {
   onAddFoodText?: () => void;
   /** «Лента дня»: gym / weigh-in rows placed by time among meals. */
   dayEvents?: DayFeedEvent[];
+  /** Today: dashed «что дальше» slots after the last row. */
+  plannedSlots?: PlannedSlot[];
 };
 
 export function DailyLog({
@@ -111,6 +118,7 @@ export function DailyLog({
   onAddFood,
   onAddFoodText,
   dayEvents,
+  plannedSlots,
 }: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
@@ -909,11 +917,17 @@ export function DailyLog({
                     : "text-base font-bold"
                 }
               >
-                {sceneFeed ? "Дневник" : "Дневник питания"}
+                {sceneFeed ? "Лента дня" : "Дневник питания"}
               </h2>
               <DiarySticker />
             </div>
           )}
+          {sceneFeed && daySummary.comparison?.calories.target ? (
+            <span className="feed-head-kcal">
+              {Math.round(totals.calories).toLocaleString("ru-RU")} из{" "}
+              {Math.round(daySummary.comparison.calories.target).toLocaleString("ru-RU")} ккал
+            </span>
+          ) : null}
           {/* Scene feed: one flow — Дневник → Фильтры → Клетч./Сахар (no justify-between). */}
           {sceneFeed && !loading && !error && entries.length > 0 ? (
             <button
@@ -1064,7 +1078,11 @@ export function DailyLog({
           </p>
         ) : null}
 
-        {!loading && !error && entries.length === 0 && pendingDeletes.length === 0 ? (
+        {!loading &&
+        !error &&
+        entries.length === 0 &&
+        pendingDeletes.length === 0 &&
+        !(sceneFeed && plannedSlots?.length) ? (
           <DailyLogEmpty
             sceneFeed={sceneFeed}
             mealFilter={mealFilter}
@@ -1142,7 +1160,7 @@ export function DailyLog({
           </div>
         ) : null}
 
-        <div className={`flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
+        <div className={sceneFeed ? "feed-tl" : `flex flex-col ${compact ? "gap-2" : "gap-3"}`}>
           {!loading &&
           !error &&
           entries.length > 0 &&
@@ -1192,9 +1210,7 @@ export function DailyLog({
                 return <Fragment key={mealListItemKey(item)}>{eventsBefore(rowIndex)}</Fragment>;
               }
 
-              return (
-                <Fragment key={mealListItemKey(item)}>
-                {eventsBefore(rowIndex)}
+              const rowBody = (
                 <div className="flex flex-col gap-2">
                   {showHeader && section != null ? (
                     <MealSectionHeader
@@ -1237,6 +1253,17 @@ export function DailyLog({
                   />
                   )}
                 </div>
+              );
+              return (
+                <Fragment key={mealListItemKey(item)}>
+                  {eventsBefore(rowIndex)}
+                  {sceneFeed ? (
+                    <FeedTimelineItem time={feedTimeLabel(mealItemTimeMs(item), timezone)} dot="meal">
+                      {rowBody}
+                    </FeedTimelineItem>
+                  ) : (
+                    rowBody
+                  )}
                 </Fragment>
               );
             });
@@ -1244,6 +1271,22 @@ export function DailyLog({
           {eventsByIndex?.get(displayRows.length)?.map((ev) => (
             <DayEventRow key={ev.key} event={ev} timezone={timezone} />
           ))}
+          {sceneFeed && !loading && !error && mealFilter === "ALL" && sourceFilter === "ALL"
+            ? plannedSlots?.map((slot) => (
+                <PlannedSlotRow
+                  key={slot.key}
+                  slot={slot}
+                  extra={
+                    slot.action.kind === "meal" &&
+                    slot.action.mealType === "BREAKFAST" &&
+                    yesterdayHasBreakfast &&
+                    !copying
+                      ? { label: "Как вчера", onClick: () => void handleCopyYesterdayBreakfast() }
+                      : null
+                  }
+                />
+              ))
+            : null}
         </div>
       </div>
     </section>

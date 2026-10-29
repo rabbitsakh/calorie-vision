@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
           actions = rest;
         }
 
-        if (!previewPending && needsWriteRepair(lastUser, actions)) {
+        if (!previewPending && needsWriteRepair(lastUser, actions, reply)) {
           send("status", { text: "Уточняю запись в дневник…" });
           const repaired = await repairAssistantWriteActions({
             userMessage: lastUser,
@@ -299,6 +299,7 @@ export async function POST(request: NextRequest) {
           previewPending,
           actions,
           userMessage: lastUser,
+          assistantReply: reply,
         });
         const finalReply =
           [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;

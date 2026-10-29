@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.1.1",
+    "date": "2026-10-29",
+    "summary": "hybrid fidelity: check-and-log sheet, diary card repair, moment/feed/gym look",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Ассистент снова показывает карточку «В дневник», если в ответе написал «подтверди ниже» (например «Мороженое»)"
+      },
+      {
+        "kind": "feature",
+        "text": "На «Сегодня» фраза из поля ввода открывает «проверь и запиши» с правкой граммов — без ухода в чат"
+      },
+      {
+        "kind": "improvement",
+        "text": "Карточка ассистента и экран подхода ближе к гибридным скетчам: граммы в строках, светлый зал, лента дня с таймлайном"
+      }
+    ]
+  },
+  {
     "version": "3.1.0",
     "date": "2026-10-29",
     "summary": "hybrid shell: gym stage, moment card, check & log, composer, day feed, 4 tabs",

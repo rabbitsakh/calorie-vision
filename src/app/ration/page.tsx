@@ -54,6 +54,8 @@ import {
 } from "@/lib/splash-tips";
 import { useSelectedDate, withDateQuery } from "@/lib/use-selected-date";
 import { useTimezone } from "@/lib/use-timezone";
+import { plannedDaySlots } from "@/lib/day-feed-events";
+import { hourInTimezone } from "@/lib/meal-type";
 
 const StreakWidget = dynamic(
   () => import("@/components/StreakWidget").then((m) => m.StreakWidget),
@@ -209,6 +211,18 @@ function RationBody({
   const bump = day.bump;
   const refreshKey = day.refreshKey;
   const dayEvents = useDayFeedEvents(date, refreshKey);
+  const plannedSlots = useMemo(
+    () =>
+      plannedDaySlots({
+        isToday: date === today,
+        hour: hourInTimezone(new Date(), timezone),
+        hasWeight: day.data?.weightKg != null,
+        loggedMealTypes: new Set(
+          (day.data?.meals.entries ?? []).map((e) => e.mealType).filter((t): t is NonNullable<typeof t> => t != null),
+        ),
+      }),
+    [date, today, timezone, day.data?.weightKg, day.data?.meals.entries],
+  );
   const mealCount = useMemo(() => {
     if (Array.isArray(day.data?.meals.entries)) return day.data.meals.entries.length;
     return day.data?.meals.totalCalories ? 1 : 0;
@@ -288,9 +302,12 @@ function RationBody({
               onDateChange={setDate}
             />
           </div>
-          <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
-
-          <MomentHeroCard selectedDate={date} today={today} />
+          {/* Today: «Сейчас главное» is the hero; past days keep the % theater. */}
+          {date === today ? (
+            <MomentHeroCard selectedDate={date} today={today} />
+          ) : (
+            <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
+          )}
 
           {/* Chests 2.0 — meter / ready open under the day scene */}
           <ChestDock
@@ -364,6 +381,7 @@ function RationBody({
               onAddFood={openFoodPicker}
               onAddFoodText={() => requestOpenFoodText()}
               dayEvents={dayEvents}
+              plannedSlots={plannedSlots}
             />
           </div>
         </DaySwipeRegion>

@@ -8,6 +8,7 @@ import {
   pickSoftStep,
   type MomentCta,
   type MomentHero,
+  type MomentRoutine,
   type SoftStepAction,
 } from "@/lib/moment-hero";
 import {
@@ -18,6 +19,8 @@ import {
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { mascotArtUrl } from "@/lib/mascot-art";
+import { resolveMascotSkin } from "@/lib/mascot-skin";
 import { withBasePath } from "@/lib/paths";
 import {
   clearPostWorkoutNudge,
@@ -33,7 +36,7 @@ type Props = {
   today: string;
 };
 
-type PlanPayload = { today?: MorningTodayRoutine[] };
+type PlanPayload = { today?: Array<MorningTodayRoutine & { exerciseCount?: number }> };
 type SessionsPayload = {
   sessions?: Array<{ clockStatus?: string; endedAt?: string | null; muscleLabels?: string[] }>;
 };
@@ -45,6 +48,7 @@ type SessionsPayload = {
 export function MomentHeroCard({ selectedDate, today }: Props) {
   const day = useOptionalRationDay();
   const [routines, setRoutines] = useState<MorningTodayRoutine[]>([]);
+  const [routine, setRoutine] = useState<MomentRoutine | null>(null);
   const [gymDone, setGymDone] = useState(false);
   const [gymLive, setGymLive] = useState<{ label: string | null } | null>(null);
   const [hour, setHour] = useState(() => quietHoursLocalHour());
@@ -69,6 +73,19 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
         if (cancelled) return;
         if (planResp.ok) {
           const plan = (await planResp.json()) as PlanPayload;
+          const first = plan.today?.[0];
+          setRoutine(
+            first
+              ? {
+                  name:
+                    first.planLabel?.trim() ||
+                    first.name.trim() ||
+                    (first.muscleLabels ?? []).slice(0, 2).join(" + ") ||
+                    "Тренировка",
+                  exerciseCount: first.exerciseCount ?? 0,
+                }
+              : null,
+          );
           setRoutines(
             (plan.today ?? []).map((r) => ({
               name: r.name,
@@ -159,17 +176,23 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       gymLiveLabel: gymLive?.label ?? null,
       gymDoneToday: gymDone,
       morning,
+      routine,
       logged,
+      mealCount: new Set((meals?.entries ?? []).map((e) => e.mealType ?? e.id)).size,
       calories: meals?.totalCalories ?? 0,
       calorieTarget: meals?.target?.calories ?? null,
       protein: meals?.totalProtein ?? 0,
       proteinTarget: meals?.target?.protein ?? null,
+      fat: meals?.totalFat ?? 0,
+      fatTarget: meals?.target?.fat ?? null,
+      carbs: meals?.totalCarbs ?? 0,
+      carbsTarget: meals?.target?.carbs ?? null,
       waterMl: water?.totalMl ?? 0,
       waterTarget: water?.target ?? 0,
       streak: streak?.streak ?? 0,
       softStep,
     });
-  }, [selectedDate, today, day, hour, gymDone, gymLive, routines]);
+  }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine]);
 
   if (!moment) return null;
 
@@ -188,6 +211,45 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   return <MomentHeroView moment={moment} selectedDate={selectedDate} onAction={runAction} />;
 }
 
+const MACRO_COLOR = { protein: "var(--accent-protein)", fat: "var(--accent-fat)", carbs: "var(--accent-carbs)" };
+
+function Ring({ pct }: { pct: number }) {
+  const size = 70;
+  const stroke = 8;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const fill = Math.max(0, Math.min(100, pct));
+  return (
+    <span className="moment-ring" aria-label={`${pct}% цели`}>
+      <svg width={size} height={size} aria-hidden>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#ece9e2" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={pct > 108 ? "var(--accent-streak)" : "var(--accent)"}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${(c * fill) / 100} ${c}`}
+        />
+      </svg>
+      <span className="moment-ring-value">
+        <b>{pct}%</b>
+        <span>цель</span>
+      </span>
+    </span>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12l5 5L20 7" />
+    </svg>
+  );
+}
+
 export function MomentHeroView({
   moment,
   selectedDate,
@@ -197,43 +259,99 @@ export function MomentHeroView({
   selectedDate: string;
   onAction: (action: SoftStepAction) => void;
 }) {
-  const ctaClass =
-    moment.phase === "gym"
-      ? "shrink-0 rounded-[var(--radius-md)] bg-white px-3.5 py-2 text-xs font-bold text-[var(--accent-ink)]"
-      : "shrink-0 rounded-[var(--radius-md)] bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]";
+  const dark = moment.tone === "dark";
+  const startsGym = moment.cta?.label === "Начать тренировку";
 
   const renderCta = (cta: MomentCta) => {
+    const cls = `moment-cta${dark ? " moment-cta--white" : ""}`;
+    const body = (
+      <>
+        {startsGym ? (
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M7 4v16l13-8z" />
+          </svg>
+        ) : null}
+        {cta.label}
+      </>
+    );
     if (cta.action) {
       const action = cta.action;
       return (
-        <button type="button" className={ctaClass} onClick={() => onAction(action)}>
-          {cta.label}
+        <button type="button" className={cls} onClick={() => onAction(action)}>
+          {body}
         </button>
       );
     }
     const href = cta.href.startsWith("/assistant") ? cta.href : withDateQuery(cta.href, selectedDate);
     return (
-      <Link href={href} className={ctaClass}>
-        {cta.label}
+      <Link href={href} className={cls}>
+        {body}
       </Link>
     );
   };
 
   return (
-    <section
-      className={`moment-hero moment-hero--${moment.phase} ration-soft-nudge`}
-      aria-label={moment.eyebrow}
-      data-testid="moment-hero"
-    >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
-          <p className="moment-hero-title">{moment.title}</p>
-          {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
-          {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
-        </div>
+    <>
+      <section
+        className={`moment-hero moment-hero--${moment.tone} moment-hero--${moment.phase}`}
+        aria-label={moment.eyebrow}
+        data-testid="moment-hero"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- static mascot still from /public */}
+        <img className="moment-mascot" src={withBasePath(mascotArtUrl(moment.mascot, resolveMascotSkin()))} alt="" aria-hidden />
+        <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
+        {moment.ringPct != null ? (
+          <div className="moment-ring-row">
+            <span className="moment-ring-wrap">
+              <Ring pct={moment.ringPct} />
+            </span>
+            <div className="min-w-0">
+              <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
+              {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="moment-hero-title">{moment.title}</p>
+            {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+          </>
+        )}
+        {moment.macros ? (
+          <div className="moment-macros">
+            {moment.macros.map((m) => (
+              <div key={m.key} className="moment-macro">
+                <span className="moment-macro-label">{m.label}</span>
+                <span className="moment-macro-track">
+                  <i
+                    style={{
+                      width: `${Math.min(100, Math.round((m.value / m.target) * 100))}%`,
+                      background: MACRO_COLOR[m.key],
+                    }}
+                  />
+                </span>
+                <span className="moment-macro-value">
+                  {m.value}/{m.target}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
         {moment.cta ? renderCta(moment.cta) : null}
-      </div>
-    </section>
+      </section>
+      {moment.checklist ? (
+        <section className="moment-checklist" aria-label="Чек-лист дня">
+          {moment.checklist.map((c) => (
+            <div key={c.label} className="moment-check">
+              <span className={`moment-check-dot${c.done ? "" : " moment-check-dot--no"}`}>
+                {c.done ? <CheckIcon /> : null}
+              </span>
+              {c.label}
+              <span className="moment-check-value">{c.value}</span>
+            </div>
+          ))}
+        </section>
+      ) : null}
+    </>
   );
 }
