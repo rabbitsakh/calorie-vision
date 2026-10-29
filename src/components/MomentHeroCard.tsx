@@ -195,7 +195,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     }
     const href = cta.href.startsWith("/assistant") ? cta.href : withDateQuery(cta.href, selectedDate);
     return (
-      <Link href={withBasePath(href)} className={ctaClass}>
+      <Link href={href} className={ctaClass}>
         {cta.label}
       </Link>
     );

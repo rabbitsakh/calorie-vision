@@ -4773,6 +4773,66 @@ select {
   font-variant-numeric: tabular-nums;
 }
 
+/* Hybrid H5 — «Лента дня»: gym / weigh-in rows between meals */
+.day-event-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-hairline);
+  background: color-mix(in srgb, var(--surface-mist) 55%, transparent);
+  text-decoration: none;
+}
+
+.day-event-row-dot {
+  height: 0.6rem;
+  width: 0.6rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.day-event-row--weight .day-event-row-dot {
+  background: #6a6fb8;
+}
+
+.day-event-row--live {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.day-event-row--live .day-event-row-dot {
+  animation: day-event-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes day-event-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.day-event-row-title {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.day-event-row-detail {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.day-event-row-time {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Hybrid H2 — «Сейчас главное»: one moment card under the day ring */
 .moment-hero {
   margin: 0.5rem 0.125rem 0.25rem;

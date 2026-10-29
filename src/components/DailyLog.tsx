@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DayEventRow } from "@/components/DayEventRow";
+import { mealItemTimeMs, placeDayEvents, type DayFeedEvent } from "@/lib/day-feed-events";
 import { DailyLogEmpty } from "@/components/DailyLogEmpty";
 import { DiarySticker } from "@/components/DiarySticker";
 import { DietTargets } from "@/components/DietTargets";
@@ -94,6 +96,8 @@ type DailyLogProps = {
   onAddFood?: (mealType?: string) => void;
   /** Secondary empty-state CTA — text entry. */
   onAddFoodText?: () => void;
+  /** «Лента дня»: gym / weigh-in rows placed by time among meals. */
+  dayEvents?: DayFeedEvent[];
 };
 
 export function DailyLog({
@@ -106,6 +110,7 @@ export function DailyLog({
   timezone,
   onAddFood,
   onAddFoodText,
+  dayEvents,
 }: DailyLogProps) {
   const day = useOptionalRationDay();
   const [entries, setEntries] = useState<MealEntry[]>([]);
@@ -841,6 +846,14 @@ export function DailyLog({
     [filteredItems, pendingDeletes],
   );
 
+  const eventsByIndex = useMemo(() => {
+    if (!dayEvents?.length || mealFilter !== "ALL" || sourceFilter !== "ALL") return null;
+    return placeDayEvents(
+      displayRows.map((row) => (row.kind === "undo" ? null : mealItemTimeMs(row.item))),
+      dayEvents,
+    );
+  }, [dayEvents, displayRows, mealFilter, sourceFilter]);
+
   const confirmDeleteRef = useRef(confirmDelete);
   confirmDeleteRef.current = confirmDelete;
   const pendingDeletesRef = useRef(pendingDeletes);
@@ -1151,15 +1164,19 @@ export function DailyLog({
           ) : null}
           {(() => {
             let lastSection: MealTypeSection | null = null;
-            return displayRows.map((row) => {
+            const eventsBefore = (idx: number) =>
+              eventsByIndex?.get(idx)?.map((ev) => <DayEventRow key={ev.key} event={ev} timezone={timezone} />) ?? null;
+            return displayRows.map((row, rowIndex) => {
               if (row.kind === "undo") {
                 const slotKey = row.pending.key;
                 return (
-                  <UndoToast
-                    key={slotKey}
-                    message={row.pending.label}
-                    onUndo={() => undoDelete(slotKey)}
-                  />
+                  <Fragment key={slotKey}>
+                    {eventsBefore(rowIndex)}
+                    <UndoToast
+                      message={row.pending.label}
+                      onUndo={() => undoDelete(slotKey)}
+                    />
+                  </Fragment>
                 );
               }
 
@@ -1172,11 +1189,13 @@ export function DailyLog({
               const sectionCollapsed =
                 section != null && Boolean(collapsedSections[section]) && mealFilter === "ALL";
               if (sectionCollapsed && !showHeader) {
-                return null;
+                return <Fragment key={mealListItemKey(item)}>{eventsBefore(rowIndex)}</Fragment>;
               }
 
               return (
-                <div key={mealListItemKey(item)} className="flex flex-col gap-2">
+                <Fragment key={mealListItemKey(item)}>
+                {eventsBefore(rowIndex)}
+                <div className="flex flex-col gap-2">
                   {showHeader && section != null ? (
                     <MealSectionHeader
                       section={section}
@@ -1218,9 +1237,13 @@ export function DailyLog({
                   />
                   )}
                 </div>
+                </Fragment>
               );
             });
           })()}
+          {eventsByIndex?.get(displayRows.length)?.map((ev) => (
+            <DayEventRow key={ev.key} event={ev} timezone={timezone} />
+          ))}
         </div>
       </div>
     </section>

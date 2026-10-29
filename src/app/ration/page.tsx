@@ -23,6 +23,7 @@ import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { MomentHeroCard } from "@/components/MomentHeroCard";
+import { useDayFeedEvents } from "@/components/useDayFeedEvents";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ChestDock } from "@/components/ChestDock";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
@@ -207,6 +208,7 @@ function RationBody({
 
   const bump = day.bump;
   const refreshKey = day.refreshKey;
+  const dayEvents = useDayFeedEvents(date, refreshKey);
   const mealCount = useMemo(() => {
     if (Array.isArray(day.data?.meals.entries)) return day.data.meals.entries.length;
     return day.data?.meals.totalCalories ? 1 : 0;
@@ -361,6 +363,7 @@ function RationBody({
               onTotalsChange={() => {}}
               onAddFood={openFoodPicker}
               onAddFoodText={() => requestOpenFoodText()}
+              dayEvents={dayEvents}
             />
           </div>
         </DaySwipeRegion>
