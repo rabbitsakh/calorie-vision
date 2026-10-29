@@ -81,4 +81,33 @@ export async function resetRedisRateLimitsForTests(): Promise<void> {
   if (keys.length > 0) {
     await redis.del(...keys);
   }
+  const tipKeys = await redis.keys("cv:tip:*");
+  if (tipKeys.length > 0) {
+    await redis.del(...tipKeys);
+  }
+}
+
+/** Shared Redis string get — null when Redis is off or key missing. */
+export async function redisGet(key: string): Promise<string | null> {
+  const redis = await getRedisClient();
+  if (!redis) return null;
+  try {
+    return await redis.get(key);
+  } catch (error) {
+    console.warn("Redis get failed", error);
+    return null;
+  }
+}
+
+/** Shared Redis SET with EX — false when Redis is off. */
+export async function redisSetEx(key: string, value: string, ttlSec: number): Promise<boolean> {
+  const redis = await getRedisClient();
+  if (!redis) return false;
+  try {
+    await redis.set(key, value, "EX", Math.max(1, Math.floor(ttlSec)));
+    return true;
+  } catch (error) {
+    console.warn("Redis set failed", error);
+    return false;
+  }
 }

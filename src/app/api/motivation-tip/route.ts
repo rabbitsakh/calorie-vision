@@ -4,10 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
 import { completeChat } from "@/lib/ai/gigachat";
+import {
+  checkTipRateLimit,
+  readTipCache,
+  tipCacheTtlSec,
+  tipRateLimitBody,
+  writeTipCache,
+} from "@/lib/gigachat-tip-guard";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
 
 export const dynamic = "force-dynamic";
+
+type TipPayload = { tip: string; source: "gigachat" | "rules"; date: string };
 
 function ruleBasedTip(ctx: {
   streak: number;
@@ -42,11 +51,24 @@ export async function GET() {
     const { session, response } = await requireSession();
     if (response) return response;
 
+    const rate = await checkTipRateLimit("motivation-tip", session.user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(tipRateLimitBody(rate.retryAfterSec), {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { timezone: true, ...DIET_PROFILE_SELECT },
     });
     const today = toDateKeyTz(new Date(), user?.timezone);
+    const cacheKey = `motivation-tip:${session.user.id}:${today}`;
+    const cached = await readTipCache<TipPayload>(cacheKey);
+    if (cached?.tip) {
+      return NextResponse.json(cached);
+    }
     const yesterday = shiftDateKey(today, -1);
     const weekStart = shiftDateKey(today, -6);
 
@@ -125,7 +147,9 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ tip, source, date: today });
+    const payload: TipPayload = { tip, source, date: today };
+    await writeTipCache(cacheKey, payload, tipCacheTtlSec());
+    return NextResponse.json(payload);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Не удалось загрузить совет" }, { status: 500 });

@@ -4,15 +4,9 @@ import {
   liveEvalEnabled,
   runLiveRecognitionEvalSuite,
 } from "@/lib/ai/recognition-live-eval";
+import { authorizeCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
-
-function authorizeCron(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
 
 /**
  * Optional live golden eval — requires RECOGNITION_LIVE_EVAL=1, GIGACHAT_CREDENTIALS,

@@ -13,6 +13,12 @@ import {
   type HistoryMealCandidate,
   type RankedSuggestion,
 } from "@/lib/suggestion-history";
+import {
+  checkTipRateLimit,
+  readTipCache,
+  tipRateLimitBody,
+  writeTipCache,
+} from "@/lib/gigachat-tip-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +149,14 @@ export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) return response;
+
+    const rate = await checkTipRateLimit("suggestions", session.user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(tipRateLimitBody(rate.retryAfterSec), {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      });
+    }
 
     const date = request.nextUrl.searchParams.get("date") ?? "";
     const postWorkoutParam =
@@ -288,15 +302,32 @@ export async function GET(request: NextRequest) {
         limit: 3,
       });
 
-    if (!process.env.GIGACHAT_CREDENTIALS) {
+    // Cache AI ideas by day + calorie bucket so eating one snack invalidates, but spam does not.
+    const kcalBucket = Math.round(remaining.calories / 100);
+    const cacheKey = `suggestions:${session.user.id}:${date}:${kcalBucket}:${pinProtein ? 1 : 0}`;
+    const cached = await readTipCache<SuggestionsResponse>(cacheKey);
+    if (cached?.suggestions?.length) {
       return NextResponse.json({
-        suggestions: finalize(buildFallbackSuggestions(remaining)),
+        ...cached,
         eaten,
         target,
         remaining,
         pctCalories,
         tip,
       } satisfies Partial<SuggestionsResponse>);
+    }
+
+    if (!process.env.GIGACHAT_CREDENTIALS) {
+      const fallbackBody = {
+        suggestions: finalize(buildFallbackSuggestions(remaining)),
+        eaten,
+        target,
+        remaining,
+        pctCalories,
+        tip,
+      } satisfies Partial<SuggestionsResponse>;
+      await writeTipCache(cacheKey, fallbackBody, 10 * 60);
+      return NextResponse.json(fallbackBody);
     }
 
     const goalRu = goal === "LOSE" ? "похудение" : goal === "GAIN" ? "набор мышечной массы" : "поддержание веса";
@@ -394,14 +425,16 @@ category: protein | carbs | fat | balanced | light`;
       ...buildFallbackSuggestions(remaining),
     ]);
 
-    return NextResponse.json({
+    const body = {
       suggestions: merged.slice(0, 3),
       eaten,
       target,
       remaining,
       pctCalories,
       tip,
-    } satisfies Partial<SuggestionsResponse>);
+    } satisfies Partial<SuggestionsResponse>;
+    await writeTipCache(cacheKey, body, 15 * 60);
+    return NextResponse.json(body);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Ошибка загрузки" }, { status: 500 });

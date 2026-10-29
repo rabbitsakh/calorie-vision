@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { RECOGNITION_EVAL_CASES } from "@/lib/ai/recognition-eval-fixtures";
 import { runRecognitionEvalSuite } from "@/lib/ai/recognition-eval-harness";
+import { authorizeCron } from "@/lib/cron-auth";
 
 export const dynamic = "force-dynamic";
-
-function authorizeCron(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
 
 /** Nightly offline recognition fixture eval — no live GigaChat calls. */
 export async function GET(request: NextRequest) {

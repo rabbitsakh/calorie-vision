@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.1.2",
+    "date": "2026-10-29",
+    "summary": "GigaChat tip routes: rate limit + day cache; shared cron auth; meal image ownership",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "Лимиты и дневной кеш на AI-советы: motivation-tip, suggestions, workouts/next-tip, weekly-digest-tip"
+      },
+      {
+        "kind": "fix",
+        "text": "Cron без CRON_SECRET всегда отвечает 401; общая проверка Bearer в одном модуле"
+      },
+      {
+        "kind": "fix",
+        "text": "Обновление фото приёма пищи только владельцем записи (updateMany с userId)"
+      }
+    ]
+  },
+  {
     "version": "3.1.1",
     "date": "2026-10-29",
     "summary": "hybrid fidelity: check-and-log sheet, diary card repair, moment/feed/gym look",

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import { sendPushNotification } from "@/lib/push";
@@ -21,13 +22,6 @@ import { isInGymQuietWindow } from "@/lib/push-gym-reminder";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
-
-function authorizeCron(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
 
 async function loadUserReminderContext(
   userId: string,
