@@ -399,3 +399,11 @@ test("gym reminder motivates when no workout yet", () => {
   assert.doesNotMatch(payload.body, /продолж/i);
   assert.ok(payload.title.length > 0);
 });
+
+test("buildReminderPayload: in workout now → no meal / water nudges, weekly still allowed", () => {
+  const ctx = { ...baseCtx, inWorkoutNow: true };
+  assert.equal(buildReminderPayload("breakfast", ctx), null);
+  assert.equal(buildReminderPayload("water_midday", ctx), null);
+  assert.equal(buildReminderPayload("gym", ctx), null);
+  assert.notEqual(buildReminderPayload("breakfast", { ...baseCtx, inWorkoutNow: false }), null);
+});

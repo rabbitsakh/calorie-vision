@@ -22,8 +22,8 @@ import { ReferralCapture } from "@/components/ReferralCapture";
 import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { DaySwipeRegion } from "@/components/DaySwipeRegion";
-import { MorningTodayCard } from "@/components/MorningTodayCard";
-import { NextStepBar } from "@/components/NextStepBar";
+import { MomentHeroCard } from "@/components/MomentHeroCard";
+import { useDayFeedEvents } from "@/components/useDayFeedEvents";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ChestDock } from "@/components/ChestDock";
 import { ProgressHintsRow } from "@/components/ProgressHintsRow";
@@ -208,6 +208,7 @@ function RationBody({
 
   const bump = day.bump;
   const refreshKey = day.refreshKey;
+  const dayEvents = useDayFeedEvents(date, refreshKey);
   const mealCount = useMemo(() => {
     if (Array.isArray(day.data?.meals.entries)) return day.data.meals.entries.length;
     return day.data?.meals.totalCalories ? 1 : 0;
@@ -289,6 +290,8 @@ function RationBody({
           </div>
           <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
 
+          <MomentHeroCard selectedDate={date} today={today} />
+
           {/* Chests 2.0 — meter / ready open under the day scene */}
           <ChestDock
             selectedDate={date}
@@ -360,6 +363,7 @@ function RationBody({
               onTotalsChange={() => {}}
               onAddFood={openFoodPicker}
               onAddFoodText={() => requestOpenFoodText()}
+              dayEvents={dayEvents}
             />
           </div>
         </DaySwipeRegion>
@@ -369,12 +373,6 @@ function RationBody({
           <ProfileCompletionBanner />
           <TimezoneConflictBanner />
           <FastingWindowBanner isToday={date === today} />
-
-          {/* Soft prompts after diary — morning OR next-step (not both), then chest */}
-          <div className="ration-day-soft flex flex-col gap-2">
-            <MorningTodayCard selectedDate={date} today={today} />
-            <NextStepBar selectedDate={date} today={today} />
-          </div>
 
           {/* Utility stays on the day surface; retention/gamification behind «Ещё». */}
           <WaterTracker selectedDate={date} onChanged={bump} compact />
@@ -591,7 +589,7 @@ function RationShell({
   );
 
   return (
-    <AppShell title="Рацион" compact date={date}>
+    <AppShell title="Сегодня" compact date={date}>
       <RationBody
         date={date}
         today={today}

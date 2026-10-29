@@ -1424,6 +1424,8 @@ export function AssistantChat() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [dislikeDraft, setDislikeDraft] = useState("");
+  /** Composer on «Сегодня» hands text over with ?q=…&send=1 — send once. */
+  const [autoSendText, setAutoSendText] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const flushingApply = useRef(false);
@@ -1446,6 +1448,7 @@ export function AssistantChat() {
     if (modeParam) setMode(parseAssistantMode(modeParam));
     const q = searchParams.get("q")?.trim();
     if (q) setDraft(q.slice(0, 6000));
+    if (q && searchParams.get("send") === "1") setAutoSendText(q.slice(0, 6000));
     const urlDate = requireDateKey(searchParams.get("date"));
     const localToday = formatDateInput(new Date());
     if (urlDate) {
@@ -1693,6 +1696,34 @@ export function AssistantChat() {
       setBusy(false);
     }
   }
+
+  const sendRef = useRef<(text: string) => Promise<void>>(async () => {});
+  useEffect(() => {
+    sendRef.current = send;
+  });
+
+  useEffect(() => {
+    if (!hydrated || !autoSendText) return;
+    const fire = () => {
+      setAutoSendText(null);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("q");
+        url.searchParams.delete("send");
+        window.history.replaceState(window.history.state, "", url.toString());
+      } catch {
+        // keep URL
+      }
+      void sendRef.current(autoSendText);
+    };
+    // Prefer the profile «today» before writing; do not wait forever for it.
+    if (serverToday) {
+      fire();
+      return;
+    }
+    const t = window.setTimeout(fire, 1500);
+    return () => window.clearTimeout(t);
+  }, [hydrated, autoSendText, serverToday]);
 
   async function send(text: string) {
     if (!online) {

@@ -17,6 +17,7 @@ import {
 } from "@/lib/push-reminders";
 import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { isInQuietHours } from "@/lib/quiet-hours";
+import { isInGymQuietWindow } from "@/lib/push-gym-reminder";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
@@ -105,6 +106,7 @@ async function loadUserReminderContext(
     (s) => s.startedAt != null && s.endedAt == null,
   );
   const hasFinishedWorkoutToday = workoutSessions.some((s) => s.endedAt != null);
+  const inWorkoutNow = isInGymQuietWindow(workoutSessions);
   const hasLoggedWorkoutSetToday = workoutSessions.some((s) =>
     s.exercises.some((ex) => ex.sets.some((set) => set.completed)),
   );
@@ -129,6 +131,7 @@ async function loadUserReminderContext(
     hasActiveWorkoutToday,
     hasFinishedWorkoutToday,
     hasLoggedWorkoutSetToday,
+    inWorkoutNow,
   };
 }
 

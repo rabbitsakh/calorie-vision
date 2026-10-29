@@ -20,6 +20,22 @@ export function shouldSkipGymReminder(state: GymReminderWorkoutState): boolean {
   return false;
 }
 
+/** Live session window: older open clocks are treated as forgotten, not «in the gym». */
+export const GYM_QUIET_WINDOW_MS = 3 * 60 * 60_000;
+
+/** True while a session clock is open and started recently — mute all nudges. */
+export function isInGymQuietWindow(
+  sessions: ReadonlyArray<{ startedAt: Date | string | null; endedAt: Date | string | null }>,
+  now: Date = new Date(),
+): boolean {
+  const nowMs = now.getTime();
+  return sessions.some((s) => {
+    if (s.startedAt == null || s.endedAt != null) return false;
+    const started = new Date(s.startedAt).getTime();
+    return Number.isFinite(started) && nowMs - started >= 0 && nowMs - started < GYM_QUIET_WINDOW_MS;
+  });
+}
+
 export type GymReminderCopy = { title: string; body: string };
 
 /** Motivating, practical variants — no «продолжить» when there is nothing open. */

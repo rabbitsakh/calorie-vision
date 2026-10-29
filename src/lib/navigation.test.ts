@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { APP_NAV, isAppNavPath, isFoodAddPath, navKeepsDate } from "./navigation.ts";
+import {
+  APP_NAV,
+  isAppNavPath,
+  isFoodAddPath,
+  NAV_ALIASES,
+  navKeepsDate,
+  showsComposer,
+} from "./navigation.ts";
 
-test("APP_NAV is gym tab order without plan or weight", () => {
+test("APP_NAV is the hybrid 4-tab order without plan or weight", () => {
   assert.deepEqual(
     APP_NAV.map((i) => i.href),
-    ["/stats", "/ration", "/workouts", "/profile"],
+    ["/ration", "/workouts", "/stats", "/profile"],
   );
   assert.deepEqual(
     APP_NAV.map((i) => i.shortLabel),
-    ["Стат.", "Рацион", "Зал", "Профиль"],
+    ["Сегодня", "Зал", "Прогресс", "Я"],
   );
   assert.equal(APP_NAV.find((i) => i.href === "/workouts")?.label, "Зал");
   assert.equal(APP_NAV.find((i) => i.href === "/workouts")?.shortLabel, "Зал");
@@ -34,4 +41,15 @@ test("navKeepsDate includes plan and workouts for date continuity", () => {
   assert.equal(navKeepsDate("/plan"), true);
   assert.equal(navKeepsDate("/workouts"), true);
   assert.equal(navKeepsDate("/profile"), false);
+});
+
+test("hybrid aliases point at existing tab routes", () => {
+  const hrefs = new Set(APP_NAV.map((i) => i.href));
+  for (const target of Object.values(NAV_ALIASES)) assert.equal(hrefs.has(target), true);
+});
+
+test("composer only on the day screen", () => {
+  assert.equal(showsComposer("/ration"), true);
+  assert.equal(showsComposer("/workouts"), false);
+  assert.equal(showsComposer("/assistant"), false);
 });

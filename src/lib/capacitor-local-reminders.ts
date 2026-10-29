@@ -370,6 +370,46 @@ export function suppressGymReminderForDate(todayKey: string): void {
   }
 }
 
+export const GYM_QUIET_UNTIL_KEY = "cv-gym-quiet-until";
+/** Matches the server window: a live session mutes nudges for at most this long. */
+export const LOCAL_GYM_QUIET_MS = 150 * 60_000;
+
+export function readGymQuietUntil(): number | null {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const n = Number(localStorage.getItem(GYM_QUIET_UNTIL_KEY));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeGymQuietUntil(until: number | null): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    if (until == null) localStorage.removeItem(GYM_QUIET_UNTIL_KEY);
+    else localStorage.setItem(GYM_QUIET_UNTIL_KEY, String(until));
+  } catch {
+    // private mode
+  }
+}
+
+/**
+ * Режим зала: a daily slot at `hour` falls inside [now, quietUntil] today.
+ * Slots are hour-precise, so the current hour counts as muted.
+ */
+export function isHourInGymQuiet(
+  hour: number,
+  quietUntil: number | null,
+  now: Date = new Date(),
+): boolean {
+  if (quietUntil == null || quietUntil <= now.getTime()) return false;
+  const until = new Date(quietUntil);
+  const sameDay = until.toDateString() === now.toDateString();
+  const endHour = sameDay ? until.getHours() : 23;
+  return hour >= now.getHours() && hour <= endHour;
+}
+
 /**
  * Capacitor LocalNotifications weekday: 1 = Sunday … 7 = Saturday.
  * Our schedule uses 0 = Sunday … 6 = Saturday (JS-style).
@@ -397,9 +437,12 @@ export function buildCapacitorReminderSchedule(
   const slots = effectiveReminderSchedule(prefs);
   const diary = snapshot === undefined ? readLocalReminderDiarySnapshot() : snapshot;
   const suppressGymDate = readGymReminderSuppressDate();
+  const gymQuietUntil = readGymQuietUntil();
+  const now = new Date();
   const items: CapReminderScheduleItem[] = [];
   for (const slot of slots) {
     if (isInQuietHours(slot.hour, quietStart, quietEnd)) continue;
+    if (slot.kind !== "gym" && isHourInGymQuiet(slot.hour, gymQuietUntil, now)) continue;
     // Already in the gym / finished today — do not schedule «иди в зал».
     if (slot.kind === "gym" && diary?.date && suppressGymDate === diary.date) {
       continue;
@@ -780,6 +823,22 @@ export async function suppressGymReminderTodayAndReschedule(
   todayKey: string,
 ): Promise<void> {
   suppressGymReminderForDate(todayKey);
+  if (!inApkRemindersContext()) return;
+  try {
+    const quiet = getQuietHoursPrefs();
+    await syncCapacitorLocalRemindersIfEnabled(undefined, quiet.start, quiet.end);
+  } catch {
+    // best-effort
+  }
+}
+
+/**
+ * Режим зала in APK: while a session is live, drop meal / water slots for the
+ * next hours; on finish, restore the full schedule (minus today's gym slot).
+ */
+export async function setGymQuietMode(todayKey: string, live: boolean): Promise<void> {
+  suppressGymReminderForDate(todayKey);
+  writeGymQuietUntil(live ? Date.now() + LOCAL_GYM_QUIET_MS : null);
   if (!inApkRemindersContext()) return;
   try {
     const quiet = getQuietHoursPrefs();
