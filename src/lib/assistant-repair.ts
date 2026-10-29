@@ -467,6 +467,7 @@ function stripMacroGramLabels(text: string): string {
 function mealLineFromFragment(
   fragment: string,
   lineNote?: string,
+  misses?: string[],
 ): ParsedMealLine | null {
   let rest = fragment.trim();
   if (!rest || rest.length < 2) return null;
@@ -493,7 +494,7 @@ function mealLineFromFragment(
   const drinkQ = drinkLookupQuery(rest);
   const cleaned = sanitizeAssistantMealName(
     forPortion
-      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?|шт(?:ук[аи]?)?\.?)/gi, " ")
+      .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|грамм(?:а|ов)?|гр|г|шт(?:ук[аи]?)?\.?)/gi, " ")
       .replace(/\(\s*\)/g, " ")
       .replace(/\s+/g, " ")
       .trim(),
@@ -549,7 +550,10 @@ function mealLineFromFragment(
     name = `${baseName} (${pieces} шт)`;
   }
 
-  if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) return null;
+  if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) {
+    misses?.push(baseName);
+    return null;
+  }
 
   return {
     name: name.slice(0, 120),
@@ -565,7 +569,7 @@ function mealLineFromFragment(
  * Inline multi-dish without bullets: «Вчерашний ужин: пюре, котлета, пиво 3л»
  * or «вчера на ужин пюре и котлета и пиво».
  */
-export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
+export function parseInlineMealsFromText(text: string, misses?: string[]): ParsedMealLine[] {
   const raw = stripAssistantToolNoise(text).trim();
   if (!raw) return [];
   // Prefer a slot header / colon list; else whole message after stripping day words.
@@ -601,7 +605,7 @@ export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
 
   const meals: ParsedMealLine[] = [];
   for (const part of parts) {
-    const meal = mealLineFromFragment(part);
+    const meal = mealLineFromFragment(part, undefined, misses);
     if (meal) meals.push(meal);
   }
   return meals;
@@ -613,8 +617,23 @@ export function parseInlineMealsFromText(text: string): ParsedMealLine[] {
  * Falls back to inline comma / «и» lists only when the text is not a bullet list.
  * Used for offline multi-dish repair from user text or assistant draft.
  */
-export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
+export function parseStructuredMealsFromText(text: string, misses?: string[]): ParsedMealLine[] {
+  const { meals, missed } = parseStructuredMealsDetailed(text);
+  misses?.push(...missed);
+  return meals;
+}
+
+/**
+ * Same as {@link parseStructuredMealsFromText}, plus dish names that were listed
+ * but could not be priced (no kcal in the line and no table match). Callers must
+ * not present a partial list as the whole meal when `missed` is non-empty.
+ */
+export function parseStructuredMealsDetailed(text: string): {
+  meals: ParsedMealLine[];
+  missed: string[];
+} {
   const cleaned = stripAssistantToolNoise(text);
+  const bulletMissed: string[] = [];
   const lines = cleaned.split(/\r?\n/);
   const meals: ParsedMealLine[] = [];
   let bulletLines = 0;
@@ -636,20 +655,23 @@ export function parseStructuredMealsFromText(text: string): ParsedMealLine[] {
       lineNote = mealNoteFromTypeKey(parseMealTypeKey(slotPrefix[1])) ?? undefined;
       rest = rest.slice(slotPrefix[0].length).trim();
     }
-    const meal = mealLineFromFragment(rest, lineNote);
+    const meal = mealLineFromFragment(rest, lineNote, bulletMissed);
     if (meal) meals.push(meal);
   }
-  if (meals.length >= 2) return meals;
+  if (meals.length >= 2) return { meals, missed: bulletMissed };
   // Bullet drafts must not fall through to comma-split of the whole reply
   // (that glued «углеводы» + «✓ В рацион…» into dish names).
-  if (bulletLines >= 2) return meals;
+  if (bulletLines >= 2) return { meals, missed: bulletMissed };
 
   // Plain draft lines without «-»: «4 яйца: около 280 ккал, белки…»
   const fromPlain = parsePlainMacroLines(cleaned);
-  if (fromPlain.length >= 2) return fromPlain;
+  if (fromPlain.length >= 2) return { meals: fromPlain, missed: [] };
 
-  const inline = parseInlineMealsFromText(cleaned);
-  return inline.length >= 2 ? inline : meals;
+  const inlineMissed: string[] = [];
+  const inline = parseInlineMealsFromText(cleaned, inlineMissed);
+  return inline.length >= 2
+    ? { meals: inline, missed: inlineMissed }
+    : { meals, missed: bulletMissed };
 }
 
 /**
@@ -745,17 +767,25 @@ export function heuristicRepairMultiDishActions(
     return null;
   }
 
-  let meals = parseStructuredMealsFromText(userMessage);
+  const fromUser = parseStructuredMealsDetailed(userMessage);
+  let picked = fromUser;
   // Prefer the draft when it covers ≥ as many dishes: cleaner names + macros.
   // User inline may drop staples (арахисовая паста) or keep «Я съел …» prefixes.
   if (assistantReply) {
-    const fromReply = parseStructuredMealsFromText(assistantReply);
-    if (fromReply.length >= 2 && fromReply.length >= meals.length) {
-      meals = fromReply;
-    } else if (meals.length < 2 && fromReply.length >= 2) {
-      meals = fromReply;
+    const fromReply = parseStructuredMealsDetailed(assistantReply);
+    const replyN = fromReply.meals.length;
+    const userN = fromUser.meals.length;
+    if (replyN >= 2 && (replyN >= userN || userN < 2)) {
+      picked = fromReply;
     }
+    // A complete parse beats one that silently dropped an unpriced dish.
+    if (picked.missed.length && userN >= 2 && !fromUser.missed.length) picked = fromUser;
+    if (picked.missed.length && replyN >= 2 && !fromReply.missed.length) picked = fromReply;
   }
+  // Unpriced dish (no kcal, no table row) → let the model extract instead of
+  // showing a card that quietly loses «подушечки».
+  if (picked.missed.length) return null;
+  const meals = picked.meals;
   if (meals.length < 2) return null;
 
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
@@ -785,8 +815,8 @@ export function heuristicRepairFromDraftReply(
   if (!userWantsWrite(userMessage)) return null;
   if (!assistantReply.trim()) return null;
 
-  const meals = parseStructuredMealsFromText(assistantReply);
-  if (meals.length < 1) return null;
+  const { meals, missed } = parseStructuredMealsDetailed(assistantReply);
+  if (meals.length < 1 || missed.length) return null;
   // Prefer lines that already carry kcal from the draft.
   const withKcal = meals.filter((m) => typeof m.kcal === "number" && m.kcal > 0);
   const picked = withKcal.length ? withKcal : meals;

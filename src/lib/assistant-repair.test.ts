@@ -565,3 +565,56 @@ test("eggs+syrok: user inline keeps both with piece count", () => {
   assert.ok((eggs.kcal ?? 0) >= 250);
   assert.ok((eggs.kcal ?? 0) <= 350);
 });
+
+const CEREAL_USER =
+  "На завтрак в 7 утра я съел 200г обезжиренного творога, 100 мл молока, 50гр подушечек сухой завтрак, 10 гр арахисовой пасты";
+const CEREAL_REPLY = [
+  "Ок, записываю завтрак в 7 утра.",
+  "",
+  "Состав такой:",
+  "- Обезжиренный творог (200 г)",
+  "- Молоко (100 мл)",
+  "- Сухие подушечки-завтрак (50 г)",
+  "- Арахисовая паста (10 г)",
+  "",
+  "Нажмите подтвердить, чтобы сохранить изменения.",
+].join("\n");
+
+test("cereal pillows: draft keeps all 4 dishes incl. подушечки", () => {
+  const fixed = preferMultiDishActions(CEREAL_USER, CEREAL_REPLY, {
+    apply: true,
+    meals: [
+      { name: "Обезжиренный творог (200 г)", kcal: 147, note: "завтрак" },
+      { name: "Молоко (100 мл)", kcal: 48, note: "завтрак" },
+      { name: "Арахисовая паста (10 г)", kcal: 59, note: "завтрак" },
+    ],
+  });
+  assert.equal(fixed?.meals?.length, 4);
+  const pillows = fixed!.meals!.find((m) => /подушеч/i.test(m.name))!;
+  assert.ok(pillows, "подушечки must not be dropped");
+  assert.equal(pillows.kcal, 215);
+  assert.ok(fixed!.meals!.every((m) => m.note === "завтрак"));
+});
+
+test("cereal pillows: user inline alone never yields a partial card", () => {
+  const multi = heuristicRepairMultiDishActions(CEREAL_USER);
+  if (multi) {
+    assert.equal(multi.meals?.length, 4);
+  }
+  const meals = parseStructuredMealsFromText("на завтрак 50гр подушечек, 100 г творога");
+  assert.ok(meals.every((m) => !/^р\s/i.test(m.name)), "«50гр» must not leave a stray «р»");
+});
+
+test("unpriced dish in bullet draft → no partial offline card", () => {
+  const user = "На завтрак съел 200г творога, 50 г чучхелы и 100 мл молока";
+  const reply = "Записываю:\n- Творог (200 г)\n- Чучхела (50 г)\n- Молоко (100 мл)";
+  assert.equal(heuristicRepairMultiDishActions(user, reply), null);
+  assert.equal(heuristicRepairFromDraftReply(user, reply), null);
+});
+
+test("lookup: dry breakfast cereals by grams", () => {
+  assert.equal(lookupRuNutritionTable("Сухие подушечки-завтрак")?.dishName, "Сухой завтрак подушечки");
+  assert.equal(lookupRuNutritionTable("подушечек сухой завтрак")?.dishName, "Сухой завтрак подушечки");
+  assert.equal(lookupRuNutritionTable("кукурузные хлопья")?.dishName, "Кукурузные хлопья");
+  assert.equal(lookupRuNutritionTable("мюсли")?.dishName, "Мюсли");
+});

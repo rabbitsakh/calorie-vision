@@ -415,6 +415,71 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
     sugar: 18,
     portionGrams: 50,
   },
+  // Dry breakfast cereals — per 100 g (users log by grams: «50 г подушечек»).
+  {
+    keys: [
+      "подушечки",
+      "подушечек",
+      "сухие подушечки",
+      "сухих подушечек",
+      "подушечки с начинкой",
+      "подушечки завтрак",
+      "сухой завтрак",
+      "сухого завтрака",
+    ],
+    dishName: "Сухой завтрак подушечки",
+    calories: 430,
+    protein: 7,
+    fat: 15,
+    carbs: 67,
+    fiber: 3,
+    sugar: 30,
+    portionGrams: 100,
+  },
+  {
+    keys: ["кукурузные хлопья", "хлопья кукурузные", "корнфлекс", "cornflakes"],
+    dishName: "Кукурузные хлопья",
+    calories: 370,
+    protein: 7,
+    fat: 1,
+    carbs: 84,
+    fiber: 3,
+    sugar: 8,
+    portionGrams: 100,
+  },
+  {
+    keys: ["шоколадные шарики", "шарики шоколадные", "несквик шарики", "nesquik"],
+    dishName: "Шоколадные шарики",
+    calories: 380,
+    protein: 8,
+    fat: 4,
+    carbs: 78,
+    fiber: 5,
+    sugar: 28,
+    portionGrams: 100,
+  },
+  {
+    keys: ["мюсли", "muesli"],
+    dishName: "Мюсли",
+    calories: 360,
+    protein: 9,
+    fat: 7,
+    carbs: 64,
+    fiber: 7,
+    sugar: 20,
+    portionGrams: 100,
+  },
+  {
+    keys: ["гранола", "granola"],
+    dishName: "Гранола",
+    calories: 450,
+    protein: 10,
+    fat: 18,
+    carbs: 62,
+    fiber: 6,
+    sugar: 20,
+    portionGrams: 100,
+  },
   { keys: ["сливки", "сливки 10%", "сливки 20%"], dishName: "Сливки 10%", calories: 120, protein: 3, fat: 10, carbs: 4, portionGrams: 100 },
   { keys: ["масло сливочное", "сливочное масло"], dishName: "Масло сливочное", calories: 150, protein: 0, fat: 16, carbs: 0, portionGrams: 20 },
   { keys: ["молочный коктейль", "милкшейк"], dishName: "Молочный коктейль", calories: 280, protein: 8, fat: 8, carbs: 42, sugar: 36, portionGrams: 300 },
@@ -780,7 +845,8 @@ function normalizeRuLookupKey(name: string): string {
 }
 
 function tokenizeRuLookupKey(name: string): string[] {
-  return normalizeRuLookupKey(name).split(" ").filter(Boolean);
+  // «подушечки-завтрак» → два токена, иначе дефисное слово не совпадает ни с одним ключом.
+  return normalizeRuLookupKey(name).split(/[\s-]+/).filter(Boolean);
 }
 
 const LOOKUP_STOPWORDS = new Set([
