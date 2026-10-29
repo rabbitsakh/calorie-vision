@@ -7,6 +7,7 @@ import { formatCalorieEstimate } from "@/lib/calorie-estimate-range";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/recognize-quota";
 
 const GUEST_USED_KEY = "cv-guest-recognize-used";
 const GUEST_LIMIT = 2;
@@ -142,7 +143,9 @@ export function GuestTryClient() {
             , чтобы распознавать дальше и вести дневник.
           </p>
         ) : (
-          <p className="guest-try-hint">Тарелка, упаковка или этикетка — лучше при хорошем свете.</p>
+          <p className="guest-try-hint">
+            Тарелка, упаковка или этикетка — лучше при хорошем свете. {PHOTO_SCALE_TIP_SHORT}
+          </p>
         )}
 
         {error ? (

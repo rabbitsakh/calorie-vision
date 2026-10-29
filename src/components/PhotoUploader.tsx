@@ -9,6 +9,7 @@ import {
   isNetworkFetchError,
   recognizePhotoFile,
 } from "@/lib/recognize-photo-client";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/recognize-quota";
 
 const MAX_FILE_SIZE_MB = 15;
 /** T2: weak/hanging recognize must not spin forever — queue offline and recover. */
@@ -318,6 +319,9 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
               Блюдо, упаковка, этикетка или штрихкод · JPG, PNG, WEBP, HEIC · до {MAX_FILE_SIZE_MB}{" "}
               МБ
             </p>
+            <p className="mt-2 text-xs leading-snug text-[var(--accent-ink)]/80 md:text-sm">
+              {PHOTO_SCALE_TIP_SHORT}
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -366,19 +370,28 @@ export const PhotoUploader = forwardRef<PhotoUploaderHandle, PhotoUploaderProps>
       ) : null}
 
       {error ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-red-600">{error}</p>
-          <button
-            type="button"
-            className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-            disabled={disabled || loading}
-            onClick={() => {
-              setError(null);
-              cameraInputRef.current?.click();
-            }}
-          >
-            Ещё раз
-          </button>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-red-600">{error}</p>
+            {!/дневной лимит|DAILY_PHOTO_LIMIT|Pro/i.test(error) ? (
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                disabled={disabled || loading}
+                onClick={() => {
+                  setError(null);
+                  cameraInputRef.current?.click();
+                }}
+              >
+                Ещё раз
+              </button>
+            ) : null}
+          </div>
+          {/дневной лимит|Pro/i.test(error) ? (
+            <p className="text-xs text-[var(--muted)]">
+              Бесплатно — лимит на день. Pro снимает потолок (пока через поддержку / allowlist).
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

@@ -4,6 +4,10 @@ import { getImageDimensions } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
+import {
+  checkDailyRecognizeQuota,
+  dailyQuotaErrorBody,
+} from "@/lib/recognize-quota";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
@@ -35,6 +39,17 @@ export async function POST(request: NextRequest) {
           headers: { "Retry-After": String(rate.retryAfterSec) },
         },
       );
+    }
+
+    const quota = await checkDailyRecognizeQuota({
+      userId: session.user.id,
+      email: session.user.email,
+    });
+    if (!quota.allowed) {
+      return NextResponse.json(dailyQuotaErrorBody(quota), {
+        status: 429,
+        headers: { "Retry-After": String(quota.retryAfterSec) },
+      });
     }
 
     const formData = await request.formData();
