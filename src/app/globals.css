@@ -1135,8 +1135,20 @@ select {
 
 .quick-log-strip__chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-log-strip__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-log-strip__chips > * {
+  flex-shrink: 0;
 }
 
 /* Hybrid H2 — «проверь и запиши» sheet over «Сегодня» */
@@ -5608,7 +5620,10 @@ select {
 /* Hybrid H1/H4/H5 — «Сейчас главное»: the hero of «Сегодня» */
 .moment-hero {
   position: relative;
+  display: flex;
   margin: 0.5rem 0 0.25rem;
+  flex-direction: column;
+  gap: 0.875rem;
   padding: 1.125rem;
   overflow: hidden;
   border-radius: 1.625rem;
@@ -5625,25 +5640,39 @@ select {
   box-shadow: var(--shadow-card);
 }
 
-.moment-mascot {
-  position: absolute;
-  top: -4px;
-  right: -6px;
-  width: 104px;
-  height: 104px;
-  object-fit: contain;
-  pointer-events: none;
+/* Copy + mascot share one row so the CTA never slides under the art. */
+.moment-hero-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
-.moment-hero--soft .moment-mascot {
-  top: 6px;
-  right: 2px;
+.moment-hero-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.moment-mascot {
   width: 88px;
   height: 88px;
+  flex-shrink: 0;
+  object-fit: contain;
+  pointer-events: none;
+  align-self: flex-start;
+}
+
+.moment-hero--dark .moment-mascot {
+  width: 96px;
+  height: 96px;
+}
+
+.moment-hero-actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
 }
 
 .moment-hero-eyebrow {
-  padding-right: 6rem;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -5658,7 +5687,6 @@ select {
 
 .moment-hero-title {
   margin-top: 0.375rem;
-  padding-right: 5.5rem;
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: 700;
@@ -5668,13 +5696,11 @@ select {
 
 .moment-hero-title--sm {
   margin-top: 0;
-  padding-right: 0;
   font-size: 1.25rem;
 }
 
 .moment-hero-line {
   margin-top: 0.375rem;
-  padding-right: 5rem;
   font-size: 0.975rem;
   font-weight: 600;
   opacity: 0.95;
@@ -5683,7 +5709,6 @@ select {
 
 .moment-ring-row .moment-hero-line {
   margin-top: 0.25rem;
-  padding-right: 0;
 }
 
 .moment-hero--soft .moment-hero-line {
@@ -5713,11 +5738,12 @@ select {
 
 .moment-cta {
   display: flex;
+  width: 100%;
   height: 3.25rem;
-  margin-top: 0.875rem;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  border: 0;
   border-radius: 1rem;
   background: var(--accent);
   color: #fff;
@@ -5782,7 +5808,6 @@ select {
   margin-top: 0.625rem;
   align-items: center;
   gap: 0.875rem;
-  padding-right: 4.5rem;
 }
 
 .moment-ring-wrap {

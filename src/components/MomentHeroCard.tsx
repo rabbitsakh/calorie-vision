@@ -16,7 +16,7 @@ import {
   streakOwnsMorning,
   type MorningTodayRoutine,
 } from "@/lib/morning-today";
-import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
+import { requestOpenFoodAddPicker, requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { mascotArtUrl } from "@/lib/mascot-art";
@@ -199,6 +199,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   const runAction = (action: SoftStepAction) => {
     if (action === "weight") requestOpenWeightQuick();
     else if (action === "water") requestOpenWaterQuick();
+    else if (action === "camera") requestOpenFoodCamera();
     else {
       if (action === "week") {
         dismissWeekNudge(today);
@@ -297,47 +298,56 @@ export function MomentHeroView({
         aria-label={moment.eyebrow}
         data-testid="moment-hero"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- static mascot still from /public */}
-        <img className="moment-mascot" src={withBasePath(mascotArtUrl(moment.mascot, resolveMascotSkin()))} alt="" aria-hidden />
-        <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
-        {moment.ringPct != null ? (
-          <div className="moment-ring-row">
-            <span className="moment-ring-wrap">
-              <Ring pct={moment.ringPct} />
-            </span>
-            <div className="min-w-0">
-              <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
-              {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
-            </div>
-          </div>
-        ) : (
-          <>
-            <p className="moment-hero-title">{moment.title}</p>
-            {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
-          </>
-        )}
-        {moment.macros ? (
-          <div className="moment-macros">
-            {moment.macros.map((m) => (
-              <div key={m.key} className="moment-macro">
-                <span className="moment-macro-label">{m.label}</span>
-                <span className="moment-macro-track">
-                  <i
-                    style={{
-                      width: `${Math.min(100, Math.round((m.value / m.target) * 100))}%`,
-                      background: MACRO_COLOR[m.key],
-                    }}
-                  />
+        <div className="moment-hero-body">
+          <div className="moment-hero-copy">
+            <p className="moment-hero-eyebrow">{moment.eyebrow}</p>
+            {moment.ringPct != null ? (
+              <div className="moment-ring-row">
+                <span className="moment-ring-wrap">
+                  <Ring pct={moment.ringPct} />
                 </span>
-                <span className="moment-macro-value">
-                  {m.value}/{m.target}
-                </span>
+                <div className="min-w-0">
+                  <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
+                  {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+                </div>
               </div>
-            ))}
+            ) : (
+              <>
+                <p className="moment-hero-title">{moment.title}</p>
+                {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+              </>
+            )}
+            {moment.macros ? (
+              <div className="moment-macros">
+                {moment.macros.map((m) => (
+                  <div key={m.key} className="moment-macro">
+                    <span className="moment-macro-label">{m.label}</span>
+                    <span className="moment-macro-track">
+                      <i
+                        style={{
+                          width: `${Math.min(100, Math.round((m.value / m.target) * 100))}%`,
+                          background: MACRO_COLOR[m.key],
+                        }}
+                      />
+                    </span>
+                    <span className="moment-macro-value">
+                      {m.value}/{m.target}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
           </div>
-        ) : null}
-        {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
-        {moment.cta ? renderCta(moment.cta) : null}
+          {/* eslint-disable-next-line @next/next/no-img-element -- static mascot still from /public */}
+          <img
+            className="moment-mascot"
+            src={withBasePath(mascotArtUrl(moment.mascot, resolveMascotSkin()))}
+            alt=""
+            aria-hidden
+          />
+        </div>
+        {moment.cta ? <div className="moment-hero-actions">{renderCta(moment.cta)}</div> : null}
       </section>
       {moment.checklist ? (
         <section className="moment-checklist" aria-label="Чек-лист дня">

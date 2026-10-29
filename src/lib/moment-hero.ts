@@ -7,7 +7,7 @@
 import type { MorningTodayBrief } from "@/lib/morning-today";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
-export type SoftStepAction = "weight" | "food" | "water" | "week";
+export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera";
 
 export type SoftStep = {
   label: string;
@@ -258,7 +258,8 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
       title: "День пока без записей",
       line: input.calorieTarget ? `цель ${formatKcal(input.calorieTarget)} ккал` : "Одна запись — и день открыт",
       hint: null,
-      cta: { label: "Добавить еду", action: "food" },
+      // Camera-first — matches bottom composer; avoids a second «добавить» that fights the dock.
+      cta: { label: "Сфоткать еду", action: "camera" },
       ...EMPTY_EXTRAS,
     };
   }

@@ -114,7 +114,7 @@ test("buildMomentHero: evening ring + checklist", () => {
 test("buildMomentHero: empty day asks for one entry", () => {
   const m = buildMomentHero({ ...base, logged: false, calories: 0 });
   assert.equal(m?.title, "День пока без записей");
-  assert.deepEqual(m?.cta, { label: "Добавить еду", action: "food" });
+  assert.deepEqual(m?.cta, { label: "Сфоткать еду", action: "camera" });
 });
 
 test("buildMomentHero: soft step becomes hint + CTA", () => {
