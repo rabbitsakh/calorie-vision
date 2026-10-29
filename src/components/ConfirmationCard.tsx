@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "@/lib/nutrition";
 import type { RecognitionResponse } from "@/types";
+import { ConfirmDishRow } from "@/components/ConfirmDishRow";
 import { dateKeyAndTimeToIso, toTimeInputValue } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
@@ -60,7 +61,6 @@ import {
   type PendingConfirmUi,
 } from "@/lib/meal-draft-queue";
 import type { SaveMealInput } from "@/lib/save-meal";
-import { Chip } from "@/components/Chip";
 import { DishFields } from "@/components/ConfirmDishFields";
 import { ConfirmTrustSkim } from "@/components/ConfirmTrustSkim";
 import { ConfirmStickyActions } from "@/components/ConfirmStickyActions";
@@ -869,6 +869,56 @@ export function ConfirmationCard({
       }),
     ),
   );
+  const renderDishFields = (dish: DishDraft, index: number) => (
+    <DishFields
+      key={dish.id}
+      dish={dish}
+      index={index}
+      multi={multi}
+      searching={searchingId === dish.id}
+      lookupDisabled={dishLookupDisabled(dish.id, saving, searchingId, enriching)}
+      formDisabled={formDisabled}
+      canRemove={multi}
+      review={reviewFlags[index]!}
+      hideInlineLookupCta={Boolean(reviewCta)}
+      onChange={(patch) => updateDish(dish.id, patch)}
+      onBaselineChange={(patch) =>
+        updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
+      }
+      onPortionChange={(value) => handlePortionChange(dish, value)}
+      onLookup={(name) => void handleLookup(dish, name)}
+      onApplyAlternative={(alt) => {
+        const targetPortion =
+          Number(dish.portionGrams) > 0
+            ? Number(dish.portionGrams)
+            : Number(dish.original.portionGrams) || 100;
+
+        const merged = applyAlternativeToPortion(dish.original, alt, targetPortion);
+
+        updateDish(dish.id, {
+          dishName: decodeHtmlEntities(merged.dishName),
+          calories: String(merged.calories),
+          protein: merged.protein !== undefined ? formatMacro(merged.protein) : "",
+          fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
+          carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
+          fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
+          sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
+          portionGrams: String(merged.portionGrams),
+          baseline: nutritionBaselineFromRecognition({
+            ...dish.original,
+            ...merged,
+          }),
+        });
+        setLookupMessage("Вариант применён");
+      }}
+      onRemove={() => {
+        dishesListTouchedRef.current = true;
+        setDishes((current) => current.filter((item) => item.id !== dish.id));
+        setActiveDish((value) => Math.max(0, Math.min(value, dishes.length - 2)));
+      }}
+    />
+  );
+
   return (
     <section
       id="food-add-panel"
@@ -909,43 +959,6 @@ export function ConfirmationCard({
           </div>
         )}
 
-        {multi ? (
-          <div className="chip-row" role="tablist" aria-label="Позиции на фото">
-            {dishes.map((dish, index) => {
-              const brand = dish.original.brand?.trim();
-              const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
-              const dishAllergenHits = matchAllergensInText(text, userAllergens);
-              const hasAllergen = dishAllergenHits.length > 0;
-              return (
-                <Chip
-                  key={dish.id}
-                  active={index === activeDish}
-                  data-allergen-dish={hasAllergen ? String(index) : undefined}
-                  title={
-                    hasAllergen
-                      ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
-                      : reviewFlags[index]?.missingMacros
-                        ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
-                        : reviewFlags[index]?.lowConfidence
-                          ? "Слабая уверенность — откройте и нажмите «Уточнить»"
-                          : undefined
-                  }
-                  onClick={() => setActiveDish(index)}
-                >
-                  {index + 1}. {dish.dishName || "Блюдо"}
-                  {Number(dish.calories) > 0 ? ` · ${Math.round(Number(dish.calories))}` : ""}
-                  {hasAllergen ? " ⚠" : ""}
-                  {reviewFlags[index]?.missingMacros
-                    ? " · БЖУ?"
-                    : reviewFlags[index]?.lowConfidence
-                      ? " · ?"
-                      : ""}
-                </Chip>
-              );
-            })}
-          </div>
-        ) : null}
-
         {/* Soft status only while enriching — keeps skim free of trust wall. */}
         {enriching ? (
           <p className="rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]">
@@ -956,59 +969,44 @@ export function ConfirmationCard({
         ) : null}
 
         <div className="flex flex-col gap-4">
-          {(multi ? dishes.filter((_, index) => index === Math.min(activeDish, dishes.length - 1)) : dishes).map(
-            (dish) => {
-              const index = dishes.findIndex((item) => item.id === dish.id);
-              return (
-                <DishFields
-                  key={dish.id}
-                  dish={dish}
-                  index={index}
-                  multi={multi}
-                  searching={searchingId === dish.id}
-                  lookupDisabled={dishLookupDisabled(dish.id, saving, searchingId, enriching)}
-                  formDisabled={formDisabled}
-                  canRemove={multi}
-                  review={reviewFlags[index]!}
-                  hideInlineLookupCta={Boolean(reviewCta)}
-                  onChange={(patch) => updateDish(dish.id, patch)}
-                  onBaselineChange={(patch) =>
-                    updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
-                  }
-                  onPortionChange={(value) => handlePortionChange(dish, value)}
-                  onLookup={(name) => void handleLookup(dish, name)}
-                  onApplyAlternative={(alt) => {
-                    const targetPortion =
-                      Number(dish.portionGrams) > 0
-                        ? Number(dish.portionGrams)
-                        : Number(dish.original.portionGrams) || 100;
-
-                    const merged = applyAlternativeToPortion(dish.original, alt, targetPortion);
-
-                    updateDish(dish.id, {
-                      dishName: decodeHtmlEntities(merged.dishName),
-                      calories: String(merged.calories),
-                      protein: merged.protein !== undefined ? formatMacro(merged.protein) : "",
-                      fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
-                      carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
-                      fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
-                      sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
-                      portionGrams: String(merged.portionGrams),
-                      baseline: nutritionBaselineFromRecognition({
-                        ...dish.original,
-                        ...merged,
-                      }),
-                    });
-                    setLookupMessage("Вариант применён");
-                  }}
-                  onRemove={() => {
-                    dishesListTouchedRef.current = true;
-                    setDishes((current) => current.filter((item) => item.id !== dish.id));
-                    setActiveDish((value) => Math.max(0, Math.min(value, dishes.length - 2)));
-                  }}
-                />
-              );
-            },
+          {multi ? (
+            <div className="confirm-dish-list" aria-label="Позиции на фото">
+              <p className="confirm-dish-list-hint">
+                Поправьте граммы — ккал пересчитаются. Нажмите на блюдо для подробностей.
+              </p>
+              {dishes.map((dish, index) => {
+                const brand = dish.original.brand?.trim();
+                const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+                const dishAllergenHits = matchAllergensInText(text, userAllergens);
+                const flags = reviewFlags[index];
+                return (
+                  <Fragment key={dish.id}>
+                    <ConfirmDishRow
+                      dish={dish}
+                      index={index}
+                      active={index === activeDish}
+                      allergen={dishAllergenHits.length > 0}
+                      flag={flags?.missingMacros ? "БЖУ?" : flags?.lowConfidence ? "?" : null}
+                      flagTitle={
+                        dishAllergenHits.length > 0
+                          ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
+                          : flags?.missingMacros
+                            ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
+                            : flags?.lowConfidence
+                              ? "Слабая уверенность — откройте и нажмите «Уточнить»"
+                              : undefined
+                      }
+                      disabled={formDisabled}
+                      onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
+                      onPortion={(value) => handlePortionChange(dish, value)}
+                    />
+                    {index === activeDish ? renderDishFields(dish, index) : null}
+                  </Fragment>
+                );
+              })}
+            </div>
+          ) : (
+            dishes.map((dish, index) => renderDishFields(dish, index))
           )}
 
           {multi ? (

@@ -4665,6 +4665,114 @@ select {
   animation: none;
 }
 
+/* Hybrid H3 — «Проверь и запиши»: dish rows with in-place grams */
+.confirm-dish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.confirm-dish-list-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.confirm-dish-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-hairline);
+  background: color-mix(in srgb, var(--surface-mist) 70%, white);
+}
+
+.confirm-dish-row--active {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: #fff;
+}
+
+.confirm-dish-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.confirm-dish-row-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.confirm-dish-row-flag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b7791f;
+}
+
+.confirm-dish-row-flag--warn {
+  color: #c53030;
+}
+
+.confirm-dish-row-kcal {
+  font-size: 0.8rem;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm-dish-row-stepper {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.confirm-dish-row-step {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  background: var(--accent-soft);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.confirm-dish-row-step:disabled {
+  opacity: 0.4;
+}
+
+.confirm-dish-row-grams {
+  display: flex;
+  align-items: baseline;
+  gap: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.confirm-dish-row-grams input {
+  width: 3.25rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-hairline);
+  background: #fff;
+  padding: 0.35rem 0.25rem;
+  text-align: center;
+  /* 16px keeps iOS from zooming on focus */
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Hybrid H2 — «Сейчас главное»: one moment card under the day ring */
 .moment-hero {
   margin: 0.5rem 0.125rem 0.25rem;
