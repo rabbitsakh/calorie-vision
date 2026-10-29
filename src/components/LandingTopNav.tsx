@@ -121,15 +121,20 @@ export function LandingTopNav() {
           </Link>
         </nav>
 
-        <button
-          type="button"
-          className="landing-top-menu-btn"
-          aria-expanded={open}
-          aria-controls="landing-mobile-drawer"
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? "Закрыть" : "Меню"}
-        </button>
+        <div className="landing-top-mobile-actions">
+          <Link href="/login" className="landing-top-login-mobile landing-cta-sheen">
+            Войти
+          </Link>
+          <button
+            type="button"
+            className="landing-top-menu-btn"
+            aria-expanded={open}
+            aria-controls="landing-mobile-drawer"
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? "Закрыть" : "Меню"}
+          </button>
+        </div>
       </header>
       {drawer}
     </>

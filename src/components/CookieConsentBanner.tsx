@@ -31,31 +31,27 @@ export function CookieConsentBanner() {
 
   return (
     <div
-      className="cookie-consent"
+      className="cookie-consent cookie-consent--strip"
       role="dialog"
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-desc"
     >
       <div className="cookie-consent-inner">
-        <div className="cookie-consent-copy">
-          <p id="cookie-consent-title" className="cookie-consent-title">
-            Cookies и аналитика
-          </p>
-          <p id="cookie-consent-desc" className="cookie-consent-text">
-            Мы используем необходимые cookies для входа. Яндекс Метрику подключаем только с вашего
-            согласия — чтобы понимать, как пользоваться сайтом. Подробнее в{" "}
-            <Link href={withBasePath("/privacy")} className="cookie-consent-link">
-              Политике конфиденциальности
-            </Link>
-            .
-          </p>
-        </div>
+        <p id="cookie-consent-title" className="cookie-consent-title sr-only">
+          Cookies и аналитика
+        </p>
+        <p id="cookie-consent-desc" className="cookie-consent-text">
+          Нужные cookies для входа. Метрику — только с согласия.{" "}
+          <Link href={withBasePath("/privacy")} className="cookie-consent-link">
+            Политика
+          </Link>
+        </p>
         <div className="cookie-consent-actions">
-          <button type="button" className="btn btn-secondary text-sm" onClick={() => choose("declined")}>
-            Отклонить
+          <button type="button" className="cookie-consent-btn cookie-consent-btn--ghost" onClick={() => choose("declined")}>
+            Нет
           </button>
-          <button type="button" className="btn btn-primary text-sm" onClick={() => choose("accepted")}>
-            Принять
+          <button type="button" className="cookie-consent-btn cookie-consent-btn--ok" onClick={() => choose("accepted")}>
+            Ок
           </button>
         </div>
       </div>

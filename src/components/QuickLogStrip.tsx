@@ -73,13 +73,14 @@ function readFavoritesCache(): FavoriteFood[] {
 }
 
 /**
- * Compact day-1+ strip: «Как вчера» + top favorites above the fold.
+ * Day-surface strip: «Как вчера» + top favorites above the meal feed.
  * Full QuickAddAgain accordion stays below for templates / more.
+ * Shows even when today is empty so the first action is one tap.
  */
 export function QuickLogStrip({
   selectedDate,
   refreshKey,
-  mealCount,
+  mealCount: _mealCount,
   onSaved,
 }: QuickLogStripProps) {
   const timezone = useTimezone();
@@ -202,25 +203,21 @@ export function QuickLogStrip({
     }
   }
 
-  if (mealCount <= 0) return null;
-
   const showYesterday = yesterdayCount > 0 && Boolean(yesterdayDate);
   const topFavs = favorites.slice(0, 2);
   if (!showYesterday && topFavs.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-1.5 px-0.5" aria-label="Быстрый лог">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Быстрый лог
-        </p>
-        {notice ? <p className="truncate text-xs text-amber-800">{notice}</p> : null}
+    <div className="quick-log-strip" aria-label="Быстрый лог">
+      <div className="quick-log-strip__head">
+        <p className="quick-log-strip__label">Быстрый лог</p>
+        {notice ? <p className="quick-log-strip__notice">{notice}</p> : null}
       </div>
-      <div className="flex flex-wrap gap-1.5">
+      <div className="quick-log-strip__chips">
         {showYesterday ? (
           <button
             type="button"
-            className="chip min-h-9 bg-[var(--accent-soft)] font-semibold text-[var(--accent-ink)]"
+            className="chip min-h-10 bg-[var(--accent-soft)] text-[0.9375rem] font-semibold text-[var(--accent-ink)]"
             disabled={busy !== null}
             onClick={() => void copyYesterday()}
           >
@@ -231,7 +228,7 @@ export function QuickLogStrip({
           <button
             key={food.id}
             type="button"
-            className="chip min-h-9 max-w-[11rem] truncate"
+            className="chip min-h-10 max-w-[12rem] truncate text-[0.9375rem]"
             disabled={busy !== null}
             title={`${food.name} · ${food.calories} ккал`}
             onClick={() => void logFavorite(food)}

@@ -871,9 +871,60 @@ select {
   color: #fff;
 }
 
+.bottom-composer-btn--camera {
+  height: 3rem;
+  width: 3rem;
+  border-radius: 1rem;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 .bottom-composer-btn--live {
   background: var(--accent-soft);
   box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* D32 — «Как вчера» / избранное above the meal feed */
+.quick-log-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.15rem;
+  padding: 0 0.25rem;
+}
+
+.quick-log-strip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.quick-log-strip__label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-strong, var(--muted));
+}
+
+.quick-log-strip__notice {
+  margin: 0;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.quick-log-strip__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
 /* Hybrid H2 — «проверь и запиши» sheet over «Сегодня» */
@@ -4984,9 +5035,9 @@ select {
 
 .confirm-dish-row {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.65rem 0.55rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-hairline);
   background: color-mix(in srgb, var(--surface-mist) 70%, white);
@@ -4995,6 +5046,12 @@ select {
 .confirm-dish-row--active {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   background: #fff;
+}
+
+.confirm-dish-row-top {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .confirm-dish-row-main {
@@ -5011,13 +5068,13 @@ select {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.975rem;
+  font-weight: 650;
   color: var(--foreground);
 }
 
 .confirm-dish-row-flag {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: #b7791f;
 }
@@ -5027,9 +5084,65 @@ select {
 }
 
 .confirm-dish-row-kcal {
-  font-size: 0.8rem;
-  color: var(--muted-strong);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
   font-variant-numeric: tabular-nums;
+}
+
+.confirm-dish-row-conf {
+  flex-shrink: 0;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border-quiet);
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.confirm-dish-row-conf--high {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.confirm-dish-row-conf--medium {
+  background: var(--surface-mist);
+  color: var(--foreground);
+}
+
+.confirm-dish-row-conf--low {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.confirm-dish-row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.confirm-dish-row-chip {
+  min-height: 2rem;
+  min-width: 2.25rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border-hairline);
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.confirm-dish-row-chip--on {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.confirm-dish-row-chip:disabled {
+  opacity: 0.45;
 }
 
 .confirm-dish-row-stepper {
@@ -5296,9 +5409,9 @@ select {
 .moment-hero-line {
   margin-top: 0.375rem;
   padding-right: 5rem;
-  font-size: 0.875rem;
+  font-size: 0.975rem;
   font-weight: 600;
-  opacity: 0.9;
+  opacity: 0.95;
   font-variant-numeric: tabular-nums;
 }
 
@@ -5308,16 +5421,16 @@ select {
 }
 
 .moment-hero--soft .moment-hero-line {
-  color: var(--muted);
-  font-size: 0.8125rem;
+  color: var(--muted-strong, var(--muted));
+  font-size: 0.9375rem;
   opacity: 1;
 }
 
 .moment-hero-hint {
   margin-top: 0.625rem;
-  font-size: 0.8125rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .moment-hero--dark .moment-hero-hint {
@@ -5368,9 +5481,9 @@ select {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 11.5px;
+  font-size: 0.9375rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--muted-strong, var(--muted));
 }
 
 .moment-macro-label {
@@ -5378,7 +5491,7 @@ select {
 }
 
 .moment-macro-track {
-  height: 6px;
+  height: 8px;
   flex: 1;
   overflow: hidden;
   border-radius: 6px;
@@ -5416,8 +5529,8 @@ select {
 .moment-ring {
   position: relative;
   display: block;
-  width: 70px;
-  height: 70px;
+  width: 88px;
+  height: 88px;
 }
 
 .moment-ring svg {
@@ -5436,14 +5549,14 @@ select {
 
 .moment-ring-value b {
   font-family: var(--font-display);
-  font-size: 0.875rem;
+  font-size: 1.125rem;
   font-weight: 700;
 }
 
 .moment-ring-value span {
-  font-size: 9.5px;
+  font-size: 0.6875rem;
   font-weight: 700;
-  color: var(--muted);
+  color: var(--muted-strong, var(--muted));
 }
 
 .moment-checklist {
@@ -5642,6 +5755,26 @@ select {
   height: calc(var(--landing-logo-size) - 8px);
   line-height: 1;
   padding: 0 0.9rem;
+  text-decoration: none;
+}
+
+.landing-top-mobile-actions {
+  align-items: center;
+  display: none;
+  gap: 0.45rem;
+}
+
+.landing-top-login-mobile {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 0.55rem;
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 600;
+  height: calc(var(--landing-logo-size) - 8px);
+  line-height: 1;
+  padding: 0 0.85rem;
   text-decoration: none;
 }
 
@@ -6862,6 +6995,10 @@ select {
     display: none;
   }
 
+  .landing-top-mobile-actions {
+    display: inline-flex;
+  }
+
   .landing-top-menu-btn {
     display: inline-flex;
   }
@@ -8047,7 +8184,7 @@ select {
   /* Sit above the mobile tab dock so «+» stays tappable until consent is chosen. */
   bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   left: 0;
-  padding: 0.75rem;
+  padding: 0.4rem 0.5rem;
   pointer-events: none;
   position: fixed;
   right: 0;
@@ -8057,23 +8194,28 @@ select {
 @media (min-width: 768px) {
   .cookie-consent {
     bottom: 0;
-    padding: max(0.75rem, env(safe-area-inset-bottom)) 0.75rem 0.75rem;
+    padding: max(0.4rem, env(safe-area-inset-bottom)) 0.75rem 0.5rem;
   }
 }
 
 .cookie-consent-inner {
-  background: var(--card);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.14);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  border: 1px solid var(--border-quiet);
+  border-radius: 0.85rem;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem 1.25rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
   justify-content: space-between;
   margin: 0 auto;
   max-width: 42rem;
-  padding: 1rem 1.15rem;
+  padding: 0.45rem 0.65rem;
   pointer-events: auto;
+}
+
+.cookie-consent--strip .cookie-consent-inner {
+  backdrop-filter: blur(8px);
 }
 
 .cookie-consent-title {
@@ -8085,11 +8227,13 @@ select {
 }
 
 .cookie-consent-text {
-  color: var(--muted);
+  color: var(--muted-strong, var(--muted));
+  flex: 1;
   font-size: 0.8125rem;
-  line-height: 1.45;
+  font-weight: 600;
+  line-height: 1.35;
   margin: 0;
-  max-width: 28rem;
+  min-width: 0;
 }
 
 .cookie-consent-link {
@@ -8104,8 +8248,29 @@ select {
 .cookie-consent-actions {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-shrink: 0;
+  gap: 0.35rem;
+}
+
+.cookie-consent-btn {
+  border-radius: 0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  height: 2rem;
+  line-height: 1;
+  padding: 0 0.7rem;
+}
+
+.cookie-consent-btn--ghost {
+  background: transparent;
+  border: 1px solid var(--border-quiet);
+  color: var(--foreground);
+}
+
+.cookie-consent-btn--ok {
+  background: var(--accent);
+  border: 1px solid transparent;
+  color: #fff;
 }
 
 .landing-legal-footer {
