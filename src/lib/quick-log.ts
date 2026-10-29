@@ -9,10 +9,22 @@ export type QuickMeal = NonNullable<AssistantActions["meals"]>[number];
 
 export type QuickPortion = { base: string; grams: number | null; unit: "г" | "мл" };
 
-const PORTION_IN_PARENS_RE = /\s*\((\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\)\s*$/iu;
+/** Unit alts: longer first so «гр» wins over «г». */
+const UNIT_ALT = "мл|грамм\\S*|гр|г";
+const PORTION_IN_PARENS_RE = new RegExp(
+  String.raw`\s*\((\d+(?:[.,]\d+)?)\s*(${UNIT_ALT})\)\s*$`,
+  "iu",
+);
 /** Allow «100мл» without a space before the unit. */
-const PORTION_TRAILING_RE = /\s+(\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\.?\s*$/iu;
-const PORTION_LOOSE_RE = /(\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\b/iu;
+const PORTION_TRAILING_RE = new RegExp(
+  String.raw`\s+(\d+(?:[.,]\d+)?)\s*(${UNIT_ALT})\.?\s*$`,
+  "iu",
+);
+const PORTION_LOOSE_RE = new RegExp(String.raw`(\d+(?:[.,]\d+)?)\s*(${UNIT_ALT})(?![а-яёa-z])`, "iu");
+const PORTION_HINT_RE = new RegExp(
+  String.raw`([А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z\s.%]*?)\s*(\d+(?:[.,]\d+)?)\s*(${UNIT_ALT})(?![а-яёa-z])`,
+  "giu",
+);
 const LIQUID_NAME_RE = /молок|сок|кофе|чай|кефир|напит|вода|пиво|wine|milk|йогурт\s*пит|латте|какао/i;
 
 function portionUnit(raw: string | undefined): "г" | "мл" {
@@ -38,15 +50,80 @@ export function splitQuickPortion(name: string): QuickPortion {
   return parsePortionMatch(m, raw) ?? { base: raw, grams: null, unit: "г" };
 }
 
-/** Pull «100 мл» from the composer phrase when the AI dropped grams from the dish name. */
+function normalizeDishKey(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^а-яa-z0-9]+/gi, " ")
+    .trim();
+}
+
+/** Soft stem tokens — «Курина» ↔ «Куриная». */
+function dishTokens(s: string): string[] {
+  return normalizeDishKey(s)
+    .split(/\s+/)
+    .filter((t) => t.length >= 3)
+    .map((t) => t.slice(0, 5));
+}
+
+export function dishNameScore(a: string, b: string): number {
+  const ta = dishTokens(a);
+  const tb = dishTokens(b);
+  if (!ta.length || !tb.length) return 0;
+  let hits = 0;
+  for (const t of ta) {
+    if (tb.some((u) => u === t || u.startsWith(t) || t.startsWith(u))) hits += 1;
+  }
+  return hits / Math.max(ta.length, tb.length);
+}
+
+/**
+ * «Молоко 100мл и Курина грудка 500гр» → [{Молоко,100,мл}, {Курина грудка,500,г}].
+ */
+export function extractPortionHints(text: string): QuickPortion[] {
+  const raw = text.trim();
+  if (!raw) return [];
+  const hints: QuickPortion[] = [];
+  const re = new RegExp(PORTION_HINT_RE.source, PORTION_HINT_RE.flags);
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw))) {
+    const base = (m[1] ?? "")
+      .replace(/^(?:и|или|,|;|\+|да)\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const grams = Number((m[2] ?? "").replace(",", "."));
+    const unit = portionUnit(m[3]);
+    if (!base || !Number.isFinite(grams) || grams <= 0) continue;
+    hints.push({ base, grams: Math.round(grams), unit });
+  }
+  return hints;
+}
+
+/** Pull «100 мл» from the composer phrase for one dish. */
 export function portionFromUserText(text: string, dishBase?: string): QuickPortion | null {
+  const hints = extractPortionHints(text);
+  if (dishBase?.trim() && hints.length) {
+    let best: QuickPortion | null = null;
+    let bestScore = 0;
+    for (const h of hints) {
+      const score = dishNameScore(dishBase, h.base);
+      if (score > bestScore) {
+        bestScore = score;
+        best = { ...h, base: dishBase.trim() };
+      }
+    }
+    if (best && bestScore >= 0.4) return best;
+  }
+  if (hints.length === 1) {
+    return { ...hints[0]!, base: dishBase?.trim() || hints[0]!.base };
+  }
   const raw = text.trim();
   if (!raw) return null;
   if (dishBase?.trim()) {
     const base = dishBase.trim();
     const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const near = new RegExp(
-      `${escaped}[^\\d]{0,24}(\\d+(?:[.,]\\d+)?)\\s*(г|гр|грамм\\S*|мл)\\b`,
+      `${escaped}[^\\d]{0,24}(\\d+(?:[.,]\\d+)?)\\s*(${UNIT_ALT})(?![а-яёa-z])`,
       "iu",
     );
     const m = near.exec(raw);
@@ -74,27 +151,66 @@ function defaultQuickUnit(name: string, text: string): "г" | "мл" {
 
 /**
  * Ensure every draft meal has «(N г|мл)» so the gram control always appears.
- * Prefer AI name → user phrase → liquid/solid default (100).
+ * User phrase wins over a wrong AI label (keep AI kcal — usually for the right amount).
  */
 export function enrichQuickMealsFromText(meals: QuickMeal[], text: string): QuickMeal[] {
-  const single = meals.length === 1;
-  return meals.map((meal) => {
+  const hints = extractPortionHints(text);
+  const used = new Set<number>();
+  return meals.map((meal, index) => {
     const current = splitQuickPortion(meal.name);
+    let hint: QuickPortion | null = null;
+    let bestScore = 0;
+    let bestIdx = -1;
+    for (let i = 0; i < hints.length; i += 1) {
+      if (used.has(i)) continue;
+      const h = hints[i]!;
+      const score = dishNameScore(current.base, h.base);
+      if (score > bestScore) {
+        bestScore = score;
+        hint = h;
+        bestIdx = i;
+      }
+    }
+    if (!hint && meals.length === 1 && hints.length === 1) {
+      hint = hints[0]!;
+      bestIdx = 0;
+      bestScore = 1;
+    }
+    if (!hint && meals.length === hints.length && !used.has(index)) {
+      hint = hints[index] ?? null;
+      bestIdx = hint ? index : -1;
+      bestScore = hint ? 1 : 0;
+    }
+    if (hint && bestScore >= 0.34 && bestIdx >= 0) {
+      used.add(bestIdx);
+      return {
+        ...meal,
+        name: `${current.base} (${hint.grams} ${hint.unit})`,
+      };
+    }
     if (current.grams != null) {
       const normalized = `${current.base} (${current.grams} ${current.unit})`;
       return meal.name === normalized ? meal : { ...meal, name: normalized };
     }
-    const fromText =
-      portionFromUserText(text, current.base) ?? (single ? portionFromUserText(text) : null);
-    if (fromText?.grams != null) {
-      return {
-        ...meal,
-        name: `${current.base} (${fromText.grams} ${fromText.unit})`,
-      };
-    }
     const unit = defaultQuickUnit(current.base, text);
     return { ...meal, name: `${current.base} (100 ${unit})` };
   });
+}
+
+export type QuickSlot = "завтрак" | "обед" | "ужин" | "перекус";
+
+export const QUICK_SLOTS: readonly QuickSlot[] = ["завтрак", "обед", "ужин", "перекус"];
+
+/** Default slot from local hour when AI did not set note. */
+export function defaultQuickSlot(hour = new Date().getHours()): QuickSlot {
+  if (hour >= 5 && hour < 11) return "завтрак";
+  if (hour >= 11 && hour < 16) return "обед";
+  if (hour >= 16 && hour < 21) return "ужин";
+  return "перекус";
+}
+
+export function applyQuickSlot(meals: QuickMeal[], slot: QuickSlot): QuickMeal[] {
+  return meals.map((m) => ({ ...m, note: slot }));
 }
 
 function scaleNum(v: number | undefined, k: number, digits = 1): number | undefined {
@@ -144,19 +260,25 @@ export function quickTotals(meals: QuickMeal[]): QuickTotals {
   };
 }
 
-const SLOT_LABEL: Record<string, string> = {
+export const SLOT_LABEL: Record<QuickSlot, string> = {
   завтрак: "Завтрак",
   обед: "Обед",
   ужин: "Ужин",
   перекус: "Перекус",
 };
 
-function slotOf(meals: QuickMeal[]): string | null {
+function slotOf(meals: QuickMeal[]): QuickSlot | null {
   for (const m of meals) {
     const key = m.note?.trim().toLowerCase();
-    if (key && SLOT_LABEL[key]) return key;
+    if (key === "завтрак" || key === "обед" || key === "ужин" || key === "перекус") {
+      return key;
+    }
   }
   return null;
+}
+
+export function resolveQuickSlot(meals: QuickMeal[], hour?: number): QuickSlot {
+  return slotOf(meals) ?? defaultQuickSlot(hour);
 }
 
 /** «Завтрак · 07:00» tag over the rows. */

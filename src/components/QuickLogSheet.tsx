@@ -10,17 +10,21 @@ import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import {
+  QUICK_SLOTS,
+  SLOT_LABEL,
+  applyQuickSlot,
   enrichQuickMealsFromText,
   quickDishTone,
   quickHeader,
   quickMacroLine,
   quickPortionStep,
   quickSaveLabel,
-  quickSlotTag,
   quickTotals,
   rescaleQuickMeal,
+  resolveQuickSlot,
   splitQuickPortion,
   type QuickMeal,
+  type QuickSlot,
 } from "@/lib/quick-log";
 
 type Props = {
@@ -45,6 +49,7 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
   const day = useOptionalRationDay();
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
   const [editing, setEditing] = useState<number | null>(null);
+  const [slot, setSlot] = useState<QuickSlot>(() => defaultSlotGuess());
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -83,7 +88,9 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
         }
         const meals = data?.actions?.meals ?? [];
         if (data?.actions && meals.length) {
-          const enriched = enrichQuickMealsFromText(meals, text);
+          const nextSlot = resolveQuickSlot(meals);
+          const enriched = applyQuickSlot(enrichQuickMealsFromText(meals, text), nextSlot);
+          setSlot(nextSlot);
           setPhase({ kind: "ready", actions: data.actions, meals: enriched });
           setEditing(0);
         } else {
@@ -117,6 +124,12 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
     if (phase.kind !== "ready") return;
     const next = phase.meals.map((m, i) => (i === index ? rescaleQuickMeal(m, grams) : m));
     setPhase({ ...phase, meals: next });
+  };
+
+  const setMealSlot = (next: QuickSlot) => {
+    setSlot(next);
+    if (phase.kind !== "ready") return;
+    setPhase({ ...phase, meals: applyQuickSlot(phase.meals, next) });
   };
 
   const save = async () => {
@@ -176,10 +189,23 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
 
         {phase.kind === "ready" ? (
           <>
+            <div className="quick-slots" role="radiogroup" aria-label="Приём пищи">
+              {QUICK_SLOTS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="radio"
+                  aria-checked={slot === key}
+                  className={`quick-slot${slot === key ? " quick-slot--on" : ""}`}
+                  onClick={() => setMealSlot(key)}
+                >
+                  {SLOT_LABEL[key]}
+                </button>
+              ))}
+            </div>
             <div className="quick-parse">
               <div className="quick-parse-head">
                 <b>{quickHeader(meals.length)}</b>
-                {quickSlotTag(meals) ? <span className="quick-tag">{quickSlotTag(meals)}</span> : null}
               </div>
               {meals.map((meal, i) => {
                 const portion = splitQuickPortion(meal.name);
@@ -315,4 +341,8 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
 
   if (!mounted) return null;
   return createPortal(sheet, document.documentElement);
+}
+
+function defaultSlotGuess(): QuickSlot {
+  return resolveQuickSlot([]);
 }
