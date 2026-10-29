@@ -16,6 +16,7 @@ import {
   SET_TYPE_SHORT,
   type SetType,
 } from "@/lib/workouts/set-meta";
+import { exerciseDoneShare, nextExerciseLine } from "@/lib/workouts/live-stage-lines";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 import { LeverRecoveryStrip } from "@/components/workouts/LeverRecoveryStrip";
 
@@ -89,6 +90,17 @@ function formatRest(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function setChipLabel(set: LiveSet, kind: ExerciseKind): string {
+  const spec = fieldsForKind(kind);
+  if (spec.usesWeight && set.weightKg != null && set.reps != null) {
+    return `${formatSuggestedKg(set.weightKg)}×${set.reps}`;
+  }
+  if (spec.usesReps && set.reps != null) return `×${set.reps}`;
+  if (spec.usesDuration && set.durationSec != null) return `${Math.round(set.durationSec / 60)} мин`;
+  if (spec.usesDistance && set.distanceKm != null) return `${set.distanceKm} км`;
+  return "—";
+}
+
 /** Full-screen one-hand logger for the current exercise / circuit group. */
 export function WorkoutLiveStage({
   elapsedLabel,
@@ -154,6 +166,15 @@ export function WorkoutLiveStage({
   const spec = fieldsForKind(focus.kind);
   const allDone = exercises.every((e) => e.sets.length > 0 && e.sets.every((s) => s.completed));
   const showSetMeta = kindUsesSetTypes(focus.kind);
+  const focusIndex = Math.max(0, exercises.findIndex((e) => e.id === focus.id));
+  const currentSetIndex = currentSet ? focus.sets.indexOf(currentSet) : -1;
+  const nextLine = nextExerciseLine(exercises, focus.id);
+  const live = clockStatus === "running" || clockStatus === "paused";
+  const bumpReps = (delta: number) => {
+    const n = Number.parseInt(draftReps, 10);
+    const base = Number.isFinite(n) ? n : 0;
+    onDraftReps(String(Math.max(0, base + delta)));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] text-white">
@@ -181,6 +202,28 @@ export function WorkoutLiveStage({
         <GymCollectionWear tone="stage" />
         <LeverRecoveryStrip className="[&_span]:border-white/20 [&_span]:bg-white/10 [&_span]:text-white/85" />
       </div>
+
+      {live ? (
+        <p
+          className="mx-4 mb-1 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-100/90"
+          data-testid="gym-quiet-banner"
+        >
+          Режим зала: напоминания о еде и воде на паузе до конца тренировки
+        </p>
+      ) : null}
+
+      {exercises.length > 1 ? (
+        <div className="flex gap-1 px-4 pb-1" aria-label={`Упражнение ${focusIndex + 1} из ${exercises.length}`}>
+          {exercises.map((ex) => (
+            <span key={ex.id} className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
+              <span
+                className="block h-full rounded-full bg-[var(--accent-soft)]"
+                style={{ width: `${Math.round(exerciseDoneShare(ex) * 100)}%` }}
+              />
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {prToast ? (
         <div className="mx-4 rounded-xl bg-amber-400 px-3 py-2 text-center text-sm font-bold text-[#0a1f1e]">
@@ -225,6 +268,11 @@ export function WorkoutLiveStage({
             ) : mode !== "normal" ? (
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-soft)]/80">
                 {BLOCK_MODE_LABELS[mode]}
+              </p>
+            ) : null}
+            {exercises.length > 1 && !focus.supersetGroup && mode === "normal" ? (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">
+                Упражнение {focusIndex + 1} из {exercises.length}
               </p>
             ) : null}
             <h2 className="truncate text-2xl font-semibold leading-tight">{focus.name}</h2>
@@ -297,6 +345,31 @@ export function WorkoutLiveStage({
             </div>
           );
         })()}
+
+        {focus.sets.length > 0 ? (
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5" aria-label="Подходы">
+            {focus.sets.map((set, i) => {
+              const isCurrent = i === currentSetIndex && !set.completed;
+              return (
+                <span
+                  key={set.id}
+                  className={`min-w-[3.5rem] rounded-xl px-2 py-1.5 text-center text-xs font-semibold tabular-nums ${
+                    set.completed
+                      ? "bg-[var(--accent)]/35 text-[var(--accent-soft)]"
+                      : isCurrent
+                        ? "border border-[var(--accent-soft)] bg-white/10 text-white"
+                        : "bg-white/5 text-white/45"
+                  }`}
+                >
+                  <span className="block text-[9px] font-bold uppercase tracking-wide opacity-70">
+                    {isCurrent ? `${i + 1} · сейчас` : i + 1}
+                  </span>
+                  {set.completed || isCurrent ? setChipLabel(set, focus.kind) : "—"}
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
 
         {group.length > 1 ? (
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
@@ -389,20 +462,38 @@ export function WorkoutLiveStage({
               </div>
             ) : null}
             {spec.usesReps ? (
-              <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-white/55">повт</span>
-                <input
-                  data-draft-field={`${focus.id}-reps`}
-                  inputMode="numeric"
-                  className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
-                    draftError && !draftReps.trim()
-                      ? "border-red-400"
-                      : "border-white/20"
-                  }`}
-                  value={draftReps}
-                  onChange={(e) => onDraftReps(e.target.value)}
-                />
-              </label>
+              <div className="flex items-end gap-3">
+                <button
+                  type="button"
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
+                  onClick={() => bumpReps(-1)}
+                  aria-label="Меньше повторов"
+                >
+                  −
+                </button>
+                <label className="flex flex-col items-center gap-1">
+                  <span className="text-xs uppercase tracking-wide text-white/55">повт</span>
+                  <input
+                    data-draft-field={`${focus.id}-reps`}
+                    inputMode="numeric"
+                    className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
+                      draftError && !draftReps.trim()
+                        ? "border-red-400"
+                        : "border-white/20"
+                    }`}
+                    value={draftReps}
+                    onChange={(e) => onDraftReps(e.target.value)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
+                  onClick={() => bumpReps(1)}
+                  aria-label="Больше повторов"
+                >
+                  +
+                </button>
+              </div>
             ) : null}
             {spec.usesDistance ? (
               <label className="flex flex-col items-center gap-1">
@@ -458,6 +549,11 @@ export function WorkoutLiveStage({
         )}
 
         <div className="mt-auto flex flex-col gap-3 pt-8">
+          {nextLine ? (
+            <p className="text-center text-sm font-medium text-white/55" data-testid="stage-next">
+              {nextLine}
+            </p>
+          ) : null}
           {currentSet && !currentSet.completed ? (
             <button
               type="button"
@@ -465,7 +561,7 @@ export function WorkoutLiveStage({
               className="rounded-2xl bg-[var(--accent)] py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
               onClick={onCompleteCurrent}
             >
-              ✓ Готово
+              ✓ Подход {currentSetIndex + 1} готов
             </button>
           ) : (
             <button

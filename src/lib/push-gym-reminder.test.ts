@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   GYM_REMINDER_COPY_POOL,
+  isInGymQuietWindow,
   pickCopyPoolIndex,
   pickGymReminderCopy,
   shouldSkipGymReminder,
@@ -52,4 +53,21 @@ test("gym copy does not tell to continue mid-session", () => {
   for (const c of GYM_REMINDER_COPY_POOL) {
     assert.doesNotMatch(c.body, /продолж/i);
   }
+});
+
+test("isInGymQuietWindow: open clock started recently mutes nudges", () => {
+  const now = new Date("2026-10-29T08:00:00Z");
+  assert.equal(
+    isInGymQuietWindow([{ startedAt: "2026-10-29T07:10:00Z", endedAt: null }], now),
+    true,
+  );
+  assert.equal(
+    isInGymQuietWindow([{ startedAt: "2026-10-29T07:10:00Z", endedAt: "2026-10-29T07:55:00Z" }], now),
+    false,
+  );
+  assert.equal(
+    isInGymQuietWindow([{ startedAt: "2026-10-29T03:00:00Z", endedAt: null }], now),
+    false,
+  );
+  assert.equal(isInGymQuietWindow([{ startedAt: null, endedAt: null }], now), false);
 });

@@ -82,7 +82,7 @@ import {
   hasLeverAppliedForSession,
   markLeverAppliedForSession,
 } from "@/lib/workouts/lever-session-applied";
-import { suppressGymReminderTodayAndReschedule } from "@/lib/capacitor-local-reminders";
+import { setGymQuietMode } from "@/lib/capacitor-local-reminders";
 import {
   compareSetToLeverGoal,
   formatLeverSetToast,
@@ -714,10 +714,13 @@ export function WorkoutsView({
     }
   }, []);
 
-  /** APK: drop today's «иди в зал» once the user is training or done. */
-  const quietGymNudgeForToday = useCallback(() => {
-    void suppressGymReminderTodayAndReschedule(todayKey);
-  }, [todayKey]);
+  /** APK: drop today's «иди в зал»; while live, also mute meal / water slots. */
+  const quietGymNudgeForToday = useCallback(
+    (live = true) => {
+      void setGymQuietMode(todayKey, live);
+    },
+    [todayKey],
+  );
 
   const openSession = useCallback(
     async (id: string, opts?: { enterStage?: boolean; applyLever?: boolean }) => {
@@ -753,7 +756,7 @@ export function WorkoutsView({
           session.clockStatus === "paused" ||
           session.clockStatus === "finished"
         ) {
-          quietGymNudgeForToday();
+          quietGymNudgeForToday(session.clockStatus !== "finished");
         }
         setError("Тренировка на устройстве — отправим при связи");
         return;
@@ -783,7 +786,7 @@ export function WorkoutsView({
           data.session.clockStatus === "paused" ||
           data.session.clockStatus === "finished"
         ) {
-          quietGymNudgeForToday();
+          quietGymNudgeForToday(data.session.clockStatus !== "finished");
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка загрузки");
@@ -993,7 +996,7 @@ export function WorkoutsView({
         setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
-        quietGymNudgeForToday();
+        quietGymNudgeForToday(false);
         setError("Итог на устройстве — отправим при связи");
         return;
       }
@@ -1041,7 +1044,7 @@ export function WorkoutsView({
       setDetail(data.session);
       setProgress(data.progress);
       if (clock === "start" || clock === "resume" || clock === "pause" || clock === "finish") {
-        quietGymNudgeForToday();
+        quietGymNudgeForToday(clock !== "finish");
       }
       if (clock === "finish") {
         setStageOpen(false);
@@ -1061,6 +1064,7 @@ export function WorkoutsView({
         setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
+        quietGymNudgeForToday(false);
         setError("Итог сохранён на устройстве — отправим при связи");
         return;
       }

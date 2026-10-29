@@ -58,6 +58,8 @@ export type UserReminderContext = {
   hasFinishedWorkoutToday?: boolean;
   /** Gym nudge: at least one completed set logged today. */
   hasLoggedWorkoutSetToday?: boolean;
+  /** Gym quiet mode: a session clock is open right now — no nudges at all. */
+  inWorkoutNow?: boolean;
 };
 
 export function resolvePushTimezone(timezone: string | null | undefined): string {
@@ -218,6 +220,9 @@ export function buildReminderPayload(
   const dinnerUrl = rationMealLink("DINNER");
   const variant = resolveCopyVariant(kind, ctx, options);
   const isB = variant === "B";
+
+  // Режим зала: пока идёт тренировка, не отвлекаем ни едой, ни водой.
+  if (ctx.inWorkoutNow && kind !== "weekly") return null;
 
   switch (kind) {
     case "breakfast":

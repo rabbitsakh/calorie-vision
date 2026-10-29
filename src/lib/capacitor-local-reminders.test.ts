@@ -7,7 +7,9 @@ import {
   cvReminders,
   diarySnapshotFromRationDay,
   enableCapacitorLocalReminders,
+  GYM_QUIET_UNTIL_KEY,
   GYM_REMINDER_SUPPRESS_DATE_KEY,
+  isHourInGymQuiet,
   localReminderCopy,
   requestCapacitorNotificationPermission,
   suppressGymReminderForDate,
@@ -180,4 +182,27 @@ test("cvReminders prefers window.CvReminders over Cap plugin stubs", async () =>
   } finally {
     g.window = prev;
   }
+});
+
+test("isHourInGymQuiet: mutes slots from now until quiet end, same day only", () => {
+  const now = new Date(2026, 9, 29, 7, 20);
+  const until = new Date(2026, 9, 29, 9, 50).getTime();
+  assert.equal(isHourInGymQuiet(7, until, now), true);
+  assert.equal(isHourInGymQuiet(9, until, now), true);
+  assert.equal(isHourInGymQuiet(10, until, now), false);
+  assert.equal(isHourInGymQuiet(6, until, now), false);
+  assert.equal(isHourInGymQuiet(8, now.getTime() - 1, now), false);
+  assert.equal(isHourInGymQuiet(8, null, now), false);
+});
+
+test("buildCapacitorReminderSchedule: live gym session drops meal slots for now", () => {
+  installStorage();
+  const h = new Date().getHours();
+  localStorage.setItem(GYM_QUIET_UNTIL_KEY, String(Date.now() + 60 * 60_000));
+  const prefs = { lunch: { enabled: true, hour: h } } as never;
+  const muted = buildCapacitorReminderSchedule(prefs, null, null, null);
+  assert.equal(muted.some((i) => i.kind === "lunch"), false);
+  localStorage.removeItem(GYM_QUIET_UNTIL_KEY);
+  const restored = buildCapacitorReminderSchedule(prefs, null, null, null);
+  assert.equal(restored.some((i) => i.kind === "lunch"), true);
 });
