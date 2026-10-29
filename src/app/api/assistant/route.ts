@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       const { meals: _drop, ...rest } = actions;
       actions = rest;
     }
-    if (!previewPending && needsWriteRepair(lastUser, actions)) {
+    if (!previewPending && needsWriteRepair(lastUser, actions, reply)) {
       const repaired = await repairAssistantWriteActions({
         userMessage: lastUser,
         assistantReply: reply,
@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
       previewPending,
       actions,
       userMessage: lastUser,
+      assistantReply: reply,
     });
     const finalReply =
       [reply, toolNote, missNote].filter(Boolean).join("\n\n").trim() || reply;

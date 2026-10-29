@@ -21,6 +21,8 @@ import {
   preferSlotEditActions,
   pruneNoopAssistantActions,
   sanitizeAssistantMealName,
+  replyPromisesWriteCard,
+  repairAssistantWriteActions,
 } from "./assistant-repair.ts";
 import { normalizeAssistantActions } from "./admin-assistant.ts";
 import { sanitizePendingWriteReply } from "./assistant-honesty.ts";
@@ -617,4 +619,30 @@ test("lookup: dry breakfast cereals by grams", () => {
   assert.equal(lookupRuNutritionTable("подушечек сухой завтрак")?.dishName, "Сухой завтрак подушечки");
   assert.equal(lookupRuNutritionTable("кукурузные хлопья")?.dishName, "Кукурузные хлопья");
   assert.equal(lookupRuNutritionTable("мюсли")?.dishName, "Мюсли");
+});
+
+test("bare dish + reply that promises a card → repair builds the meal from the draft", async () => {
+  const reply =
+    "Лакомство принято:\n\n- Мороженое (стандартная порция около 100 г): примерно 200 ккал, белки 4 г, жиры 10 г, углеводы 20 г\n\n✅ Сохраняйте в дневник, подтверждая ниже.";
+  assert.equal(replyPromisesWriteCard(reply), true);
+  assert.equal(needsWriteRepair("Мороженое", null), false);
+  assert.equal(needsWriteRepair("Мороженое", null, reply), true);
+  const actions = await repairAssistantWriteActions({
+    userMessage: "Мороженое",
+    assistantReply: reply,
+    today: "2026-10-28",
+    date: "2026-10-28",
+  });
+  assert.equal(actions?.meals?.length, 1);
+  assert.match(actions!.meals![0]!.name, /Мороженое/);
+  assert.equal(actions!.meals![0]!.kcal, 200);
+  assert.ok(
+    assistantWriteMissNote({ wroteOk: false, actions: null, userMessage: "Мороженое", assistantReply: reply }),
+  );
+});
+
+test("replyPromisesWriteCard ignores plain advice", () => {
+  assert.equal(replyPromisesWriteCard("Мороженое — около 200 ккал на 100 г."), false);
+  assert.equal(replyPromisesWriteCard("Можно добавить в дневник позже."), false);
+  assert.equal(replyPromisesWriteCard("Нажми «В дневник» под карточкой."), true);
 });

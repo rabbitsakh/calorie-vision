@@ -81,10 +81,31 @@ export function actionsHaveWritablePayload(actions: AssistantActions | null | un
   );
 }
 
+/**
+ * The draft tells the user to confirm a card («подтверждая ниже», «нажми «В дневник»»).
+ * A bare dish name («Мороженое») has no write verb, but the reply still owes a card.
+ */
+export function replyPromisesWriteCard(reply: string | null | undefined): boolean {
+  const t = (reply ?? "").toLowerCase().replace(/ё/g, "е");
+  if (!t.trim()) return false;
+  if (/подтвер\S*\s+(?:ниже|карточк)/.test(t)) return true;
+  if (/(?:нажми|нажмите|жми)\S*\s+[«"]?в\s+(?:дневник|рацион)/.test(t)) return true;
+  return /(?:сохран|добав|запис)\S*\s+(?:\S+\s+){0,4}?в\s+(?:дневник|рацион)/.test(t) &&
+    /ниже|карточк/.test(t);
+}
+
+/** Message the offline repairers can gate on when only the reply carries the write intent. */
+function repairIntentMessage(userMessage: string, assistantReply?: string): string {
+  if (userWantsWrite(userMessage) || !replyPromisesWriteCard(assistantReply)) return userMessage;
+  return `запиши ${userMessage}`;
+}
+
 export function needsWriteRepair(
   userMessage: string,
   actions: AssistantActions | null | undefined,
+  assistantReply?: string,
 ): boolean {
+  if (replyPromisesWriteCard(assistantReply)) return !actionsHaveWritablePayload(actions);
   if (
     !userWantsWrite(userMessage) &&
     !userWantsStartWorkout(userMessage) &&
@@ -250,10 +271,11 @@ export function assistantWriteMissNote(opts: {
   previewPending?: boolean;
   actions: AssistantActions | null | undefined;
   userMessage: string;
+  assistantReply?: string;
 }): string {
   if (opts.previewPending || opts.wroteOk || opts.awaitingConfirm) return "";
   if (actionsHaveWritablePayload(opts.actions)) return "";
-  if (!needsWriteRepair(opts.userMessage, null)) return "";
+  if (!needsWriteRepair(opts.userMessage, null, opts.assistantReply)) return "";
   return "⚠ Не удалось подготовить запись. Нажми «Повторить запись» или добавь через «+».";
 }
 
@@ -1084,6 +1106,7 @@ export async function repairAssistantWriteActions(opts: {
   today: string;
   date: string;
 }): Promise<AssistantActions | null> {
+  opts = { ...opts, userMessage: repairIntentMessage(opts.userMessage, opts.assistantReply) };
   const slot = heuristicRepairSlotEditActions(opts.userMessage);
   if (slot) return slot;
 
