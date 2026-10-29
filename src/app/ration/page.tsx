@@ -589,7 +589,7 @@ function RationShell({
   );
 
   return (
-    <AppShell title="Рацион" compact date={date}>
+    <AppShell title="Сегодня" compact date={date}>
       <RationBody
         date={date}
         today={today}

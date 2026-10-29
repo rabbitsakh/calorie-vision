@@ -13,7 +13,7 @@ export default function StatsPage() {
 
   return (
     <AppShell
-      title="Статистика"
+      title="Прогресс"
       compact
       description="Один главный вывод — детали по запросу."
       date={date}

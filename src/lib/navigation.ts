@@ -8,18 +8,29 @@ export type AppNavItem = {
 };
 
 /**
- * Primary app chrome:
- * Стат · Рацион · [+] · Зал · Профиль
- * Food week plan stays at /plan via Рацион / Профиль / DayHero — not a tab.
- * Weight stays at /weight via DayHero / Plan / Profile / «+» — not a tab.
- * Water logs via Рацион tracker or center «+».
+ * Primary app chrome (hybrid shell): Сегодня · Зал · Прогресс · Я.
+ * Routes keep their old paths (push / APK deep links); /today, /progress, /me redirect.
+ * Food add + AI live in the composer above the tabs on «Сегодня».
+ * Food week plan stays at /plan, weight at /weight — not tabs.
  */
 export const APP_NAV: AppNavItem[] = [
-  { href: "/stats", label: "Статистика", shortLabel: "Стат.", icon: "stats" },
-  { href: "/ration", label: "Рацион", shortLabel: "Рацион", icon: "ration" },
+  { href: "/ration", label: "Сегодня", shortLabel: "Сегодня", icon: "ration" },
   { href: "/workouts", label: "Зал", shortLabel: "Зал", icon: "gym" },
-  { href: "/profile", label: "Профиль", shortLabel: "Профиль", icon: "profile" },
+  { href: "/stats", label: "Прогресс", shortLabel: "Прогресс", icon: "stats" },
+  { href: "/profile", label: "Я", shortLabel: "Я", icon: "profile" },
 ];
+
+/** Short hybrid aliases → existing routes. */
+export const NAV_ALIASES: Record<string, string> = {
+  "/today": "/ration",
+  "/progress": "/stats",
+  "/me": "/profile",
+};
+
+/** Bottom composer (text · photo · +) — only on the day screen. */
+export function showsComposer(pathname: string): boolean {
+  return pathname === "/ration" || pathname.startsWith("/ration/");
+}
 
 export function isAppNavPath(pathname: string): boolean {
   return APP_NAV.some((item) => pathname === item.href || pathname.startsWith(`${item.href}/`));
