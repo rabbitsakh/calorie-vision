@@ -831,6 +831,22 @@ select {
   pointer-events: none;
 }
 
+.bottom-composer-ai {
+  display: flex;
+  height: 2.375rem;
+  width: 2.375rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.8rem;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.bottom-composer-ai:active {
+  transform: scale(0.94);
+}
+
 .bottom-composer-input {
   min-width: 0;
   flex: 1;
@@ -1127,15 +1143,24 @@ select {
 .quick-sheet-dim {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  z-index: 90;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(20, 24, 31, 0.34);
   animation: quick-dim-in 0.18s ease-out;
 }
 
+.quick-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(20, 24, 31, 0.34);
+  cursor: pointer;
+}
+
 .quick-sheet {
+  position: relative;
+  z-index: 1;
   display: flex;
   width: 100%;
   max-width: 32rem;
@@ -1162,13 +1187,41 @@ select {
   }
 }
 
+.quick-sheet-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.75rem;
+  margin-bottom: 0.1rem;
+}
+
 .quick-sheet-grab {
-  align-self: center;
   width: 2.5rem;
   height: 5px;
-  margin-bottom: 0.25rem;
+  border: 0;
   border-radius: 3px;
   background: rgba(44, 53, 48, 0.2);
+  cursor: pointer;
+}
+
+.quick-sheet-close {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-mist);
+  color: var(--muted-strong);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateY(-50%);
 }
 
 .quick-sheet-bubble {
@@ -1323,11 +1376,16 @@ select {
 .quick-kcal {
   width: 3rem;
   flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
   text-align: right;
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: inherit;
+  cursor: pointer;
 }
 
 .quick-stepper {
@@ -1425,6 +1483,18 @@ select {
   border: 1.5px solid rgba(44, 53, 48, 0.14);
   color: var(--muted-strong);
   font-size: 0.95rem;
+}
+
+.quick-cancel {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted-strong);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .quick-saved-check {

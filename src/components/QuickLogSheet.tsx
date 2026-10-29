@@ -10,6 +10,7 @@ import { emitMascotReaction } from "@/lib/mascot-reactions";
 import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import {
+  enrichQuickMealsFromText,
   quickDishTone,
   quickHeader,
   quickMacroLine,
@@ -50,6 +51,14 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
@@ -74,7 +83,9 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
         }
         const meals = data?.actions?.meals ?? [];
         if (data?.actions && meals.length) {
-          setPhase({ kind: "ready", actions: data.actions, meals });
+          const enriched = enrichQuickMealsFromText(meals, text);
+          setPhase({ kind: "ready", actions: data.actions, meals: enriched });
+          setEditing(0);
         } else {
           setPhase({ kind: "reply", reply: data?.reply?.trim() || "Не нашёл, что записать." });
         }
@@ -136,9 +147,20 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
   };
 
   const sheet = (
-    <div className="quick-sheet-dim" role="dialog" aria-modal="true" aria-label="Проверь и запиши" onClick={onClose}>
-      <div className="quick-sheet" onClick={(e) => e.stopPropagation()} data-testid="quick-log-sheet">
-        <div className="quick-sheet-grab" aria-hidden />
+    <div className="quick-sheet-dim" role="dialog" aria-modal="true" aria-label="Проверь и запиши">
+      <button type="button" className="quick-sheet-backdrop" aria-label="Закрыть" onClick={onClose} />
+      <div className="quick-sheet" data-testid="quick-log-sheet">
+        <div className="quick-sheet-top">
+          <button
+            type="button"
+            className="quick-sheet-grab"
+            aria-label="Закрыть"
+            onClick={onClose}
+          />
+          <button type="button" className="quick-sheet-close" aria-label="Закрыть" onClick={onClose}>
+            ✕
+          </button>
+        </div>
         <p className="quick-sheet-bubble">{text}</p>
 
         {phase.kind === "loading" ? (
@@ -183,7 +205,14 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
                           {portion.grams} {portion.unit}
                         </button>
                       ) : null}
-                      <span className="quick-kcal">{Math.round(meal.kcal ?? 0)}</span>
+                      <button
+                        type="button"
+                        className="quick-kcal"
+                        aria-label={`Ккал ${Math.round(meal.kcal ?? 0)} — изменить порцию`}
+                        onClick={() => setEditing(open ? null : i)}
+                      >
+                        {Math.round(meal.kcal ?? 0)}
+                      </button>
                     </div>
                     {open && portion.grams != null ? (
                       <div className="quick-stepper">
@@ -200,6 +229,7 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
                           inputMode="numeric"
                           value={portion.grams}
                           aria-label={`Граммы: ${portion.base}`}
+                          autoFocus={meals.length === 1}
                           onChange={(e) => {
                             const n = Number(e.target.value.replace(/\D/g, ""));
                             if (n > 0) setGrams(i, n);
@@ -238,6 +268,9 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
             <button type="button" className="quick-save" disabled={saving} onClick={() => void save()}>
               {saving ? "Записываю…" : quickSaveLabel(meals, totals.kcal)}
             </button>
+            <button type="button" className="quick-cancel" onClick={onClose}>
+              Отмена
+            </button>
           </>
         ) : null}
 
@@ -256,7 +289,16 @@ export function QuickLogSheet({ text, date, onClose }: Props) {
             >
               Продолжить в чате
             </button>
+            <button type="button" className="quick-cancel" onClick={onClose}>
+              Закрыть
+            </button>
           </>
+        ) : null}
+
+        {phase.kind === "loading" ? (
+          <button type="button" className="quick-cancel" onClick={onClose}>
+            Отмена
+          </button>
         ) : null}
 
         {phase.kind === "saved" ? (

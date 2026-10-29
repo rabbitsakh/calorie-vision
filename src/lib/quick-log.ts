@@ -10,17 +10,91 @@ export type QuickMeal = NonNullable<AssistantActions["meals"]>[number];
 export type QuickPortion = { base: string; grams: number | null; unit: "г" | "мл" };
 
 const PORTION_IN_PARENS_RE = /\s*\((\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\)\s*$/iu;
+/** Allow «100мл» without a space before the unit. */
 const PORTION_TRAILING_RE = /\s+(\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\.?\s*$/iu;
+const PORTION_LOOSE_RE = /(\d+(?:[.,]\d+)?)\s*(г|гр|грамм\S*|мл)\b/iu;
+const LIQUID_NAME_RE = /молок|сок|кофе|чай|кефир|напит|вода|пиво|wine|milk|йогурт\s*пит|латте|какао/i;
 
-/** «Творог (200 г)» / «Молоко 100 мл» → base name + grams. */
+function portionUnit(raw: string | undefined): "г" | "мл" {
+  return /^мл/i.test(raw ?? "") ? "мл" : "г";
+}
+
+function parsePortionMatch(m: RegExpExecArray, baseFallback: string): QuickPortion | null {
+  const grams = Number((m[1] ?? "").replace(",", "."));
+  const unit = portionUnit(m[2]);
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  const base =
+    typeof m.index === "number" && m.index > 0
+      ? baseFallback.slice(0, m.index).trim() || baseFallback
+      : baseFallback;
+  return { base: base || baseFallback, grams: Math.round(grams), unit };
+}
+
+/** «Творог (200 г)» / «Молоко 100 мл» / «Молоко 100мл» → base name + grams. */
 export function splitQuickPortion(name: string): QuickPortion {
   const raw = name.trim();
   const m = PORTION_IN_PARENS_RE.exec(raw) ?? PORTION_TRAILING_RE.exec(raw);
   if (!m?.[1]) return { base: raw, grams: null, unit: "г" };
-  const grams = Number(m[1].replace(",", "."));
-  const unit = /^мл/i.test(m[2] ?? "") ? "мл" : "г";
-  if (!Number.isFinite(grams) || grams <= 0) return { base: raw, grams: null, unit };
-  return { base: raw.slice(0, m.index).trim() || raw, grams: Math.round(grams), unit };
+  return parsePortionMatch(m, raw) ?? { base: raw, grams: null, unit: "г" };
+}
+
+/** Pull «100 мл» from the composer phrase when the AI dropped grams from the dish name. */
+export function portionFromUserText(text: string, dishBase?: string): QuickPortion | null {
+  const raw = text.trim();
+  if (!raw) return null;
+  if (dishBase?.trim()) {
+    const base = dishBase.trim();
+    const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const near = new RegExp(
+      `${escaped}[^\\d]{0,24}(\\d+(?:[.,]\\d+)?)\\s*(г|гр|грамм\\S*|мл)\\b`,
+      "iu",
+    );
+    const m = near.exec(raw);
+    if (m?.[1]) {
+      const grams = Number(m[1].replace(",", "."));
+      const unit = portionUnit(m[2]);
+      if (Number.isFinite(grams) && grams > 0) {
+        return { base, grams: Math.round(grams), unit };
+      }
+    }
+  }
+  const split = splitQuickPortion(raw);
+  if (split.grams != null) return split;
+  const loose = PORTION_LOOSE_RE.exec(raw);
+  if (!loose?.[1]) return null;
+  const grams = Number(loose[1].replace(",", "."));
+  const unit = portionUnit(loose[2]);
+  if (!Number.isFinite(grams) || grams <= 0) return null;
+  return { base: dishBase?.trim() || split.base, grams: Math.round(grams), unit };
+}
+
+function defaultQuickUnit(name: string, text: string): "г" | "мл" {
+  return LIQUID_NAME_RE.test(`${name} ${text}`) ? "мл" : "г";
+}
+
+/**
+ * Ensure every draft meal has «(N г|мл)» so the gram control always appears.
+ * Prefer AI name → user phrase → liquid/solid default (100).
+ */
+export function enrichQuickMealsFromText(meals: QuickMeal[], text: string): QuickMeal[] {
+  const single = meals.length === 1;
+  return meals.map((meal) => {
+    const current = splitQuickPortion(meal.name);
+    if (current.grams != null) {
+      const normalized = `${current.base} (${current.grams} ${current.unit})`;
+      return meal.name === normalized ? meal : { ...meal, name: normalized };
+    }
+    const fromText =
+      portionFromUserText(text, current.base) ?? (single ? portionFromUserText(text) : null);
+    if (fromText?.grams != null) {
+      return {
+        ...meal,
+        name: `${current.base} (${fromText.grams} ${fromText.unit})`,
+      };
+    }
+    const unit = defaultQuickUnit(current.base, text);
+    return { ...meal, name: `${current.base} (100 ${unit})` };
+  });
 }
 
 function scaleNum(v: number | undefined, k: number, digits = 1): number | undefined {
