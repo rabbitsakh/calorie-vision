@@ -214,8 +214,8 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
 const MACRO_COLOR = { protein: "var(--accent-protein)", fat: "var(--accent-fat)", carbs: "var(--accent-carbs)" };
 
 function Ring({ pct }: { pct: number }) {
-  const size = 70;
-  const stroke = 8;
+  const size = 88;
+  const stroke = 9;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const fill = Math.max(0, Math.min(100, pct));

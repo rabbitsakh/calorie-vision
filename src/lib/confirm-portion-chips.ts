@@ -158,6 +158,45 @@ export function portionChipOptions(
 }
 
 /**
+ * Compact relative chips for hybrid confirm rows: S / M / L / ½ / ×2
+ * around a base portion (recognized or current).
+ */
+export function relativePortionChips(
+  baseGrams: number,
+  unit: "г" | "мл" = "г",
+): Array<{ label: string; grams: number }> {
+  if (!Number.isFinite(baseGrams) || baseGrams <= 0) return [];
+  const round = (n: number) => Math.max(1, Math.round(n));
+  const s = round(baseGrams * 0.7);
+  const m = round(baseGrams);
+  const l = round(baseGrams * 1.3);
+  const half = round(baseGrams / 2);
+  const double = round(baseGrams * 2);
+  const out: Array<{ label: string; grams: number }> = [
+    { label: "S", grams: s },
+    { label: "M", grams: m },
+    { label: "L", grams: l },
+  ];
+  if (half >= 10 && half !== s && half !== m) {
+    out.push({ label: `½`, grams: half });
+  }
+  if (double !== l && double !== m) {
+    out.push({ label: "×2", grams: double });
+  }
+  // Drop duplicates by grams while keeping order.
+  const seen = new Set<number>();
+  return out.filter((c) => {
+    if (seen.has(c.grams)) return false;
+    seen.add(c.grams);
+    return true;
+  }).map((c) =>
+    c.label === "S" || c.label === "M" || c.label === "L" || c.label === "½" || c.label === "×2"
+      ? c
+      : { ...c, label: `${c.label} ${unit}` },
+  );
+}
+
+/**
  * Extra portion chips for packaged / ready-meal sticker drafts.
  * Prefers vision sticker grams when present; otherwise 300/350/400 g.
  */

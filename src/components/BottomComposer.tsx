@@ -33,8 +33,8 @@ const ICON = {
 };
 
 /**
- * Hybrid H1/H2 — «Что съел? Напиши или сфоткай» above the tabs.
- * Text opens «проверь и запиши» on the same screen; camera / barcode / voice beside it.
+ * Hybrid H1/H2 — camera-first dock above the tabs (thumb zone on the right).
+ * Text opens «проверь и запиши»; barcode / + / voice sit beside the field.
  */
 export function BottomComposer({ date, disabled = false }: Props) {
   const [text, setText] = useState("");
@@ -105,7 +105,7 @@ export function BottomComposer({ date, disabled = false }: Props) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={
-            listening ? "Слушаю…" : online ? "Что съел? Напиши или сфоткай" : "Нет сети — откроем ввод текстом"
+            listening ? "Слушаю…" : online ? "Что съел? Напиши…" : "Нет сети — откроем ввод текстом"
           }
           enterKeyHint="send"
           autoComplete="off"
@@ -125,18 +125,6 @@ export function BottomComposer({ date, disabled = false }: Props) {
           </button>
         ) : (
           <>
-            <button
-              type="button"
-              className="bottom-composer-btn"
-              aria-label="Сфоткать еду"
-              disabled={disabled}
-              onClick={() => requestOpenFoodCamera()}
-            >
-              <svg {...ICON}>
-                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-                <circle cx="12" cy="13" r="3" />
-              </svg>
-            </button>
             <button
               type="button"
               className="bottom-composer-btn"
@@ -176,6 +164,18 @@ export function BottomComposer({ date, disabled = false }: Props) {
                 </svg>
               </button>
             )}
+            <button
+              type="button"
+              className="bottom-composer-btn bottom-composer-btn--camera"
+              aria-label="Сфоткать еду"
+              disabled={disabled}
+              onClick={() => requestOpenFoodCamera()}
+            >
+              <svg {...ICON} width={22} height={22} strokeWidth={2.2}>
+                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                <circle cx="12" cy="13" r="3" />
+              </svg>
+            </button>
           </>
         )}
       </form>

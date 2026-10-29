@@ -23,6 +23,7 @@ import { FastingWindowBanner } from "@/components/FastingWindowBanner";
 import { DayHero } from "@/components/DayHero";
 import { DaySwipeRegion } from "@/components/DaySwipeRegion";
 import { MomentHeroCard } from "@/components/MomentHeroCard";
+import { QuickLogStrip } from "@/components/QuickLogStrip";
 import { useDayFeedEvents } from "@/components/useDayFeedEvents";
 import { ChallengeStrip } from "@/components/ChallengeStrip";
 import { ChestDock } from "@/components/ChestDock";
@@ -367,6 +368,14 @@ function RationBody({
               }}
             />
           </div>
+
+          {/* D32 — «Как вчера» + избранное above the meal feed */}
+          <QuickLogStrip
+            selectedDate={date}
+            refreshKey={refreshKey}
+            mealCount={mealCount}
+            onSaved={bump}
+          />
 
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">

@@ -1,5 +1,28 @@
 [
   {
+    "version": "3.1.3",
+    "date": "2026-10-29",
+    "summary": "design D32: camera-first composer, S/M/L confirm, quick log strip, readable day chrome",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "Внизу большая кнопка камеры под большой палец; рядом штрихкод и текст"
+      },
+      {
+        "kind": "improvement",
+        "text": "Карточка блюда на подтверждении: порции S/M/L · ½ · ×2 и метка уверенности"
+      },
+      {
+        "kind": "feature",
+        "text": "На «Сегодня» над лентой — «Как вчера» и избранное"
+      },
+      {
+        "kind": "improvement",
+        "text": "Крупнее кольцо и БЖУ на «Сейчас главное»; cookies — тонкая полоса; «Войти» в шапке на мобильном"
+      }
+    ]
+  },
+  {
     "version": "3.1.2",
     "date": "2026-10-29",
     "summary": "GigaChat tip routes: rate limit + day cache; shared cron auth; meal image ownership",

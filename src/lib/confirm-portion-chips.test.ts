@@ -7,6 +7,7 @@ import {
   isCrediblePhotoPortionGrams,
   portionChipOptions,
   readyMealPortionChipGrams,
+  relativePortionChips,
 } from "./confirm-portion-chips.ts";
 
 test("drink chips include 150ml and can sizes 330/350", () => {
@@ -107,4 +108,18 @@ test("factory snack bar without prepared-food cue gets no ready-meal chips", () 
     portionGrams: 60,
   });
   assert.deepEqual(chips, []);
+});
+
+test("relativePortionChips offers S/M/L and ½/×2 around base", () => {
+  const chips = relativePortionChips(200);
+  assert.deepEqual(
+    chips.map((c) => c.label),
+    ["S", "M", "L", "½", "×2"],
+  );
+  assert.equal(chips.find((c) => c.label === "M")?.grams, 200);
+  assert.equal(chips.find((c) => c.label === "S")?.grams, 140);
+  assert.equal(chips.find((c) => c.label === "L")?.grams, 260);
+  assert.equal(chips.find((c) => c.label === "½")?.grams, 100);
+  assert.equal(chips.find((c) => c.label === "×2")?.grams, 400);
+  assert.deepEqual(relativePortionChips(0), []);
 });
