@@ -85,3 +85,55 @@ export function weightEvent(kg: number | null | undefined): DayFeedEvent | null 
     href: "/weight",
   };
 }
+
+export type PlannedSlot = {
+  key: string;
+  title: string;
+  detail: string;
+  /** Wall-clock hint in the time column («06:45», «13:00»). */
+  timeLabel: string;
+  actionLabel: string;
+  action: { kind: "weight" } | { kind: "meal"; mealType: "BREAKFAST" | "LUNCH" | "DINNER" };
+};
+
+const SLOT_PLAN = [
+  { type: "BREAKFAST", from: 5, to: 11, title: "Завтрак", time: "08:00" },
+  { type: "LUNCH", from: 11, to: 16, title: "Обед", time: "13:00" },
+  { type: "DINNER", from: 16, to: 22, title: "Ужин", time: "19:00" },
+] as const;
+
+/**
+ * Dashed «что дальше» rows at the end of today's feed: weigh-in before breakfast,
+ * then the meal slot of the current hour if it is still empty.
+ */
+export function plannedDaySlots(input: {
+  isToday: boolean;
+  hour: number;
+  hasWeight: boolean;
+  loggedMealTypes: ReadonlySet<string>;
+}): PlannedSlot[] {
+  if (!input.isToday) return [];
+  const out: PlannedSlot[] = [];
+  if (!input.hasWeight && input.hour >= 5 && input.hour < 11 && !input.loggedMealTypes.has("BREAKFAST")) {
+    out.push({
+      key: "plan:weight",
+      title: "Вес до завтрака",
+      detail: "натощак — тренд точнее",
+      timeLabel: "утро",
+      actionLabel: "Ввести",
+      action: { kind: "weight" },
+    });
+  }
+  const slot = SLOT_PLAN.find((s) => input.hour >= s.from && input.hour < s.to);
+  if (slot && !input.loggedMealTypes.has(slot.type)) {
+    out.push({
+      key: `plan:${slot.type}`,
+      title: slot.title,
+      detail: "сфоткай или напиши ниже — запишу сюда",
+      timeLabel: slot.time,
+      actionLabel: "Сфоткать",
+      action: { kind: "meal", mealType: slot.type },
+    });
+  }
+  return out;
+}

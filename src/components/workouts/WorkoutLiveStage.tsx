@@ -146,9 +146,9 @@ export function WorkoutLiveStage({
     exercises.find((e) => e.id === focusExerciseId) ?? exercises[0] ?? null;
   if (!focus) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] px-4 py-6 text-white">
+      <div className="fixed inset-0 z-50 flex flex-col bg-[var(--background)] px-4 py-6 text-[var(--foreground)]">
         <p className="text-lg">Нет упражнений</p>
-        <button type="button" className="mt-4 text-[var(--accent-soft)]" onClick={onExitStage}>
+        <button type="button" className="mt-4 text-[var(--accent)]" onClick={onExitStage}>
           Назад
         </button>
       </div>
@@ -177,20 +177,20 @@ export function WorkoutLiveStage({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a1f1e] text-white">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[var(--background)] text-[var(--foreground)]">
       <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <button type="button" className="text-sm text-white/70" onClick={onExitStage}>
+        <button type="button" className="text-sm text-[var(--muted-strong)]" onClick={onExitStage}>
           ← Список
         </button>
-        <p className="text-2xl font-semibold tabular-nums tracking-tight">{elapsedLabel}</p>
+        <p className="font-display text-3xl font-bold tabular-nums tracking-tight">{elapsedLabel}</p>
         <div className="flex gap-2">
           {clockStatus === "running" ? (
-            <button type="button" className="text-sm text-amber-300" onClick={onPause}>
+            <button type="button" className="text-sm font-semibold text-[var(--accent-streak)]" onClick={onPause}>
               Пауза
             </button>
           ) : null}
           {clockStatus === "paused" ? (
-            <button type="button" className="text-sm text-[var(--accent-soft)]" onClick={onResume}>
+            <button type="button" className="text-sm font-semibold text-[var(--accent)]" onClick={onResume}>
               Дальше
             </button>
           ) : null}
@@ -200,24 +200,24 @@ export function WorkoutLiveStage({
       {/* R7 + Q: wear and armed recovery on live stage */}
       <div className="flex flex-col gap-1.5 px-4 pb-1">
         <GymCollectionWear tone="stage" />
-        <LeverRecoveryStrip className="[&_span]:border-white/20 [&_span]:bg-white/10 [&_span]:text-white/85" />
+        <LeverRecoveryStrip />
       </div>
 
       {live ? (
         <p
-          className="mx-4 mb-1 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-100/90"
+          className="mx-4 mb-1 rounded-[14px] border border-[rgba(217,119,6,0.2)] bg-[var(--accent-streak-soft)] px-3 py-2 text-[12.5px] font-bold text-[#92510a]"
           data-testid="gym-quiet-banner"
         >
-          Режим зала: напоминания о еде и воде на паузе до конца тренировки
+          Режим зала: еда и напоминания на паузе до конца тренировки
         </p>
       ) : null}
 
       {exercises.length > 1 ? (
         <div className="flex gap-1 px-4 pb-1" aria-label={`Упражнение ${focusIndex + 1} из ${exercises.length}`}>
           {exercises.map((ex) => (
-            <span key={ex.id} className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
+            <span key={ex.id} className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#e4e0d7]">
               <span
-                className="block h-full rounded-full bg-[var(--accent-soft)]"
+                className="block h-full rounded-full bg-[var(--accent)]"
                 style={{ width: `${Math.round(exerciseDoneShare(ex) * 100)}%` }}
               />
             </span>
@@ -226,26 +226,26 @@ export function WorkoutLiveStage({
       ) : null}
 
       {prToast ? (
-        <div className="mx-4 rounded-xl bg-amber-400 px-3 py-2 text-center text-sm font-bold text-[#0a1f1e]">
+        <div className="mx-4 rounded-xl bg-[var(--accent-streak)] px-3 py-2 text-center text-sm font-bold text-white">
           {prToast}
         </div>
       ) : null}
 
       {restEndsAt ? (
-        <div className="mx-4 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-ink)]/80 px-4 py-5 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-soft)]">Отдых</p>
-          <p className="mt-1 text-5xl font-semibold tabular-nums">{formatRest(restLeft)}</p>
+        <div className="mx-4 rounded-2xl border border-[var(--border-quiet)] bg-[var(--card)] px-4 py-5 text-center shadow-[var(--shadow-card)]">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)]">Отдых</p>
+          <p className="mt-1 font-display text-5xl font-bold tabular-nums">{formatRest(restLeft)}</p>
           <div className="mt-3 flex flex-wrap justify-center gap-2">
             <button
               type="button"
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold"
+              className="rounded-full bg-[var(--surface-mist)] px-4 py-2 text-sm font-semibold text-[var(--accent-ink)]"
               onClick={onSkipRest}
             >
               Пропустить
             </button>
             <button
               type="button"
-              className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold"
+              className="rounded-full bg-[var(--surface-mist)] px-4 py-2 text-sm font-semibold text-[var(--accent-ink)]"
               onClick={onRememberRest}
             >
               Запомнить для упр.
@@ -256,33 +256,33 @@ export function WorkoutLiveStage({
 
       <div className="flex flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
         <div className="flex items-center justify-between gap-2">
-          <button type="button" className="text-white/55" onClick={onPrev} disabled={busy}>
+          <button type="button" className="text-[var(--muted)]" onClick={onPrev} disabled={busy}>
             ←
           </button>
           <div className="min-w-0 text-center">
             {focus.supersetGroup ? (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-soft)]/80">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
                 {mode === "circuit" ? "Круг" : "Суперсет"} {focus.supersetGroup}
                 {mode === "circuit" ? ` · ${circuitRound}/${targetRounds}` : ""}
               </p>
             ) : mode !== "normal" ? (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent-soft)]/80">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
                 {BLOCK_MODE_LABELS[mode]}
               </p>
             ) : null}
             {exercises.length > 1 && !focus.supersetGroup && mode === "normal" ? (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
                 Упражнение {focusIndex + 1} из {exercises.length}
               </p>
             ) : null}
-            <h2 className="truncate text-2xl font-semibold leading-tight">{focus.name}</h2>
-            <p className="mt-1 text-sm text-white/55">
+            <h2 className="font-display truncate text-[1.65rem] font-bold leading-tight">{focus.name}</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">
               Подход {Math.min(doneCount + 1, focus.sets.length || 1)}/
               {focus.sets.length || "—"}
               {showSetMeta && currentSet ? ` · ${SET_TYPE_SHORT[currentSet.setType]}` : ""}
             </p>
           </div>
-          <button type="button" className="text-white/55" onClick={onNext} disabled={busy}>
+          <button type="button" className="text-[var(--muted)]" onClick={onNext} disabled={busy}>
             →
           </button>
         </div>
@@ -315,7 +315,7 @@ export function WorkoutLiveStage({
           return (
             <div className="mt-3 text-center" aria-label="Цель подхода">
               {liveGoal && (liveGoal.basisKg != null || liveGoal.leverLabel) ? (
-                <p className="text-[11px] font-medium uppercase tracking-wider text-white/45">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
                   {liveGoal.basisKg != null && liveGoal.basisKg > 0
                     ? `макс ${formatSuggestedKg(liveGoal.basisKg)} кг`
                     : null}
@@ -335,11 +335,11 @@ export function WorkoutLiveStage({
                 </p>
               ) : null}
               {liveGoal?.recoveryHint ? (
-                <p className="mt-0.5 text-[11px] font-medium text-amber-200/90">
+                <p className="mt-0.5 text-[11px] font-medium text-[var(--accent-streak)]">
                   {liveGoal.recoveryHint}
                 </p>
               ) : null}
-              <p className="mt-1 text-lg font-semibold tracking-tight text-[var(--accent-soft)]">
+              <p className="mt-1 text-lg font-semibold tracking-tight text-[var(--accent)]">
                 Цель: {hasPlanned ? plannedParts.join(" × ") : chromeTarget}
               </p>
             </div>
@@ -355,10 +355,10 @@ export function WorkoutLiveStage({
                   key={set.id}
                   className={`min-w-[3.5rem] rounded-xl px-2 py-1.5 text-center text-xs font-semibold tabular-nums ${
                     set.completed
-                      ? "bg-[var(--accent)]/35 text-[var(--accent-soft)]"
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
                       : isCurrent
-                        ? "border border-[var(--accent-soft)] bg-white/10 text-white"
-                        : "bg-white/5 text-white/45"
+                        ? "border-[1.5px] border-[var(--accent)] bg-white text-[var(--foreground)] shadow-[0_0_0_3px_rgba(13,115,119,0.12)]"
+                        : "border-[1.5px] border-[var(--border-hairline)] bg-[var(--surface-panel)] text-[var(--muted)]"
                   }`}
                 >
                   <span className="block text-[9px] font-bold uppercase tracking-wide opacity-70">
@@ -377,7 +377,7 @@ export function WorkoutLiveStage({
               <span
                 key={g.id}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  g.id === focus.id ? "bg-[var(--accent)] text-white" : "bg-white/10 text-white/70"
+                  g.id === focus.id ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-mist)] text-[var(--muted-strong)]"
                 }`}
               >
                 {g.name}
@@ -389,13 +389,13 @@ export function WorkoutLiveStage({
         {advice && !liveGoal?.targetLine ? (
           <p
             className={`mt-2 px-2 text-center text-xs leading-snug ${
-              advice.kind === "stall" ? "text-amber-200/90" : "text-white/45"
+              advice.kind === "stall" ? "text-[var(--accent-streak)]" : "text-[var(--muted)]"
             }`}
           >
             <span className="font-semibold">{advice.title}.</span> {advice.detail}
           </p>
         ) : advice?.kind === "stall" ? (
-          <p className="mt-2 px-2 text-center text-xs leading-snug text-amber-200/90">
+          <p className="mt-2 px-2 text-center text-xs leading-snug text-[var(--accent-streak)]">
             <span className="font-semibold">{advice.title}.</span> Плато — soft deload или
             тоннаж/повторы на текущем весе.
           </p>
@@ -405,19 +405,19 @@ export function WorkoutLiveStage({
           <div className="mt-4 flex items-center justify-center gap-3">
             <button
               type="button"
-              className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide"
+              className="rounded-full bg-[var(--surface-mist)] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]"
               onClick={onCycleSetType}
             >
               {SET_TYPE_SHORT[draftSetType]}
             </button>
             <label
-              className="flex items-center gap-1.5 text-xs text-white/55"
+              className="flex items-center gap-1.5 text-xs text-[var(--muted)]"
               title={EFFORT_FIELD_ARIA}
             >
               {EFFORT_FIELD_LABEL}
               <input
                 inputMode="decimal"
-                className="w-14 rounded-lg border border-white/20 bg-white/5 px-2 py-1.5 text-center text-base font-semibold text-white outline-none focus:border-[var(--accent-hover)]"
+                className="w-14 rounded-lg border border-[var(--border-hairline)] bg-[var(--card)] px-2 py-1.5 text-center text-base font-semibold outline-none focus:border-[var(--accent)]"
                 value={draftRpe}
                 onChange={(e) => onDraftRpe(e.target.value)}
                 placeholder="—"
@@ -428,83 +428,87 @@ export function WorkoutLiveStage({
         ) : null}
 
         {spec.usesWeight || spec.usesReps || spec.usesDistance || spec.usesDuration ? (
-          <div className="mt-6 flex flex-col items-center gap-4">
-            {spec.usesWeight ? (
-              <div className="flex items-end gap-3">
-                <button
-                  type="button"
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
-                  onClick={() => onBumpKg(-2.5)}
-                >
-                  −
-                </button>
-                <label className="flex flex-col items-center gap-1">
-                  <span className="text-xs uppercase tracking-wide text-white/55">кг</span>
-                  <input
-                    data-draft-field={`${focus.id}-kg`}
-                    inputMode="decimal"
-                    className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
-                      draftError && !draftKg.trim()
-                        ? "border-red-400"
-                        : "border-white/20"
-                    }`}
-                    value={draftKg}
-                    onChange={(e) => onDraftKg(e.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
-                  onClick={() => onBumpKg(2.5)}
-                >
-                  +
-                </button>
-              </div>
-            ) : null}
-            {spec.usesReps ? (
-              <div className="flex items-end gap-3">
-                <button
-                  type="button"
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
-                  onClick={() => bumpReps(-1)}
-                  aria-label="Меньше повторов"
-                >
-                  −
-                </button>
-                <label className="flex flex-col items-center gap-1">
-                  <span className="text-xs uppercase tracking-wide text-white/55">повт</span>
-                  <input
-                    data-draft-field={`${focus.id}-reps`}
-                    inputMode="numeric"
-                    className={`w-24 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
-                      draftError && !draftReps.trim()
-                        ? "border-red-400"
-                        : "border-white/20"
-                    }`}
-                    value={draftReps}
-                    onChange={(e) => onDraftReps(e.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold"
-                  onClick={() => bumpReps(1)}
-                  aria-label="Больше повторов"
-                >
-                  +
-                </button>
+          <div className="mt-5 flex flex-col gap-3">
+            {spec.usesWeight || spec.usesReps ? (
+              <div className="grid grid-cols-2 gap-2.5">
+                {spec.usesWeight ? (
+                  <div className="rounded-[22px] bg-[var(--card)] px-2.5 py-3 text-center shadow-[var(--shadow-card)]">
+                    <small className="text-xs font-extrabold text-[var(--muted)]">Вес</small>
+                    <div className="mt-1.5 flex items-center justify-between gap-1">
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-mist)] text-2xl font-semibold text-[var(--accent-ink)]"
+                        onClick={() => onBumpKg(-2.5)}
+                      >
+                        −
+                      </button>
+                      <input
+                        data-draft-field={`${focus.id}-kg`}
+                        inputMode="decimal"
+                        className={`w-[4.5rem] border-0 bg-transparent text-center font-display text-3xl font-bold tabular-nums outline-none ${
+                          draftError && !draftKg.trim() ? "text-red-600" : ""
+                        }`}
+                        value={draftKg}
+                        onChange={(e) => onDraftKg(e.target.value)}
+                        aria-label="Вес"
+                      />
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-mist)] text-2xl font-semibold text-[var(--accent-ink)]"
+                        onClick={() => onBumpKg(2.5)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="mt-0.5 text-xs font-bold text-[var(--muted)]">кг · шаг 2,5</div>
+                  </div>
+                ) : null}
+                {spec.usesReps ? (
+                  <div className="rounded-[22px] bg-[var(--card)] px-2.5 py-3 text-center shadow-[var(--shadow-card)]">
+                    <small className="text-xs font-extrabold text-[var(--muted)]">Повторы</small>
+                    <div className="mt-1.5 flex items-center justify-between gap-1">
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-mist)] text-2xl font-semibold text-[var(--accent-ink)]"
+                        onClick={() => bumpReps(-1)}
+                        aria-label="Меньше повторов"
+                      >
+                        −
+                      </button>
+                      <input
+                        data-draft-field={`${focus.id}-reps`}
+                        inputMode="numeric"
+                        className={`w-[3.5rem] border-0 bg-transparent text-center font-display text-3xl font-bold tabular-nums outline-none ${
+                          draftError && !draftReps.trim() ? "text-red-600" : ""
+                        }`}
+                        value={draftReps}
+                        onChange={(e) => onDraftReps(e.target.value)}
+                        aria-label="Повторы"
+                      />
+                      <button
+                        type="button"
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--surface-mist)] text-2xl font-semibold text-[var(--accent-ink)]"
+                        onClick={() => bumpReps(1)}
+                        aria-label="Больше повторов"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="mt-0.5 text-xs font-bold text-[var(--muted)]">раз</div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             {spec.usesDistance ? (
-              <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-white/55">км</span>
+              <label className="flex flex-col items-center gap-1 rounded-[22px] bg-[var(--card)] px-3 py-3 shadow-[var(--shadow-card)]">
+                <span className="text-xs font-extrabold text-[var(--muted)]">км</span>
                 <input
                   data-draft-field={`${focus.id}-km`}
                   inputMode="decimal"
-                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
+                  className={`w-28 rounded-2xl border bg-[var(--surface-mist)] px-3 py-3 text-center font-display text-3xl font-bold tabular-nums outline-none focus:border-[var(--accent)] ${
                     draftError && !draftKm.trim()
                       ? "border-red-400"
-                      : "border-white/20"
+                      : "border-[var(--border-hairline)]"
                   }`}
                   value={draftKm}
                   onChange={(e) => onDraftKm(e.target.value)}
@@ -512,15 +516,15 @@ export function WorkoutLiveStage({
               </label>
             ) : null}
             {spec.usesDuration ? (
-              <label className="flex flex-col items-center gap-1">
-                <span className="text-xs uppercase tracking-wide text-white/55">мин</span>
+              <label className="flex flex-col items-center gap-1 rounded-[22px] bg-[var(--card)] px-3 py-3 shadow-[var(--shadow-card)]">
+                <span className="text-xs font-extrabold text-[var(--muted)]">мин</span>
                 <input
                   data-draft-field={`${focus.id}-time`}
                   inputMode="decimal"
-                  className={`w-28 rounded-2xl border bg-white/5 px-3 py-3 text-center text-3xl font-semibold tabular-nums text-white outline-none focus:border-[var(--accent-hover)] ${
+                  className={`w-28 rounded-2xl border bg-[var(--surface-mist)] px-3 py-3 text-center font-display text-3xl font-bold tabular-nums outline-none focus:border-[var(--accent)] ${
                     draftError && !draftTime.trim()
                       ? "border-red-400"
-                      : "border-white/20"
+                      : "border-[var(--border-hairline)]"
                   }`}
                   value={draftTime}
                   onChange={(e) => onDraftTime(e.target.value)}
@@ -528,14 +532,14 @@ export function WorkoutLiveStage({
               </label>
             ) : null}
             {draftError ? (
-              <p className="text-center text-sm font-medium text-red-300" role="alert">
+              <p className="text-center text-sm font-medium text-red-600" role="alert">
                 {draftError}
               </p>
             ) : null}
             {(liveGoal?.suggestedKg ?? suggestedKg) != null && spec.usesWeight ? (
               <button
                 type="button"
-                className="text-sm font-semibold text-[var(--accent-soft)]"
+                className="text-sm font-semibold text-[var(--accent)]"
                 onClick={onApplySuggested}
               >
                 Взять{" "}
@@ -545,20 +549,20 @@ export function WorkoutLiveStage({
             ) : null}
           </div>
         ) : (
-          <p className="mt-8 text-center text-white/55">Отметьте подход ✓</p>
+          <p className="mt-8 text-center text-[var(--muted)]">Отметьте подход ✓</p>
         )}
 
-        <div className="mt-auto flex flex-col gap-3 pt-8">
+        <div className="mt-auto flex flex-col gap-3 pt-6">
           {nextLine ? (
-            <p className="text-center text-sm font-medium text-white/55" data-testid="stage-next">
-              {nextLine}
-            </p>
+            <div className="rounded-[18px] bg-[var(--card)] px-3.5 py-3 shadow-[var(--shadow-card)]" data-testid="stage-next">
+              <p className="text-sm font-extrabold">{nextLine}</p>
+            </div>
           ) : null}
           {currentSet && !currentSet.completed ? (
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-[var(--accent)] py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
+              className="rounded-[20px] bg-[var(--accent)] py-4 text-lg font-extrabold text-white disabled:opacity-40"
               onClick={onCompleteCurrent}
             >
               ✓ Подход {currentSetIndex + 1} готов
@@ -567,7 +571,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy}
-              className="rounded-2xl bg-[var(--accent)] py-4 text-xl font-bold text-[#0a1f1e] disabled:opacity-40"
+              className="rounded-[20px] bg-[var(--accent)] py-4 text-lg font-extrabold text-white disabled:opacity-40"
               onClick={onAddAndComplete}
             >
               + Подход и ✓
@@ -579,7 +583,7 @@ export function WorkoutLiveStage({
               <button
                 type="button"
                 disabled={busy}
-                className="flex-1 rounded-2xl border border-white/20 py-3 text-sm font-semibold"
+                className="flex-1 rounded-2xl border border-[var(--border-hairline)] bg-[var(--card)] py-3 text-sm font-semibold"
                 onClick={onRestPause}
               >
                 Отдых-пауза {REST_PAUSE_SEC}с
@@ -589,7 +593,7 @@ export function WorkoutLiveStage({
               <button
                 type="button"
                 disabled={busy}
-                className="flex-1 rounded-2xl border border-white/20 py-3 text-sm font-semibold"
+                className="flex-1 rounded-2xl border border-[var(--border-hairline)] bg-[var(--card)] py-3 text-sm font-semibold"
                 onClick={onSkipRest}
                 title={`${CIRCUIT_ROUND_REST_SEC}с между кругами`}
               >
@@ -599,7 +603,7 @@ export function WorkoutLiveStage({
             <button
               type="button"
               disabled={busy || !allDone}
-              className="flex-1 rounded-2xl bg-white py-3 text-sm font-bold text-[#0a1f1e] disabled:opacity-30"
+              className="flex-1 rounded-2xl bg-[var(--accent-soft)] py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-30"
               onClick={onFinish}
             >
               Завершить

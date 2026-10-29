@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { gymSessionEvent, placeDayEvents, weightEvent, type DayFeedEvent } from "./day-feed-events.ts";
+import { gymSessionEvent, placeDayEvents, plannedDaySlots, weightEvent, type DayFeedEvent } from "./day-feed-events.ts";
 
 const ev = (key: string, atMs: number | null): DayFeedEvent => ({
   key,
@@ -48,4 +48,21 @@ test("gymSessionEvent: finished and live sessions", () => {
 test("weightEvent", () => {
   assert.equal(weightEvent(82.4)?.detail, "82,4 кг");
   assert.equal(weightEvent(null), null);
+});
+
+test("plannedDaySlots: morning → weigh-in + breakfast; filled slots and other days → none", () => {
+  const none = new Set<string>();
+  assert.deepEqual(
+    plannedDaySlots({ isToday: true, hour: 7, hasWeight: false, loggedMealTypes: none }).map((s) => s.title),
+    ["Вес до завтрака", "Завтрак"],
+  );
+  assert.deepEqual(
+    plannedDaySlots({ isToday: true, hour: 13, hasWeight: false, loggedMealTypes: new Set(["BREAKFAST"]) }).map(
+      (s) => s.title,
+    ),
+    ["Обед"],
+  );
+  assert.equal(plannedDaySlots({ isToday: true, hour: 13, hasWeight: true, loggedMealTypes: new Set(["LUNCH"]) }).length, 0);
+  assert.equal(plannedDaySlots({ isToday: false, hour: 7, hasWeight: false, loggedMealTypes: none }).length, 0);
+  assert.equal(plannedDaySlots({ isToday: true, hour: 23, hasWeight: true, loggedMealTypes: none }).length, 0);
 });

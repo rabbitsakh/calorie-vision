@@ -46,24 +46,46 @@ test("buildMomentHero: live gym wins over any time of day", () => {
   assert.deepEqual(m?.cta, { label: "К подходам", href: "/workouts" });
 });
 
-test("buildMomentHero: morning uses the morning brief and its gym CTA", () => {
+test("buildMomentHero: morning with a plan → routine name big, start CTA", () => {
+  const morning = { eyebrow: "Что сегодня", line: "Первый приём — и день начат · Грудь", cta: { label: "В зал", href: "/workouts" } };
   const m = buildMomentHero({
     ...base,
     hour: 7,
-    morning: { eyebrow: "Что сегодня", line: "Первый приём — и день начат · Грудь", cta: { label: "В зал", href: "/workouts" } },
+    logged: false,
+    morning,
+    routine: { name: "Грудь + трицепс", exerciseCount: 5 },
   });
   assert.equal(m?.phase, "morning");
-  assert.equal(m?.title, "Первый приём — и день начат · Грудь");
-  assert.equal(m?.cta?.label, "В зал");
-  assert.equal(buildMomentHero({ ...base, hour: 7, morning: null }), null);
+  assert.equal(m?.tone, "dark");
+  assert.equal(m?.title, "Грудь + трицепс");
+  assert.equal(m?.line, "5 упражнений · ~55 мин");
+  assert.deepEqual(m?.cta, { label: "Начать тренировку", href: "/workouts" });
+  const noPlan = buildMomentHero({ ...base, hour: 7, morning });
+  assert.equal(noPlan?.title, morning.line);
+  assert.equal(noPlan?.cta?.label, "В зал");
 });
 
-test("buildMomentHero: daytime shows remaining kcal, protein and water", () => {
-  const m = buildMomentHero(base);
+test("buildMomentHero: today always has a hero (morning brief hidden → food card)", () => {
+  const m = buildMomentHero({ ...base, hour: 7, morning: null });
+  assert.equal(m?.tone, "soft");
+  assert.equal(m?.title, "Осталось 1\u00a0240 ккал");
+});
+
+test("buildMomentHero: daytime shows remaining kcal and Б/Ж/У bars", () => {
+  const m = buildMomentHero({ ...base, fat: 30, fatTarget: 70, carbs: 90, carbsTarget: 250 });
   assert.equal(m?.phase, "day");
-  assert.equal(m?.title, "Осталось ~1240 ккал");
-  assert.equal(m?.line, "белок: ещё 48 г · вода 0,9 из 2 л");
-  assert.deepEqual(m?.cta, { label: "Добавить", action: "food" });
+  assert.equal(m?.eyebrow, "Сейчас · обед");
+  assert.equal(m?.title, "Осталось 1\u00a0240 ккал");
+  assert.equal(m?.line, "вода 0,9 из 2 л");
+  assert.deepEqual(
+    m?.macros?.map((r) => [r.label, r.value, r.target]),
+    [["Б", 72, 120], ["Ж", 30, 70], ["У", 90, 250]],
+  );
+  assert.deepEqual(m?.cta, { label: "Добавить еду", action: "food" });
+  assert.equal(
+    buildMomentHero({ ...base, gymDoneToday: true })?.line,
+    "после зала добери ~48 г белка · вода 0,9 из 2 л · зал ✓",
+  );
 });
 
 test("buildMomentHero: daytime over target", () => {
@@ -71,17 +93,28 @@ test("buildMomentHero: daytime over target", () => {
   assert.equal(buildMomentHero({ ...base, calories: 2080 })?.title, "Калории в норме");
 });
 
-test("buildMomentHero: evening is a day summary with gym and streak", () => {
-  const m = buildMomentHero({ ...base, hour: 20, calories: 1850, protein: 110, gymDoneToday: true });
+test("buildMomentHero: evening ring + checklist", () => {
+  const m = buildMomentHero({ ...base, hour: 21, calories: 2020, protein: 118, mealCount: 4, gymDoneToday: true });
   assert.equal(m?.phase, "evening");
-  assert.equal(m?.title, "1850 из 2100 ккал");
-  assert.equal(m?.line, "белок 110/120 г · вода 0,9 из 2 л · зал ✓ · серия 5 дн.");
+  assert.equal(m?.title, "День в цели");
+  assert.equal(m?.ringPct, 96);
+  assert.equal(m?.line, "2\u00a0020 из 2\u00a0100 ккал · серия 5 дн.");
+  assert.deepEqual(
+    m?.checklist?.map((c) => [c.label, c.done, c.value]),
+    [
+      ["Еда", true, "4 приёма записано"],
+      ["Белок", true, "118 / 120 г"],
+      ["Вода", false, "0,9 / 2 л"],
+      ["Зал", true, "сделан"],
+    ],
+  );
+  assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "День почти собран");
 });
 
 test("buildMomentHero: empty day asks for one entry", () => {
   const m = buildMomentHero({ ...base, logged: false, calories: 0 });
   assert.equal(m?.title, "День пока без записей");
-  assert.deepEqual(m?.cta, { label: "Добавить", action: "food" });
+  assert.deepEqual(m?.cta, { label: "Добавить еду", action: "food" });
 });
 
 test("buildMomentHero: soft step becomes hint + CTA", () => {
