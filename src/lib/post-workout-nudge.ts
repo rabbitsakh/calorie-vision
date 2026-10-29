@@ -91,7 +91,7 @@ export function shouldClearPostWorkoutNudge(input: {
 
 /**
  * Defer quest-chest auto-claim while the post-workout protein step is still open
- * (avoids stacking chest + NextStepBar for the same moment).
+ * (avoids stacking chest + MomentHeroCard for the same moment).
  */
 export function shouldDeferQuestChestForPostWorkout(input: {
   protein: number;

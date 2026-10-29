@@ -1,4 +1,4 @@
-/** Once-per-day dismiss for mid-week NextStepBar nudge. */
+/** Once-per-day dismiss for mid-week MomentHeroCard nudge. */
 
 const KEY_PREFIX = "cv-week-nudge-dismissed-";
 

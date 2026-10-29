@@ -74,7 +74,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     if (!progress?.allDone) return;
     if (claimedRef.current === today) return;
     if (isSoftCelebrationSeen("quest-chest", today)) return;
-    // Let NextStepBar own «после зала — белок» before stacking a chest.
+    // Let MomentHeroCard own «после зала — белок» before stacking a chest.
     if (
       shouldDeferQuestChestForPostWorkout({
         protein: day?.data?.meals?.totalProtein ?? 0,

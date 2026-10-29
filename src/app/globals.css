@@ -4665,8 +4665,72 @@ select {
   animation: none;
 }
 
-.next-step-bar {
-  animation: day-hero-in 0.4s ease-out 0.08s both;
+/* Hybrid H2 — «Сейчас главное»: one moment card under the day ring */
+.moment-hero {
+  margin: 0.5rem 0.125rem 0.25rem;
+  padding: 0.75rem 0.875rem 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-hairline);
+  border-left: 4px solid var(--accent);
+  background: color-mix(in srgb, var(--surface-mist) 80%, white);
+}
+
+.moment-hero--morning {
+  border-left-color: #e0a43a;
+}
+
+.moment-hero--evening {
+  border-left-color: #6a6fb8;
+}
+
+.moment-hero--gym {
+  border-color: transparent;
+  border-left-color: var(--accent-soft);
+  background: #0a1f1e;
+  color: #fff;
+}
+
+.moment-hero-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.moment-hero-title {
+  margin-top: 0.125rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.25;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-hero-line {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-hero-hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.moment-hero--gym .moment-hero-eyebrow,
+.moment-hero--gym .moment-hero-hint {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.moment-hero--gym .moment-hero-title {
+  color: #fff;
+}
+
+.moment-hero--gym .moment-hero-line {
+  color: var(--accent-soft);
 }
 
 .soft-celeb-ring-goal {
