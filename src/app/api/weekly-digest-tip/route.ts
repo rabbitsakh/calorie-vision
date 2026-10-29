@@ -3,6 +3,13 @@ import { requireSession } from "@/lib/auth-session";
 import { completeChat } from "@/lib/ai/gigachat";
 import { mondayOfWeek, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
+import {
+  checkTipRateLimit,
+  readTipCache,
+  tipCacheTtlSec,
+  tipRateLimitBody,
+  writeTipCache,
+} from "@/lib/gigachat-tip-guard";
 import { prisma } from "@/lib/prisma";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
@@ -15,6 +22,22 @@ import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serializ
 import { aggregatePeriod, trendPct } from "@/lib/workouts/trends";
 
 export const dynamic = "force-dynamic";
+
+type DigestTipPayload = {
+  weekStart: string;
+  weekEnd: string;
+  weekLabel: string;
+  digest: { headline: string; steps: string[] } | null;
+  tip: string | null;
+  source: "gigachat" | "rules";
+  context: {
+    daysLogged: number;
+    sessionCount: number;
+    avgProtein?: number;
+    proteinTarget?: number | null;
+    weeklyTonnage?: number;
+  };
+};
 
 function formatWeekRange(start: string, end: string): string {
   const fmt = (key: string) => {
@@ -33,6 +56,14 @@ export async function GET(request: NextRequest) {
     const { session, response } = await requireSession();
     if (response) return response;
 
+    const rate = await checkTipRateLimit("weekly-digest-tip", session.user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(tipRateLimitBody(rate.retryAfterSec), {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { timezone: true, ...DIET_PROFILE_SELECT },
@@ -44,6 +75,11 @@ export async function GET(request: NextRequest) {
     const anchor = endDate ?? today;
     const weekStart = mondayOfWeek(anchor);
     const weekEnd = shiftDateKey(weekStart, 6);
+    const cacheKey = `weekly-digest-tip:${session.user.id}:${weekStart}`;
+    const cached = await readTipCache<DigestTipPayload>(cacheKey);
+    if (cached) {
+      return NextResponse.json(cached);
+    }
     const prevWeekStart = shiftDateKey(weekStart, -7);
     const prevWeekEnd = shiftDateKey(weekStart, -1);
     const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(weekStart, i));
@@ -114,18 +150,20 @@ export async function GET(request: NextRequest) {
 
     const digest = buildWeeklyGymRationDigest(ctx);
     if (!digest) {
-      return NextResponse.json({
+      const empty: DigestTipPayload = {
         weekStart,
         weekEnd,
         weekLabel: ctx.weekLabel,
         digest: null,
         tip: null,
-        source: "rules" as const,
+        source: "rules",
         context: {
           daysLogged: ctx.daysLogged,
           sessionCount: ctx.sessionCount,
         },
-      });
+      };
+      await writeTipCache(cacheKey, empty, tipCacheTtlSec());
+      return NextResponse.json(empty);
     }
 
     let tip = ruleWeeklyDigestTip(digest);
@@ -164,7 +202,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const payload: DigestTipPayload = {
       weekStart,
       weekEnd,
       weekLabel: ctx.weekLabel,
@@ -178,7 +216,9 @@ export async function GET(request: NextRequest) {
         proteinTarget: ctx.proteinTarget,
         weeklyTonnage: ctx.weeklyTonnage,
       },
-    });
+    };
+    await writeTipCache(cacheKey, payload, tipCacheTtlSec());
+    return NextResponse.json(payload);
   } catch (error) {
     console.error("GET /api/weekly-digest-tip", error);
     return NextResponse.json({ error: "Не удалось загрузить недельный фокус" }, { status: 500 });

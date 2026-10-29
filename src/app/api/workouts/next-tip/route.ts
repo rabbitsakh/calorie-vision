@@ -13,6 +13,12 @@ import {
   ruleTipForFocus,
   stripLeverAnnotation,
 } from "@/lib/workouts/tip-lever";
+import {
+  checkTipRateLimit,
+  readTipCache,
+  tipRateLimitBody,
+  writeTipCache,
+} from "@/lib/gigachat-tip-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -93,8 +99,16 @@ function parseTargets(raw: unknown): NextSessionTarget[] {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await requireSession();
+    const { session, response } = await requireSession();
     if (response) return response;
+
+    const rate = await checkTipRateLimit("workouts-next-tip", session.user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(tipRateLimitBody(rate.retryAfterSec), {
+        status: 429,
+        headers: { "Retry-After": String(rate.retryAfterSec) },
+      });
+    }
 
     const body = (await request.json().catch(() => ({}))) as {
       targets?: unknown;
@@ -107,6 +121,20 @@ export async function POST(request: NextRequest) {
       : [];
     const earlyUser = body.earlyUser === true;
     const focus = pickTipFocus(targets);
+    const cacheKey = focus
+      ? `next-tip:${session.user.id}:${focus.exerciseName}:${focus.lever}:${earlyUser ? 1 : 0}`
+      : `next-tip:${session.user.id}:none`;
+    type TipOut = {
+      tip: string;
+      source: "gigachat" | "rules";
+      lever: ProgressionLever | null;
+      exerciseName: string | null;
+      fromPreference: boolean;
+    };
+    const cached = await readTipCache<TipOut>(cacheKey);
+    if (cached?.tip) {
+      return NextResponse.json(cached);
+    }
     const recoveryHit = Boolean(
       focus &&
         recoveryHitNames.some(
@@ -161,13 +189,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const out: TipOut = {
       tip,
       source,
       lever,
       exerciseName,
       fromPreference,
-    });
+    };
+    await writeTipCache(cacheKey, out, 60 * 60);
+    return NextResponse.json(out);
   } catch (error) {
     console.error("POST /api/workouts/next-tip", error);
     return NextResponse.json({ error: "Не удалось получить совет" }, { status: 500 });

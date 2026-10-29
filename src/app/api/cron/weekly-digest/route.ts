@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/prisma";
 import { isEmailLoginConfigured } from "@/lib/email-auth";
 import {
@@ -8,13 +9,6 @@ import {
 } from "@/lib/weekly-digest";
 
 export const dynamic = "force-dynamic";
-
-function authorizeCron(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) return false;
-  const auth = request.headers.get("authorization");
-  return auth === `Bearer ${secret}`;
-}
 
 /**
  * Weekly email digest for users with weeklyDigestEmail=true and a valid email.

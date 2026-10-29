@@ -36,10 +36,13 @@ export async function POST(
     }
 
     if (body.clear) {
-      await prisma.mealEntry.update({
-        where: { id },
+      const cleared = await prisma.mealEntry.updateMany({
+        where: { id, userId: session.user.id },
         data: { imagePath: null },
       });
+      if (cleared.count === 0) {
+        return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
+      }
       return NextResponse.json({ ok: true, imagePath: null });
     }
 
@@ -83,10 +86,13 @@ export async function POST(
       return NextResponse.json({ error: "Не удалось сохранить изображение" }, { status: 502 });
     }
 
-    await prisma.mealEntry.update({
-      where: { id },
+    const updated = await prisma.mealEntry.updateMany({
+      where: { id, userId: session.user.id },
       data: { imagePath },
     });
+    if (updated.count === 0) {
+      return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
+    }
 
     return NextResponse.json({ ok: true, imagePath });
   } catch (error) {
