@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { allergenLabel, type AllergenId } from "@/lib/allergens";
-import { PHOTO_SCALE_TIP_SHORT } from "@/lib/recognize-quota";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 type ConfirmTrustSkimProps = {
   allergenHits: AllergenId[];

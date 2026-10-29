@@ -10,6 +10,8 @@
 
 import { checkRateLimitAsync, type RateLimitResult } from "@/lib/rate-limit";
 
+export { PHOTO_SCALE_TIP, PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
+
 export const DEFAULT_DAILY_FREE_PHOTOS = 20;
 const DAY_MS = 24 * 60 * 60_000;
 
@@ -99,8 +101,3 @@ export function dailyQuotaErrorBody(quota: RecognizeQuotaSnapshot) {
     proHint: true,
   };
 }
-
-export const PHOTO_SCALE_TIP =
-  "Положите рядом вилку или карту — так точнее порция и калории.";
-
-export const PHOTO_SCALE_TIP_SHORT = "Рядом вилка или карта — точнее порция.";

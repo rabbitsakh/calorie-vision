@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { resetRateLimitsForTests } from "@/lib/rate-limit";
+import { PHOTO_SCALE_TIP } from "@/lib/photo-scale-tip";
 import {
   DEFAULT_DAILY_FREE_PHOTOS,
-  PHOTO_SCALE_TIP,
   checkDailyRecognizeQuota,
   dailyQuotaKey,
   freeDailyPhotoLimit,

@@ -9,7 +9,7 @@ import {
   isNetworkFetchError,
   recognizePhotoFile,
 } from "@/lib/recognize-photo-client";
-import { PHOTO_SCALE_TIP_SHORT } from "@/lib/recognize-quota";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 const MAX_FILE_SIZE_MB = 15;
 /** T2: weak/hanging recognize must not spin forever — queue offline and recover. */

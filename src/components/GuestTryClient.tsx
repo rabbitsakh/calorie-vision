@@ -7,7 +7,7 @@ import { formatCalorieEstimate } from "@/lib/calorie-estimate-range";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
-import { PHOTO_SCALE_TIP_SHORT } from "@/lib/recognize-quota";
+import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 const GUEST_USED_KEY = "cv-guest-recognize-used";
 const GUEST_LIMIT = 2;
