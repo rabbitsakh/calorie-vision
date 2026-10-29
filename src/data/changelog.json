@@ -1,8 +1,23 @@
 [
   {
+    "version": "3.1.7",
+    "date": "2026-10-29",
+    "summary": "design D35: moment hero CTA layout, empty-day camera CTA",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«Сейчас главное»: кнопка больше не налезает на цель — маскот и CTA в одной колонке"
+      },
+      {
+        "kind": "improvement",
+        "text": "Пустой день: «Сфоткать еду»; быстрый лог — горизонтальный скролл"
+      }
+    ]
+  },
+  {
     "version": "3.1.6",
     "date": "2026-10-29",
-    "summary": "fix: quick-log close/edit, AI sparkle, moment hero CTA layout",
+    "summary": "fix: quick-log close/edit + restore AI sparkle in composer",
     "items": [
       {
         "kind": "fix",
@@ -11,14 +26,6 @@
       {
         "kind": "fix",
         "text": "Вернули значок AI‑ассистента в композер на «Сегодня»"
-      },
-      {
-        "kind": "fix",
-        "text": "«Сейчас главное»: кнопка больше не налезает на цель — маскот и CTA в одной колонке"
-      },
-      {
-        "kind": "improvement",
-        "text": "Пустой день: «Сфоткать еду» вместо второго «Добавить»; быстрый лог — горизонтальный скролл"
       },
       {
         "kind": "improvement",
