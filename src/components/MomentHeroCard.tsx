@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
-import { buildMomentHero, pickSoftStep, type MomentCta, type SoftStepAction } from "@/lib/moment-hero";
+import {
+  buildMomentHero,
+  pickSoftStep,
+  type MomentCta,
+  type MomentHero,
+  type SoftStepAction,
+} from "@/lib/moment-hero";
 import {
   buildMorningTodayBrief,
   streakOwnsMorning,
@@ -179,6 +185,18 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     }
   };
 
+  return <MomentHeroView moment={moment} selectedDate={selectedDate} onAction={runAction} />;
+}
+
+export function MomentHeroView({
+  moment,
+  selectedDate,
+  onAction,
+}: {
+  moment: MomentHero;
+  selectedDate: string;
+  onAction: (action: SoftStepAction) => void;
+}) {
   const ctaClass =
     moment.phase === "gym"
       ? "shrink-0 rounded-[var(--radius-md)] bg-white px-3.5 py-2 text-xs font-bold text-[var(--accent-ink)]"
@@ -188,7 +206,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     if (cta.action) {
       const action = cta.action;
       return (
-        <button type="button" className={ctaClass} onClick={() => runAction(action)}>
+        <button type="button" className={ctaClass} onClick={() => onAction(action)}>
           {cta.label}
         </button>
       );
