@@ -53,6 +53,7 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
   [/^Recognition 50-point wave 7.*$/i, "Распознавание: OFF packGrams, prompt A/B telemetry, plate corrections"],
   [/^Recognition 50-point wave 6.*$/i, "Распознавание: repair штрихкода, RU-справочник, фикстуры"],
   [/^Recognition 50-point wave 5.*$/i, "Распознавание: SSE-превью, slim-промпт, A/B варианты"],
+  [/^Design wave D35.*$/i, "Дизайн: герой дня — CTA под текстом, Сфоткать на пустом дне"],
   [/^Design wave D34.*$/i, "Дизайн: дневной лимит фото, Pro allowlist, подсказка вилка/карта"],
   [/^Design wave D33.*$/i, "Дизайн: диапазон ккал, альтернативы, онбординг 3 шага, /try"],
   [/^Design wave D32.*$/i, "Дизайн: камера под палец, S/M/L на подтверждении, быстрый лог"],
