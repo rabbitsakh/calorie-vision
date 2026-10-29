@@ -44,7 +44,6 @@ import {
 import { WorkoutWeekPlan } from "@/components/workouts/WorkoutWeekPlan";
 import { WorkoutLibraryPanel } from "@/components/workouts/WorkoutLibraryPanel";
 import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor";
-import { WorkoutLiveStage } from "@/components/workouts/WorkoutLiveStage";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import { WorkoutCreateSessionPanel } from "@/components/workouts/WorkoutCreateSessionPanel";
 import { WorkoutTemplatesPanel } from "@/components/workouts/WorkoutTemplatesPanel";

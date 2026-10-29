@@ -8,10 +8,9 @@ import { BrandMark } from "@/components/BrandMark";
 const LINKS = [
   { href: "#how", label: "Как работает" },
   { href: "#recognition", label: "Распознавание" },
-  { href: "#trust", label: "Доверие" },
-  { href: "#inside", label: "Внутри" },
   { href: "#install", label: "Установка" },
   { href: "#faq", label: "Вопросы" },
+  { href: "/try", label: "Без входа" },
 ] as const;
 
 export function LandingTopNav() {
@@ -78,16 +77,27 @@ export function LandingTopNav() {
                 </button>
               </div>
               <nav className="landing-mobile-drawer-nav" aria-label="Мобильное меню">
-                {LINKS.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="landing-mobile-drawer-link"
-                    onClick={() => setOpen(false)}
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {LINKS.map((link) =>
+                  link.href.startsWith("/") ? (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="landing-mobile-drawer-link"
+                      onClick={() => setOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className="landing-mobile-drawer-link"
+                      onClick={() => setOpen(false)}
+                    >
+                      {link.label}
+                    </a>
+                  ),
+                )}
                 <Link
                   href="/login"
                   className="btn btn-primary landing-mobile-drawer-cta"
@@ -111,11 +121,17 @@ export function LandingTopNav() {
         </Link>
 
         <nav className="landing-top-nav" aria-label="Разделы">
-          {LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="landing-top-link">
-              {link.label}
-            </a>
-          ))}
+          {LINKS.map((link) =>
+            link.href.startsWith("/") ? (
+              <Link key={link.href} href={link.href} className="landing-top-link">
+                {link.label}
+              </Link>
+            ) : (
+              <a key={link.href} href={link.href} className="landing-top-link">
+                {link.label}
+              </a>
+            ),
+          )}
           <Link href="/login" className="landing-top-cta landing-cta-sheen">
             Войти
           </Link>

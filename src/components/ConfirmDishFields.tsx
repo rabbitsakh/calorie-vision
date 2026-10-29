@@ -157,7 +157,8 @@ export function DishFields({
               onClick={handleAltClick}
               title={hasMacros ? "Применить вариант с БЖУ" : "Уточнить по названию"}
             >
-              {altName} · {item.calories} ккал{macroHint}
+              {altName} · {item.calories > 0 ? `${item.calories} ккал` : "?"}
+              {macroHint}
             </button>
           );
         })}

@@ -885,6 +885,202 @@ select {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
+
+/* D33 — confirm alts, compact landing, guest try */
+.confirm-dish-row-alts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+}
+
+.confirm-dish-row-alts-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--muted-strong, var(--muted));
+}
+
+.confirm-dish-row-alts-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.confirm-dish-row-alt {
+  border-radius: 999px;
+  border: 1px solid var(--border-quiet);
+  background: var(--accent-soft);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--accent-ink);
+  text-align: left;
+}
+
+.confirm-dish-row-alt:disabled {
+  opacity: 0.45;
+}
+
+.landing-cta-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.landing-cta-note a {
+  color: var(--landing-deep, var(--accent-ink));
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .landing-mobile-hide,
+  .landing-desktop-only {
+    display: none !important;
+  }
+}
+
+.guest-try {
+  min-height: 100svh;
+  background:
+    radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
+    var(--background);
+  color: var(--foreground);
+  padding: 0 1rem 2.5rem;
+}
+
+.guest-try-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 0.85rem 0;
+}
+
+.guest-try-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.guest-try-hero {
+  max-width: 28rem;
+  margin: 1.25rem auto 0;
+}
+
+.guest-try-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.guest-try-title {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(1.75rem, 7vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.guest-try-lead,
+.guest-try-hint,
+.guest-try-remain {
+  margin: 0.55rem 0 0;
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: var(--muted-strong, var(--muted));
+}
+
+.guest-try-remain {
+  color: var(--accent-ink);
+}
+
+.guest-try-camera {
+  margin-top: 1.15rem;
+  width: 100%;
+  min-height: 3.15rem;
+  font-size: 1.05rem;
+}
+
+.guest-try-error {
+  margin-top: 0.75rem;
+  border-radius: 0.85rem;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: #9a3412;
+}
+
+.guest-try-result {
+  max-width: 28rem;
+  margin: 1.5rem auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guest-try-result-title {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.guest-try-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.guest-try-card {
+  border-radius: 1rem;
+  border: 1px solid var(--border-quiet);
+  background: var(--card);
+  padding: 0.85rem 0.95rem;
+}
+
+.guest-try-dish {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.guest-try-kcal {
+  margin: 0.25rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+}
+
+.guest-try-alts {
+  margin: 0.4rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--muted-strong, var(--muted));
+}
+
+.guest-try-save {
+  width: 100%;
+  text-align: center;
+}
+
 /* D32 — «Как вчера» / избранное above the meal feed */
 .quick-log-strip {
   display: flex;
