@@ -1,5 +1,24 @@
 [
   {
+    "version": "3.1.6",
+    "date": "2026-10-29",
+    "summary": "fix: quick-log close/edit + restore AI sparkle in composer",
+    "items": [
+      {
+        "kind": "fix",
+        "text": "«Проверь и запиши»: крестик, Отмена, Escape; граммы снова правятся"
+      },
+      {
+        "kind": "fix",
+        "text": "Вернули значок AI‑ассистента в композер на «Сегодня»"
+      },
+      {
+        "kind": "improvement",
+        "text": "Если AI забыл граммы в названии — берём из фразы («Молоко 100мл»)"
+      }
+    ]
+  },
+  {
     "version": "3.1.5",
     "date": "2026-10-29",
     "summary": "design D34: daily photo quota, Pro allowlist, fork/card scale tip",

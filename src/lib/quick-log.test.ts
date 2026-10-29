@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  enrichQuickMealsFromText,
+  portionFromUserText,
   quickHeader,
   quickSaveLabel,
   quickSlotTag,
@@ -16,7 +18,23 @@ test("splitQuickPortion reads «(200 г)» and trailing «100 мл»", () => {
     unit: "г",
   });
   assert.deepEqual(splitQuickPortion("Молоко 2,5% 100 мл"), { base: "Молоко 2,5%", grams: 100, unit: "мл" });
+  assert.deepEqual(splitQuickPortion("Молоко 100мл"), { base: "Молоко", grams: 100, unit: "мл" });
   assert.equal(splitQuickPortion("Мороженое").grams, null);
+});
+
+test("enrichQuickMealsFromText restores grams AI dropped from the name", () => {
+  const enriched = enrichQuickMealsFromText(
+    [{ name: "Молоко", kcal: 60, protein: 3, fat: 3, carbs: 5, note: "перекус" }],
+    "Молоко 100мл",
+  );
+  assert.equal(enriched[0]!.name, "Молоко (100 мл)");
+  assert.deepEqual(portionFromUserText("Молоко 100мл", "Молоко"), {
+    base: "Молоко",
+    grams: 100,
+    unit: "мл",
+  });
+  const defaulted = enrichQuickMealsFromText([{ name: "Творог", kcal: 120 }], "творог");
+  assert.equal(defaulted[0]!.name, "Творог (100 г)");
 });
 
 test("rescaleQuickMeal scales kcal and macros with grams", () => {

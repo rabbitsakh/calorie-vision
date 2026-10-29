@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { QuickLogSheet } from "@/components/QuickLogSheet";
 import { subscribeConnectivity } from "@/lib/connectivity";
@@ -9,6 +10,7 @@ import {
   requestOpenFoodCamera,
   requestOpenFoodText,
 } from "@/lib/open-food-camera";
+import { withDateQuery } from "@/lib/use-selected-date";
 import {
   createRuSpeechRecognition,
   isSpeechRecognitionSupported,
@@ -34,7 +36,7 @@ const ICON = {
 
 /**
  * Hybrid H1/H2 — camera-first dock above the tabs (thumb zone on the right).
- * Text opens «проверь и запиши»; barcode / + / voice sit beside the field.
+ * Sparkle → full AI chat; text → «проверь и запиши»; barcode / + / voice beside.
  */
 export function BottomComposer({ date, disabled = false }: Props) {
   const [text, setText] = useState("");
@@ -60,6 +62,8 @@ export function BottomComposer({ date, disabled = false }: Props) {
     setText("");
     setSheetText(value);
   };
+
+  const assistantHref = date ? withDateQuery("/assistant", date) : "/assistant";
 
   const toggleVoice = () => {
     if (listening) {
@@ -100,6 +104,12 @@ export function BottomComposer({ date, disabled = false }: Props) {
         role="search"
         aria-label="Записать еду"
       >
+        <Link href={assistantHref} className="bottom-composer-ai" aria-label="AI‑ассистент">
+          <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 3l1.2 3.6L17 8l-3.8 1.4L12 13l-1.2-3.6L7 8l3.8-1.4L12 3z" strokeLinejoin="round" />
+            <path d="M18.5 13.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z" strokeLinejoin="round" />
+          </svg>
+        </Link>
         <input
           className="bottom-composer-input"
           value={text}

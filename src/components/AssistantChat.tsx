@@ -52,6 +52,7 @@ import { getImageUrl, withBasePath } from "@/lib/paths";
 import {
   quickDishTone,
   quickHeader,
+  enrichQuickMealsFromText,
   quickMacroLine,
   quickPortionStep,
   quickSaveLabel,
@@ -680,8 +681,12 @@ function ActionCard({
     text: string;
   } | null>(null);
   const [lastOkMessage, setLastOkMessage] = useState<string | null>(null);
-  const [draftMeals, setDraftMeals] = useState<QuickMeal[]>(() => actions.meals ?? []);
-  const [editingMeal, setEditingMeal] = useState<number | null>(null);
+  const [draftMeals, setDraftMeals] = useState<QuickMeal[]>(() =>
+    enrichQuickMealsFromText(actions.meals ?? [], actions.summary ?? ""),
+  );
+  const [editingMeal, setEditingMeal] = useState<number | null>(
+    (actions.meals?.length ?? 0) > 0 ? 0 : null,
+  );
   const mealTotals = useMemo(() => quickTotals(draftMeals), [draftMeals]);
 
   const mealsDone = streamDone.meals || localDone.meals;
