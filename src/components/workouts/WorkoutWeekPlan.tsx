@@ -327,15 +327,11 @@ export function WorkoutWeekPlan({
       ? "Есть незавершённая"
       : finished.length > 0
         ? "Уже потренировались"
-        : primary === "repeat"
-          ? "Повторить прошлую"
-          : primary === "rest"
-            ? "День отдыха"
-            : isFirstEmpty
-              ? "Первая тренировка"
-              : planned.length > 0
-                ? "По плану сегодня"
-                : "Начать сегодня";
+        : primary === "start_plan" && planned[0]
+          ? planned[0].planLabel?.trim() || planned[0].name
+          : isFirstEmpty
+            ? "Первая тренировка"
+            : "Тренировка";
 
   const sceneMeta = active
     ? [
@@ -345,13 +341,36 @@ export function WorkoutWeekPlan({
       ]
         .filter(Boolean)
         .join(" · ")
-    : primary === "repeat" && lastRepeat
-      ? lastRepeat.hint || "Скопировать последнюю завершённую и начать"
-      : primary === "rest"
-        ? "В плане пусто и нечего повторить — отдых или пустая вне плана"
-        : data
-          ? data.weekdayLabel
-          : "Зал";
+    : drafts.length > 0
+      ? "Продолжите или начните новую"
+      : finished.length > 0
+        ? "Можно начать ещё одну"
+        : primary === "start_plan" && planned[0]
+          ? `${planned[0].exerciseCount} упр. · по плану на сегодня`
+          : isFirstEmpty
+            ? "Один тап — и вы в зале"
+            : "Пустая сессия или шаблон ниже";
+
+  /** Idle states without a draft/plan chip — one big mockup-style start CTA. */
+  const showBigStart =
+    !active &&
+    drafts.length === 0 &&
+    (primary === "rest" ||
+      primary === "repeat" ||
+      primary === "blank_start" ||
+      primary === "finished" ||
+      isFirstEmpty);
+
+  const templateRows = (() => {
+    const fromPlan = data?.week.flatMap((d) => d.routines) ?? [];
+    const merged = [...fromPlan, ...routinesFallback];
+    const seen = new Set<string>();
+    return merged.filter((r) => {
+      if (seen.has(r.id)) return false;
+      seen.add(r.id);
+      return true;
+    });
+  })();
 
   return (
     <div className="gym-day">
@@ -367,88 +386,109 @@ export function WorkoutWeekPlan({
         aria-label="Сводка зала на сегодня"
       >
         <div className="day-hero-glow" aria-hidden />
-        <div className={`relative flex items-center gap-4 px-5 py-7 md:px-7 md:py-8 ${active ? "gym-console-active" : ""}`}>
-          <div className="min-w-0 flex-1">
-            <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.22em] ${active ? "gym-live-pulse text-[var(--on-ink)]/90" : "text-[var(--accent-ink)]/70"}`}>
-              {active
-                ? "Сейчас"
-                : primary === "repeat"
-                  ? "Повтор"
-                  : primary === "rest"
-                    ? "Отдых"
-                    : "Сегодня"}
-              {data ? ` · ${data.weekdayLabel}` : ""}
-            </p>
-            <p className={`font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight sm:text-[1.7rem] ${active ? "text-white" : "text-[var(--foreground)]"}`}>
-              {sceneHeadline}
-            </p>
-            <p className={`mt-2.5 text-[0.95rem] font-medium ${active ? "text-[var(--on-ink)]/85" : "text-[var(--muted-strong)]"}`}>
-              {sceneMeta}
-            </p>
+        <div className={`relative flex flex-col gap-4 px-5 py-7 md:px-7 md:py-8 ${active ? "gym-console-active" : ""}`}>
+          <div className="flex items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className={`text-[0.72rem] font-semibold uppercase tracking-[0.22em] ${active ? "gym-live-pulse text-[var(--on-ink)]/90" : "text-[var(--accent-ink)]/70"}`}>
+                {active ? "Сейчас" : "Зал"}
+                {data ? ` · ${data.weekdayLabel}` : ""}
+              </p>
+              <p className={`font-display mt-2.5 text-[1.45rem] font-semibold leading-snug tracking-tight sm:text-[1.7rem] ${active ? "text-white" : "text-[var(--foreground)]"}`}>
+                {sceneHeadline}
+              </p>
+              <p className={`mt-2.5 text-[0.95rem] font-medium ${active ? "text-[var(--on-ink)]/85" : "text-[var(--muted-strong)]"}`}>
+                {sceneMeta}
+              </p>
+            </div>
+            {active ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="shrink-0 rounded-[var(--radius-control)] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-40"
+                onClick={() => onOpenSession(active.id)}
+              >
+                Продолжить
+              </button>
+            ) : primary === "open_draft" && drafts[0] ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
+                onClick={() => onOpenSession(drafts[0]!.id)}
+              >
+                Открыть
+              </button>
+            ) : primary === "start_plan" && planned[0] ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
+                onClick={() => onStartRoutine(planned[0]!.id)}
+              >
+                Старт
+              </button>
+            ) : null}
           </div>
-          {active ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-white px-5 py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-40"
-              onClick={() => onOpenSession(active.id)}
-            >
-              Продолжить
-            </button>
-          ) : primary === "open_draft" && drafts[0] ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
-              onClick={() => onOpenSession(drafts[0]!.id)}
-            >
-              Открыть
-            </button>
-          ) : primary === "start_plan" && planned[0] ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
-              onClick={() => onStartRoutine(planned[0]!.id)}
-            >
-              Старт
-            </button>
-          ) : primary === "blank_start" || isFirstEmpty ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
-              onClick={onStartBlank}
-            >
-              Старт
-            </button>
-          ) : primary === "repeat" && lastRepeat && onRepeatLast ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
-              onClick={() => onRepeatLast(lastRepeat.id)}
-            >
-              {busy ? "…" : "Повторить"}
-            </button>
-          ) : primary === "rest" ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[1rem] border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-bold text-[var(--accent-ink)] disabled:opacity-40"
-              onClick={onStartBlank}
-            >
-              Вне плана
-            </button>
-          ) : primary === "finished" ? (
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
-              onClick={onStartBlank}
-            >
-              Ещё
-            </button>
+
+          {showBigStart ? (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                className="flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-[var(--accent)] px-5 py-4 text-base font-bold text-white disabled:opacity-40"
+                onClick={
+                  primary === "repeat" && lastRepeat && onRepeatLast
+                    ? () => onRepeatLast(lastRepeat.id)
+                    : onStartBlank
+                }
+              >
+                <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 4v16l13-8z" />
+                </svg>
+                {primary === "repeat" && lastRepeat
+                  ? busy
+                    ? "…"
+                    : "Начать тренировку"
+                  : primary === "finished"
+                    ? "Начать ещё одну"
+                    : "Начать тренировку"}
+              </button>
+              {primary === "repeat" && lastRepeat ? (
+                <p className="text-center text-xs text-[var(--muted)]">
+                  {lastRepeat.hint || "Повторим последнюю завершённую"}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
+                {primary === "repeat" && lastRepeat ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
+                    onClick={onStartBlank}
+                  >
+                    Пустая сессия
+                  </button>
+                ) : lastRepeat && onRepeatLast && primary !== "finished" ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
+                    onClick={() => onRepeatLast(lastRepeat.id)}
+                  >
+                    {busy ? "…" : "Повторить прошлую"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                  onClick={() =>
+                    onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
+                  }
+                >
+                  Назначить план
+                </button>
+              </div>
+            </div>
           ) : null}
         </div>
       </section>
@@ -522,7 +562,7 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">Первая тренировка</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Кнопка «Старт» выше — и вы в зале. Подходы и кардио можно добавить сразу.
+                  «Начать тренировку» выше — и вы в зале. Подходы и кардио можно добавить сразу.
                 </p>
               </>
             ) : loading ? (
@@ -610,90 +650,76 @@ export function WorkoutWeekPlan({
                   </>
                 ) : null}
               </>
-            ) : primary === "repeat" && lastRepeat && onRepeatLast ? (
+            ) : showBigStart ? (
               <>
-                <p className="text-sm font-semibold text-[var(--foreground)]">Повторить прошлую</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  В плане пусто — удобнее скопировать последнюю завершённую.
-                </p>
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="w-full rounded-[var(--radius-control)] bg-[var(--accent)] py-3 text-base font-bold text-white disabled:opacity-40"
-                    onClick={() => onRepeatLast(lastRepeat.id)}
-                  >
-                    {busy ? "Копируем…" : lastRepeat.label}
-                  </button>
-                  <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
-                    {lastRepeat.hint}
-                  </p>
+                {recentRepeats && recentRepeats.length > 0 && onRepeatLast ? (
                   <RepeatAlternatives
                     items={recentRepeats}
                     busy={busy}
                     onRepeat={onRepeatLast}
                   />
-                </div>
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="mt-3 text-sm font-medium text-[var(--accent-ink)] disabled:opacity-40"
-                  onClick={onStartBlank}
-                >
-                  Или пустая вне плана
-                </button>
-                <button
-                  type="button"
-                  className="mt-2 text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline"
-                  onClick={() =>
-                    onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
-                  }
-                >
-                  Назначить план на сегодня
-                </button>
-              </>
-            ) : primary === "rest" ? (
-              <>
-                <p className="text-sm font-semibold text-[var(--foreground)]">День отдыха</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  В плане пусто и нечего повторить. «Вне плана» выше — если всё же хотите потренироваться.
-                </p>
-                <button
-                  type="button"
-                  className="mt-3 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-                  onClick={() =>
-                    onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
-                  }
-                >
-                  Назначить план на сегодня
-                </button>
+                ) : null}
+                {templateRows.length > 0 ? (
+                  <div className="mt-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                      Шаблоны
+                    </p>
+                    <ul className="mt-2 space-y-2">
+                      {templateRows.slice(0, 6).map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            className="flex w-full items-center justify-between gap-3 rounded-[1rem] border border-[var(--border-hairline)] bg-[var(--surface-mist)] px-3.5 py-3 text-left disabled:opacity-40"
+                            onClick={() => onStartRoutine(r.id)}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate font-semibold text-[var(--foreground)]">
+                                {r.planLabel ? (
+                                  <span className="mr-1.5 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">
+                                    {r.planLabel}
+                                  </span>
+                                ) : null}
+                                {r.name}
+                              </span>
+                              <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
+                                {r.exerciseCount} упр.
+                                {r.muscleLabels.length
+                                  ? ` · ${r.muscleLabels.slice(0, 3).join(" · ")}`
+                                  : ""}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-sm font-bold text-[var(--accent-ink)]">
+                              Старт
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      className="mt-2 text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                      onClick={onGoTemplates}
+                    >
+                      Все шаблоны
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="mt-1 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                    onClick={onGoTemplates}
+                  >
+                    + Создать шаблон
+                  </button>
+                )}
               </>
             ) : (
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">Начать тренировку</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  «Старт» / «Ещё» выше — пустая сессия, упражнения добавите сами.
+                  Кнопка выше — пустая сессия, упражнения добавите сами.
                 </p>
-                {showRepeatInStart && lastRepeat && onRepeatLast ? (
-                  <div className="mt-3">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      className="w-full rounded-[var(--radius-control)] border border-[var(--border-quiet)] bg-[var(--accent-soft)]/80 py-3 text-base font-semibold text-[var(--accent-ink)] disabled:opacity-40"
-                      onClick={() => onRepeatLast(lastRepeat.id)}
-                    >
-                      {busy ? "Копируем…" : lastRepeat.label}
-                    </button>
-                    <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
-                      {lastRepeat.hint}
-                    </p>
-                    <RepeatAlternatives
-                      items={recentRepeats}
-                      busy={busy}
-                      onRepeat={onRepeatLast}
-                    />
-                  </div>
-                ) : null}
               </>
             )}
           </div>

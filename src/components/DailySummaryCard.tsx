@@ -90,9 +90,6 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
       ? formatCalorieVsTargetLabel(data.totalCalories, data.target.calories, data.goal)
       : "";
 
-  const macroLine =
-    entryCount > 0 ? `${data.totalProtein}/${data.totalFat}/${data.totalCarbs} г` : "—";
-
   const waterLabel = data.totalWaterMl > 0 ? `${data.totalWaterMl} мл` : "—";
 
   const deltaLabel =
@@ -112,12 +109,25 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         <>
           {calorieLabel}
           {vsTarget ? (
-            <span className="mt-0.5 block text-xs font-normal text-[var(--muted)]">{vsTarget}</span>
+            <span className="mt-0.5 block text-xs font-normal text-white/70">{vsTarget}</span>
           ) : null}
         </>
       ),
     },
-    { key: "macro", label: "БЖУ", value: macroLine },
+    {
+      key: "macro",
+      label: "БЖУ",
+      value:
+        entryCount > 0 ? (
+          <span className="flex flex-col gap-0.5 text-base leading-snug">
+            <span>Б {Math.round(data.totalProtein)} г</span>
+            <span>Ж {Math.round(data.totalFat)} г</span>
+            <span>У {Math.round(data.totalCarbs)} г</span>
+          </span>
+        ) : (
+          "—"
+        ),
+    },
     { key: "delta", label: "К цели", value: deltaLabel },
     {
       key: "water",
