@@ -5825,6 +5825,61 @@ select {
   color: var(--accent-ink);
 }
 
+.moment-meal-ideas {
+  margin-top: 0.75rem;
+}
+
+.moment-meal-ideas-label {
+  margin: 0 0 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.moment-meal-ideas-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.moment-meal-idea {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border-quiet);
+  border-radius: 0.85rem;
+  background: var(--surface-mist, #f3f1ec);
+  text-align: left;
+  cursor: pointer;
+}
+
+.moment-meal-idea b {
+  max-width: 9.5rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+
+.moment-meal-idea span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted-strong, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-meal-idea:disabled {
+  opacity: 0.55;
+}
+
 .moment-macros {
   display: flex;
   margin-top: 0.75rem;
