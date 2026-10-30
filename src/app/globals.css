@@ -5337,6 +5337,10 @@ select {
   gap: 0.5rem;
 }
 
+.confirm-quick-total {
+  margin-top: 0.5rem;
+}
+
 .confirm-dish-list-hint {
   font-size: 0.75rem;
   color: var(--muted);

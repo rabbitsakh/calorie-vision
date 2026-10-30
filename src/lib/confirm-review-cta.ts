@@ -149,18 +149,35 @@ export function canSaveAsIs(input: {
   return input.anyLowConfidence || Boolean(input.anyMissingMacros);
 }
 
+const MEAL_SLOT_RU: Record<string, string> = {
+  BREAKFAST: "завтрак",
+  LUNCH: "обед",
+  DINNER: "ужин",
+  SNACK: "перекус",
+};
+
+/**
+ * Hybrid mockup: «Записать в завтрак · 469 ккал» — same family as QuickLogSheet.
+ * Soft-save / busy keep distinct labels so trust isn’t mistaken for verified.
+ */
 export function confirmSaveButtonLabel(input: {
   saving: boolean;
   enriching: boolean;
   multi: boolean;
   saveAsIs: boolean;
+  mealType?: string | null;
+  totalCalories?: number;
 }): string {
   if (input.saving) return "Сохраняем...";
   // Trust: label the soft path so Save is not mistaken for “verified”.
   if (input.saveAsIs) return "Сохранить как есть";
-  if (input.enriching) return "Сохранить";
-  if (input.multi) return "Сохранить все";
-  return "Сохранить";
+  const slot = input.mealType ? MEAL_SLOT_RU[input.mealType] ?? null : null;
+  const kcal =
+    input.totalCalories != null && input.totalCalories > 0
+      ? ` · ${Math.round(input.totalCalories)} ккал`
+      : "";
+  if (input.enriching && !kcal) return "Записать";
+  return `Записать${slot ? ` в ${slot}` : ""}${kcal}`;
 }
 
 export function saveAsIsHint(input?: {

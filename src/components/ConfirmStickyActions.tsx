@@ -99,8 +99,8 @@ export function ConfirmStickyActions({
       ) : null}
       <button
         type="button"
-        className={`inline-flex items-center justify-center gap-2 ${
-          needsReview && reviewCta ? "btn btn-secondary" : "btn btn-primary"
+        className={`inline-flex w-full items-center justify-center gap-2 ${
+          needsReview && reviewCta ? "btn btn-secondary" : "quick-save"
         }`}
         disabled={saving || searching || blockSaveForMissingKcal}
         onClick={() => void onSave()}
@@ -114,8 +114,8 @@ export function ConfirmStickyActions({
           saveLabel
         )}
       </button>
-      <button type="button" className="btn btn-secondary" disabled={saving} onClick={onCancel}>
-        Отменить
+      <button type="button" className="quick-cancel" disabled={saving} onClick={onCancel}>
+        Отмена
       </button>
     </div>
   );

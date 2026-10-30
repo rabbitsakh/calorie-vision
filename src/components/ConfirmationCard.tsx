@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState } from "react";
 import { formatMacro, nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "@/lib/nutrition";
-import type { RecognitionResponse } from "@/types";
+import { MEAL_TYPE_LABELS, type MealType, type RecognitionResponse } from "@/types";
 import { ConfirmDishRow } from "@/components/ConfirmDishRow";
 import { dateKeyAndTimeToIso, toTimeInputValue } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
@@ -137,10 +137,11 @@ export function ConfirmationCard({
   const [heroSrc, setHeroSrc] = useState(() => resolveConfirmHeroSrc(initialImagePath, previewUrl));
   const [imageLoaded, setImageLoaded] = useState(false);
   const [activeDish, setActiveDish] = useState(() => {
-    if (typeof initialUi?.activeDish === "number" && initialUi.activeDish >= 0) {
+    if (typeof initialUi?.activeDish === "number") {
       return initialUi.activeDish;
     }
     // Multi-dish: open on the weakest item so «Уточнить» matches what the user sees.
+    // Single-dish: start collapsed (QuickLog-style) — tap row for details.
     const initialDishes = applyUiToDishes(draftsFromRecognition(recognition), initialUi);
     if (initialDishes.length > 1) {
       return worstReviewDishIndex(
@@ -154,7 +155,7 @@ export function ConfirmationCard({
         }),
       );
     }
-    return 0;
+    return -1;
   });
   const [lowConfidenceThreshold, setLowConfidenceThreshold] = useState(DEFAULT_LOW_CONFIDENCE);
   const [userAllergens, setUserAllergens] = useState<AllergenId[]>([]);
@@ -827,7 +828,10 @@ export function ConfirmationCard({
     enriching,
     multi,
     saveAsIs,
+    mealType,
+    totalCalories,
   });
+  const mealSlots = Object.keys(MEAL_TYPE_LABELS) as MealType[];
   const softSaveBasisDish =
     dishes.find((d) => d.original.lookupMode || d.original.brand) ?? dishes[0];
   const softSaveHint = saveAsIsHint({
@@ -950,11 +954,9 @@ export function ConfirmationCard({
           </div>
         ) : (
           <div className="confirm-card-titleblock">
-            <h2 className="font-display text-xl font-semibold tracking-tight">Проверьте и сохраните</h2>
+            <h2 className="font-display text-xl font-semibold tracking-tight">Проверь и запиши</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              {multi
-                ? "Несколько блюд — поправьте порции и сохраните."
-                : "Порция и калории — сохраните. БЖУ при необходимости ниже."}
+              Поправьте граммы — ккал пересчитаются. Одна кнопка ниже.
             </p>
           </div>
         )}
@@ -963,101 +965,120 @@ export function ConfirmationCard({
         {enriching ? (
           <p className="rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-soft)] px-3 py-2 text-sm font-semibold text-[var(--accent-ink)]">
             {totalCalories > 0
-              ? `${totalCalories} ккал — можно сохранить`
-              : "Уточняем по базе — можно сохранить"}
+              ? `${totalCalories} ккал — можно записать`
+              : "Уточняем по базе — можно записать"}
           </p>
         ) : null}
 
-        <div className="flex flex-col gap-4">
-          {multi ? (
-            <div className="confirm-dish-list" aria-label="Позиции на фото">
-              <p className="confirm-dish-list-hint">
-                Поправьте граммы — ккал пересчитаются. Нажмите на блюдо для подробностей.
-              </p>
-              {dishes.map((dish, index) => {
-                const brand = dish.original.brand?.trim();
-                const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
-                const dishAllergenHits = matchAllergensInText(text, userAllergens);
-                const flags = reviewFlags[index];
-                return (
-                  <Fragment key={dish.id}>
-                    <ConfirmDishRow
-                      dish={dish}
-                      index={index}
-                      active={index === activeDish}
-                      allergen={dishAllergenHits.length > 0}
-                      flag={flags?.missingMacros ? "БЖУ?" : flags?.lowConfidence ? "?" : null}
-                      flagTitle={
-                        dishAllergenHits.length > 0
-                          ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
-                          : flags?.missingMacros
-                            ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
-                            : flags?.lowConfidence
-                              ? "Слабая уверенность — откройте и нажмите «Уточнить»"
-                              : undefined
-                      }
-                      disabled={formDisabled}
-                      onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
-                      onPortion={(value) => handlePortionChange(dish, value)}
-                      onApplyAlternative={(alt) => {
-                        const targetPortion =
-                          Number(dish.portionGrams) > 0
-                            ? Number(dish.portionGrams)
-                            : Number(dish.original.portionGrams) || 100;
-                        const merged = applyAlternativeToPortion(
-                          dish.original,
-                          alt,
-                          targetPortion,
-                        );
-                        updateDish(dish.id, {
-                          dishName: decodeHtmlEntities(merged.dishName),
-                          calories: String(merged.calories),
-                          protein:
-                            merged.protein !== undefined ? formatMacro(merged.protein) : "",
-                          fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
-                          carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
-                          fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
-                          sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
-                          portionGrams: String(merged.portionGrams),
-                          baseline: nutritionBaselineFromRecognition({
-                            ...dish.original,
-                            ...merged,
-                          }),
-                        });
-                      }}
-                    />
-                    {index === activeDish ? renderDishFields(dish, index) : null}
-                  </Fragment>
-                );
-              })}
-            </div>
-          ) : (
-            dishes.map((dish, index) => renderDishFields(dish, index))
-          )}
-
-          {multi ? (
+        <div className="quick-slots" role="radiogroup" aria-label="Приём пищи">
+          {mealSlots.map((key) => (
             <button
+              key={key}
               type="button"
-              className="btn btn-secondary self-start text-sm"
+              role="radio"
+              aria-checked={mealType === key}
+              className={`quick-slot${mealType === key ? " quick-slot--on" : ""}`}
               disabled={formDisabled}
-              onClick={() => {
-                dishesListTouchedRef.current = true;
-                setDishes((current) => {
-                  const next = [
-                    ...current,
-                    draftFromRecognition(
-                      { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
-                      `new-${Date.now()}`,
-                    ),
-                  ];
-                  setActiveDish(next.length - 1);
-                  return next;
-                });
-              }}
+              onClick={() => setMealType(key)}
             >
-              Добавить блюдо
+              {MEAL_TYPE_LABELS[key]}
             </button>
-          ) : null}
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="confirm-dish-list" aria-label="Позиции на фото">
+            <p className="confirm-dish-list-hint">
+              {multi
+                ? `Нашёл ${dishes.length} блюд — проверь граммы`
+                : "Нашёл блюдо — проверь граммы"}
+            </p>
+            {dishes.map((dish, index) => {
+              const brand = dish.original.brand?.trim();
+              const text = brand ? `${dish.dishName} ${brand}` : dish.dishName;
+              const dishAllergenHits = matchAllergensInText(text, userAllergens);
+              const flags = reviewFlags[index];
+              return (
+                <Fragment key={dish.id}>
+                  <ConfirmDishRow
+                    dish={dish}
+                    index={index}
+                    active={index === activeDish}
+                    allergen={dishAllergenHits.length > 0}
+                    flag={flags?.missingMacros ? "БЖУ?" : flags?.lowConfidence ? "?" : null}
+                    flagTitle={
+                      dishAllergenHits.length > 0
+                        ? `Возможен аллерген: ${dishAllergenHits.map((id) => allergenLabel(id)).join(", ")}`
+                        : flags?.missingMacros
+                          ? "Есть ккал, нет БЖУ — откройте и нажмите «Уточнить»"
+                          : flags?.lowConfidence
+                            ? "Слабая уверенность — откройте и нажмите «Уточнить»"
+                            : undefined
+                    }
+                    disabled={formDisabled}
+                    onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
+                    onPortion={(value) => handlePortionChange(dish, value)}
+                    onApplyAlternative={(alt) => {
+                      const targetPortion =
+                        Number(dish.portionGrams) > 0
+                          ? Number(dish.portionGrams)
+                          : Number(dish.original.portionGrams) || 100;
+                      const merged = applyAlternativeToPortion(
+                        dish.original,
+                        alt,
+                        targetPortion,
+                      );
+                      updateDish(dish.id, {
+                        dishName: decodeHtmlEntities(merged.dishName),
+                        calories: String(merged.calories),
+                        protein:
+                          merged.protein !== undefined ? formatMacro(merged.protein) : "",
+                        fat: merged.fat !== undefined ? formatMacro(merged.fat) : "",
+                        carbs: merged.carbs !== undefined ? formatMacro(merged.carbs) : "",
+                        fiber: merged.fiber !== undefined ? formatMacro(merged.fiber) : "",
+                        sugar: merged.sugar !== undefined ? formatMacro(merged.sugar) : "",
+                        portionGrams: String(merged.portionGrams),
+                        baseline: nutritionBaselineFromRecognition({
+                          ...dish.original,
+                          ...merged,
+                        }),
+                      });
+                    }}
+                  />
+                  {index === activeDish ? renderDishFields(dish, index) : null}
+                </Fragment>
+              );
+            })}
+            <div className="quick-total confirm-quick-total">
+              <b>{totalCalories || "—"} ккал</b>
+              <span>
+                {dishes.length}{" "}
+                {dishes.length === 1 ? "позиция" : dishes.length < 5 ? "позиции" : "позиций"}
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary self-start text-sm"
+            disabled={formDisabled}
+            onClick={() => {
+              dishesListTouchedRef.current = true;
+              setDishes((current) => {
+                const next = [
+                  ...current,
+                  draftFromRecognition(
+                    { dishName: "", calories: 0, confidence: 0.5, photoKind: "meal" },
+                    `new-${Date.now()}`,
+                  ),
+                ];
+                setActiveDish(next.length - 1);
+                return next;
+              });
+            }}
+          >
+            Добавить блюдо
+          </button>
         </div>
 
         {lookupMessage ? <p className="text-sm text-[var(--accent)]">{lookupMessage}</p> : null}
