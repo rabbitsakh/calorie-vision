@@ -38,11 +38,13 @@ import {
   hasFreshPostWorkoutNudge,
   shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
+import { inferMealTypeFromHour } from "@/lib/meal-type";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { hydrateQuietHoursFromAccount, quietHoursLocalHour } from "@/lib/quiet-hours-prefs";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { dismissWeekNudge, isWeekNudgeDismissed } from "@/lib/week-nudge-dismiss";
 import { useTimezone } from "@/lib/use-timezone";
+import { MEAL_TYPE_LABELS } from "@/types";
 
 type Props = {
   selectedDate: string;
@@ -90,8 +92,16 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   const [gymLive, setGymLive] = useState<{ label: string | null } | null>(null);
   const [mealIdeas, setMealIdeas] = useState<MealIdea[]>([]);
   const [addingIdea, setAddingIdea] = useState<number | null>(null);
+  const [ideaError, setIdeaError] = useState<string | null>(null);
   const [hour, setHour] = useState(() => quietHoursLocalHour());
   const [, bump] = useState(0);
+
+  const mealIdeasLabel = (() => {
+    const slot = inferMealTypeFromHour(hour);
+    const name = MEAL_TYPE_LABELS[slot].toLowerCase();
+    if (slot === "SNACK") return "Идеи перекуса";
+    return `Идеи на ${name}`;
+  })();
 
   useEffect(() => {
     hydrateQuietHoursFromAccount();
@@ -259,6 +269,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
 
   async function addMealIdea(idea: MealIdea, index: number) {
     setAddingIdea(index);
+    setIdeaError(null);
     try {
       const extras = buildQuickMealLogExtras(selectedDate, timezone);
       const resp = await fetch(withBasePath("/api/meals"), {
@@ -275,13 +286,18 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
           ...extras,
         }),
       });
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        setIdeaError("Не удалось добавить — попробуйте ещё раз");
+        return;
+      }
       trackFirstMealSaveGoal();
       trackMealSavedGoal();
       notifyFoodSaved();
       setMealIdeas((list) => list.filter((_, i) => i !== index));
       day?.refresh?.();
       bump((n) => n + 1);
+    } catch {
+      setIdeaError("Нет связи — идея не записалась");
     } finally {
       setAddingIdea(null);
     }
@@ -375,7 +391,9 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       selectedDate={selectedDate}
       onAction={runAction}
       mealIdeas={moment.phase === "day" ? mealIdeas : []}
+      mealIdeasLabel={mealIdeasLabel}
       addingIdea={addingIdea}
+      ideaError={ideaError}
       onAddIdea={(idea, index) => void addMealIdea(idea, index)}
     />
   );
@@ -425,14 +443,18 @@ export function MomentHeroView({
   selectedDate,
   onAction,
   mealIdeas = [],
+  mealIdeasLabel = "Идеи под остаток",
   addingIdea = null,
+  ideaError = null,
   onAddIdea,
 }: {
   moment: MomentHero;
   selectedDate: string;
   onAction: (action: SoftStepAction) => void;
   mealIdeas?: MealIdea[];
+  mealIdeasLabel?: string;
   addingIdea?: number | null;
+  ideaError?: string | null;
   onAddIdea?: (idea: MealIdea, index: number) => void;
 }) {
   const dark = moment.tone === "dark";
@@ -513,8 +535,8 @@ export function MomentHeroView({
               </div>
             ) : null}
             {mealIdeas.length > 0 ? (
-              <div className="moment-meal-ideas" aria-label="Идеи под остаток">
-                <p className="moment-meal-ideas-label">Идеи обеда</p>
+              <div className="moment-meal-ideas" aria-label={mealIdeasLabel}>
+                <p className="moment-meal-ideas-label">{mealIdeasLabel}</p>
                 <div className="moment-meal-ideas-row">
                   {mealIdeas.map((idea, i) => (
                     <button
@@ -529,6 +551,7 @@ export function MomentHeroView({
                     </button>
                   ))}
                 </div>
+                {ideaError ? <p className="moment-meal-ideas-error">{ideaError}</p> : null}
               </div>
             ) : null}
             {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}

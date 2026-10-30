@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
+import { requireDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { parseEatenAt } from "@/lib/eaten-at";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +29,7 @@ export async function PATCH(
       lookupMode?: string | null;
       mealType?: string | null;
       eatenAt?: string | null;
+      date?: string;
     };
 
     if (body.dishName !== undefined && !body.dishName.trim()) {
@@ -50,6 +52,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Некорректное время приёма пищи" }, { status: 400 });
     }
 
+    let date: string | undefined;
+    if (body.date !== undefined) {
+      const parsed = requireDateKey(body.date);
+      if (!parsed) {
+        return NextResponse.json({ error: "Некорректная дата (YYYY-MM-DD)" }, { status: 400 });
+      }
+      date = parsed;
+    }
+
     // If only HH:MM was intended via ISO without date, keep as-is (client sends full ISO).
     const updated = await prisma.mealEntry.updateMany({
       where: { id, userId: session.user.id },
@@ -70,6 +81,7 @@ export async function PATCH(
           : {}),
         ...(mealType !== undefined ? { mealType } : {}),
         ...(eatenAt !== undefined ? { eatenAt } : {}),
+        ...(date !== undefined ? { date } : {}),
       },
     });
 

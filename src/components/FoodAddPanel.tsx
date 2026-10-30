@@ -56,6 +56,8 @@ type FoodAddPanelProps = {
   disabled?: boolean;
   /** Prefill meal type from push deep link. */
   initialMealType?: string;
+  /** Prefill text search (composer offline handoff). */
+  initialTextQuery?: string;
   /** Starting capture mode when opened from host / picker. */
   initialMode?: AddMode;
   /** Open device camera once after mount (photo mode). */
@@ -103,6 +105,7 @@ export function FoodAddPanel({
   selectedDate,
   disabled,
   initialMealType,
+  initialTextQuery,
   initialMode = "photo",
   autoOpenCamera = false,
   autoOpenGallery = false,
@@ -134,11 +137,14 @@ export function FoodAddPanel({
   const speechRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    if (launchKey === 0 && !autoOpenCamera && !autoOpenGallery) return;
+    if (launchKey === 0 && !autoOpenCamera && !autoOpenGallery && !initialTextQuery) return;
     setMode(initialMode);
     setError(null);
     setBarcodeFailure(null);
     setLoading(false);
+    if (initialMode === "text" && initialTextQuery?.trim()) {
+      setTextQuery(initialTextQuery.trim());
+    }
     if (initialMode === "photo" && autoOpenCamera) {
       const t = window.setTimeout(() => photoAbortRef.current?.openCamera(), 120);
       return () => window.clearTimeout(t);
@@ -148,7 +154,7 @@ export function FoodAddPanel({
       return () => window.clearTimeout(t);
     }
     return undefined;
-  }, [launchKey, initialMode, autoOpenCamera, autoOpenGallery]);
+  }, [launchKey, initialMode, autoOpenCamera, autoOpenGallery, initialTextQuery]);
 
   const refreshQueueCount = useCallback(() => {
     setQueuedCount(countOfflineQueue());

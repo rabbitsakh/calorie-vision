@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   countFailedDeletes,
@@ -545,17 +545,24 @@ export function OfflineMealQueueBanner({
     return () => window.clearTimeout(timer);
   }, [flushSummary]);
 
+  const flushRef = useRef(flush);
+  flushRef.current = flush;
+
   useEffect(() => {
-    let wasOnline = true;
+    let wasOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+    // Mount while already online with drafts — flush once (offline→online alone missed this).
+    if (wasOnline) {
+      void flushRef.current();
+    }
     return subscribeConnectivity((next) => {
       setOnline(next);
       // Probe can recover without a browser `online` event — flush then.
       if (next && !wasOnline) {
-        void flush();
+        void flushRef.current();
       }
       wasOnline = next;
     });
-  }, [flush]);
+  }, []);
 
   const totalCount =
     failedCount +
