@@ -4,9 +4,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DayFeedEvent, PlannedSlot } from "@/lib/day-feed-events";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
+import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 
-export type FeedDot = "meal" | "gym" | "weight" | "empty";
+export type FeedDot = "meal" | "gym" | "weight" | "water" | "empty";
 
 export function feedTimeLabel(atMs: number | null, timezone?: string | null): string {
   if (atMs == null) return "";
@@ -41,6 +42,26 @@ export function FeedTimelineItem({
 
 /** Non-meal moment in the day feed — card on the rail, links to its own screen. */
 export function DayEventRow({ event, timezone }: { event: DayFeedEvent; timezone?: string | null }) {
+  if (event.kind === "water") {
+    return (
+      <FeedTimelineItem time={feedTimeLabel(event.atMs, timezone)} dot="water">
+        <div className="feed-card day-event-row--water" data-testid="day-event-water">
+          <span className="feed-card-t1">
+            {event.title}
+            <button
+              type="button"
+              className="feed-mini-btn"
+              onClick={() => requestOpenWaterQuick()}
+            >
+              +{event.waterAddMl ?? 250}
+            </button>
+          </span>
+          {event.detail ? <span className="feed-card-t2">{event.detail}</span> : null}
+        </div>
+      </FeedTimelineItem>
+    );
+  }
+
   return (
     <FeedTimelineItem time={feedTimeLabel(event.atMs, timezone)} dot={event.kind}>
       <Link
@@ -51,6 +72,7 @@ export function DayEventRow({ event, timezone }: { event: DayFeedEvent; timezone
         <span className="feed-card-t1">
           {event.title}
           {event.live ? <span className="feed-tag feed-tag--live">идёт</span> : null}
+          {event.record ? <span className="feed-tag feed-tag--record">Рекорд</span> : null}
         </span>
         {event.detail ? <span className="feed-card-t2">{event.detail}</span> : null}
       </Link>

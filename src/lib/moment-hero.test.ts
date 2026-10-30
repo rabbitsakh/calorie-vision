@@ -94,11 +94,21 @@ test("buildMomentHero: daytime over target", () => {
 });
 
 test("buildMomentHero: evening ring + checklist", () => {
-  const m = buildMomentHero({ ...base, hour: 21, calories: 2020, protein: 118, mealCount: 4, gymDoneToday: true });
+  const m = buildMomentHero({
+    ...base,
+    hour: 21,
+    calories: 2020,
+    protein: 118,
+    mealCount: 4,
+    gymDoneToday: true,
+    tomorrowPlanLabel: "Ноги",
+  });
   assert.equal(m?.phase, "evening");
   assert.equal(m?.title, "День в цели");
   assert.equal(m?.ringPct, 96);
   assert.equal(m?.line, "2\u00a0020 из 2\u00a0100 ккал · серия 5 дн.");
+  assert.equal(m?.hint, "Завтра: Ноги");
+  assert.deepEqual(m?.cta, { label: "Закрыть день · открыть сундук", action: "chest" });
   assert.deepEqual(
     m?.checklist?.map((c) => [c.label, c.done, c.value]),
     [

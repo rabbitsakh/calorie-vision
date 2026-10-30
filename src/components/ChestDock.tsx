@@ -11,6 +11,7 @@ import {
 } from "@/lib/chest-client";
 import type { ChestMeterModel } from "@/lib/chest-progress";
 import { subscribeChestQueueRefresh } from "@/lib/chest-queue-refresh";
+import { OPEN_CHEST_QUICK_EVENT } from "@/lib/open-chest-quick";
 import { withBasePath } from "@/lib/paths";
 import type { RewardRarity } from "@/lib/rewards";
 import {
@@ -71,7 +72,7 @@ export function ChestDock({
 
   useEffect(() => subscribeChestQueueRefresh(() => void reload()), [reload]);
 
-  async function handleOpen() {
+  const handleOpen = useCallback(async () => {
     if (busy || selectedDate !== today) return;
     setBusy(true);
     try {
@@ -121,9 +122,23 @@ export function ChestDock({
     } finally {
       setBusy(false);
     }
-  }
+  }, [busy, selectedDate, today, todayKey, reload, onOpened]);
 
-  if (!meter || selectedDate !== today) return null;
+  useEffect(() => {
+    const onQuick = () => {
+      if (selectedDate !== today) return;
+      document.getElementById("chest-dock")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      void handleOpen();
+    };
+    window.addEventListener(OPEN_CHEST_QUICK_EVENT, onQuick);
+    return () => window.removeEventListener(OPEN_CHEST_QUICK_EVENT, onQuick);
+  }, [selectedDate, today, handleOpen]);
+
+  // Keep a mount point so evening «Закрыть день» can scroll/open even while meter loads.
+  if (selectedDate !== today) return null;
+  if (!meter) {
+    return <div id="chest-dock" className="sr-only" aria-hidden />;
+  }
 
   const pct =
     meter.per > 0 ? Math.min(100, Math.round((meter.filled / meter.per) * 100)) : 0;
@@ -134,6 +149,7 @@ export function ChestDock({
   return (
     <>
       <section
+        id="chest-dock"
         className={`chest-dock ${ready ? "chest-dock--ready" : ""}`}
         aria-label="Прогресс сундука"
       >

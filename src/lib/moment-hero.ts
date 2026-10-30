@@ -7,7 +7,7 @@
 import type { MorningTodayBrief } from "@/lib/morning-today";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
-export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera";
+export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera" | "chest";
 
 export type SoftStep = {
   label: string;
@@ -115,7 +115,12 @@ export type MomentHero = {
   checklist: MomentCheck[] | null;
 };
 
-export type MomentRoutine = { name: string; exerciseCount: number };
+export type MomentRoutine = {
+  name: string;
+  exerciseCount: number;
+  /** e.g. «Жим · цель 80 кг (+2.5)» from last session / plan label. */
+  goalHint?: string | null;
+};
 
 export type MomentHeroInput = {
   selectedIsToday: boolean;
@@ -126,6 +131,8 @@ export type MomentHeroInput = {
   morning: MorningTodayBrief | null;
   /** First routine planned for today (morning hero shows it big). */
   routine?: MomentRoutine | null;
+  /** Tomorrow’s plan label for evening wrap-up. */
+  tomorrowPlanLabel?: string | null;
   logged: boolean;
   mealCount?: number;
   calories: number;
@@ -220,13 +227,17 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     if (routine) {
       const n = routine.exerciseCount;
       const minutes = n > 0 ? Math.max(20, Math.round((n * 11) / 5) * 5) : 0;
+      const facts = [
+        n > 0 ? `${n} ${exerciseWord(n)} · ~${minutes} мин` : null,
+        routine.goalHint?.trim() || null,
+      ].filter((p): p is string => Boolean(p));
       return {
         phase: "morning",
         tone: "dark",
         mascot: "cheer",
         eyebrow: "Сейчас · утро",
         title: routine.name,
-        line: n > 0 ? `${n} ${exerciseWord(n)} · ~${minutes} мин` : null,
+        line: facts.length ? facts.join(" · ") : null,
         hint: input.logged ? null : "Первый приём — и день начат",
         cta: { label: "Начать тренировку", href: "/workouts" },
         ...EMPTY_EXTRAS,
@@ -300,6 +311,8 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
       });
     }
     checklist.push({ label: "Зал", done: input.gymDoneToday, value: input.gymDoneToday ? "сделан" : "сегодня без зала" });
+    const tomorrow = input.tomorrowPlanLabel?.trim() || null;
+    const softHint = input.softStep?.label ?? null;
     return {
       phase: "evening",
       tone: "dark",
@@ -311,8 +324,8 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
         : input.streak >= 2
           ? `серия ${input.streak} дн.`
           : null,
-      hint: input.softStep?.label ?? null,
-      cta: softCta(input.softStep),
+      hint: [softHint, tomorrow ? `Завтра: ${tomorrow}` : null].filter(Boolean).join(" · ") || null,
+      cta: { label: "Закрыть день · открыть сундук", action: "chest" },
       macros: null,
       ringPct: pct,
       checklist,

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { gymSessionEvent, placeDayEvents, plannedDaySlots, weightEvent, type DayFeedEvent } from "./day-feed-events.ts";
+import {
+  gymSessionEvent,
+  placeDayEvents,
+  plannedDaySlots,
+  waterFeedEvent,
+  weightEvent,
+  type DayFeedEvent,
+} from "./day-feed-events.ts";
 
 const ev = (key: string, atMs: number | null): DayFeedEvent => ({
   key,
@@ -36,11 +43,14 @@ test("gymSessionEvent: finished and live sessions", () => {
     muscleLabels: ["Грудь", "Трицепс"],
     setCount: 14,
     clockStatus: "finished",
+    prCount: 2,
   });
   assert.equal(done?.title, "Зал");
   assert.equal(done?.detail, "Грудь · Трицепс · 52 мин · 14 подх.");
-  const live = gymSessionEvent({ id: "s2", startedAt: "2026-10-29T07:00:00Z", endedAt: null, clockStatus: "running", setCount: 3 });
+  assert.equal(done?.record, true);
+  const live = gymSessionEvent({ id: "s2", startedAt: "2026-10-29T07:00:00Z", endedAt: null, clockStatus: "running", setCount: 3, prCount: 1 });
   assert.equal(live?.live, true);
+  assert.equal(live?.record, false);
   assert.equal(live?.detail, "идёт · 3 подх.");
   assert.equal(gymSessionEvent({ id: "s3", startedAt: null, endedAt: null, setCount: 0 }), null);
 });
@@ -48,6 +58,14 @@ test("gymSessionEvent: finished and live sessions", () => {
 test("weightEvent", () => {
   assert.equal(weightEvent(82.4)?.detail, "82,4 кг");
   assert.equal(weightEvent(null), null);
+});
+
+test("waterFeedEvent: shows after first sip", () => {
+  assert.equal(waterFeedEvent({ totalMl: 0, target: 2000 }), null);
+  const w = waterFeedEvent({ totalMl: 500, target: 2000 });
+  assert.equal(w?.kind, "water");
+  assert.equal(w?.waterAddMl, 250);
+  assert.match(w?.detail ?? "", /0,5 из 2/);
 });
 
 test("plannedDaySlots: morning → weigh-in + breakfast; filled slots and other days → none", () => {
