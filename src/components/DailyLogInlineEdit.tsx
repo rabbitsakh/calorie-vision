@@ -30,6 +30,8 @@ export type EditPatch = {
   lookupMode?: string | null;
   mealType?: string | null;
   eatenAt?: string | null;
+  /** Move entry to another diary day (YYYY-MM-DD). */
+  date?: string;
 };
 
 export function mealTypeBadgeClass(mealType: string | null | undefined): string {
@@ -73,6 +75,7 @@ export function InlineEdit({
   const [sugar, setSugar] = useState(entry.sugar != null ? String(entry.sugar) : "");
   const [portionGrams, setPortionGrams] = useState(entry.portionGrams != null ? String(entry.portionGrams) : "");
   const [mealType, setMealType] = useState(entry.mealType ?? "");
+  const [mealDate, setMealDate] = useState(entry.date);
   const [eatenTime, setEatenTime] = useState(() =>
     toTimeInputValue(entry.eatenAt ?? entry.createdAt, timezone),
   );
@@ -130,7 +133,11 @@ export function InlineEdit({
     setSaving(true);
     setError(null);
     try {
-      const eatenAt = dateKeyAndTimeToIso(entry.date, eatenTime, timezone);
+      const dateKey = mealDate.trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        throw new Error("Укажите корректную дату");
+      }
+      const eatenAt = dateKeyAndTimeToIso(dateKey, eatenTime, timezone);
       if (!eatenAt) {
         throw new Error("Укажите корректное время");
       }
@@ -145,6 +152,7 @@ export function InlineEdit({
         portionGrams: portionGrams ? Number(portionGrams) : null,
         mealType: mealType || null,
         eatenAt,
+        ...(dateKey !== entry.date ? { date: dateKey } : {}),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка сохранения");
@@ -187,6 +195,16 @@ export function InlineEdit({
           {canScalePortion ? (
             <p className="mt-1 text-[11px] text-[var(--muted)]">Ккал и БЖУ пересчитаются от исходной порции</p>
           ) : null}
+        </div>
+        <div className="field">
+          <label className="text-xs">Дата</label>
+          <input
+            type="date"
+            className="text-base"
+            value={mealDate}
+            onChange={(e) => setMealDate(e.target.value)}
+            required
+          />
         </div>
         <div className="field">
           <label className="text-xs">Время</label>

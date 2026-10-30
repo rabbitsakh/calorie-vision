@@ -14,6 +14,8 @@ export type OpenFoodAddDetail = {
   openGallery?: boolean;
   /** Prefill meal type on confirm (push deep link). */
   mealType?: string;
+  /** Prefill text search field (composer → offline text sheet). */
+  textPrefill?: string;
   /** Open sheet and resume pending-confirm draft if any. */
   resumePending?: boolean;
 };
@@ -32,9 +34,10 @@ export function requestOpenFoodCamera(_scrollFirst = true): void {
   openFoodAdd({ mode: "photo", openCamera: true });
 }
 
-/** Explicit text CTA — skips mode picker. */
-export function requestOpenFoodText(_scrollFirst = true): void {
-  openFoodAdd({ mode: "text" });
+/** Explicit text CTA — skips mode picker. Optional composer draft. */
+export function requestOpenFoodText(textPrefill?: string): void {
+  const prefill = textPrefill?.trim() || undefined;
+  openFoodAdd({ mode: "text", ...(prefill ? { textPrefill: prefill } : {}) });
 }
 
 /** Explicit barcode CTA — skips mode picker. */

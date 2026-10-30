@@ -420,29 +420,34 @@ export function DailyLog({
 
   async function handleEdit(id: string, patch: EditPatch) {
     // Optimistic update so meal-type budget bars move immediately.
+    // Moving to another day removes the row from this day's list.
     setEntries((prev) =>
-      prev.map((entry) => {
-        if (entry.id !== id) return entry;
-        return {
-          ...entry,
-          dishName: patch.dishName,
-          calories: patch.calories,
-          protein: patch.protein ?? null,
-          fat: patch.fat ?? null,
-          carbs: patch.carbs ?? null,
-          fiber: patch.fiber ?? null,
-          sugar: patch.sugar ?? null,
-          portionGrams: patch.portionGrams ?? null,
-          brand: patch.brand !== undefined ? patch.brand : entry.brand,
-          lookupMode: patch.lookupMode !== undefined ? patch.lookupMode : entry.lookupMode,
-          mealType:
-            patch.mealType === undefined
-              ? entry.mealType
-              : patch.mealType === null || patch.mealType === ""
-                ? null
-                : (patch.mealType as MealEntry["mealType"]),
-          eatenAt: patch.eatenAt !== undefined ? patch.eatenAt : entry.eatenAt,
-        };
+      prev.flatMap((entry) => {
+        if (entry.id !== id) return [entry];
+        if (patch.date && patch.date !== selectedDate) return [];
+        return [
+          {
+            ...entry,
+            dishName: patch.dishName,
+            calories: patch.calories,
+            protein: patch.protein ?? null,
+            fat: patch.fat ?? null,
+            carbs: patch.carbs ?? null,
+            fiber: patch.fiber ?? null,
+            sugar: patch.sugar ?? null,
+            portionGrams: patch.portionGrams ?? null,
+            brand: patch.brand !== undefined ? patch.brand : entry.brand,
+            lookupMode: patch.lookupMode !== undefined ? patch.lookupMode : entry.lookupMode,
+            mealType:
+              patch.mealType === undefined
+                ? entry.mealType
+                : patch.mealType === null || patch.mealType === ""
+                  ? null
+                  : (patch.mealType as MealEntry["mealType"]),
+            eatenAt: patch.eatenAt !== undefined ? patch.eatenAt : entry.eatenAt,
+            date: patch.date ?? entry.date,
+          },
+        ];
       }),
     );
     attemptedImageMealIds.current.delete(id);

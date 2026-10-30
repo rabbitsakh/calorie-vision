@@ -52,6 +52,7 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   requestOpenFoodAddPicker({ mealType: "LUNCH" });
   requestOpenFoodCamera();
   requestOpenFoodText();
+  requestOpenFoodText("  овсянка  ");
   requestOpenFoodBarcode();
   requestOpenPendingConfirm();
 
@@ -61,8 +62,9 @@ test("openFoodAdd dispatches detail; picker has no mode", () => {
   assert.deepEqual(captured[3], { mealType: "LUNCH" });
   assert.deepEqual(captured[4], { mode: "photo", openCamera: true });
   assert.deepEqual(captured[5], { mode: "text" });
-  assert.deepEqual(captured[6], { mode: "barcode" });
-  assert.deepEqual(captured[7], { resumePending: true });
+  assert.deepEqual(captured[6], { mode: "text", textPrefill: "овсянка" });
+  assert.deepEqual(captured[7], { mode: "barcode" });
+  assert.deepEqual(captured[8], { resumePending: true });
 });
 
 test("notifyFoodSaved dispatches cv-food-saved", () => {

@@ -1,3 +1,4 @@
+import { compressImageFileForUpload } from "@/lib/client-image-compress";
 import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { humanizeClientFetchError, isNetworkFetchError, readApiJson } from "@/lib/read-api-json";
@@ -82,8 +83,13 @@ export async function recognizePhotoFile(
     throw new DOMException("Aborted", "AbortError");
   }
 
+  const uploadFile = await compressImageFileForUpload(file);
+  if (signal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
+
   const formData = new FormData();
-  formData.append("photo", file, uploadNameForFile(file));
+  formData.append("photo", uploadFile, uploadNameForFile(uploadFile));
   if (localBarcode) {
     formData.append("barcode", localBarcode);
   }

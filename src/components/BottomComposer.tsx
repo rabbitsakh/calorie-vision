@@ -56,7 +56,8 @@ export function BottomComposer({ date, disabled = false }: Props) {
     if (!value || disabled) return;
     if (!online) {
       // Parsing is online-only; the text sheet queues offline.
-      requestOpenFoodText();
+      requestOpenFoodText(value);
+      setText("");
       return;
     }
     setText("");
@@ -160,20 +161,19 @@ export function BottomComposer({ date, disabled = false }: Props) {
                   <path d="M5 10a7 7 0 0 0 14 0M12 17v4" />
                 </svg>
               </button>
-            ) : (
-              <button
-                type="button"
-                className="bottom-composer-btn"
-                aria-label="Ещё: галерея, вода, вес, тренировка"
-                aria-haspopup="dialog"
-                disabled={disabled}
-                onClick={() => requestOpenFoodAddPicker()}
-              >
-                <svg {...ICON} strokeWidth={2.4}>
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </button>
-            )}
+            ) : null}
+            <button
+              type="button"
+              className="bottom-composer-btn"
+              aria-label="Ещё: галерея, вода, вес, тренировка"
+              aria-haspopup="dialog"
+              disabled={disabled}
+              onClick={() => requestOpenFoodAddPicker()}
+            >
+              <svg {...ICON} strokeWidth={2.4}>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
             <button
               type="button"
               className="bottom-composer-btn bottom-composer-btn--camera"

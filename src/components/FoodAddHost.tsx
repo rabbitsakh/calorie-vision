@@ -62,6 +62,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
   const [openCameraOnce, setOpenCameraOnce] = useState(false);
   const [openGalleryOnce, setOpenGalleryOnce] = useState(false);
   const [mealType, setMealType] = useState<string | undefined>();
+  const [textPrefill, setTextPrefill] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [launchKey, setLaunchKey] = useState(0);
   const [resumeKey, setResumeKey] = useState(0);
@@ -79,10 +80,14 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
   }, [confirmOpen]);
 
   const openSheet = useCallback(
-    (nextMode: FoodAddMode, opts?: { openCamera?: boolean; openGallery?: boolean }) => {
+    (
+      nextMode: FoodAddMode,
+      opts?: { openCamera?: boolean; openGallery?: boolean; textPrefill?: string },
+    ) => {
       setMode(nextMode);
       setOpenCameraOnce(Boolean(opts?.openCamera) && nextMode === "photo");
       setOpenGalleryOnce(Boolean(opts?.openGallery) && nextMode === "photo" && !opts?.openCamera);
+      setTextPrefill(nextMode === "text" ? opts?.textPrefill?.trim() || undefined : undefined);
       setLaunchKey((k) => k + 1);
       setPhase("sheet");
     },
@@ -123,6 +128,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
       openSheet(detail.mode, {
         openCamera: detail.openCamera,
         openGallery: detail.openGallery,
+        textPrefill: detail.textPrefill,
       });
     }
 
@@ -193,6 +199,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
             selectedDate={selectedDate}
             initialMealType={mealType}
             initialMode={mode}
+            initialTextQuery={textPrefill}
             autoOpenCamera={openCameraOnce}
             autoOpenGallery={openGalleryOnce}
             launchKey={launchKey}
