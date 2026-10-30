@@ -142,12 +142,26 @@ test("confirmSaveButtonLabel marks soft-save as как есть", () => {
     "Сохранить как есть",
   );
   assert.equal(
-    confirmSaveButtonLabel({ saving: false, enriching: true, multi: false, saveAsIs: false }),
-    "Сохранить",
+    confirmSaveButtonLabel({
+      saving: false,
+      enriching: true,
+      multi: false,
+      saveAsIs: false,
+      mealType: "BREAKFAST",
+      totalCalories: 469,
+    }),
+    "Записать в завтрак · 469 ккал",
   );
   assert.equal(
-    confirmSaveButtonLabel({ saving: false, enriching: false, multi: true, saveAsIs: false }),
-    "Сохранить все",
+    confirmSaveButtonLabel({
+      saving: false,
+      enriching: false,
+      multi: true,
+      saveAsIs: false,
+      mealType: "LUNCH",
+      totalCalories: 820,
+    }),
+    "Записать в обед · 820 ккал",
   );
   assert.match(saveAsIsHint(), /поправить порцию позже/i);
   assert.match(saveAsIsHint({ anyMissingMacros: true }), /БЖУ не заполнены/i);

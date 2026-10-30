@@ -176,10 +176,10 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
               id="food-add-sheet-title"
               className="font-display text-[1.05rem] font-semibold tracking-tight text-[var(--foreground)]"
             >
-              {confirmOpen ? "Проверьте и сохраните" : "Добавить еду"}
+              {confirmOpen ? "Проверь и запиши" : "Добавить еду"}
             </p>
             {confirmOpen ? (
-              <p className="mt-0.5 text-xs text-[var(--muted)]">Порция и ккал — затем сохранить</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Граммы на месте — одна кнопка внизу</p>
             ) : null}
           </div>
           {confirmOpen ? null : (
