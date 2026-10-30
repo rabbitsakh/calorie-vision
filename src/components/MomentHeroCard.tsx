@@ -330,7 +330,7 @@ export function MomentHeroView({
                         }}
                       />
                     </span>
-                    <span className="moment-macro-value">
+                    <span className="moment-macro-value" title={`${m.value} / ${m.target} г`}>
                       {m.value}/{m.target}
                     </span>
                   </div>

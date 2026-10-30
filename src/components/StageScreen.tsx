@@ -85,14 +85,16 @@ export function StageScreen({
             {metrics.map((m) => (
               <div
                 key={m.key}
-                className={`rounded-2xl px-4 py-3 ${
+                className={`min-w-0 overflow-hidden rounded-2xl px-4 py-3 ${
                   m.accent ? "bg-[var(--accent)]/25" : "bg-white/10"
                 }`}
               >
-                <p className={`text-xs ${m.accent ? "text-[var(--accent-soft)]" : "text-[var(--muted)]"}`}>
+                <p className={`text-xs ${m.accent ? "text-[var(--accent-soft)]" : "text-white/65"}`}>
                   {m.label}
                 </p>
-                <p className="mt-1 text-xl font-semibold tabular-nums">{m.value}</p>
+                <div className="mt-1 break-words text-xl font-semibold tabular-nums leading-snug">
+                  {m.value}
+                </div>
               </div>
             ))}
           </div>
