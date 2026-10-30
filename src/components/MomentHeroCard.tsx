@@ -16,6 +16,7 @@ import {
   streakOwnsMorning,
   type MorningTodayRoutine,
 } from "@/lib/morning-today";
+import { requestOpenChestQuick } from "@/lib/open-chest-quick";
 import { requestOpenFoodAddPicker, requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
@@ -49,6 +50,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   const day = useOptionalRationDay();
   const [routines, setRoutines] = useState<MorningTodayRoutine[]>([]);
   const [routine, setRoutine] = useState<MomentRoutine | null>(null);
+  const [tomorrowPlanLabel, setTomorrowPlanLabel] = useState<string | null>(null);
   const [gymDone, setGymDone] = useState(false);
   const [gymLive, setGymLive] = useState<{ label: string | null } | null>(null);
   const [hour, setHour] = useState(() => quietHoursLocalHour());
@@ -66,23 +68,38 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const [planResp, sessResp] = await Promise.all([
+        const tomorrow = (() => {
+          const d = new Date(`${today}T12:00:00`);
+          d.setDate(d.getDate() + 1);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${y}-${m}-${day}`;
+        })();
+        const [planResp, sessResp, tomorrowResp] = await Promise.all([
           fetch(withBasePath(`/api/workouts/plan?date=${today}`)),
           fetch(withBasePath(`/api/workouts?date=${today}&limit=5`)),
+          fetch(withBasePath(`/api/workouts/plan?date=${tomorrow}`)),
         ]);
         if (cancelled) return;
         if (planResp.ok) {
           const plan = (await planResp.json()) as PlanPayload;
           const first = plan.today?.[0];
+          const muscleHint = (first?.muscleLabels ?? []).slice(0, 2).join(" · ");
           setRoutine(
             first
               ? {
                   name:
                     first.planLabel?.trim() ||
                     first.name.trim() ||
-                    (first.muscleLabels ?? []).slice(0, 2).join(" + ") ||
+                    muscleHint ||
                     "Тренировка",
                   exerciseCount: first.exerciseCount ?? 0,
+                  goalHint: muscleHint
+                    ? first.planLabel?.trim()
+                      ? `${muscleHint}`
+                      : muscleHint
+                    : null,
                 }
               : null,
           );
@@ -93,6 +110,20 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
               muscleLabels: r.muscleLabels ?? [],
             })),
           );
+        }
+        if (tomorrowResp.ok) {
+          const plan = (await tomorrowResp.json()) as PlanPayload;
+          const first = plan.today?.[0];
+          setTomorrowPlanLabel(
+            first
+              ? first.planLabel?.trim() ||
+                  first.name.trim() ||
+                  (first.muscleLabels ?? []).slice(0, 2).join(" + ") ||
+                  null
+              : null,
+          );
+        } else {
+          setTomorrowPlanLabel(null);
         }
         if (sessResp.ok) {
           const sessions = ((await sessResp.json()) as SessionsPayload).sessions ?? [];
@@ -177,6 +208,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       gymDoneToday: gymDone,
       morning,
       routine,
+      tomorrowPlanLabel,
       logged,
       mealCount: new Set((meals?.entries ?? []).map((e) => e.mealType ?? e.id)).size,
       calories: meals?.totalCalories ?? 0,
@@ -192,7 +224,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       streak: streak?.streak ?? 0,
       softStep,
     });
-  }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine]);
+  }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine, tomorrowPlanLabel]);
 
   if (!moment) return null;
 
@@ -200,7 +232,10 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     if (action === "weight") requestOpenWeightQuick();
     else if (action === "water") requestOpenWaterQuick();
     else if (action === "camera") requestOpenFoodCamera();
-    else {
+    else if (action === "chest") {
+      requestOpenChestQuick();
+      document.getElementById("chest-dock")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
       if (action === "week") {
         dismissWeekNudge(today);
         bump((n) => n + 1);

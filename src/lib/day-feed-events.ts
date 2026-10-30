@@ -7,13 +7,17 @@ import type { MealListItem } from "@/lib/meal-groups";
 
 export type DayFeedEvent = {
   key: string;
-  kind: "gym" | "weight";
+  kind: "gym" | "weight" | "water";
   /** null → top of the day (e.g. weigh-in without a time). */
   atMs: number | null;
   title: string;
   detail: string | null;
   href: string;
   live?: boolean;
+  /** Gym PR badge in the feed. */
+  record?: boolean;
+  /** Water quick-add (+250). */
+  waterAddMl?: number;
 };
 
 export type GymSessionSummaryLike = {
@@ -24,6 +28,7 @@ export type GymSessionSummaryLike = {
   muscleLabels?: string[];
   setCount?: number;
   clockStatus?: string;
+  prCount?: number;
 };
 
 export function mealItemTimeMs(item: MealListItem): number | null {
@@ -57,6 +62,7 @@ export function gymSessionEvent(s: GymSessionSummaryLike): DayFeedEvent | null {
   if (!s.startedAt && sets === 0) return null;
   const live = s.clockStatus === "running" || s.clockStatus === "paused";
   const minutes = s.elapsedSec != null && s.elapsedSec > 0 ? Math.round(s.elapsedSec / 60) : null;
+  const record = (s.prCount ?? 0) > 0 && !live;
   const parts = [
     s.muscleLabels?.length ? s.muscleLabels.slice(0, 3).join(" · ") : null,
     live ? "идёт" : minutes != null ? `${minutes} мин` : null,
@@ -71,6 +77,7 @@ export function gymSessionEvent(s: GymSessionSummaryLike): DayFeedEvent | null {
     detail: parts.length ? parts.join(" · ") : null,
     href: "/workouts",
     live,
+    record,
   };
 }
 
@@ -83,6 +90,30 @@ export function weightEvent(kg: number | null | undefined): DayFeedEvent | null 
     title: "Вес",
     detail: `${kg.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} кг`,
     href: "/weight",
+  };
+}
+
+/** Soft water card in the day feed (mockup: total + «+250»). */
+export function waterFeedEvent(input: {
+  totalMl: number;
+  target: number;
+  /** Only show when the user already drank something today. */
+  requireLogged?: boolean;
+}): DayFeedEvent | null {
+  const total = input.totalMl;
+  const target = input.target;
+  if (!(target > 0)) return null;
+  if (input.requireLogged !== false && !(total > 0)) return null;
+  const liters = (ml: number) =>
+    (Math.round(ml / 100) / 10).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+  return {
+    key: "water",
+    kind: "water",
+    atMs: null,
+    title: "Вода",
+    detail: `${liters(total)} из ${liters(target)} л`,
+    href: "/ration",
+    waterAddMl: 250,
   };
 }
 
@@ -129,7 +160,10 @@ export function plannedDaySlots(input: {
     out.push({
       key: `plan:${slot.type}`,
       title: slot.title,
-      detail: "сфоткай или напиши ниже — запишу сюда",
+      detail:
+        slot.type === "BREAKFAST"
+          ? "как вчера или сфоткай — запишу сюда"
+          : "сфоткай или напиши ниже — запишу сюда",
       timeLabel: slot.time,
       actionLabel: "Сфоткать",
       action: { kind: "meal", mealType: slot.type },

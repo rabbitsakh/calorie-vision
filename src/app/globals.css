@@ -5553,6 +5553,10 @@ select {
   background: var(--background);
 }
 
+.feed-tl-dot--water {
+  background: var(--accent-water, #38bdf8);
+}
+
 .feed-tl-dot--gym {
   border-color: var(--accent-streak);
   background: var(--accent-streak);
@@ -5630,6 +5634,11 @@ select {
   background: var(--accent-streak-soft);
   color: var(--accent-streak);
   animation: day-event-pulse 1.6s ease-in-out infinite;
+}
+
+.feed-tag--record {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 @keyframes day-event-pulse {

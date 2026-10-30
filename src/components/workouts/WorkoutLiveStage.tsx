@@ -317,8 +317,17 @@ export function WorkoutLiveStage({
               {liveGoal && (liveGoal.basisKg != null || liveGoal.leverLabel) ? (
                 <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--muted)]">
                   {liveGoal.basisKg != null && liveGoal.basisKg > 0
-                    ? `макс ${formatSuggestedKg(liveGoal.basisKg)} кг`
+                    ? `прошлый макс ${formatSuggestedKg(liveGoal.basisKg)} кг`
                     : null}
+                  {(() => {
+                    const next = liveGoal.suggestedKg;
+                    const prev = liveGoal.basisKg;
+                    if (next == null || prev == null || !(prev > 0)) return null;
+                    const delta = Math.round((next - prev) * 10) / 10;
+                    if (Math.abs(delta) < 0.05) return " · как в прошлый раз";
+                    const sign = delta > 0 ? "+" : "";
+                    return ` · цель ${sign}${formatSuggestedKg(delta)} кг`;
+                  })()}
                   {liveGoal.basisKg != null && liveGoal.leverLabel ? " · " : null}
                   {liveGoal.leverLabel
                     ? `${liveGoal.leverLabel}${
@@ -565,7 +574,7 @@ export function WorkoutLiveStage({
               className="rounded-[20px] bg-[var(--accent)] py-4 text-lg font-extrabold text-white disabled:opacity-40"
               onClick={onCompleteCurrent}
             >
-              ✓ Подход {currentSetIndex + 1} готов
+              Подход готов
             </button>
           ) : (
             <button
@@ -574,7 +583,7 @@ export function WorkoutLiveStage({
               className="rounded-[20px] bg-[var(--accent)] py-4 text-lg font-extrabold text-white disabled:opacity-40"
               onClick={onAddAndComplete}
             >
-              + Подход и ✓
+              + Подход и готово
             </button>
           )}
           <div className="flex gap-2">
