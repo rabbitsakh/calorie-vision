@@ -12,12 +12,22 @@ import {
   type SoftStepAction,
 } from "@/lib/moment-hero";
 import {
+  formatMorningLiftGoalHint,
+  pickMorningLiftExercise,
+  plannedMaxKg,
+} from "@/lib/moment-lift-goal";
+import {
   buildMorningTodayBrief,
   streakOwnsMorning,
   type MorningTodayRoutine,
 } from "@/lib/morning-today";
+import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { requestOpenChestQuick } from "@/lib/open-chest-quick";
-import { requestOpenFoodAddPicker, requestOpenFoodCamera } from "@/lib/open-food-camera";
+import {
+  notifyFoodSaved,
+  requestOpenFoodAddPicker,
+  requestOpenFoodCamera,
+} from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
 import { mascotArtUrl } from "@/lib/mascot-art";
@@ -28,18 +38,42 @@ import {
   hasFreshPostWorkoutNudge,
   shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
+import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { hydrateQuietHoursFromAccount, quietHoursLocalHour } from "@/lib/quiet-hours-prefs";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { dismissWeekNudge, isWeekNudgeDismissed } from "@/lib/week-nudge-dismiss";
+import { useTimezone } from "@/lib/use-timezone";
 
 type Props = {
   selectedDate: string;
   today: string;
 };
 
-type PlanPayload = { today?: Array<MorningTodayRoutine & { exerciseCount?: number }> };
+type PlanExercise = {
+  name: string;
+  kind?: string | null;
+  plannedSets?: Array<{ weightKg?: number | null }>;
+};
+
+type PlanPayload = {
+  today?: Array<
+    MorningTodayRoutine & {
+      exerciseCount?: number;
+      exercises?: PlanExercise[];
+    }
+  >;
+};
 type SessionsPayload = {
   sessions?: Array<{ clockStatus?: string; endedAt?: string | null; muscleLabels?: string[] }>;
+};
+
+type MealIdea = {
+  name: string;
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  portionGrams?: number;
 };
 
 /**
@@ -48,11 +82,14 @@ type SessionsPayload = {
  */
 export function MomentHeroCard({ selectedDate, today }: Props) {
   const day = useOptionalRationDay();
+  const timezone = useTimezone();
   const [routines, setRoutines] = useState<MorningTodayRoutine[]>([]);
   const [routine, setRoutine] = useState<MomentRoutine | null>(null);
   const [tomorrowPlanLabel, setTomorrowPlanLabel] = useState<string | null>(null);
   const [gymDone, setGymDone] = useState(false);
   const [gymLive, setGymLive] = useState<{ label: string | null } | null>(null);
+  const [mealIdeas, setMealIdeas] = useState<MealIdea[]>([]);
+  const [addingIdea, setAddingIdea] = useState<number | null>(null);
   const [hour, setHour] = useState(() => quietHoursLocalHour());
   const [, bump] = useState(0);
 
@@ -86,6 +123,38 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
           const plan = (await planResp.json()) as PlanPayload;
           const first = plan.today?.[0];
           const muscleHint = (first?.muscleLabels ?? []).slice(0, 2).join(" · ");
+          let goalHint: string | null = muscleHint || null;
+          const lift = pickMorningLiftExercise(first?.exercises);
+          if (lift) {
+            let lastKg: number | null = null;
+            try {
+              const histResp = await fetch(
+                withBasePath(
+                  `/api/workouts/exercise-history?name=${encodeURIComponent(lift.name)}&limit=4`,
+                ),
+              );
+              if (histResp.ok) {
+                const hist = (await histResp.json()) as {
+                  points?: Array<{ topWeightKg?: number | null }>;
+                };
+                const weights = (hist.points ?? [])
+                  .map((p) => Number(p.topWeightKg))
+                  .filter((w) => Number.isFinite(w) && w > 0);
+                lastKg = weights.length ? weights[weights.length - 1]! : null;
+              }
+            } catch {
+              // planned weight still works
+            }
+            if (!cancelled) {
+              goalHint =
+                formatMorningLiftGoalHint({
+                  exerciseName: lift.name,
+                  lastKg,
+                  plannedKg: plannedMaxKg(lift),
+                }) ?? goalHint;
+            }
+          }
+          if (cancelled) return;
           setRoutine(
             first
               ? {
@@ -94,12 +163,8 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
                     first.name.trim() ||
                     muscleHint ||
                     "Тренировка",
-                  exerciseCount: first.exerciseCount ?? 0,
-                  goalHint: muscleHint
-                    ? first.planLabel?.trim()
-                      ? `${muscleHint}`
-                      : muscleHint
-                    : null,
+                  exerciseCount: first.exerciseCount ?? first.exercises?.length ?? 0,
+                  goalHint,
                 }
               : null,
           );
@@ -161,6 +226,66 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       bump((n) => n + 1);
     }
   }, [selectedDate, today, day?.data?.meals?.totalProtein, day?.data?.meals?.target?.protein]);
+
+  // Day moment: lunch ideas under remaining kcal (hybrid mockup).
+  useEffect(() => {
+    if (selectedDate !== today) {
+      setMealIdeas([]);
+      return;
+    }
+    const target = day?.data?.meals?.target?.calories ?? 0;
+    const eaten = day?.data?.meals?.totalCalories ?? 0;
+    if (!(target > 0) || target - eaten <= 50) {
+      setMealIdeas([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const params = new URLSearchParams({ date: today });
+        if (hasFreshPostWorkoutNudge()) params.set("postWorkout", "1");
+        const resp = await fetch(withBasePath(`/api/suggestions?${params}`));
+        if (!resp.ok || cancelled) return;
+        const json = (await resp.json()) as { suggestions?: MealIdea[] };
+        if (!cancelled) setMealIdeas((json.suggestions ?? []).slice(0, 3));
+      } catch {
+        if (!cancelled) setMealIdeas([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, today, day?.data?.meals?.totalCalories, day?.data?.meals?.target?.calories]);
+
+  async function addMealIdea(idea: MealIdea, index: number) {
+    setAddingIdea(index);
+    try {
+      const extras = buildQuickMealLogExtras(selectedDate, timezone);
+      const resp = await fetch(withBasePath("/api/meals"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          dishName: idea.name,
+          calories: idea.calories,
+          protein: idea.protein || undefined,
+          fat: idea.fat || undefined,
+          carbs: idea.carbs || undefined,
+          portionGrams: idea.portionGrams || undefined,
+          ...extras,
+        }),
+      });
+      if (!resp.ok) return;
+      trackFirstMealSaveGoal();
+      trackMealSavedGoal();
+      notifyFoodSaved();
+      setMealIdeas((list) => list.filter((_, i) => i !== index));
+      day?.refresh?.();
+      bump((n) => n + 1);
+    } finally {
+      setAddingIdea(null);
+    }
+  }
 
   const moment = useMemo(() => {
     const meals = day?.data?.meals;
@@ -244,7 +369,16 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     }
   };
 
-  return <MomentHeroView moment={moment} selectedDate={selectedDate} onAction={runAction} />;
+  return (
+    <MomentHeroView
+      moment={moment}
+      selectedDate={selectedDate}
+      onAction={runAction}
+      mealIdeas={moment.phase === "day" ? mealIdeas : []}
+      addingIdea={addingIdea}
+      onAddIdea={(idea, index) => void addMealIdea(idea, index)}
+    />
+  );
 }
 
 const MACRO_COLOR = { protein: "var(--accent-protein)", fat: "var(--accent-fat)", carbs: "var(--accent-carbs)" };
@@ -290,10 +424,16 @@ export function MomentHeroView({
   moment,
   selectedDate,
   onAction,
+  mealIdeas = [],
+  addingIdea = null,
+  onAddIdea,
 }: {
   moment: MomentHero;
   selectedDate: string;
   onAction: (action: SoftStepAction) => void;
+  mealIdeas?: MealIdea[];
+  addingIdea?: number | null;
+  onAddIdea?: (idea: MealIdea, index: number) => void;
 }) {
   const dark = moment.tone === "dark";
   const startsGym = moment.cta?.label === "Начать тренировку";
@@ -370,6 +510,25 @@ export function MomentHeroView({
                     </span>
                   </div>
                 ))}
+              </div>
+            ) : null}
+            {mealIdeas.length > 0 ? (
+              <div className="moment-meal-ideas" aria-label="Идеи под остаток">
+                <p className="moment-meal-ideas-label">Идеи обеда</p>
+                <div className="moment-meal-ideas-row">
+                  {mealIdeas.map((idea, i) => (
+                    <button
+                      key={`${idea.name}-${i}`}
+                      type="button"
+                      className="moment-meal-idea"
+                      disabled={addingIdea != null}
+                      onClick={() => onAddIdea?.(idea, i)}
+                    >
+                      <b>{addingIdea === i ? "…" : idea.name}</b>
+                      <span>{Math.round(idea.calories)} ккал</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
             {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}

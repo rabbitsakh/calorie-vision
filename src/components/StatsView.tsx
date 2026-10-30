@@ -753,6 +753,7 @@ export function StatsView({ endDate }: StatsViewProps) {
     sessionCount: number;
     tonnage: number;
     cardioKm: number;
+    prCount: number;
   } | null>(null);
 
   const loadStats = useCallback(async () => {
@@ -788,6 +789,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             cardioDistanceKm?: number;
             endedAt?: string | null;
             setCount?: number;
+            prCount?: number;
           }>;
         };
         const sessions = payload.sessions ?? [];
@@ -798,14 +800,17 @@ export function StatsView({ endDate }: StatsViewProps) {
         }
         let tonnage = 0;
         let cardioKm = 0;
+        let prCount = 0;
         for (const s of sessions) {
           tonnage += Number(s.totalLoad) || 0;
           cardioKm += Number(s.cardioDistanceKm) || 0;
+          prCount += Number(s.prCount) || 0;
         }
         setGymSignal({
           sessionCount: sessions.length,
           tonnage: Math.round(tonnage),
           cardioKm: Math.round(cardioKm * 10) / 10,
+          prCount,
         });
       } catch {
         if (!cancelled) setGymSignal(null);
@@ -984,26 +989,40 @@ export function StatsView({ endDate }: StatsViewProps) {
           </section>
 
           {gymSignal && gymSignal.sessionCount > 0 ? (
-            <section className="stats-chart-block flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">Зал за период</p>
-                <p className="mt-0.5 text-sm font-semibold text-[var(--foreground)]">
-                  {gymSignal.sessionCount}{" "}
-                  {gymSignal.sessionCount === 1
-                    ? "тренировка"
-                    : gymSignal.sessionCount < 5
-                      ? "тренировки"
-                      : "тренировок"}
-                  {gymSignal.tonnage > 0 ? ` · ${gymSignal.tonnage} кг` : ""}
-                  {gymSignal.cardioKm > 0 ? ` · ${gymSignal.cardioKm} км` : ""}
+            <section className="stats-chart-block">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  Зал за период
                 </p>
+                <Link
+                  href={withDateQuery("/workouts", endDate)}
+                  className="shrink-0 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                >
+                  Открыть зал
+                </Link>
               </div>
-              <Link
-                href={withDateQuery("/workouts", endDate)}
-                className="shrink-0 text-sm font-semibold text-[var(--accent-ink)] underline-offset-2 hover:underline"
-              >
-                Открыть зал
-              </Link>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <StatCard
+                  label="Тренировки"
+                  value={String(gymSignal.sessionCount)}
+                  accent
+                />
+                <StatCard
+                  label="Тоннаж"
+                  value={gymSignal.tonnage > 0 ? `${gymSignal.tonnage}` : "—"}
+                  sub={gymSignal.tonnage > 0 ? "кг" : undefined}
+                />
+                <StatCard
+                  label="Кардио"
+                  value={gymSignal.cardioKm > 0 ? String(gymSignal.cardioKm) : "—"}
+                  sub={gymSignal.cardioKm > 0 ? "км" : undefined}
+                />
+                <StatCard
+                  label="Рекорды"
+                  value={gymSignal.prCount > 0 ? String(gymSignal.prCount) : "—"}
+                  sub={gymSignal.prCount > 0 ? "PR" : undefined}
+                />
+              </div>
             </section>
           ) : null}
 
