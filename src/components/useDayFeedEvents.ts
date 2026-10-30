@@ -48,3 +48,4 @@ export function useDayFeedEvents(date: string, refreshKey: number): DayFeedEvent
     });
     return [...(w ? [w] : []), ...(waterEv ? [waterEv] : []), ...events];
   }, [sessions, weightKg, water?.totalMl, water?.target]);
+}
