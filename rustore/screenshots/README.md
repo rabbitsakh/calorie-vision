@@ -22,18 +22,20 @@
 
 Иконка: `../icon-512-store.png` (512×512, без прозрачности).
 
-## Пересъёмка (гибрид)
+## Пересъёмка
 
-Кадры собираются из `/dev/rustore-shots` (fixture UI на реальных компонентах):
+**С Android-приложения (для витрины):**
 
 ```bash
-npm run dev
-npm run rustore:screenshots
-# → rustore/screenshots/submit/01…11 (1080×1920)
-# старые submit копируются в archive/pre-hybrid-YYYY-MM-DD-*
+adb devices          # телефон с USB debugging / эмулятор
+npm run rustore:screenshots:android
+# на телефоне открой экран → Enter в терминале → следующий
+# → submit/ 1080×1920, сырьё в android-raw/
 ```
 
-Учитывает `NEXT_PUBLIC_BASE_PATH` из `.env`.
+Один кадр: `SHOT=01 npm run rustore:screenshots:android`
+
+**Не для Консоли:** fixture (`npm run rustore:screenshots`) и web live (`rustore:screenshots:live`).
 
 ## Архив
 
