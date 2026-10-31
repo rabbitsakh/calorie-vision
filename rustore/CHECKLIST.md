@@ -27,7 +27,7 @@
 ## Витрина
 
 Подробный гайд: [`PUBLISH.md`](PUBLISH.md). Тексты: [`listing.ru.md`](listing.ru.md).  
-**Wave F+ (вместе):** [`WAVE-F-TOGETHER.md`](WAVE-F-TOGETHER.md) — тексты/скрины/APK после #693 (N/T5/K).
+**Wave F+ (вместе):** [`WAVE-F-TOGETHER.md`](WAVE-F-TOGETHER.md) — тексты/android-скрины 01–11/APK ≥ 3.1.7.
 
 **В репозитории уже готово (скопировать в Консоль):**
 - тексты: `listing.ru.md`

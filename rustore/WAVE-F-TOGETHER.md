@@ -3,8 +3,8 @@
 Витрина live: https://www.rustore.ru/catalog/app/ru.calorievision.app  
 Консоль: https://console.rustore.ru/apps/2063753950
 
-Код N/T5/K/D7 уже в `main` (#693). Здесь — **витрина + APK**: тексты под F+,
-скрин очереди, версия ≥ `3.0.9` / `versionCode` **30009**.
+Код гибрида 3.1.x уже в `main`. Здесь — **витрина + APK**: тексты под F+,
+android-скрины 01–11, версия ≥ `3.1.7` / `versionCode` **30107**.
 
 Я не могу зайти в console.rustore.ru за тебя — только репо. Ты: Консоль, скрины, модерация.
 
@@ -43,7 +43,7 @@ npm run sync-version          # package.json + changelog; twa подтянетс
 npm run rustore:cap:build     # → rustore/dist/app-release.apk
 ```
 
-Ожидаемо: `versionName` **3.0.9**, `versionCode` **30009** (больше 20806).
+Ожидаемо: `versionName` **3.1.7+**, `versionCode` **30107+** (больше предыдущего в Консоли).
 
 В Консоли → Новая версия → загрузить APK → «Что нового» из `listing.ru.md`.
 

@@ -6,13 +6,55 @@ import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Providers } from "@/components/Providers";
 import { YandexMetrikaGate } from "@/components/YandexMetrikaGate";
 import { bodyFont, displayFont } from "@/lib/app-fonts";
+import { getSiteOrigin } from "@/lib/site-url";
 import { resolveMetrikaId } from "@/lib/yandex-metrika";
 import "./globals.css";
 
+const siteOrigin = getSiteOrigin();
+const siteTitle = "Calorie Vision — калории и КБЖУ по фото еды";
+const siteDescription =
+  "Сфотографируйте еду — Calorie Vision распознает порцию и КБЖУ, сохранит день в дневнике и поможет с залом. Веб и Android в RuStore.";
+
 export const metadata: Metadata = {
-  title: "Calorie Vision",
-  description: "Сфотографируйте еду — Calorie Vision распознает порцию и КБЖУ и сохранит день в дневнике",
+  metadataBase: new URL(siteOrigin),
+  title: {
+    default: siteTitle,
+    template: "%s · Calorie Vision",
+  },
+  description: siteDescription,
   applicationName: "Calorie Vision",
+  keywords: [
+    "калории по фото",
+    "счётчик калорий",
+    "КБЖУ",
+    "дневник питания",
+    "распознавание еды",
+    "Calorie Vision",
+  ],
+  authors: [{ name: "Calorie Vision", url: siteOrigin }],
+  creator: "Calorie Vision",
+  openGraph: {
+    type: "website",
+    locale: "ru_RU",
+    url: siteOrigin,
+    siteName: "Calorie Vision",
+    title: siteTitle,
+    description: siteDescription,
+    images: [{ url: "/icon-512.png", width: 512, height: 512, alt: "Calorie Vision" }],
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+    images: ["/icon-512.png"],
+  },
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   appleWebApp: {
     capable: true,
     title: "Calorie Vision",

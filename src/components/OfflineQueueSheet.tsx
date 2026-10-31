@@ -128,7 +128,7 @@ function categoryPill(cat: QueueCategory): { label: string; className: string } 
     return { label: "AI", className: "bg-[var(--accent)]/15 text-[var(--accent-ink)]" };
   }
   if (cat === "rewards") {
-    return { label: "Сундук", className: "bg-teal-100 text-teal-950" };
+    return { label: "Сундук", className: "bg-[var(--accent-soft)] text-[var(--accent-ink)]" };
   }
   return { label: "Прочее", className: "bg-[var(--border-quiet)]/60 text-[var(--muted-strong)]" };
 }

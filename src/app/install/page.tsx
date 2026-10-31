@@ -10,7 +10,7 @@ import {
 import { withBasePath } from "@/lib/paths";
 
 export const metadata: Metadata = {
-  title: "Установка — Calorie Vision",
+  title: "Установка",
   description:
     "Установите Calorie Vision на экран «Домой» или скачайте Android APK — без App Store и Google Play.",
 };
