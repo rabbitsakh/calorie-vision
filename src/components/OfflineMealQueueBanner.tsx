@@ -89,6 +89,7 @@ import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { withBasePath } from "@/lib/paths";
+import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 
 type OfflineMealQueueBannerProps = {
   selectedDate?: string;
@@ -318,6 +319,17 @@ export function OfflineMealQueueBanner({
           }
           clearOfflineQueueFlushError(item.id);
           removeWaterDraft(item.id);
+          try {
+            const data = (await response.json()) as { totalMl?: number; target?: number };
+            if (typeof data.totalMl === "number") {
+              setOptimisticWaterTotal(item.selectedDate, data.totalMl, {
+                target: data.target,
+              });
+            }
+          } catch {
+            // ignore parse — cache already has optimistic increments
+          }
+          notifyWaterLogged();
           savedAny = true;
           flushedCount += 1;
         } catch (err) {

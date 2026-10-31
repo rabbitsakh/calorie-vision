@@ -65,7 +65,10 @@ test("waterFeedEvent: shows after first sip", () => {
   const w = waterFeedEvent({ totalMl: 500, target: 2000 });
   assert.equal(w?.kind, "water");
   assert.equal(w?.waterAddMl, 250);
-  assert.match(w?.detail ?? "", /0,5 из 2/);
+  assert.match(w?.title ?? "", /500 мл/);
+  assert.match(w?.detail ?? "", /2[\s\u00a0]?000 мл/);
+  const full = waterFeedEvent({ totalMl: 2000, target: 2000 });
+  assert.match(full?.title ?? "", /2[\s\u00a0]?000 мл/);
 });
 
 test("plannedDaySlots: morning → weigh-in + breakfast; filled slots and other days → none", () => {

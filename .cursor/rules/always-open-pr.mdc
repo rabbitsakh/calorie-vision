@@ -1,0 +1,13 @@
+---
+description: Always open a GitHub PR so VPS can pick up merges
+alwaysApply: true
+---
+
+# Always open a PR
+
+This project deploys from GitHub `main` to the VPS. Local-only fixes are not enough.
+
+- After substantive code changes, **commit on a focused branch and open a PR** to `main` (do not leave work uncommitted/unpushed).
+- Prefer small PRs with conventional commits (`fix`, `feat`, `chore`, …).
+- Push with `-u` and create the PR via `gh pr create`; return the PR URL.
+- Do not wait for the user to ask “make a PR” — shipping to VPS requires merge to `main`.

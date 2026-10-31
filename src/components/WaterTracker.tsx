@@ -5,6 +5,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 import { notifyWaterLogged, WATER_LOGGED_EVENT } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
+import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
@@ -111,6 +112,7 @@ export function WaterTracker({
         const data = (await resp.json()) as WaterResponse;
         setTotalMl(data.totalMl);
         setTarget(data.target);
+        setOptimisticWaterTotal(selectedDate, data.totalMl, { target: data.target });
         trackWaterLoggedGoal();
         notifyWaterLogged();
         onChanged?.();

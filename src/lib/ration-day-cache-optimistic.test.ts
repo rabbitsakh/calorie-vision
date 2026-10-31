@@ -6,6 +6,7 @@ import {
   applyOptimisticMealPatch,
   applyOptimisticMeals,
   applyOptimisticWater,
+  setOptimisticWaterTotal,
   applyOptimisticWeight,
   RATION_DAY_CACHE_UPDATED_EVENT,
 } from "./ration-day-cache-optimistic.ts";
@@ -151,6 +152,15 @@ test("applyOptimisticWater seeds empty day when cache missing", () => {
   const next = applyOptimisticWater("2026-08-24", 300);
   assert.equal(next?.water.totalMl, 300);
   assert.equal(readRationDayCache("2026-08-24")?.water.totalMl, 300);
+});
+
+test("setOptimisticWaterTotal writes absolute total from API", () => {
+  mockStorage();
+  seed("2026-08-24", [], 250);
+  const next = setOptimisticWaterTotal("2026-08-24", 2000, { target: 2000 });
+  assert.equal(next?.water.totalMl, 2000);
+  assert.equal(next?.water.target, 2000);
+  assert.equal(readRationDayCache("2026-08-24")?.water.totalMl, 2000);
 });
 
 test("applyOptimisticWeight sets weightKg", () => {

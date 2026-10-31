@@ -100,18 +100,16 @@ export function waterFeedEvent(input: {
   /** Only show when the user already drank something today. */
   requireLogged?: boolean;
 }): DayFeedEvent | null {
-  const total = input.totalMl;
-  const target = input.target;
+  const total = Math.max(0, Math.round(input.totalMl));
+  const target = Math.max(0, Math.round(input.target));
   if (!(target > 0)) return null;
   if (input.requireLogged !== false && !(total > 0)) return null;
-  const liters = (ml: number) =>
-    (Math.round(ml / 100) / 10).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
   return {
     key: "water",
     kind: "water",
     atMs: null,
-    title: "Вода",
-    detail: `${liters(total)} из ${liters(target)} л`,
+    title: `Вода · ${total.toLocaleString("ru-RU")} мл`,
+    detail: `цель ${target.toLocaleString("ru-RU")} мл`,
     href: "/ration",
     waterAddMl: 250,
   };
