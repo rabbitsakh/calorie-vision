@@ -51,9 +51,10 @@ export function DayEventRow({ event, timezone }: { event: DayFeedEvent; timezone
             <button
               type="button"
               className="feed-mini-btn"
+              aria-label={`Добавить ${event.waterAddMl ?? 250} миллилитров воды`}
               onClick={() => requestOpenWaterQuick()}
             >
-              +{event.waterAddMl ?? 250}
+              +{event.waterAddMl ?? 250} мл
             </button>
           </span>
           {event.detail ? <span className="feed-card-t2">{event.detail}</span> : null}

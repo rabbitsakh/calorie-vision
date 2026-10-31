@@ -48,6 +48,7 @@ import { resolveAssistantDate } from "@/lib/assistant-date";
 import { formatDateInput, isDateKey, requireDateKey } from "@/lib/dates";
 import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { notifyWaterLogged } from "@/lib/open-water-quick";
+import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import {
   quickDishTone,
@@ -817,6 +818,9 @@ function ActionCard({
             meals?: Array<{ id: string }>;
             waterId?: string;
             weightId?: string;
+            totalMl?: number;
+            date?: string;
+            target?: number;
           };
         }>;
         result?: {
@@ -826,6 +830,9 @@ function ActionCard({
             waterId?: string;
             weightId?: string;
             mealIds?: string[];
+            totalMl?: number;
+            date?: string;
+            target?: number;
           };
         };
       } | null;
@@ -881,6 +888,15 @@ function ActionCard({
       } else if (kind === "water") {
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         const waterId = toolResult?.data?.waterId ?? data?.result?.data?.waterId;
+        const waterTotal =
+          toolResult?.data?.totalMl ?? data?.result?.data?.totalMl;
+        const waterDate =
+          toolResult?.data?.date ?? data?.result?.data?.date;
+        if (typeof waterTotal === "number" && typeof waterDate === "string") {
+          setOptimisticWaterTotal(waterDate, waterTotal, {
+            target: toolResult?.data?.target ?? data?.result?.data?.target,
+          });
+        }
         notifyWaterLogged();
         markOk(toolResult?.message ?? data?.result?.message ?? "Вода записана");
         onApplied({

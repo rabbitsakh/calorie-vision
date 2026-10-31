@@ -97,6 +97,27 @@ export function applyOptimisticWater(
   return commit(next);
 }
 
+/** Absolute water total from a successful /api/water (or assistant) response. */
+export function setOptimisticWaterTotal(
+  date: string,
+  totalMl: number,
+  options?: { target?: number; today?: string },
+): RationDayPayload | null {
+  if (!date || !Number.isFinite(totalMl) || totalMl < 0) return null;
+  const base = ensureDay(date, options?.today);
+  const next: RationDayPayload = {
+    ...base,
+    water: {
+      totalMl: Math.max(0, Math.round(totalMl)),
+      target:
+        options?.target != null && Number.isFinite(options.target) && options.target > 0
+          ? Math.round(options.target)
+          : base.water?.target,
+    },
+  };
+  return commit(next);
+}
+
 export function applyOptimisticWeight(
   date: string,
   weightKg: number,

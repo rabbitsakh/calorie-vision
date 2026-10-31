@@ -5,6 +5,7 @@ import { toDateKeyTz } from "@/lib/dates";
 import { trackWaterLoggedGoal } from "@/lib/metrika-funnel";
 import { notifyWaterLogged, OPEN_WATER_QUICK_EVENT } from "@/lib/open-water-quick";
 import { withBasePath } from "@/lib/paths";
+import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { useTimezone } from "@/lib/use-timezone";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
@@ -75,6 +76,7 @@ export function WaterQuickSheet() {
         const data = (await resp.json()) as WaterResponse;
         setTotalMl(data.totalMl);
         setTarget(data.target);
+        setOptimisticWaterTotal(dateKey, data.totalMl, { target: data.target });
         trackWaterLoggedGoal();
         notifyWaterLogged();
         setDoneMsg(`+${ml} мл`);
