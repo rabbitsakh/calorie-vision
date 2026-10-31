@@ -4,7 +4,7 @@ import { LegalDocument } from "@/components/LegalDocument";
 import { withBasePath } from "@/lib/paths";
 
 export const metadata: Metadata = {
-  title: "Медицинский дисклеймер — Calorie Vision",
+  title: "Медицинский дисклеймер",
   description:
     "Calorie Vision не является медицинской консультацией. Оценки калорий и норм носят справочный характер.",
 };

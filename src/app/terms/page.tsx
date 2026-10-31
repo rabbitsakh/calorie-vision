@@ -4,7 +4,7 @@ import { LegalDocument } from "@/components/LegalDocument";
 import { withBasePath } from "@/lib/paths";
 
 export const metadata: Metadata = {
-  title: "Условия использования — Calorie Vision",
+  title: "Условия использования",
   description: "Правила пользования сервисом Calorie Vision (calorievision.ru).",
 };
 

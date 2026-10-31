@@ -1,7 +1,11 @@
 # Roadmap
 
-Дорожная карта продукта и инженерии:
+Дорожная карта продукта и инженерии (VPS + RuStore):
 
-- **[ROADMAP.ru.md](./ROADMAP.ru.md)** — горизонты Now / Next / Later, приоритеты для VPS и RuStore.
+- **[ROADMAP.ru.md](./ROADMAP.ru.md)** — горизонты Now / Next / Later.
 
-Обновлять вместе с минорными релизами (`package.json` + changelog).
+## Процесс
+
+- Задачи **собирать в релизы**, а не в поток мелких PR с бампом версии.
+- Решение о мерже — **за человеком**, не за агентом.
+- Обновлять roadmap вместе с минорными релизами (`package.json` + `src/data/changelog.json`).

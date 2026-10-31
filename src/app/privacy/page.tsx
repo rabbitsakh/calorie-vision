@@ -4,7 +4,7 @@ import { LegalDocument } from "@/components/LegalDocument";
 import { withBasePath } from "@/lib/paths";
 
 export const metadata: Metadata = {
-  title: "Политика конфиденциальности — Calorie Vision",
+  title: "Политика конфиденциальности",
   description:
     "Какие данные собирает Calorie Vision (calorievision.ru), зачем обрабатывает и какие у вас права.",
 };
