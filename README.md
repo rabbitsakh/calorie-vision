@@ -432,6 +432,12 @@ nginx -t && systemctl reload nginx
 ls deploy/migrate-*.sql | sort
 ```
 
+## Документация
+
+- [Дорожная карта](docs/roadmap/ROADMAP.ru.md) — Now / Next / Later (VPS + RuStore)
+- [Язык дизайна](docs/design-language.md) — волны UI (C0–D35)
+- [RuStore](rustore/README.md) — Capacitor APK, витрина, чеклисты
+
 ## Полезные команды
 
 ```powershell
