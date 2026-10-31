@@ -142,10 +142,10 @@ Trust confirm + зал→AI + офлайн-очередь. Бесплатно.
 | 8 | Профиль: цели и аккаунт | `submit/08-profile.png` |
 | 9 | Профиль: нутриенты, экспорт, вес | `submit/09-profile-more.png` |
 | 10 | **AI:** чат, режимы, запись + отмена | `submit/10-assistant.png` |
-| 11 | **Офлайн:** баннер + очередь (sheet) | `submit/11-offline-queue.png` *(ещё снять)* |
+| 11 | **Офлайн:** баннер + очередь (sheet) | `submit/11-offline-queue.png` |
 
-Готовые файлы в `rustore/screenshots/submit/` (**01–10**). В Консоль: **01→10** по порядку (+11 когда будет).  
-`01-ration` — при возможности переснять без системного volume HUD.
+Готовые файлы в `rustore/screenshots/submit/` (**01–11**, гибрид). В Консоль: **01→11** по порядку.  
+Пересъёмка: `npm run rustore:screenshots` (см. `screenshots/README.md`).
 
 ---
 
