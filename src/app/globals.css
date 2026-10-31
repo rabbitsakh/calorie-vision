@@ -9072,18 +9072,48 @@ select {
   box-shadow: var(--shadow-card);
 }
 
-/* Offline queue sheet — confirm-family plane */
+/* Offline queue sheet — portaled over viewport (not page scroll parent) */
+.offline-queue-overlay {
+  overscroll-behavior: contain;
+}
+
 .offline-queue-sheet {
   background: var(--panel-wash);
   border-top: 1px solid var(--border-quiet);
   box-shadow: var(--shadow-card);
 }
 
+.offline-queue-sheet-footer {
+  border-top: 1px solid var(--border-hairline);
+  background: var(--panel-wash);
+}
+
 .offline-queue-row {
   border-radius: calc(var(--radius-lg) - 4px);
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid var(--border-hairline);
-  padding: 0.55rem 0.65rem;
+  padding: 0.45rem 0.55rem;
+}
+
+@media (min-height: 720px) {
+  .offline-queue-row {
+    padding: 0.55rem 0.65rem;
+  }
+}
+
+/* Short phones: squeeze chrome so more queue rows fit above the sticky CTA */
+@media (max-height: 640px) {
+  .offline-queue-sheet {
+    max-height: 94dvh !important;
+  }
+
+  .offline-queue-row {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .offline-queue-row .text-sm {
+    font-size: 0.8125rem;
+  }
 }
 
 .assistant-memory-row {

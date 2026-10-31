@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   listFailedDeletes,
   listFailedPatches,
@@ -402,14 +403,32 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
     };
   }, []);
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" role="dialog" aria-modal>
-      <button type="button" className="flex-1 cursor-default" aria-label="Закрыть" onClick={onClose} />
-      <div className="offline-queue-sheet max-h-[75vh] overflow-y-auto rounded-t-2xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div>
-            <p className="confirm-family-skim !mb-0.5">Очередь офлайн</p>
-            <p className="text-xs text-[var(--muted)]">
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  /* Portal to <html>: AppShell / ration transforms would pin `fixed` to the
+   * page bottom (far from the top banner). Same pattern as FoodAddModePicker. */
+  const overlay = (
+    <div
+      className="offline-queue-overlay fixed inset-0 z-[70] flex flex-col justify-end bg-[var(--accent-ink)]/45"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="offline-queue-title"
+    >
+      <button type="button" className="min-h-0 flex-1 cursor-default" aria-label="Закрыть" onClick={onClose} />
+      <div
+        className="offline-queue-sheet flex max-h-[min(92dvh,920px)] w-full flex-col overflow-hidden rounded-t-2xl px-3 pt-2 sm:px-4 sm:pt-3"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="offline-queue-handle mx-auto mb-2 h-1 w-10 shrink-0 rounded-full bg-[var(--border-quiet)]" aria-hidden />
+        <div className="mb-2 flex shrink-0 items-start justify-between gap-2 sm:mb-3">
+          <div className="min-w-0">
+            <p id="offline-queue-title" className="confirm-family-skim !mb-0.5">
+              Очередь офлайн
+            </p>
+            <p className="text-[11px] text-[var(--muted)] sm:text-xs">
               {rows.length === 0
                 ? "Черновиков нет"
                 : `${rows.length} на устройстве — можно отменить до отправки`}
@@ -417,117 +436,119 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
           </div>
           <button
             type="button"
-            className="confirm-family-secondary !min-h-8 !px-2.5 !text-[11px]"
+            className="confirm-family-secondary !min-h-8 shrink-0 !px-2.5 !text-[11px]"
             onClick={onClose}
           >
             Закрыть
           </button>
         </div>
 
-        {rows.length === 0 ? (
-          <div className="confirm-family my-4 border-dashed py-6 text-center">
-            <p className="confirm-family-skim !mb-1">Очередь пуста</p>
-            <p className="text-xs text-[var(--muted-strong)]">
-              Офлайн-записи появятся здесь — фото, дневник, зал, AI, сундуки.
-            </p>
-            <button
-              type="button"
-              className="confirm-family-secondary mt-3 !min-h-8"
-              onClick={onClose}
-            >
-              Понятно
-            </button>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {rows.map((row) => {
-              const pill = statusPill(row.status, flushing);
-              const cat = categoryPill(categoryForKind(row.kind));
-              return (
-              <li key={`${row.kind}-${row.id}`} className="offline-queue-row">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${cat.className}`}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1">
+          {rows.length === 0 ? (
+            <div className="confirm-family my-3 border-dashed py-5 text-center sm:my-4 sm:py-6">
+              <p className="confirm-family-skim !mb-1">Очередь пуста</p>
+              <p className="text-xs text-[var(--muted-strong)]">
+                Офлайн-записи появятся здесь — фото, дневник, зал, AI, сундуки.
+              </p>
+              <button
+                type="button"
+                className="confirm-family-secondary mt-3 !min-h-8"
+                onClick={onClose}
+              >
+                Понятно
+              </button>
+            </div>
+          ) : (
+            <ul className="space-y-1.5 sm:space-y-2">
+              {rows.map((row) => {
+                const pill = statusPill(row.status, flushing);
+                const cat = categoryPill(categoryForKind(row.kind));
+                return (
+                  <li key={`${row.kind}-${row.id}`} className="offline-queue-row">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${cat.className}`}
+                          >
+                            {cat.label}
+                          </span>
+                          <p className="truncate text-sm font-semibold text-[var(--ink)]">
+                            {row.label}
+                          </p>
+                          <span
+                            className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${pill.className}`}
+                          >
+                            {pill.label}
+                          </span>
+                        </div>
+                        {row.detail ? (
+                          <p className="truncate text-[11px] text-[var(--muted)]">{row.detail}</p>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="shrink-0 text-xs font-semibold text-[var(--danger)]"
+                        disabled={flushing}
+                        onClick={row.onDiscard}
                       >
-                        {cat.label}
-                      </span>
-                      <p className="truncate text-sm font-semibold text-[var(--ink)]">
-                        {row.label}
-                      </p>
-                      <span
-                        className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${pill.className}`}
-                      >
-                        {pill.label}
-                      </span>
+                        Убрать
+                      </button>
                     </div>
-                    {row.detail ? (
-                      <p className="truncate text-[11px] text-[var(--muted)]">{row.detail}</p>
+                    {row.weightConflict ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="confirm-family-cta !min-h-8 !px-2.5 !text-[11px]"
+                          disabled={flushing}
+                          onClick={() => {
+                            patchWeightDraft(row.weightConflict!.id, {
+                              confirmReplace: true,
+                              conflictExistingKg: null,
+                            });
+                            onChanged();
+                            setTick((n) => n + 1);
+                          }}
+                        >
+                          {formatWeightReplaceCta(row.weightConflict.weightKg)}
+                        </button>
+                        <button
+                          type="button"
+                          className="confirm-family-secondary !min-h-8 !px-2.5 !text-[11px]"
+                          disabled={flushing}
+                          onClick={() => {
+                            removeWeightDraft(row.weightConflict!.id);
+                            onChanged();
+                            setTick((n) => n + 1);
+                          }}
+                        >
+                          {formatWeightKeepCta(row.weightConflict.conflictExistingKg!)}
+                        </button>
+                      </div>
                     ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    className="shrink-0 text-xs font-semibold text-[var(--danger)]"
-                    disabled={flushing}
-                    onClick={row.onDiscard}
-                  >
-                    Убрать
-                  </button>
-                </div>
-                {row.weightConflict ? (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className="confirm-family-cta !min-h-8 !px-2.5 !text-[11px]"
-                      disabled={flushing}
-                      onClick={() => {
-                        patchWeightDraft(row.weightConflict!.id, {
-                          confirmReplace: true,
-                          conflictExistingKg: null,
-                        });
-                        onChanged();
-                        setTick((n) => n + 1);
-                      }}
-                    >
-                      {formatWeightReplaceCta(row.weightConflict.weightKg)}
-                    </button>
-                    <button
-                      type="button"
-                      className="confirm-family-secondary !min-h-8 !px-2.5 !text-[11px]"
-                      disabled={flushing}
-                      onClick={() => {
-                        removeWeightDraft(row.weightConflict!.id);
-                        onChanged();
-                        setTick((n) => n + 1);
-                      }}
-                    >
-                      {formatWeightKeepCta(row.weightConflict.conflictExistingKg!)}
-                    </button>
-                  </div>
-                ) : null}
-                {row.status === "error" ? (
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      className="confirm-family-cta !min-h-8 !px-2.5 !text-[11px]"
-                      disabled={flushing}
-                      onClick={onFlush}
-                    >
-                      Повторить
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-              );
-            })}
-          </ul>
-        )}
+                    {row.status === "error" ? (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          className="confirm-family-cta !min-h-8 !px-2.5 !text-[11px]"
+                          disabled={flushing}
+                          onClick={onFlush}
+                        >
+                          Повторить
+                        </button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
-        <div className="confirm-family-actions mt-4 flex gap-2 !border-t-0 !pt-0">
+        <div className="offline-queue-sheet-footer shrink-0 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] sm:pt-3">
           <button
             type="button"
-            className="confirm-family-cta flex-1"
+            className="confirm-family-cta w-full !min-h-11"
             disabled={flushing || rows.length === 0}
             onClick={onFlush}
           >
@@ -537,4 +558,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
       </div>
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(overlay, document.documentElement);
 }
