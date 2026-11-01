@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notFoundMealResponse } from "@/lib/api-auth-guards";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -61,7 +62,7 @@ export async function PATCH(
       date = parsed;
     }
 
-    // If only HH:MM was intended via ISO without date, keep as-is (client sends full ISO).
+    // Scope by session.user.id — foreign ids update 0 rows → same 404 as missing (no IDOR leak).
     const updated = await prisma.mealEntry.updateMany({
       where: { id, userId: session.user.id },
       data: {
@@ -86,7 +87,8 @@ export async function PATCH(
     });
 
     if (updated.count === 0) {
-      return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
+      const miss = notFoundMealResponse();
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
 
     return NextResponse.json({ ok: true });
@@ -110,12 +112,14 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    // Same owner filter as PATCH — чужой id → 404, not 403.
     const deleted = await prisma.mealEntry.deleteMany({
       where: { id, userId: session.user.id },
     });
 
     if (deleted.count === 0) {
-      return NextResponse.json({ error: "Запись не найдена" }, { status: 404 });
+      const miss = notFoundMealResponse();
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
 
     return NextResponse.json({ ok: true });
