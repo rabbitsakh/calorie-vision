@@ -3720,6 +3720,43 @@ select {
   padding: 0.15rem 0.15rem 0.5rem;
 }
 
+/* Standalone support CTA — soft rose wash, not nested in export doors */
+.profile-bug-report {
+  margin-top: 0.35rem;
+}
+
+.profile-bug-report__btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 3.1rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, #fee2e2 82%, #fff);
+  color: #991b1b;
+  box-shadow: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-bug-report__btn:hover {
+  background: #fecaca;
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.profile-bug-report__btn:focus-visible {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.profile-bug-report__chev {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: var(--danger);
+}
+
 .profile-settings__nested {
   overflow: hidden;
   border: 1px solid var(--border-hairline);
