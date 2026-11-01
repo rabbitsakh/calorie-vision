@@ -4,6 +4,7 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvatarFrame } from "@/components/AvatarFrame";
+import { BugReportSheet } from "@/components/BugReportSheet";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
@@ -156,6 +157,7 @@ export function ProfileForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offlineView, setOfflineView] = useState(false);
+  const [bugReportOpen, setBugReportOpen] = useState(false);
 
   const applyAccount = useCallback((data: AccountResponse) => {
     setFirstName(data.firstName);
@@ -736,6 +738,21 @@ export function ProfileForm() {
                   →
                 </span>
               </Link>
+              <button
+                type="button"
+                className="profile-settings__door text-left"
+                onClick={() => setBugReportOpen(true)}
+              >
+                <span className="min-w-0">
+                  <span className="block font-semibold text-[var(--foreground)]">Сообщить об ошибке</span>
+                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                    Описание и скрин → support@calorievision.ru
+                  </span>
+                </span>
+                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+                  →
+                </span>
+              </button>
             </div>
           </ProfileCollapse>
         </form>
@@ -935,6 +952,8 @@ export function ProfileForm() {
           </nav>
         </footer>
       ) : null}
+
+      <BugReportSheet open={bugReportOpen} onClose={() => setBugReportOpen(false)} />
     </>
   );
 }

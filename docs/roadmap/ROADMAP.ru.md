@@ -49,7 +49,7 @@
 |---|--------|-------|
 | X1 | Память правок → датасет: remember уже в проде; экспорт `/api/admin/recognition/corrections-dataset` | Главный moat: крутить eval/prompts на реальных правках |
 | X2 | Category-specific prompts + калибровка порций + eval-fixtures (golden JPEG + cron) | Регрессии AI видны до прода |
-| X3 | **Тесты API auth/IDOR:** контракты 401/404 + owner-scope на `meals/[id]` | Расширять на workouts/weights по тому же шаблону |
+| X3 | **Тесты API auth/IDOR:** контракты 401/404 + owner-scope на meals + workouts | Дальше: weights / custom-foods |
 | X4 | Разбить тяжёлый клиент (`WorkoutsView`, `AssistantChat`, `StatsView`, `DailyLog`, `ConfirmationCard`, …) | Проще ревью и меньше регрессий |
 | X5 | SEO-страницы «калорийность X» + усиление рефералки | Органика и виральность рядом с RuStore |
 | X6 | Полировка гибрида: план недели / вес заметнее из «Сегодня» и «Прогресс» | `/plan`, `/weight` не теряются вне таббара |

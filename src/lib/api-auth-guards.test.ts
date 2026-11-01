@@ -3,20 +3,16 @@ import { describe, it } from "node:test";
 import {
   mealOwnedByUser,
   notFoundMealResponse,
+  notFoundResourceResponse,
+  resourceOwnedByUser,
   unauthorizedResponse,
 } from "./api-auth-guards.ts";
 
-describe("mealOwnedByUser", () => {
-  it("rejects missing meal", () => {
-    assert.equal(mealOwnedByUser(null, "user-a"), false);
-    assert.equal(mealOwnedByUser(undefined, "user-a"), false);
-  });
-
-  it("rejects foreign userId (IDOR)", () => {
-    assert.equal(mealOwnedByUser({ userId: "user-b" }, "user-a"), false);
-  });
-
-  it("accepts owner", () => {
+describe("resourceOwnedByUser", () => {
+  it("rejects missing / foreign, accepts owner", () => {
+    assert.equal(resourceOwnedByUser(null, "user-a"), false);
+    assert.equal(resourceOwnedByUser({ userId: "user-b" }, "user-a"), false);
+    assert.equal(resourceOwnedByUser({ userId: "user-a" }, "user-a"), true);
     assert.equal(mealOwnedByUser({ userId: "user-a" }, "user-a"), true);
   });
 });
@@ -32,6 +28,13 @@ describe("API auth response contracts", () => {
   it("foreign or missing meal looks like 404 (no leak)", () => {
     assert.deepEqual(notFoundMealResponse(), {
       error: "Запись не найдена",
+      status: 404,
+    });
+  });
+
+  it("workout miss uses 404 copy", () => {
+    assert.deepEqual(notFoundResourceResponse("Тренировка"), {
+      error: "Тренировка не найдена",
       status: 404,
     });
   });
