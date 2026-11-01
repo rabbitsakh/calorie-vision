@@ -170,10 +170,12 @@ export function BugReportSheet({ open, onClose }: Props) {
 
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold text-[var(--ink)]">Скриншот (необязательно)</span>
+                <p className="text-[11px] text-[var(--muted)]">
+                  Выберите снимок из галереи (не камера) — например скрин экрана с ошибкой.
+                </p>
                 <input
                   type="file"
-                  accept="image/*"
-                  capture="environment"
+                  accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
                   disabled={busy}
                   onChange={(e) => void onPick(e.target.files)}
                   className="block w-full text-sm text-[var(--muted-strong)] file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--accent-soft)] file:px-3 file:py-2 file:text-sm file:font-semibold file:text-[var(--accent-ink)]"
