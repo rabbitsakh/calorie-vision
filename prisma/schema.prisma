@@ -254,6 +254,18 @@ model RecognitionPassLog {
   @@index([pass])
 }
 
+/// Privacy-friendly product funnel. userHash is salted SHA-256, not a user id.
+model FunnelEvent {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(48)
+  userHash  String?  @db.VarChar(64)
+  propsJson Json?
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([userHash, name])
+}
+
 model RecognitionConfig {
   id                     String   @id @default("default")
   lowConfidenceThreshold Float    @default(0.55)

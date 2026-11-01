@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { isAdminEmail } from "@/lib/admin";
 import { authOptions } from "@/lib/auth-options";
+import { noteUserActivity } from "@/lib/funnel-analytics";
 import { prisma } from "@/lib/prisma";
 
 export async function requireSession() {
@@ -14,6 +15,7 @@ export async function requireSession() {
     };
   }
 
+  noteUserActivity(session.user.id);
   return { session, response: null };
 }
 

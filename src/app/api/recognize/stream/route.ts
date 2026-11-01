@@ -3,6 +3,7 @@ import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { getImageDimensions } from "@/lib/ai/image-utils";
 import { recognizeWithGigaChat } from "@/lib/ai/gigachat";
 import { requireSession } from "@/lib/auth-session";
+import { trackFirstPhotoRecognized, trackPaywallView } from "@/lib/funnel-analytics";
 import { withTimeoutFallback } from "@/lib/async-pool";
 import { enrichRecognitionAfterVision, lookupFoodByBarcode } from "@/lib/food-recognition";
 import { normalizeRecognitionNutrition } from "@/lib/recognition-nutrition";
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
     email: session.user.email,
   });
   if (!quota.allowed) {
+    trackPaywallView(session.user.id, "recognize_stream");
     return new Response(JSON.stringify(dailyQuotaErrorBody(quota)), {
       status: 429,
       headers: {
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
         if (barcodeHint) {
           try {
             const recognition = await lookupFoodByBarcode(barcodeHint, session.user.id);
+            trackFirstPhotoRecognized(session.user.id);
             send("done", { imagePath, recognition });
             return;
           } catch (error) {
@@ -146,6 +149,7 @@ export async function POST(request: NextRequest) {
             enrichmentTimedOut = true;
           },
         );
+        trackFirstPhotoRecognized(session.user.id);
         send("done", {
           imagePath,
           recognition: enrichmentTimedOut
