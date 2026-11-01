@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notFoundResourceResponse } from "@/lib/api-auth-guards";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
@@ -90,7 +91,8 @@ export async function GET(_request: NextRequest, context: Ctx) {
     const { id } = await context.params;
     const row = await loadOwnedSession(session.user.id, id);
     if (!row) {
-      return NextResponse.json({ error: "Тренировка не найдена" }, { status: 404 });
+      const miss = notFoundResourceResponse("Тренировка");
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
 
     return NextResponse.json(await withProgress(session.user.id, serializeSessionDetail(row)));
@@ -108,7 +110,8 @@ export async function PATCH(request: NextRequest, context: Ctx) {
     const { id } = await context.params;
     const existing = await loadOwnedSession(session.user.id, id);
     if (!existing) {
-      return NextResponse.json({ error: "Тренировка не найдена" }, { status: 404 });
+      const miss = notFoundResourceResponse("Тренировка");
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
 
     const body = (await request.json()) as {
@@ -260,7 +263,8 @@ export async function DELETE(_request: NextRequest, context: Ctx) {
       select: { id: true },
     });
     if (!existing) {
-      return NextResponse.json({ error: "Тренировка не найдена" }, { status: 404 });
+      const miss = notFoundResourceResponse("Тренировка");
+      return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
 
     await prisma.workoutSession.delete({ where: { id } });
