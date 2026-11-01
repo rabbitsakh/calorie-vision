@@ -738,24 +738,29 @@ export function ProfileForm() {
                   →
                 </span>
               </Link>
-              <button
-                type="button"
-                className="profile-settings__door text-left"
-                onClick={() => setBugReportOpen(true)}
-              >
-                <span className="min-w-0">
-                  <span className="block font-semibold text-[var(--foreground)]">Сообщить об ошибке</span>
-                  <span className="mt-0.5 block text-xs text-[var(--muted)]">
-                    Описание и скрин → support@calorievision.ru
-                  </span>
-                </span>
-                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-                  →
-                </span>
-              </button>
             </div>
           </ProfileCollapse>
         </form>
+      ) : null}
+
+      {!loading ? (
+        <div className="profile-settings__nested">
+          <button
+            type="button"
+            className="profile-settings__door w-full text-left"
+            onClick={() => setBugReportOpen(true)}
+          >
+            <span className="min-w-0">
+              <span className="block font-semibold text-[var(--foreground)]">Сообщить об ошибке</span>
+              <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                Описание и скрин → support@calorievision.ru
+              </span>
+            </span>
+            <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+              →
+            </span>
+          </button>
+        </div>
       ) : null}
 
       {!loading && referralCode ? (
