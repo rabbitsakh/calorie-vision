@@ -33,9 +33,9 @@
 
 | # | Задача | Зачем | Где смотреть |
 |---|--------|-------|--------------|
-| N1 | **SEO quick win:** `robots.txt`, `sitemap.xml`, нормальный title / description / OG | Сейчас 404 и пустой бренд в выдаче | `src/app/`, `public/`, `layout.tsx` |
-| N2 | Собрать APK **3.1.7+**, залить в Консоль, обновить «Что нового» | Пользователи RuStore получают гибрид и offline | `rustore/WAVE-F-TOGETHER.md`, `listing.ru.md`, `PUBLISH.md` |
-| N3 | Заменить скрины 01–11 в Консоли на android-кадры | Витрина = реальный UI | `rustore/screenshots/submit/` |
+| N1 | ~~**SEO quick win:** `robots.txt`, `sitemap.xml`, title/OG~~ | Done (#771) | live `/robots.txt`, `/sitemap.xml` |
+| N2 | ~~Собрать APK **3.1.7+**, залить в Консоль, «Что нового»~~ | Done — витрина **3.1.7** (31 окт 2026) | RuStore catalog |
+| N3 | ~~Заменить скрины 01–11~~ | Сделано вместе с N2 (проверить при сомнении) | `rustore/screenshots/submit/` |
 | N4 | Пройти ручной QA Wave F+ на телефоне | Confirm AI, очередь, «Итог недели → AI» | чеклист в `WAVE-F-TOGETHER.md` |
 | N5 | Подтянуть `WAVE-F` / `CHECKLIST` под текущую версию (убрать 3.0.9) | Документы не врут | `rustore/` |
 | N6 | Синхронизировать `docs/assistant-placement.md` с 4 вкладками | Онбординг/док для ассистента | `docs/assistant-placement.md`, `src/lib/navigation.ts` |
@@ -47,9 +47,9 @@
 
 | # | Задача | Зачем |
 |---|--------|-------|
-| X1 | Память правок пользователя → накопление датасета / correction loop | Главный moat: меньше ошибок после первых дней |
+| X1 | Память правок → датасет: remember уже в проде; экспорт `/api/admin/recognition/corrections-dataset` | Главный moat: крутить eval/prompts на реальных правках |
 | X2 | Category-specific prompts + калибровка порций + eval-fixtures (golden JPEG + cron) | Регрессии AI видны до прода |
-| X3 | **Тесты API-роутов:** сессия обязательна, чужой `userId` → 401/403/404 | Сейчас покрыт в основном `src/lib` |
+| X3 | **Тесты API auth/IDOR:** контракты 401/404 + owner-scope на `meals/[id]` | Расширять на workouts/weights по тому же шаблону |
 | X4 | Разбить тяжёлый клиент (`WorkoutsView`, `AssistantChat`, `StatsView`, `DailyLog`, `ConfirmationCard`, …) | Проще ревью и меньше регрессий |
 | X5 | SEO-страницы «калорийность X» + усиление рефералки | Органика и виральность рядом с RuStore |
 | X6 | Полировка гибрида: план недели / вес заметнее из «Сегодня» и «Прогресс» | `/plan`, `/weight` не теряются вне таббара |
