@@ -23,7 +23,14 @@ import {
   type RecognitionRetryReason,
 } from "@/lib/ai/recognition-retry";
 import { prepareImageForLabelVision, prepareImageForVision } from "@/lib/ai/image-utils";
-import { formatGigaChatHttpError, GigaChatApiError, sleep } from "@/lib/ai/gigachat-errors";
+import { formatGigaChatHttpError, GigaChatApiError } from "@/lib/ai/gigachat-errors";
+import { resolveGigaChatHttpTimeoutMs, withGigaChatRetry } from "@/lib/ai/gigachat-resilience";
+import {
+  chatResponseCacheKey,
+  readResponseCache,
+  visionResultCacheKey,
+  writeResponseCache,
+} from "@/lib/ai/gigachat-response-cache";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import {
   buildBarcodeVisionPrompt,
@@ -66,8 +73,6 @@ type HttpResult = {
   body: string;
 };
 
-const GIGACHAT_HTTP_TIMEOUT_MS = 25_000;
-
 const httpsAgent = new https.Agent({
   keepAlive: true,
   maxSockets: 10,
@@ -92,7 +97,7 @@ function httpsRequest(
         method: options.method ?? "GET",
         headers: options.headers,
         rejectUnauthorized: false,
-        timeout: GIGACHAT_HTTP_TIMEOUT_MS,
+        timeout: resolveGigaChatHttpTimeoutMs(),
         agent: httpsAgent,
       },
       (res) => {
@@ -256,7 +261,7 @@ async function uploadImage(
     return cached;
   }
 
-  const fileId = await withRateLimitRetry(async () => {
+  const fileId = await withGigaChatRetry(async () => {
     const safeName =
       filename.endsWith(".jpg") || filename.endsWith(".jpeg") ? filename : "food.jpg";
     const boundary = `----CalorieVision${randomUUID().replace(/-/g, "")}`;
@@ -291,39 +296,23 @@ async function uploadImage(
   return fileId;
 }
 
-async function withRateLimitRetry<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      return await run();
-    } catch (error) {
-      lastError = error;
-      const retryable =
-        error instanceof GigaChatApiError &&
-        (error.status === 429 || error.status >= 500);
-
-      if (!retryable || attempt === attempts - 1) {
-        throw error;
-      }
-
-      // 1.2s, 2.4s — gentle backoff under GigaChat rate limits
-      await sleep(1200 * (attempt + 1));
-    }
-  }
-
-  throw lastError;
-}
-
 export async function completeChat(
   messages: Array<{ role: string; content: string; attachments?: string[] }>,
   temperature = 0.35,
-  options?: { retries?: number },
+  options?: { retries?: number; cache?: boolean },
 ): Promise<string> {
   const attempts = Math.max(1, options?.retries ?? 3);
-  return withRateLimitRetry(async () => {
+  const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
+  const cacheKey = options?.cache
+    ? chatResponseCacheKey({ model, temperature, messages })
+    : null;
+  if (cacheKey) {
+    const cached = readResponseCache(cacheKey);
+    if (cached !== null) return cached;
+  }
+
+  const text = await withGigaChatRetry(async () => {
     const token = await getAccessToken();
-    const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
 
     const payload = JSON.stringify({
       model,
@@ -360,7 +349,10 @@ export async function completeChat(
     }
 
     return text;
-  }, attempts);
+  }, { attempts });
+
+  if (cacheKey) writeResponseCache(cacheKey, text);
+  return text;
 }
 
 /**
@@ -459,12 +451,16 @@ function chunkText(text: string, size: number): string[] {
 }
 
 export async function lookupFoodWithGigaChat(dishName: string): Promise<FoodRecognitionResult> {
-  const text = await completeChat([
-    {
-      role: "user",
-      content: buildFoodLookupPrompt(dishName.trim()),
-    },
-  ]);
+  const text = await completeChat(
+    [
+      {
+        role: "user",
+        content: buildFoodLookupPrompt(dishName.trim()),
+      },
+    ],
+    0.35,
+    { cache: true },
+  );
 
   return parseFoodRecognitionResponse(text);
 }
@@ -483,7 +479,7 @@ export async function lookupFoodByBarcodeWithGigaChat(
       },
     ],
     0.2,
-    { retries: 2 },
+    { retries: 2, cache: true },
   );
 
   const parsed = parseFoodRecognitionResponse(text);
@@ -509,7 +505,7 @@ export async function lookupFiberSugarWithGigaChat(
       },
     ],
     0.2,
-    { retries: 1 },
+    { retries: 1, cache: true },
   );
 
   const match = text.match(/\{[\s\S]*\}/);
@@ -568,7 +564,7 @@ export async function lookupFiberSugarBatchWithGigaChat(
       },
     ],
     0.2,
-    { retries: 1 },
+    { retries: 1, cache: true },
   );
 
   const arrayMatch = text.match(/\[[\s\S]*\]/);
@@ -603,6 +599,22 @@ export async function recognizeWithGigaChat(
 ): Promise<FoodRecognitionResult> {
   const startedAtMs = Date.now();
   const prepared = await prepareImageForVision(imageBuffer);
+  const promptVariant = resolvePromptVariant();
+  const visionCacheKey = visionResultCacheKey({
+    model: process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max",
+    variant: promptVariant,
+    hints: options?.hints ?? null,
+    image: prepared.buffer,
+  });
+  const cachedVision = readResponseCache(visionCacheKey);
+  if (cachedVision) {
+    try {
+      return JSON.parse(cachedVision) as FoodRecognitionResult;
+    } catch {
+      // Corrupt cache entry — fall through to a live recognition call.
+    }
+  }
+
   const token = await getAccessToken();
   const fileId = await uploadImage(token, prepared.buffer, prepared.mimeType, filename);
 
@@ -610,7 +622,6 @@ export async function recognizeWithGigaChat(
   const MAX_CHAT_CALLS = 4;
   let chatCalls = 0;
   let specialistPass: SpecialistPass | null = null;
-  const promptVariant = resolvePromptVariant();
 
   const telemetryBase = () => ({
     chatCalls,
@@ -634,7 +645,7 @@ export async function recognizeWithGigaChat(
         },
       ],
       0.35,
-      { retries: mode === "retry" ? 1 : 2 },
+      { retries: mode === "retry" ? 1 : 2, cache: true },
     );
   };
 
@@ -650,7 +661,7 @@ export async function recognizeWithGigaChat(
       ],
       0.2,
       // Specialists: fail fast on 429 — long backoff was pushing past nginx 180s.
-      { retries: 1 },
+      { retries: 1, cache: true },
     );
   };
 
@@ -893,6 +904,8 @@ export async function recognizeWithGigaChat(
   }
 
   result = repairPackagedMislabel(result);
+
+  writeResponseCache(visionCacheKey, JSON.stringify(result));
 
   logRecognitionPass({
     pass: "accepted",

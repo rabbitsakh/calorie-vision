@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { getImageDimensions } from "@/lib/ai/image-utils";
 import { requireSession } from "@/lib/auth-session";
+import { trackFirstPhotoRecognized, trackPaywallView } from "@/lib/funnel-analytics";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import {
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       email: session.user.email,
     });
     if (!quota.allowed) {
+      trackPaywallView(session.user.id, "recognize");
       return NextResponse.json(dailyQuotaErrorBody(quota), {
         status: 429,
         headers: { "Retry-After": String(quota.retryAfterSec) },
@@ -78,6 +80,8 @@ export async function POST(request: NextRequest) {
         visionHints,
       }),
     ]);
+
+    trackFirstPhotoRecognized(session.user.id);
 
     return NextResponse.json({
       imagePath,

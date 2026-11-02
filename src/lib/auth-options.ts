@@ -20,6 +20,7 @@ import {
   normalizeOAuthEmail,
   syncOAuthIdentityToUser,
 } from "@/lib/oauth-account-link";
+import { trackSignup } from "@/lib/funnel-analytics";
 import { prisma } from "@/lib/prisma";
 import {
   findOrCreateTelegramUser,
@@ -193,9 +194,11 @@ function createAuthAdapter(): Adapter {
       }
 
       try {
-        return await prisma.user.create({
+        const created = await prisma.user.create({
           data: id ? { id, ...data } : data,
         });
+        trackSignup(created.id);
+        return created;
       } catch (error) {
         if (id && isPrismaUniqueConflict(error)) {
           const existing = await prisma.user.findUnique({ where: { id } });

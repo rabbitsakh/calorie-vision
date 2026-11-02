@@ -1,3 +1,4 @@
+import { trackSignup } from "@/lib/funnel-analytics";
 import { prisma } from "@/lib/prisma";
 import { getTelegramBotToken } from "@/lib/telegram-login-config";
 import { normalizeTelegramPhone } from "@/lib/telegram-phone-link";
@@ -177,7 +178,7 @@ export async function findOrCreateTelegramUser(data: TelegramAuthWithPhone) {
     }
   }
 
-  return prisma.user.create({
+  const created = await prisma.user.create({
     data: {
       name: telegramDisplayName(data),
       image: data.photo_url?.trim() || null,
@@ -196,4 +197,6 @@ export async function findOrCreateTelegramUser(data: TelegramAuthWithPhone) {
       },
     },
   });
+  trackSignup(created.id);
+  return created;
 }

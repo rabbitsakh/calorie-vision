@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
+import { isMealConfirmInput, trackMealConfirmed } from "@/lib/funnel-analytics";
 import { prisma } from "@/lib/prisma";
 import { requireDateKey } from "@/lib/dates";
 import { buildDayMealsPayload } from "@/lib/day-meals";
@@ -69,6 +70,9 @@ export async function POST(request: NextRequest) {
         validated.map((row) => rememberMealCorrectionIfNeeded(session.user.id, row.entry)),
       );
 
+      const confirmed = validated.filter((row) => isMealConfirmInput(row.entry)).length;
+      if (confirmed > 0) trackMealConfirmed(session.user.id, confirmed);
+
       return NextResponse.json({ entries });
     }
 
@@ -82,6 +86,8 @@ export async function POST(request: NextRequest) {
     });
 
     await rememberMealCorrectionIfNeeded(session.user.id, body);
+
+    if (isMealConfirmInput(body)) trackMealConfirmed(session.user.id, 1);
 
     return NextResponse.json({ entry });
   } catch (error) {
