@@ -15,6 +15,8 @@ import {
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
   needsWriteRepair,
+  heuristicRepairFromProseKcal,
+  replyEstimatesBareDish,
   parsePortionGramsFromMessage,
   parseStructuredMealsFromText,
   preferMultiDishActions,
@@ -645,4 +647,32 @@ test("replyPromisesWriteCard ignores plain advice", () => {
   assert.equal(replyPromisesWriteCard("Мороженое — около 200 ккал на 100 г."), false);
   assert.equal(replyPromisesWriteCard("Можно добавить в дневник позже."), false);
   assert.equal(replyPromisesWriteCard("Нажми «В дневник» под карточкой."), true);
+});
+
+const CHEB_USER = "Чебурек с фаршем индейки";
+const CHEB_REPLY =
+  "Чебурек с фаршем индейки — примерно 250 ккал (Б 12 г, Ж 14 г, У 20 г). ✅ Подтверждайте запись в дневник.";
+
+test("prose «Подтверждайте запись» / «Запиши … в дневник?» owes a confirm card", () => {
+  assert.equal(replyPromisesWriteCard(CHEB_REPLY), true);
+  assert.equal(replyPromisesWriteCard("Запиши чебурек в дневник? Около 250 ккал."), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, CHEB_REPLY), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, "Запиши чебурек в дневник? ~250 ккал"), true);
+});
+
+test("bare dish + kcal estimate needs repair; questions stay read-only", () => {
+  assert.equal(replyEstimatesBareDish(CHEB_USER, "Чебурек — около 250 ккал."), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, "Чебурек — около 250 ккал."), true);
+  assert.equal(needsWriteRepair("Сколько калорий в чебуреке?", null, "Около 250 ккал."), false);
+});
+
+test("offline prose fallback extracts kcal + БЖУ into a meal", () => {
+  const a = heuristicRepairFromProseKcal(CHEB_USER, CHEB_REPLY);
+  assert.equal(a?.apply, true);
+  const m = a?.meals?.[0];
+  assert.equal(m?.kcal, 250);
+  assert.equal(m?.protein, 12);
+  assert.equal(m?.fat, 14);
+  assert.equal(m?.carbs, 20);
+  assert.match(m?.name ?? "", /чебурек/i);
 });

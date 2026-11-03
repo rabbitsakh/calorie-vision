@@ -90,13 +90,102 @@ export function replyPromisesWriteCard(reply: string | null | undefined): boolea
   if (!t.trim()) return false;
   if (/подтвер\S*\s+(?:ниже|карточк)/.test(t)) return true;
   if (/(?:нажми|нажмите|жми)\S*\s+[«"]?в\s+(?:дневник|рацион)/.test(t)) return true;
+  // «Подтверждайте запись в дневник», «подтверди добавление».
+  if (/подтвер\S*\s+(?:\S+\s+){0,2}?(?:запис|добавл|сохран)/.test(t)) return true;
+  // Offer as a question: «Запиши чебурек в дневник?», «Добавить в рацион?».
+  if (/(?:запис|запиш|добав|сохран)\S*\s+(?:\S+\s+){0,5}?в\s+(?:дневник|рацион)\S*\s*\?/.test(t)) {
+    return true;
+  }
   return /(?:сохран|добав|запис)\S*\s+(?:\S+\s+){0,4}?в\s+(?:дневник|рацион)/.test(t) &&
     /ниже|карточк/.test(t);
 }
 
+/**
+ * User typed just a dish («Чебурек с фаршем индейки») and the draft answered with a kcal
+ * estimate — that is a log request in this app, so it owes a confirm card.
+ */
+export function replyEstimatesBareDish(
+  userMessage: string,
+  assistantReply: string | null | undefined,
+): boolean {
+  const u = userMessage.trim();
+  if (!u || u.length > 120) return false;
+  if (/[?？]\s*$/.test(u)) return false;
+  if (/^(что|как|сколько|какой|какая|какие|чем|почему|зачем|можно|стоит|посоветуй|подскажи)\b/i.test(u)) {
+    return false;
+  }
+  if (!/[а-яёa-z]{3,}/i.test(u)) return false;
+  return extractKcalFromReply(assistantReply) != null;
+}
+
+/** First plausible «250 ккал» / «~250 kcal» from the draft (ranges → midpoint). */
+export function extractKcalFromReply(reply: string | null | undefined): number | null {
+  const t = (reply ?? "").replace(/\u00a0/g, " ");
+  const m = /(\d{2,4})(?:\s*[-–—]\s*(\d{2,4}))?\s*(?:ккал|kcal|калори)/i.exec(t);
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = m[2] ? Number(m[2]) : a;
+  const kcal = Math.round((a + b) / 2);
+  return kcal > 0 && kcal < 5000 ? kcal : null;
+}
+
+function macroFromReply(t: string, re: RegExp): number | undefined {
+  const m = re.exec(t);
+  if (!m) return undefined;
+  const v = Number(m[1]!.replace(",", "."));
+  return Number.isFinite(v) ? v : undefined;
+}
+
+/**
+ * Last-resort offline card: dish name from the user's text, kcal/БЖУ/grams from prose draft.
+ * Keeps «примерно 250 ккал… подтверждайте запись» from ending as text with no button.
+ */
+export function heuristicRepairFromProseKcal(
+  userMessage: string,
+  assistantReply: string,
+): AssistantActions | null {
+  const kcal = extractKcalFromReply(assistantReply);
+  if (kcal == null) return null;
+  const name = sanitizeAssistantMealName(
+    userMessage
+      .replace(/^\s*я\s+(съел|съела|выпил|выпила|поел|поела)\s+/i, "")
+      .replace(/(?:^|\s)(?:добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)(?=$|\s)/giu, " ")
+      .replace(/\s+в\s+(?:дневник|рацион)\S*/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  ).slice(0, 120);
+  if (!name || name.length < 2) return null;
+  const t = assistantReply.toLowerCase().replace(/ё/g, "е");
+  const protein = macroFromReply(t, /(?:белк\S*|б)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
+  const fat = macroFromReply(t, /(?:жир\S*|ж)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
+  const carbs = macroFromReply(t, /(?:углевод\S*|у)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
+  const grams =
+    parsePortionGramsFromMessage(userMessage) ??
+    macroFromReply(t, /(?:порци\S*|вес\S*|около|примерно|~)\s*(\d{2,4})\s*(?:г|гр|грамм)\b/);
+  const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
+  return {
+    apply: true,
+    targetDate,
+    meals: [
+      {
+        name: grams && !/\d\s*(?:г|гр|грамм)\b/i.test(name) ? `${name} (${grams} г)` : name,
+        kcal,
+        protein,
+        fat,
+        carbs,
+        note,
+      },
+    ],
+    summary: `к подтверждению: ${name}`,
+  };
+}
+
 /** Message the offline repairers can gate on when only the reply carries the write intent. */
 function repairIntentMessage(userMessage: string, assistantReply?: string): string {
-  if (userWantsWrite(userMessage) || !replyPromisesWriteCard(assistantReply)) return userMessage;
+  if (userWantsWrite(userMessage)) return userMessage;
+  if (!replyPromisesWriteCard(assistantReply) && !replyEstimatesBareDish(userMessage, assistantReply)) {
+    return userMessage;
+  }
   return `запиши ${userMessage}`;
 }
 
@@ -106,6 +195,9 @@ export function needsWriteRepair(
   assistantReply?: string,
 ): boolean {
   if (replyPromisesWriteCard(assistantReply)) return !actionsHaveWritablePayload(actions);
+  if (replyEstimatesBareDish(userMessage, assistantReply)) {
+    return !actionsHaveWritablePayload(actions);
+  }
   if (
     !userWantsWrite(userMessage) &&
     !userWantsStartWorkout(userMessage) &&
@@ -1169,10 +1261,10 @@ export async function repairAssistantWriteActions(opts: {
       { retries: 1 },
     );
     const actions = extractActionsJson(raw);
-    if (!actions) return null;
-    return { ...actions, apply: true };
+    if (actions && actionsHaveWritablePayload(actions)) return { ...actions, apply: true };
   } catch (error) {
     console.error("assistant write repair", error);
-    return null;
   }
+  // LLM repair failed/empty: still owe a confirm card when the draft has a kcal estimate.
+  return heuristicRepairFromProseKcal(opts.userMessage, opts.assistantReply);
 }
