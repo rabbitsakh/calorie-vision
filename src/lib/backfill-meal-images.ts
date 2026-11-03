@@ -40,6 +40,7 @@ const LOOKUP_IMAGE_SOURCES = new Set([
   "openfoodfacts-search",
   "openfoodfacts-barcode",
   "ru-sku-cache",
+  "barcode-user",
   "ru-nutrition-table",
 ]);
 

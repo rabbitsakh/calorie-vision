@@ -8,6 +8,7 @@ const BarcodeScanner = dynamic(
   () => import("@/components/BarcodeScanner").then((m) => m.BarcodeScanner),
   { ssr: false, loading: () => <p className="text-sm text-[var(--muted)]">Открываем сканер…</p> },
 );
+import { BarcodeContributeForm } from "@/components/BarcodeContributeForm";
 import { ConfirmationCard } from "@/components/ConfirmationCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
@@ -399,20 +400,39 @@ export function FoodAddPanel({
     }
 
     try {
-      const response = await fetch(withBasePath("/api/food/lookup"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dishName: payload.dishName,
-          barcode: barcodeForLookup,
-        }),
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        withBasePath(barcodeForLookup ? "/api/food/barcode" : "/api/food/lookup"),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dishName: payload.dishName,
+            barcode: barcodeForLookup,
+          }),
+          signal: controller.signal,
+        },
+      );
       const data = await readApiJson<{
+        status?: "found" | "not_found" | "offline" | "invalid";
         recognition?: FoodRecognitionResult;
         imagePath?: string;
         error?: string;
       }>(response);
+
+      if (barcodeForLookup && data.status === "found" && data.recognition) {
+        if (!controller.signal.aborted) {
+          openPending(toRecognitionResponse(data.recognition, data.imagePath));
+        }
+        return;
+      }
+      if (barcodeForLookup && (data.status === "not_found" || response.status === 404)) {
+        setBarcodeFailure(buildBarcodeLookupFailure("not_found", barcodeForLookup));
+        return;
+      }
+      if (barcodeForLookup && (data.status === "offline" || response.status === 503)) {
+        setBarcodeFailure(buildBarcodeLookupFailure("network", barcodeForLookup));
+        return;
+      }
 
       if (!response.ok || !data.recognition) {
         if (barcodeForLookup) {
@@ -777,7 +797,19 @@ export function FoodAddPanel({
           </form>
         ) : null}
 
-        {barcodeFailure ? (
+        {mode === "barcode" && barcodeFailure?.kind === "not_found" ? (
+          <BarcodeContributeForm
+            barcode={barcodeFailure.barcode}
+            disabled={disabled || loading}
+            onCreated={(recognition, imagePath) => {
+              setBarcodeFailure(null);
+              setError(null);
+              openPending(toRecognitionResponse(recognition, imagePath));
+            }}
+          />
+        ) : null}
+
+        {barcodeFailure && barcodeFailure.kind !== "not_found" ? (
           <div
             className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3"
             role="alert"

@@ -5,7 +5,8 @@ import type { VisionPromptHints } from "@/lib/ai/prompt-variants";
 import { logRecognitionPass } from "@/lib/ai/recognition-telemetry";
 import { mapPool, withTimeoutFallback } from "@/lib/async-pool";
 import { normalizeBarcode } from "@/lib/barcode";
-import { lookupRuSkuCache } from "@/lib/barcode-ru-sku-cache";
+import { barcodeProductToRecognition } from "@/lib/barcode-catalog";
+import { lookupBarcodeCatalogLive } from "@/lib/barcode-catalog-live";
 import {
   formatBarcodeWebContext,
   gatherBarcodeWebEvidence,
@@ -911,37 +912,20 @@ export async function lookupFoodByBarcode(
     throw new Error("Укажите корректный штрихкод (8, 12 или 13 цифр)");
   }
 
-  const off = await lookupOpenFoodFactsByBarcodeWithRepair(barcode);
+  const catalog = await lookupBarcodeCatalogLive(barcode);
   let result: FoodRecognitionResult;
 
-  if (off) {
-    // Keep OFF gaps as undefined (not fake 0). Optional short fiber/sugar ask with hard timeout.
+  if (catalog.status === "found") {
     result = normalizeRecognitionNutrition(
       await withFoodImage(
-        {
-          dishName: off.dishName,
-          calories: off.calories,
-          protein: off.protein,
-          fat: off.fat,
-          carbs: off.carbs,
-          fiber: off.fiber,
-          sugar: off.sugar,
-          portionGrams: off.portionGrams,
-          per100g: off.per100g,
-          barcode: off.barcode ?? barcode,
-          brand: off.brand,
-          imageUrl: off.imageUrl,
-          confidence: 0.9,
-          source: "openfoodfacts-barcode",
-          photoKind: "barcode",
-        },
-        off.dishName,
+        barcodeProductToRecognition(catalog.product),
+        catalog.product.name,
       ),
     );
 
-    if (needsFiberSugarBackfill(result)) {
+    if (needsFiberSugarBackfill(result) && result.source === "openfoodfacts-barcode") {
       result = await withTimeoutFallback(
-        enrichMissingFiberSugar(result, off.dishName || barcode, off, { skipFullLookup: true }),
+        enrichMissingFiberSugar(result, result.dishName || barcode, null, { skipFullLookup: true }),
         BARCODE_FIBER_SUGAR_MS,
         result,
       );
@@ -950,32 +934,11 @@ export async function lookupFoodByBarcode(
     return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
   }
 
-  const ruSku = lookupRuSkuCache(barcode);
-  if (ruSku) {
-    const portion = ruSku.portionGrams ?? 100;
-    const kcal100 = ruSku.kcalPer100 ?? 0;
-    const calories = Math.round((kcal100 * portion) / 100);
-    result = normalizeRecognitionNutrition(
-      await withFoodImage(
-        {
-          dishName: ruSku.name,
-          brand: ruSku.brand,
-          barcode,
-          calories,
-          portionGrams: portion,
-          per100g: kcal100 > 0 ? { calories: kcal100 } : undefined,
-          confidence: 0.7,
-          source: "ru-sku-cache",
-          photoKind: "barcode",
-        },
-        ruSku.name,
-      ),
-    );
-    return applyStoredFoodCorrection(normalizeRecognitionNutrition(result), userId);
-  }
-
   const gc = await lookupBarcodeViaGigaChat(barcode, { rethrowApiErrors: true });
   if (!gc) {
+    if (catalog.status === "offline") {
+      throw new Error("Нет связи с базой продуктов. Проверьте интернет и повторите сканирование.");
+    }
     throw new Error(
       "Продукт не найден по штрихкоду: нет в Open Food Facts, и не удалось определить через интернет / GigaChat",
     );

@@ -1234,11 +1234,49 @@ print(f"applicationId=ru.calorievision.app versionName={version} versionCode={co
 PY
 }
 
+# ML Kit barcode UI module + camera permission (cap sync can rewrite the manifest).
+rustore_patch_capacitor_barcode() {
+  local android_dir="${1:?android}"
+  local manifest="$android_dir/app/src/main/AndroidManifest.xml"
+  if [[ ! -f "$manifest" ]]; then
+    echo "Нет AndroidManifest.xml — пропуск штрихкод-сканера" >&2
+    return 0
+  fi
+  rustore_py - "$manifest" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+changed = []
+if 'android.permission.CAMERA' not in text:
+    needle = "<manifest"
+    idx = text.find(needle)
+    end = text.find(">", idx)
+    if idx < 0 or end < 0:
+        raise SystemExit("manifest root not found")
+    insert = '\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />'
+    text = text[: end + 1] + insert + text[end + 1 :]
+    changed.append("CAMERA")
+token = "com.google.mlkit.vision.DEPENDENCIES"
+if token not in text:
+    marker = "</application>"
+    at = text.find(marker)
+    if at < 0:
+        raise SystemExit("application tag not found")
+    meta = '        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="barcode_ui" />\n    '
+    text = text[:at] + meta + text[at:]
+    changed.append("barcode_ui")
+path.write_text(text)
+print("barcode manifest:", ", ".join(changed) if changed else "already present")
+PY
+}
+
 # Keep session bridge after cap sync (same hook point as App Links).
 rustore_patch_capacitor_android() {
   local android_dir="${1:?android}"
   rustore_patch_capacitor_app_links "$android_dir"
   rustore_patch_capacitor_session_bridge "$android_dir"
+  rustore_patch_capacitor_barcode "$android_dir"
 }
 
 # Prevent `bubblewrap build` from re-running update (which re-fetches icons over our sync).

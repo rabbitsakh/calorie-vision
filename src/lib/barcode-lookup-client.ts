@@ -79,7 +79,7 @@ export function barcodeFailureMessage(kind: BarcodeLookupFailureKind, barcode?: 
 export function barcodeFailureHint(kind: BarcodeLookupFailureKind): string | null {
   switch (kind) {
     case "not_found":
-      return "Введите название вручную или сфотографируйте этикетку с КБЖУ";
+      return "Добавьте название и КБЖУ на 100 г — или сфотографируйте этикетку";
     case "invalid_format":
       return "EAN-8, EAN-12 или EAN-13 — только цифры";
     case "network":
