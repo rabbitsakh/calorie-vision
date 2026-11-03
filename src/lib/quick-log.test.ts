@@ -12,6 +12,11 @@ import {
 } from "./quick-log.ts";
 
 test("splitQuickPortion reads «(200 г)» and trailing «100 мл»", () => {
+  assert.deepEqual(splitQuickPortion("Чебурек (100 г)"), {
+    base: "Чебурек",
+    grams: 100,
+    unit: "г",
+  });
   assert.deepEqual(splitQuickPortion("Творог обезжиренный (200 г)"), {
     base: "Творог обезжиренный",
     grams: 200,

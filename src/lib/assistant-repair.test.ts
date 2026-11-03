@@ -15,6 +15,8 @@ import {
   heuristicRepairWriteActions,
   messageLooksLikeMultiDish,
   needsWriteRepair,
+  heuristicRepairFromProseKcal,
+  replyEstimatesBareDish,
   parsePortionGramsFromMessage,
   parseStructuredMealsFromText,
   preferMultiDishActions,
@@ -34,6 +36,7 @@ import {
   userWantsWrite,
 } from "./assistant-intent.ts";
 import { lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
+import { enrichQuickMealsFromText, splitQuickPortion } from "./quick-log.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -645,4 +648,59 @@ test("replyPromisesWriteCard ignores plain advice", () => {
   assert.equal(replyPromisesWriteCard("Мороженое — около 200 ккал на 100 г."), false);
   assert.equal(replyPromisesWriteCard("Можно добавить в дневник позже."), false);
   assert.equal(replyPromisesWriteCard("Нажми «В дневник» под карточкой."), true);
+});
+
+const CHEB_USER = "Чебурек с фаршем индейки";
+const CHEB_REPLY =
+  "Чебурек с фаршем индейки — примерно 250 ккал (Б 12 г, Ж 14 г, У 20 г). ✅ Подтверждайте запись в дневник.";
+
+test("prose «Подтверждайте запись» / «Запиши … в дневник?» owes a confirm card", () => {
+  assert.equal(replyPromisesWriteCard(CHEB_REPLY), true);
+  assert.equal(replyPromisesWriteCard("Запиши чебурек в дневник? Около 250 ккал."), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, CHEB_REPLY), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, "Запиши чебурек в дневник? ~250 ккал"), true);
+});
+
+test("bare dish + kcal estimate needs repair; questions stay read-only", () => {
+  assert.equal(replyEstimatesBareDish(CHEB_USER, "Чебурек — около 250 ккал."), true);
+  assert.equal(needsWriteRepair(CHEB_USER, null, "Чебурек — около 250 ккал."), true);
+  assert.equal(needsWriteRepair("Сколько калорий в чебуреке?", null, "Около 250 ккал."), false);
+});
+
+test("offline prose fallback extracts kcal + БЖУ into a meal", () => {
+  const a = heuristicRepairFromProseKcal(CHEB_USER, CHEB_REPLY);
+  assert.equal(a?.apply, true);
+  const m = a?.meals?.[0];
+  assert.equal(m?.kcal, 250);
+  assert.equal(m?.protein, 12);
+  assert.equal(m?.fat, 14);
+  assert.equal(m?.carbs, 20);
+  assert.match(m?.name ?? "", /чебурек/i);
+});
+
+test("«Чебурек (100 г)» fills the confirm card grams field", () => {
+  const user = "Чебурек (100 г)";
+  const reply =
+    "Чебурек (100 г) — примерно 250 ккал (Б 12 г, Ж 14 г, У 20 г). Подтверждайте запись в дневник.";
+  const a = heuristicRepairFromProseKcal(user, reply);
+  const meal = a?.meals?.[0];
+  assert.ok(meal);
+  assert.equal(meal.name, "Чебурек (100 г)");
+  const shown = splitQuickPortion(enrichQuickMealsFromText([meal], a?.summary ?? "")[0]!.name);
+  assert.equal(shown.base, "Чебурек");
+  assert.equal(shown.grams, 100);
+  assert.equal(shown.unit, "г");
+});
+
+test("grams in the reply dish name fill the card when the user omitted them", () => {
+  const a = heuristicRepairFromProseKcal(
+    "Чебурек",
+    "Чебурек (180 г) — примерно 400 ккал. Подтверждайте запись в дневник.",
+  );
+  const meal = a?.meals?.[0];
+  assert.ok(meal);
+  const shown = splitQuickPortion(enrichQuickMealsFromText([meal], a?.summary ?? "")[0]!.name);
+  assert.equal(shown.base, "Чебурек");
+  assert.equal(shown.grams, 180);
+  assert.equal(shown.unit, "г");
 });
