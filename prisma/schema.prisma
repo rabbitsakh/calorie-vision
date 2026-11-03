@@ -102,6 +102,7 @@ model User {
   workoutSessions          WorkoutSession[]
   workoutExerciseLibrary   WorkoutExerciseLibrary[]
   workoutRoutines          WorkoutRoutine[]
+  barcodeContributions     BarcodeProduct[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -282,6 +283,30 @@ model WaterEntry {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+}
+
+/// Shared barcode → product cache (Open Food Facts and user contributions).
+model BarcodeProduct {
+  id              String   @id @default(cuid())
+  barcode         String   @unique @db.VarChar(14)
+  name            String   @db.VarChar(255)
+  brand           String?  @db.VarChar(120)
+  kcalPer100      Float
+  proteinPer100   Float?
+  fatPer100       Float?
+  carbsPer100     Float?
+  packGrams       Int?
+  imageUrl        String?  @db.VarChar(512)
+  /** openfoodfacts | user | ru-sku */
+  source          String   @db.VarChar(32)
+  userContributed Boolean  @default(false)
+  contributorId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  contributor User? @relation(fields: [contributorId], references: [id], onDelete: SetNull)
+
+  @@index([contributorId])
 }
 
 model CustomFood {

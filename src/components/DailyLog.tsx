@@ -354,6 +354,7 @@ export function DailyLog({
           source === "custom-food" ||
           source === "off-staple-average" ||
           source === "ru-sku-cache" ||
+          source === "barcode-user" ||
           source === "ru-nutrition-table"
         );
       })

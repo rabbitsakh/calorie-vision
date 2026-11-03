@@ -6,6 +6,7 @@ import {
   decodeBarcodeFromCanvas,
   decodeBarcodeFromImageFile,
 } from "@/lib/decode-barcode-client";
+import { openNativeBarcodeSettings, scanNativeBarcode } from "@/lib/native-barcode-scan";
 import { playScannerBeep } from "@/lib/scanner-beep";
 
 type BarcodeScannerProps = {
@@ -25,7 +26,9 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
   const busyRef = useRef(false);
   const lastDecodeAtRef = useRef(0);
   const [scanning, setScanning] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canOpenSettings, setCanOpenSettings] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -50,6 +53,35 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
 
   async function startScanning() {
     setError(null);
+    setCanOpenSettings(false);
+    setBusy(true);
+    try {
+      const native = await scanNativeBarcode();
+      if (native.status === "code") {
+        playScannerBeep();
+        onDetected(native.barcode);
+        return;
+      }
+      if (native.status === "cancelled") return;
+      if (native.status === "denied") {
+        setError(
+          "Нет доступа к камере. Разрешите камеру в настройках приложения или введите код вручную.",
+        );
+        setCanOpenSettings(true);
+        return;
+      }
+      if (native.status === "error") {
+        setError(`${native.message} Можно сканировать камерой браузера или ввести код.`);
+      }
+      await startWebScanning();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startWebScanning() {
+    setError(null);
+    setCanOpenSettings(false);
     if (!navigator.mediaDevices?.getUserMedia) {
       setError("Камера недоступна в этом браузере — загрузите снимок штрихкода или введите код вручную.");
       return;
@@ -101,8 +133,16 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
       rafRef.current = requestAnimationFrame(() => {
         void tick();
       });
-    } catch {
-      setError("Не удалось открыть камеру. Разрешите доступ, загрузите снимок или введите код вручную.");
+    } catch (err) {
+      const name = err instanceof DOMException ? err.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        setError("Нет доступа к камере. Разрешите камеру в настройках браузера или введите код вручную.");
+        setCanOpenSettings(false);
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setError("Камера не найдена. Загрузите снимок штрихкода или введите цифры вручную.");
+      } else {
+        setError("Не удалось открыть камеру. Загрузите снимок или введите код вручную.");
+      }
       stopScanning();
     }
   }
@@ -155,10 +195,10 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
           <button
             type="button"
             className="btn btn-secondary"
-            disabled={disabled}
+            disabled={disabled || busy}
             onClick={() => void startScanning()}
           >
-            Сканировать камерой
+            {busy ? "Открываем сканер…" : "Сканировать камерой"}
           </button>
         ) : (
           <button type="button" className="btn btn-quiet" onClick={stopScanning}>
@@ -190,6 +230,15 @@ export function BarcodeScanner({ disabled, onDetected, onManualFallback, onLabel
       {error ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-red-600">{error}</p>
+          {canOpenSettings ? (
+            <button
+              type="button"
+              className="btn btn-secondary text-sm"
+              onClick={() => void openNativeBarcodeSettings()}
+            >
+              Открыть настройки камеры
+            </button>
+          ) : null}
           {onManualFallback || onLabelFallback ? (
             <div className="flex flex-wrap gap-2">
               {onManualFallback ? (

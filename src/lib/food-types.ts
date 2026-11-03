@@ -13,6 +13,7 @@ export const RECOGNITION_SOURCE_LABELS: Record<string, string> = {
   "gigachat-plate": "Несколько блюд на тарелке",
   "ru-nutrition-table": "Типичные значения (справочник)",
   "ru-sku-cache": "Офлайн-подсказка по штрихкоду (RU)",
+  "barcode-user": "Добавлено в общую базу по штрихкоду",
   "ru-name-sku": "Офлайн-подсказка по бренду (RU)",
   "custom-food": "Из ваших сохранённых продуктов",
   "off-staple-average": "Типичные значения (среднее по базе)",

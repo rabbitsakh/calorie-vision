@@ -111,6 +111,15 @@ const cases: RouteCase[] = routeFiles.flatMap((file) => {
 const protectedCases = cases.filter((routeCase) => !routeCase.public);
 
 describe("API route auth catalog", () => {
+  it("protects the barcode lookup and contribute routes", () => {
+    for (const path of ["/api/food/barcode", "/api/food/barcode/contribute"]) {
+      assert.ok(
+        protectedCases.some((routeCase) => routeCase.method === "POST" && routeCase.path === path),
+        `expected POST ${path} to require a session`,
+      );
+    }
+  });
+
   it("covers every route file, including the public allowlist", () => {
     assert.ok(routeFiles.length >= 80, `expected ~85 route files, found ${routeFiles.length}`);
     assert.ok(protectedCases.length >= 70, `expected most routes to be protected, found ${protectedCases.length}`);

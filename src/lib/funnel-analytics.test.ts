@@ -35,6 +35,14 @@ describe("funnel privacy", () => {
       { count: 2, surface: "recognize" },
     );
   });
+
+  it("keeps barcode scan outcome and drops the product name", () => {
+    assert.deepEqual(
+      sanitizeFunnelProps({ result: "not_found", dishName: "творог", barcode: "4600605023124" }),
+      { result: "not_found" },
+    );
+    assert.deepEqual(sanitizeFunnelProps({ result: "found" }), { result: "found" });
+  });
 });
 
 describe("meal confirm signal", () => {
@@ -160,6 +168,30 @@ describe("trackFunnelEvent", () => {
     );
     assert.equal(memory.events[0]?.userHash?.includes("user-secret-id"), false);
     assert.deepEqual(memory.events[1]?.props, { count: 1 });
+  });
+
+  it("records every barcode scan as found or not_found", async () => {
+    const memory = createMemoryFunnelProvider();
+    setFunnelProvidersForTests([memory]);
+
+    await trackFunnelEvent({
+      name: "barcode_scanned",
+      userId: "user-secret-id",
+      once: false,
+      props: { result: "found", barcode: "4600605023124" },
+    });
+    await trackFunnelEvent({
+      name: "barcode_scanned",
+      userId: "user-secret-id",
+      once: false,
+      props: { result: "not_found" },
+    });
+
+    assert.deepEqual(
+      memory.events.map((event) => event.props),
+      [{ result: "found" }, { result: "not_found" }],
+    );
+    assert.equal(memory.events[0]?.userHash?.includes("user-secret-id"), false);
   });
 
   it("posts a hashed payload and never the raw user id", async () => {

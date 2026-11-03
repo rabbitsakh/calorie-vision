@@ -73,6 +73,7 @@ const BARCODE_RECOGNITION_SOURCES = new Set([
   "openfoodfacts-barcode",
   "gigachat-barcode",
   "ru-sku-cache",
+  "barcode-user",
 ]);
 
 type DiarySourceEntry = {

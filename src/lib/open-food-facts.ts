@@ -71,9 +71,14 @@ type OffProduct = {
   image_small_url?: string;
 };
 
-const USER_AGENT = "CalorieVision/1.0 (https://calorievision.ru)";
+/** OFF blocks anonymous clients. Name, contact, and a page they can open. */
+export const OFF_USER_AGENT =
+  "CalorieVision/1.0 (support@calorievision.ru) https://calorievision.ru";
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
-const PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
+const PRODUCT_URLS = [
+  "https://world.openfoodfacts.org/api/v2/product",
+  "https://ru.openfoodfacts.org/api/v2/product",
+] as const;
 
 // In-process cache (5 min TTL) to avoid duplicate network calls for repeated scans.
 const OFF_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -326,7 +331,7 @@ async function offGetJson(url: string): Promise<unknown | null> {
   try {
     const response = await fetch(url, {
       headers: {
-        "User-Agent": USER_AGENT,
+        "User-Agent": OFF_USER_AGENT,
         Accept: "application/json",
       },
       signal: controller.signal,
@@ -342,23 +347,88 @@ async function offGetJson(url: string): Promise<unknown | null> {
   }
 }
 
-export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<PackNutrition | null> {
+type OffProductFetch =
+  | { status: "hit"; product: OffProduct }
+  | { status: "miss" }
+  | { status: "unavailable" };
+
+async function fetchOffProduct(base: string, barcode: string): Promise<OffProductFetch> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${base}/${encodeURIComponent(barcode)}.json`, {
+      headers: {
+        "User-Agent": OFF_USER_AGENT,
+        Accept: "application/json",
+      },
+      signal: controller.signal,
+    });
+    if (response.status === 404) {
+      return { status: "miss" };
+    }
+    if (!response.ok) {
+      return { status: "unavailable" };
+    }
+    const data = (await response.json()) as { status?: number; product?: OffProduct };
+    if (data.status === 1 && data.product) {
+      return { status: "hit", product: data.product };
+    }
+    return { status: "miss" };
+  } catch {
+    return { status: "unavailable" };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export type OffBarcodeRegionResult =
+  | { status: "hit"; product: PackNutrition }
+  | { status: "miss" }
+  | { status: "unavailable" };
+
+/**
+ * World product API, then the Russian mirror when world has no usable hit.
+ * A host that times out is not stored as "not found".
+ */
+export async function lookupOpenFoodFactsRegions(
+  barcode: string,
+): Promise<OffBarcodeRegionResult> {
   const cached = offCacheGet(offBarcodeCache, barcode);
   if (cached !== undefined) {
-    return cached;
+    return cached ? { status: "hit", product: cached } : { status: "miss" };
   }
 
-  const data = (await offGetJson(`${PRODUCT_URL}/${encodeURIComponent(barcode)}.json`)) as
-    | { status?: number; product?: OffProduct }
-    | null;
-  // Network/timeout/5xx → null from offGetJson; do not cache (avoid 5 min "not found").
-  if (data === null) {
-    return null;
+  let sawMiss = false;
+  let sawUnavailable = false;
+  for (const base of PRODUCT_URLS) {
+    const fetched = await fetchOffProduct(base, barcode);
+    if (fetched.status === "unavailable") {
+      sawUnavailable = true;
+      continue;
+    }
+    if (fetched.status === "miss") {
+      sawMiss = true;
+      continue;
+    }
+    const nutrition = offProductToNutrition(fetched.product);
+    if (!nutrition) {
+      sawMiss = true;
+      continue;
+    }
+    offCacheSet(offBarcodeCache, barcode, nutrition);
+    return { status: "hit", product: nutrition };
   }
 
-  const result = data.status === 1 && data.product ? offProductToNutrition(data.product) : null;
-  offCacheSet(offBarcodeCache, barcode, result);
-  return result;
+  if (sawMiss && !sawUnavailable) {
+    offCacheSet(offBarcodeCache, barcode, null);
+    return { status: "miss" };
+  }
+  return { status: "unavailable" };
+}
+
+export async function lookupOpenFoodFactsByBarcode(barcode: string): Promise<PackNutrition | null> {
+  const result = await lookupOpenFoodFactsRegions(barcode);
+  return result.status === "hit" ? result.product : null;
 }
 
 /** Try direct barcode, then OCR/check-digit repair candidates. */

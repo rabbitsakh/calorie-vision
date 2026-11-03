@@ -18,6 +18,7 @@ export const FUNNEL_EVENTS = [
   "day_1_return",
   "day_7_return",
   "paywall_view",
+  "barcode_scanned",
 ] as const;
 
 export type FunnelEventName = (typeof FUNNEL_EVENTS)[number];
@@ -31,7 +32,7 @@ const ONCE_EVENTS = new Set<FunnelEventName>([
   "day_7_return",
 ]);
 
-const STRING_PROPS = new Set(["surface"]);
+const STRING_PROPS = new Set(["surface", "result"]);
 const NUMBER_PROPS = new Set(["count"]);
 
 export type FunnelEventRecord = {
@@ -265,6 +266,15 @@ export function trackMealConfirmed(userId: string, count = 1): void {
     userId,
     once: false,
     props: { count },
+  });
+}
+
+export function trackBarcodeScanned(userId: string, result: "found" | "not_found"): void {
+  void trackFunnelEvent({
+    name: "barcode_scanned",
+    userId,
+    once: false,
+    props: { result },
   });
 }
 

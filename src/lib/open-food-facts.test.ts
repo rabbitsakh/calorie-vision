@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  OFF_USER_AGENT,
   offMatchesQuery,
   offProductToNutrition,
   parsePackGrams,
@@ -8,6 +9,12 @@ import {
   resolvePackGrams,
   searchOpenFoodFactsBest,
 } from "./open-food-facts.ts";
+
+test("Open Food Facts user agent names the app and a contact", () => {
+  assert.match(OFF_USER_AGENT, /CalorieVision\/1\.0/);
+  assert.match(OFF_USER_AGENT, /support@calorievision\.ru/);
+  assert.match(OFF_USER_AGENT, /https:\/\/calorievision\.ru/);
+});
 
 test("parses net weight from package quantity text", () => {
   assert.equal(parsePackGrams("250 г"), 250);
