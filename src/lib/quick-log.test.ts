@@ -25,6 +25,17 @@ test("splitQuickPortion reads «(200 г)» and trailing «100 мл»", () => {
   assert.deepEqual(splitQuickPortion("Молоко 2,5% 100 мл"), { base: "Молоко 2,5%", grams: 100, unit: "мл" });
   assert.deepEqual(splitQuickPortion("Молоко 100мл"), { base: "Молоко", grams: 100, unit: "мл" });
   assert.equal(splitQuickPortion("Мороженое").grams, null);
+  assert.deepEqual(splitQuickPortion("Сырники (3 шт. ≈ 150 г)"), {
+    base: "Сырники (3 шт)",
+    grams: 150,
+    unit: "г",
+  });
+  assert.deepEqual(splitQuickPortion("Топпинг без сахара (≈ 30 г)"), {
+    base: "Топпинг без сахара",
+    grams: 30,
+    unit: "г",
+  });
+  assert.equal(splitQuickPortion("Сырники (3 шт)").grams, null);
 });
 
 test("enrichQuickMealsFromText restores grams AI dropped from the name", () => {

@@ -209,6 +209,12 @@ test("generic dairy staples stay unbranded", () => {
   }
   assert.match(lookupRuNutritionTable("йогурт")!.dishName, /натуральн/i);
   assert.match(lookupRuNutritionTable("греческий йогурт")!.dishName, /Греческ/i);
+  assert.match(lookupRuNutritionTable("ряженка")!.dishName, /Ряженка/);
+  assert.doesNotMatch(lookupRuNutritionTable("ряженка")!.dishName, /желе/i);
+  const jelly = lookupRuNutritionTable("желе из ряженки");
+  assert.equal(jelly?.dishName, "Желе из ряженки");
+  assert.equal(jelly?.calories, 85);
+  assert.equal(jelly?.portionGrams, 150);
 });
 
 test("lookupRuNutritionTable and dishLooksLikeAlcohol for drinks", () => {

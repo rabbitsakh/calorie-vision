@@ -23,7 +23,8 @@ test("merge + format", () => {
     likes: ["C"],
   });
   assert.deepEqual(merged.dislikes, ["B"]);
-  assert.match(formatAssistantPrefsBlock(merged), /Не предлагает: B/);
+  assert.match(formatAssistantPrefsBlock(merged), /Не предлагай в советах: B/);
+  assert.match(formatAssistantPrefsBlock(merged), /Уже съеденное всё равно записывай/);
 });
 
 test("summarizeAssistantPrefsForHeader honest + empty", () => {
