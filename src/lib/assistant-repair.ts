@@ -136,12 +136,120 @@ function macroFromReply(t: string, re: RegExp): number | undefined {
   return Number.isFinite(v) ? v : undefined;
 }
 
-/** Cyrillic «г» is not a JS `\b` word char — same end used by parsePortionGramsFromMessage. */
+/** Кириллическая «г» не является границей слова `\b` в JS. */
 const PORTION_GRAM_END = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
 
+/** Подписи КБЖУ, которые нельзя показывать как название блюда. */
+const NUTRIENT_LABELS = new Set([
+  "калории",
+  "калория",
+  "калорийность",
+  "калорийности",
+  "калорийностью",
+  "ккал",
+  "kcal",
+  "calorie",
+  "calories",
+  "белки",
+  "белок",
+  "белка",
+  "белков",
+  "жиры",
+  "жир",
+  "жира",
+  "жиров",
+  "углеводы",
+  "углевод",
+  "углевода",
+  "углеводов",
+  "кбжу",
+  "бжу",
+  "protein",
+  "proteins",
+  "fat",
+  "fats",
+  "carb",
+  "carbs",
+]);
+
+/** «Калории», «Калорийность», «Белки» — не блюдо. «Жирная сметана» остаётся блюдом. */
+export function isNutrientLabelName(name: string): boolean {
+  let t = name.trim().toLowerCase().replace(/ё/g, "е");
+  t = t.replace(/\(\s*\d+(?:[.,]\d+)?\s*(?:мл|грамм(?:а|ов)?|гр|г)\s*\)\s*$/iu, "").trim();
+  t = t.replace(/[.:;]+$/u, "").trim();
+  return NUTRIENT_LABELS.has(t);
+}
+
+function fragmentStartsWithNutrientLabel(fragment: string): boolean {
+  const raw = fragment.trim().toLowerCase().replace(/ё/g, "е");
+  const head = (raw.split(/[:—–]/)[0] ?? "").trim();
+  const first = (head.split(/\s+/)[0] ?? "").replace(/[.:;,]+$/u, "");
+  return isNutrientLabelName(first);
+}
+
+/** Черновик из пунктов «Калорийность / Белки / Жиры / Углеводы», а не список блюд. */
+function replyLooksLikeNutrientBreakdown(reply: string): boolean {
+  let labels = 0;
+  for (const raw of reply.split(/\r?\n/)) {
+    const line = raw.replace(/^\s*(?:[-•*]|\d+[.)])\s+/, "").trim();
+    if (line && fragmentStartsWithNutrientLabel(line)) labels += 1;
+  }
+  return labels >= 2 && /ккал|калори/i.test(reply);
+}
+
 /**
- * Portion from a prose draft: «Чебурек (100 г)» or «порция около 180 г».
- * Skips macro tails «(Б 12 г, Ж 14 г)» — the paren is not followed by the number.
+ * Название блюда из фразы пользователя: без «я съел / съела / запиши / добавь»
+ * и без «в дневник».
+ */
+export function dishNameFromUserLog(userMessage: string): string {
+  let s = userMessage.replace(/\u00a0/g, " ").trim();
+  const filler =
+    /^\s*(?:я\s+)?(?:съел|съела|выпил|выпила|поел|поела|добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)\s+/iu;
+  for (let i = 0; i < 4; i += 1) {
+    const next = s
+      .replace(filler, "")
+      .replace(/\s+в\s+(?:дневник|рацион)\S*/giu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (next === s) break;
+    s = next;
+  }
+  const name = sanitizeAssistantMealName(s).slice(0, 120);
+  if (!name || name.length < 2 || isNutrientLabelName(name)) return "";
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+const MACRO_VALUE = String.raw`\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*(?:грамм(?:а|ов)?|гр|г)`;
+
+/** «Белки: около 20 г» и «белки 15 г, жиры 15 г, углеводы 20 г». */
+function macrosFromReply(reply: string): { protein?: number; fat?: number; carbs?: number } {
+  const t = reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " ");
+  return {
+    protein: macroFromReply(t, new RegExp(String.raw`(?:белки|белок|б)${MACRO_VALUE}`, "iu")),
+    fat: macroFromReply(t, new RegExp(String.raw`(?:жиры|жир|ж)${MACRO_VALUE}`, "iu")),
+    carbs: macroFromReply(t, new RegExp(String.raw`(?:углеводы|углевод|у)${MACRO_VALUE}`, "iu")),
+  };
+}
+
+/** Убрать БЖУ, чтобы «около 20 г» после «Белки:» не стало порцией блюда. */
+function withoutMacroAmounts(text: string): string {
+  return text
+    .replace(
+      new RegExp(String.raw`(?:белки|белок|жиры|жир|углеводы|углевод|протеин)${MACRO_VALUE}`, "giu"),
+      " ",
+    )
+    .replace(
+      new RegExp(
+        String.raw`(?:^|[\s,(])[бжfуu]\s*[:—–-]?\s*(?:около|примерно|~)?\s*\d+(?:[.,]\d+)?\s*(?:грамм(?:а|ов)?|гр|г)`,
+        "giu",
+      ),
+      " ",
+    );
+}
+
+/**
+ * Порция из черновика: «Чебурек (100 г)» или «порция около 180 г».
+ * «(Б 12 г)» не подходит: после скобки не число.
  */
 function portionGramsFromReply(reply: string): number | undefined {
   const t = reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " ");
@@ -153,7 +261,7 @@ function portionGramsFromReply(reply: string): number | undefined {
   const hinted = new RegExp(
     String.raw`(?:порци\S*|вес\S*|около|примерно|~)\s*(\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
     "iu",
-  ).exec(t);
+  ).exec(withoutMacroAmounts(t));
   if (!hinted?.[1]) return undefined;
   const n = Number(hinted[1]);
   return n >= 10 && n <= 5000 ? n : undefined;
@@ -169,19 +277,9 @@ export function heuristicRepairFromProseKcal(
 ): AssistantActions | null {
   const kcal = extractKcalFromReply(assistantReply);
   if (kcal == null) return null;
-  const name = sanitizeAssistantMealName(
-    userMessage
-      .replace(/^\s*я\s+(съел|съела|выпил|выпила|поел|поела)\s+/i, "")
-      .replace(/(?:^|\s)(?:добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)(?=$|\s)/giu, " ")
-      .replace(/\s+в\s+(?:дневник|рацион)\S*/gi, " ")
-      .replace(/\s+/g, " ")
-      .trim(),
-  ).slice(0, 120);
-  if (!name || name.length < 2) return null;
-  const t = assistantReply.toLowerCase().replace(/ё/g, "е");
-  const protein = macroFromReply(t, /(?:белк\S*|б)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
-  const fat = macroFromReply(t, /(?:жир\S*|ж)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
-  const carbs = macroFromReply(t, /(?:углевод\S*|у)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
+  const name = dishNameFromUserLog(userMessage);
+  if (!name) return null;
+  const { protein, fat, carbs } = macrosFromReply(assistantReply);
   const grams =
     parsePortionGramsFromMessage(userMessage) ?? portionGramsFromReply(assistantReply);
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
@@ -190,8 +288,7 @@ export function heuristicRepairFromProseKcal(
     targetDate,
     meals: [
       {
-        // `\b` after Cyrillic «г» never matches, so «Чебурек (100 г)» was doubled and
-        // the confirm card kept the grams in the title instead of the grams field.
+        // Одна скобка «(100 г)»: карточка выносит граммы в отдельное поле.
         name:
           grams && parsePortionGramsFromMessage(name) == null ? `${name} (${grams} г)` : name,
         kcal,
@@ -543,7 +640,7 @@ function extractTrailingMacros(fragment: string): {
   // Full words first — avoid `[с]` matching the start of «с креветками».
   const approx = String.raw`(?:около|примерно|~)?\s*`;
   const full = new RegExp(
-    String.raw`(?::\s*)?${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
+    String.raw`(?::\s*)?${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
     "iu",
   ).exec(rest);
   if (full?.[1]) {
@@ -610,6 +707,8 @@ function mealLineFromFragment(
 ): ParsedMealLine | null {
   let rest = fragment.trim();
   if (!rest || rest.length < 2) return null;
+  // «Калорийность: 300 ккал» / «Белки: около 20 г» — подпись нутриента, не блюдо.
+  if (fragmentStartsWithNutrientLabel(rest)) return null;
 
   let kcal: number | undefined;
   let protein: number | undefined;
@@ -954,6 +1053,11 @@ export function heuristicRepairFromDraftReply(
   if (!userWantsWrite(userMessage)) return null;
   if (!assistantReply.trim()) return null;
 
+  if (replyLooksLikeNutrientBreakdown(assistantReply)) {
+    const prose = heuristicRepairFromProseKcal(userMessage, assistantReply);
+    if (prose?.meals?.some((m) => m.name && !isNutrientLabelName(m.name))) return prose;
+  }
+
   const { meals, missed } = parseStructuredMealsDetailed(assistantReply);
   if (meals.length < 1 || missed.length) return null;
   // Prefer lines that already carry kcal from the draft.
@@ -1213,11 +1317,92 @@ export function preferSlotEditActions(
   return actions ?? null;
 }
 
+function macrosLookEmpty(meal: { protein?: number; fat?: number; carbs?: number }): boolean {
+  const empty = (v?: number) => v == null || !Number.isFinite(v) || v <= 0;
+  return empty(meal.protein) && empty(meal.fat) && empty(meal.carbs);
+}
+
+function fillEmptyMacros<T extends { kcal?: number; protein?: number; fat?: number; carbs?: number }>(
+  meal: T,
+  prose: { kcal?: number; protein?: number; fat?: number; carbs?: number },
+): T {
+  return {
+    ...meal,
+    kcal: meal.kcal && meal.kcal > 0 ? meal.kcal : prose.kcal,
+    protein: prose.protein ?? meal.protein,
+    fat: prose.fat ?? meal.fat,
+    carbs: prose.carbs ?? meal.carbs,
+  };
+}
+
 /**
- * Second cheap call: force structured cv-actions from the user request + draft reply.
- * Tries offline heuristic first (slot edit, multi-dish, drinks/staples), then GigaChat extract.
+ * Модель или черновик назвали блюдо «Калории» / «Белки» либо вернули нулевое БЖУ.
+ * Имя берём из фразы пользователя, БЖУ — из текста ответа.
+ */
+export function salvageNutrientLabelMeals(
+  actions: AssistantActions | null | undefined,
+  userMessage: string,
+  assistantReply: string,
+): AssistantActions | null {
+  if (!actions?.meals?.length) return actions ?? null;
+  const badName = actions.meals.some((m) => isNutrientLabelName(m.name));
+  const emptyMacros = actions.meals.every(macrosLookEmpty);
+  if (!badName && !emptyMacros) return actions;
+
+  const prose = heuristicRepairFromProseKcal(userMessage, assistantReply);
+  const proseMeal = prose?.meals?.[0];
+  const proseNameOk = Boolean(proseMeal?.name && !isNutrientLabelName(proseMeal.name));
+
+  if (badName) {
+    const real = actions.meals.filter((m) => !isNutrientLabelName(m.name));
+    if (!real.length) {
+      if (prose?.meals?.length && proseNameOk) {
+        return {
+          ...actions,
+          apply: true,
+          meals: prose.meals,
+          summary: prose.summary ?? actions.summary,
+        };
+      }
+      const fallback = dishNameFromUserLog(userMessage);
+      if (!fallback) return actions;
+      return {
+        ...actions,
+        apply: true,
+        meals: actions.meals.map((m) => ({
+          ...(proseMeal && macrosLookEmpty(m) ? fillEmptyMacros(m, proseMeal) : m),
+          name: fallback,
+        })),
+      };
+    }
+    return {
+      ...actions,
+      meals: real.map((m) => (macrosLookEmpty(m) && proseMeal ? fillEmptyMacros(m, proseMeal) : m)),
+    };
+  }
+
+  if (!proseMeal) return actions;
+  return {
+    ...actions,
+    meals: actions.meals.map((m) => fillEmptyMacros(m, proseMeal)),
+  };
+}
+
+/**
+ * Второй короткий вызов: собрать cv-actions из запроса и черновика.
+ * Сначала офлайн-эвристики, затем извлечение через GigaChat.
  */
 export async function repairAssistantWriteActions(opts: {
+  userMessage: string;
+  assistantReply: string;
+  today: string;
+  date: string;
+}): Promise<AssistantActions | null> {
+  const actions = await repairAssistantWriteActionsInner(opts);
+  return salvageNutrientLabelMeals(actions, opts.userMessage, opts.assistantReply);
+}
+
+async function repairAssistantWriteActionsInner(opts: {
   userMessage: string;
   assistantReply: string;
   today: string;
@@ -1262,6 +1447,8 @@ export async function repairAssistantWriteActions(opts: {
     "«Начни тренировку» → startWorkout:true. Нет плана → startEmptyWorkout:true.",
     "«Добавь жим» / «поставь 80×8» → patchWorkout.addExercises или patchWorkout.logSets.",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
+    "meals[].name — блюдо из запроса пользователя («чебурек с фаршем индейки»). Нельзя называть блюдо «Калории», «Калорийность», «Белки», «Жиры» или «Углеводы».",
+    "Белки, жиры и углеводы бери из черновика, даже если они написаны словами: «Белки: около 20 г».",
     "kcal оцени реалистично, если пользователь не указал.",
     "Алкоголь/напитки тоже пиши в meals (пиво, вино…): 1 мл ≈ 1 г; 3 литра пива ≈ 3000 г, ~900–1300 ккал.",
     "Даже если в черновике только совет «не пей» — всё равно собери meals из запроса пользователя.",

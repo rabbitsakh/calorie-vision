@@ -25,6 +25,9 @@ import {
   sanitizeAssistantMealName,
   replyPromisesWriteCard,
   repairAssistantWriteActions,
+  dishNameFromUserLog,
+  isNutrientLabelName,
+  salvageNutrientLabelMeals,
 } from "./assistant-repair.ts";
 import { normalizeAssistantActions } from "./admin-assistant.ts";
 import { sanitizePendingWriteReply } from "./assistant-honesty.ts";
@@ -36,7 +39,7 @@ import {
   userWantsWrite,
 } from "./assistant-intent.ts";
 import { lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
-import { enrichQuickMealsFromText, splitQuickPortion } from "./quick-log.ts";
+import { enrichQuickMealsFromText, quickMacroLine, splitQuickPortion } from "./quick-log.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -703,4 +706,74 @@ test("grams in the reply dish name fill the card when the user omitted them", ()
   assert.equal(shown.base, "Чебурек");
   assert.equal(shown.grams, 180);
   assert.equal(shown.unit, "г");
+});
+
+const CHEB_LOG = "Я съел чебурек с фаршем индейки";
+const CHEB_BULLETS = `Запиши чебурек в дневник?
+- Калорийность: примерно 300 ккал
+- Белки: около 20 г
+- Жиры: около 15 г
+- Углеводы: около 25 г`;
+
+test("пункты КБЖУ не становятся названием блюда", () => {
+  assert.equal(isNutrientLabelName("Калории"), true);
+  assert.equal(isNutrientLabelName("Калорийность"), true);
+  assert.equal(isNutrientLabelName("Белки"), true);
+  assert.equal(isNutrientLabelName("Жиры"), true);
+  assert.equal(isNutrientLabelName("Углеводы"), true);
+  assert.equal(isNutrientLabelName("Чебурек с фаршем индейки"), false);
+  assert.equal(isNutrientLabelName("Жирная сметана"), false);
+
+  const parsed = parseStructuredMealsFromText(CHEB_BULLETS);
+  assert.equal(parsed.length, 0);
+
+  const draft = heuristicRepairFromDraftReply(CHEB_LOG, CHEB_BULLETS);
+  const meal = draft?.meals?.[0];
+  assert.ok(meal);
+  assert.equal(meal.name, "Чебурек с фаршем индейки");
+  assert.equal(meal.kcal, 300);
+  assert.equal(meal.protein, 20);
+  assert.equal(meal.fat, 15);
+  assert.equal(meal.carbs, 25);
+  assert.equal(quickMacroLine(meal), "Б 20 · Ж 15 · У 25");
+  const shown = splitQuickPortion(enrichQuickMealsFromText([meal], CHEB_LOG)[0]!.name);
+  assert.equal(shown.base, "Чебурек с фаршем индейки");
+});
+
+test("«белки 15 г, жиры 15 г, углеводы 20 г» попадают в карточку", () => {
+  const a = heuristicRepairFromProseKcal(
+    "Я съела чебурек с фаршем индейки",
+    "примерно 280 ккал, белки 15 г, жиры 15 г, углеводы 20 г",
+  );
+  const meal = a?.meals?.[0];
+  assert.equal(meal?.name, "Чебурек с фаршем индейки");
+  assert.equal(meal?.kcal, 280);
+  assert.equal(meal?.protein, 15);
+  assert.equal(meal?.fat, 15);
+  assert.equal(meal?.carbs, 20);
+});
+
+test("«я съел / запиши / добавь» не входят в название", () => {
+  assert.equal(dishNameFromUserLog("Я съел чебурек с фаршем индейки"), "Чебурек с фаршем индейки");
+  assert.equal(dishNameFromUserLog("Я съела чебурек"), "Чебурек");
+  assert.equal(dishNameFromUserLog("запиши чебурек с фаршем индейки"), "Чебурек с фаршем индейки");
+  assert.equal(dishNameFromUserLog("добавь чебурек в дневник"), "Чебурек");
+});
+
+test("ответ модели «Калории» с нулевым БЖУ заменяется текстом черновика", () => {
+  const saved = salvageNutrientLabelMeals(
+    {
+      apply: true,
+      meals: [{ name: "Калории", kcal: 300, protein: 0, fat: 0, carbs: 0 }],
+    },
+    CHEB_LOG,
+    CHEB_BULLETS,
+  );
+  const meal = saved?.meals?.[0];
+  assert.equal(meal?.name, "Чебурек с фаршем индейки");
+  assert.equal(meal?.kcal, 300);
+  assert.equal(meal?.protein, 20);
+  assert.equal(meal?.fat, 15);
+  assert.equal(meal?.carbs, 25);
+  assert.equal(saved?.meals?.length, 1);
 });
