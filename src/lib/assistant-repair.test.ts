@@ -36,6 +36,7 @@ import {
   userWantsWrite,
 } from "./assistant-intent.ts";
 import { lookupRuNutritionTable } from "./ru-nutrition-lookup.ts";
+import { enrichQuickMealsFromText, splitQuickPortion } from "./quick-log.ts";
 
 test("needsWriteRepair when user asked to add but no meals", () => {
   assert.equal(
@@ -675,4 +676,31 @@ test("offline prose fallback extracts kcal + БЖУ into a meal", () => {
   assert.equal(m?.fat, 14);
   assert.equal(m?.carbs, 20);
   assert.match(m?.name ?? "", /чебурек/i);
+});
+
+test("«Чебурек (100 г)» fills the confirm card grams field", () => {
+  const user = "Чебурек (100 г)";
+  const reply =
+    "Чебурек (100 г) — примерно 250 ккал (Б 12 г, Ж 14 г, У 20 г). Подтверждайте запись в дневник.";
+  const a = heuristicRepairFromProseKcal(user, reply);
+  const meal = a?.meals?.[0];
+  assert.ok(meal);
+  assert.equal(meal.name, "Чебурек (100 г)");
+  const shown = splitQuickPortion(enrichQuickMealsFromText([meal], a?.summary ?? "")[0]!.name);
+  assert.equal(shown.base, "Чебурек");
+  assert.equal(shown.grams, 100);
+  assert.equal(shown.unit, "г");
+});
+
+test("grams in the reply dish name fill the card when the user omitted them", () => {
+  const a = heuristicRepairFromProseKcal(
+    "Чебурек",
+    "Чебурек (180 г) — примерно 400 ккал. Подтверждайте запись в дневник.",
+  );
+  const meal = a?.meals?.[0];
+  assert.ok(meal);
+  const shown = splitQuickPortion(enrichQuickMealsFromText([meal], a?.summary ?? "")[0]!.name);
+  assert.equal(shown.base, "Чебурек");
+  assert.equal(shown.grams, 180);
+  assert.equal(shown.unit, "г");
 });

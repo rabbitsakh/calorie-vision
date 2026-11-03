@@ -136,6 +136,29 @@ function macroFromReply(t: string, re: RegExp): number | undefined {
   return Number.isFinite(v) ? v : undefined;
 }
 
+/** Cyrillic «г» is not a JS `\b` word char — same end used by parsePortionGramsFromMessage. */
+const PORTION_GRAM_END = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+
+/**
+ * Portion from a prose draft: «Чебурек (100 г)» or «порция около 180 г».
+ * Skips macro tails «(Б 12 г, Ж 14 г)» — the paren is not followed by the number.
+ */
+function portionGramsFromReply(reply: string): number | undefined {
+  const t = reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " ");
+  const paren = /\((\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)\)/iu.exec(t);
+  if (paren?.[1]) {
+    const n = Number(paren[1]);
+    if (n >= 10 && n <= 5000) return n;
+  }
+  const hinted = new RegExp(
+    String.raw`(?:порци\S*|вес\S*|около|примерно|~)\s*(\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
+    "iu",
+  ).exec(t);
+  if (!hinted?.[1]) return undefined;
+  const n = Number(hinted[1]);
+  return n >= 10 && n <= 5000 ? n : undefined;
+}
+
 /**
  * Last-resort offline card: dish name from the user's text, kcal/БЖУ/grams from prose draft.
  * Keeps «примерно 250 ккал… подтверждайте запись» from ending as text with no button.
@@ -160,15 +183,17 @@ export function heuristicRepairFromProseKcal(
   const fat = macroFromReply(t, /(?:жир\S*|ж)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
   const carbs = macroFromReply(t, /(?:углевод\S*|у)\s*[:—–-]?\s*(\d+(?:[.,]\d+)?)\s*г/);
   const grams =
-    parsePortionGramsFromMessage(userMessage) ??
-    macroFromReply(t, /(?:порци\S*|вес\S*|около|примерно|~)\s*(\d{2,4})\s*(?:г|гр|грамм)\b/);
+    parsePortionGramsFromMessage(userMessage) ?? portionGramsFromReply(assistantReply);
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
   return {
     apply: true,
     targetDate,
     meals: [
       {
-        name: grams && !/\d\s*(?:г|гр|грамм)\b/i.test(name) ? `${name} (${grams} г)` : name,
+        // `\b` after Cyrillic «г» never matches, so «Чебурек (100 г)» was doubled and
+        // the confirm card kept the grams in the title instead of the grams field.
+        name:
+          grams && parsePortionGramsFromMessage(name) == null ? `${name} (${grams} г)` : name,
         kcal,
         protein,
         fat,
