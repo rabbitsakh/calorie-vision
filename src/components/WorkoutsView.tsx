@@ -34,6 +34,10 @@ import {
 } from "@/lib/workouts/session-clock";
 import { monthEndKey } from "@/lib/workouts/trends";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
+import {
+  COPY_PREVIOUS_SESSION_DEFAULT,
+  shouldRepeatPreviousSession,
+} from "@/lib/workouts/session-create";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
 import {
@@ -415,7 +419,7 @@ export function WorkoutsView({
 
   const [newDate, setNewDate] = useState(viewDate);
   const [newGroups, setNewGroups] = useState<MuscleGroupKey[]>([]);
-  const [copyExercises, setCopyExercises] = useState(true);
+  const [copyExercises, setCopyExercises] = useState(COPY_PREVIOUS_SESSION_DEFAULT);
   const [progressRate, setProgressRate] = useState(DEFAULT_PROGRESS_RATE);
   const [preview, setPreview] = useState<Progress | null>(null);
   const [exerciseName, setExerciseName] = useState("");
@@ -873,6 +877,7 @@ export function WorkoutsView({
   // Deep link from «+» → Тренировка (`/workouts?new=1`) — keep ?date=.
   useEffect(() => {
     if (searchParams.get("new") !== "1") return;
+    setCopyExercises(COPY_PREVIOUS_SESSION_DEFAULT);
     setCreating(true);
     setFromPlusMenu(true);
     setHubTab("today");
@@ -1107,9 +1112,11 @@ export function WorkoutsView({
     setError(null);
     setBusy(true);
     try {
-      if (copyExercises && preview?.previousSessionId) {
+      const previousSessionId = preview?.previousSessionId;
+      // Empty session (copy off) creates a blank workout and must not call /repeat.
+      if (shouldRepeatPreviousSession(copyExercises, previousSessionId)) {
         const data = await readJson<{ session: SessionDetail }>(
-          await fetch(withBasePath(`/api/workouts/${preview.previousSessionId}/repeat`), {
+          await fetch(withBasePath(`/api/workouts/${previousSessionId}/repeat`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2656,6 +2663,7 @@ export function WorkoutsView({
             })();
           }}
           onStartBlank={() => {
+            setCopyExercises(COPY_PREVIOUS_SESSION_DEFAULT);
             setCreating(true);
             setNewDate(viewDate);
           }}
@@ -2709,6 +2717,7 @@ export function WorkoutsView({
           calMarked={calMarked}
           monthSummary={monthSummary}
           onNewSession={(date) => {
+            setCopyExercises(COPY_PREVIOUS_SESSION_DEFAULT);
             setCreating(true);
             setNewDate(date);
           }}
