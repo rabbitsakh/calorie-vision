@@ -24,6 +24,7 @@ import {
   preferSlotEditActions,
   pruneNoopAssistantActions,
   repairAssistantWriteActions,
+  salvageNutrientLabelMeals,
 } from "@/lib/assistant-repair";
 import {
   hasPhotoPreviewPending,
@@ -211,6 +212,7 @@ export async function POST(request: NextRequest) {
     if (!previewPending) {
       actions = preferMultiDishActions(lastUser, reply, actions);
       actions = preferSlotEditActions(lastUser, actions);
+      actions = salvageNutrientLabelMeals(actions, lastUser, reply);
     }
 
     if (
