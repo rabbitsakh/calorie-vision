@@ -221,5 +221,6 @@ test("buildAssistantSystemPrompt includes mode + fence + prefs", () => {
   assert.match(prompt, /творог/);
   assert.match(prompt, /Уже съеденное записывай всегда/);
   assert.match(prompt, /не обрезай список до 2/i);
+  assert.match(prompt, /Повтор того же приёма/);
   assert.match(prompt, /≈ 150 г/);
 });

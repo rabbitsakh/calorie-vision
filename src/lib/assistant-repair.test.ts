@@ -860,3 +860,64 @@ test("карточка не подменяет ≈-граммы на 100 г и �
   assert.equal(splitQuickPortion(raw[1]!.name).base, "Топпинг без сахара");
   assert.equal(raw[1]!.kcal, 50);
 });
+
+const REPEAT_REPLY = [
+  "Отмечаю ваш завтрак:",
+  "",
+  "- Сырники (3 шт. ≈ 150 г): примерно 300 ккал, белки 20 г, жиры 15 г, углеводы 25 г",
+  "- Топпинг без сахара (≈ 30 г): примерно 50 ккал, белки 1 г, жиры 1 г, углеводы 10 г",
+  "- Желе из ряженки: 100 ккал, белки 5 г, жиры 3 г, углеводы 10 г (учтено полностью)",
+  "",
+  "Завтрак — добавьте в дневник, подтверждая ниже.",
+].join("\n");
+
+test("повтор в том же чате: карточка содержит все блюда текущего ответа", () => {
+  const parsed = parseStructuredMealsFromText(REPEAT_REPLY);
+  assert.equal(parsed.length, 3);
+  const jellyParsed = parsed.find((m) => /желе/i.test(m.name))!;
+  assert.equal(jellyParsed.kcal, 100);
+  assert.equal(jellyParsed.protein, 5);
+  assert.equal(jellyParsed.fat, 3);
+  assert.equal(jellyParsed.carbs, 10);
+
+  // Прошлая карточка уже «записала» сырники и топпинг — модель кладёт в JSON только желе
+  // и подставляет табличную оценку 85 ккал вместо 100 из текста.
+  const modelDeduped = {
+    apply: true as const,
+    summary: "к подтверждению: Желе из ряженки",
+    meals: [{ name: "Желе из ряженки", kcal: 85, protein: 4, fat: 5, carbs: 6, note: "завтрак" }],
+  };
+  const fixed = preferMultiDishActions(SYRNIKI_USER, REPEAT_REPLY, modelDeduped);
+  assert.equal(fixed?.meals?.length, 3);
+  const syr = fixed!.meals!.find((m) => /сырник/i.test(m.name))!;
+  const top = fixed!.meals!.find((m) => /топпинг/i.test(m.name))!;
+  const jelly = fixed!.meals!.find((m) => /желе/i.test(m.name))!;
+  assert.equal(splitQuickPortion(syr.name).grams, 150);
+  assert.equal(syr.kcal, 300);
+  assert.equal(syr.protein, 20);
+  assert.equal(syr.fat, 15);
+  assert.equal(syr.carbs, 25);
+  assert.equal(splitQuickPortion(top.name).grams, 30);
+  assert.equal(top.kcal, 50);
+  assert.equal(top.protein, 1);
+  assert.equal(top.fat, 1);
+  assert.equal(top.carbs, 10);
+  assert.equal(jelly.kcal, 100);
+  assert.equal(jelly.protein, 5);
+  assert.equal(jelly.fat, 3);
+  assert.equal(jelly.carbs, 10);
+
+  const card = enrichQuickMealsFromText(fixed!.meals!, fixed!.summary ?? "");
+  const jellyCard = card.find((m) => /желе/i.test(m.name))!;
+  assert.equal(jellyCard.kcal, 100);
+  assert.equal(jellyCard.protein, 5);
+  assert.equal(jellyCard.fat, 3);
+  assert.equal(jellyCard.carbs, 10);
+
+  // То же сообщение ещё раз: история чата снова не должна схлопнуть карточку до одного блюда.
+  const again = preferMultiDishActions(SYRNIKI_USER, REPEAT_REPLY, modelDeduped);
+  assert.equal(again?.meals?.length, 3);
+  assert.equal(again!.meals!.find((m) => /желе/i.test(m.name))!.kcal, 100);
+  assert.ok(again!.meals!.some((m) => /сырник/i.test(m.name) && m.kcal === 300));
+  assert.ok(again!.meals!.some((m) => /топпинг/i.test(m.name) && m.kcal === 50));
+});

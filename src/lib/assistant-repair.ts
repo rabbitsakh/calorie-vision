@@ -640,6 +640,11 @@ function parseMacroRaw(v?: string): number | undefined {
  * Also accepts «(3 шт.): ~450 ккал…» without a paren wrapping the kcal block.
  * Note: `\w` is ASCII-only — use `\p{L}` for Cyrillic stems.
  */
+/** «(учтено полностью)» в конце строки не должно срывать разбор «100 ккал, белки 5 г». */
+function withoutTrailingAside(fragment: string): string {
+  return fragment.replace(/\s*\([^0-9)]*\)\s*$/u, "").trim();
+}
+
 function extractTrailingMacros(fragment: string): {
   kcal: number;
   protein?: number;
@@ -647,7 +652,7 @@ function extractTrailingMacros(fragment: string): {
   carbs?: number;
   head: string;
 } | null {
-  const rest = fragment.trim();
+  const rest = withoutTrailingAside(fragment.trim());
   if (!rest) return null;
 
   const gram = String.raw`(?:г|гр|грамм(?:а|ов)?)?`;
@@ -797,6 +802,19 @@ function mealLineFromFragment(
     fat = macros.fat;
     carbs = macros.carbs;
     rest = macros.head;
+  } else {
+    // «100 ккал … (учтено полностью)» — цифры из текста, не оценка из таблицы.
+    const looseKcal = extractKcalFromReply(rest);
+    if (looseKcal != null) {
+      const stated = macrosFromReply(rest);
+      kcal = looseKcal;
+      protein = stated.protein;
+      fat = stated.fat;
+      carbs = stated.carbs;
+      rest = cleanMealHead(
+        rest.replace(/(?::\s*)?(?:примерно|около|~|≈)?\s*\d+\s*ккал[\s\S]*$/iu, ""),
+      );
+    }
   }
 
   if (!rest || rest.length < 2) return null;
@@ -1434,7 +1452,9 @@ export function preferMultiDishActions(
       heuristicRepairFromDraftReply(userMessage, assistantReply);
     const mealCount = actions?.meals?.length ?? 0;
     const multiCount = multi?.meals?.length ?? 0;
-    if (multiCount >= 2 && multiCount > mealCount) chosen = multi;
+    // Ответ на ЭТО сообщение — источник карточки, даже если модель
+    // выкинула уже виденные в чате блюда и оставила одно «новое».
+    if (multiCount >= 2 && multiCount >= mealCount) chosen = multi;
     else if (mealCount >= 2) {
       const polluted = (actions?.meals ?? []).some((m) => mealNameLooksPolluted(m.name));
       if (polluted && multiCount >= 2) chosen = multi;
@@ -1606,6 +1626,7 @@ async function repairAssistantWriteActionsInner(opts: {
     "«Добавь жим» / «поставь 80×8» → patchWorkout.addExercises или patchWorkout.logSets.",
     "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3). Не обрезай список до 2.",
     "Если пользователь УЖЕ съел блюдо — включи его, даже если оно в «не предлагай», не в диете или в черновике написано «исключено из-за предпочтений».",
+    "Повтор в том же чате не повод выкидывать блюда: в meals[] все позиции текущего ответа, с ккал и БЖУ из текста, не из прошлой карточки.",
     "Граммы из «≈ 150 г», «(3 шт. ≈ 150 г)», «≈ 30 г» пиши в name как «(150 г)» / «(30 г)». kcal и БЖУ — на эту порцию, не на 100 г.",
     "meals[].name — блюдо из запроса пользователя («чебурек с фаршем индейки»). Нельзя называть блюдо «Калории», «Калорийность», «Белки», «Жиры» или «Углеводы».",
     "Белки, жиры и углеводы бери из черновика, даже если они написаны словами: «Белки: около 20 г».",
