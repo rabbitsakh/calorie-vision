@@ -1,0 +1,66 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { OverflowMenu, type OverflowMenuItem } from "@/components/workouts/OverflowMenu";
+
+type Props = {
+  name: string;
+  muscle: string | null;
+  doneLabel: string;
+  bestTarget: string | null;
+  expanded: boolean;
+  superset: string | null;
+  pending?: boolean;
+  menu: OverflowMenuItem[];
+  onToggle: () => void;
+  children?: ReactNode;
+};
+
+/** Collapsed exercise line. Tap expands the set table; ⋯ stays off the flow. */
+export function ExerciseRow({
+  name,
+  muscle,
+  doneLabel,
+  bestTarget,
+  expanded,
+  superset,
+  pending,
+  menu,
+  onToggle,
+  children,
+}: Props) {
+  const meta = [muscle, doneLabel, bestTarget].filter(Boolean).join(" · ");
+  return (
+    <section
+      className={`overflow-visible rounded-xl border bg-white/80 ${
+        expanded ? "border-[var(--accent)]" : "border-[var(--border-quiet)]"
+      } ${superset ? "ring-1 ring-[var(--accent)]" : ""}`}
+    >
+      <div className="flex items-stretch">
+        <button
+          type="button"
+          className="flex min-h-[44px] min-w-0 flex-1 flex-col items-start justify-center px-3 py-2 text-left"
+          aria-expanded={expanded}
+          onClick={onToggle}
+        >
+          <span className="flex max-w-full items-center gap-1.5">
+            {superset ? (
+              <span className="shrink-0 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                SS {superset}
+              </span>
+            ) : null}
+            <span className="truncate font-semibold text-[var(--foreground)]">{name}</span>
+            {pending ? (
+              <span className="shrink-0 rounded bg-amber-200/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-950">
+                на устройстве
+              </span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 truncate text-xs text-[var(--muted-strong)]">{meta}</span>
+        </button>
+        <OverflowMenu label={`Действия: ${name}`} items={menu} />
+      </div>
+      {expanded ? children : null}
+    </section>
+  );
+}
