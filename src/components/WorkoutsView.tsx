@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   formatDateShort,
-  formatDateWords,
   mondayOfWeek,
   requireDateKey,
   shiftDateKey,
@@ -16,13 +15,9 @@ import {
   formatDistanceKm,
   formatDurationMinutes,
   formatPace,
-  formatPaceClock,
 } from "@/lib/workouts/cardio";
 import { validateSetDraft } from "@/lib/workouts/set-draft";
 import {
-  EXERCISE_KINDS,
-  EXERCISE_KIND_LABELS,
-  EXERCISE_KIND_PLACEHOLDERS,
   defaultExerciseKind,
   fieldsForKind,
   kindUsesRestTimer,
@@ -38,40 +33,23 @@ import {
   COPY_PREVIOUS_SESSION_DEFAULT,
   shouldRepeatPreviousSession,
 } from "@/lib/workouts/session-create";
-import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
-import { WorkoutInlineSetRow } from "@/components/workouts/WorkoutInlineSetRow";
-import {
-  useWorkoutRestTimer,
-  WorkoutRestTimerBanner,
-  WorkoutRestTimerControls,
-} from "@/components/workouts/WorkoutRestTimer";
+import { type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import { useWorkoutRestTimer } from "@/components/workouts/WorkoutRestTimer";
 import { WorkoutWeekPlan } from "@/components/workouts/WorkoutWeekPlan";
 import { WorkoutLibraryPanel } from "@/components/workouts/WorkoutLibraryPanel";
 import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor";
-import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import { WorkoutCreateSessionPanel } from "@/components/workouts/WorkoutCreateSessionPanel";
 import { WorkoutTemplatesPanel } from "@/components/workouts/WorkoutTemplatesPanel";
 import { WorkoutHistoryHub } from "@/components/workouts/WorkoutHistoryHub";
 import { WorkoutActiveSession } from "@/components/workouts/WorkoutActiveSession";
-import { formatWorkoutLoad, formatWorkoutTrend } from "@/lib/workouts/format";
+import { formatWorkoutLoad } from "@/lib/workouts/format";
 import {
-  BLOCK_MODE_LABELS,
-  BLOCK_MODES,
   CIRCUIT_ROUND_REST_SEC,
   REST_PAUSE_SEC,
   type BlockMode,
-  parseBlockMode,
 } from "@/lib/workouts/block-mode";
-import {
-  adviseCardioProgression,
-  adviseProgression,
-  autofillNextDraft,
-  bumpKg,
-} from "@/lib/workouts/progression";
-import {
-  adviceWithPreferredLever,
-  getLeverMemory,
-} from "@/lib/workouts/progression-lever-memory";
+import { autofillNextDraft } from "@/lib/workouts/progression";
+import { getLeverMemory } from "@/lib/workouts/progression-lever-memory";
 import {
   countWorkingSets,
   mergeDraftWithLeverGoal,
@@ -159,18 +137,7 @@ import {
   resolveRestForSet,
   setExerciseRestSec,
 } from "@/lib/workouts/rest-timer";
-import {
-  SET_TYPES,
-  SET_TYPE_LABELS,
-  SET_TYPE_SHORT,
-  type SetType,
-} from "@/lib/workouts/set-meta";
-import {
-  pickLastWorkingWeight,
-  pickTopWorkingSet,
-  suggestNextWeightKg,
-  formatSuggestedKg,
-} from "@/lib/workouts/suggested-load";
+import { SET_TYPES, type SetType } from "@/lib/workouts/set-meta";
 import { requestScreenWakeLock } from "@/lib/workouts/wake-lock";
 
 type Progress = {
@@ -362,8 +329,6 @@ type HistoryBundle = {
   metric: "weight" | "volume" | "pace" | "reps" | "duration" | "distance";
 };
 
-const formatTrend = formatWorkoutTrend;
-
 const formatLoad = formatWorkoutLoad;
 
 async function readJson<T>(res: Response): Promise<T> {
@@ -446,7 +411,6 @@ export function WorkoutsView({
     REST_OPTIONS,
   } = useWorkoutRestTimer();
 
-  const [stageOpen, setStageOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [circuitRound, setCircuitRound] = useState(1);
   const [focusExerciseId, setFocusExerciseId] = useState<string | null>(null);
@@ -726,7 +690,7 @@ export function WorkoutsView({
   );
 
   const openSession = useCallback(
-    async (id: string, opts?: { enterStage?: boolean; applyLever?: boolean }) => {
+    async (id: string, opts?: { applyLever?: boolean }) => {
       setError(null);
       setActiveId(id);
       // Volume/goal mutations only on create·start·repeat — never on resume/reopen.
@@ -743,18 +707,12 @@ export function WorkoutsView({
         setDetail(session);
         setProgress(null);
         setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
-        const enterStage =
-          Boolean(opts?.enterStage) &&
-          session.clockStatus !== "finished" &&
-          session.exercises.length > 0;
-        setStageOpen(enterStage);
         setShowSummary(session.clockStatus === "finished");
         setCircuitRound(1);
         setFocusExerciseId(session.exercises[0]?.id ?? null);
         fillDraftsFromSession(session);
         if (mutateLever) void applyLeverGoalsOnOpen(session);
         if (
-          enterStage ||
           session.clockStatus === "running" ||
           session.clockStatus === "paused" ||
           session.clockStatus === "finished"
@@ -772,19 +730,12 @@ export function WorkoutsView({
         setDetail(data.session);
         setProgress(data.progress);
         setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
-        // Fullscreen logger only when resuming a live clock — never on create / idle open.
-        const enterStage =
-          Boolean(opts?.enterStage) &&
-          data.session.clockStatus !== "finished" &&
-          data.session.exercises.length > 0;
-        setStageOpen(enterStage);
         setShowSummary(false);
         setCircuitRound(1);
         setFocusExerciseId(data.session.exercises[0]?.id ?? null);
         fillDraftsFromSession(data.session);
         if (mutateLever) void applyLeverGoalsOnOpen(data.session);
         if (
-          enterStage ||
           data.session.clockStatus === "running" ||
           data.session.clockStatus === "paused" ||
           data.session.clockStatus === "finished"
@@ -997,7 +948,6 @@ export function WorkoutsView({
           endedAt: now,
           pausedAt: null,
         });
-        setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
@@ -1051,11 +1001,9 @@ export function WorkoutsView({
         quietGymNudgeForToday(clock !== "finish");
       }
       if (clock === "finish") {
-        setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
       }
-      // «Старт» only starts the clock — fullscreen «К подходам» is a separate tap.
     } catch (err) {
       if (clock === "finish" && isLikelyOfflineError(err)) {
         enqueueWorkoutFinishDraft(detail.id);
@@ -1065,7 +1013,6 @@ export function WorkoutsView({
           endedAt: new Date().toISOString(),
           pausedAt: null,
         });
-        setStageOpen(false);
         setShowSummary(true);
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
@@ -1131,7 +1078,7 @@ export function WorkoutsView({
         setNewGroups([]);
         await loadList();
         await loadCalendar();
-        // Land on session list — add/check exercises, then «Старт» / «К подходам».
+        // Land on the single workout screen — log sets in the expandable list.
         await openSession(data.session.id, { applyLever: true });
         return;
       }
@@ -1205,7 +1152,7 @@ export function WorkoutsView({
         }),
       );
       await loadList();
-      // Template → session sheet (exercises visible). Fullscreen only via «К подходам».
+      // Template → the same workout screen (no separate set scene).
       await openSession(data.session.id, { applyLever: true });
     } catch (err) {
       if (isLikelyOfflineError(err)) {
@@ -1677,13 +1624,13 @@ export function WorkoutsView({
     });
   };
 
-  const addSet = async (exerciseId: string, draftOverride?: SetDraft) => {
-    if (!detail) return;
+  const addSet = async (exerciseId: string, draftOverride?: SetDraft): Promise<boolean> => {
+    if (!detail) return false;
     // Resolve against merged view — offline-queued exercises only exist on displayDetail.
     const ex = (displayDetail ?? detail).exercises.find((e) => e.id === exerciseId);
     if (!ex) {
       setError("Упражнение не найдено — обновите экран и попробуйте снова");
-      return;
+      return false;
     }
     const draft = draftOverride ?? setDrafts[exerciseId] ?? EMPTY_DRAFT;
     const spec = fieldsForKind(ex.kind);
@@ -1698,9 +1645,12 @@ export function WorkoutsView({
     const validated = validateSetDraft(ex.kind, draft);
     if (!validated.ok) {
       failDraft(exerciseId, validated.message, validated.field);
-      return;
+      return false;
     }
     const body: Record<string, unknown> = { ...meta, ...validated.body };
+    const kickClock = () => {
+      if (detail.clockStatus === "idle") void patchClock("start");
+    };
 
     const queueSetLocally = () => {
       enqueueWorkoutSetDraft({
@@ -1719,14 +1669,34 @@ export function WorkoutsView({
       }));
       clearDraftError(exerciseId);
       startRestForExercise(ex, draft.setType);
+      applyAutofillAfterComplete(
+        ex,
+        [
+          ...ex.sets,
+          {
+            id: "local-next",
+            weightKg: typeof body.weightKg === "number" ? body.weightKg : null,
+            reps: typeof body.reps === "number" ? body.reps : null,
+            distanceKm: typeof body.distanceKm === "number" ? body.distanceKm : null,
+            durationSec: typeof body.durationSec === "number" ? body.durationSec : null,
+            setType: draft.setType,
+            completed: true,
+            rpe: null,
+            paceSecPerKm: null,
+            load: 0,
+          },
+        ],
+        detail.progressRate,
+      );
       const queued = "Подход сохранён на устройстве — отправим при связи с сервером";
       setDraftErrors((prev) => ({ ...prev, [exerciseId]: queued }));
       setError(queued);
+      kickClock();
     };
 
     if (isLocalSessionId(detail.id)) {
       queueSetLocally();
-      return;
+      return true;
     }
 
     try {
@@ -1749,8 +1719,8 @@ export function WorkoutsView({
       clearDraftError(exerciseId);
       startRestForExercise(ex, draft.setType);
       await refreshDetail(data.session);
-      const updated = data.session.exercises.find((e) => e.id === exerciseId);
-      const newSetId = updated?.sets.at(-1)?.id ?? "";
+      const updatedEx = data.session.exercises.find((e) => e.id === exerciseId);
+      const newSetId = updatedEx?.sets.at(-1)?.id ?? "";
       const prShown = maybeAnnouncePr(ex, data.session);
       maybeAnnounceLeverFeedback(
         ex,
@@ -1763,30 +1733,40 @@ export function WorkoutsView({
       );
       advanceSupersetFocus(ex, data.session);
       if (newSetId) bumpCircuitIfNeeded(ex, newSetId, data.session);
+      if (updatedEx) {
+        applyAutofillAfterComplete(updatedEx, updatedEx.sets, detail.progressRate);
+      }
+      kickClock();
+      return true;
     } catch (err) {
       if (isLikelyOfflineError(err)) {
         queueSetLocally();
-        return;
+        return true;
       }
       const message = err instanceof Error ? err.message : "Не удалось добавить подход";
       setDraftErrors((prev) => ({ ...prev, [exerciseId]: message }));
       setError(message);
+      return false;
     }
   };
 
-  const patchSet = async (setId: string, body: Record<string, unknown>, startTimer = false) => {
-    if (!detail) return;
+  const patchSet = async (
+    setId: string,
+    body: Record<string, unknown>,
+    startTimer = false,
+  ): Promise<boolean> => {
+    if (!detail) return false;
     setError(null);
     const draftId = draftIdFromLocalSetId(setId);
     if (draftId) {
       const updated = updateWorkoutSetDraft(draftId, body);
       if (!updated) {
         setError("Черновик подхода не найден");
-        return;
+        return false;
       }
       if (startTimer) startRest();
       setError("Подход обновлён на устройстве — отправим при связи");
-      return;
+      return true;
     }
     try {
       const data = await readJson<{ session: SessionDetail }>(
@@ -1798,8 +1778,10 @@ export function WorkoutsView({
       );
       if (startTimer) startRest();
       await refreshDetail(data.session);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сохранить подход");
+      return false;
     }
   };
 
@@ -1894,87 +1876,8 @@ export function WorkoutsView({
     }
   };
 
-  const focusExForStage =
-    (displayDetail ?? detail)?.exercises.find((e) => e.id === focusExerciseId) ??
-    (displayDetail ?? detail)?.exercises[0];
-  const stageAdvice = useMemo(() => {
-    if (!detail || !focusExForStage) return null;
-    if (focusExForStage.kind === "cardio") {
-      const prevPace =
-        focusExForStage.lastTime?.sets
-          ?.map((s) =>
-            s.durationSec && s.distanceKm && s.distanceKm > 0
-              ? s.durationSec / s.distanceKm
-              : null,
-          )
-          .filter((p): p is number => p != null && p > 0)
-          .sort((a, b) => a - b)[0] ?? null;
-      return adviseCardioProgression({
-        lastDistanceKm: focusExForStage.cardioDistanceKm,
-        lastDurationSec: focusExForStage.cardioDurationSec,
-        previousBestPaceSecPerKm: prevPace,
-      });
-    }
-    const hist = historyByName[focusExForStage.name];
-    const points =
-      hist?.points.map((p) => ({
-        date: p.date,
-        topWeightKg: p.topWeightKg,
-        topReps: p.topReps,
-        totalLoad: p.totalLoad,
-      })) ?? [];
-    const lastKg = pickLastWorkingWeight([
-      ...(focusExForStage.lastTime?.sets ?? []).map((s) => ({
-        weightKg: s.weightKg,
-        setType: "working" as const,
-        completed: true,
-      })),
-      ...focusExForStage.sets,
-    ]);
-    const top = pickTopWorkingSet([
-      ...(focusExForStage.lastTime?.sets ?? []).map((s) => ({
-        weightKg: s.weightKg,
-        reps: s.reps,
-        setType: "working" as const,
-        completed: true,
-      })),
-      ...focusExForStage.sets,
-    ]);
-    const raw = adviseProgression(
-      points,
-      detail.progressRate,
-      lastKg,
-      top?.reps ?? null,
-    );
-    const preferred = adviceWithPreferredLever(raw, focusExForStage.name);
-    if (!preferred.option) return raw;
-    return {
-      ...raw,
-      primaryLever: preferred.primaryLever ?? raw.primaryLever,
-      suggestedKg: preferred.suggestedKg,
-      detail: preferred.leverRemembered && preferred.option
-        ? `${preferred.option.label}: ${preferred.option.line}${
-            raw.basisKg != null ? ` · макс ${formatSuggestedKg(raw.basisKg)} кг` : ""
-          }`
-        : raw.detail,
-    };
-  }, [detail, focusExForStage, historyByName]);
-
-  const stageSuggestedKg =
-    stageAdvice?.suggestedKg ??
-    (focusExForStage
-      ? suggestNextWeightKg(
-          pickLastWorkingWeight(focusExForStage.sets),
-          detail?.progressRate ?? 0.05,
-        )
-      : null);
-
-  const stageDraft = focusExForStage
-    ? setDrafts[focusExForStage.id] ?? EMPTY_DRAFT
-    : EMPTY_DRAFT;
-
   useEffect(() => {
-    if (!stageOpen) return;
+    if (detail?.clockStatus !== "running") return;
     let released = false;
     let handle: { release: () => Promise<void> } | null = null;
     void (async () => {
@@ -1987,96 +1890,68 @@ export function WorkoutsView({
       released = true;
       void handle?.release();
     };
-  }, [stageOpen]);
+  }, [detail?.clockStatus, detail?.id]);
 
-  const completeCurrentOnStage = async () => {
-    if (!focusExForStage || !detail) return;
-    const incomplete = focusExForStage.sets.find((s) => !s.completed);
-    if (incomplete) {
-      const patch: Record<string, unknown> = {
-        completed: true,
-        setType: stageDraft.setType,
-      };
-      if (stageDraft.rpe.trim()) {
-        const rpe = Number(stageDraft.rpe.replace(",", "."));
-        if (Number.isFinite(rpe)) patch.rpe = rpe;
-      }
-      const validated = validateSetDraft(focusExForStage.kind, stageDraft);
-      if (!validated.ok) {
-        failDraft(focusExForStage.id, validated.message, validated.field);
-        return;
-      }
-      Object.assign(patch, validated.body);
-      if (typeof patch.reps === "number") {
-        patch.reps = Math.round(patch.reps);
-      }
-      // Rest handled here (patchSet startTimer=false) so we can use per-exercise duration.
-      await patchSet(incomplete.id, patch, false);
-      startRestForExercise(focusExForStage, stageDraft.setType);
-      const setsAfter = focusExForStage.sets.map((s) =>
-        s.id === incomplete.id
-          ? {
-              ...s,
-              completed: true,
-              weightKg:
-                typeof patch.weightKg === "number" ? patch.weightKg : s.weightKg,
-              reps: typeof patch.reps === "number" ? patch.reps : s.reps,
-              distanceKm:
-                typeof patch.distanceKm === "number" ? patch.distanceKm : s.distanceKm,
-              durationSec:
-                typeof patch.durationSec === "number" ? patch.durationSec : s.durationSec,
-              setType: stageDraft.setType,
-            }
-          : s,
-      );
-      applyAutofillAfterComplete(focusExForStage, setsAfter, detail.progressRate);
-      const sessionAfter: SessionDetail = {
-        ...detail,
-        exercises: detail.exercises.map((e) =>
-          e.id === focusExForStage.id ? { ...e, sets: setsAfter } : e,
-        ),
-      };
-      const prShown = maybeAnnouncePr(focusExForStage, sessionAfter);
-      maybeAnnounceLeverFeedback(
-        focusExForStage,
-        {
-          weightKg:
-            typeof patch.weightKg === "number" ? patch.weightKg : incomplete.weightKg,
-          reps: typeof patch.reps === "number" ? patch.reps : incomplete.reps,
-          setType: stageDraft.setType,
-        },
-        { skip: prShown, progressRate: detail.progressRate },
-      );
-      advanceSupersetFocus(focusExForStage, sessionAfter);
-      bumpCircuitIfNeeded(focusExForStage, incomplete.id, sessionAfter);
-      return;
+  /** One tap on ○ — write kg/reps onto a planned row and mark it done. */
+  const completePlannedSet = async (
+    exerciseId: string,
+    setId: string,
+    draft: SetDraft,
+  ): Promise<boolean> => {
+    if (!detail) return false;
+    const ex = (displayDetail ?? detail).exercises.find((e) => e.id === exerciseId);
+    const target = ex?.sets.find((s) => s.id === setId);
+    if (!ex || !target || target.completed) return false;
+    const validated = validateSetDraft(ex.kind, draft);
+    if (!validated.ok) {
+      failDraft(ex.id, validated.message, validated.field);
+      return false;
     }
-    await addSet(focusExForStage.id);
-  };
-
-  const addAndCompleteOnStage = async () => {
-    if (!focusExForStage) return;
-    await addSet(focusExForStage.id);
-  };
-
-  const restPauseOnStage = async () => {
-    if (!focusExForStage || !detail) return;
-    const last = [...focusExForStage.sets].reverse().find((s) => s.completed);
-    const kgRaw = last?.weightKg ?? Number(stageDraft.kg.replace(",", "."));
-    const kg = Number.isFinite(kgRaw) ? kgRaw : 0;
-    const baseReps = last?.reps ?? Number(stageDraft.reps);
-    const reps = Math.max(1, Math.round((Number.isFinite(baseReps) && baseReps > 0 ? baseReps : 5) * 0.5));
-    const draft: SetDraft = {
-      ...EMPTY_DRAFT,
-      kg: String(kg),
-      reps: String(reps),
-      setType: "rest_pause",
+    const patch: Record<string, unknown> = {
+      completed: true,
+      setType: draft.setType,
+      ...validated.body,
     };
-    setSetDrafts((prev) => ({
-      ...prev,
-      [focusExForStage.id]: draft,
-    }));
-    await addSet(focusExForStage.id, draft);
+    if (draft.rpe.trim()) {
+      const rpe = Number(draft.rpe.replace(",", "."));
+      if (Number.isFinite(rpe)) patch.rpe = rpe;
+    }
+    if (typeof patch.reps === "number") patch.reps = Math.round(patch.reps);
+    const ok = await patchSet(setId, patch, false);
+    if (!ok) return false;
+    startRestForExercise(ex, draft.setType);
+    if (detail.clockStatus === "idle") void patchClock("start");
+    const setsAfter = ex.sets.map((s) =>
+      s.id === setId
+        ? {
+            ...s,
+            completed: true,
+            weightKg: typeof patch.weightKg === "number" ? patch.weightKg : s.weightKg,
+            reps: typeof patch.reps === "number" ? patch.reps : s.reps,
+            distanceKm: typeof patch.distanceKm === "number" ? patch.distanceKm : s.distanceKm,
+            durationSec: typeof patch.durationSec === "number" ? patch.durationSec : s.durationSec,
+            setType: draft.setType,
+          }
+        : s,
+    );
+    applyAutofillAfterComplete(ex, setsAfter, detail.progressRate);
+    const sessionAfter: SessionDetail = {
+      ...detail,
+      exercises: detail.exercises.map((e) => (e.id === ex.id ? { ...e, sets: setsAfter } : e)),
+    };
+    const prShown = maybeAnnouncePr(ex, sessionAfter);
+    maybeAnnounceLeverFeedback(
+      ex,
+      {
+        weightKg: typeof patch.weightKg === "number" ? patch.weightKg : target.weightKg,
+        reps: typeof patch.reps === "number" ? patch.reps : target.reps,
+        setType: draft.setType,
+      },
+      { skip: prShown, progressRate: detail.progressRate },
+    );
+    advanceSupersetFocus(ex, sessionAfter);
+    bumpCircuitIfNeeded(ex, setId, sessionAfter);
+    return true;
   };
 
   const setExerciseBlockMode = async (exerciseId: string, mode: BlockMode) => {
@@ -2237,14 +2112,6 @@ export function WorkoutsView({
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось сменить дату");
     }
-  };
-
-  const applyLastSet = (exerciseId: string, set: HistorySet, kind: ExerciseKind) => {
-    setSetDrafts((prev) => ({
-      ...prev,
-      [exerciseId]: draftFromHistorySet(set, kind),
-    }));
-    clearDraftError(exerciseId);
   };
 
   /** Materialize every lastTime set into the session (not just the next-draft slot). */
@@ -2414,8 +2281,6 @@ export function WorkoutsView({
         progressLine={progressLine}
         showSummary={showSummary}
         setShowSummary={setShowSummary}
-        stageOpen={stageOpen}
-        setStageOpen={setStageOpen}
         busy={busy}
         error={error}
         restSeconds={restSeconds}
@@ -2430,10 +2295,6 @@ export function WorkoutsView({
         liveElapsedLabel={liveElapsedLabel}
         focusExerciseId={focusExerciseId}
         setFocusExerciseId={setFocusExerciseId}
-        focusExForStage={focusExForStage}
-        stageAdvice={stageAdvice}
-        stageSuggestedKg={stageSuggestedKg}
-        stageDraft={stageDraft}
         circuitRound={circuitRound}
         prToast={prToast}
         draftErrors={draftErrors}
@@ -2473,9 +2334,8 @@ export function WorkoutsView({
           router.push(withBasePath("/ration"));
         }}
         onOpenRation={() => router.push(withBasePath("/ration"))}
-        onRememberRestOnStage={() => {
-          if (!focusExForStage) return;
-          setExerciseRestSec(focusExForStage.name, restSeconds);
+        rememberExerciseRest={(name) => {
+          setExerciseRestSec(name, restSeconds);
           void fetch(withBasePath("/api/account"), {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -2488,13 +2348,10 @@ export function WorkoutsView({
           }).catch(() => {
             // offline — local map already saved
           });
-          showPrToast(`Отдых ${restSeconds}с для «${focusExForStage.name}»`);
+          showPrToast(`Отдых ${restSeconds}с для «${name}»`);
         }}
         patchDraft={patchDraft}
         nextSetType={nextSetType}
-        completeCurrentOnStage={completeCurrentOnStage}
-        addAndCompleteOnStage={addAndCompleteOnStage}
-        restPauseOnStage={restPauseOnStage}
         patchClock={patchClock}
         patchSessionTimes={patchSessionTimes}
         patchSessionDate={patchSessionDate}
@@ -2514,8 +2371,8 @@ export function WorkoutsView({
         saveSetFields={saveSetFields}
         deleteSet={deleteSet}
         deleteExercise={deleteExercise}
-        applyLastSet={applyLastSet}
         addSet={addSet}
+        completePlannedSet={completePlannedSet}
         addExercise={addExercise}
         applyPasteLog={applyPasteLog}
       />
@@ -2650,9 +2507,8 @@ export function WorkoutsView({
           onOpenSession={(id, opts) => {
             void (async () => {
               const s = sessions.find((x) => x.id === id);
-              // Resume live logger only for an in-progress clock.
               if (s?.clockStatus === "running" || s?.clockStatus === "paused") {
-                await openSession(id, { enterStage: true });
+                await openSession(id);
                 return;
               }
               await openSession(id);
