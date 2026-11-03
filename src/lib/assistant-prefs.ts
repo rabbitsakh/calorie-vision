@@ -63,7 +63,11 @@ export function mergeAssistantPrefs(
 export function formatAssistantPrefsBlock(prefs: AssistantPrefs): string {
   const lines: string[] = [];
   if (prefs.likes.length) lines.push(`Любит / ок: ${prefs.likes.join(", ")}`);
-  if (prefs.dislikes.length) lines.push(`Не предлагает: ${prefs.dislikes.join(", ")}`);
+  if (prefs.dislikes.length) {
+    lines.push(
+      `Не предлагай в советах: ${prefs.dislikes.join(", ")}. Уже съеденное всё равно записывай — не исключай из дневника.`,
+    );
+  }
   if (prefs.notes.length) lines.push(`Заметки: ${prefs.notes.join("; ")}`);
   return lines.join("\n");
 }

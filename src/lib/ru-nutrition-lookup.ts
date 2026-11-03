@@ -367,6 +367,16 @@ export const RU_NUTRITION_ENTRIES: RuNutritionEntry[] = [
 
   // Молочка
   { keys: ["ряженка", "ряженка 4%"], dishName: "Ряженка 4%", calories: 140, protein: 7, fat: 8, carbs: 10, sugar: 10, portionGrams: 250 },
+  // Желе на ряженке без сахара ≈ плотность ряженки, типичная порция 150 г.
+  {
+    keys: ["желе из ряженки", "желе ряженки", "ряженковое желе"],
+    dishName: "Желе из ряженки",
+    calories: 85,
+    protein: 4,
+    fat: 5,
+    carbs: 6,
+    portionGrams: 150,
+  },
   {
     keys: ["ряженка 2,5%", "ряженка 2.5%", "ряженка 1%"],
     dishName: "Ряженка 2,5%",

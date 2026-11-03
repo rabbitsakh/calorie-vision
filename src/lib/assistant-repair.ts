@@ -30,6 +30,7 @@ import {
   parseMealTypeKey,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { dishNameScore, splitQuickPortion } from "@/lib/quick-log";
 
 /** True when a patch would change something (not a bare match-only noop). */
 export function patchMealHasEffect(
@@ -253,15 +254,28 @@ function withoutMacroAmounts(text: string): string {
  */
 function portionGramsFromReply(reply: string): number | undefined {
   const t = reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " ");
-  const paren = /\((\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)\)/iu.exec(t);
+  const scoped = withoutMacroAmounts(t);
+  // «(3 шт. ≈ 150 г)», «(≈ 30 г)», «порция около 180 г» — последняя названная порция.
+  const marked = new RegExp(
+    String.raw`(?:≈|~|∼|около|примерно)\s*(\d{1,4}(?:[.,]\d+)?)\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
+    "giu",
+  );
+  let last: number | undefined;
+  let hit: RegExpExecArray | null;
+  while ((hit = marked.exec(scoped))) {
+    const n = Number(hit[1]!.replace(",", "."));
+    if (n >= 10 && n <= 5000) last = Math.round(n);
+  }
+  if (last != null) return last;
+  const paren = /\((\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)\)/iu.exec(scoped);
   if (paren?.[1]) {
     const n = Number(paren[1]);
     if (n >= 10 && n <= 5000) return n;
   }
   const hinted = new RegExp(
-    String.raw`(?:порци\S*|вес\S*|около|примерно|~)\s*(\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
+    String.raw`(?:порци\S*|вес\S*)\s*(\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
     "iu",
-  ).exec(withoutMacroAmounts(t));
+  ).exec(scoped);
   if (!hinted?.[1]) return undefined;
   const n = Number(hinted[1]);
   return n >= 10 && n <= 5000 ? n : undefined;
@@ -677,6 +691,64 @@ function extractTrailingMacros(fragment: string): {
   return null;
 }
 
+const EXCLUSION_REASON_RE =
+  /(?:исключ|не\s+(?:стал\s+)?записыва|не\s+включа|не\s+добавля|пропуска|уберу|убрал)/iu;
+const EXCLUSION_WHY_RE = /(?:предпочт|диет|не\s+любл|не\s+ем|не\s+хоч|не\s+предлага)/iu;
+
+/**
+ * «Желе из ряженки: исключено из-за ваших предпочтений» — блюдо уже съели,
+ * модель отказалась его записать. Возвращает имя без причины.
+ */
+function peelPreferenceExclusion(fragment: string): { name: string } | null {
+  const t = fragment.trim();
+  const m =
+    /^(.{2,80}?)\s*[:—–-]\s*(.+)$/u.exec(t) ??
+    /^(.{2,80}?)\s+(исключ\p{L}*.{0,120})$/iu.exec(t);
+  if (!m?.[1] || !m[2]) return null;
+  const reason = m[2];
+  if (!EXCLUSION_REASON_RE.test(reason)) return null;
+  if (!EXCLUSION_WHY_RE.test(reason) && !/исключ/iu.test(reason)) return null;
+  const name = m[1].replace(/[.:;—–-]+$/u, "").trim();
+  if (name.length < 2 || fragmentStartsWithNutrientLabel(name)) return null;
+  return { name };
+}
+
+/** «Сырники ( ≈ )» после вырезания чисел → «Сырники». */
+function tidyDishBase(name: string): string {
+  return name
+    .replace(/[≈∼~]/g, " ")
+    .replace(/\b(?:около|примерно)\b/giu, " ")
+    .replace(/\(\s*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Уже съеденное, которое черновик выкинул из-за предпочтений/диеты.
+ * Если таблицы нет — скромная оценка, чтобы позиция не пропала с карточки.
+ */
+function mealFromPreferenceExclusion(
+  name: string,
+  lineNote?: string,
+): ParsedMealLine | null {
+  const inner = mealLineFromFragment(name, lineNote);
+  if (inner) {
+    if (splitQuickPortion(inner.name).grams != null) return inner;
+    const pack = lookupRuNutritionTable(name);
+    const grams = pack && pack.portionGrams > 0 ? Math.round(pack.portionGrams) : 100;
+    const base = splitQuickPortion(inner.name).base;
+    return { ...inner, name: `${base} (${grams} г)`.slice(0, 120) };
+  }
+  const clean = sanitizeAssistantMealName(name).replace(/\s+/g, " ").trim();
+  if (!clean || clean.length < 2) return null;
+  const title = clean.charAt(0).toUpperCase() + clean.slice(1);
+  return {
+    name: `${title} (100 г)`.slice(0, 120),
+    kcal: 120,
+    ...(lineNote ? { note: lineNote } : {}),
+  };
+}
+
 /** Trim trailing «: около» / dashes left after macro extraction. */
 function cleanMealHead(head: string): string {
   return head
@@ -707,6 +779,9 @@ function mealLineFromFragment(
 ): ParsedMealLine | null {
   let rest = fragment.trim();
   if (!rest || rest.length < 2) return null;
+  // Уже съеденное не выкидываем, даже если черновик пишет «исключено из-за предпочтений».
+  const excluded = peelPreferenceExclusion(rest);
+  if (excluded) return mealFromPreferenceExclusion(excluded.name, lineNote);
   // «Калорийность: 300 ккал» / «Белки: около 20 г» — подпись нутриента, не блюдо.
   if (fragmentStartsWithNutrientLabel(rest)) return null;
 
@@ -762,30 +837,38 @@ function mealLineFromFragment(
   const unit = drinkQ || /мл|литр|\bл\b/i.test(rest) ? "мл" : "г";
   // Prefer the user's dish wording when kcal came from the draft — pack names
   // like «Макароны» must not replace «арахисовая паста».
-  const baseName = sanitizeAssistantMealName(
-    (kcal != null && cleaned.length >= 2 ? cleaned : null) ??
-      pack?.dishName ??
-      cleaned,
-  ).replace(/\(\s*\)/g, " ").replace(/\s+/g, " ").trim();
+  const baseName = tidyDishBase(
+    sanitizeAssistantMealName(
+      (kcal != null && cleaned.length >= 2 ? cleaned : null) ??
+        pack?.dishName ??
+        cleaned,
+    ),
+  );
   if (!baseName || baseName.length < 2 || mealNameLooksPolluted(baseName)) return null;
-  const alreadyPortion = new RegExp(
-    String.raw`\(\s*${portion}\s*${unit}\s*\)\s*$`,
-    "i",
-  ).test(baseName);
   const alreadyPieces = pieces != null && new RegExp(
     String.raw`\(\s*${pieces}\s*шт`,
     "i",
   ).test(baseName);
+  // «3 шт» остаётся в имени, даже если рядом есть граммы («3 шт. ≈ 150 г»).
+  const explicitPieces = pieces != null && /шт/iu.test(forPortion);
   let name = baseName;
+  if (explicitPieces && !alreadyPieces) {
+    name = `${name} (${pieces} шт)`;
+  }
+  const alreadyPortion = new RegExp(
+    String.raw`\(\s*${portion}\s*${unit}\s*\)\s*$`,
+    "i",
+  ).test(name);
   if (portion != null && portion > 0 && !alreadyPortion) {
-    name = `${baseName} (${portion} ${unit})`;
+    name = `${name} (${portion} ${unit})`;
   } else if (
+    !explicitPieces &&
     pieces != null &&
     pieces > 1 &&
     !alreadyPieces &&
     packLooksPerPiece(pack?.dishName ?? baseName)
   ) {
-    name = `${baseName} (${pieces} шт)`;
+    name = `${name} (${pieces} шт)`;
   }
 
   if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) {
@@ -896,6 +979,7 @@ export function parseStructuredMealsDetailed(text: string): {
     const meal = mealLineFromFragment(rest, lineNote, bulletMissed);
     if (meal) meals.push(meal);
   }
+  // Порог «это список», не лимит: в карточку идут все позиции, не первые две.
   if (meals.length >= 2) return { meals, missed: bulletMissed };
   // Bullet drafts must not fall through to comma-split of the whole reply
   // (that glued «углеводы» + «✓ В рацион…» into dish names).
@@ -1260,9 +1344,80 @@ export function heuristicRepairPortionPatchActions(
   };
 }
 
+function sameDish(a: string, b: string): boolean {
+  return dishNameScore(a, b) >= 0.45;
+}
+
+/**
+ * Подпись граммов из черновика («≈ 150 г») вместо дефолтных 100 г.
+ * Ккал и БЖУ не трогаем: они уже посчитаны на эту порцию.
+ */
+function stampStatedPortions(
+  assistantReply: string,
+  actions: AssistantActions | null,
+): AssistantActions | null {
+  if (!actions?.meals?.length || !assistantReply.trim()) return actions;
+  const parsed = parseStructuredMealsFromText(assistantReply);
+  if (!parsed.length) return actions;
+  let changed = false;
+  const meals = actions.meals.map((meal) => {
+    let best: ParsedMealLine | null = null;
+    let bestScore = 0;
+    for (const row of parsed) {
+      const score = dishNameScore(meal.name, row.name);
+      if (score > bestScore) {
+        bestScore = score;
+        best = row;
+      }
+    }
+    if (!best || bestScore < 0.45) return meal;
+    const stated = splitQuickPortion(best.name);
+    const current = splitQuickPortion(meal.name);
+    if (stated.grams == null) return meal;
+    if (current.grams != null && current.grams !== 100) return meal;
+    if (current.grams === stated.grams && current.unit === stated.unit) return meal;
+    changed = true;
+    return {
+      ...meal,
+      name: `${current.base} (${stated.grams} ${stated.unit})`.slice(0, 120),
+    };
+  });
+  return changed ? { ...actions, meals } : actions;
+}
+
+/** Дописать блюда, которые черновик исключил из-за предпочтений или диеты. */
+function mergeExcludedEatenMeals(
+  assistantReply: string,
+  actions: AssistantActions | null,
+): AssistantActions | null {
+  if (!assistantReply.trim()) return actions;
+  const extras: ParsedMealLine[] = [];
+  for (const raw of assistantReply.split(/\r?\n/)) {
+    const line = raw.replace(/^\s*(?:[-•*]|\d+[.)])\s+/, "").trim();
+    const peeled = peelPreferenceExclusion(line);
+    if (!peeled) continue;
+    const meal = mealFromPreferenceExclusion(peeled.name);
+    if (meal) extras.push(meal);
+  }
+  if (!extras.length) return actions;
+  const meals = [...(actions?.meals ?? [])];
+  let added = false;
+  for (const extra of extras) {
+    if (meals.some((m) => sameDish(m.name, extra.name))) continue;
+    meals.push(extra);
+    added = true;
+  }
+  if (!added) return actions;
+  if (!actions) {
+    return { apply: true, meals, summary: `к подтверждению: ${extras.map((m) => splitQuickPortion(m.name).base).join(", ")}` };
+  }
+  return { ...actions, apply: true, meals };
+}
+
 /**
  * When the model (or drink heuristic) collapsed a multi-dish log to one meal,
  * or polluted names with tool/macro leftovers, replace with the offline parse.
+ * Затем подставляет граммы из «≈ N г» и возвращает блюда, выкинутые из-за предпочтений.
  */
 export function preferMultiDishActions(
   userMessage: string,
@@ -1272,20 +1427,23 @@ export function preferMultiDishActions(
   const looksMulti =
     messageLooksLikeMultiDish(userMessage) ||
     messageLooksLikeMultiDish(assistantReply);
-  if (!looksMulti) return actions ?? null;
-
-  const multi =
-    heuristicRepairMultiDishActions(userMessage, assistantReply) ??
-    heuristicRepairFromDraftReply(userMessage, assistantReply);
-  const mealCount = actions?.meals?.length ?? 0;
-  const multiCount = multi?.meals?.length ?? 0;
-  if (multiCount >= 2 && multiCount > mealCount) return multi;
-  if (mealCount >= 2) {
-    const polluted = (actions?.meals ?? []).some((m) => mealNameLooksPolluted(m.name));
-    if (polluted && multiCount >= 2) return multi;
-    return actions ?? null;
+  let chosen: AssistantActions | null = actions ?? null;
+  if (looksMulti) {
+    const multi =
+      heuristicRepairMultiDishActions(userMessage, assistantReply) ??
+      heuristicRepairFromDraftReply(userMessage, assistantReply);
+    const mealCount = actions?.meals?.length ?? 0;
+    const multiCount = multi?.meals?.length ?? 0;
+    if (multiCount >= 2 && multiCount > mealCount) chosen = multi;
+    else if (mealCount >= 2) {
+      const polluted = (actions?.meals ?? []).some((m) => mealNameLooksPolluted(m.name));
+      if (polluted && multiCount >= 2) chosen = multi;
+    } else {
+      chosen = multi ?? actions ?? null;
+    }
   }
-  return multi ?? actions ?? null;
+  chosen = stampStatedPortions(assistantReply, chosen);
+  return mergeExcludedEatenMeals(assistantReply, chosen);
 }
 
 /**
@@ -1446,7 +1604,9 @@ async function repairAssistantWriteActionsInner(opts: {
     "«Повтори вчерашний зал» / «повтори последнюю» → repeatWorkout:true, targetDate сегодня (или как сказал).",
     "«Начни тренировку» → startWorkout:true. Нет плана → startEmptyWorkout:true.",
     "«Добавь жим» / «поставь 80×8» → patchWorkout.addExercises или patchWorkout.logSets.",
-    "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3).",
+    "Несколько блюд в запросе = несколько объектов в meals[] (пюре + котлета + пиво → 3). Не обрезай список до 2.",
+    "Если пользователь УЖЕ съел блюдо — включи его, даже если оно в «не предлагай», не в диете или в черновике написано «исключено из-за предпочтений».",
+    "Граммы из «≈ 150 г», «(3 шт. ≈ 150 г)», «≈ 30 г» пиши в name как «(150 г)» / «(30 г)». kcal и БЖУ — на эту порцию, не на 100 г.",
     "meals[].name — блюдо из запроса пользователя («чебурек с фаршем индейки»). Нельзя называть блюдо «Калории», «Калорийность», «Белки», «Жиры» или «Углеводы».",
     "Белки, жиры и углеводы бери из черновика, даже если они написаны словами: «Белки: около 20 г».",
     "kcal оцени реалистично, если пользователь не указал.",

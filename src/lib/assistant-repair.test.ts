@@ -777,3 +777,86 @@ test("ответ модели «Калории» с нулевым БЖУ зам
   assert.equal(meal?.carbs, 25);
   assert.equal(saved?.meals?.length, 1);
 });
+
+const SYRNIKI_USER =
+  "Я съел на завтрак 3 сырника с топпингом без сахара, желе из ряженки";
+const SYRNIKI_REPLY = [
+  "- Сырники (3 шт. ≈ 150 г): примерно 300 ккал, белки 20 г, жиры 15 г, углеводы 25 г",
+  "- Топпинг без сахара (≈ 30 г): примерно 50 ккал, белки 1 г, жиры 1 г, углеводы 10 г",
+  "- Желе из ряженки: исключено из-за ваших предпочтений",
+].join("\n");
+
+test("сырники: все блюда, граммы из ≈ и ккал этой порции", () => {
+  assert.equal(parsePortionGramsFromMessage("Сырники (3 шт. ≈ 150 г)"), 150);
+  assert.equal(parsePortionGramsFromMessage("Топпинг без сахара (≈ 30 г)"), 30);
+
+  const meals = parseStructuredMealsFromText(SYRNIKI_REPLY);
+  assert.equal(meals.length, 3, "исключённое из-за предпочтений тоже записывается");
+
+  const syr = meals.find((m) => /сырник/i.test(m.name));
+  const top = meals.find((m) => /топпинг/i.test(m.name));
+  const jelly = meals.find((m) => /желе/i.test(m.name));
+  assert.ok(syr && top && jelly);
+  assert.equal(syr.kcal, 300);
+  assert.equal(syr.protein, 20);
+  assert.equal(syr.fat, 15);
+  assert.equal(syr.carbs, 25);
+  assert.equal(top.kcal, 50);
+  assert.equal(top.protein, 1);
+  assert.equal(top.fat, 1);
+  assert.equal(top.carbs, 10);
+  assert.ok((jelly.kcal ?? 0) > 0);
+  assert.match(jelly.name, /желе из ряженки/i);
+
+  const card = enrichQuickMealsFromText(meals, "к подтверждению: сырники, топпинг");
+  const syrCard = card.find((m) => /сырник/i.test(m.name))!;
+  const topCard = card.find((m) => /топпинг/i.test(m.name))!;
+  const jellyCard = card.find((m) => /желе/i.test(m.name))!;
+  assert.equal(splitQuickPortion(syrCard.name).grams, 150);
+  assert.equal(syrCard.kcal, 300);
+  assert.equal(syrCard.protein, 20);
+  assert.equal(splitQuickPortion(topCard.name).grams, 30);
+  assert.equal(topCard.kcal, 50);
+  assert.equal(splitQuickPortion(jellyCard.name).grams, 150);
+  assert.doesNotMatch(syrCard.name, /100\s*г/);
+  assert.doesNotMatch(topCard.name, /100\s*г/);
+
+  const multi = heuristicRepairMultiDishActions(SYRNIKI_USER, SYRNIKI_REPLY);
+  assert.equal(multi?.meals?.length, 3);
+  assert.ok(multi!.meals!.every((m) => m.note === "завтрак"));
+
+  const fixed = preferMultiDishActions(SYRNIKI_USER, SYRNIKI_REPLY, {
+    apply: true,
+    meals: [
+      { name: "сырники (100 г)", kcal: 300, protein: 20, fat: 15, carbs: 25, note: "завтрак" },
+      { name: "топпинг без сахара (100 г)", kcal: 50, protein: 1, fat: 1, carbs: 10, note: "завтрак" },
+    ],
+  });
+  assert.equal(fixed?.meals?.length, 3);
+  const fixedSyr = fixed!.meals!.find((m) => /сырник/i.test(m.name))!;
+  const fixedTop = fixed!.meals!.find((m) => /топпинг/i.test(m.name))!;
+  const fixedJelly = fixed!.meals!.find((m) => /желе/i.test(m.name))!;
+  assert.equal(splitQuickPortion(fixedSyr.name).grams, 150);
+  assert.equal(fixedSyr.kcal, 300);
+  assert.equal(splitQuickPortion(fixedTop.name).grams, 30);
+  assert.equal(fixedTop.kcal, 50);
+  assert.match(fixedJelly.name, /желе/i);
+  assert.ok((fixedJelly.kcal ?? 0) > 0);
+});
+
+test("карточка не подменяет ≈-граммы на 100 г и не пересчитывает ккал", () => {
+  const raw = enrichQuickMealsFromText(
+    [
+      { name: "Сырники (3 шт. ≈ 150 г)", kcal: 300, protein: 20, fat: 15, carbs: 25 },
+      { name: "Топпинг без сахара (≈ 30 г)", kcal: 50, protein: 1, fat: 1, carbs: 10 },
+    ],
+    "",
+  );
+  assert.equal(splitQuickPortion(raw[0]!.name).grams, 150);
+  assert.equal(splitQuickPortion(raw[0]!.name).base, "Сырники (3 шт)");
+  assert.equal(raw[0]!.kcal, 300);
+  assert.equal(raw[0]!.protein, 20);
+  assert.equal(splitQuickPortion(raw[1]!.name).grams, 30);
+  assert.equal(splitQuickPortion(raw[1]!.name).base, "Топпинг без сахара");
+  assert.equal(raw[1]!.kcal, 50);
+});

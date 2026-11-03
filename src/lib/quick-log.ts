@@ -42,9 +42,38 @@ function parsePortionMatch(m: RegExpExecArray, baseFallback: string): QuickPorti
   return { base: base || baseFallback, grams: Math.round(grams), unit };
 }
 
-/** «Творог (200 г)» / «Молоко 100 мл» / «Молоко 100мл» → base name + grams. */
+/**
+ * Граммы из «150 г», «≈ 30 г», «около 100 г», «(3 шт. ≈ 150 г)».
+ * «3 шт» без единицы веса — не порция.
+ */
+function statedPortionInPhrase(phrase: string): { grams: number; unit: "г" | "мл" } | null {
+  const marked =
+    /(?:≈|~|∼|около|примерно)\s*(\d+(?:[.,]\d+)?)\s*(мл|грамм\S*|гр|г)(?![а-яёa-z])/iu.exec(
+      phrase,
+    );
+  const plain = /(\d+(?:[.,]\d+)?)\s*(мл|грамм\S*|гр|г)(?![а-яёa-z])/iu.exec(phrase);
+  const hit = marked ?? plain;
+  if (!hit?.[1]) return null;
+  const grams = Number(hit[1].replace(",", "."));
+  if (!Number.isFinite(grams) || grams <= 0 || grams > 20000) return null;
+  return { grams: Math.round(grams), unit: portionUnit(hit[2]) };
+}
+
+/** «Творог (200 г)» / «Молоко 100 мл» / «Сырники (3 шт. ≈ 150 г)» → base + grams. */
 export function splitQuickPortion(name: string): QuickPortion {
-  const raw = name.trim();
+  const raw = name.replace(/\u00a0/g, " ").trim();
+  const wrapped = /\(([^)]*)\)\s*$/u.exec(raw);
+  if (wrapped?.[1] != null && !/^(?:белк|жир|углевод|[бжbуf])\b/iu.test(wrapped[1].trim())) {
+    const stated = statedPortionInPhrase(wrapped[1]);
+    if (stated) {
+      let base = raw.slice(0, wrapped.index).replace(/[\s,;:—–-]+$/u, "").trim();
+      const pieces = /(\d+)\s*шт(?:ук[аи]?)?\.?/iu.exec(wrapped[1]);
+      if (pieces?.[1] && !/шт/iu.test(base)) {
+        base = `${base} (${pieces[1]} шт)`.trim();
+      }
+      return { base: base || raw, grams: stated.grams, unit: stated.unit };
+    }
+  }
   const m = PORTION_IN_PARENS_RE.exec(raw) ?? PORTION_TRAILING_RE.exec(raw);
   if (!m?.[1]) return { base: raw, grams: null, unit: "г" };
   return parsePortionMatch(m, raw) ?? { base: raw, grams: null, unit: "г" };
