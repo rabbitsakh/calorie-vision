@@ -102,9 +102,10 @@ export default function PrivacyPage() {
       <ul>
         <li>получить доступ к своим данным в приложении;</li>
         <li>
-          экспортировать дневник питания (CSV/PDF) через профиль или раздел статистики —{" "}
-          <code>/api/export</code>, и тренировки (CSV/PDF) там же и в разделе «Зал» —{" "}
-          <code>/api/export/workouts</code>;
+          экспортировать свои данные в настройках профиля, раздел «Экспорт»: рацион, тренировки,
+          вес или всё вместе — CSV и PDF (
+          <code>/api/export</code>, <code>/api/export/workouts</code>, <code>/api/export/weight</code>,{" "}
+          <code>/api/export/all</code>);
         </li>
         <li>исправить данные профиля;</li>
         <li>отозвать согласие на аналитику (очистив выбор cookies или написав нам);</li>

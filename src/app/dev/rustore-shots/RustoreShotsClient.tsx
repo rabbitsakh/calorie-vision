@@ -479,7 +479,7 @@ function ShotProfile() {
         <p className="mt-1 text-[0.95rem] text-[var(--muted-strong)]">Б 120 · Ж 70 · У 220</p>
       </section>
       <div className="mt-3 flex flex-col gap-2">
-        {["Цели и темп", "Уведомления", "Экспорт дневника", "Аккаунт"].map((label) => (
+        {["Цели и темп", "Уведомления", "Экспорт", "Установка"].map((label) => (
           <div
             key={label}
             className="flex items-center justify-between rounded-[1.1rem] border border-[var(--border-quiet)] bg-[var(--surface)] px-4 py-3.5"
@@ -501,7 +501,7 @@ function ShotProfileMore() {
         { t: "Нутриенты", d: "Клетчатка, сахар, микро" },
         { t: "Вес", d: "График и цель" },
         { t: "Зал", d: "Шаблоны, единицы, отдых" },
-        { t: "Экспорт", d: "CSV / PDF за период" },
+        { t: "Экспорт", d: "Рацион, зал, вес — CSV и PDF" },
         { t: "Тихие часы", d: "Без пушей ночью" },
       ].map((row) => (
         <div

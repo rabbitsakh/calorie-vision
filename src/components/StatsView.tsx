@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
-import { WorkoutExportLinks } from "@/components/workouts/WorkoutExportLinks";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
@@ -742,9 +741,6 @@ export function StatsView({ endDate }: StatsViewProps) {
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [exportPeriod, setExportPeriod] = useState<"week" | "month" | "quarter" | "custom">("week");
-  const [exportFrom, setExportFrom] = useState("");
-  const [exportTo, setExportTo] = useState(endDate);
   const [photoBackfillBusy, setPhotoBackfillBusy] = useState(false);
   const [photoBackfillMsg, setPhotoBackfillMsg] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -821,27 +817,6 @@ export function StatsView({ endDate }: StatsViewProps) {
       cancelled = true;
     };
   }, [endDate, period]);
-
-  useEffect(() => {
-    setExportTo(endDate);
-  }, [endDate]);
-
-  const exportRange = useMemo(() => {
-    if (exportPeriod === "custom") {
-      return { from: exportFrom, to: exportTo || endDate };
-    }
-    const days = exportPeriod === "quarter" ? 90 : exportPeriod === "month" ? 30 : 7;
-    const to = endDate;
-    const from = shiftDateKey(to, -(days - 1));
-    return { from, to };
-  }, [exportPeriod, exportFrom, exportTo, endDate]);
-
-  const exportUrl = (format: "csv" | "pdf") => {
-    const { from, to } = exportRange;
-    if (!from || !to) return withBasePath(`/api/export?format=${format}`);
-    return withBasePath(`/api/export?format=${format}&from=${from}&to=${to}`);
-  };
-
 
   async function backfillTopFoodPhotos() {
     setPhotoBackfillBusy(true);
@@ -1160,7 +1135,7 @@ export function StatsView({ endDate }: StatsViewProps) {
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((v) => !v)}
           >
-            <span>{moreOpen ? "Скрыть детали" : "Ещё: частые блюда, время, экспорт"}</span>
+            <span>{moreOpen ? "Скрыть детали" : "Ещё: частые блюда и время"}</span>
             <span className={`text-[var(--muted)] transition-transform ${moreOpen ? "rotate-180" : ""}`} aria-hidden>
               ▾
             </span>
@@ -1216,83 +1191,6 @@ export function StatsView({ endDate }: StatsViewProps) {
             </section>
           ) : null}
 
-          {/* Export */}
-          <section className="stats-chart-block">
-            <h2 className="mb-1 text-lg font-bold">Экспорт · Calorie Vision</h2>
-            <p className="mb-3 text-xs text-[var(--muted)]">
-              Дневник и тренировки за выбранный период — CSV или PDF
-            </p>
-            <div className="mb-3 flex flex-wrap gap-1.5">
-              {(
-                [
-                  ["week", "7 дней"],
-                  ["month", "30 дней"],
-                  ["quarter", "90 дней"],
-                  ["custom", "Свои даты"],
-                ] as const
-              ).map(([p, label]) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`chip min-h-9 ${exportPeriod === p ? "chip-active" : ""}`}
-                  onClick={() => {
-                    setExportPeriod(p);
-                    if (p !== "custom") {
-                      const days = p === "quarter" ? 90 : p === "month" ? 30 : 7;
-                      setExportFrom(shiftDateKey(endDate, -(days - 1)));
-                      setExportTo(endDate);
-                    }
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {exportPeriod === "custom" ? (
-              <div className="mb-3 grid gap-3 sm:grid-cols-2">
-                <div className="field">
-                  <label htmlFor="export-from">С</label>
-                  <input
-                    id="export-from"
-                    type="date"
-                    value={exportFrom}
-                    onChange={(e) => setExportFrom(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="export-to">По</label>
-                  <input
-                    id="export-to"
-                    type="date"
-                    value={exportTo}
-                    onChange={(e) => setExportTo(e.target.value)}
-                  />
-                </div>
-              </div>
-            ) : null}
-            <div className="flex flex-wrap gap-3">
-              <a
-                href={exportUrl("csv")}
-                download
-                className="btn btn-secondary text-sm"
-              >
-                Скачать CSV
-              </a>
-              <a
-                href={exportUrl("pdf")}
-                download
-                className="btn btn-secondary text-sm"
-              >
-                Скачать PDF
-              </a>
-              <WorkoutExportLinks from={exportRange.from} to={exportRange.to} />
-            </div>
-            {exportRange.from && exportRange.to ? (
-              <p className="mt-2 text-xs text-[var(--muted)]">
-                Период: {exportRange.from} — {exportRange.to}
-              </p>
-            ) : null}
-          </section>
             </>
           ) : null}
         </>

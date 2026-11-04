@@ -1,4 +1,5 @@
 import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
+import { exportDownloadName, exportQueryPath } from "@/lib/export/paths";
 import { monthEndKey } from "@/lib/workouts/trends";
 
 export type WorkoutExportFormat = "csv" | "pdf";
@@ -9,10 +10,7 @@ export function workoutExportPath(
   from?: string | null,
   to?: string | null,
 ): string {
-  const query = new URLSearchParams({ format });
-  if (from) query.set("from", from);
-  if (to) query.set("to", to);
-  return `/api/export/workouts?${query.toString()}`;
+  return exportQueryPath("workouts", format, from, to);
 }
 
 export function workoutExportFilename(
@@ -20,9 +18,7 @@ export function workoutExportFilename(
   from?: string | null,
   to?: string | null,
 ): string {
-  const ext = format === "pdf" ? "pdf" : "csv";
-  if (from && to) return `calorie-vision-workouts-${from}-${to}.${ext}`;
-  return `calorie-vision-workouts.${ext}`;
+  return exportDownloadName("workouts", format, from, to);
 }
 
 /**

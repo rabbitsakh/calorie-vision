@@ -35,8 +35,8 @@ import {
   vkShareUrl,
 } from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
+import { ExportSettings } from "@/components/ExportSettings";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
-import { WorkoutExportLinks } from "@/components/workouts/WorkoutExportLinks";
 import { ALLERGEN_OPTIONS } from "@/lib/allergens";
 
 type AccountResponse = {
@@ -151,8 +151,7 @@ export function ProfileForm() {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTyped, setDeleteTyped] = useState("");
-  const [exportCsvChecked, setExportCsvChecked] = useState(false);
-  const [exportPdfChecked, setExportPdfChecked] = useState(false);
+  const [exportAckChecked, setExportAckChecked] = useState(false);
   const [deleteRiskChecked, setDeleteRiskChecked] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -326,8 +325,8 @@ export function ProfileForm() {
   }
 
   async function handleDeleteAccount() {
-    if (!exportCsvChecked || !exportPdfChecked || !deleteRiskChecked) {
-      setError("Отметьте все пункты чеклиста: сначала экспортируйте данные");
+    if (!exportAckChecked || !deleteRiskChecked) {
+      setError("Отметьте все пункты чеклиста. Если данные нужны, сначала выгрузите их в разделе «Экспорт»");
       return;
     }
     if (deleteTyped.trim() !== ACCOUNT_DELETE_CONFIRM) {
@@ -360,7 +359,7 @@ export function ProfileForm() {
     }
   }
 
-  const deleteChecklistReady = exportCsvChecked && exportPdfChecked && deleteRiskChecked;
+  const deleteChecklistReady = exportAckChecked && deleteRiskChecked;
   const canConfirmDelete =
     deleteChecklistReady && deleteTyped.trim() === ACCOUNT_DELETE_CONFIRM && !deleting;
 
@@ -369,7 +368,8 @@ export function ProfileForm() {
   const [openNorm, setOpenNorm] = useState(false);
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openTimezone, setOpenTimezone] = useState(false);
-  const [openData, setOpenData] = useState(false);
+  const [openExport, setOpenExport] = useState(false);
+  const [openInstall, setOpenInstall] = useState(false);
   const [openInvite, setOpenInvite] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
@@ -449,7 +449,7 @@ export function ProfileForm() {
             </div>
 
             {message ? <p className="mt-3 text-sm text-[var(--accent)]">{message}</p> : null}
-            {error && !openData && !openDelete ? (
+            {error && !openDelete ? (
               <p className="mt-3 text-sm text-red-600">{error}</p>
             ) : null}
             <div className="mt-4">
@@ -697,50 +697,31 @@ export function ProfileForm() {
           </ProfileCollapse>
 
           <ProfileCollapse
-            title="Экспорт и установка"
-            hint="Дневник, тренировки, приложение"
-            open={openData}
-            onToggle={() => setOpenData((v) => !v)}
+            id="export"
+            title="Экспорт"
+            hint="Рацион, тренировки, вес"
+            open={openExport}
+            onToggle={() => setOpenExport((v) => !v)}
           >
-            {error && openData ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
-            <div className="flex flex-col gap-2">
-              <a
-                href={withBasePath("/api/export?format=csv")}
-                download="calorie-vision-export.csv"
-                className="profile-settings__door"
-              >
-                <span className="min-w-0">
-                  <span className="block font-semibold text-[var(--foreground)]">Скачать CSV</span>
-                  <span className="mt-0.5 block text-xs text-[var(--muted)]">Дневник таблицей</span>
-                </span>
-                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-                  ↓
-                </span>
-              </a>
-              <a
-                href={withBasePath("/api/export?format=pdf")}
-                download="calorie-vision-export.pdf"
-                className="profile-settings__door"
-              >
-                <span className="min-w-0">
-                  <span className="block font-semibold text-[var(--foreground)]">Скачать PDF</span>
-                  <span className="mt-0.5 block text-xs text-[var(--muted)]">Краткая выгрузка</span>
-                </span>
-                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-                  ↓
-                </span>
-              </a>
-              <WorkoutExportLinks variant="doors" />
-              <Link href={withBasePath("/install")} className="profile-settings__door">
-                <span className="min-w-0">
-                  <span className="block font-semibold text-[var(--foreground)]">Установить приложение</span>
-                  <span className="mt-0.5 block text-xs text-[var(--muted)]">PWA или APK</span>
-                </span>
-                <span className="shrink-0 text-[var(--muted)]" aria-hidden>
-                  →
-                </span>
-              </Link>
-            </div>
+            <ExportSettings />
+          </ProfileCollapse>
+
+          <ProfileCollapse
+            id="install"
+            title="Установка"
+            hint="PWA или APK"
+            open={openInstall}
+            onToggle={() => setOpenInstall((v) => !v)}
+          >
+            <Link href={withBasePath("/install")} className="profile-settings__door">
+              <span className="min-w-0">
+                <span className="block font-semibold text-[var(--foreground)]">Установить приложение</span>
+                <span className="mt-0.5 block text-xs text-[var(--muted)]">PWA или APK</span>
+              </span>
+              <span className="shrink-0 text-[var(--muted)]" aria-hidden>
+                →
+              </span>
+            </Link>
           </ProfileCollapse>
         </form>
       ) : null}
@@ -807,14 +788,13 @@ export function ProfileForm() {
       {!loading ? (
         <ProfileCollapse
           title="Удаление аккаунта"
-          hint="Необратимо — сначала экспорт"
+          hint="Необратимо"
           open={openDelete}
           onToggle={() => setOpenDelete((v) => !v)}
         >
           <p className="text-sm text-[var(--muted)]">
             Удалим профиль, дневник, тренировки, вес, воду, напоминания и загруженные фото. Это
-            необратимо. Сначала скачайте дневник (CSV и PDF) и тренировки в блоке «Экспорт и
-            установка».
+            необратимо. Если данные нужны, сначала выгрузите их в разделе «Экспорт».
           </p>
           {!deleteConfirmOpen ? (
             <button
@@ -823,8 +803,7 @@ export function ProfileForm() {
               onClick={() => {
                 setDeleteConfirmOpen(true);
                 setDeleteTyped("");
-                setExportCsvChecked(false);
-                setExportPdfChecked(false);
+                setExportAckChecked(false);
                 setDeleteRiskChecked(false);
                 setError(null);
               }}
@@ -836,48 +815,16 @@ export function ProfileForm() {
               <p className="text-sm font-semibold text-red-900">Чеклист перед удалением</p>
               <ol className="flex list-decimal flex-col gap-3 pl-5 text-sm text-red-900">
                 <li>
-                  <div className="flex flex-col gap-2">
-                    <span>Скачайте дневник в CSV</span>
-                    <a
-                      href={withBasePath("/api/export?format=csv")}
-                      download="calorie-vision-export.csv"
-                      className="btn btn-secondary self-start text-sm"
-                    >
-                      Скачать CSV
-                    </a>
-                    <label className="flex items-start gap-2 text-[var(--muted-strong)]">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={exportCsvChecked}
-                        onChange={(event) => setExportCsvChecked(event.target.checked)}
-                        disabled={deleting}
-                      />
-                      <span>Я скачал(а) CSV-экспорт</span>
-                    </label>
-                  </div>
-                </li>
-                <li>
-                  <div className="flex flex-col gap-2">
-                    <span>Скачайте дневник в PDF</span>
-                    <a
-                      href={withBasePath("/api/export?format=pdf")}
-                      download="calorie-vision-export.pdf"
-                      className="btn btn-secondary self-start text-sm"
-                    >
-                      Скачать PDF
-                    </a>
-                    <label className="flex items-start gap-2 text-[var(--muted-strong)]">
-                      <input
-                        type="checkbox"
-                        className="mt-1"
-                        checked={exportPdfChecked}
-                        onChange={(event) => setExportPdfChecked(event.target.checked)}
-                        disabled={deleting}
-                      />
-                      <span>Я скачал(а) PDF-экспорт</span>
-                    </label>
-                  </div>
+                  <label className="flex items-start gap-2 text-[var(--muted-strong)]">
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={exportAckChecked}
+                      onChange={(event) => setExportAckChecked(event.target.checked)}
+                      disabled={deleting}
+                    />
+                    <span>Я выгрузил(а) данные в разделе «Экспорт» или они мне не нужны</span>
+                  </label>
                 </li>
                 <li>
                   <label className="flex items-start gap-2 text-[var(--muted-strong)]">
@@ -907,6 +854,7 @@ export function ProfileForm() {
                 className="input"
                 disabled={deleting || !deleteChecklistReady}
               />
+              {error ? <p className="text-sm text-red-700">{error}</p> : null}
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -923,8 +871,7 @@ export function ProfileForm() {
                   onClick={() => {
                     setDeleteConfirmOpen(false);
                     setDeleteTyped("");
-                    setExportCsvChecked(false);
-                    setExportPdfChecked(false);
+                    setExportAckChecked(false);
                     setDeleteRiskChecked(false);
                   }}
                 >
