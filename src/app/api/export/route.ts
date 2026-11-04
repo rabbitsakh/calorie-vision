@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
-import { requireDateKey } from "@/lib/dates";
+import { formatTimeShort, requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { decodeHtmlEntities } from "@/lib/html-text";
 
@@ -24,7 +24,12 @@ function escCsv(value: string | number | null | undefined): string {
   return str;
 }
 
-async function buildCsv(userId: string, from: string | null, to: string | null) {
+async function buildCsv(
+  userId: string,
+  from: string | null,
+  to: string | null,
+  timezone?: string | null,
+) {
   const where: Record<string, unknown> = { userId };
   if (from && to) where.date = { gte: from, lte: to };
   else if (from) where.date = { gte: from };
@@ -36,6 +41,7 @@ async function buildCsv(userId: string, from: string | null, to: string | null) 
     select: {
       date: true,
       createdAt: true,
+      eatenAt: true,
       dishName: true,
       mealType: true,
       calories: true,
@@ -51,7 +57,7 @@ async function buildCsv(userId: string, from: string | null, to: string | null) 
 
   const header = ["Дата", "Время", "Приём пищи", "Блюдо", "Ккал", "Белки г", "Жиры г", "Углеводы г", "Клетчатка г", "Сахар г", "Порция г", "Исправлено"].join(",");
   const rows = entries.map((e) => {
-    const time = new Date(e.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    const time = formatTimeShort(e.eatenAt ?? e.createdAt, timezone);
     return [
       escCsv(e.date),
       escCsv(time),
@@ -186,7 +192,11 @@ export async function GET(request: NextRequest) {
     }
 
     // CSV (default)
-    const csv = await buildCsv(session.user.id, from, to);
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
+    });
+    const csv = await buildCsv(session.user.id, from, to, user?.timezone);
     const filename = from && to ? `calorie-vision-${from}-${to}.csv` : "calorie-vision-export.csv";
     return new NextResponse(csv, {
       headers: {
