@@ -3,19 +3,31 @@ import { isApkWebView } from "@/lib/capacitor-resume";
 
 export type ExportSaveResult = "shared" | "downloaded" | "cancelled";
 
-type CvFilesBridge = {
+/**
+ * Контракт нативного плагина: синхронный boolean, три строки.
+ * Это JavascriptInterface `window.CvFiles`, не `Capacitor.Plugins`.
+ * На calorievision.ru Capacitor не встраивает свой JS (он только в rustore/cap-www),
+ * поэтому смотреть в `Capacitor.Plugins` нельзя — старые и новые сборки иначе не сойдутся.
+ */
+export type CvFilesBridge = {
   shareBase64: (filename: string, mime: string, base64: string) => boolean;
 };
+
+export function cvFilesBridge(
+  host: { CvFiles?: { shareBase64?: unknown } } | null | undefined,
+): CvFilesBridge | null {
+  const bridge = host?.CvFiles;
+  if (!bridge || typeof bridge.shareBase64 !== "function") return null;
+  return bridge as CvFilesBridge;
+}
 
 function cvFiles(): CvFilesBridge | null {
   if (typeof window === "undefined") return null;
   try {
-    const bridge = (window as Window & { CvFiles?: CvFilesBridge }).CvFiles;
-    if (bridge && typeof bridge.shareBase64 === "function") return bridge;
+    return cvFilesBridge(window as Window & { CvFiles?: { shareBase64?: unknown } });
   } catch {
-    // ignore
+    return null;
   }
-  return null;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
@@ -72,8 +84,9 @@ async function tryWebShare(file: File, filename: string): Promise<ExportSaveResu
 /**
  * Save an authenticated export.
  * Desktop and PWA get a file download (UTF-8 CSV opens in Excel).
- * The RuStore WebView has no Capacitor JS after login, so the APK uses the
- * native share bridge when the build has it, then the Web Share sheet, then
+ * The RuStore WebView has no Capacitor JS after login (the shell is rustore/cap-www,
+ * the diary is calorievision.ru). The APK calls window.CvFiles.shareBase64 when the
+ * installed build has the plugin, then the Web Share sheet for older builds, then
  * the same attachment link the diary export already used.
  */
 export async function saveExportFile(href: string, filename: string): Promise<ExportSaveResult> {
