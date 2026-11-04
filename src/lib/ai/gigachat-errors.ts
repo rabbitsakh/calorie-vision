@@ -12,6 +12,14 @@ export class GigaChatApiError extends Error {
   }
 }
 
+/** Chat completions отклонил `functions` / `function_call` — нужен запасной JSON-вызов. */
+export class GigaChatFunctionUnsupportedError extends Error {
+  constructor() {
+    super("GigaChat не принял function calling");
+    this.name = "GigaChatFunctionUnsupportedError";
+  }
+}
+
 export function isGigaChatApiError(error: unknown): error is GigaChatApiError {
   return error instanceof GigaChatApiError;
 }

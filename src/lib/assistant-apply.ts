@@ -155,10 +155,15 @@ export function mealsPayloadFromActions(
           : named.grams != null && named.grams > 0
             ? named.grams
             : undefined;
-      const unit = m.unit === "мл" ? "мл" : named.unit === "мл" && m.grams == null ? "мл" : "г";
+      const unit =
+        m.unit === "мл" || m.unit === "шт"
+          ? m.unit
+          : named.unit === "мл" && m.grams == null
+            ? "мл"
+            : "г";
       const dishName =
         grams != null && named.grams == null
-          ? `${named.base.trim() || m.name.trim()} (${grams} ${m.unit === "мл" ? "мл" : unit})`.slice(0, 200)
+          ? `${named.base.trim() || m.name.trim()} (${grams} ${unit})`.slice(0, 200)
           : m.name.trim().slice(0, 200);
       return {
         date,
@@ -167,7 +172,7 @@ export function mealsPayloadFromActions(
           typeof m.kcal === "number" && Number.isFinite(m.kcal)
             ? Math.max(1, Math.round(m.kcal))
             : 200,
-        ...(grams != null && grams > 0 ? { portionGrams: grams } : {}),
+        ...(grams != null && grams > 0 && unit !== "шт" ? { portionGrams: grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)
           ? { protein: Math.max(0, m.protein) }
           : {}),

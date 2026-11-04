@@ -19,6 +19,7 @@ import {
   assistantWriteMissNote,
 } from "@/lib/assistant-repair";
 import { resolveAssistantTurnActions } from "@/lib/assistant-meal-pipeline";
+import { extractMealsFromTurn } from "@/lib/assistant-meal-extract";
 import {
   hasPhotoPreviewPending,
   photoPreviewSystemAppendix,
@@ -195,8 +196,9 @@ export async function POST(request: NextRequest) {
           today,
           date,
           previewPending,
+          extractMeals: extractMealsFromTurn,
           onBeforeRepair: () => {
-            send("status", { text: "Уточняю запись в дневник…" });
+            send("status", { text: "Собираю блюда в карточку…" });
           },
         });
         let reply = resolved.reply;

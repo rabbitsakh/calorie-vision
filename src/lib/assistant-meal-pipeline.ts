@@ -9,6 +9,11 @@ import { mealsPayloadFromActions } from "@/lib/assistant-apply";
 import { resolveAssistantDate } from "@/lib/assistant-date";
 import { enrichAssistantActionsMealMeta } from "@/lib/assistant-meal-time";
 import {
+  heuristicRepairPatchWorkoutActions,
+  heuristicRepairPortionPatchActions,
+  heuristicRepairRepeatWorkoutActions,
+  heuristicRepairSlotEditActions,
+  heuristicRepairStartWorkoutActions,
   needsWriteRepair,
   parseStructuredMealsDetailed,
   preferMultiDishActions,
@@ -17,6 +22,10 @@ import {
   repairAssistantWriteActions,
   salvageNutrientLabelMeals,
 } from "@/lib/assistant-repair";
+import {
+  structuredMealsToAssistantMeals,
+  validateStructuredMeals,
+} from "@/lib/assistant-meal-schema";
 import { enrichQuickMealsFromText, type QuickMeal } from "@/lib/quick-log";
 
 export type AssistantMealParseEvent = {
@@ -26,6 +35,8 @@ export type AssistantMealParseEvent = {
   missed: string[];
   unparsedCount: number;
   repairLlmUsed: boolean;
+  /** Строгая схема сошлась. Regex после этого не переписывает список блюд. */
+  structuredExtractUsed?: boolean;
   shorterThanProse: boolean;
   phraseHash: string;
 };
@@ -67,6 +78,16 @@ function proseDishCensus(
   return { total: replyTotal, missed: fromReply.missed };
 }
 
+function turnAsksForMeals(
+  userMessage: string,
+  reply: string,
+  actions: AssistantActions | null,
+): boolean {
+  if (actions?.meals?.length) return true;
+  if (needsWriteRepair(userMessage, actions, reply)) return true;
+  return parseStructuredMealsDetailed(reply).meals.length > 0;
+}
+
 export async function resolveAssistantTurnActions(opts: {
   rawReply: string;
   userMessage: string;
@@ -79,6 +100,11 @@ export async function resolveAssistantTurnActions(opts: {
     messages: Array<{ role: string; content: string }>,
     temperature?: number,
   ) => Promise<string>;
+  /**
+   * Строгое извлечение блюд. Роуты передают GigaChat.
+   * Тесты корпуса его не передают — остаётся прежний regex-запас.
+   */
+  extractMeals?: (input: { userMessage: string; assistantReply: string }) => Promise<unknown>;
 }): Promise<{
   reply: string;
   actions: AssistantActions | null;
@@ -89,13 +115,48 @@ export async function resolveAssistantTurnActions(opts: {
   let actions = split.actions;
   const jsonDishCount = split.actions?.meals?.length ?? 0;
   let repairLlmUsed = false;
+  let structuredExtractUsed = false;
 
   if (opts.previewPending && actions?.meals?.length) {
     const { meals: _drop, ...rest } = actions;
     actions = rest;
   }
 
-  if (!opts.previewPending && needsWriteRepair(opts.userMessage, actions, reply)) {
+  const nonMealHeuristic =
+    !opts.previewPending &&
+    (heuristicRepairSlotEditActions(opts.userMessage) ||
+      heuristicRepairPortionPatchActions(opts.userMessage) ||
+      heuristicRepairStartWorkoutActions(opts.userMessage) ||
+      heuristicRepairRepeatWorkoutActions(opts.userMessage) ||
+      heuristicRepairPatchWorkoutActions(opts.userMessage));
+
+  if (
+    !opts.previewPending &&
+    !nonMealHeuristic &&
+    opts.extractMeals &&
+    turnAsksForMeals(opts.userMessage, reply, actions)
+  ) {
+    try {
+      opts.onBeforeRepair?.();
+      const raw = await opts.extractMeals({
+        userMessage: opts.userMessage,
+        assistantReply: reply,
+      });
+      const parsed = validateStructuredMeals(raw);
+      if (parsed.ok && parsed.meals.length > 0) {
+        structuredExtractUsed = true;
+        actions = {
+          ...(actions ?? {}),
+          apply: true,
+          meals: structuredMealsToAssistantMeals(parsed.meals),
+        };
+      }
+    } catch (error) {
+      console.error("assistant structured extract", error);
+    }
+  }
+
+  if (!structuredExtractUsed && !opts.previewPending && needsWriteRepair(opts.userMessage, actions, reply)) {
     opts.onBeforeRepair?.();
     const repaired = await repairAssistantWriteActions({
       userMessage: opts.userMessage,
@@ -112,12 +173,14 @@ export async function resolveAssistantTurnActions(opts: {
   }
 
   const repairFromLlm = actions?.repairVia === "llm";
-  if (!opts.previewPending && !repairFromLlm) {
+  if (!structuredExtractUsed && !opts.previewPending && !repairFromLlm) {
     actions = preferMultiDishActions(opts.userMessage, reply, actions);
   }
   if (!opts.previewPending) {
     actions = preferSlotEditActions(opts.userMessage, actions);
-    actions = salvageNutrientLabelMeals(actions, opts.userMessage, reply);
+    if (!structuredExtractUsed) {
+      actions = salvageNutrientLabelMeals(actions, opts.userMessage, reply);
+    }
   }
   if (actions?.repairVia) {
     const { repairVia: _via, ...rest } = actions;
@@ -150,6 +213,7 @@ export async function resolveAssistantTurnActions(opts: {
     missed: prose.missed,
     unparsedCount,
     repairLlmUsed,
+    structuredExtractUsed,
     shorterThanProse: prose.total >= 2 && cardDishCount < prose.total,
     phraseHash: hashMealPhrase(opts.userMessage),
   };
@@ -174,6 +238,7 @@ export async function runAssistantMealFixture(opts: {
     messages: Array<{ role: string; content: string }>,
     temperature?: number,
   ) => Promise<string>;
+  extractMeals?: (input: { userMessage: string; assistantReply: string }) => Promise<unknown>;
 }): Promise<{
   reply: string;
   actions: AssistantActions | null;
@@ -190,6 +255,7 @@ export async function runAssistantMealFixture(opts: {
     date,
     allowRepairLlm: opts.allowRepairLlm ?? false,
     completeRepairChat: opts.completeRepairChat,
+    extractMeals: opts.extractMeals,
   });
   const card = enrichQuickMealsFromText(
     resolved.actions?.meals ?? [],

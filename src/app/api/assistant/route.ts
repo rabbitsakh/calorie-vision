@@ -20,6 +20,7 @@ import {
   assistantWriteMissNote,
 } from "@/lib/assistant-repair";
 import { resolveAssistantTurnActions } from "@/lib/assistant-meal-pipeline";
+import { extractMealsFromTurn } from "@/lib/assistant-meal-extract";
 import {
   hasPhotoPreviewPending,
   photoPreviewSystemAppendix,
@@ -188,6 +189,7 @@ export async function POST(request: NextRequest) {
       today,
       date,
       previewPending,
+      extractMeals: extractMealsFromTurn,
     });
     let reply = resolved.reply;
     const actions = resolved.actions;

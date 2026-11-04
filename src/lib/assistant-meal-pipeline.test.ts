@@ -286,6 +286,73 @@ test("если в прозе больше блюд, чем в JSON, карточ
   assert.equal(out.actions?.mealGap?.card, 1);
 });
 
+test("структурное извлечение важнее regex и не подставляет 100 г", async () => {
+  const user = "съел гречку и курицу";
+  const raw =
+    "Гречка 100 г и курица" +
+    fence({ apply: true, meals: [{ name: "Гречка", kcal: 200 }] });
+  const out = await runAssistantMealFixture({
+    rawReply: raw,
+    userMessage: user,
+    extractMeals: async () => ({
+      meals: [
+        {
+          name: "Гречка",
+          grams: 180,
+          unit: "г",
+          kcal: 210,
+          protein: 7,
+          fat: 2,
+          carbs: 40,
+          mealSlot: "LUNCH",
+        },
+        {
+          name: "Курица",
+          grams: 0,
+          unit: "г",
+          kcal: 250,
+          protein: 30,
+          fat: 12,
+          carbs: 0,
+          mealSlot: null,
+        },
+      ],
+    }),
+  });
+  assert.equal(out.parse.structuredExtractUsed, true);
+  assert.equal(out.card.length, 2);
+  const buckwheat = out.card.find((meal) => /греч/i.test(meal.name));
+  const chicken = out.card.find((meal) => /куриц/i.test(meal.name));
+  assert.equal(buckwheat?.grams, 180);
+  assert.equal(buckwheat?.kcal, 210);
+  assert.equal(buckwheat?.mealSlot, "LUNCH");
+  assert.equal(chicken?.grams, undefined);
+  assert.equal(out.payload.find((row) => /куриц/i.test(row.dishName))?.portionGrams, undefined);
+  assert.equal(out.payload.find((row) => /греч/i.test(row.dishName))?.portionGrams, 180);
+});
+
+test("если схема не сошлась, regex оставляет желе из «исключено» и «учтено полностью»", async () => {
+  const user = "Я съел на завтрак 3 сырника с топпингом без сахара, желе из ряженки";
+  const prose = [
+    "- Сырники (3 шт. ≈ 150 г): примерно 300 ккал, белки 20 г, жиры 15 г, углеводы 25 г",
+    "- Топпинг без сахара (≈ 30 г): примерно 50 ккал, белки 1 г, жиры 1 г, углеводы 10 г",
+    "- Желе из ряженки: 100 ккал, белки 5 г, жиры 3 г, углеводы 10 г (учтено полностью)",
+  ].join("\n");
+  const raw = prose + fence({ apply: true, meals: [{ name: "Калории", kcal: 1 }] });
+  const out = await runAssistantMealFixture({
+    rawReply: raw,
+    userMessage: user,
+    extractMeals: async () => {
+      throw new Error("gigachat down");
+    },
+  });
+  assert.equal(out.parse.structuredExtractUsed, false);
+  assert.equal(out.card.length, 3);
+  const jelly = out.card.find((meal) => /желе/i.test(meal.name));
+  assert.equal(jelly?.kcal, 100);
+  assert.equal(jelly?.protein, 5);
+});
+
 test("лог неудачного разбора хранит хеш, а не фразу", () => {
   const phrase = "секретная фраза османтус и матча";
   const event: AssistantMealParseEvent = {
