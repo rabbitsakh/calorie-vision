@@ -109,7 +109,7 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
           <div
             ref={menuRef}
             role="menu"
-            className="fixed z-[80] w-48 overflow-hidden rounded-xl border border-[var(--border-quiet)] bg-[var(--panel-wash)] py-1 shadow-[0_12px_28px_rgba(13,115,119,0.12)]"
+            className="cv-menu fixed z-[80] w-48 overflow-hidden rounded-xl border border-[var(--border-quiet)] py-1 shadow-[0_12px_28px_rgba(13,115,119,0.12)]"
             style={{ top: coords.top, right: coords.right }}
           >
             <Link

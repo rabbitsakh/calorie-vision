@@ -193,7 +193,7 @@ export function DateNavBar({ date, today, onDateChange, refreshKey }: DateNavBar
       {open ? (
         <div
           ref={dialogRef}
-          className="absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-[rgba(13,115,119,0.14)] bg-white p-3 shadow-[var(--shadow-card)]"
+          className="cv-menu absolute left-0 right-0 z-20 mt-2 rounded-2xl border border-[rgba(13,115,119,0.14)] p-3 shadow-[var(--shadow-card)]"
           role="dialog"
           aria-label="Календарь"
         >

@@ -51,7 +51,7 @@ export function OverflowMenu({ label, items }: Props) {
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-1 flex max-h-[70vh] min-w-[14rem] flex-col overflow-auto rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-lg"
+          className="cv-menu absolute right-0 z-40 mt-1 flex max-h-[70vh] min-w-[14rem] flex-col overflow-auto rounded-xl border border-[var(--border-quiet)] py-1 shadow-lg"
         >
           {items.map((item) => (
             <button
