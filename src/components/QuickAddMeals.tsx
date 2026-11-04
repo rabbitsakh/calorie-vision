@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { AllergenHint } from "@/components/AllergenHint";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
-import { isLikelyOfflineError } from "@/lib/connectivity";
+import { isLikelyOfflineError, shouldQueueMealSave } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import {
   cachedYesterdayMealCount,
@@ -159,8 +159,13 @@ export function QuickAddMeals({ selectedDate, refreshKey, onSaved, embedded = fa
         onSaved();
         return;
       }
+      if (shouldQueueMealSave(resp.status, null)) {
+        enqueueFailedSave(selectedDate, body);
+        setAddNotice("Не удалось отправить — сохранение в очереди на устройстве");
+        onSaved();
+      }
     } catch (err) {
-      if (isLikelyOfflineError(err)) {
+      if (shouldQueueMealSave(null, err)) {
         enqueueFailedSave(selectedDate, body);
         setAddNotice("Не удалось отправить — сохранение в очереди на устройстве");
         onSaved();

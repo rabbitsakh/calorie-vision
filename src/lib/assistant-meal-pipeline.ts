@@ -75,6 +75,10 @@ export async function resolveAssistantTurnActions(opts: {
   previewPending?: boolean;
   allowRepairLlm?: boolean;
   onBeforeRepair?: () => void;
+  completeRepairChat?: (
+    messages: Array<{ role: string; content: string }>,
+    temperature?: number,
+  ) => Promise<string>;
 }): Promise<{
   reply: string;
   actions: AssistantActions | null;
@@ -102,14 +106,22 @@ export async function resolveAssistantTurnActions(opts: {
       onRepairLlm: () => {
         repairLlmUsed = true;
       },
+      completeRepairChat: opts.completeRepairChat,
     });
     if (repaired) actions = repaired;
   }
 
-  if (!opts.previewPending) {
+  const repairFromLlm = actions?.repairVia === "llm";
+  if (!opts.previewPending && !repairFromLlm) {
     actions = preferMultiDishActions(opts.userMessage, reply, actions);
+  }
+  if (!opts.previewPending) {
     actions = preferSlotEditActions(opts.userMessage, actions);
     actions = salvageNutrientLabelMeals(actions, opts.userMessage, reply);
+  }
+  if (actions?.repairVia) {
+    const { repairVia: _via, ...rest } = actions;
+    actions = rest;
   }
 
   if (
@@ -141,6 +153,12 @@ export async function resolveAssistantTurnActions(opts: {
     shorterThanProse: prose.total >= 2 && cardDishCount < prose.total,
     phraseHash: hashMealPhrase(opts.userMessage),
   };
+  if (actions && parse.shorterThanProse) {
+    actions = {
+      ...actions,
+      mealGap: { prose: parse.proseDishCount, card: parse.cardDishCount },
+    };
+  }
   logAssistantMealParse(parse);
   return { reply, actions, parse };
 }
@@ -151,6 +169,11 @@ export async function runAssistantMealFixture(opts: {
   userMessage: string;
   today?: string;
   date?: string;
+  allowRepairLlm?: boolean;
+  completeRepairChat?: (
+    messages: Array<{ role: string; content: string }>,
+    temperature?: number,
+  ) => Promise<string>;
 }): Promise<{
   reply: string;
   actions: AssistantActions | null;
@@ -165,7 +188,8 @@ export async function runAssistantMealFixture(opts: {
     userMessage: opts.userMessage,
     today,
     date,
-    allowRepairLlm: false,
+    allowRepairLlm: opts.allowRepairLlm ?? false,
+    completeRepairChat: opts.completeRepairChat,
   });
   const card = enrichQuickMealsFromText(
     resolved.actions?.meals ?? [],

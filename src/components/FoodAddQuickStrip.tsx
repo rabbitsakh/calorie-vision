@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { isLikelyOfflineError } from "@/lib/connectivity";
+import { shouldQueueMealSave } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
@@ -155,11 +155,20 @@ export function FoodAddQuickStrip({ selectedDate, mealType, onLogged }: FoodAddQ
         onLogged();
         return;
       }
+      if (shouldQueueMealSave(resp.status, null)) {
+        enqueueFailedSave(selectedDate, body);
+        setNotice("Не записалось — в очереди");
+        onLogged();
+        return;
+      }
+      setNotice("Не удалось записать");
     } catch (err) {
-      if (isLikelyOfflineError(err)) {
+      if (shouldQueueMealSave(null, err)) {
         enqueueFailedSave(selectedDate, body);
         setNotice("В очереди на устройстве");
         onLogged();
+      } else {
+        setNotice("Не удалось записать");
       }
     } finally {
       setBusyKey(null);

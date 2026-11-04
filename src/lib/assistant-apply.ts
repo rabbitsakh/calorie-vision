@@ -148,15 +148,26 @@ export function mealsPayloadFromActions(
     .map((m) => {
       const time = parseMealTimeHHMM(m.time);
       const eatenAt = time ? dateKeyAndTimeToIso(date, time, timezone) : null;
-      const portion = splitQuickPortion(m.name);
+      const named = splitQuickPortion(m.name);
+      const grams =
+        typeof m.grams === "number" && Number.isFinite(m.grams) && m.grams > 0
+          ? Math.round(m.grams)
+          : named.grams != null && named.grams > 0
+            ? named.grams
+            : undefined;
+      const unit = m.unit === "мл" ? "мл" : named.unit === "мл" && m.grams == null ? "мл" : "г";
+      const dishName =
+        grams != null && named.grams == null
+          ? `${named.base.trim() || m.name.trim()} (${grams} ${m.unit === "мл" ? "мл" : unit})`.slice(0, 200)
+          : m.name.trim().slice(0, 200);
       return {
         date,
-        dishName: m.name.trim().slice(0, 200),
+        dishName,
         calories:
           typeof m.kcal === "number" && Number.isFinite(m.kcal)
             ? Math.max(1, Math.round(m.kcal))
             : 200,
-        ...(portion.grams != null && portion.grams > 0 ? { portionGrams: portion.grams } : {}),
+        ...(grams != null && grams > 0 ? { portionGrams: grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)
           ? { protein: Math.max(0, m.protein) }
           : {}),

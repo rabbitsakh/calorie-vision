@@ -1167,7 +1167,12 @@ function ActionCard({
           {actions.summary}
         </p>
       ) : null}
-      {draftMeals.length || needsMeals ? (
+      {actions.mealGap && actions.mealGap.prose > actions.mealGap.card ? (
+        <p className="quick-note">
+          В ответе {actions.mealGap.prose}, в записи {actions.mealGap.card}. Добавь пропущенное блюдо.
+        </p>
+      ) : null}
+      {draftMeals.length || needsMeals || actions.mealGap ? (
         <div className="quick-parse mt-1.5 !shadow-none !gap-2.5">
           <div className="quick-parse-head">
             <b>{quickHeader(Math.max(draftMeals.length, 1))}</b>
