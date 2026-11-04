@@ -642,6 +642,91 @@ function scaleFromPer100g(per100g: Per100gValues, grams: number): Per100gValues 
   };
 }
 
+const ALCOHOL_NAME_RE =
+  /пив|вино|водк|виски|коньяк|сидр|шампан|ром\b|ликёр|ликер|джин|саке|медовух/i;
+
+function atwaterKcal(protein?: number, fat?: number, carbs?: number): number {
+  return 4 * (protein || 0) + 9 * (fat || 0) + 4 * (carbs || 0);
+}
+
+function energyClose(left: number, right: number): boolean {
+  if (!(left > 0) || !(right > 0)) return false;
+  const ratio = left / right;
+  return ratio >= 0.75 && ratio <= 1.33;
+}
+
+function scaleMacroOpt(value: number | undefined, ratio: number): number | undefined {
+  if (value == null || !Number.isFinite(value)) return value;
+  return Math.round(value * ratio * 10) / 10;
+}
+
+/**
+ * Ккал и БЖУ иногда приходят с разной базы: подпись «на 100 г» рядом с порцией
+ * или кДж в поле ккал. Алкоголь не трогаем: спирт не входит в 4/9/4.
+ * Числа из выгрузки дневника (только имя и КБЖУ) зафиксированы тестами.
+ */
+export function reconcilePortionEnergy<T extends {
+  dishName?: string;
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  portionGrams?: number;
+}>(item: T): T & { energyReconciled?: boolean } {
+  const portion = item.portionGrams;
+  if (!portion || portion <= 0) return item;
+  if (item.dishName && ALCOHOL_NAME_RE.test(item.dishName)) return item;
+  const protein = item.protein;
+  const fat = item.fat;
+  const carbs = item.carbs;
+  const mass = (protein || 0) + (fat || 0) + (carbs || 0);
+  if (mass < 0.5) return item;
+  const aw = atwaterKcal(protein, fat, carbs);
+  if (energyClose(item.calories, aw)) return item;
+
+  if (mass > portion * 1.05 && mass <= 100) {
+    const ratio = portion / 100;
+    const scaledProtein = scaleMacroOpt(protein, ratio);
+    const scaledFat = scaleMacroOpt(fat, ratio);
+    const scaledCarbs = scaleMacroOpt(carbs, ratio);
+    const scaledAw = atwaterKcal(scaledProtein, scaledFat, scaledCarbs);
+    if (scaledAw > 0 && scaledAw <= portion * 9.2) {
+      return {
+        ...item,
+        calories: energyClose(item.calories, scaledAw) ? item.calories : Math.round(scaledAw),
+        protein: scaledProtein,
+        fat: scaledFat,
+        carbs: scaledCarbs,
+        energyReconciled: true,
+      };
+    }
+  }
+
+  if (item.calories > portion * 9.2 && aw > 0 && aw <= portion * 9.2) {
+    return { ...item, calories: Math.round(aw), energyReconciled: true };
+  }
+
+  if (portion !== 100) {
+    const macrosOnPortion = aw * (portion / 100);
+    if (energyClose(item.calories, macrosOnPortion) && aw > item.calories * 1.25) {
+      const ratio = portion / 100;
+      return {
+        ...item,
+        protein: scaleMacroOpt(protein, ratio),
+        fat: scaleMacroOpt(fat, ratio),
+        carbs: scaleMacroOpt(carbs, ratio),
+        energyReconciled: true,
+      };
+    }
+    const kcalOnPortion = item.calories * (portion / 100);
+    if (energyClose(kcalOnPortion, aw) && item.calories > aw * 1.25 && kcalOnPortion <= portion * 9.2) {
+      return { ...item, calories: Math.round(kcalOnPortion), energyReconciled: true };
+    }
+  }
+
+  return item;
+}
+
 export function normalizeRecognitionNutrition(result: FoodRecognitionResult): FoodRecognitionResult {
   const coalesced = coalesceLabelPer100FromVision(result);
   let calories = coalesced.calories;
@@ -679,13 +764,22 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     }
   }
 
-  return clearSuspiciousZeroFiberSugar({
-    ...coalesced,
-    per100g,
+  const reconciled = reconcilePortionEnergy({
+    dishName: result.dishName,
     calories: Math.max(0, Math.round(calories)),
     protein,
     fat,
     carbs,
+    portionGrams,
+  });
+
+  return clearSuspiciousZeroFiberSugar({
+    ...coalesced,
+    per100g,
+    calories: reconciled.calories,
+    protein: reconciled.protein,
+    fat: reconciled.fat,
+    carbs: reconciled.carbs,
     fiber,
     sugar,
     portionGrams,

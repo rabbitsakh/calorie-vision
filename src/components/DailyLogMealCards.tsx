@@ -24,6 +24,7 @@ import {
   type EditPatch,
 } from "@/components/DailyLogInlineEdit";
 import { FOOD_LOOKUP_MODE_LABELS, type FoodLookupMode } from "@/lib/food-types";
+import { splitQuickPortion } from "@/lib/quick-log";
 import {
   diaryWhyFixCopy,
   diaryWhyFixHints,
@@ -120,7 +121,9 @@ function MealEntryDetails({
     <>
       <p className="meal-card-meta">
         {entry.calories} ккал
-        {entry.portionGrams ? ` · ${entry.portionGrams} г` : ""}
+        {entry.portionGrams
+          ? ` · ${entry.portionGrams} ${splitQuickPortion(entry.dishName).grams != null ? splitQuickPortion(entry.dishName).unit : "г"}`
+          : ""}
         {primary ? ` · ${primary}` : ""}
       </p>
       {secondary || when ? (

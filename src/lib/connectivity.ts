@@ -28,6 +28,12 @@ export function isLikelyOfflineError(error: unknown): boolean {
   return false;
 }
 
+/** Сеть, таймаут и 5xx кладём в очередь. Ошибку валидации 4xx пользователь видит сразу. */
+export function shouldQueueMealSave(status: number | null, error: unknown): boolean {
+  if (status != null && (status >= 500 || status === 408 || status === 429)) return true;
+  return isLikelyOfflineError(error);
+}
+
 type ProbeCache = { at: number; ok: boolean };
 let probeCache: ProbeCache | null = null;
 

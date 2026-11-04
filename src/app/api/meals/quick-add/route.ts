@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
+import { compareQuickAddRecency, quickAddHour } from "@/lib/quick-add-rank";
 import type { MealType } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -82,10 +83,12 @@ export async function GET(_request: NextRequest) {
 
     const byDish = new Map<string, Agg>();
 
-    for (const entry of entries) {
+    const ranked = [...entries].sort(compareQuickAddRecency);
+
+    for (const entry of ranked) {
       const name = decodeHtmlEntities(entry.dishName.trim());
       const key = name.toLowerCase();
-      const hour = new Date(entry.eatenAt ?? entry.createdAt).getHours();
+      const hour = quickAddHour(entry, user?.timezone);
       const entrySlot = entry.mealType ?? inferMealTypeFromHour(hour);
       const existing = byDish.get(key);
 

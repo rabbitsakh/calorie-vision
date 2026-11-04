@@ -25,8 +25,6 @@ const PORTION_HINT_RE = new RegExp(
   String.raw`([А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z\s.%]*?)\s*(\d+(?:[.,]\d+)?)\s*(${UNIT_ALT})(?![а-яёa-z])`,
   "giu",
 );
-const LIQUID_NAME_RE = /молок|сок|кофе|чай|кефир|напит|вода|пиво|wine|milk|йогурт\s*пит|латте|какао/i;
-
 function portionUnit(raw: string | undefined): "г" | "мл" {
   return /^мл/i.test(raw ?? "") ? "мл" : "г";
 }
@@ -174,19 +172,79 @@ export function portionFromUserText(text: string, dishBase?: string): QuickPorti
   return { base: dishBase?.trim() || split.base, grams: Math.round(grams), unit };
 }
 
-function defaultQuickUnit(name: string, text: string): "г" | "мл" {
-  return LIQUID_NAME_RE.test(`${name} ${text}`) ? "мл" : "г";
+/** Первая установка граммов не масштабирует ккал. Дальше — пропорционально. */
+export function setQuickMealGrams(meal: QuickMeal, grams: number): QuickMeal {
+  const portion = splitQuickPortion(meal.name);
+  const next = Math.max(1, Math.round(grams));
+  if (!Number.isFinite(next)) return meal;
+  if (portion.grams == null) {
+    const base = portion.base.trim();
+    const name = base ? `${base} (${next} ${portion.unit})` : `(${next} ${portion.unit})`;
+    return { ...meal, name: name.slice(0, 120) };
+  }
+  return rescaleQuickMeal(meal, next);
 }
 
+/** Сохраняет уже известные граммы, если в новом имени их нет. */
+export function renameQuickMeal(meal: QuickMeal, nextName: string): QuickMeal {
+  const portion = splitQuickPortion(meal.name);
+  const typed = nextName.replace(/\s+/g, " ").trim().slice(0, 120);
+  if (!typed) {
+    return portion.grams != null
+      ? { ...meal, name: `(${portion.grams} ${portion.unit})` }
+      : { ...meal, name: "" };
+  }
+  const typedPortion = splitQuickPortion(typed);
+  if (typedPortion.grams != null) return { ...meal, name: typed };
+  if (portion.grams != null) {
+    return { ...meal, name: `${typed} (${portion.grams} ${portion.unit})`.slice(0, 120) };
+  }
+  return { ...meal, name: typed };
+}
+
+export function blankQuickMeal(): QuickMeal {
+  return { name: "", unparsed: true };
+}
+
+export function setQuickMealKcal(meal: QuickMeal, kcal: number): QuickMeal {
+  const next = Math.round(kcal);
+  if (!Number.isFinite(next) || next <= 0) return { ...meal, kcal: undefined, unparsed: true };
+  // Флаг unparsed снимает сохранение, когда ккал уже есть — поле не исчезает на первом символе.
+  return { ...meal, kcal: next };
+}
+
+/** Строки без названия или без ккал в «не разобрано» не уходят в дневник. */
+export function mealsReadyForSave(meals: QuickMeal[]): { ready: QuickMeal[]; skipped: number } {
+  const ready = meals
+    .filter((meal) => {
+      if (!meal.name.trim()) return false;
+      if (meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0)) return false;
+      return true;
+    })
+    .map((meal) => {
+      if (!meal.unparsed) return meal;
+      const { unparsed: _drop, ...rest } = meal;
+      return rest;
+    });
+  return { ready, skipped: meals.length - ready.length };
+}
+
+export const PORTION_UNSET_LABEL = "порция не указана";
+
 /**
- * Ensure every draft meal has «(N г|мл)» so the gram control always appears.
- * User phrase wins over a wrong AI label (keep AI kcal — usually for the right amount).
+ * Подставляет граммы из текста, если имя их не содержит.
+ * Не дописывает «(100 г)»: неизвестная порция остаётся пустой, ккал не считаются на 100 г.
  */
 export function enrichQuickMealsFromText(meals: QuickMeal[], text: string): QuickMeal[] {
   const hints = extractPortionHints(text);
   const used = new Set<number>();
   return meals.map((meal, index) => {
     const current = splitQuickPortion(meal.name);
+    if (typeof meal.grams === "number" && Number.isFinite(meal.grams) && meal.grams > 0) {
+      const unit = meal.unit === "мл" ? "мл" : "г";
+      const base = current.base.trim() || meal.name.trim();
+      return { ...meal, name: `${base} (${Math.round(meal.grams)} ${unit})`.slice(0, 120) };
+    }
     let hint: QuickPortion | null = null;
     let bestScore = 0;
     let bestIdx = -1;
@@ -221,8 +279,7 @@ export function enrichQuickMealsFromText(meals: QuickMeal[], text: string): Quic
       const normalized = `${current.base} (${current.grams} ${current.unit})`;
       return meal.name === normalized ? meal : { ...meal, name: normalized };
     }
-    const unit = defaultQuickUnit(current.base, text);
-    return { ...meal, name: `${current.base} (100 ${unit})` };
+    return meal;
   });
 }
 

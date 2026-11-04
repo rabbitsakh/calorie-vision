@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lookupBarcodeCatalogLive } from "@/lib/barcode-catalog-live";
 import { barcodeProductToRecognition } from "@/lib/barcode-catalog";
+import { lookupFoodByBarcode } from "@/lib/food-recognition";
 import { requireSession } from "@/lib/auth-session";
 import { trackBarcodeScanned } from "@/lib/funnel-analytics";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
@@ -50,15 +51,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (catalog.status === "not_found") {
-      trackBarcodeScanned(session.user.id, "not_found");
-      return NextResponse.json(
-        {
-          status: "not_found",
-          barcode: raw.replace(/\D/g, ""),
-          error: "Продукт не найден по штрихкоду",
-        },
-        { status: 404 },
-      );
+      try {
+        const recognition = await lookupFoodByBarcode(raw, session.user.id);
+        trackBarcodeScanned(session.user.id, "found");
+        return NextResponse.json({
+          status: "found",
+          recognition,
+          imagePath: "",
+          source: recognition.source ?? "gigachat-barcode",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Продукт не найден по штрихкоду";
+        if (/нет связи/i.test(message)) {
+          return NextResponse.json({ status: "offline", error: BARCODE_OFFLINE_ERROR }, { status: 503 });
+        }
+        trackBarcodeScanned(session.user.id, "not_found");
+        return NextResponse.json(
+          {
+            status: "not_found",
+            barcode: raw.replace(/\D/g, ""),
+            error: message,
+            source: "gigachat-barcode",
+          },
+          { status: 404 },
+        );
+      }
     }
 
     trackBarcodeScanned(session.user.id, "found");

@@ -23,7 +23,19 @@ export type AssistantActions = {
     note?: string;
     /** Wall-clock HH:MM when the meal was eaten (user timezone). */
     time?: string;
+    /** Порция числом. Старые ответы по-прежнему пишут её в name. */
+    grams?: number;
+    unit?: "г" | "мл";
+    /** Строка была в списке, но без ккал и без строки в таблице. На карточке — «не разобрано». */
+    unparsed?: boolean;
   }>;
+  /**
+   * В прозе блюд больше, чем в карточке. Клиент предлагает дописать строку.
+   * Ставит сервер, не модель.
+   */
+  mealGap?: { prose: number; card: number };
+  /** Второй вызов извлечения. Не отдаём клиенту. */
+  repairVia?: "llm";
   /** Delete meals on targetDate matching dish name and/or mealType slot. */
   deleteMeals?: Array<{
     match: string;
@@ -170,7 +182,8 @@ export function buildAssistantSystemPrompt(
     "Без блока ```cv-actions``` с \"apply\": true сервер НИЧЕГО не запишет. Всегда заканчивай таким блоком.",
     "Несколько блюд/единиц = несколько объектов в meals[] (2 батончика → 2 объекта; «печень и чебурек» → 2). Три съеденных блюда = 3 объекта, не обрезай список до 2. Оцени kcal/БЖУ, если не указали.",
     "Повтор того же приёма в этом чате — новая запись. В meals[] снова все блюда ЭТОГО сообщения, даже если они уже были в прошлой карточке.",
-    "Порция в тексте «≈ 150 г», «(3 шт. ≈ 150 г)», «≈ 30 г» → в name эти граммы: «Сырники (150 г)». kcal и БЖУ — на эту порцию, не подставляй 100 г и не пересчитывай.",
+    "Порция в тексте «≈ 150 г», «(3 шт. ≈ 150 г)», «≈ 30 г» → meals[].grams числом и meals[].unit \"г\" или \"мл\". kcal и БЖУ — на эту порцию, не подставляй 100 г и не пересчитывай.",
+    "Имя блюда без суффикса «(150 г)»: граммы живут в grams. Если сомневаешься, можно продублировать порцию в name.",
     "Можно совмещать действия в одном cv-actions: meals + waterMl + weightKg + shopping + workoutDays и т.д. — клиент покажет кнопки по видам.",
     "Удалить: deleteMeals:[{\"match\":\"омлет\"}] или весь слот deleteMeals:[{\"match\":\"ужин\",\"mealType\":\"DINNER\"}].",
     "Исправить: patchMeals:[{\"match\":\"омлет\",\"protein\":30,\"kcal\":280,\"time\":\"06:30\"}].",
@@ -365,6 +378,16 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
           : typeof kcalRaw === "string" && kcalRaw.trim() && Number.isFinite(Number(kcalRaw))
             ? Math.round(Number(kcalRaw))
             : undefined;
+      const gramsRaw = row.grams ?? row.portionGrams;
+      const grams =
+        typeof gramsRaw === "number" && Number.isFinite(gramsRaw) && gramsRaw > 0
+          ? Math.round(gramsRaw)
+          : typeof gramsRaw === "string" && gramsRaw.trim() && Number.isFinite(Number(gramsRaw))
+            ? Math.round(Number(gramsRaw))
+            : undefined;
+      const unitRaw = typeof row.unit === "string" ? row.unit.trim().toLowerCase() : "";
+      const unit =
+        unitRaw === "мл" || unitRaw === "ml" ? "мл" : unitRaw === "г" || unitRaw === "g" ? "г" : undefined;
       const timeRaw =
         typeof row.time === "string"
           ? row.time
@@ -390,6 +413,9 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         carbs: num(row.carbs),
         note: typeof row.note === "string" ? row.note.trim().slice(0, 120) : undefined,
         ...(time ? { time } : {}),
+        ...(grams != null && grams > 0 ? { grams } : {}),
+        ...(unit ? { unit } : {}),
+        ...(row.unparsed === true ? { unparsed: true } : {}),
       });
     }
     if (meals.length) out.meals = meals;

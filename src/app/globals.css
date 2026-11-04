@@ -347,6 +347,17 @@ select {
   box-shadow: var(--shadow-card);
 }
 
+/* Flyouts (profile menu, share, calendar, gym menus).
+   Opaque card surface — same token as .card, so a light or dark theme
+   that overrides --card restyles the menu with it.
+   Do not use Tailwind bg-[var(--panel-wash)] here: bg-* sets background-color,
+   and --panel-wash is a gradient (its first layer fades to transparent), so
+   the declaration is dropped and the page shows through. */
+.cv-menu {
+  background-color: var(--card);
+  background-image: none;
+}
+
 /* Cohesive sheet surfaces */
 .food-add-sheet {
   flex-shrink: 0;
@@ -1384,12 +1395,51 @@ select {
   flex: 1;
 }
 
-.quick-dish-name b {
+.quick-dish-name b,
+.quick-dish-name-input {
   display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.2;
   color: var(--foreground);
+}
+
+.quick-dish-name-input:focus {
+  outline: none;
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.quick-unparsed {
+  color: #b45309;
+}
+
+.quick-remove {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.quick-add {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
 }
 
 .quick-dish-name span {
@@ -1414,6 +1464,13 @@ select {
   border-color: var(--accent);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.12);
+}
+
+.quick-gram--unset {
+  font-size: 0.7rem;
+  font-weight: 700;
+  max-width: 6.5rem;
+  line-height: 1.15;
 }
 
 .quick-kcal {
@@ -2131,16 +2188,22 @@ select {
   box-shadow: none;
 }
 
-/* Desktop header chevron menu (P4) — matches sheet language */
+/* Desktop header chevron menu (P4) — matches sheet language.
+   Solid --card sits under the wash: the wash's first layer fades to
+   transparent, and without an opaque color the page can show through. */
 .food-add-desktop-menu {
   border: 1px solid var(--border-quiet);
   border-radius: 1.15rem;
-  background: var(--panel-wash);
+  background-color: var(--card);
+  background-image: var(--panel-wash);
   box-shadow: 0 12px 28px rgba(13, 115, 119, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding: 0.55rem;
+  /* Above page scenes. The header stacking context (.app-chrome, z-index 50)
+     already paints this menu over in-flow content; 80 matches the profile menu. */
+  z-index: 80;
 }
 
 .food-add-desktop-menu-hint {
@@ -2164,7 +2227,7 @@ select {
 
 .food-add-desktop-item {
   align-items: center;
-  background: rgba(255, 252, 248, 0.92);
+  background-color: var(--surface-panel);
   border: 1px solid var(--border-quiet);
   border-radius: 0.85rem;
   color: var(--foreground);
@@ -2197,7 +2260,7 @@ select {
 
 .food-add-desktop-item-icon {
   align-items: center;
-  background: rgba(255, 255, 255, 0.85);
+  background-color: var(--card);
   border-radius: 0.7rem;
   color: var(--muted);
   display: inline-flex;

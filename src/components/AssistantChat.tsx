@@ -51,15 +51,20 @@ import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import {
+  blankQuickMeal,
   quickDishTone,
   quickHeader,
   enrichQuickMealsFromText,
+  mealsReadyForSave,
+  PORTION_UNSET_LABEL,
   quickMacroLine,
   quickPortionStep,
   quickSaveLabel,
   quickSlotTag,
   quickTotals,
-  rescaleQuickMeal,
+  renameQuickMeal,
+  setQuickMealGrams,
+  setQuickMealKcal,
   splitQuickPortion,
   type QuickMeal,
 } from "@/lib/quick-log";
@@ -759,13 +764,26 @@ function ActionCard({
   async function apply(kind: ApplyKind): Promise<"ok" | "soft" | "err"> {
     setBusy(kind);
     try {
+      let mealsForApply = draftMeals;
+      let skippedUnparsed = 0;
+      if (kind === "meals") {
+        const packed = mealsReadyForSave(draftMeals);
+        skippedUnparsed = packed.skipped;
+        if (!packed.ready.length) {
+          const text = "Заполни калории или удали строки «не разобрано»";
+          setCardNote({ tone: "err", text });
+          onFlash(text);
+          return "err";
+        }
+        mealsForApply = packed.ready;
+      }
       const body = {
         kind,
         date: applyDate,
         actions: {
           ...actions,
           targetDate: applyDate,
-          ...(kind === "meals" ? { meals: draftMeals } : {}),
+          ...(kind === "meals" ? { meals: mealsForApply } : {}),
         },
       };
       if (!online) {
@@ -869,7 +887,9 @@ function ActionCard({
         }
         setLocalDone((prev) => ({ ...prev, [kind]: true }));
         notifyFoodSaved();
-        markOk(toolResult?.message ?? `В дневник: ${mealsSaved.length}`);
+        const skippedNote =
+          skippedUnparsed > 0 ? ` · ${skippedUnparsed} без калорий не записаны` : "";
+        markOk(`${toolResult?.message ?? `В дневник: ${mealsSaved.length}`}${skippedNote}`);
         onApplied({
           ...emptyUndo(),
           mealIds: mealsSaved.map((m) => m.id).filter(Boolean),
@@ -1147,41 +1167,102 @@ function ActionCard({
           {actions.summary}
         </p>
       ) : null}
-      {draftMeals.length ? (
+      {actions.mealGap && actions.mealGap.prose > actions.mealGap.card ? (
+        <p className="quick-note">
+          В ответе {actions.mealGap.prose}, в записи {actions.mealGap.card}. Добавь пропущенное блюдо.
+        </p>
+      ) : null}
+      {draftMeals.length || needsMeals || actions.mealGap ? (
         <div className="quick-parse mt-1.5 !shadow-none !gap-2.5">
           <div className="quick-parse-head">
-            <b>{quickHeader(draftMeals.length)}</b>
+            <b>{quickHeader(Math.max(draftMeals.length, 1))}</b>
             {quickSlotTag(draftMeals) ? <span className="quick-tag">{quickSlotTag(draftMeals)}</span> : null}
           </div>
           {draftMeals.map((meal, i) => {
             const portion = splitQuickPortion(meal.name);
             const tone = quickDishTone(i);
-            const open = editingMeal === i && portion.grams != null;
+            const open = editingMeal === i;
+            const step =
+              portion.grams != null
+                ? quickPortionStep(portion.grams, portion.unit)
+                : portion.unit === "мл"
+                  ? 50
+                  : 10;
+            const initial = portion.base.charAt(0).toUpperCase() || "?";
             return (
               <div key={`${portion.base}-${i}`} className="quick-dish-wrap">
                 <div className="quick-dish">
                   <span className="quick-dish-img" style={{ background: tone.bg, color: tone.fg }} aria-hidden>
-                    {portion.base.charAt(0).toUpperCase()}
+                    {initial}
                   </span>
                   <span className="quick-dish-name">
-                    <b>{portion.base}</b>
-                    <span>{quickMacroLine(meal)}</span>
+                    {mealsDone ? (
+                      <b>{portion.base || "Блюдо"}</b>
+                    ) : (
+                      <input
+                        className="quick-dish-name-input"
+                        value={portion.base}
+                        aria-label={`Название: ${portion.base || "блюдо"}`}
+                        placeholder="Название блюда"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setDraftMeals((prev) =>
+                            prev.map((m, j) => (j === i ? renameQuickMeal(m, value) : m)),
+                          );
+                        }}
+                      />
+                    )}
+                    <span className={meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0) ? "quick-unparsed" : undefined}>
+                      {meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0)
+                        ? "не разобрано"
+                        : quickMacroLine(meal)}
+                    </span>
                   </span>
-                  {portion.grams != null && !mealsDone ? (
+                  {!mealsDone ? (
                     <button
                       type="button"
-                      className={`quick-gram${open ? " quick-gram--on" : ""}`}
+                      className={`quick-gram${portion.grams == null ? " quick-gram--unset" : ""}${open ? " quick-gram--on" : ""}`}
                       aria-expanded={open}
                       onClick={() => setEditingMeal(open ? null : i)}
                     >
-                      {portion.grams} {portion.unit}
+                      {portion.grams != null ? `${portion.grams} ${portion.unit}` : PORTION_UNSET_LABEL}
                     </button>
-                  ) : portion.grams != null ? (
-                    <span className="quick-gram">{portion.grams} {portion.unit}</span>
+                  ) : (
+                    <span className={`quick-gram${portion.grams == null ? " quick-gram--unset" : ""}`}>
+                      {portion.grams != null ? `${portion.grams} ${portion.unit}` : PORTION_UNSET_LABEL}
+                    </span>
+                  )}
+                  {meal.unparsed && !mealsDone ? (
+                    <input
+                      className="quick-kcal"
+                      inputMode="numeric"
+                      aria-label={`Калории: ${portion.base || "блюдо"}`}
+                      placeholder="ккал"
+                      value={meal.kcal ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "");
+                        setDraftMeals((prev) =>
+                          prev.map((m, j) =>
+                            j === i ? (raw ? setQuickMealKcal(m, Number(raw)) : { ...m, kcal: undefined, unparsed: true }) : m,
+                          ),
+                        );
+                      }}
+                    />
+                  ) : (
+                    <span className="quick-kcal">{Math.round(meal.kcal ?? 0)}</span>
+                  )}
+                  {!mealsDone ? (
+                    <button
+                      type="button"
+                      className="quick-remove"
+                      aria-label={`Удалить ${portion.base || "блюдо"}`}
+                      onClick={() => setDraftMeals((prev) => prev.filter((_, j) => j !== i))}
+                    >
+                      ×
+                    </button>
                   ) : null}
-                  <span className="quick-kcal">{Math.round(meal.kcal ?? 0)}</span>
                 </div>
-                {open && portion.grams != null ? (
+                {open && !mealsDone ? (
                   <div className="quick-stepper">
                     <button
                       type="button"
@@ -1189,8 +1270,8 @@ function ActionCard({
                       onClick={() =>
                         setDraftMeals((prev) =>
                           prev.map((m, j) =>
-                            j === i
-                              ? rescaleQuickMeal(m, portion.grams! - quickPortionStep(portion.grams!, portion.unit))
+                            j === i && portion.grams != null
+                              ? setQuickMealGrams(m, portion.grams! - step)
                               : m,
                           ),
                         )
@@ -1200,13 +1281,14 @@ function ActionCard({
                     </button>
                     <input
                       inputMode="numeric"
-                      value={portion.grams}
-                      aria-label={`Граммы: ${portion.base}`}
+                      value={portion.grams ?? ""}
+                      placeholder="г"
+                      aria-label={`Граммы: ${portion.base || "блюдо"}`}
                       onChange={(e) => {
                         const n = Number(e.target.value.replace(/\D/g, ""));
                         if (n > 0) {
                           setDraftMeals((prev) =>
-                            prev.map((m, j) => (j === i ? rescaleQuickMeal(m, n) : m)),
+                            prev.map((m, j) => (j === i ? setQuickMealGrams(m, n) : m)),
                           );
                         }
                       }}
@@ -1219,7 +1301,7 @@ function ActionCard({
                         setDraftMeals((prev) =>
                           prev.map((m, j) =>
                             j === i
-                              ? rescaleQuickMeal(m, portion.grams! + quickPortionStep(portion.grams!, portion.unit))
+                              ? setQuickMealGrams(m, (portion.grams ?? 0) + step)
                               : m,
                           ),
                         )
@@ -1232,6 +1314,18 @@ function ActionCard({
               </div>
             );
           })}
+          {!mealsDone ? (
+            <button
+              type="button"
+              className="quick-add"
+              onClick={() => {
+                setDraftMeals((prev) => [...prev, blankQuickMeal()]);
+                setEditingMeal(draftMeals.length);
+              }}
+            >
+              Добавить блюдо
+            </button>
+          ) : null}
           <div className="quick-total">
             <b>{mealTotals.kcal} ккал</b>
             <span>
@@ -1240,7 +1334,9 @@ function ActionCard({
           </div>
           {!mealsDone ? (
             <p className="quick-note !mt-0">
-              Оценка AI. Нажми на граммы, чтобы поправить.
+              {draftMeals.some((meal) => meal.unparsed)
+                ? "Есть неразобранные строки — впиши калории или удали. Без калорий они не запишутся."
+                : "Оценка AI. Нажми на граммы, чтобы поправить. Название можно изменить."}
             </p>
           ) : null}
         </div>

@@ -3,6 +3,7 @@
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+import { splitQuickPortion } from "@/lib/quick-log";
 import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
 import { isMuscleGroupKey, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
@@ -137,21 +138,36 @@ export function mealsPayloadFromActions(
   carbs?: number;
   recognitionSource: string;
   eatenAt?: string;
+  portionGrams?: number;
 }> {
   const meals = actions.meals ?? [];
   return meals
     .filter((m) => m.name.trim())
+    .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
     .slice(0, 12)
     .map((m) => {
       const time = parseMealTimeHHMM(m.time);
       const eatenAt = time ? dateKeyAndTimeToIso(date, time, timezone) : null;
+      const named = splitQuickPortion(m.name);
+      const grams =
+        typeof m.grams === "number" && Number.isFinite(m.grams) && m.grams > 0
+          ? Math.round(m.grams)
+          : named.grams != null && named.grams > 0
+            ? named.grams
+            : undefined;
+      const unit = m.unit === "мл" ? "мл" : named.unit === "мл" && m.grams == null ? "мл" : "г";
+      const dishName =
+        grams != null && named.grams == null
+          ? `${named.base.trim() || m.name.trim()} (${grams} ${m.unit === "мл" ? "мл" : unit})`.slice(0, 200)
+          : m.name.trim().slice(0, 200);
       return {
         date,
-        dishName: m.name.trim().slice(0, 200),
+        dishName,
         calories:
           typeof m.kcal === "number" && Number.isFinite(m.kcal)
             ? Math.max(1, Math.round(m.kcal))
             : 200,
+        ...(grams != null && grams > 0 ? { portionGrams: grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)
           ? { protein: Math.max(0, m.protein) }
           : {}),

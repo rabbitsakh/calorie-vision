@@ -51,7 +51,7 @@ export function ShareMenu({ date, className = "" }: ShareMenuProps) {
         <div
           id={menuId}
           role="menu"
-          className="absolute left-0 z-20 mt-1 min-w-[10.5rem] rounded-xl border border-[rgba(13,115,119,0.14)] bg-white p-1.5 shadow-md"
+          className="cv-menu absolute left-0 z-20 mt-1 min-w-[10.5rem] rounded-xl border border-[rgba(13,115,119,0.14)] p-1.5 shadow-md"
         >
           <ShareDayButton date={date} variant="menu" onDone={() => setOpen(false)} />
           <ShareWeekButton endDate={date} variant="menu" onDone={() => setOpen(false)} />

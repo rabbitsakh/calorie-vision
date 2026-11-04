@@ -7,7 +7,6 @@ import {
   buildAssistantSystemPrompt,
   parseAssistantMessages,
   parseAssistantMode,
-  splitAssistantReply,
 } from "@/lib/admin-assistant";
 import { loadAdminAssistantContextPack } from "@/lib/admin-assistant-context";
 import {
@@ -18,24 +17,15 @@ import {
   actionsHaveWritablePayload,
   assistantWroteFlag,
   assistantWriteMissNote,
-  needsWriteRepair,
-  preferMultiDishActions,
-  preferSlotEditActions,
-  pruneNoopAssistantActions,
-  repairAssistantWriteActions,
-  salvageNutrientLabelMeals,
 } from "@/lib/assistant-repair";
+import { resolveAssistantTurnActions } from "@/lib/assistant-meal-pipeline";
 import {
   hasPhotoPreviewPending,
   photoPreviewSystemAppendix,
   sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
-import {
-  enrichAssistantActionsMealMeta,
-  extractMealTypeFromMessage,
-  mealTypeKeyFromLabel,
-} from "@/lib/assistant-meal-time";
+import { extractMealTypeFromMessage, mealTypeKeyFromLabel } from "@/lib/assistant-meal-time";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -199,49 +189,18 @@ export async function POST(request: NextRequest) {
           send("token", { text: piece });
         }
 
-        const split = splitAssistantReply(raw.trim());
-        let reply = split.reply;
-        let actions = split.actions;
-
-        // Photo confirm owns the meal write — don't let the LLM auto-apply the same plate.
-        if (previewPending && actions?.meals?.length) {
-          const { meals: _drop, ...rest } = actions;
-          actions = rest;
-        }
-
-        if (!previewPending && needsWriteRepair(lastUser, actions, reply)) {
-          send("status", { text: "Уточняю запись в дневник…" });
-          const repaired = await repairAssistantWriteActions({
-            userMessage: lastUser,
-            assistantReply: reply,
-            today,
-            date,
-          });
-          if (repaired) actions = repaired;
-        }
-
-        if (!previewPending) {
-          actions = preferMultiDishActions(lastUser, reply, actions);
-          actions = preferSlotEditActions(lastUser, actions);
-          actions = salvageNutrientLabelMeals(actions, lastUser, reply);
-        }
-
-        if (
-          !previewPending &&
-          (actions?.meals?.length || actions?.patchMeals?.length || actions?.deleteMeals?.length)
-        ) {
-          actions = enrichAssistantActionsMealMeta(actions, lastUser);
-        }
-
-        if (!previewPending) {
-          actions = pruneNoopAssistantActions(actions);
-        }
-
-        // Pin absolute day on actions so ActionCard / apply don't fall back to UI "сегодня".
-        if (actions?.targetDate) {
-          const pinned = resolveAssistantDate(actions.targetDate, today);
-          if (pinned) actions = { ...actions, targetDate: pinned };
-        }
+        const resolved = await resolveAssistantTurnActions({
+          rawReply: raw,
+          userMessage: lastUser,
+          today,
+          date,
+          previewPending,
+          onBeforeRepair: () => {
+            send("status", { text: "Уточняю запись в дневник…" });
+          },
+        });
+        let reply = resolved.reply;
+        const actions = resolved.actions;
 
         const targetDate =
           resolveAssistantDate((actions as ExecutableActions | null)?.targetDate, today) ?? date;

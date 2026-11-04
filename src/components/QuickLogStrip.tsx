@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { isLikelyOfflineError } from "@/lib/connectivity";
+import { isLikelyOfflineError, shouldQueueMealSave } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { copyYesterdayEntriesFromCache } from "@/lib/copy-yesterday-from-cache";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
@@ -192,8 +192,13 @@ export function QuickLogStrip({
         onSaved();
         return;
       }
+      if (shouldQueueMealSave(resp.status, null)) {
+        enqueueFailedSave(selectedDate, body);
+        setNotice("Не записалось — в очереди");
+        onSaved();
+      }
     } catch (err) {
-      if (isLikelyOfflineError(err)) {
+      if (shouldQueueMealSave(null, err)) {
         enqueueFailedSave(selectedDate, body);
         setNotice("В очереди на устройстве");
         onSaved();
