@@ -640,16 +640,10 @@ import android.os.Bundle;
 import android.app.DownloadManager;
 import android.net.Uri;
 import android.os.Environment;
-import android.util.Base64;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.URLUtil;
 import android.webkit.WebView;
-import androidx.core.content.FileProvider;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
@@ -665,6 +659,7 @@ import java.util.Calendar;
  * Capacitor JS is only injected on the local shell. After login the WebView
  * has no window.Capacitor — Preferences and LocalNotifications plugins are
  * unreachable. CvSession, CvReminders and CvFiles are JavascriptInterfaces on every origin.
+ * CvFilesPlugin is also a Capacitor plugin for the local shell (rustore/cap-www).
  */
 public class MainActivity extends BridgeActivity {
   private static final String PREFS_GROUP = "CapacitorStorage";
@@ -676,6 +671,8 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   public void onCreate(Bundle savedInstanceState) {
+    // До super: BridgeActivity собирает список плагинов внутри onCreate.
+    registerPlugin(CvFilesPlugin.class);
     super.onCreate(savedInstanceState);
     attachBridges();
   }
@@ -711,7 +708,7 @@ public class MainActivity extends BridgeActivity {
       bridgeWebView = getBridge().getWebView();
       bridgeWebView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
       bridgeWebView.addJavascriptInterface(new CvRemindersBridge(this), "CvReminders");
-      bridgeWebView.addJavascriptInterface(new CvFilesBridge(this), "CvFiles");
+      bridgeWebView.addJavascriptInterface(new CvFilesPlugin.JsBridge(this), "CvFiles");
       attachDownloadListener(bridgeWebView);
       ensureReminderChannel();
     } catch (Exception ignored) {
@@ -955,45 +952,6 @@ public class MainActivity extends BridgeActivity {
     }
   }
 
-  /** Share an export file from the product origin (no Capacitor JS after login). */
-  boolean shareExportFile(String filename, String mime, String base64) {
-    try {
-      String safeName = sanitizeExportName(filename);
-      String safeMime =
-          mime == null || mime.trim().isEmpty() ? "application/octet-stream" : mime.trim();
-      byte[] bytes = Base64.decode(base64 == null ? "" : base64, Base64.DEFAULT);
-      if (bytes.length == 0) return false;
-      File dir = new File(getCacheDir(), "exports");
-      if (!dir.exists() && !dir.mkdirs()) return false;
-      File file = new File(dir, safeName);
-      FileOutputStream out = new FileOutputStream(file);
-      try {
-        out.write(bytes);
-      } finally {
-        out.close();
-      }
-      Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
-      Intent send = new Intent(Intent.ACTION_SEND);
-      send.setType(safeMime);
-      send.putExtra(Intent.EXTRA_STREAM, uri);
-      send.putExtra(Intent.EXTRA_TITLE, safeName);
-      send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-      Intent chooser = Intent.createChooser(send, "Сохранить или отправить");
-      startActivity(chooser);
-      return true;
-    } catch (Exception ignored) {
-      return false;
-    }
-  }
-
-  static String sanitizeExportName(String filename) {
-    String name = filename == null ? "" : filename.trim();
-    name = name.replaceAll("[\\\\/\\u0000-\\u001F:*?\"<>|]", "_");
-    if (name.length() > 120) name = name.substring(name.length() - 120);
-    if (name.isEmpty() || ".".equals(name) || "..".equals(name)) return "calorie-vision-export";
-    return name;
-  }
-
   private void attachDownloadListener(WebView webView) {
     webView.setDownloadListener(
         (url, userAgent, contentDisposition, mimetype, contentLength) -> {
@@ -1016,31 +974,6 @@ public class MainActivity extends BridgeActivity {
             // DownloadManager unavailable
           }
         });
-  }
-
-  public final class CvFilesBridge {
-    private final MainActivity activity;
-
-    CvFilesBridge(MainActivity activity) {
-      this.activity = activity;
-    }
-
-    @JavascriptInterface
-    public boolean shareBase64(String filename, String mime, String base64) {
-      final boolean[] ok = new boolean[] {false};
-      final CountDownLatch latch = new CountDownLatch(1);
-      activity.runOnUiThread(
-          () -> {
-            ok[0] = activity.shareExportFile(filename, mime, base64);
-            latch.countDown();
-          });
-      try {
-        latch.await(8, TimeUnit.SECONDS);
-      } catch (InterruptedException interrupted) {
-        Thread.currentThread().interrupt();
-      }
-      return ok[0];
-    }
   }
 
   /** JS weekday 0=Sunday…6=Saturday → next trigger epoch ms. */

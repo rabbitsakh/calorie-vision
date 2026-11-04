@@ -18,10 +18,24 @@ mkdir -p "$ROOT/rustore/cap-www"
 echo "==> Capacitor $(rustore_cap_cli "$ROOT" --version)"
 
 echo "==> cap add/sync android"
-if [[ -d "$ROOT/android" ]]; then
+# В репозитории лежит только CvFilesPlugin.java. Пока нет gradlew — это не проект,
+# cap add его затрёт, поэтому исходник плагина сохраняем и кладём обратно.
+PLUGIN_JAVA="$ROOT/android/app/src/main/java/ru/calorievision/app/CvFilesPlugin.java"
+plugin_backup=""
+if [[ -x "$ROOT/android/gradlew" ]]; then
   rustore_cap_cli "$ROOT" sync android
 else
+  if [[ -f "$PLUGIN_JAVA" ]]; then
+    plugin_backup="$(mktemp)"
+    cp "$PLUGIN_JAVA" "$plugin_backup"
+  fi
+  rm -rf "$ROOT/android"
   rustore_cap_cli "$ROOT" add android
+  if [[ -n "$plugin_backup" ]]; then
+    mkdir -p "$(dirname "$PLUGIN_JAVA")"
+    cp "$plugin_backup" "$PLUGIN_JAVA"
+    rm -f "$plugin_backup"
+  fi
 fi
 
 # Prefer same applicationId as legacy TWA for RuStore updates.

@@ -18,6 +18,7 @@ export function classifyChangelogKind(title: string): ChangelogItemKind {
 }
 
 const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
+  [/^feat\(apk\): плагин CvFiles/i, "Android: экспорт сохраняется в «Загрузки» и открывается в «Поделиться»"],
   [/^feat\(export\): разделы «Экспорт» и «Установка»/i, "Экспорт: рацион, тренировки, вес и всё вместе — CSV и PDF только в настройках"],
   [/^feat\(ux\): W1–W6 trust find profile gym recog copy$/i, "UX: доверие на confirm, план с рациона, профиль, зал, распознавание, тексты установки"],
   [/^feat\(ux\): W2 find plan door and workouts date$/i, "UX: план и покупки на рационе; дата дня сохраняется при переходе в «Зал»"],
