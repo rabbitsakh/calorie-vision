@@ -16,6 +16,7 @@ import {
   scaleNutritionByPortion,
   type NutritionValues,
 } from "@/lib/nutrition";
+import { splitQuickPortion } from "@/lib/quick-log";
 
 export type EditPatch = {
   dishName: string;
@@ -53,8 +54,14 @@ export function InlineEdit({
   onSave: (patch: EditPatch) => Promise<void>;
   onCancel: () => void;
 }) {
-  const canScalePortion =
-    entry.portionGrams != null && Number.isFinite(entry.portionGrams) && entry.portionGrams > 0;
+  const namedPortion = splitQuickPortion(decodeHtmlEntities(entry.dishName));
+  const seededGrams =
+    entry.portionGrams != null && Number.isFinite(entry.portionGrams) && entry.portionGrams > 0
+      ? entry.portionGrams
+      : namedPortion.grams != null && namedPortion.grams > 0
+        ? namedPortion.grams
+        : null;
+  const canScalePortion = seededGrams != null && seededGrams > 0;
   const portionBaselineRef = useRef<NutritionValues | null>(
     nutritionBaseline({
       calories: entry.calories,
@@ -63,7 +70,7 @@ export function InlineEdit({
       carbs: entry.carbs,
       fiber: entry.fiber,
       sugar: entry.sugar,
-      portionGrams: entry.portionGrams,
+      portionGrams: seededGrams,
     }),
   );
   const [dishName, setDishName] = useState(decodeHtmlEntities(entry.dishName));
@@ -73,7 +80,7 @@ export function InlineEdit({
   const [carbs, setCarbs] = useState(entry.carbs != null ? String(entry.carbs) : "");
   const [fiber, setFiber] = useState(entry.fiber != null ? String(entry.fiber) : "");
   const [sugar, setSugar] = useState(entry.sugar != null ? String(entry.sugar) : "");
-  const [portionGrams, setPortionGrams] = useState(entry.portionGrams != null ? String(entry.portionGrams) : "");
+  const [portionGrams, setPortionGrams] = useState(seededGrams != null ? String(seededGrams) : "");
   const [mealType, setMealType] = useState(entry.mealType ?? "");
   const [mealDate, setMealDate] = useState(entry.date);
   const [eatenTime, setEatenTime] = useState(() =>

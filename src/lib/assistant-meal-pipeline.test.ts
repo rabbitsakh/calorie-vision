@@ -240,6 +240,52 @@ test("JSON «Калории» с нулевым БЖУ заменяется фр
   assert.notEqual(out.card[0]!.protein, 0);
 });
 
+test("grams и unit из JSON становятся порцией карточки", async () => {
+  const user = "Запиши молоко";
+  const raw = fence({
+    apply: true,
+    meals: [{ name: "Молоко", kcal: 130, protein: 7, fat: 6, carbs: 12, grams: 250, unit: "мл" }],
+  });
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.card[0]!.name, "Молоко (250 мл)");
+  assert.equal(out.payload[0]?.portionGrams, 250);
+  assert.equal(out.card[0]!.kcal, 130);
+});
+
+test("второй вызов извлечения не заменяется разбором прозы", async () => {
+  const user = "Запиши матча-латте с сиропом османтуса";
+  const raw = "Не знаю, что ответить.";
+  const out = await runAssistantMealFixture({
+    rawReply: raw,
+    userMessage: user,
+    allowRepairLlm: true,
+    completeRepairChat: async () =>
+      JSON.stringify({
+        apply: true,
+        meals: [{ name: "Матча-латте с сиропом османтуса", kcal: 140, grams: 300, unit: "мл" }],
+      }),
+  });
+  assert.equal(out.card.length, 1);
+  assert.equal(out.card[0]!.kcal, 140);
+  assert.equal(gramsOf(out.card[0]!.name), 300);
+  assert.equal(splitQuickPortion(out.card[0]!.name).unit, "мл");
+  assert.equal(out.parse.repairLlmUsed, true);
+});
+
+test("если в прозе больше блюд, чем в JSON, карточка помечает разрыв", async () => {
+  const user = "Спасибо";
+  const prose = [
+    "- Сырники (150 г): 300 ккал, белки 20 г, жиры 15 г, углеводы 25 г",
+    "- Топпинг (30 г): 50 ккал, белки 1 г, жиры 1 г, углеводы 10 г",
+    "- Желе из ряженки: 100 ккал, белки 5 г, жиры 3 г, углеводы 10 г",
+  ].join("\n");
+  const raw = prose + fence({ apply: true, meals: [{ name: "Омлет", kcal: 200, protein: 14, fat: 15, carbs: 2 }] });
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.card.length, 1);
+  assert.equal(out.actions?.mealGap?.prose, 3);
+  assert.equal(out.actions?.mealGap?.card, 1);
+});
+
 test("лог неудачного разбора хранит хеш, а не фразу", () => {
   const phrase = "секретная фраза османтус и матча";
   const event: AssistantMealParseEvent = {

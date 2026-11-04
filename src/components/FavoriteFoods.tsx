@@ -5,7 +5,7 @@ import { AllergenHint } from "@/components/AllergenHint";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { RecipeBuilder } from "@/components/RecipeBuilder";
 import { parseAllergensJson, type AllergenId } from "@/lib/allergens";
-import { isLikelyOfflineError } from "@/lib/connectivity";
+import { shouldQueueMealSave } from "@/lib/connectivity";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { scaleNutritionByPortion } from "@/lib/nutrition";
@@ -295,9 +295,14 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
         onSaved();
         return;
       }
-      // HTTP errors are not offline — do not queue on navigator.onLine alone.
+      if (shouldQueueMealSave(resp.status, null)) {
+        enqueueFailedSave(selectedDate, body);
+        setLogNotice("Не удалось отправить — сохранение в очереди на устройстве");
+        setPortionFoodId(null);
+        onSaved();
+      }
     } catch (err) {
-      if (isLikelyOfflineError(err)) {
+      if (shouldQueueMealSave(null, err)) {
         enqueueFailedSave(selectedDate, body);
         setLogNotice("Не удалось отправить — сохранение в очереди на устройстве");
         setPortionFoodId(null);

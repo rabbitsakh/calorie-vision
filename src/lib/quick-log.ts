@@ -240,6 +240,11 @@ export function enrichQuickMealsFromText(meals: QuickMeal[], text: string): Quic
   const used = new Set<number>();
   return meals.map((meal, index) => {
     const current = splitQuickPortion(meal.name);
+    if (typeof meal.grams === "number" && Number.isFinite(meal.grams) && meal.grams > 0) {
+      const unit = meal.unit === "мл" ? "мл" : "г";
+      const base = current.base.trim() || meal.name.trim();
+      return { ...meal, name: `${base} (${Math.round(meal.grams)} ${unit})`.slice(0, 120) };
+    }
     let hint: QuickPortion | null = null;
     let bestScore = 0;
     let bestIdx = -1;

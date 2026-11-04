@@ -20,6 +20,7 @@ import {
 } from "@/lib/assistant-meal-time";
 import { buildMealPatchFields } from "@/lib/assistant-meal-patch";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
+import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { prisma } from "@/lib/prisma";
@@ -154,13 +155,21 @@ export async function toolSaveMeals(opts: {
     return { ok: false, tool: "save_meals", message: "Нет блюд для записи" };
   }
   const created: Array<{ id: string; dishName: string; calories: number }> = [];
-  const meals = opts.actions.meals ?? [];
+  const meals = (opts.actions.meals ?? [])
+    .filter((m) => m.name.trim())
+    .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
+    .slice(0, 12);
   for (let i = 0; i < entries.length; i++) {
     const raw = entries[i]!;
-    const note = meals[i]?.note;
+    const meal = meals[i];
+    const fromNote = mealTypeFromNote(meal?.note);
+    const clock = meal?.time?.slice(0, 2);
+    const hour = clock && Number.isFinite(Number(clock))
+      ? Number(clock)
+      : hourInTimezone(new Date(), opts.timezone);
     const input: SaveMealInput = {
       ...raw,
-      mealType: mealTypeFromNote(note),
+      mealType: fromNote ?? inferMealTypeFromHour(hour),
     };
     const validated = validateSaveMealInput(input);
     if (validated.error || !validated.date) continue;

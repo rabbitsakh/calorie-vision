@@ -1634,6 +1634,10 @@ export async function repairAssistantWriteActions(opts: {
   /** Тесты корпуса не ходят в сеть. В проде второй вызов включён. */
   allowRepairLlm?: boolean;
   onRepairLlm?: () => void;
+  completeRepairChat?: (
+    messages: Array<{ role: string; content: string }>,
+    temperature?: number,
+  ) => Promise<string>;
 }): Promise<AssistantActions | null> {
   const actions = await repairAssistantWriteActionsInner(opts);
   return salvageNutrientLabelMeals(actions, opts.userMessage, opts.assistantReply);
@@ -1646,6 +1650,10 @@ async function repairAssistantWriteActionsInner(opts: {
   date: string;
   allowRepairLlm?: boolean;
   onRepairLlm?: () => void;
+  completeRepairChat?: (
+    messages: Array<{ role: string; content: string }>,
+    temperature?: number,
+  ) => Promise<string>;
 }): Promise<AssistantActions | null> {
   opts = { ...opts, userMessage: repairIntentMessage(opts.userMessage, opts.assistantReply) };
   const slot = heuristicRepairSlotEditActions(opts.userMessage);
@@ -1711,7 +1719,15 @@ async function repairAssistantWriteActionsInner(opts: {
 
   try {
     opts.onRepairLlm?.();
-    const raw = await completeChat(
+    const raw = opts.completeRepairChat
+      ? await opts.completeRepairChat(
+          [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          0.15,
+        )
+      : await completeChat(
       [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -1720,7 +1736,9 @@ async function repairAssistantWriteActionsInner(opts: {
       { retries: 1 },
     );
     const actions = extractActionsJson(raw);
-    if (actions && actionsHaveWritablePayload(actions)) return { ...actions, apply: true };
+    if (actions && actionsHaveWritablePayload(actions)) {
+      return { ...actions, apply: true, repairVia: "llm" };
+    }
   } catch (error) {
     console.error("assistant write repair", error);
   }
