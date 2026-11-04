@@ -613,11 +613,19 @@ test("cereal pillows: user inline alone never yields a partial card", () => {
   assert.ok(meals.every((m) => !/^р\s/i.test(m.name)), "«50гр» must not leave a stray «р»");
 });
 
-test("unpriced dish in bullet draft → no partial offline card", () => {
+test("unpriced dish stays on the card as «не разобрано», priced rows remain", () => {
   const user = "На завтрак съел 200г творога, 50 г чучхелы и 100 мл молока";
   const reply = "Записываю:\n- Творог (200 г)\n- Чучхела (50 г)\n- Молоко (100 мл)";
-  assert.equal(heuristicRepairMultiDishActions(user, reply), null);
-  assert.equal(heuristicRepairFromDraftReply(user, reply), null);
+  const multi = heuristicRepairMultiDishActions(user, reply);
+  assert.equal(multi?.meals?.length, 3);
+  const unknown = multi!.meals!.find((m) => /чучхел/i.test(m.name));
+  assert.equal(unknown?.unparsed, true);
+  assert.equal(unknown?.kcal, undefined);
+  assert.equal(splitQuickPortion(unknown!.name).grams, 50);
+  assert.ok(multi!.meals!.some((m) => /творог/i.test(m.name) && (m.kcal ?? 0) > 0));
+  assert.ok(multi!.meals!.some((m) => /молок/i.test(m.name) && (m.kcal ?? 0) > 0));
+  const draft = heuristicRepairFromDraftReply(user, reply);
+  assert.equal(draft?.meals?.filter((m) => m.unparsed).length, 1);
 });
 
 test("lookup: dry breakfast cereals by grams", () => {

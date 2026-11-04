@@ -23,6 +23,8 @@ export type AssistantActions = {
     note?: string;
     /** Wall-clock HH:MM when the meal was eaten (user timezone). */
     time?: string;
+    /** Строка была в списке, но без ккал и без строки в таблице. На карточке — «не разобрано». */
+    unparsed?: boolean;
   }>;
   /** Delete meals on targetDate matching dish name and/or mealType slot. */
   deleteMeals?: Array<{
@@ -390,6 +392,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         carbs: num(row.carbs),
         note: typeof row.note === "string" ? row.note.trim().slice(0, 120) : undefined,
         ...(time ? { time } : {}),
+        ...(row.unparsed === true ? { unparsed: true } : {}),
       });
     }
     if (meals.length) out.meals = meals;

@@ -7,7 +7,6 @@ import {
   buildAssistantSystemPrompt,
   parseAssistantMessages,
   parseAssistantMode,
-  splitAssistantReply,
   type AssistantActions,
 } from "@/lib/admin-assistant";
 import { loadAdminAssistantContextPack } from "@/lib/admin-assistant-context";
@@ -19,24 +18,15 @@ import {
   actionsHaveWritablePayload,
   assistantWroteFlag,
   assistantWriteMissNote,
-  needsWriteRepair,
-  preferMultiDishActions,
-  preferSlotEditActions,
-  pruneNoopAssistantActions,
-  repairAssistantWriteActions,
-  salvageNutrientLabelMeals,
 } from "@/lib/assistant-repair";
+import { resolveAssistantTurnActions } from "@/lib/assistant-meal-pipeline";
 import {
   hasPhotoPreviewPending,
   photoPreviewSystemAppendix,
   sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
-import {
-  enrichAssistantActionsMealMeta,
-  extractMealTypeFromMessage,
-  mealTypeKeyFromLabel,
-} from "@/lib/assistant-meal-time";
+import { extractMealTypeFromMessage, mealTypeKeyFromLabel } from "@/lib/assistant-meal-time";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -192,44 +182,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const split = splitAssistantReply(rawReply.trim());
-    let reply = split.reply;
-    let actions = split.actions;
-    if (previewPending && actions?.meals?.length) {
-      const { meals: _drop, ...rest } = actions;
-      actions = rest;
-    }
-    if (!previewPending && needsWriteRepair(lastUser, actions, reply)) {
-      const repaired = await repairAssistantWriteActions({
-        userMessage: lastUser,
-        assistantReply: reply,
-        today,
-        date,
-      });
-      if (repaired) actions = repaired;
-    }
-
-    if (!previewPending) {
-      actions = preferMultiDishActions(lastUser, reply, actions);
-      actions = preferSlotEditActions(lastUser, actions);
-      actions = salvageNutrientLabelMeals(actions, lastUser, reply);
-    }
-
-    if (
-      !previewPending &&
-      (actions?.meals?.length || actions?.patchMeals?.length || actions?.deleteMeals?.length)
-    ) {
-      actions = enrichAssistantActionsMealMeta(actions, lastUser);
-    }
-
-    if (!previewPending) {
-      actions = pruneNoopAssistantActions(actions);
-    }
-
-    if (actions?.targetDate) {
-      const pinned = resolveAssistantDate(actions.targetDate, today);
-      if (pinned) actions = { ...actions, targetDate: pinned };
-    }
+    const resolved = await resolveAssistantTurnActions({
+      rawReply,
+      userMessage: lastUser,
+      today,
+      date,
+      previewPending,
+    });
+    let reply = resolved.reply;
+    const actions = resolved.actions;
 
     const writeResults = await executeAssistantWriteTools({
       userId: session.user.id,

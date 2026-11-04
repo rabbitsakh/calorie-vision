@@ -264,13 +264,13 @@ function portionGramsFromReply(reply: string): number | undefined {
   let hit: RegExpExecArray | null;
   while ((hit = marked.exec(scoped))) {
     const n = Number(hit[1]!.replace(",", "."));
-    if (n >= 10 && n <= 5000) last = Math.round(n);
+    if (n >= 1 && n <= 5000) last = Math.round(n);
   }
   if (last != null) return last;
-  const paren = /\((\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)\)/iu.exec(scoped);
+  const paren = /\((\d{1,4}(?:[.,]\d+)?)\s*(?:грамм(?:а|ов)?|гр|г)\)/iu.exec(scoped);
   if (paren?.[1]) {
-    const n = Number(paren[1]);
-    if (n >= 10 && n <= 5000) return n;
+    const n = Number(paren[1].replace(",", "."));
+    if (n >= 1 && n <= 5000) return Math.round(n);
   }
   const hinted = new RegExp(
     String.raw`(?:порци\S*|вес\S*)\s*(\d{2,4})\s*(?:грамм(?:а|ов)?|гр|г)${PORTION_GRAM_END}`,
@@ -278,7 +278,7 @@ function portionGramsFromReply(reply: string): number | undefined {
   ).exec(scoped);
   if (!hinted?.[1]) return undefined;
   const n = Number(hinted[1]);
-  return n >= 10 && n <= 5000 ? n : undefined;
+  return n >= 1 && n <= 5000 ? n : undefined;
 }
 
 /**
@@ -655,11 +655,12 @@ function extractTrailingMacros(fragment: string): {
   const rest = withoutTrailingAside(fragment.trim());
   if (!rest) return null;
 
-  const gram = String.raw`(?:г|гр|грамм(?:а|ов)?)?`;
+  const gram = String.raw`(?:г|гр|грамм(?:а|ов)?|g)?`;
   // Full words first — avoid `[с]` matching the start of «с креветками».
   const approx = String.raw`(?:около|примерно|~)?\s*`;
+  const kcalWord = String.raw`(?:ккал|kcal)`;
   const full = new RegExp(
-    String.raw`(?::\s*)?${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:белк\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:жир\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:углевод\p{L}*\s*[:—–-]?\s*(?:около|примерно|~)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
+    String.raw`(?::\s*)?${approx}(\d+(?:[.,]\d+)?)\s*${kcalWord}\s*[,;]?\s*(?:(?:белк\p{L}*|protein)\s*[:—–-]?\s*(?:около|примерно|~|about)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:(?:жир\p{L}*|fat)\s*[:—–-]?\s*(?:около|примерно|~|about)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*[,;]?\s*(?:(?:углевод\p{L}*|carb\p{L}*)\s*[:—–-]?\s*(?:около|примерно|~|about)?\s*(\d+(?:[.,]\d+)?)\s*${gram})?\s*\)?\s*$`,
     "iu",
   ).exec(rest);
   if (full?.[1]) {
@@ -677,7 +678,7 @@ function extractTrailingMacros(fragment: string): {
 
   // Abbrev Б/Ж/У (not «с» — that ate dish text after «ккал»).
   const abbrev = new RegExp(
-    String.raw`[—(]?\s*${approx}(\d+(?:[.,]\d+)?)\s*ккал\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[уu]\s*(\d+(?:[.,]\d+)?))?\s*\)?\s*$`,
+    String.raw`[—(]?\s*${approx}(\d+(?:[.,]\d+)?)\s*(?:ккал|kcal)\s*[,;]?\s*(?:[бb]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[жf]\s*(\d+(?:[.,]\d+)?))?\s*[,;]?\s*(?:[уu]\s*(\d+(?:[.,]\d+)?))?\s*\)?\s*$`,
     "iu",
   ).exec(rest);
   if (abbrev?.[1]) {
@@ -812,7 +813,7 @@ function mealLineFromFragment(
       fat = stated.fat;
       carbs = stated.carbs;
       rest = cleanMealHead(
-        rest.replace(/(?::\s*)?(?:примерно|около|~|≈)?\s*\d+\s*ккал[\s\S]*$/iu, ""),
+        rest.replace(/(?::\s*)?(?:примерно|около|~|≈|about)?\s*\d+\s*(?:ккал|kcal)[\s\S]*$/iu, ""),
       );
     }
   }
@@ -890,7 +891,9 @@ function mealLineFromFragment(
   }
 
   if (kcal == null || !Number.isFinite(kcal) || kcal <= 0) {
-    misses?.push(baseName);
+    const labeled =
+      portion != null && portion > 0 ? `${baseName} (${portion} ${unit})` : baseName;
+    misses?.push(labeled);
     return null;
   }
 
@@ -902,6 +905,31 @@ function mealLineFromFragment(
     carbs,
     ...(lineNote ? { note: lineNote } : {}),
   };
+}
+
+/**
+ * «пюре, котлета и пиво» режется по запятой и «и».
+ * «омлет 200 ккал, белки 14 г плюс гречка 180 ккал» — сначала по «плюс»,
+ * запятые внутри БЖУ не становятся новыми блюдами.
+ */
+function splitInlineDishParts(body: string): string[] {
+  const chunks = body.split(/\s+плюс\s+|\s+а\s+также\s+|\s+\+\s+/i);
+  const parts: string[] = [];
+  for (const chunk of chunks) {
+    const piece = chunk.trim();
+    if (piece.length < 2) continue;
+    const keepsMacros =
+      /\d\s*(?:ккал|kcal)/i.test(piece) &&
+      /белк|жир|углевод|protein|fat|carb/i.test(piece);
+    const bits = keepsMacros
+      ? piece.split(/\s+и\s+/i)
+      : piece.split(/\s*,\s*|\s+и\s+/i);
+    for (const bit of bits) {
+      const name = bit.trim();
+      if (name.length >= 2) parts.push(name);
+    }
+  }
+  return parts;
 }
 
 /**
@@ -921,9 +949,15 @@ export function parseInlineMealsFromText(text: string, misses?: string[]): Parse
     "iu",
   ).exec(raw);
   let body = header?.[2] ?? onSlot?.[2] ?? "";
+  const hasDishSep =
+    /,/.test(raw) ||
+    /\sи\s/i.test(raw) ||
+    /\sплюс\s/i.test(raw) ||
+    /\sа\s+также\s/i.test(raw) ||
+    /\s\+\s/.test(raw);
   if (!body.trim()) {
     // «вчера на ужин пюре и котлета» already covered by onSlot; bare comma list needs food cues.
-    if (!/,/.test(raw) && !/\sи\s/i.test(raw)) return [];
+    if (!hasDishSep) return [];
     body = raw
       .replace(/^\s*я\s+(?:съел|выпил|поел|запил)\s+/iu, " ")
       .replace(/(?:вчерашн|сегодняшн|завтрашн)\S*/giu, " ")
@@ -936,10 +970,7 @@ export function parseInlineMealsFromText(text: string, misses?: string[]): Parse
   body = body.replace(/\s*всего\b[\s\S]*$/i, "").trim();
   if (!body) return [];
 
-  const parts = body
-    .split(/\s*,\s*|\s+и\s+/i)
-    .map((p) => p.trim())
-    .filter((p) => p.length >= 2);
+  const parts = splitInlineDishParts(body);
   if (parts.length < 2) return [];
 
   const meals: ParsedMealLine[] = [];
@@ -1095,8 +1126,35 @@ function packLooksPerPiece(dishName: string): boolean {
   return /яйц|сырок|банан|яблоко|апельсин|мандарин|сосиск|котлет/i.test(dishName);
 }
 
+function unparsedMealRows(missed: string[], note?: string): ParsedMealLine[] {
+  const rows: ParsedMealLine[] = [];
+  const seen = new Set<string>();
+  for (const raw of missed) {
+    const clean = sanitizeAssistantMealName(raw).replace(/\s+/g, " ").trim();
+    if (!clean || clean.length < 2 || isNutrientLabelName(clean)) continue;
+    const key = clean.toLowerCase().replace(/ё/g, "е");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const name = clean.charAt(0).toUpperCase() + clean.slice(1);
+    rows.push({
+      name: name.slice(0, 120),
+      unparsed: true,
+      ...(note ? { note } : {}),
+    });
+  }
+  return rows;
+}
+
+function appendUnparsed(meals: ParsedMealLine[], missed: string[], note?: string): ParsedMealLine[] {
+  const extras = unparsedMealRows(missed, note).filter(
+    (row) => !meals.some((meal) => dishNameScore(meal.name, row.name) >= 0.45),
+  );
+  return [...meals, ...extras];
+}
+
 /**
  * Offline multi-dish repair from bullet lists in the user message / assistant draft.
+ * Одна строка без цены не отменяет остальные: она остаётся с unparsed.
  */
 export function heuristicRepairMultiDishActions(
   userMessage: string,
@@ -1122,18 +1180,16 @@ export function heuristicRepairMultiDishActions(
     if (picked.missed.length && userN >= 2 && !fromUser.missed.length) picked = fromUser;
     if (picked.missed.length && replyN >= 2 && !fromReply.missed.length) picked = fromReply;
   }
-  // Unpriced dish (no kcal, no table row) → let the model extract instead of
-  // showing a card that quietly loses «подушечки».
-  if (picked.missed.length) return null;
-  const meals = picked.meals;
-  if (meals.length < 2) return null;
-
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
-  const withNote = meals.map((m) => ({
+  const priced = picked.meals.map((m) => ({
     ...m,
     note,
     name: sanitizeAssistantMealName(stripMealSlotPrefix(m.name)),
   }));
+  const meals = appendUnparsed(priced, picked.missed, note);
+  if (meals.length < 2) return null;
+
+  const withNote = meals;
   const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
 
   return {
@@ -1161,18 +1217,19 @@ export function heuristicRepairFromDraftReply(
   }
 
   const { meals, missed } = parseStructuredMealsDetailed(assistantReply);
-  if (meals.length < 1 || missed.length) return null;
-  // Prefer lines that already carry kcal from the draft.
+  if (meals.length < 1 && missed.length < 1) return null;
+  // Prefer lines that already carry kcal from the draft. Unpriced rows stay on the card.
   const withKcal = meals.filter((m) => typeof m.kcal === "number" && m.kcal > 0);
   const picked = withKcal.length ? withKcal : meals;
-  if (!picked.length) return null;
+  if (!picked.length && !missed.length) return null;
 
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
-  const withNote = picked.map((m) => ({
+  const noted = picked.map((m) => ({
     ...m,
     note: m.note && isMealNoteLabel(m.note) ? m.note : note,
     name: sanitizeAssistantMealName(stripMealSlotPrefix(m.name)),
   }));
+  const withNote = appendUnparsed(noted, missed, note);
   const names = withNote.map((m) => m.name.split(" (")[0]!).slice(0, 4).join(", ");
 
   return {
@@ -1367,8 +1424,8 @@ function sameDish(a: string, b: string): boolean {
 }
 
 /**
- * Подпись граммов из черновика («≈ 150 г») вместо дефолтных 100 г.
- * Ккал и БЖУ не трогаем: они уже посчитаны на эту порцию.
+ * Подпись граммов из черновика, если в имени порции нет.
+ * Явные граммы, в том числе 100, не затираются. Ккал и БЖУ не трогаем.
  */
 function stampStatedPortions(
   assistantReply: string,
@@ -1392,8 +1449,7 @@ function stampStatedPortions(
     const stated = splitQuickPortion(best.name);
     const current = splitQuickPortion(meal.name);
     if (stated.grams == null) return meal;
-    if (current.grams != null && current.grams !== 100) return meal;
-    if (current.grams === stated.grams && current.unit === stated.unit) return meal;
+    if (current.grams != null) return meal;
     changed = true;
     return {
       ...meal,
@@ -1575,6 +1631,9 @@ export async function repairAssistantWriteActions(opts: {
   assistantReply: string;
   today: string;
   date: string;
+  /** Тесты корпуса не ходят в сеть. В проде второй вызов включён. */
+  allowRepairLlm?: boolean;
+  onRepairLlm?: () => void;
 }): Promise<AssistantActions | null> {
   const actions = await repairAssistantWriteActionsInner(opts);
   return salvageNutrientLabelMeals(actions, opts.userMessage, opts.assistantReply);
@@ -1585,6 +1644,8 @@ async function repairAssistantWriteActionsInner(opts: {
   assistantReply: string;
   today: string;
   date: string;
+  allowRepairLlm?: boolean;
+  onRepairLlm?: () => void;
 }): Promise<AssistantActions | null> {
   opts = { ...opts, userMessage: repairIntentMessage(opts.userMessage, opts.assistantReply) };
   const slot = heuristicRepairSlotEditActions(opts.userMessage);
@@ -1644,7 +1705,12 @@ async function repairAssistantWriteActionsInner(opts: {
     `Черновик ответа ассистента (можешь взять ккал/названия отсюда):\n${opts.assistantReply.slice(0, 2500)}`,
   ].join("\n");
 
+  if (opts.allowRepairLlm === false) {
+    return heuristicRepairFromProseKcal(opts.userMessage, opts.assistantReply);
+  }
+
   try {
+    opts.onRepairLlm?.();
     const raw = await completeChat(
       [
         { role: "system", content: system },

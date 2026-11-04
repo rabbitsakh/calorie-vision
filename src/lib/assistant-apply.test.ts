@@ -40,6 +40,24 @@ test("mealsPayloadFromActions maps kcal and macros", () => {
   assert.equal(meals[0]?.carbs, 4);
   assert.equal(meals[0]?.recognitionSource, "assistant");
   assert.equal(meals[0]?.eatenAt, undefined);
+  assert.equal(meals[0]?.portionGrams, undefined);
+});
+
+test("mealsPayloadFromActions берёт граммы из имени и пропускает неразобранное", () => {
+  const meals = mealsPayloadFromActions(
+    {
+      meals: [
+        { name: "Сырники (150 г)", kcal: 300, protein: 20, fat: 15, carbs: 25 },
+        { name: "Молоко (250 мл)", kcal: 130, protein: 7, fat: 6, carbs: 12 },
+        { name: "Чучхела (50 г)", unparsed: true },
+      ],
+    },
+    "2026-11-04",
+  );
+  assert.equal(meals.length, 2);
+  assert.equal(meals[0]?.portionGrams, 150);
+  assert.equal(meals[1]?.portionGrams, 250);
+  assert.equal(meals[1]?.dishName, "Молоко (250 мл)");
 });
 
 test("exercisesFromWorkoutDay never emits упражнение N", () => {

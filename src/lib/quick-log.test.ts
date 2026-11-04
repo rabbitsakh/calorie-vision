@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   enrichQuickMealsFromText,
+  mealsReadyForSave,
   portionFromUserText,
   quickHeader,
   quickSaveLabel,
   quickSlotTag,
   quickTotals,
+  renameQuickMeal,
   rescaleQuickMeal,
+  setQuickMealGrams,
   splitQuickPortion,
 } from "./quick-log.ts";
 
@@ -49,8 +52,9 @@ test("enrichQuickMealsFromText restores grams AI dropped from the name", () => {
     grams: 100,
     unit: "мл",
   });
-  const defaulted = enrichQuickMealsFromText([{ name: "Творог", kcal: 120 }], "творог");
-  assert.equal(defaulted[0]!.name, "Творог (100 г)");
+  const unset = enrichQuickMealsFromText([{ name: "Творог", kcal: 120 }], "творог");
+  assert.equal(unset[0]!.name, "Творог");
+  assert.equal(splitQuickPortion(unset[0]!.name).grams, null);
 });
 
 test("enrichQuickMealsFromText maps each dish to its own portion from the phrase", () => {
@@ -78,6 +82,30 @@ test("rescaleQuickMeal scales kcal and macros with grams", () => {
   assert.equal(next.note, "завтрак");
   const same = { name: "Кофе", kcal: 5 };
   assert.equal(rescaleQuickMeal(same, 300), same);
+});
+
+test("setQuickMealGrams не масштабирует ккал, пока порция не была задана", () => {
+  const first = setQuickMealGrams({ name: "Творог", kcal: 120, protein: 18 }, 150);
+  assert.equal(first.name, "Творог (150 г)");
+  assert.equal(first.kcal, 120);
+  const next = setQuickMealGrams(first, 300);
+  assert.equal(next.name, "Творог (300 г)");
+  assert.equal(next.kcal, 240);
+});
+
+test("renameQuickMeal сохраняет граммы, mealsReadyForSave отбрасывает пустые ккал", () => {
+  const renamed = renameQuickMeal({ name: "Сырники (150 г)", kcal: 300 }, "Сырники с изюмом");
+  assert.equal(renamed.name, "Сырники с изюмом (150 г)");
+  const packed = mealsReadyForSave([
+    { name: "Омлет", kcal: 200 },
+    { name: "Чучхела (50 г)", unparsed: true },
+    { name: "", unparsed: true },
+    { name: "Матча", kcal: 90, unparsed: true },
+  ]);
+  assert.equal(packed.skipped, 2);
+  assert.equal(packed.ready.length, 2);
+  assert.equal(packed.ready[1]?.name, "Матча");
+  assert.equal(packed.ready[1]?.unparsed, undefined);
 });
 
 test("totals, slot tag and save label", () => {
