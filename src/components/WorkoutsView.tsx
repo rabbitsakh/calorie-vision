@@ -28,7 +28,6 @@ import {
   sessionElapsedSec,
 } from "@/lib/workouts/session-clock";
 import { monthEndKey } from "@/lib/workouts/trends";
-import { workoutHistoryExportRange } from "@/lib/workouts/export-href";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import {
   COPY_PREVIOUS_SESSION_DEFAULT,
@@ -42,7 +41,6 @@ import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor
 import { WorkoutCreateSessionPanel } from "@/components/workouts/WorkoutCreateSessionPanel";
 import { WorkoutTemplatesPanel } from "@/components/workouts/WorkoutTemplatesPanel";
 import { WorkoutHistoryHub } from "@/components/workouts/WorkoutHistoryHub";
-import { WorkoutExportLinks } from "@/components/workouts/WorkoutExportLinks";
 import { WorkoutActiveSession } from "@/components/workouts/WorkoutActiveSession";
 import { formatWorkoutLoad } from "@/lib/workouts/format";
 import {
@@ -438,16 +436,6 @@ export function WorkoutsView({
     cardioDistanceKm: number;
   } | null>(null);
   const createFormRef = useRef<HTMLElement | null>(null);
-  const workoutExportRange = useMemo(() => {
-    if (hubTab !== "history") return { from: null, to: null };
-    return workoutHistoryExportRange({
-      filterPeriod,
-      filterDate,
-      todayKey,
-      calYear,
-      calMonth,
-    });
-  }, [hubTab, filterPeriod, filterDate, todayKey, calYear, calMonth]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -2466,17 +2454,6 @@ export function WorkoutsView({
           ))}
         </div>
       ) : null}
-
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap gap-2">
-          <WorkoutExportLinks from={workoutExportRange.from} to={workoutExportRange.to} />
-        </div>
-        {workoutExportRange.from && workoutExportRange.to ? (
-          <p className="text-xs text-[var(--muted)]">
-            Период как в фильтре истории: {workoutExportRange.from} — {workoutExportRange.to}
-          </p>
-        ) : null}
-      </div>
 
       {creating ? (
         <WorkoutCreateSessionPanel

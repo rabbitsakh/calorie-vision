@@ -3774,6 +3774,25 @@ select {
   border-top: 1px solid var(--border-hairline);
 }
 
+button.profile-settings__door {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+button.profile-settings__door:disabled {
+  cursor: progress;
+  opacity: 0.62;
+}
+
+.profile-settings__export-group {
+  overflow: hidden;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  background: rgba(255, 252, 248, 0.35);
+}
+
 .profile-settings__body {
   padding: 0.75rem 0.85rem 1rem;
   border-top: 1px solid var(--border-hairline);

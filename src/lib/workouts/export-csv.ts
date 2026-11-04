@@ -1,5 +1,6 @@
 import { isValidIanaTimezone } from "@/lib/device-timezone";
 import { formatTimeShort } from "@/lib/dates";
+import { escCsv } from "@/lib/export/csv";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { formatDurationMinutes } from "@/lib/workouts/cardio";
 import { kindLabel } from "@/lib/workouts/exercise-kind";
@@ -85,15 +86,6 @@ const COLUMNS: Array<{ header: string; key: keyof WorkoutCsvRow }> = [
 ];
 
 export const WORKOUT_CSV_HEADERS = COLUMNS.map((column) => column.header);
-
-export function escCsv(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
 
 export function formatExportNumber(value: number | null | undefined, digits = 3): string {
   if (value == null || !Number.isFinite(value)) return "";
