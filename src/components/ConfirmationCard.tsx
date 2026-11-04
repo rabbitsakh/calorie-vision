@@ -56,11 +56,16 @@ import {
 } from "@/lib/confirm-review-cta";
 import {
   clearPendingConfirmDraft,
-  enqueueFailedSave,
   upsertPendingConfirmDraft,
   type PendingConfirmUi,
 } from "@/lib/meal-draft-queue";
-import type { SaveMealInput } from "@/lib/save-meal";
+import {
+  foodConfirmEnergyWarning,
+  foodConfirmFromRecognition,
+  prepareFoodConfirmSave,
+  type FoodConfirmSlot,
+} from "@/lib/food-confirm";
+import { postConfirmedMeals } from "@/lib/food-confirm-save";
 import { DishFields } from "@/components/ConfirmDishFields";
 import { ConfirmTrustSkim } from "@/components/ConfirmTrustSkim";
 import { ConfirmStickyActions } from "@/components/ConfirmStickyActions";
@@ -686,15 +691,48 @@ export function ConfirmationCard({
       persistTimerRef.current = null;
     }
 
-    let queuedBody: SaveMealInput | { entries: SaveMealInput[] } | null = null;
-
     try {
+      const slot = (mealType || null) as FoodConfirmSlot | null;
+      const confirmDishes = dishes.map((dish) => {
+        const grams = parseOptionalNumber(dish.portionGrams);
+        const fromPhoto = foodConfirmFromRecognition(
+          {
+            ...dish.original,
+            dishName: dish.dishName,
+            calories: Number(dish.calories) || 0,
+            protein: parseOptionalNumber(dish.protein),
+            fat: parseOptionalNumber(dish.fat),
+            carbs: parseOptionalNumber(dish.carbs),
+            portionGrams: grams,
+          },
+          dish.original.photoKind === "barcode" ||
+            (dish.original.source ?? "").includes("barcode")
+            ? "barcode"
+            : "photo",
+          slot,
+        );
+        return {
+          ...fromPhoto,
+          grams: grams != null && grams > 0 ? Math.round(grams) : null,
+          kcal: Number(dish.calories) > 0 ? Math.round(Number(dish.calories)) : fromPhoto.kcal,
+          protein: parseOptionalNumber(dish.protein) ?? fromPhoto.protein,
+          fat: parseOptionalNumber(dish.fat) ?? fromPhoto.fat,
+          carbs: parseOptionalNumber(dish.carbs) ?? fromPhoto.carbs,
+          imagePath: imagePath || undefined,
+        };
+      });
+      const prepared = prepareFoodConfirmSave(confirmDishes);
+      if (!prepared.ok) {
+        persistClosedRef.current = false;
+        setError(prepared.error);
+        return;
+      }
+
       const mealGroupId = dishes.length > 1 ? crypto.randomUUID() : undefined;
       const payloads = await Promise.all(
         dishes.map((dish) => buildSavePayload(dish, mealGroupId)),
       );
       const rememberedCorrection = payloads.some((payload) => payload.wasCorrected);
-      queuedBody = dishes.length > 1 ? { entries: payloads } : payloads[0]!;
       const saveFlags = dishes.map((dish) => dishNeedsReview(dish, lowConfidenceThreshold));
       const saveTotalCalories = payloads.reduce((sum, p) => sum + (Number(p.calories) || 0), 0);
       const softSave = canSaveAsIs({
@@ -704,38 +742,17 @@ export function ConfirmationCard({
         totalCalories: saveTotalCalories,
       });
 
-      if (dishes.length > 1) {
-        const response = await fetch(withBasePath("/api/meals"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entries: payloads }),
-        });
-        const data = await readApiJson<{ error?: string }>(response);
-        if (!response.ok) {
-          throw new Error(data.error ?? "Ошибка сохранения");
+      const result = await postConfirmedMeals(selectedDate, payloads);
+      if (!result.ok) {
+        if (result.queued) {
+          stopPersistingDraft({ clearDraft: true });
+          onSaveQueued?.();
+          setError(`${result.error}. Сохранение в очереди — отправим, когда сеть появится.`);
+        } else {
+          persistClosedRef.current = false;
+          setError(result.error);
         }
-        trackFirstMealSaveGoal();
-        trackMealSavedGoal();
-        trackFirstConfirmSaveGoal();
-        if (softSave) trackConfirmSaveAsIsGoal();
-        stopPersistingDraft({ clearDraft: true });
-        onSaved({
-          rememberedCorrection,
-          savedCount: dishes.length,
-          totalCalories: saveTotalCalories,
-          softSave,
-        });
         return;
-      }
-
-      const response = await fetch(withBasePath("/api/meals"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloads[0]!),
-      });
-      const data = await readApiJson<{ error?: string }>(response);
-      if (!response.ok) {
-        throw new Error(data.error ?? "Ошибка сохранения");
       }
 
       trackFirstMealSaveGoal();
@@ -745,26 +762,13 @@ export function ConfirmationCard({
       stopPersistingDraft({ clearDraft: true });
       onSaved({
         rememberedCorrection,
-        savedCount: 1,
-        totalCalories: Number(payloads[0]!.calories) || 0,
+        savedCount: result.savedCount,
+        totalCalories: saveTotalCalories,
         softSave,
       });
     } catch (err) {
-      if (queuedBody) {
-        // Offline queue owns the meal; drop pending-confirm so the next «+» is clean.
-        stopPersistingDraft({ clearDraft: true });
-        enqueueFailedSave(selectedDate, queuedBody);
-        onSaveQueued?.();
-        setError(
-          err instanceof Error
-            ? `${err.message}. Сохранение в очереди — отправим, когда сеть появится.`
-            : "Не удалось сохранить. Сохранение в очереди на устройстве.",
-        );
-      } else {
-        // Soft failure — keep crash-recovery draft and allow further edits.
-        persistClosedRef.current = false;
-        setError(err instanceof Error ? err.message : "Не удалось сохранить");
-      }
+      persistClosedRef.current = false;
+      setError(err instanceof Error ? err.message : "Не удалось сохранить");
     } finally {
       savingRef.current = false;
       setSaving(false);
@@ -892,10 +896,14 @@ export function ConfirmationCard({
       onPortionChange={(value) => handlePortionChange(dish, value)}
       onLookup={(name) => void handleLookup(dish, name)}
       onApplyAlternative={(alt) => {
+        const typedPortion = Number(dish.portionGrams);
+        const originalPortion = Number(dish.original.portionGrams);
         const targetPortion =
-          Number(dish.portionGrams) > 0
-            ? Number(dish.portionGrams)
-            : Number(dish.original.portionGrams) || 100;
+          typedPortion > 0 ? typedPortion : originalPortion > 0 ? originalPortion : undefined;
+        if (!targetPortion) {
+          setLookupMessage("Сначала укажите порцию — 100 г сами не подставим");
+          return;
+        }
 
         const merged = applyAlternativeToPortion(dish.original, alt, targetPortion);
 
@@ -1019,10 +1027,18 @@ export function ConfirmationCard({
                     onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
                     onPortion={(value) => handlePortionChange(dish, value)}
                     onApplyAlternative={(alt) => {
+                      const typedPortion = Number(dish.portionGrams);
+                      const originalPortion = Number(dish.original.portionGrams);
                       const targetPortion =
-                        Number(dish.portionGrams) > 0
-                          ? Number(dish.portionGrams)
-                          : Number(dish.original.portionGrams) || 100;
+                        typedPortion > 0
+                          ? typedPortion
+                          : originalPortion > 0
+                            ? originalPortion
+                            : undefined;
+                      if (!targetPortion) {
+                        setLookupMessage("Сначала укажите порцию — 100 г сами не подставим");
+                        return;
+                      }
                       const merged = applyAlternativeToPortion(
                         dish.original,
                         alt,
@@ -1081,6 +1097,25 @@ export function ConfirmationCard({
           </button>
         </div>
 
+        {dishes.map((dish) => {
+          const grams = Number(dish.portionGrams);
+          const warning = foodConfirmEnergyWarning({
+            name: dish.dishName,
+            grams: grams > 0 ? grams : null,
+            unit: "г",
+            kcal: Number(dish.calories) > 0 ? Number(dish.calories) : null,
+            protein: Number.isFinite(Number(dish.protein)) ? Number(dish.protein) : null,
+            fat: Number.isFinite(Number(dish.fat)) ? Number(dish.fat) : null,
+            carbs: Number.isFinite(Number(dish.carbs)) ? Number(dish.carbs) : null,
+            mealSlot: null,
+            source: dish.original.photoKind === "barcode" ? "barcode" : "photo",
+          });
+          return warning ? (
+            <p key={`${dish.id}-energy`} className="text-sm font-semibold text-amber-800">
+              {dish.dishName}: {warning}
+            </p>
+          ) : null;
+        })}
         {lookupMessage ? <p className="text-sm text-[var(--accent)]">{lookupMessage}</p> : null}
         {error ? (
           <div className="rounded-xl bg-red-50 px-3 py-2">

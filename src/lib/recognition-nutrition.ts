@@ -738,18 +738,33 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
   let portionGrams = coalesced.portionGrams;
   let per100g = normalizePer100gEnergy(coalesced.per100g);
 
+  const barcodePortionOptional =
+    result.photoKind === "barcode" ||
+    result.source === "openfoodfacts-barcode" ||
+    result.source === "gigachat-barcode" ||
+    result.source === "barcode-user" ||
+    result.source === "ru-sku-cache";
+
   if (!portionGrams || portionGrams <= 0) {
-    portionGrams =
-      result.photoKind === "meal" ? DEFAULT_MEAL_PORTION_GRAMS : DEFAULT_PORTION_GRAMS;
+    if (!barcodePortionOptional) {
+      portionGrams =
+        result.photoKind === "meal" ? DEFAULT_MEAL_PORTION_GRAMS : DEFAULT_PORTION_GRAMS;
+    }
   }
 
-  const resolvedPortion = resolveDisplayPortionGrams({ ...coalesced, portionGrams, per100g });
+  const resolvedPortion =
+    portionGrams && portionGrams > 0
+      ? resolveDisplayPortionGrams({ ...coalesced, portionGrams, per100g })
+      : undefined;
   if (resolvedPortion && resolvedPortion !== portionGrams) {
     portionGrams = resolvedPortion;
   }
 
-  const per100gSource = resolvePer100gForScaling({ ...coalesced, per100g, portionGrams });
-  if (per100gSource) {
+  const per100gSource =
+    portionGrams && portionGrams > 0
+      ? resolvePer100gForScaling({ ...coalesced, per100g, portionGrams })
+      : undefined;
+  if (per100gSource && portionGrams && portionGrams > 0) {
     per100g = per100gSource;
     const scaled = scaleFromPer100g(per100gSource, portionGrams);
     if (scaled) {
@@ -770,7 +785,7 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     protein,
     fat,
     carbs,
-    portionGrams,
+    portionGrams: portionGrams && portionGrams > 0 ? portionGrams : undefined,
   });
 
   return clearSuspiciousZeroFiberSugar({

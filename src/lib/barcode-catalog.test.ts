@@ -149,9 +149,14 @@ test("recognition uses the pack as the default portion and keeps per 100 g", () 
   assert.equal(recognition.photoKind, "barcode");
 
   const large = barcodeProductToRecognition(product({ packGrams: 1000, userContributed: true, source: "user" }));
-  assert.equal(large.portionGrams, 100);
-  assert.equal(large.calories, 121);
+  assert.equal(large.portionGrams, 1000);
+  assert.equal(large.calories, 1210);
   assert.equal(large.source, "barcode-user");
+
+  const unknown = barcodeProductToRecognition(product({ packGrams: undefined }));
+  assert.equal(unknown.portionGrams, undefined);
+  assert.equal(unknown.calories, 0);
+  assert.equal(unknown.per100g?.calories, 121);
 });
 
 test("packToCatalogProduct keeps the net weight and drops the brand prefix", () => {

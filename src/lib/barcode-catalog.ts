@@ -34,7 +34,7 @@ export function barcodeLookupCandidates(raw: string): string[] | null {
   return [primary, ...repairBarcodeCandidates(primary).filter((code) => code !== primary)];
 }
 
-/** Confirm-card payload. Portion defaults to the pack, or 100 g for a large pack. */
+/** Confirm-card payload. Portion is the net weight; unknown weight stays empty. */
 export function barcodeProductToRecognition(product: BarcodeCatalogProduct): FoodRecognitionResult {
   const portion = defaultPortionFromPack(product.packGrams);
   const per100g = {
@@ -43,7 +43,7 @@ export function barcodeProductToRecognition(product: BarcodeCatalogProduct): Foo
     fat: product.fatPer100,
     carbs: product.carbsPer100,
   };
-  const scaled = nutritionFromPer100g(per100g, portion);
+  const scaled = portion ? nutritionFromPer100g(per100g, portion) : null;
   const brand = product.brand?.trim() || undefined;
   const dishName = [brand, product.name.trim()].filter(Boolean).join(" ").trim() || product.name;
   const source =
@@ -55,10 +55,10 @@ export function barcodeProductToRecognition(product: BarcodeCatalogProduct): Foo
 
   return {
     dishName,
-    calories: scaled?.calories ?? Math.round(product.kcalPer100),
-    protein: scaled?.protein ?? product.proteinPer100,
-    fat: scaled?.fat ?? product.fatPer100,
-    carbs: scaled?.carbs ?? product.carbsPer100,
+    calories: scaled?.calories ?? 0,
+    protein: scaled?.protein,
+    fat: scaled?.fat,
+    carbs: scaled?.carbs,
     portionGrams: portion,
     per100g,
     barcode: product.barcode,

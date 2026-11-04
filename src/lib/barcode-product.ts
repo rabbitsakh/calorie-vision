@@ -21,13 +21,15 @@ export type BarcodeCatalogProduct = {
 const NAME_MAX = 255;
 const BRAND_MAX = 120;
 
-/** Large packs default to a 100 g serving; a small pack is eaten whole. */
-export function defaultPortionFromPack(packGrams?: number): number {
+/**
+ * Порция из веса нетто. Упаковка тяжелее 500 г не подменяется на 100 г.
+ * Если веса нет — undefined: пользователь указывает порцию сам.
+ */
+export function defaultPortionFromPack(packGrams?: number): number | undefined {
   if (packGrams === undefined || !Number.isFinite(packGrams) || packGrams <= 0) {
-    return 100;
+    return undefined;
   }
-  const grams = Math.round(packGrams);
-  return grams > 500 ? 100 : grams;
+  return Math.round(packGrams);
 }
 
 function round1(value: number): number {

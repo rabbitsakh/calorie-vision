@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   AssistantActions,
   AssistantContextSnapshot,
@@ -50,33 +50,9 @@ import { notifyFoodSaved } from "@/lib/open-food-camera";
 import { notifyWaterLogged } from "@/lib/open-water-quick";
 import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { getImageUrl, withBasePath } from "@/lib/paths";
-import {
-  blankQuickMeal,
-  quickDishTone,
-  quickHeader,
-  enrichQuickMealsFromText,
-  mealsReadyForSave,
-  PORTION_UNSET_LABEL,
-  quickMacroLine,
-  quickPortionStep,
-  quickSaveLabel,
-  quickSlotTag,
-  quickTotals,
-  renameQuickMeal,
-  setQuickMealGrams,
-  setQuickMealKcal,
-  splitQuickPortion,
-  type QuickMeal,
-} from "@/lib/quick-log";
-import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
-import type { PhotoKind } from "@/lib/food-types";
-import {
-  formatConfidencePercent,
-  getConfidenceTone,
-  confidenceToneClasses,
-} from "@/lib/recognition-confidence-ui";
-import { DEFAULT_LOW_CONFIDENCE } from "@/lib/confirm-card-draft";
-import { scalePhotoDraftPortion } from "@/lib/assistant-meal-patch";
+import { enrichQuickMealsFromText, mealsReadyForSave, type QuickMeal } from "@/lib/quick-log";
+import { FoodConfirmCard } from "@/components/FoodConfirmCard";
+import { foodConfirmFromPhotoDraft, foodConfirmFromQuickMeals } from "@/lib/food-confirm";
 import type { MealTypeKey } from "@/lib/assistant-meal-time";
 
 type ChatRole = "user" | "assistant";
@@ -104,13 +80,6 @@ type PhotoDraft = {
   brand?: string;
   recognitionSource?: string;
 };
-
-const PHOTO_MEAL_SLOTS: Array<{ key: MealTypeKey; label: string }> = [
-  { key: "BREAKFAST", label: "Завтрак" },
-  { key: "LUNCH", label: "Обед" },
-  { key: "DINNER", label: "Ужин" },
-  { key: "SNACK", label: "Перекус" },
-];
 
 type ChatTurn = {
   id: string;
@@ -246,36 +215,6 @@ function lastUserContentBefore(turns: ChatTurn[], assistantId: string): string |
   return null;
 }
 
-function PhotoDraftWhy({ draft }: { draft: PhotoDraft }) {
-  const photoKind =
-    draft.photoKind === "meal" ||
-    draft.photoKind === "package" ||
-    draft.photoKind === "label" ||
-    draft.photoKind === "barcode"
-      ? (draft.photoKind as PhotoKind)
-      : undefined;
-  const why = explainWhyTheseCalories({
-    dishName: draft.dishName,
-    brand: draft.brand,
-    portionGrams: draft.portionGrams,
-    calories: draft.calories,
-    photoKind,
-    source: draft.recognitionSource,
-    confidence: typeof draft.confidence === "number" ? draft.confidence : 1,
-  });
-  return (
-    <details className="confirm-why-so mt-1.5 group">
-      <summary className="cursor-pointer list-none text-[10px] font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline [&::-webkit-details-marker]:hidden">
-        Почему так
-      </summary>
-      <p className="mt-1 text-[10px] leading-snug text-[var(--muted)]">{why.summary}</p>
-      {why.detail ? (
-        <p className="mt-0.5 text-[10px] leading-snug text-[var(--muted)]">{why.detail}</p>
-      ) : null}
-    </details>
-  );
-}
-
 function ToolChips({ tools }: { tools: ToolResult[] }) {
   // Preview has its own PhotoConfirm CTA — hide duplicate chip.
   const visible = tools.filter((t) => t.tool !== "recognize_meal_preview");
@@ -321,18 +260,14 @@ function PhotoConfirm({
     date?: string;
     mealType?: MealTypeKey | null;
   };
-  const [pending, setPending] = useState(false);
   const seededMealType =
     data.mealType === "BREAKFAST" ||
     data.mealType === "LUNCH" ||
     data.mealType === "DINNER" ||
     data.mealType === "SNACK"
       ? data.mealType
-      : undefined;
-  const [mealType, setMealType] = useState<MealTypeKey | undefined>(seededMealType);
-  const [drafts, setDrafts] = useState<PhotoDraft[]>(() =>
-    (data.drafts ?? []).map((d) => ({ ...d })),
-  );
+      : null;
+  const [mealType, setMealType] = useState<MealTypeKey | null>(seededMealType);
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
@@ -351,278 +286,45 @@ function PhotoConfirm({
     );
   }
 
-  function updateDraft(index: number, patch: Partial<PhotoDraft>) {
-    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
-  }
+  const dishes = data.drafts.map((draft) => ({
+    ...foodConfirmFromPhotoDraft({ ...draft, mealType: draft.mealType ?? mealType }),
+    imagePath: data.imagePath,
+  }));
 
-  function updateDraftPortion(index: number, raw: string) {
-    const n = raw === "" ? undefined : Number(raw);
-    if (n == null || !Number.isFinite(n)) {
-      updateDraft(index, { portionGrams: undefined });
-      return;
-    }
-    setDrafts((prev) =>
-      prev.map((d, i) => {
-        if (i !== index) return d;
-        const scaled = scalePhotoDraftPortion(
-          {
-            dishName: d.dishName,
-            calories: d.calories,
-            protein: d.protein ?? null,
-            fat: d.fat ?? null,
-            carbs: d.carbs ?? null,
-            fiber: d.fiber ?? null,
-            sugar: d.sugar ?? null,
-            portionGrams: d.portionGrams ?? null,
-            mealType: d.mealType ?? null,
-          },
-          n,
-        );
-        return {
-          ...d,
-          portionGrams: scaled.portionGrams ?? n,
-          calories: scaled.calories,
-          protein: scaled.protein ?? undefined,
-          fat: scaled.fat ?? undefined,
-          carbs: scaled.carbs ?? undefined,
-          fiber: scaled.fiber ?? undefined,
-          sugar: scaled.sugar ?? undefined,
-        };
-      }),
-    );
-  }
-
-  function addDraft() {
-    setDrafts((prev) => {
-      const last = prev[prev.length - 1];
-      return [
-        ...prev,
-        {
-          dishName: last?.dishName ? `${last.dishName}` : "Блюдо",
-          calories: last?.calories ?? 200,
-          protein: last?.protein,
-          fat: last?.fat,
-          carbs: last?.carbs,
-          fiber: last?.fiber,
-          sugar: last?.sugar,
-          portionGrams: last?.portionGrams,
-          confidence: last?.confidence,
-        },
-      ].slice(0, 8);
-    });
-  }
-
-  function removeDraft(index: number) {
-    setDrafts((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
-  }
-
-  async function confirm() {
-    setPending(true);
-    try {
-      const draftsWithSlot = drafts.map((d) => ({
-        ...d,
-        ...(mealType ? { mealType } : {}),
-      }));
-      const body = {
-        kind: "photo" as const,
-        // Always the day currently selected in the chat — not a stale
-        // recognition payload date (UTC / yesterday from storage).
-        date,
-        imagePath: data.imagePath,
-        drafts: draftsWithSlot,
-        ...(mealType ? { mealType } : {}),
-      };
-      // Wave A6 — already recognized: queue apply offline (no LLM).
-      if (!online) {
-        enqueueAssistantApply("photo", body);
-        onFlash("Офлайн — добавлю в рацион, когда появится сеть");
+  return (
+    <FoodConfirmCard
+      dishes={dishes}
+      date={date}
+      source={dishes.some((dish) => dish.source === "barcode") ? "barcode" : "photo"}
+      imageUrl={getImageUrl(data.imagePath, { w: 256 })}
+      mealSlot={mealType}
+      onMealSlotChange={setMealType}
+      online={online}
+      disabled={busy}
+      onQueued={(message) => {
         setDismissed(true);
+        onFlash(message);
+        onDone(
+          { ok: true, tool: "save_photo_drafts", message, data: { queued: true } },
+          emptyUndo(),
+        );
+      }}
+      onSaved={(result) => {
+        setDismissed(true);
+        notifyFoodSaved();
+        const skipped = result.skipped > 0 ? ` · ${result.skipped} без калорий не записаны` : "";
+        onFlash(result.savedCount ? `Добавил в рацион${skipped}` : "В очереди");
         onDone(
           {
             ok: true,
             tool: "save_photo_drafts",
-            message: "В очереди офлайн",
-            data: { queued: true },
+            message: "Добавил в рацион",
+            data: { meals: result.mealIds.map((id) => ({ id })) },
           },
-          emptyUndo(),
+          { ...emptyUndo(), mealIds: result.mealIds },
         );
-        return;
-      }
-      const resp = await fetch(withBasePath("/api/assistant/apply"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const json = (await resp.json().catch(() => null)) as {
-        error?: string;
-        result?: ToolResult;
-      } | null;
-      if (!resp.ok || !json?.result) throw new Error(json?.error || "Не удалось");
-      const resultData = (json.result.data ?? {}) as {
-        meals?: Array<{ id: string }>;
-        partial?: boolean;
-        saved?: number;
-        skipped?: number;
-      };
-      const meals = resultData.meals ?? [];
-      if (!meals.length && !resultData.partial) {
-        throw new Error(json.result.message || "Не удалось сохранить блюда");
-      }
-      setDismissed(true);
-      notifyFoodSaved();
-      onDone(json.result, {
-        ...emptyUndo(),
-        mealIds: meals.map((m) => m.id).filter(Boolean),
-      });
-      if (resultData.partial && resultData.saved != null && resultData.skipped) {
-        onFlash(`Сохранено ${resultData.saved} из ${resultData.saved + resultData.skipped}`);
-      } else {
-        onFlash(json.result.message?.startsWith("Сохранено") ? json.result.message : "Добавил в рацион");
-      }
-    } catch (err) {
-      onFlash(err instanceof Error ? err.message : "Ошибка");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <div className="confirm-family mt-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={getImageUrl(data.imagePath, { w: 256 })}
-        alt="Распознанное фото"
-        className="confirm-family-hero"
-      />
-      <p className="confirm-family-skim">
-        День {date} · проверь и подтверди — пока не в дневнике
-      </p>
-      <div className="mb-2 flex flex-wrap gap-1">
-        {PHOTO_MEAL_SLOTS.map((slot) => (
-          <button
-            key={slot.key}
-            type="button"
-            disabled={busy || pending}
-            className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${
-              mealType === slot.key
-                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-ink)]"
-                : "border-[var(--border)] text-[var(--muted-strong)]"
-            }`}
-            onClick={() => setMealType((prev) => (prev === slot.key ? undefined : slot.key))}
-          >
-            {slot.label}
-          </button>
-        ))}
-      </div>
-      <div className="space-y-2.5">
-        {drafts.map((d, i) => {
-          const tone =
-            typeof d.confidence === "number"
-              ? getConfidenceTone(d.confidence, DEFAULT_LOW_CONFIDENCE)
-              : null;
-          return (
-            <div key={`${d.dishName}-${i}`} className="confirm-family-dish">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <input
-                  type="text"
-                  value={d.dishName}
-                  disabled={busy || pending}
-                  onChange={(e) => updateDraft(i, { dishName: e.target.value })}
-                  className="confirm-family-input min-w-0 flex-1 font-semibold"
-                  aria-label="Название блюда"
-                />
-                {tone && d.confidence != null ? (
-                  <span
-                    className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${confidenceToneClasses(tone)}`}
-                  >
-                    {formatConfidencePercent(d.confidence)}
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-1.5 grid grid-cols-4 gap-1.5 sm:grid-cols-6">
-                {(
-                  [
-                    ["calories", "ккал"],
-                    ["protein", "Б"],
-                    ["fat", "Ж"],
-                    ["carbs", "У"],
-                    ["fiber", "Клетч."],
-                    ["sugar", "Сахар"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="confirm-family-label">
-                    {label}
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={d[key] ?? ""}
-                      disabled={busy || pending}
-                      onChange={(e) => {
-                        const n = e.target.value === "" ? undefined : Number(e.target.value);
-                        updateDraft(i, {
-                          [key]: n != null && Number.isFinite(n) ? n : undefined,
-                        } as Partial<PhotoDraft>);
-                      }}
-                      className="confirm-family-input"
-                    />
-                  </label>
-                ))}
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-end gap-2">
-                <label className="confirm-family-label inline-block">
-                  Порция, г
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={d.portionGrams ?? ""}
-                    disabled={busy || pending}
-                    onChange={(e) => updateDraftPortion(i, e.target.value)}
-                    className="confirm-family-input w-24"
-                  />
-                </label>
-                {drafts.length > 1 ? (
-                  <button
-                    type="button"
-                    className="text-[10px] font-semibold text-[var(--muted)] underline-offset-2 hover:underline"
-                    disabled={busy || pending}
-                    onClick={() => removeDraft(i)}
-                  >
-                    Убрать
-                  </button>
-                ) : null}
-              </div>
-              <PhotoDraftWhy draft={d} />
-            </div>
-          );
-        })}
-      </div>
-      <div className="confirm-family-actions flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          disabled={busy || pending}
-          className="confirm-family-cta"
-          onClick={() => void confirm()}
-        >
-          {pending
-            ? "Пишу…"
-            : online
-              ? drafts.length > 1
-                ? `Добавить все (${drafts.length})`
-                : "Добавить в рацион"
-              : "В очередь офлайн"}
-        </button>
-        {drafts.length < 8 ? (
-          <button
-            type="button"
-            disabled={busy || pending}
-            className="confirm-family-secondary"
-            onClick={addDraft}
-          >
-            + ещё блюдо
-          </button>
-        ) : null}
-      </div>
-    </div>
+      }}
+    />
   );
 }
 
@@ -687,13 +389,9 @@ function ActionCard({
     text: string;
   } | null>(null);
   const [lastOkMessage, setLastOkMessage] = useState<string | null>(null);
-  const [draftMeals, setDraftMeals] = useState<QuickMeal[]>(() =>
+  const [draftMeals] = useState<QuickMeal[]>(() =>
     enrichQuickMealsFromText(actions.meals ?? [], actions.summary ?? ""),
   );
-  const [editingMeal, setEditingMeal] = useState<number | null>(
-    (actions.meals?.length ?? 0) > 0 ? 0 : null,
-  );
-  const mealTotals = useMemo(() => quickTotals(draftMeals), [draftMeals]);
 
   const mealsDone = streamDone.meals || localDone.meals;
   const routineDone = streamDone.routine || localDone.routine;
@@ -980,7 +678,6 @@ function ActionCard({
 
   function pendingKinds(): ApplyKind[] {
     const kinds: ApplyKind[] = [];
-    if (needsMeals && !mealsDone) kinds.push("meals");
     if (needsWater && !waterDone) kinds.push("water");
     if (needsWeight && !weightDone) kinds.push("weight");
     if (needsDelete && !deleteDone) kinds.push("deleteMeals");
@@ -1172,174 +869,29 @@ function ActionCard({
           В ответе {actions.mealGap.prose}, в записи {actions.mealGap.card}. Добавь пропущенное блюдо.
         </p>
       ) : null}
-      {draftMeals.length || needsMeals || actions.mealGap ? (
-        <div className="quick-parse mt-1.5 !shadow-none !gap-2.5">
-          <div className="quick-parse-head">
-            <b>{quickHeader(Math.max(draftMeals.length, 1))}</b>
-            {quickSlotTag(draftMeals) ? <span className="quick-tag">{quickSlotTag(draftMeals)}</span> : null}
-          </div>
-          {draftMeals.map((meal, i) => {
-            const portion = splitQuickPortion(meal.name);
-            const tone = quickDishTone(i);
-            const open = editingMeal === i;
-            const step =
-              portion.grams != null
-                ? quickPortionStep(portion.grams, portion.unit)
-                : portion.unit === "мл"
-                  ? 50
-                  : 10;
-            const initial = portion.base.charAt(0).toUpperCase() || "?";
-            return (
-              <div key={`${portion.base}-${i}`} className="quick-dish-wrap">
-                <div className="quick-dish">
-                  <span className="quick-dish-img" style={{ background: tone.bg, color: tone.fg }} aria-hidden>
-                    {initial}
-                  </span>
-                  <span className="quick-dish-name">
-                    {mealsDone ? (
-                      <b>{portion.base || "Блюдо"}</b>
-                    ) : (
-                      <input
-                        className="quick-dish-name-input"
-                        value={portion.base}
-                        aria-label={`Название: ${portion.base || "блюдо"}`}
-                        placeholder="Название блюда"
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setDraftMeals((prev) =>
-                            prev.map((m, j) => (j === i ? renameQuickMeal(m, value) : m)),
-                          );
-                        }}
-                      />
-                    )}
-                    <span className={meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0) ? "quick-unparsed" : undefined}>
-                      {meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0)
-                        ? "не разобрано"
-                        : quickMacroLine(meal)}
-                    </span>
-                  </span>
-                  {!mealsDone ? (
-                    <button
-                      type="button"
-                      className={`quick-gram${portion.grams == null ? " quick-gram--unset" : ""}${open ? " quick-gram--on" : ""}`}
-                      aria-expanded={open}
-                      onClick={() => setEditingMeal(open ? null : i)}
-                    >
-                      {portion.grams != null ? `${portion.grams} ${portion.unit}` : PORTION_UNSET_LABEL}
-                    </button>
-                  ) : (
-                    <span className={`quick-gram${portion.grams == null ? " quick-gram--unset" : ""}`}>
-                      {portion.grams != null ? `${portion.grams} ${portion.unit}` : PORTION_UNSET_LABEL}
-                    </span>
-                  )}
-                  {meal.unparsed && !mealsDone ? (
-                    <input
-                      className="quick-kcal"
-                      inputMode="numeric"
-                      aria-label={`Калории: ${portion.base || "блюдо"}`}
-                      placeholder="ккал"
-                      value={meal.kcal ?? ""}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, "");
-                        setDraftMeals((prev) =>
-                          prev.map((m, j) =>
-                            j === i ? (raw ? setQuickMealKcal(m, Number(raw)) : { ...m, kcal: undefined, unparsed: true }) : m,
-                          ),
-                        );
-                      }}
-                    />
-                  ) : (
-                    <span className="quick-kcal">{Math.round(meal.kcal ?? 0)}</span>
-                  )}
-                  {!mealsDone ? (
-                    <button
-                      type="button"
-                      className="quick-remove"
-                      aria-label={`Удалить ${portion.base || "блюдо"}`}
-                      onClick={() => setDraftMeals((prev) => prev.filter((_, j) => j !== i))}
-                    >
-                      ×
-                    </button>
-                  ) : null}
-                </div>
-                {open && !mealsDone ? (
-                  <div className="quick-stepper">
-                    <button
-                      type="button"
-                      aria-label="Меньше"
-                      onClick={() =>
-                        setDraftMeals((prev) =>
-                          prev.map((m, j) =>
-                            j === i && portion.grams != null
-                              ? setQuickMealGrams(m, portion.grams! - step)
-                              : m,
-                          ),
-                        )
-                      }
-                    >
-                      −
-                    </button>
-                    <input
-                      inputMode="numeric"
-                      value={portion.grams ?? ""}
-                      placeholder="г"
-                      aria-label={`Граммы: ${portion.base || "блюдо"}`}
-                      onChange={(e) => {
-                        const n = Number(e.target.value.replace(/\D/g, ""));
-                        if (n > 0) {
-                          setDraftMeals((prev) =>
-                            prev.map((m, j) => (j === i ? setQuickMealGrams(m, n) : m)),
-                          );
-                        }
-                      }}
-                    />
-                    <span>{portion.unit}</span>
-                    <button
-                      type="button"
-                      aria-label="Больше"
-                      onClick={() =>
-                        setDraftMeals((prev) =>
-                          prev.map((m, j) =>
-                            j === i
-                              ? setQuickMealGrams(m, (portion.grams ?? 0) + step)
-                              : m,
-                          ),
-                        )
-                      }
-                    >
-                      +
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-          {!mealsDone ? (
-            <button
-              type="button"
-              className="quick-add"
-              onClick={() => {
-                setDraftMeals((prev) => [...prev, blankQuickMeal()]);
-                setEditingMeal(draftMeals.length);
-              }}
-            >
-              Добавить блюдо
-            </button>
-          ) : null}
-          <div className="quick-total">
-            <b>{mealTotals.kcal} ккал</b>
-            <span>
-              Б {mealTotals.protein} · Ж {mealTotals.fat} · У {mealTotals.carbs}
-            </span>
-          </div>
-          {!mealsDone ? (
-            <p className="quick-note !mt-0">
-              {draftMeals.some((meal) => meal.unparsed)
-                ? "Есть неразобранные строки — впиши калории или удали. Без калорий они не запишутся."
-                : "Оценка AI. Нажми на граммы, чтобы поправить. Название можно изменить."}
-            </p>
-          ) : null}
-        </div>
+      {(draftMeals.length || needsMeals || actions.mealGap) && !mealsDone ? (
+        <FoodConfirmCard
+          dishes={foodConfirmFromQuickMeals(draftMeals.length ? draftMeals : actions.meals ?? [])}
+          date={applyDate}
+          source="chat"
+          online={online}
+          disabled={busy != null}
+          onQueued={(message) => {
+            setLocalDone((prev) => ({ ...prev, meals: true }));
+            setCardNote({ tone: "ok", text: message });
+            onFlash(message);
+          }}
+          onSaved={(result) => {
+            setLocalDone((prev) => ({ ...prev, meals: true }));
+            notifyFoodSaved();
+            const skipped = result.skipped > 0 ? ` · ${result.skipped} без калорий не записаны` : "";
+            const text = `В дневник: ${result.savedCount}${skipped}`;
+            setLastOkMessage(text);
+            setCardNote({ tone: "ok", text });
+            onFlash(text);
+            onApplied({ ...emptyUndo(), mealIds: result.mealIds });
+          }}
+        />
       ) : null}
       {actions.workoutDays?.length ? (
         <ul className="confirm-family-dish mt-1.5 space-y-1">
@@ -1467,20 +1019,6 @@ function ActionCard({
                 onClick={() => void applyAll()}
               >
                 {busy ? "…" : online ? "Подтвердить всё" : "Всё в очередь"}
-              </button>
-            ) : null}
-            {needsMeals && !mealsDone ? (
-              <button
-                type="button"
-                className="confirm-family-cta"
-                disabled={busy != null}
-                onClick={() => void apply("meals")}
-              >
-                {busy === "meals"
-                  ? "…"
-                  : online
-                    ? quickSaveLabel(draftMeals, mealTotals.kcal)
-                    : "В очередь"}
               </button>
             ) : null}
             {needsWater && !waterDone ? (

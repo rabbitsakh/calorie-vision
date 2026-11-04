@@ -23,9 +23,11 @@ export type AssistantActions = {
     note?: string;
     /** Wall-clock HH:MM when the meal was eaten (user timezone). */
     time?: string;
-    /** Порция числом. Старые ответы по-прежнему пишут её в name. */
+    /** Порция числом. Старые ответы по-прежнему пишут её в name. null не пишем: поле просто нет. */
     grams?: number;
-    unit?: "г" | "мл";
+    unit?: "г" | "мл" | "шт";
+    /** Слот приёма. Старые ответы по-прежнему пишут его в note. */
+    mealSlot?: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
     /** Строка была в списке, но без ккал и без строки в таблице. На карточке — «не разобрано». */
     unparsed?: boolean;
   }>;
@@ -387,7 +389,18 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
             : undefined;
       const unitRaw = typeof row.unit === "string" ? row.unit.trim().toLowerCase() : "";
       const unit =
-        unitRaw === "мл" || unitRaw === "ml" ? "мл" : unitRaw === "г" || unitRaw === "g" ? "г" : undefined;
+        unitRaw === "мл" || unitRaw === "ml"
+          ? "мл"
+          : unitRaw === "шт" || unitRaw === "pcs" || unitRaw === "pc"
+            ? "шт"
+            : unitRaw === "г" || unitRaw === "g"
+              ? "г"
+              : undefined;
+      const slotRaw = typeof row.mealSlot === "string" ? row.mealSlot.trim().toUpperCase() : "";
+      const mealSlot =
+        slotRaw === "BREAKFAST" || slotRaw === "LUNCH" || slotRaw === "DINNER" || slotRaw === "SNACK"
+          ? slotRaw
+          : undefined;
       const timeRaw =
         typeof row.time === "string"
           ? row.time
@@ -415,6 +428,7 @@ export function normalizeAssistantActions(raw: unknown): AssistantActions | null
         ...(time ? { time } : {}),
         ...(grams != null && grams > 0 ? { grams } : {}),
         ...(unit ? { unit } : {}),
+        ...(mealSlot ? { mealSlot } : {}),
         ...(row.unparsed === true ? { unparsed: true } : {}),
       });
     }

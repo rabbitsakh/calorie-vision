@@ -238,8 +238,50 @@ export function resolvePackGrams(
   return { grams: 100, explicit: false };
 }
 
+/** Вес из данных товара. Упаковка тяжелее 500 г не заменяется на 100 г. */
 export function portionGramsForPack(packGrams: number): number {
-  return packGrams > 500 ? 100 : packGrams;
+  if (!Number.isFinite(packGrams) || packGrams <= 0) return 0;
+  return Math.round(packGrams);
+}
+
+/**
+ * Порция: сначала порция с этикетки, иначе вес нетто (даже если он больше 500 г).
+ * Если ни того ни другого нет — порция не выдумывается.
+ */
+export function productPortionGrams(
+  product: OffProduct,
+  preferredGrams?: number,
+): { portion?: number; pack?: number; explicit: boolean } {
+  if (
+    preferredGrams !== undefined &&
+    preferredGrams >= MIN_UNITLESS_PACK_GRAMS
+  ) {
+    const grams = Math.round(preferredGrams);
+    return { portion: grams, pack: grams, explicit: true };
+  }
+
+  const net = parsePackGrams(product.product_quantity) ?? parsePackGrams(product.quantity);
+  const serving =
+    parsePackGrams(product.serving_quantity) ?? parsePackGrams(product.serving_size);
+  if (serving || net) {
+    return { portion: serving ?? net, pack: net ?? serving, explicit: true };
+  }
+
+  const nameText = [product.product_name_ru, product.product_name, product.brands]
+    .filter(Boolean)
+    .join(" ");
+  const fromName = parsePackGrams(nameText);
+  if (fromName !== undefined && fromName >= 20 && fromName <= 150) {
+    return { portion: fromName, pack: fromName, explicit: true };
+  }
+  if (looksLikeSnackBarName(nameText)) {
+    return {
+      portion: DEFAULT_SNACK_BAR_GRAMS,
+      pack: DEFAULT_SNACK_BAR_GRAMS,
+      explicit: true,
+    };
+  }
+  return { explicit: false };
 }
 
 export function nutritionFromPer100g(
@@ -293,8 +335,35 @@ export function offProductToNutrition(
     return null;
   }
 
-  const { grams: packGrams, explicit } = resolvePackGrams(product, preferredGrams);
-  const grams = portionGramsForPack(packGrams);
+  const picked = productPortionGrams(product, preferredGrams);
+  const packGrams = picked.pack;
+  const explicit = picked.explicit;
+  const grams = picked.portion ? portionGramsForPack(picked.portion) : 0;
+  if (!explicit || grams <= 0) {
+    const name = decodeOffText((product.product_name_ru || product.product_name || "").trim());
+    const brand = decodeOffText(product.brands?.split(",")[0]?.trim() ?? "");
+    const dishName = [brand, name].filter(Boolean).join(" ").trim() || "Продукт";
+    const per100g = {
+      calories: kcal100,
+      protein: offNutrimentNumber(nutriments.proteins_100g),
+      fat: offNutrimentNumber(nutriments.fat_100g),
+      carbs: offNutrimentNumber(nutriments.carbohydrates_100g),
+      fiber: offNutrimentNumber(nutriments.fiber_100g),
+      sugar:
+        offNutrimentNumber(nutriments.sugars_100g) ?? offNutrimentNumber(nutriments.sugars),
+    };
+    return {
+      dishName,
+      calories: 0,
+      per100g,
+      portionGrams: 0,
+      packGrams,
+      explicitPackGrams: false,
+      barcode: product.code,
+      brand: brand || undefined,
+      imageUrl: pickOffImageUrl(product),
+    };
+  }
   const per100g = {
     calories: kcal100,
     protein: offNutrimentNumber(nutriments.proteins_100g),

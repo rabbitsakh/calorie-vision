@@ -154,8 +154,8 @@ test("converts an Open Food Facts product to a portion", () => {
 
   assert.ok(nutrition);
   assert.equal(nutrition?.dishName, "Простоквашино Кефир 2.5%");
-  assert.equal(nutrition?.portionGrams, 100);
-  assert.equal(nutrition?.calories, 51);
+  assert.equal(nutrition?.portionGrams, 930);
+  assert.equal(nutrition?.calories, 474);
   assert.equal(nutrition?.imageUrl, "https://images.openfoodfacts.org/images/products/460/kefir.jpg");
 });
 
@@ -273,7 +273,38 @@ test("parses liters from package quantity text", () => {
   assert.equal(parsePackGrams("1 л"), 1000);
 });
 
-test("stores full pack weight separately from default portion", () => {
+test("порция с этикетки важнее нетто, а без веса 100 г не подставляются", () => {
+  const cereal = offProductToNutrition({
+    product_name: "Хлопья",
+    quantity: "1000 г",
+    serving_size: "40 g",
+    nutriments: {
+      "energy-kcal_100g": 380,
+      proteins_100g: 8,
+      fat_100g: 3,
+      carbohydrates_100g: 70,
+    },
+  });
+  assert.equal(cereal?.portionGrams, 40);
+  assert.equal(cereal?.packGrams, 1000);
+  assert.equal(cereal?.calories, 152);
+
+  const unknown = offProductToNutrition({
+    product_name: "Сыр",
+    nutriments: {
+      "energy-kcal_100g": 350,
+      proteins_100g: 25,
+      fat_100g: 27,
+      carbohydrates_100g: 0,
+    },
+  });
+  assert.equal(unknown?.explicitPackGrams, false);
+  assert.equal(unknown?.portionGrams, 0);
+  assert.equal(unknown?.calories, 0);
+  assert.equal(unknown?.per100g?.calories, 350);
+});
+
+test("stores full pack weight as the portion when serving is absent", () => {
   const nutrition = offProductToNutrition({
     product_name: "Пиво светлое",
     quantity: "1.5 л",
@@ -287,7 +318,8 @@ test("stores full pack weight separately from default portion", () => {
 
   assert.ok(nutrition);
   assert.equal(nutrition?.packGrams, 1500);
-  assert.equal(nutrition?.portionGrams, 100);
+  assert.equal(nutrition?.portionGrams, 1500);
+  assert.equal(nutrition?.calories, 570);
   assert.equal(nutrition?.explicitPackGrams, true);
 });
 

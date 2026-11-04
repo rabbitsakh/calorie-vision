@@ -10,11 +10,11 @@ import type { FoodRecognitionResult } from "./food-types.ts";
 
 const EAN13 = "4006381333931";
 
-test("default portion is the pack until 500 g, then a 100 g serving", () => {
-  assert.equal(defaultPortionFromPack(undefined), 100);
+test("default portion is the net weight, and unknown weight stays empty", () => {
+  assert.equal(defaultPortionFromPack(undefined), undefined);
   assert.equal(defaultPortionFromPack(180), 180);
   assert.equal(defaultPortionFromPack(500), 500);
-  assert.equal(defaultPortionFromPack(1000), 100);
+  assert.equal(defaultPortionFromPack(1000), 1000);
 });
 
 test("parseUserBarcodeProduct normalizes spacing and keeps per-100 g macros", () => {

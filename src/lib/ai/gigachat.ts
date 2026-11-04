@@ -23,7 +23,11 @@ import {
   type RecognitionRetryReason,
 } from "@/lib/ai/recognition-retry";
 import { prepareImageForLabelVision, prepareImageForVision } from "@/lib/ai/image-utils";
-import { formatGigaChatHttpError, GigaChatApiError } from "@/lib/ai/gigachat-errors";
+import {
+  formatGigaChatHttpError,
+  GigaChatApiError,
+  GigaChatFunctionUnsupportedError,
+} from "@/lib/ai/gigachat-errors";
 import { resolveGigaChatHttpTimeoutMs, withGigaChatRetry } from "@/lib/ai/gigachat-resilience";
 import {
   chatResponseCacheKey,
@@ -353,6 +357,87 @@ export async function completeChat(
 
   if (cacheKey) writeResponseCache(cacheKey, text);
   return text;
+}
+
+export type GigaChatFunctionSpec = {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+};
+
+/**
+ * Принудительный function calling. Если API не знает поле `functions`,
+ * бросает {@link GigaChatFunctionUnsupportedError} — вызывающий делает строгий JSON-вызов.
+ */
+export async function completeFunctionCall(
+  messages: Array<{ role: string; content: string }>,
+  fn: GigaChatFunctionSpec,
+  temperature = 0.1,
+): Promise<unknown> {
+  return withGigaChatRetry(async () => {
+    const token = await getAccessToken();
+    const model = process.env.GIGACHAT_MODEL ?? "GigaChat-2-Max";
+    const payload = JSON.stringify({
+      model,
+      temperature,
+      messages,
+      functions: [
+        {
+          name: fn.name,
+          description: fn.description,
+          parameters: fn.parameters,
+        },
+      ],
+      function_call: { name: fn.name },
+    });
+
+    const response = await httpsRequest(`${API_BASE}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(payload)),
+      },
+      body: payload,
+    });
+
+    if (
+      response.status === 400 &&
+      /function|functions|function_call/i.test(response.body)
+    ) {
+      throw new GigaChatFunctionUnsupportedError();
+    }
+
+    const data = parseJsonBody<{
+      choices?: Array<{
+        message?: {
+          content?: string;
+          function_call?: { name?: string; arguments?: unknown };
+        };
+      }>;
+    }>(response.status, response.body);
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new GigaChatApiError(
+        formatGigaChatHttpError(response.status, response.body),
+        response.status,
+      );
+    }
+
+    const message = data.choices?.[0]?.message;
+    const args = message?.function_call?.arguments;
+    if (typeof args === "string" && args.trim()) {
+      try {
+        return JSON.parse(args) as unknown;
+      } catch {
+        return args;
+      }
+    }
+    if (args && typeof args === "object") return args;
+    const content = message?.content?.trim();
+    if (content) return content;
+    throw new Error("GigaChat не вернул аргументы функции");
+  }, { attempts: 2 });
 }
 
 /**
