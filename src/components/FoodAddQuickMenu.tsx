@@ -97,7 +97,7 @@ export function FoodAddModeMenu({
       id={listId}
       role="menu"
       aria-label="Что добавить"
-      className={`food-add-desktop-menu absolute z-[65] w-64 ${
+      className={`food-add-desktop-menu absolute z-[80] w-64 ${
         placement === "up"
           ? "bottom-[calc(100%+0.45rem)] left-1/2 -translate-x-1/2"
           : "top-[calc(100%+0.45rem)]"

@@ -63,7 +63,7 @@ export function RestTimer({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-1 flex w-44 flex-col rounded-xl border border-[var(--border-quiet)] bg-white py-1 shadow-lg"
+          className="cv-menu absolute right-0 z-40 mt-1 flex w-44 flex-col rounded-xl border border-[var(--border-quiet)] py-1 shadow-lg"
         >
           {options.map((sec) => (
             <button
