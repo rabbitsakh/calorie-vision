@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+import { WorkoutExportLinks } from "@/components/workouts/WorkoutExportLinks";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -1218,7 +1219,9 @@ export function StatsView({ endDate }: StatsViewProps) {
           {/* Export */}
           <section className="stats-chart-block">
             <h2 className="mb-1 text-lg font-bold">Экспорт · Calorie Vision</h2>
-            <p className="mb-3 text-xs text-[var(--muted)]">PDF с брендингом и дневником за выбранный период</p>
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              Дневник и тренировки за выбранный период — CSV или PDF
+            </p>
             <div className="mb-3 flex flex-wrap gap-1.5">
               {(
                 [
@@ -1282,6 +1285,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               >
                 Скачать PDF
               </a>
+              <WorkoutExportLinks from={exportRange.from} to={exportRange.to} />
             </div>
             {exportRange.from && exportRange.to ? (
               <p className="mt-2 text-xs text-[var(--muted)]">

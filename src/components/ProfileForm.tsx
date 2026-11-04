@@ -36,6 +36,7 @@ import {
 } from "@/lib/referral";
 import { clearTimezoneCache } from "@/lib/use-timezone";
 import { MedicalDisclaimerNote } from "@/components/MedicalDisclaimerNote";
+import { WorkoutExportLinks } from "@/components/workouts/WorkoutExportLinks";
 import { ALLERGEN_OPTIONS } from "@/lib/allergens";
 
 type AccountResponse = {
@@ -697,7 +698,7 @@ export function ProfileForm() {
 
           <ProfileCollapse
             title="Экспорт и установка"
-            hint="CSV, PDF, приложение на телефон"
+            hint="Дневник, тренировки, приложение"
             open={openData}
             onToggle={() => setOpenData((v) => !v)}
           >
@@ -729,6 +730,7 @@ export function ProfileForm() {
                   ↓
                 </span>
               </a>
+              <WorkoutExportLinks variant="doors" />
               <Link href={withBasePath("/install")} className="profile-settings__door">
                 <span className="min-w-0">
                   <span className="block font-semibold text-[var(--foreground)]">Установить приложение</span>
@@ -810,8 +812,9 @@ export function ProfileForm() {
           onToggle={() => setOpenDelete((v) => !v)}
         >
           <p className="text-sm text-[var(--muted)]">
-            Удалим профиль, дневник, вес, воду, напоминания и загруженные фото. Это необратимо.
-            Сначала скачайте полную копию данных (CSV и PDF).
+            Удалим профиль, дневник, тренировки, вес, воду, напоминания и загруженные фото. Это
+            необратимо. Сначала скачайте дневник (CSV и PDF) и тренировки в блоке «Экспорт и
+            установка».
           </p>
           {!deleteConfirmOpen ? (
             <button
