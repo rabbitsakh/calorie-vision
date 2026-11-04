@@ -1384,12 +1384,51 @@ select {
   flex: 1;
 }
 
-.quick-dish-name b {
+.quick-dish-name b,
+.quick-dish-name-input {
   display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.2;
   color: var(--foreground);
+}
+
+.quick-dish-name-input:focus {
+  outline: none;
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+
+.quick-unparsed {
+  color: #b45309;
+}
+
+.quick-remove {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.quick-add {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  font-weight: 800;
 }
 
 .quick-dish-name span {
@@ -1414,6 +1453,13 @@ select {
   border-color: var(--accent);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.12);
+}
+
+.quick-gram--unset {
+  font-size: 0.7rem;
+  font-weight: 700;
+  max-width: 6.5rem;
+  line-height: 1.15;
 }
 
 .quick-kcal {

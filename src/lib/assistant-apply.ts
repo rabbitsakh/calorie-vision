@@ -3,6 +3,7 @@
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+import { splitQuickPortion } from "@/lib/quick-log";
 import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
 import { isMuscleGroupKey, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
@@ -137,14 +138,17 @@ export function mealsPayloadFromActions(
   carbs?: number;
   recognitionSource: string;
   eatenAt?: string;
+  portionGrams?: number;
 }> {
   const meals = actions.meals ?? [];
   return meals
     .filter((m) => m.name.trim())
+    .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
     .slice(0, 12)
     .map((m) => {
       const time = parseMealTimeHHMM(m.time);
       const eatenAt = time ? dateKeyAndTimeToIso(date, time, timezone) : null;
+      const portion = splitQuickPortion(m.name);
       return {
         date,
         dishName: m.name.trim().slice(0, 200),
@@ -152,6 +156,7 @@ export function mealsPayloadFromActions(
           typeof m.kcal === "number" && Number.isFinite(m.kcal)
             ? Math.max(1, Math.round(m.kcal))
             : 200,
+        ...(portion.grams != null && portion.grams > 0 ? { portionGrams: portion.grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)
           ? { protein: Math.max(0, m.protein) }
           : {}),
