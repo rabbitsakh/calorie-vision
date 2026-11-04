@@ -74,3 +74,9 @@ test("formatTimeShort formats a UTC time correctly in a specific timezone", () =
   const moscow = formatTimeShort(ts, "Europe/Moscow");
   assert.equal(moscow, "13:30");
 });
+
+test("formatTimeShort shows Sakhalin breakfast, not the UTC clock", () => {
+  const logged = new Date("2026-11-03T23:28:00.000Z");
+  assert.equal(formatTimeShort(logged, "Asia/Sakhalin"), "10:28");
+  assert.equal(formatTimeShort(logged, "UTC"), "23:28");
+});
