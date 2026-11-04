@@ -7,6 +7,8 @@ import {
   foodConfirmFromQuickMeal,
   foodConfirmFromRecognition,
   foodConfirmToSaveInputs,
+  per100FromLookup,
+  portionAfterProductLookup,
   prepareFoodConfirmSave,
   withFoodConfirmGrams,
 } from "./food-confirm.ts";
@@ -97,6 +99,35 @@ test("первая порция в чате не пересчитывает кк
   assert.equal(next.kcal, 300);
   const again = withFoodConfirmGrams(next, 90);
   assert.equal(again.kcal, 150);
+});
+
+test("поиск не подставляет 100 г: пустая порция остаётся плотностью на 100 г", () => {
+  assert.equal(
+    portionAfterProductLookup({ currentGrams: null, originalGrams: null, lookedGrams: 100 }),
+    null,
+  );
+  assert.equal(portionAfterProductLookup({ currentGrams: 180, lookedGrams: 100 }), 180);
+  assert.equal(portionAfterProductLookup({ originalGrams: 930, lookedGrams: 100 }), 930);
+  assert.equal(portionAfterProductLookup({ lookedGrams: 330 }), 330);
+  const per = per100FromLookup({ calories: 80, protein: 2, fat: 1, carbs: 12, portionGrams: 100 });
+  assert.equal(per.calories, 80);
+  assert.equal(per.protein, 2);
+  const scaled = withFoodConfirmGrams(
+    {
+      name: "Мука",
+      grams: null,
+      unit: "г",
+      kcal: null,
+      protein: null,
+      fat: null,
+      carbs: null,
+      mealSlot: null,
+      per100: per,
+      source: "barcode",
+    },
+    50,
+  );
+  assert.equal(scaled.kcal, 40);
 });
 
 test("несколько блюд: неразобранная строка не ломает остальные, ккал сверяются с БЖУ", () => {

@@ -61,8 +61,11 @@ export function ConfirmDishRow({
     confidence != null
       ? getConfidenceTone(confidence, DEFAULT_LOW_CONFIDENCE_THRESHOLD)
       : null;
-  const kcalLabel =
-    confidence != null && Number.isFinite(kcal) && kcal > 0
+  const per100kcal = dish.original.per100g?.calories;
+  const portionEmpty = !(Number.isFinite(grams) && grams > 0);
+  const kcalLabel = portionEmpty && per100kcal && per100kcal > 0
+    ? `${Math.round(per100kcal)} ккал / 100 ${unit}`
+    : confidence != null && Number.isFinite(kcal) && kcal > 0
       ? formatCalorieEstimate(kcal, confidence)
       : kcal > 0
         ? `${Math.round(kcal)} ккал`
@@ -114,6 +117,7 @@ export function ConfirmDishRow({
             <input
               inputMode="decimal"
               value={dish.portionGrams}
+              placeholder={portionEmpty ? "укажите" : undefined}
               disabled={disabled}
               onChange={(e) => onPortion(e.target.value)}
               aria-label={`Порция, ${unit}`}

@@ -219,7 +219,7 @@ test("clearPendingConfirmDraft after save leaves no draft for banner", () => {
     imagePath: "/meal.jpg",
     recognition: { dishName: "Омлет", calories: 250 } as never,
   });
-  // Simulate ConfirmationCard stopPersistingDraft({ clearDraft: true }) on successful save.
+  // Как FoodConfirmCard при успешном сохранении: черновик подтверждения стирается.
   clearPendingConfirmDraft("2026-08-24");
   assert.equal(getPendingConfirmDraft("2026-08-24"), null);
   assert.equal(countPendingConfirms(), 0);

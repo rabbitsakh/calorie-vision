@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import {
   foodConfirmEnergyWarning,
   foodConfirmToSaveInputs,
@@ -14,11 +14,12 @@ import {
 import { postConfirmedMeals } from "@/lib/food-confirm-save";
 import { enqueueFailedSave } from "@/lib/meal-draft-queue";
 import { MEAL_TYPE_LABELS, type MealType } from "@/types";
+import { FoodConfirmSheet, type FoodConfirmSheetProps } from "@/components/food-confirm-sheet";
 
 const UNITS: FoodConfirmUnit[] = ["г", "мл", "шт"];
 const SLOTS = Object.keys(MEAL_TYPE_LABELS) as MealType[];
 
-type FoodConfirmCardProps = {
+type SimpleFoodConfirmProps = {
   dishes: FoodConfirmDish[];
   date: string;
   source: FoodConfirmSource;
@@ -52,7 +53,7 @@ function blankDish(source: FoodConfirmSource, mealSlot: FoodConfirmSlot | null):
   };
 }
 
-export function FoodConfirmCard({
+function SimpleFoodConfirm({
   dishes,
   date,
   source,
@@ -68,7 +69,7 @@ export function FoodConfirmCard({
   onQueued,
   onCancel,
   editorOnly = false,
-}: FoodConfirmCardProps) {
+}: SimpleFoodConfirmProps) {
   const [local, setLocal] = useState(dishes);
   const [ownSlot, setOwnSlot] = useState<FoodConfirmSlot | null>(mealSlot);
   const [busy, setBusy] = useState(false);
@@ -312,4 +313,16 @@ export function FoodConfirmCard({
       ) : null}
     </div>
   );
+}
+
+export type FoodConfirmCardProps = SimpleFoodConfirmProps | FoodConfirmSheetProps;
+
+/** Чат передаёт список блюд. Фото и штрихкод — результат распознавания и опции листа. */
+export function FoodConfirmCard(props: SimpleFoodConfirmProps): ReactElement;
+export function FoodConfirmCard(props: FoodConfirmSheetProps): ReactElement;
+export function FoodConfirmCard(props: FoodConfirmCardProps) {
+  if ("result" in props) {
+    return <FoodConfirmSheet {...props} />;
+  }
+  return <SimpleFoodConfirm {...props} />;
 }

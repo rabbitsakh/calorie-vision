@@ -9,7 +9,7 @@ const BarcodeScanner = dynamic(
   { ssr: false, loading: () => <p className="text-sm text-[var(--muted)]">Открываем сканер…</p> },
 );
 import { BarcodeContributeForm } from "@/components/BarcodeContributeForm";
-import { ConfirmationCard } from "@/components/ConfirmationCard";
+import { FoodConfirmCard } from "@/components/FoodConfirmCard";
 import { PhotoUploader, type PhotoUploaderHandle } from "@/components/PhotoUploader";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import {
@@ -178,7 +178,7 @@ export function FoodAddPanel({
     pendingResultRef.current = result;
     setPendingResult(result);
     setDraftBanner(null);
-    // Draft persistence is owned by ConfirmationCard after edits / crash recovery effect.
+    // Черновик ведёт FoodConfirmCard. Здесь не пишем второй раз, чтобы сохранение не воскресило баннер.
     // Avoid double-upsert here so a successful save cannot race a fresh write.
     if (photoContext === "auto") {
       const chip = photoKindToContextChip(
@@ -319,8 +319,8 @@ export function FoodAddPanel({
     });
   }, [flushFailedSaves]);
 
-  // Seed pending-confirm once when confirm opens (crash recovery). Edits upsert from ConfirmationCard.
-  // ConfirmationCard clears the draft on save/cancel before unmount — do not re-seed after close.
+  // Один раз кладём черновик при открытии. Правки пишет FoodConfirmCard.
+  // Карточка сама стирает его при сохранении и отмене — после закрытия не сеем заново.
   useEffect(() => {
     if (!pendingResult) return;
     upsertPendingConfirmDraft(selectedDate, pendingResult);
@@ -486,12 +486,16 @@ export function FoodAddPanel({
   if (pendingResult) {
     const draftUi = getPendingConfirmDraft(selectedDate)?.ui ?? null;
     return (
-      <ConfirmationCard
+      <FoodConfirmCard
         result={pendingResult}
         selectedDate={selectedDate}
         timezone={timezone}
         initialMealType={initialMealType}
         initialUi={draftUi}
+        lookup
+        allergens
+        draft
+        per100
         onRerunWithContext={rerunWithContext}
         onCancel={() => {
           photoAbortRef.current?.abort();

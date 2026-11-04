@@ -28,6 +28,8 @@ type ConfirmStickyActionsProps = {
   saveLabel: string;
   onSave: () => void;
   onCancel: () => void;
+  /** Поиск «Уточнить». Выключено — остаётся только запись и отмена. */
+  lookupEnabled?: boolean;
 };
 
 export function ConfirmStickyActions({
@@ -52,6 +54,7 @@ export function ConfirmStickyActions({
   saveLabel,
   onSave,
   onCancel,
+  lookupEnabled = true,
 }: ConfirmStickyActionsProps) {
   const blockSaveForMissingKcal =
     anyMissingCalories && !enriching && !enrichmentTimedOut;
@@ -62,7 +65,7 @@ export function ConfirmStickyActions({
           {dishesLength} позиций · {totalCalories || "—"} ккал
         </p>
       ) : null}
-      {needsReview && reviewCta ? (
+      {lookupEnabled && needsReview && reviewCta ? (
         <button
           type="button"
           className="btn btn-primary inline-flex items-center justify-center gap-2"
