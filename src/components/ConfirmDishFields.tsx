@@ -40,6 +40,7 @@ export function DishFields({
   review,
   /** Sticky skim already shows «Уточнить» — hide the under-name duplicate. */
   hideInlineLookupCta = false,
+  lookupEnabled = true,
   onChange,
   onBaselineChange,
   onPortionChange,
@@ -56,6 +57,8 @@ export function DishFields({
   canRemove: boolean;
   review: { lowConfidence: boolean; missingCalories: boolean; missingMacros: boolean };
   hideInlineLookupCta?: boolean;
+  /** Поиск и замена продукта. Выключено — остаётся только ручной ввод. */
+  lookupEnabled?: boolean;
   onChange: (patch: Partial<DishDraft>) => void;
   onBaselineChange: (patch: Partial<DishDraft>) => void;
   onPortionChange: (value: string) => void;
@@ -125,7 +128,7 @@ export function DishFields({
     nutritionBasisLine !== whyThese.summary &&
     !whyThese.summary.includes(nutritionBasisLine!);
 
-  const alternativesSection = dish.original.alternatives?.length ? (
+  const alternativesSection = lookupEnabled && dish.original.alternatives?.length ? (
     <div>
       <p className="mb-2 text-sm font-semibold text-[var(--muted-strong)]">
         {dish.original.lookupMode === "branded"
@@ -226,12 +229,13 @@ export function DishFields({
                 }
               }}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
+                if (lookupEnabled && event.key === "Enter") {
                   event.preventDefault();
                   onLookup();
                 }
               }}
             />
+            {lookupEnabled ? (
             <button
               type="button"
               className="btn-icon"
@@ -246,6 +250,7 @@ export function DishFields({
                 <SearchIcon />
               )}
             </button>
+            ) : null}
           </div>
           {(() => {
             const recognizedName = decodeHtmlEntities(dish.original.dishName).trim();
@@ -290,7 +295,7 @@ export function DishFields({
               следующий раз.
             </p>
           ) : null}
-          {showReviewCta && !hideInlineLookupCta ? (
+          {lookupEnabled && showReviewCta && !hideInlineLookupCta ? (
             <button
               type="button"
               className="btn btn-secondary mt-2 w-full text-sm sm:w-auto"

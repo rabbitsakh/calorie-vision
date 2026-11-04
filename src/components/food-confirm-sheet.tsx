@@ -62,6 +62,8 @@ import {
 import {
   foodConfirmEnergyWarning,
   foodConfirmFromRecognition,
+  per100FromLookup,
+  portionAfterProductLookup,
   prepareFoodConfirmSave,
   type FoodConfirmSlot,
 } from "@/lib/food-confirm";
@@ -91,7 +93,7 @@ type NutritionFields = {
   source?: string;
 };
 
-type ConfirmationCardProps = {
+export type FoodConfirmSheetProps = {
   result: RecognitionResponse;
   selectedDate: string;
   timezone?: string | null;
@@ -110,9 +112,17 @@ type ConfirmationCardProps = {
   onSaveQueued?: () => void;
   /** Low-confidence re-pass: parent sets photo context and opens camera. */
   onRerunWithContext?: (context: PhotoContextChip) => void;
+  /** Поиск и замена продукта. По умолчанию включены. */
+  lookup?: boolean;
+  /** Предупреждение об аллергенах и подтверждение. По умолчанию включено. */
+  allergens?: boolean;
+  /** Черновик правок на устройстве. По умолчанию включён. */
+  draft?: boolean;
+  /** Пустая порция показывает ккал на 100 г и не подставляет 100 г. По умолчанию включено. */
+  per100?: boolean;
 };
 
-export function ConfirmationCard({
+export function FoodConfirmSheet({
   result,
   selectedDate,
   timezone,
@@ -122,7 +132,11 @@ export function ConfirmationCard({
   onSaved,
   onSaveQueued,
   onRerunWithContext,
-}: ConfirmationCardProps) {
+  lookup = true,
+  allergens = true,
+  draft = true,
+  per100 = true,
+}: FoodConfirmSheetProps) {
   const { recognition, imagePath: initialImagePath, previewUrl, enriching = false } = result;
   const [dishes, setDishes] = useState<DishDraft[]>(() =>
     applyUiToDishes(draftsFromRecognition(recognition), initialUi),
@@ -201,6 +215,7 @@ export function ConfirmationCard({
   }, []);
 
   useEffect(() => {
+    if (!allergens) return;
     void (async () => {
       try {
         const resp = await fetch(withBasePath("/api/account"));
@@ -211,7 +226,7 @@ export function ConfirmationCard({
         // soft hint only — ignore load failures
       }
     })();
-  }, []);
+  }, [allergens]);
 
   useEffect(() => {
     dishesListTouchedRef.current = false;
@@ -228,6 +243,7 @@ export function ConfirmationCard({
   // Persist confirm edits into pending-confirm so reload / PWA kill keeps them (1.11.1).
   // T2: also flush immediately on pagehide / hidden tab so weak-net kills don't drop keystrokes.
   useEffect(() => {
+    if (!draft) return;
     function persistNow() {
       if (persistClosedRef.current || savingRef.current) return;
       const ui: PendingConfirmUi = {
@@ -275,7 +291,7 @@ export function ConfirmationCard({
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [allergenAck, activeDish, dishes, eatenTime, mealType, result, selectedDate]);
+  }, [allergenAck, activeDish, dishes, draft, eatenTime, mealType, result, selectedDate]);
 
   function stopPersistingDraft(opts?: { clearDraft?: boolean }) {
     persistClosedRef.current = true;
@@ -445,14 +461,70 @@ export function ConfirmationCard({
       }
 
       const next = data.recognition;
-      const targetPortion =
-        Number(dish.portionGrams) > 0
+      const chosenPortion = per100
+        ? portionAfterProductLookup({
+            currentGrams: Number(dish.portionGrams) > 0 ? Number(dish.portionGrams) : null,
+            originalGrams:
+              dish.original.portionGrams && dish.original.portionGrams > 0
+                ? dish.original.portionGrams
+                : null,
+            lookedGrams: next.portionGrams,
+          })
+        : Number(dish.portionGrams) > 0
           ? Number(dish.portionGrams)
           : next.portionGrams && next.portionGrams > 0
             ? next.portionGrams
             : Number(dish.original.portionGrams) || 100;
 
-      const merged = applyFoodLookupToPortion(dish.original, next, targetPortion);
+      if (chosenPortion == null) {
+        const density = per100FromLookup(next);
+        const emptyPatch: Partial<DishDraft> = {
+          dishName: decodeHtmlEntities(next.dishName || dish.dishName),
+          calories: "",
+          protein: "",
+          fat: "",
+          carbs: "",
+          fiber: "",
+          sugar: "",
+          portionGrams: "",
+          baseline: null,
+        };
+        setDishes((current) =>
+          current.map((item) =>
+            item.id === dish.id
+              ? {
+                  ...item,
+                  ...emptyPatch,
+                  original: {
+                    ...item.original,
+                    dishName: next.dishName || item.original.dishName,
+                    calories: 0,
+                    protein: undefined,
+                    fat: undefined,
+                    carbs: undefined,
+                    portionGrams: undefined,
+                    per100g: {
+                      calories: density.calories,
+                      protein: density.protein,
+                      fat: density.fat,
+                      carbs: density.carbs,
+                    },
+                    source: next.source ?? item.original.source,
+                  },
+                }
+              : item,
+          ),
+        );
+        const sourceLabel = next.source ? RECOGNITION_SOURCE_LABELS[next.source] : undefined;
+        setLookupMessage(
+          sourceLabel
+            ? `${sourceLabel}. ${density.calories} ккал на 100 г — укажите порцию`
+            : `${density.calories} ккал на 100 г — укажите порцию`,
+        );
+        return;
+      }
+
+      const merged = applyFoodLookupToPortion(dish.original, next, chosenPortion);
 
       const patch: Partial<DishDraft> = {
         dishName: decodeHtmlEntities(merged.dishName),
@@ -652,7 +724,7 @@ export function ConfirmationCard({
         }),
       ),
     );
-    if (hits.length > 0 && !allergenAck) {
+    if (allergens && hits.length > 0 && !allergenAck) {
       setError("Сначала подтвердите проверку аллергенов — чекбокс выше.");
       const allergenDishIndex = dishes.findIndex((dish) => {
         const brand = dish.original.brand?.trim();
@@ -868,7 +940,9 @@ export function ConfirmationCard({
       : anyLowConfidence
         ? "low"
         : "high";
-  const allergenHits = Array.from(
+  const allergenHits = !allergens
+    ? []
+    : Array.from(
     new Set(
       dishes.flatMap((dish) => {
         const brand = dish.original.brand?.trim();
@@ -888,7 +962,8 @@ export function ConfirmationCard({
       formDisabled={formDisabled}
       canRemove={multi}
       review={reviewFlags[index]!}
-      hideInlineLookupCta={Boolean(reviewCta)}
+      hideInlineLookupCta={!lookup || Boolean(reviewCta)}
+      lookupEnabled={lookup}
       onChange={(patch) => updateDish(dish.id, patch)}
       onBaselineChange={(patch) =>
         updateDish(dish.id, { ...patch, baseline: captureBaseline(dish, patch) })
@@ -896,12 +971,46 @@ export function ConfirmationCard({
       onPortionChange={(value) => handlePortionChange(dish, value)}
       onLookup={(name) => void handleLookup(dish, name)}
       onApplyAlternative={(alt) => {
-        const typedPortion = Number(dish.portionGrams);
-        const originalPortion = Number(dish.original.portionGrams);
-        const targetPortion =
-          typedPortion > 0 ? typedPortion : originalPortion > 0 ? originalPortion : undefined;
-        if (!targetPortion) {
-          setLookupMessage("Сначала укажите порцию — 100 г сами не подставим");
+        const targetPortion = per100
+          ? portionAfterProductLookup({
+              currentGrams: Number(dish.portionGrams) > 0 ? Number(dish.portionGrams) : null,
+              originalGrams:
+                dish.original.portionGrams && dish.original.portionGrams > 0
+                  ? dish.original.portionGrams
+                  : null,
+              lookedGrams: alt.portionGrams,
+            })
+          : Number(dish.portionGrams) > 0
+            ? Number(dish.portionGrams)
+            : Number(dish.original.portionGrams) > 0
+              ? Number(dish.original.portionGrams)
+              : 100;
+        if (targetPortion == null) {
+          const density = per100FromLookup(alt);
+          updateDish(dish.id, {
+            dishName: decodeHtmlEntities(alt.dishName),
+            calories: "",
+            protein: "",
+            fat: "",
+            carbs: "",
+            fiber: "",
+            sugar: "",
+            portionGrams: "",
+            baseline: null,
+            original: {
+              ...dish.original,
+              dishName: alt.dishName,
+              calories: 0,
+              portionGrams: undefined,
+              per100g: {
+                calories: density.calories,
+                protein: density.protein,
+                fat: density.fat,
+                carbs: density.carbs,
+              },
+            },
+          });
+          setLookupMessage(`${density.calories} ккал на 100 г — укажите порцию`);
           return;
         }
 
@@ -1026,17 +1135,47 @@ export function ConfirmationCard({
                     disabled={formDisabled}
                     onSelect={() => setActiveDish((v) => (v === index ? -1 : index))}
                     onPortion={(value) => handlePortionChange(dish, value)}
-                    onApplyAlternative={(alt) => {
-                      const typedPortion = Number(dish.portionGrams);
-                      const originalPortion = Number(dish.original.portionGrams);
-                      const targetPortion =
-                        typedPortion > 0
-                          ? typedPortion
-                          : originalPortion > 0
-                            ? originalPortion
-                            : undefined;
-                      if (!targetPortion) {
-                        setLookupMessage("Сначала укажите порцию — 100 г сами не подставим");
+                    onApplyAlternative={
+                      lookup
+                        ? (alt) => {
+                      const targetPortion = per100
+                        ? portionAfterProductLookup({
+                            currentGrams: Number(dish.portionGrams) > 0 ? Number(dish.portionGrams) : null,
+                            originalGrams:
+                              dish.original.portionGrams && dish.original.portionGrams > 0
+                                ? dish.original.portionGrams
+                                : null,
+                            lookedGrams: alt.portionGrams,
+                          })
+                        : Number(dish.portionGrams) > 0
+                          ? Number(dish.portionGrams)
+                          : Number(dish.original.portionGrams) > 0
+                            ? Number(dish.original.portionGrams)
+                            : 100;
+                      if (targetPortion == null) {
+                        const density = per100FromLookup(alt);
+                        updateDish(dish.id, {
+                          dishName: decodeHtmlEntities(alt.dishName),
+                          calories: "",
+                          protein: "",
+                          fat: "",
+                          carbs: "",
+                          portionGrams: "",
+                          baseline: null,
+                          original: {
+                            ...dish.original,
+                            dishName: alt.dishName,
+                            calories: 0,
+                            portionGrams: undefined,
+                            per100g: {
+                              calories: density.calories,
+                              protein: density.protein,
+                              fat: density.fat,
+                              carbs: density.carbs,
+                            },
+                          },
+                        });
+                        setLookupMessage(`${density.calories} ккал на 100 г — укажите порцию`);
                         return;
                       }
                       const merged = applyAlternativeToPortion(
@@ -1059,7 +1198,9 @@ export function ConfirmationCard({
                           ...merged,
                         }),
                       });
-                    }}
+                        }
+                        : undefined
+                    }
                   />
                   {index === activeDish ? renderDishFields(dish, index) : null}
                 </Fragment>
@@ -1178,6 +1319,7 @@ export function ConfirmationCard({
           enriching={enriching}
           enrichmentTimedOut={Boolean(recognition.enrichmentTimedOut)}
           saveLabel={saveLabel}
+          lookupEnabled={lookup}
           onSave={() => void handleSave()}
           onCancel={() => {
             stopPersistingDraft({ clearDraft: true });

@@ -299,6 +299,48 @@ export function foodConfirmFromPhotoDraft(
   };
 }
 
+/**
+ * Порция после поиска или замены продукта.
+ * Явные граммы пользователя, нетто и порция не равная 100 г сохраняются.
+ * Иначе порция пустая: калории показываем на 100 г, 100 г сами не пишем.
+ */
+export function portionAfterProductLookup(input: {
+  currentGrams?: number | null;
+  originalGrams?: number | null;
+  lookedGrams?: number | null;
+}): number | null {
+  if (input.currentGrams != null && input.currentGrams > 0) return Math.round(input.currentGrams);
+  if (input.originalGrams != null && input.originalGrams > 0 && input.originalGrams !== 100) {
+    return Math.round(input.originalGrams);
+  }
+  if (input.lookedGrams != null && input.lookedGrams > 0 && input.lookedGrams !== 100) {
+    return Math.round(input.lookedGrams);
+  }
+  return null;
+}
+
+/** Плотность на 100 г из ответа поиска, если порцию в карточку класть нельзя. */
+export function per100FromLookup(looked: {
+  calories: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  fiber?: number;
+  sugar?: number;
+  portionGrams?: number;
+}): FoodConfirmPer100 {
+  const portion = looked.portionGrams && looked.portionGrams > 0 ? looked.portionGrams : 100;
+  const ratio = 100 / portion;
+  const scale = (value: number | undefined) =>
+    value == null || !Number.isFinite(value) ? undefined : Math.round(value * ratio * 10) / 10;
+  return {
+    calories: Math.max(0, Math.round((Number(looked.calories) || 0) * ratio)),
+    protein: scale(looked.protein),
+    fat: scale(looked.fat),
+    carbs: scale(looked.carbs),
+  };
+}
+
 export function foodConfirmMealsOf(actions: AssistantActions | null | undefined): FoodConfirmDish[] {
   return foodConfirmFromQuickMeals(actions?.meals ?? [], "chat");
 }
