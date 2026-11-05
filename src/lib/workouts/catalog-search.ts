@@ -11,7 +11,7 @@ import {
   type EquipmentKey,
   type TrackingType,
 } from "@/lib/workouts/exercise-catalog";
-import { exerciseNameSimilarity, normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { normalizeExerciseName, scoreExercisePhrase } from "@/lib/workouts/exercise-name";
 import { isMuscleGroupKey, muscleGroupLabel, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
 export type CatalogSearchHit = {
@@ -52,9 +52,9 @@ export function scoreCatalogExercise(query: string, row: CatalogExercise): numbe
   if (q === row.nameNorm) return 1;
   if (row.synonymNorms.includes(q)) return 1;
 
-  let best = exerciseNameSimilarity(q, row.nameNorm);
+  let best = scoreExercisePhrase(q, row.nameNorm);
   for (const syn of row.synonymNorms) {
-    const sim = exerciseNameSimilarity(q, syn);
+    const sim = scoreExercisePhrase(q, syn);
     if (sim > best) best = sim;
   }
 
