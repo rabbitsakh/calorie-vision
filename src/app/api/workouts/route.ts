@@ -12,6 +12,8 @@ import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
 import { countPrsBySessionId } from "@/lib/workouts/prs";
 import { sweepIdleSessions } from "@/lib/workouts/apply-session-clock";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
+import { estimateDbSessionEnergy, formatSessionEnergyLine } from "@/lib/workouts/energy";
+import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 
 export const dynamic = "force-dynamic";
 
@@ -120,15 +122,28 @@ export async function GET(request: NextRequest) {
       })),
     );
 
-    let sessions = rows.map((row) => ({
-      ...serializeSessionSummary(row),
-      prCount: prCounts.get(row.id) ?? 0,
-    }));
+    const latestWeight = await prisma.weightEntry.findFirst({
+      where: { userId: session.user.id },
+      orderBy: weightEntryOrderNewestFirst,
+      select: { weightKg: true },
+    });
+    const bodyWeightKg =
+      latestWeight?.weightKg != null && latestWeight.weightKg > 0 ? latestWeight.weightKg : null;
+
+    let sessions = rows.map((row) => {
+      const energy = estimateDbSessionEnergy(row, bodyWeightKg);
+      return {
+        ...serializeSessionSummary(row),
+        prCount: prCounts.get(row.id) ?? 0,
+        energy,
+        energyLabel: formatSessionEnergyLine(energy),
+      };
+    });
     if (cardioOnly) {
       sessions = sessions.filter((s) => s.cardioOnly || s.muscleKeys.includes("cardio"));
     }
 
-    return NextResponse.json({ sessions });
+    return NextResponse.json({ sessions, bodyWeightKg });
   } catch (error) {
     console.error("GET /api/workouts", error);
     return NextResponse.json({ error: "Не удалось загрузить тренировки" }, { status: 500 });

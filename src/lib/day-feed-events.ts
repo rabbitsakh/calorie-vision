@@ -29,6 +29,8 @@ export type GymSessionSummaryLike = {
   setCount?: number;
   clockStatus?: string;
   prCount?: number;
+  /** Уже собранная строка расхода, без пересчёта MET на клиенте. */
+  energyLabel?: string | null;
 };
 
 export function mealItemTimeMs(item: MealListItem): number | null {
@@ -67,6 +69,7 @@ export function gymSessionEvent(s: GymSessionSummaryLike): DayFeedEvent | null {
     s.muscleLabels?.length ? s.muscleLabels.slice(0, 3).join(" · ") : null,
     live ? "идёт" : minutes != null ? `${minutes} мин` : null,
     sets > 0 ? `${sets} подх.` : null,
+    s.energyLabel?.trim() ? s.energyLabel.trim() : null,
   ].filter((p): p is string => Boolean(p));
   const at = s.startedAt ? Date.parse(s.startedAt) : Number.NaN;
   return {

@@ -38,6 +38,7 @@ export type DbExercise = {
   id: string;
   name: string;
   kind?: string | null;
+  catalogId?: string | null;
   muscleGroup: string | null;
   note?: string | null;
   sortOrder: number;
@@ -174,6 +175,7 @@ export function serializeSessionDetail(session: DbSession) {
         id: ex.id,
         name: ex.name,
         kind,
+        catalogId: ex.catalogId ?? null,
         note: ex.note ?? null,
         muscleGroup: ex.muscleGroup,
         muscleLabel: ex.muscleGroup ? muscleGroupLabel(ex.muscleGroup) : null,

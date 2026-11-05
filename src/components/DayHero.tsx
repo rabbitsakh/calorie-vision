@@ -29,12 +29,9 @@ import {
   shouldClearPostWorkoutNudge,
 } from "@/lib/post-workout-nudge";
 import { cheerPhrase, frameAvatarClass, rewardDef } from "@/lib/rewards";
+import type { TrainingDayInfo } from "@/lib/training-day";
 import { useTimezone } from "@/lib/use-timezone";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
-import {
-  estimateDayWorkoutBurnKcal,
-  type WorkoutBurnSessionLike,
-} from "@/lib/workout-day-burn";
 
 type ProgressData = {
   calories: number;
@@ -44,6 +41,8 @@ type ProgressData = {
   waterMl: number;
   waterTarget: number;
   weightKg: number | null;
+  trainingLabel: string | null;
+  trainingSessionCount: number;
 };
 
 type DayHeroProps = {
@@ -61,20 +60,25 @@ function progressFromPayload(
       calories: number;
       protein: number;
     } | null;
+    trainingDay?: TrainingDayInfo | null;
   },
   water: { totalMl: number; target: number },
   weightKg?: number | null,
 ): ProgressData {
   const holiday = isHolidayBufferOn(selectedDate);
-  const baseCal = meals.target?.calories ?? null;
+  const training = meals.trainingDay ?? null;
+  const bonus = training?.calorieBonusKcal ?? 0;
+  const baseCal = training ? training.baseCalories : (meals.target?.calories ?? null);
   return {
     calories: meals.totalCalories,
-    calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) : null,
+    calorieTarget: baseCal != null ? applyHolidayBuffer(baseCal, holiday) + bonus : null,
     protein: meals.totalProtein,
     proteinTarget: meals.target?.protein ?? null,
     waterMl: water.totalMl,
     waterTarget: water.target || WATER_DAILY_TARGET_ML,
     weightKg: weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
+    trainingLabel: training?.label ?? null,
+    trainingSessionCount: training?.sessionCount ?? 0,
   };
 }
 
@@ -186,14 +190,10 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
   const day = useOptionalRationDay();
   const timezone = useTimezone();
   const [data, setData] = useState<ProgressData | null>(null);
-  const [workoutBurnKcal, setWorkoutBurnKcal] = useState(0);
-  const [workoutSessionCount, setWorkoutSessionCount] = useState(0);
   const atmosphere = dayHeroAtmosphereClass(hourInTimezone(new Date(), timezone));
 
   useEffect(() => {
     setData(null);
-    setWorkoutBurnKcal(0);
-    setWorkoutSessionCount(0);
   }, [selectedDate]);
 
   useEffect(() => {
@@ -231,6 +231,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             calories: number;
             protein: number;
           } | null;
+          trainingDay?: TrainingDayInfo | null;
         };
         const water = waterResp.ok
           ? ((await waterResp.json()) as { totalMl: number; target: number })
@@ -252,43 +253,14 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
     })();
   }, [selectedDate, refreshKey, day]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const resp = await fetch(withBasePath(`/api/workouts?date=${selectedDate}&limit=20`));
-        if (!resp.ok || cancelled) return;
-        const payload = (await resp.json()) as {
-          sessions?: WorkoutBurnSessionLike[];
-        };
-        const sessions = (payload.sessions ?? []).filter(
-          (s) => Boolean(s.endedAt) || (Number(s.elapsedSec) || 0) > 0 || (Number(s.setCount) || 0) > 0,
-        );
-        if (cancelled) return;
-        setWorkoutSessionCount(sessions.length);
-        setWorkoutBurnKcal(estimateDayWorkoutBurnKcal(sessions));
-      } catch {
-        if (!cancelled) {
-          setWorkoutSessionCount(0);
-          setWorkoutBurnKcal(0);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedDate, refreshKey]);
-
   const waitingForData =
     !data &&
     (Boolean(day?.loading && day.date === selectedDate) ||
       Boolean(day && day.date === selectedDate && !day.data && !day.error) ||
       !day);
 
-  const effectiveTarget =
-    data?.calorieTarget != null && data.calorieTarget > 0
-      ? data.calorieTarget + Math.max(0, workoutBurnKcal)
-      : data?.calorieTarget ?? null;
+  const effectiveTarget = data?.calorieTarget ?? null;
+  const workoutSessionCount = data?.trainingSessionCount ?? 0;
 
   const caloriePct =
     effectiveTarget && effectiveTarget > 0 ? (data!.calories / effectiveTarget) * 100 : 0;
@@ -356,6 +328,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
       ? `белок ${Math.round(data.protein)} из ${Math.round(data.proteinTarget)} граммов`
       : null,
     holiday ? "праздничный запас" : null,
+    data?.trainingLabel ?? null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -388,6 +361,11 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
         )}
 
         <p className="day-hero-phrase mt-1.5">{phrase}.</p>
+        {data?.trainingLabel ? (
+          <p className="day-hero-training" role="status">
+            {data.trainingLabel}
+          </p>
+        ) : null}
 
         {hasTarget ? <HeroArc pct={caloriePct} /> : <div className="day-hero-arc day-hero-arc--idle" aria-hidden />}
       </div>

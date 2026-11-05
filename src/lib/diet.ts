@@ -214,6 +214,16 @@ function weightForMacros(weightKg: number, sex: Sex, heightCm?: number | null): 
   return Math.min(weightKg, round1(capKg));
 }
 
+/** Weight already used for protein/fat (g/kg), with the BMI cap from the diet. */
+export function macroWeightKg(
+  weightKg: number,
+  sex?: Sex | null,
+  heightCm?: number | null,
+): number {
+  if (!(weightKg > 0) || !Number.isFinite(weightKg)) return 0;
+  return weightForMacros(weightKg, isSex(sex) ? sex : "FEMALE", heightCm);
+}
+
 /**
  * Daily target from Mifflin–St Jeor × activity level.
  * Sex defaults to female when unknown so calories are not overestimated.

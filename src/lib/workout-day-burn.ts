@@ -1,7 +1,15 @@
 /**
- * Soft display-only estimate of workout energy for the day hero / next-step.
- * Not a medical MET calc — just enough to link Зал ↔ рацион.
+ * Сводка расхода для списка сессий без полного состава.
+ * Считает MET × вес × время. Если упражнения переданы — их MET.
+ * Не подставляет константу «сессия = N ккал».
  */
+
+import {
+  estimateSessionEnergy,
+  GENERIC_CARDIO_MET,
+  type EnergyExercise,
+  type SessionEnergy,
+} from "@/lib/workouts/energy";
 
 export type WorkoutBurnSessionLike = {
   endedAt?: string | null;
@@ -10,46 +18,62 @@ export type WorkoutBurnSessionLike = {
   cardioOnly?: boolean;
   totalLoad?: number | null;
   setCount?: number | null;
+  weightKg?: number | null;
+  exercises?: readonly EnergyExercise[] | null;
 };
 
-/** ~kcal from finished (or clocked) sessions for a calendar day. */
-export function estimateDayWorkoutBurnKcal(sessions: WorkoutBurnSessionLike[]): number {
-  let total = 0;
-  for (const s of sessions) {
-    total += estimateSessionBurnKcal(s);
+function summaryExercises(session: WorkoutBurnSessionLike): EnergyExercise[] {
+  if (session.exercises && session.exercises.length > 0) return [...session.exercises];
+  const cardioSec = Math.max(0, Number(session.cardioDurationSec) || 0);
+  const elapsed = Math.max(0, Number(session.elapsedSec) || 0);
+  const out: EnergyExercise[] = [];
+  if (cardioSec > 0) {
+    out.push({
+      name: "Кардио",
+      kind: "cardio",
+      sets: [{ completed: true, durationSec: cardioSec }],
+    });
   }
-  return Math.round(total);
+  const strengthSec = session.cardioOnly ? 0 : Math.max(0, elapsed - cardioSec);
+  if (strengthSec > 0) {
+    out.push({
+      name: "Силовая",
+      kind: "strength",
+      sets: [{ completed: true }],
+    });
+  }
+  if (out.length === 0 && elapsed > 0 && !session.cardioOnly) {
+    out.push({ name: "Силовая", kind: "strength", sets: [{ completed: true }] });
+  }
+  if (out.length === 0 && (session.setCount ?? 0) > 0) {
+    out.push({
+      name: "Силовая",
+      kind: "strength",
+      sets: Array.from({ length: session.setCount ?? 0 }, () => ({ completed: true })),
+    });
+  }
+  return out;
 }
 
-export function estimateSessionBurnKcal(session: WorkoutBurnSessionLike): number {
-  const cardioSec = Math.max(0, Number(session.cardioDurationSec) || 0);
+export function sessionBurnEnergy(session: WorkoutBurnSessionLike): SessionEnergy {
+  const exercises = summaryExercises(session);
   const elapsedSec = Math.max(0, Number(session.elapsedSec) || 0);
-  const load = Math.max(0, Number(session.totalLoad) || 0);
-  const sets = Math.max(0, Number(session.setCount) || 0);
+  return estimateSessionEnergy({
+    weightKg: session.weightKg,
+    elapsedSec: exercises.length > 0 ? elapsedSec : 0,
+    exercises,
+  });
+}
 
-  // Prefer cardio clock when present (~8 kcal/min moderate).
-  if (cardioSec > 0) {
-    const cardio = (cardioSec / 60) * 8;
-    if (session.cardioOnly) return Math.max(40, Math.round(cardio));
-    // Mixed day: cardio + light strength from remaining clock / load.
-    const strengthMin = Math.max(0, (elapsedSec - cardioSec) / 60);
-    const strength = strengthMin > 0 ? strengthMin * 5 : Math.min(120, load * 0.05 + sets * 4);
-    return Math.max(40, Math.round(cardio + strength));
-  }
+/** ~ккал сессии. Кардио без узнанного вида — GENERIC_CARDIO_MET, не фикс «8 ккал/мин». */
+export function estimateSessionBurnKcal(session: WorkoutBurnSessionLike): number {
+  return sessionBurnEnergy(session).kcal;
+}
 
-  if (elapsedSec > 0) {
-    // Strength / general session ~5 kcal/min.
-    return Math.max(40, Math.round((elapsedSec / 60) * 5));
-  }
-
-  // No clock — rough from tonnage / set count.
-  if (load > 0 || sets > 0) {
-    return Math.max(40, Math.round(Math.min(400, load * 0.05 + sets * 5)));
-  }
-
-  // Finished with no metrics — tiny presence signal.
-  if (session.endedAt) return 80;
-  return 0;
+export function estimateDayWorkoutBurnKcal(sessions: WorkoutBurnSessionLike[]): number {
+  let total = 0;
+  for (const session of sessions) total += estimateSessionBurnKcal(session);
+  return Math.round(total);
 }
 
 export function formatWorkoutBurnHint(kcal: number, sessionCount: number): string | null {
@@ -62,3 +86,5 @@ export function formatWorkoutBurnHint(kcal: number, sessionCount: number): strin
     sessionCount === 1 ? "зал" : sessionCount < 5 ? `${sessionCount} трен.` : `${sessionCount} трен.`;
   return `${sessions} ~${kcal} ккал`;
 }
+
+export { GENERIC_CARDIO_MET };

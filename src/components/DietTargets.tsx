@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatBalanceLabel, sexNoun, type NutrientComparison, type Sex } from "@/lib/diet";
 import { withBasePath } from "@/lib/paths";
+import type { TrainingDayInfo } from "@/lib/training-day";
 
 type DietTargetsProps = {
   comparison: {
@@ -16,6 +17,7 @@ type DietTargetsProps = {
   dietLabel?: string | null;
   sex?: Sex | null;
   calorieExplanation?: string | null;
+  trainingDay?: TrainingDayInfo | null;
 };
 
 function Meter({
@@ -56,7 +58,15 @@ function Meter({
   );
 }
 
-export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex, calorieExplanation }: DietTargetsProps) {
+export function DietTargets({
+  comparison,
+  calorieTone,
+  weightKg,
+  dietLabel,
+  sex,
+  calorieExplanation,
+  trainingDay,
+}: DietTargetsProps) {
   const sexText = sexNoun(sex);
   return (
     <div className="rounded-2xl border border-[rgba(13,115,119,0.14)] bg-[var(--surface-mist)] p-4">
@@ -68,6 +78,14 @@ export function DietTargets({ comparison, calorieTone, weightKg, dietLabel, sex,
       </p>
       {!sex ? (
         <p className="mt-1 text-xs text-amber-700">Укажите пол в профиле — норма станет точнее</p>
+      ) : null}
+      {trainingDay?.label ? (
+        <div className="training-day-note mt-2" role="status">
+          <p className="training-day-note__title">
+            {trainingDay.trainingDay ? "День тренировки" : "Тренировка в этот день"}
+          </p>
+          <p className="training-day-note__body">{trainingDay.detail ?? trainingDay.label}</p>
+        </div>
       ) : null}
       {calorieExplanation ? (
         <p className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs leading-relaxed text-[var(--muted-strong)]">
