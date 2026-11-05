@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildExerciseHistoryByNormName, historyForExerciseName } from "./history.ts";
+import {
+  buildExerciseHistoryByNormName,
+  buildExerciseHistoryIndex,
+  historyForExercise,
+  historyForExerciseName,
+} from "./history.ts";
 import { normalizeExerciseName } from "./exercise-name.ts";
 
 test("normalizeExerciseName collapses spaces, case, ё→е", () => {
@@ -74,4 +79,38 @@ test("buildExerciseHistoryByNormName picks latest prior sets per name", () => {
   ]);
   assert.equal(bench?.kind, "strength");
   assert.equal(historyForExerciseName(byNorm, "Присед"), null);
+});
+
+test("historyForExercise follows catalogId across renamed duplicates", () => {
+  const index = buildExerciseHistoryIndex([
+    {
+      id: "s1",
+      date: "2026-09-01",
+      createdAt: "2026-09-01T10:00:00Z",
+      exercises: [
+        {
+          id: "e1",
+          name: "жим лежа",
+          catalogId: "bench-press",
+          sets: [{ weightKg: 80, reps: 5, sortOrder: 0 }],
+        },
+      ],
+    },
+    {
+      id: "s2",
+      date: "2026-09-10",
+      createdAt: "2026-09-10T10:00:00Z",
+      exercises: [
+        {
+          id: "e2",
+          name: "Жим штанги лёжа",
+          catalogId: "bench-press",
+          sets: [{ weightKg: 90, reps: 3, sortOrder: 0 }],
+        },
+      ],
+    },
+  ]);
+  const hit = historyForExercise(index, { name: "жим лежа", catalogId: "bench-press" });
+  assert.equal(hit?.date, "2026-09-10");
+  assert.equal(hit?.sets[0]?.weightKg, 90);
 });

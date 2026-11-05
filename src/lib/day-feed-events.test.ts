@@ -48,6 +48,20 @@ test("gymSessionEvent: finished and live sessions", () => {
   assert.equal(done?.title, "Зал");
   assert.equal(done?.detail, "Грудь · Трицепс · 52 мин · 14 подх.");
   assert.equal(done?.record, true);
+  assert.equal(done?.recordLine, null);
+  const named = gymSessionEvent({
+    id: "s1b",
+    startedAt: "2026-10-29T07:00:00Z",
+    endedAt: "2026-10-29T07:52:00Z",
+    elapsedSec: 3120,
+    muscleLabels: ["Грудь"],
+    setCount: 8,
+    clockStatus: "finished",
+    prCount: 2,
+    prLabels: ["Жим штанги лёжа · 90 кг × 5", "Тяга · 80 кг × 6"],
+  });
+  assert.equal(named?.record, true);
+  assert.equal(named?.recordLine, "Жим штанги лёжа · 90 кг × 5 · ещё 1");
   const live = gymSessionEvent({ id: "s2", startedAt: "2026-10-29T07:00:00Z", endedAt: null, clockStatus: "running", setCount: 3, prCount: 1 });
   assert.equal(live?.live, true);
   assert.equal(live?.record, false);

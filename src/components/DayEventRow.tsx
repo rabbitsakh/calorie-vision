@@ -75,6 +75,7 @@ export function DayEventRow({ event, timezone }: { event: DayFeedEvent; timezone
           {event.live ? <span className="feed-tag feed-tag--live">идёт</span> : null}
           {event.record ? <span className="feed-tag feed-tag--record">Рекорд</span> : null}
         </span>
+        {event.recordLine ? <span className="feed-card-t2">{event.recordLine}</span> : null}
         {event.detail ? <span className="feed-card-t2">{event.detail}</span> : null}
       </Link>
     </FeedTimelineItem>

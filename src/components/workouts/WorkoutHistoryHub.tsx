@@ -16,6 +16,8 @@ import {
 } from "@/lib/workouts/cardio";
 import { formatWorkoutLoad, formatWorkoutTrend } from "@/lib/workouts/format";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import { MuscleRecoveryCard } from "@/components/workouts/MuscleRecoveryCard";
+import type { MuscleRecoveryMap } from "@/lib/workouts/muscle-volume";
 
 export type HistorySessionRow = {
   id: string;
@@ -49,6 +51,7 @@ export type HistoryInsights = {
   monthlyCardioKm?: number;
   monthlySessionCount?: number;
   monthTrendPct?: number | null;
+  muscleMap?: MuscleRecoveryMap | null;
 };
 
 type Props = {
@@ -283,7 +286,11 @@ export function WorkoutHistoryHub({
             </p>
           ) : null}
           <p className="text-xs text-[var(--muted)]">{insights.sessionCount} тренировок</p>
-          {Object.keys(insights.weeklyByGroup).length > 0 ? (
+          {insights.muscleMap && insights.muscleMap.rows.length > 0 ? (
+            <div className="mt-3">
+              <MuscleRecoveryCard map={insights.muscleMap} plain />
+            </div>
+          ) : Object.keys(insights.weeklyByGroup).length > 0 ? (
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(insights.weeklyByGroup).map(([key, g]) => (
                 <span

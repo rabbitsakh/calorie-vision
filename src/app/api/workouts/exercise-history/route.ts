@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     if (response) return response;
 
     const name = request.nextUrl.searchParams.get("name")?.trim() ?? "";
-    if (!name) {
+    const catalogId = request.nextUrl.searchParams.get("catalogId")?.trim() || null;
+    if (!name && !catalogId) {
       return NextResponse.json({ error: "Укажите name=" }, { status: 400 });
     }
 
@@ -34,13 +35,15 @@ export async function GET(request: NextRequest) {
       take: 120,
     });
 
-    const points = buildExerciseTimeline(history, name, { limit });
+    const points = buildExerciseTimeline(history, name, { limit, catalogId });
     const key = normalizeExerciseName(name);
+    const sameExercise = (exercise: { name: string; catalogId: string | null }) =>
+      catalogId ? exercise.catalogId === catalogId : normalizeExerciseName(exercise.name) === key;
     const prParts = [];
     let latestKind = points.at(-1)?.kind ?? "strength";
     for (const row of history) {
       for (const ex of row.exercises) {
-        if (normalizeExerciseName(ex.name) !== key) continue;
+        if (!sameExercise(ex)) continue;
         latestKind = parseExerciseKind(ex.kind);
         prParts.push(computeExercisePrs(ex.kind, ex.sets));
       }
@@ -55,10 +58,16 @@ export async function GET(request: NextRequest) {
       distance: p.distanceKm,
       duration: p.durationSec,
       reps: p.topReps,
+      estimated1Rm: p.estimated1Rm,
+      bestSetKg: p.bestSetKg,
+      bestSetReps: p.bestSetReps,
+      bestSetVolume: p.bestSetVolume,
     }));
 
     return NextResponse.json({
       name,
+      catalogId,
+      linkedByCatalog: Boolean(catalogId),
       kind: latestKind,
       points,
       chart,

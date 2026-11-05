@@ -9,7 +9,7 @@ import {
   type SessionLikeForProgress,
 } from "@/lib/workouts/load";
 import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
-import { countPrsBySessionId } from "@/lib/workouts/prs";
+import { formatSessionPrLabel, prHitsBySessionId } from "@/lib/workouts/prs";
 import { sweepIdleSessions } from "@/lib/workouts/apply-session-clock";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
 import { estimateDbSessionEnergy, formatSessionEnergyLine } from "@/lib/workouts/energy";
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ date: "asc" }, { createdAt: "asc" }],
       take: 120,
     });
-    const prCounts = countPrsBySessionId(
+    const prBySession = prHitsBySessionId(
       prHistory.map((row) => ({
         id: row.id,
         date: row.date,
@@ -117,6 +117,7 @@ export async function GET(request: NextRequest) {
         exercises: row.exercises.map((ex) => ({
           name: ex.name,
           kind: ex.kind,
+          catalogId: ex.catalogId,
           sets: ex.sets,
         })),
       })),
@@ -134,7 +135,8 @@ export async function GET(request: NextRequest) {
       const energy = estimateDbSessionEnergy(row, bodyWeightKg);
       return {
         ...serializeSessionSummary(row),
-        prCount: prCounts.get(row.id) ?? 0,
+        prCount: prBySession.get(row.id)?.length ?? 0,
+        prLabels: (prBySession.get(row.id) ?? []).map(formatSessionPrLabel),
         energy,
         energyLabel: formatSessionEnergyLine(energy),
       };

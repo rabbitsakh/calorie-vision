@@ -2,6 +2,7 @@ import { cardioSetTotals, paceSecPerKm } from "@/lib/workouts/cardio";
 import { exerciseNamesMatch, normalizeExerciseName } from "@/lib/workouts/exercise-name";
 import { parseExerciseKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { exerciseLoad, roundLoad } from "@/lib/workouts/load";
+import { computeExercisePrs, type PrSet } from "@/lib/workouts/prs";
 
 export type ExerciseHistoryPoint = {
   date: string;
@@ -18,6 +19,13 @@ export type ExerciseHistoryPoint = {
   distanceKm: number;
   durationSec: number;
   bestPaceSecPerKm: number | null;
+  /** Epley ~1ПМ лучшего рабочего подхода. 0, если вес не учитывается. */
+  estimated1Rm: number;
+  /** Вес лучшего подхода (макс. кг). */
+  bestSetKg: number;
+  bestSetReps: number;
+  /** Объём одного лучшего подхода, кг × повторы. */
+  bestSetVolume: number;
 };
 
 type SourceSet = {
@@ -25,9 +33,17 @@ type SourceSet = {
   reps: number | null;
   distanceKm?: number | null;
   durationSec?: number | null;
+  setType?: string | null;
+  completed?: boolean | null;
   sortOrder: number;
 };
-type SourceExercise = { id: string; name: string; kind?: string | null; sets: SourceSet[] };
+type SourceExercise = {
+  id: string;
+  name: string;
+  kind?: string | null;
+  catalogId?: string | null;
+  sets: SourceSet[];
+};
 type SourceSession = {
   id: string;
   date: string;
@@ -35,14 +51,94 @@ type SourceSession = {
   exercises: SourceExercise[];
 };
 
-/** Chronological (oldest→newest) history points for one exercise name. */
+function toPrSets(sets: readonly SourceSet[]): PrSet[] {
+  return sets.map((set) => ({
+    weightKg: set.weightKg,
+    reps: set.reps,
+    distanceKm: set.distanceKm,
+    durationSec: set.durationSec,
+    setType: set.setType,
+    completed: set.completed,
+  }));
+}
+
+function chartFromPrs(kind: ExerciseKind, sets: readonly SourceSet[]) {
+  const prs = computeExercisePrs(kind, toPrSets(sets));
+  if (prs.kind === "strength" || prs.kind === "weighted_bw") {
+    return {
+      estimated1Rm: prs.estimated1Rm,
+      bestSetKg: prs.heaviestKg,
+      bestSetReps: prs.heaviestReps,
+      bestSetVolume: prs.bestSetVolume,
+      topWeightKg: prs.heaviestKg,
+      topReps: prs.heaviestReps,
+    };
+  }
+  if (prs.kind === "bodyweight") {
+    return {
+      estimated1Rm: 0,
+      bestSetKg: 0,
+      bestSetReps: prs.bestReps,
+      bestSetVolume: 0,
+      topWeightKg: 0,
+      topReps: prs.bestReps,
+    };
+  }
+  if (prs.kind === "assisted") {
+    let topWeightKg = 0;
+    let topReps = 0;
+    for (const set of sets) {
+      const weight = Number(set.weightKg);
+      const reps = Number(set.reps) || 0;
+      if (Number.isFinite(weight) && weight > topWeightKg) {
+        topWeightKg = weight;
+        topReps = reps;
+      }
+    }
+    return {
+      estimated1Rm: 0,
+      bestSetKg: prs.lightestAssistKg ?? 0,
+      bestSetReps: prs.bestReps,
+      bestSetVolume: 0,
+      topWeightKg,
+      topReps,
+    };
+  }
+  return {
+    estimated1Rm: 0,
+    bestSetKg: 0,
+    bestSetReps: 0,
+    bestSetVolume: 0,
+    topWeightKg: 0,
+    topReps: 0,
+  };
+}
+
+function exercisesForPoint(
+  session: SourceSession,
+  nameKey: string,
+  catalogId: string | null,
+): SourceExercise[] {
+  if (catalogId) {
+    return session.exercises.filter((exercise) => exercise.catalogId === catalogId);
+  }
+  const match = session.exercises.find((exercise) => exerciseNamesMatch(exercise.name, nameKey));
+  return match ? [match] : [];
+}
+
+/**
+ * Хронология одного движения, от старых к новым.
+ * Если передан catalogId, в одну линию попадают все записи с этим id,
+ * даже когда названия в зале отличались.
+ */
 export function buildExerciseTimeline(
   sessions: readonly SourceSession[],
   exerciseName: string,
-  options?: { limit?: number },
+  options?: { limit?: number; catalogId?: string | null },
 ): ExerciseHistoryPoint[] {
+  const catalogId = options?.catalogId?.trim() || null;
   const key = normalizeExerciseName(exerciseName);
-  if (!key) return [];
+  if (!catalogId && !key) return [];
 
   const points: ExerciseHistoryPoint[] = [];
   const sorted = sessions.slice().sort((a, b) => {
@@ -54,18 +150,21 @@ export function buildExerciseTimeline(
   });
 
   for (const session of sorted) {
-    const match = session.exercises.find((ex) => exerciseNamesMatch(ex.name, key));
-    if (!match || match.sets.length === 0) continue;
+    const matches = exercisesForPoint(session, key, catalogId).filter((exercise) => exercise.sets.length > 0);
+    if (matches.length === 0) continue;
 
-    const kind = parseExerciseKind(match.kind);
-    const sets = [...match.sets].sort((a, b) => a.sortOrder - b.sortOrder);
+    const kind = parseExerciseKind(matches[0]!.kind);
+    const sets = matches.flatMap((exercise) =>
+      [...exercise.sets].sort((a, b) => a.sortOrder - b.sortOrder),
+    );
+    const chart = chartFromPrs(kind, sets);
 
     if (kind === "cardio") {
       const totals = cardioSetTotals(sets);
       points.push({
         date: session.date,
         sessionId: session.id,
-        exerciseId: match.id,
+        exerciseId: matches[0]!.id,
         kind,
         topWeightKg: 0,
         topReps: 0,
@@ -74,20 +173,24 @@ export function buildExerciseTimeline(
         distanceKm: totals.distanceKm,
         durationSec: totals.durationSec,
         bestPaceSecPerKm: totals.bestPaceSecPerKm,
+        estimated1Rm: 0,
+        bestSetKg: 0,
+        bestSetReps: 0,
+        bestSetVolume: 0,
       });
       continue;
     }
 
     if (kind === "duration") {
       let maxDur = 0;
-      for (const s of sets) {
-        const d = Number(s.durationSec);
-        if (Number.isFinite(d) && d > maxDur) maxDur = d;
+      for (const set of sets) {
+        const duration = Number(set.durationSec);
+        if (Number.isFinite(duration) && duration > maxDur) maxDur = duration;
       }
       points.push({
         date: session.date,
         sessionId: session.id,
-        exerciseId: match.id,
+        exerciseId: matches[0]!.id,
         kind,
         topWeightKg: 0,
         topReps: 0,
@@ -96,56 +199,40 @@ export function buildExerciseTimeline(
         distanceKm: 0,
         durationSec: maxDur,
         bestPaceSecPerKm: null,
+        estimated1Rm: 0,
+        bestSetKg: 0,
+        bestSetReps: 0,
+        bestSetVolume: 0,
       });
       continue;
     }
 
-    if (kind === "bodyweight") {
-      let topReps = 0;
-      for (const s of sets) {
-        const r = Number(s.reps);
-        if (Number.isFinite(r) && r > topReps) topReps = r;
-      }
-      points.push({
-        date: session.date,
-        sessionId: session.id,
-        exerciseId: match.id,
-        kind,
-        topWeightKg: 0,
-        topReps,
-        totalLoad: 0,
-        setCount: sets.length,
-        distanceKm: 0,
-        durationSec: 0,
-        bestPaceSecPerKm: null,
-      });
-      continue;
-    }
-
-    // strength | weighted_bw | assisted — track top weight
-    let top = sets[0]!;
-    for (const s of sets) {
-      const w = Number(s.weightKg);
-      const topW = Number(top.weightKg);
-      if (Number.isFinite(w) && (!Number.isFinite(topW) || w > topW)) top = s;
-    }
     points.push({
       date: session.date,
       sessionId: session.id,
-      exerciseId: match.id,
+      exerciseId: matches[0]!.id,
       kind,
-      topWeightKg: Number(top.weightKg) || 0,
-      topReps: Number(top.reps) || 0,
+      topWeightKg: chart.topWeightKg,
+      topReps: chart.topReps,
       totalLoad: roundLoad(
         exerciseLoad({
           kind,
-          sets: sets.map((s) => ({ weightKg: s.weightKg, reps: s.reps })),
+          sets: sets.map((set) => ({
+            weightKg: set.weightKg,
+            reps: set.reps,
+            setType: set.setType,
+            completed: set.completed,
+          })),
         }),
       ),
       setCount: sets.length,
       distanceKm: 0,
       durationSec: 0,
       bestPaceSecPerKm: null,
+      estimated1Rm: chart.estimated1Rm,
+      bestSetKg: chart.bestSetKg,
+      bestSetReps: chart.bestSetReps,
+      bestSetVolume: chart.bestSetVolume,
     });
   }
 

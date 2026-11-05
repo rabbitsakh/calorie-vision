@@ -19,6 +19,7 @@ type HistorySourceExercise = {
   id: string;
   name: string;
   kind?: string | null;
+  catalogId?: string | null;
   sets: Array<{
     weightKg: number | null;
     reps: number | null;
@@ -35,13 +36,19 @@ type HistorySourceSession = {
   exercises: HistorySourceExercise[];
 };
 
+export type ExerciseHistoryIndex = {
+  byName: Map<string, ExerciseHistoryEntry>;
+  byCatalog: Map<string, ExerciseHistoryEntry>;
+};
+
 /**
- * Map normalized exercise name → last prior logging (excluding current session).
+ * Последняя запись движения: по названию и отдельно по catalogId.
+ * Сессии идут от новых к старым, первое попадание и есть «прошлый раз».
  */
-export function buildExerciseHistoryByNormName(
+export function buildExerciseHistoryIndex(
   historySessions: readonly HistorySourceSession[],
   options?: { excludeSessionId?: string },
-): Map<string, ExerciseHistoryEntry> {
+): ExerciseHistoryIndex {
   const sorted = historySessions
     .filter((s) => s.id !== options?.excludeSessionId)
     .slice()
@@ -53,11 +60,10 @@ export function buildExerciseHistoryByNormName(
       return tb - ta;
     });
 
-  const out = new Map<string, ExerciseHistoryEntry>();
+  const byName = new Map<string, ExerciseHistoryEntry>();
+  const byCatalog = new Map<string, ExerciseHistoryEntry>();
   for (const session of sorted) {
     for (const ex of session.exercises) {
-      const key = normalizeExerciseName(ex.name);
-      if (!key || out.has(key)) continue;
       const sets = [...ex.sets]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((s) => ({
@@ -67,15 +73,41 @@ export function buildExerciseHistoryByNormName(
           durationSec: s.durationSec ?? null,
         }));
       if (sets.length === 0) continue;
-      out.set(key, {
+      const entry: ExerciseHistoryEntry = {
         date: session.date,
         sessionId: session.id,
         kind: parseExerciseKind(ex.kind),
         sets,
-      });
+      };
+      const key = normalizeExerciseName(ex.name);
+      if (key && !byName.has(key)) byName.set(key, entry);
+      const catalogId = ex.catalogId?.trim();
+      if (catalogId && !byCatalog.has(catalogId)) byCatalog.set(catalogId, entry);
     }
   }
-  return out;
+  return { byName, byCatalog };
+}
+
+/**
+ * Map normalized exercise name → last prior logging (excluding current session).
+ */
+export function buildExerciseHistoryByNormName(
+  historySessions: readonly HistorySourceSession[],
+  options?: { excludeSessionId?: string },
+): Map<string, ExerciseHistoryEntry> {
+  return buildExerciseHistoryIndex(historySessions, options).byName;
+}
+
+export function historyForExercise(
+  index: ExerciseHistoryIndex,
+  exercise: { name: string; catalogId?: string | null },
+): ExerciseHistoryEntry | null {
+  const catalogId = exercise.catalogId?.trim();
+  if (catalogId) {
+    const byCatalog = index.byCatalog.get(catalogId);
+    if (byCatalog) return byCatalog;
+  }
+  return historyForExerciseName(index.byName, exercise.name);
 }
 
 export function historyForExerciseName(

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
 import { isMuscleGroupKey, parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
+import { buildMuscleRecoveryMap } from "@/lib/workouts/muscle-volume";
 import {
   aggregatePeriod,
   monthEndKey,
@@ -119,6 +120,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const muscleMap = buildMuscleRecoveryMap(
+      history.map((row) => ({
+        date: row.date,
+        endedAt: row.endedAt,
+        startedAt: row.startedAt,
+        exercises: row.exercises.map((exercise) => ({
+          catalogId: exercise.catalogId,
+          muscleGroup: exercise.muscleGroup,
+          kind: exercise.kind,
+          sets: exercise.sets,
+        })),
+      })),
+      { weekOf: today, now: new Date() },
+    );
+
     const suggestions = [...nameStats.values()]
       .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
       .slice(0, 12)
@@ -148,6 +164,7 @@ export async function GET(request: NextRequest) {
       monthlySessionCount: month.sessionCount,
       monthTrendPct: trendPct(month.tonnage, prevMonth.tonnage),
       monthCardioTrendPct: trendPct(month.cardioDistanceKm, prevMonth.cardioDistanceKm),
+      muscleMap,
       suggestions,
     });
   } catch (error) {

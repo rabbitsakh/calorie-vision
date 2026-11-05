@@ -49,6 +49,8 @@ type Props = {
   previousLoad: number;
   targetLoad: number;
   exercises: SummaryExercise[];
+  /** Рекорды этой тренировки, уже с названием движения. */
+  recordLines?: string[];
   energyLabel?: string | null;
   energyNote?: string | null;
   /** Rule-based next-session targets (Wave L). */
@@ -116,6 +118,7 @@ export function WorkoutSessionSummary({
   previousLoad,
   targetLoad,
   exercises,
+  recordLines = [],
   energyLabel = null,
   energyNote = null,
   nextTargets = null,
@@ -422,6 +425,23 @@ export function WorkoutSessionSummary({
       dismissLabel="К списку"
     >
       {energyNote ? <p className="gym-energy-line mb-3">{energyNote}</p> : null}
+      {recordLines.length > 0 ? (
+        <section
+          className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2.5"
+          aria-label="Рекорды тренировки"
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--on-ink)]/80">
+            Рекорды
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {recordLines.map((line, index) => (
+              <li key={`${index}-${line}`} className="text-sm font-semibold text-[var(--accent-soft)]">
+                {line}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {recoveryLine ? (
         <p
           className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2 text-sm font-semibold text-[var(--accent-soft)]"

@@ -6,7 +6,9 @@ import {
   describePrBeat,
   estimated1Rm,
   formatPrSummary,
+  formatSessionPrLabel,
   mergeExercisePrs,
+  prHitsBySessionId,
 } from "./prs.ts";
 
 describe("estimated1Rm", () => {
@@ -110,6 +112,54 @@ describe("countPrsBySessionId", () => {
     assert.equal(counts.get("s1"), 1);
     assert.equal(counts.get("s2"), 1);
     assert.equal(counts.get("s3"), 0);
+  });
+
+  it("same catalogId is one line even when the logged name changed", () => {
+    const hits = prHitsBySessionId([
+      {
+        id: "s1",
+        date: "2026-02-01",
+        createdAt: "2026-02-01T10:00:00.000Z",
+        exercises: [
+          {
+            name: "жим лежа",
+            catalogId: "bench-press",
+            kind: "strength",
+            sets: [{ weightKg: 80, reps: 5, completed: true }],
+          },
+        ],
+      },
+      {
+        id: "s2",
+        date: "2026-02-08",
+        createdAt: "2026-02-08T10:00:00.000Z",
+        exercises: [
+          {
+            name: "Жим штанги лёжа",
+            catalogId: "bench-press",
+            kind: "strength",
+            sets: [{ weightKg: 70, reps: 5, completed: true }],
+          },
+        ],
+      },
+      {
+        id: "s3",
+        date: "2026-02-15",
+        createdAt: "2026-02-15T10:00:00.000Z",
+        exercises: [
+          {
+            name: "Жим штанги лёжа",
+            catalogId: "bench-press",
+            kind: "strength",
+            sets: [{ weightKg: 90, reps: 3, completed: true }],
+          },
+        ],
+      },
+    ]);
+    assert.equal(hits.get("s1")?.length, 1);
+    assert.equal(hits.get("s2")?.length, 0);
+    assert.equal(hits.get("s3")?.length, 1);
+    assert.match(formatSessionPrLabel(hits.get("s3")![0]!), /Жим штанги лёжа · 90 кг/);
   });
 });
 
