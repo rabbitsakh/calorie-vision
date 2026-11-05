@@ -173,7 +173,7 @@ function SetTableRow({
               aria-label={
                 row.completed ? `Снять подход ${row.number}` : `Записать подход ${row.number}`
               }
-              className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 text-base font-bold disabled:opacity-40 ${
+              className={`gym-check mx-auto flex items-center justify-center rounded-full border-2 text-lg font-bold disabled:opacity-40 ${
                 row.completed
                   ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                   : "border-[var(--border-quiet)] bg-white text-[var(--muted)]"

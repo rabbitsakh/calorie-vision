@@ -1,18 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   EXERCISE_KINDS,
   EXERCISE_KIND_LABELS,
   EXERCISE_KIND_PLACEHOLDERS,
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
-
-type LibraryHit = {
-  id: string;
-  name: string;
-  kind: ExerciseKind;
-  useCount: number;
-};
+import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import type { CatalogSearchHit } from "@/lib/workouts/catalog-search";
+import { withBasePath } from "@/lib/paths";
 
 type Suggestion = {
   name: string;
@@ -23,67 +20,96 @@ type Props = {
   busy?: boolean;
   kind: ExerciseKind;
   name: string;
-  hits: LibraryHit[];
   suggestions: Suggestion[];
   onKind: (kind: ExerciseKind) => void;
   onName: (name: string) => void;
-  onAdd: (name?: string, kind?: ExerciseKind) => void;
+  onAdd: (
+    name?: string,
+    kind?: ExerciseKind,
+    extra?: { restSec?: number; muscle?: string },
+  ) => void;
   onClose: () => void;
 };
 
-/** Existing name search + library hits. Free text stays as the fallback. */
+/** Поле с автоподсказкой справочника. Своё название по-прежнему можно ввести текстом. */
 export function ExerciseAddSheet({
   busy,
   kind,
   name,
-  hits,
   suggestions,
   onKind,
   onName,
   onAdd,
   onClose,
 }: Props) {
+  const [muscle, setMuscle] = useState<MuscleGroupKey | "">("");
+  const [hits, setHits] = useState<CatalogSearchHit[]>([]);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams();
+      if (name.trim()) params.set("q", name.trim());
+      if (muscle) params.set("muscle", muscle);
+      params.set("limit", "12");
+      void fetch(withBasePath(`/api/workouts/catalog?${params}`), { signal: ctrl.signal })
+        .then(async (res) => {
+          if (!res.ok) return;
+          const data = (await res.json()) as { hits?: CatalogSearchHit[] };
+          setHits(data.hits ?? []);
+        })
+        .catch(() => {
+          // офлайн — остаётся ввод своего названия
+        });
+    }, 160);
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(timer);
+    };
+  }, [name, muscle]);
+
+  const exact = hits.some((hit) => hit.name.toLocaleLowerCase("ru") === name.trim().toLocaleLowerCase("ru"));
+
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 sm:items-center"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-label="Добавить упражнение"
-        className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+        className="gym-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-base font-semibold text-[var(--foreground)]">Упражнение</h3>
-          <button
-            type="button"
-            className="min-h-[44px] px-2 text-sm font-medium text-[var(--muted-strong)]"
-            onClick={onClose}
-          >
+          <h3 className="font-display text-lg font-semibold text-[var(--foreground)]">Упражнение</h3>
+          <button type="button" className="gym-chip" onClick={onClose}>
             Закрыть
           </button>
         </div>
-        <div className="flex flex-wrap gap-1">
-          {EXERCISE_KINDS.map((key) => (
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            className={`gym-chip ${muscle === "" ? "is-on" : ""}`}
+            onClick={() => setMuscle("")}
+          >
+            Все
+          </button>
+          {MUSCLE_GROUPS.map((group) => (
             <button
-              key={key}
+              key={group.key}
               type="button"
-              onClick={() => onKind(key)}
-              className={`min-h-[44px] rounded-full px-3 text-xs font-semibold ${
-                kind === key
-                  ? "bg-[var(--accent)] text-white"
-                  : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
-              }`}
+              className={`gym-chip ${muscle === group.key ? "is-on" : ""}`}
+              onClick={() => setMuscle(group.key)}
             >
-              {EXERCISE_KIND_LABELS[key]}
+              {group.label}
             </button>
           ))}
         </div>
         <label className="mt-3 flex flex-col gap-1 text-xs text-[var(--muted)]">
           Название
           <input
-            className="min-h-[44px] rounded-lg border border-[var(--border-quiet)] px-3 text-base text-[var(--foreground)]"
+            className="gym-field"
             placeholder={EXERCISE_KIND_PLACEHOLDERS[kind]}
             value={name}
             autoFocus
@@ -98,51 +124,69 @@ export function ExerciseAddSheet({
             }}
           />
         </label>
-        <button
-          type="button"
-          disabled={busy || !name.trim()}
-          className="mt-3 min-h-[44px] w-full rounded-lg bg-[var(--accent)] text-sm font-semibold text-white disabled:opacity-40"
-          onClick={() => onAdd()}
-        >
-          {busy ? "Добавляем…" : "Добавить текстом"}
-        </button>
-        {suggestions.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {suggestions.map((s) => (
-              <button
-                key={s.name}
-                type="button"
-                disabled={busy}
-                className="min-h-[44px] rounded-full bg-[var(--accent-soft)] px-3 text-xs font-medium text-[var(--muted-strong)]"
-                onClick={() => onAdd(s.name)}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
         {hits.length > 0 ? (
-          <ul className="mt-3 overflow-hidden rounded-xl border border-[var(--border-quiet)]">
+          <ul className="mt-3 flex max-h-64 flex-col gap-1.5 overflow-auto">
             {hits.map((hit) => (
-              <li key={hit.id} className="border-t border-[var(--border-quiet)] first:border-t-0">
+              <li key={hit.id}>
                 <button
                   type="button"
                   disabled={busy}
-                  className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 text-left text-sm disabled:opacity-50"
-                  onClick={() => {
-                    onKind(hit.kind);
-                    onAdd(hit.name, hit.kind);
-                  }}
+                  className="gym-hit"
+                  onClick={() =>
+                    onAdd(hit.name, hit.kind, {
+                      restSec: hit.defaultRestSec,
+                      muscle: hit.primary[0],
+                    })
+                  }
                 >
-                  <span className="font-medium text-[var(--foreground)]">{hit.name}</span>
-                  <span className="text-xs text-[var(--muted)]">
-                    {EXERCISE_KIND_LABELS[hit.kind]} · {hit.useCount}×
+                  <span>
+                    <span className="block font-semibold text-[var(--foreground)]">{hit.name}</span>
+                    <span className="block text-xs text-[var(--muted)]">
+                      {hit.primaryLabels.join(" · ")} · {hit.equipmentLabel}
+                      {hit.source === "recent" ? " · недавнее" : ""}
+                    </span>
                   </span>
+                  <span className="text-sm font-semibold text-[var(--accent-ink)]">Добавить</span>
                 </button>
               </li>
             ))}
           </ul>
         ) : null}
+        {suggestions.length > 0 && !name.trim() ? (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {suggestions.map((item) => (
+              <button
+                key={item.name}
+                type="button"
+                disabled={busy}
+                className="gym-chip"
+                onClick={() => onAdd(item.name)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {EXERCISE_KINDS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onKind(key)}
+              className={`gym-chip ${kind === key ? "is-on" : ""}`}
+            >
+              {EXERCISE_KIND_LABELS[key]}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          disabled={busy || !name.trim()}
+          className="gym-primary mt-3 w-full"
+          onClick={() => onAdd()}
+        >
+          {busy ? "Добавляем…" : exact ? "Добавить из справочника" : "Своё упражнение"}
+        </button>
       </div>
     </div>
   );

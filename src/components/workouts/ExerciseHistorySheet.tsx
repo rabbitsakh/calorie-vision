@@ -88,7 +88,7 @@ function ExerciseSparkline({
   const lx = w;
   const ly = h - ((last - min) / span) * (h - 4) - 2;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-14 w-full" aria-hidden>
+    <svg viewBox={`0 0 ${w} ${h}`} className="gym-spark mt-3 h-28 w-full" aria-hidden>
       <path d={d} fill="none" stroke="var(--accent, #0f766e)" strokeWidth="2" />
       <circle cx={lx} cy={ly} r="3.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="1" />
     </svg>

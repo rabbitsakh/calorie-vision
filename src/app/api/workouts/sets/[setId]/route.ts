@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { parseSetPatchForKind } from "@/lib/workouts/set-fields";
 import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
+import { noteLoggedSet } from "@/lib/workouts/apply-session-clock";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -84,6 +85,9 @@ export async function PATCH(request: NextRequest, context: Ctx) {
     }
 
     await prisma.workoutSet.update({ where: { id: setId }, data });
+    if (data.completed === true) {
+      await noteLoggedSet(prisma, owned.exercise.sessionId);
+    }
 
     const row = await prisma.workoutSession.findFirstOrThrow({
       where: { id: owned.exercise.sessionId },

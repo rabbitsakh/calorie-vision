@@ -126,7 +126,7 @@ export function WorkoutHistoryHub({
         </p>
         <button
           type="button"
-          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+          className="gym-primary shrink-0"
           onClick={() => onNewSession(filterDate ?? todayKey)}
         >
           Новая
@@ -376,7 +376,7 @@ export function WorkoutHistoryHub({
         {sessions.map((s) => (
           <li
             key={s.id}
-            className="gym-plane flex items-stretch gap-2 !p-0 overflow-hidden"
+            className="gym-session-card"
           >
             <button
               type="button"

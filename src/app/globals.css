@@ -9344,3 +9344,266 @@ button.profile-settings__door:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Зал: крупные цели касания, карточки и тёмная тема вместе со светлой. */
+.gym-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 1.1rem;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.gym-primary:disabled {
+  opacity: 0.45;
+}
+
+.gym-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--muted-strong);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.gym-chip.is-on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gym-field {
+  min-height: 56px;
+  width: 100%;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-quiet);
+  background: var(--card);
+  padding: 0 0.9rem;
+  font-size: 1.05rem;
+  color: var(--foreground);
+}
+
+.gym-sheet {
+  max-height: 88vh;
+  width: 100%;
+  max-width: 32rem;
+  overflow: auto;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--card);
+  padding: 1rem 1rem 1.25rem;
+  box-shadow: var(--shadow-card);
+  color: var(--foreground);
+}
+
+@media (min-width: 640px) {
+  .gym-sheet {
+    border-radius: 1.5rem;
+  }
+}
+
+.gym-hit {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-quiet);
+  background: var(--surface-mist);
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+}
+
+.gym-last-time {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.gym-check {
+  width: 56px;
+  height: 56px;
+}
+
+.gym-session-card {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-quiet);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+}
+
+.gym-session-card > button {
+  min-height: 72px;
+}
+
+.gym-template {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-quiet);
+  background: var(--card);
+}
+
+.gym-template > button {
+  min-height: 64px;
+}
+
+.gym-hub-scene .rounded-full {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.gym-spark {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent);
+  border-radius: var(--radius-md);
+}
+
+.gym-rest-dock {
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-quiet);
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  padding: 0.75rem 0.75rem 0.9rem;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(10px);
+}
+
+.gym-rest-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gym-rest-ring__dial {
+  position: relative;
+  width: min(240px, 70vw);
+  height: min(240px, 70vw);
+}
+
+.gym-rest-ring__dial svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gym-rest-ring__track,
+.gym-rest-ring__value {
+  fill: none;
+  stroke-width: 12;
+}
+
+.gym-rest-ring__track {
+  stroke: var(--accent-soft);
+}
+
+.gym-rest-ring__value {
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
+.gym-rest-ring__time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
+.gym-rest-ring__time span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gym-rest-ring__time strong {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--foreground);
+}
+
+.gym-rest-ring__actions {
+  display: flex;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.gym-rest-ring__actions button {
+  flex: 1;
+  min-height: 56px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.gym-rest-ring__actions button:last-child {
+  background: var(--card);
+  border: 1px solid var(--border-quiet);
+  color: var(--muted-strong);
+}
+
+@media (prefers-color-scheme: dark) {
+  .gym-hub-scene,
+  .gym-session-scene,
+  .gym-sheet,
+  .gym-rest-dock {
+    --foreground: #f3faf7;
+    --muted: #b7c7c0;
+    --muted-strong: #d7e7e1;
+    --card: #13211e;
+    --surface-mist: #1b2e2a;
+    --accent: #1aa6a6;
+    --accent-soft: #163e3c;
+    --accent-ink: #b7f3ec;
+    --border-quiet: rgba(183, 243, 236, 0.18);
+    --border-hairline: rgba(255, 255, 255, 0.08);
+    --panel-wash:
+      radial-gradient(ellipse 90% 60% at 0% 0%, rgba(26, 166, 166, 0.18), transparent 55%),
+      #101816;
+    color: var(--foreground);
+  }
+
+  .gym-hub-scene,
+  .gym-session-scene {
+    background: var(--panel-wash);
+  }
+
+  .gym-plane,
+  .gym-session-scene .gym-plane,
+  .gym-hub-scene .gym-plane {
+    background: rgba(19, 33, 30, 0.72);
+  }
+
+  .gym-session-scene .bg-white,
+  .gym-session-scene .bg-white\/80,
+  .gym-session-scene .bg-white\/70,
+  .gym-session-scene .bg-white\/95,
+  .gym-hub-scene .bg-white,
+  .gym-hub-scene .hover\:bg-white:hover {
+    background-color: var(--card);
+  }
+}

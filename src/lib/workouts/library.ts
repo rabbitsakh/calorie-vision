@@ -9,6 +9,7 @@ export type LibraryEntryInput = {
   name: string;
   kind?: unknown;
   muscleGroup?: string | null;
+  catalogId?: string | null;
 };
 
 /** Upsert library row and bump useCount / lastUsedAt. Returns nameNorm of the row. */
@@ -57,6 +58,7 @@ export async function touchExerciseLibrary(
         nameNorm,
         kind,
         defaultMuscleGroup,
+        catalogId: input.catalogId ?? null,
         useCount: 1,
         lastUsedAt: new Date(),
       },
@@ -70,6 +72,7 @@ export async function touchExerciseLibrary(
     data: {
       name,
       kind,
+      ...(input.catalogId ? { catalogId: input.catalogId } : {}),
       ...(defaultMuscleGroup != null ? { defaultMuscleGroup } : {}),
       useCount: { increment: 1 },
       lastUsedAt: new Date(),

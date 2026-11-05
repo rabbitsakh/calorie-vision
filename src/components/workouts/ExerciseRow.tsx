@@ -8,6 +8,7 @@ type Props = {
   muscle: string | null;
   doneLabel: string;
   bestTarget: string | null;
+  lastLine?: string | null;
   expanded: boolean;
   superset: string | null;
   pending?: boolean;
@@ -22,6 +23,7 @@ export function ExerciseRow({
   muscle,
   doneLabel,
   bestTarget,
+  lastLine = null,
   expanded,
   superset,
   pending,
@@ -57,6 +59,7 @@ export function ExerciseRow({
             ) : null}
           </span>
           <span className="mt-0.5 truncate text-xs text-[var(--muted-strong)]">{meta}</span>
+          {lastLine ? <span className="gym-last-time">{lastLine}</span> : null}
         </button>
         <OverflowMenu label={`Действия: ${name}`} items={menu} />
       </div>

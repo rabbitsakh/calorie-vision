@@ -455,7 +455,27 @@ model FoodCorrection {
   @@index([userId])
 }
 
-/** Admin-only strength log (not exposed in public chrome / landing). */
+/** Общий справочник упражнений (не привязан к пользователю). */
+model ExerciseCatalog {
+  id               String   @id @db.VarChar(64)
+  name             String   @db.VarChar(120)
+  nameNorm         String   @db.VarChar(120)
+  /** weight_reps | reps | time | distance */
+  tracking         String   @db.VarChar(16)
+  /** strength | cardio | bodyweight | duration | weighted_bw | assisted */
+  kind             String   @db.VarChar(16)
+  primaryMuscles   Json
+  secondaryMuscles Json
+  equipment        String   @db.VarChar(32)
+  synonyms         Json
+  defaultRestSec   Int      @default(90)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([nameNorm])
+}
+
 /** Per-user exercise catalog for autocomplete (name + kind + default group). */
 model WorkoutExerciseLibrary {
   id                 String   @id @default(cuid())
@@ -468,6 +488,8 @@ model WorkoutExerciseLibrary {
   defaultMuscleGroup String?  @db.VarChar(32)
   useCount           Int      @default(0)
   lastUsedAt         DateTime @default(now())
+  /** Id из ExerciseCatalog, если название уверенно совпало. Без FK — безопаснее для MySQL. */
+  catalogId          String?  @db.VarChar(64)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -545,9 +567,11 @@ model WorkoutSession {
   note         String?   @db.VarChar(200)
   /** Target overload vs previous matching session (e.g. 0.05 = +5%). */
   progressRate Float     @default(0.05)
-  /** Live session clock (null = never started / backfill). */
+  /** Live session clock (null = ещё нет подходов / backfill). */
   startedAt    DateTime?
   endedAt      DateTime?
+  /** auto — закрыто по простою; manual — кнопка или правка времени. Null — старые строки. */
+  endedBy      String?   @db.VarChar(16)
   /** When non-null, session clock is paused at this instant. */
   pausedAt     DateTime?
   /** Accumulated pause duration in milliseconds. */
@@ -583,6 +607,8 @@ model WorkoutExercise {
   kind        String   @default("strength") @db.VarChar(16)
   /** Optional primary group; null → inherit session groups for load split. */
   muscleGroup String?  @db.VarChar(32)
+  /** Id из ExerciseCatalog. Без внешнего ключа, чтобы db push не переименовывал FK. */
+  catalogId   String?  @db.VarChar(64)
   note        String?  @db.VarChar(200)
   sortOrder   Int      @default(0)
   /** Shared key (A/B/C…) — same key = superset/circuit within the session. */

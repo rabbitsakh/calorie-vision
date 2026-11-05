@@ -10,6 +10,7 @@ import {
 } from "@/lib/workouts/load";
 import { parseMuscleGroupKeys } from "@/lib/workouts/muscle-groups";
 import { countPrsBySessionId } from "@/lib/workouts/prs";
+import { sweepIdleSessions } from "@/lib/workouts/apply-session-clock";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,8 @@ export async function GET(request: NextRequest) {
   try {
     const { session, response } = await requireSession();
     if (response) return response;
+
+    await sweepIdleSessions(prisma, session.user.id);
 
     const limitParam = request.nextUrl.searchParams.get("limit");
     const limit = limitParam ? Math.min(Math.max(Number(limitParam), 1), 100) : 40;
@@ -166,7 +169,6 @@ export async function POST(request: NextRequest) {
         date,
         note,
         progressRate,
-        startedAt: new Date(),
         muscles: {
           create: muscleGroups.map((groupKey) => ({ groupKey })),
         },

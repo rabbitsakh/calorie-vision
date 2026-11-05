@@ -135,6 +135,7 @@ import {
   getDefaultRestSec,
   readExerciseRestMap,
   resolveRestForSet,
+  getExerciseRestSec,
   setExerciseRestSec,
 } from "@/lib/workouts/rest-timer";
 import { SET_TYPES, type SetType } from "@/lib/workouts/set-meta";
@@ -407,6 +408,7 @@ export function WorkoutsView({
     restSound,
     setRestSound,
     startRest,
+    extendRest,
     clearRest,
     REST_OPTIONS,
   } = useWorkoutRestTimer();
@@ -565,7 +567,7 @@ export function WorkoutsView({
               rpe: incomplete.rpe != null ? String(incomplete.rpe) : "",
             };
           } else {
-            const last = ex.lastTime?.sets?.at(-1);
+            const last = ex.sets.length === 0 ? ex.lastTime?.sets?.[0] : ex.lastTime?.sets?.[ex.sets.length];
             if (last) draft = draftFromHistorySet(last, ex.kind);
           }
         }
@@ -873,6 +875,27 @@ export function WorkoutsView({
   useEffect(() => {
     if (!detail || detail.clockStatus !== "running") return;
     const id = window.setInterval(() => setClockTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [detail]);
+
+  useEffect(() => {
+    if (!detail || detail.clockStatus !== "running" || isLocalSessionId(detail.id)) return;
+    const sessionId = detail.id;
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const data = await readJson<{ session: SessionDetail }>(
+            await fetch(withBasePath(`/api/workouts/${sessionId}`), { cache: "no-store" }),
+          );
+          if (data.session.clockStatus === "finished") {
+            setDetail(data.session);
+            setShowSummary(true);
+          }
+        } catch {
+          // офлайн — закроем на сервере при следующей загрузке
+        }
+      })();
+    }, 60_000);
     return () => window.clearInterval(id);
   }, [detail]);
 
@@ -1233,7 +1256,8 @@ export function WorkoutsView({
         for (const ex of data.session.exercises) {
           const cur = next[ex.id];
           if (cur && (cur.kg || cur.reps || cur.km || cur.time)) continue;
-          const last = ex.lastTime?.sets?.at(-1);
+          const last =
+            ex.sets.length === 0 ? ex.lastTime?.sets?.[0] : ex.lastTime?.sets?.[ex.sets.length];
           if (last) {
             next[ex.id] = draftFromHistorySet(last, ex.kind);
           }
@@ -1359,7 +1383,11 @@ export function WorkoutsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- queueFlushKey drives reload
   }, [queueFlushKey]);
 
-  const addExercise = async (nameOverride?: string, kindOverride?: ExerciseKind) => {
+  const addExercise = async (
+    nameOverride?: string,
+    kindOverride?: ExerciseKind,
+    extra?: { restSec?: number; muscle?: string },
+  ) => {
     if (!detail) return;
     const name = (nameOverride ?? exerciseName).trim();
     if (!name) {
@@ -1370,6 +1398,9 @@ export function WorkoutsView({
     setError(null);
     setBusy(true);
     const kind = kindOverride ?? newExerciseKind;
+    if (extra?.restSec && extra.restSec > 0 && getExerciseRestSec(name) == null) {
+      setExerciseRestSec(name, extra.restSec);
+    }
     const prevIds = new Set(detail.exercises.map((e) => e.id));
 
     try {
@@ -1387,13 +1418,24 @@ export function WorkoutsView({
       }
 
       try {
-        const data = await readJson<{ session: SessionDetail }>(
+        const data = await readJson<{ session: SessionDetail; catalogRestSec?: number | null }>(
           await fetch(withBasePath(`/api/workouts/${detail.id}/exercises`), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, kind }),
+            body: JSON.stringify({
+              name,
+              kind,
+              ...(extra?.muscle ? { muscleGroup: extra.muscle } : {}),
+            }),
           }),
         );
+        if (
+          data.catalogRestSec &&
+          data.catalogRestSec > 0 &&
+          getExerciseRestSec(data.session.exercises.at(-1)?.name ?? name) == null
+        ) {
+          setExerciseRestSec(data.session.exercises.at(-1)?.name ?? name, data.catalogRestSec);
+        }
         setExerciseName("");
         setLibraryHits([]);
         const created =
@@ -2290,6 +2332,7 @@ export function WorkoutsView({
         restSound={restSound}
         setRestSound={setRestSound}
         startRest={startRest}
+        extendRest={extendRest}
         clearRest={clearRest}
         restOptions={REST_OPTIONS}
         liveElapsedLabel={liveElapsedLabel}

@@ -359,8 +359,13 @@ export function WorkoutSessionSummary({
 
   const metrics: StageMetric[] = [
     {
+      key: "time",
+      label: "Длительность",
+      value: card.elapsedLabel,
+    },
+    {
       key: "load",
-      label: "Нагрузка",
+      label: "Тоннаж",
       value: formatSummaryLoadLine(card),
     },
     {
