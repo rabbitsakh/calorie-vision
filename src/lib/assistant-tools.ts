@@ -680,7 +680,6 @@ export async function toolStartTodaysRoutine(opts: {
         date: opts.date,
         progressRate: DEFAULT_PROGRESS_RATE,
         note: routine.note,
-        startedAt: new Date(),
         muscles: { create: muscleKeys.map((groupKey) => ({ groupKey })) },
       },
     });
@@ -753,7 +752,6 @@ export async function toolStartEmptyWorkout(opts: {
       userId: opts.userId,
       date: opts.date,
       progressRate: DEFAULT_PROGRESS_RATE,
-      startedAt: new Date(),
       muscles: { create: [{ groupKey: group }] },
     },
     include: sessionInclude,
@@ -954,7 +952,6 @@ export async function toolRepeatLastWorkout(opts: {
         date: opts.date,
         progressRate: source.progressRate ?? DEFAULT_PROGRESS_RATE,
         note: source.note,
-        startedAt: new Date(),
         muscles: { create: muscleKeys.map((groupKey) => ({ groupKey })) },
       },
     });

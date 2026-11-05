@@ -46,6 +46,8 @@ rustore/screenshots/android-raw/
 !/android/app/src/main/java/ru/calorievision/app/
 /android/app/src/main/java/ru/calorievision/app/**
 !/android/app/src/main/java/ru/calorievision/app/CvFilesPlugin.java
+!/android/app/src/main/java/ru/calorievision/app/CvRestTimerPlugin.java
+!/android/app/src/main/java/ru/calorievision/app/CvRestTimerService.java
 deploy_key
 deploy_key.pub
 public/downloads/*.aab

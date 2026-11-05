@@ -74,6 +74,7 @@ export function WorkoutInlineSetRow({
   const [km, setKm] = useState("");
   const [time, setTime] = useState("");
   const [rpe, setRpe] = useState("");
+  const [more, setMore] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -269,7 +270,14 @@ export function WorkoutInlineSetRow({
               />
             </label>
           ) : null}
-          {kind !== "cardio" ? (
+          <button
+            type="button"
+            className="min-h-[44px] text-sm font-semibold text-[var(--accent-ink)]"
+            onClick={() => setMore((open) => !open)}
+          >
+            {more ? "Скрыть" : "Ещё"}
+          </button>
+          {more && kind !== "cardio" ? (
             <label
               className="flex flex-col gap-1 text-xs text-[var(--muted)]"
               title={EFFORT_FIELD_ARIA}

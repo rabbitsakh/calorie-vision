@@ -145,6 +145,16 @@ export function formatPreviousSetLabel(
   return "—";
 }
 
+/** «В прошлый раз 60 × 8» — фраза рядом с полем подхода. */
+export function formatLastTimePhrase(
+  set: HistorySetLike | null | undefined,
+  kind: ExerciseKind,
+): string | null {
+  const label = formatPreviousSetLabel(set, kind);
+  if (!label || label === "—") return null;
+  return `В прошлый раз ${label.replace("×", " × ")}`;
+}
+
 /** ↑ when the prefilled kg is a progression step versus that row's last time. */
 export function isProgressionUp(
   kind: ExerciseKind,

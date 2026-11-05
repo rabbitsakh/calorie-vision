@@ -18,8 +18,8 @@ function withBase(path) {
 }
 
 /** Shell + static asset cache — bump when strategy or icons change. */
-const CACHE_NAME = "cv-shell-v10";
-const STATIC_CACHE = "cv-static-v10";
+const CACHE_NAME = "cv-shell-v11";
+const STATIC_CACHE = "cv-static-v11";
 /** Bump with logo/icon releases so precache + notifications pick new assets. */
 const ICON_VER = "2.2.1";
 
@@ -190,7 +190,32 @@ self.addEventListener("push", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type === "cv-rest-clear") {
+    event.waitUntil(
+      self.registration.getNotifications({ tag: "cv-rest" }).then((notes) => {
+        notes.forEach((note) => note.close());
+      }),
+    );
+  }
+});
+
 self.addEventListener("notificationclick", (event) => {
+  const kind = event.notification.data?.kind;
+  if (kind === "rest" && (event.action === "add30" || event.action === "skip")) {
+    event.notification.close();
+    event.waitUntil(
+      self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: "cv-rest", action: event.action });
+        });
+        const opener = clients[0];
+        if (opener && "focus" in opener) return opener.focus();
+      }),
+    );
+    return;
+  }
   event.notification.close();
   const url = event.notification.data?.url ?? withBase("/");
   event.waitUntil(

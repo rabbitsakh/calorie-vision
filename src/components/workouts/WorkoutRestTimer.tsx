@@ -1,7 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { RestRing } from "@/components/workouts/RestRing";
 import { playRestEndBeep } from "@/lib/workouts/session-clock";
+import {
+  clearRestNotification,
+  readNativeRestEndsAt,
+  shiftRestNotification,
+  startRestNotification,
+  subscribeRestNotificationActions,
+} from "@/lib/workouts/rest-notify";
 import {
   REST_OPTIONS,
   formatRestClock,
@@ -41,6 +49,7 @@ export function useWorkoutRestTimer() {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [restLeft, setRestLeft] = useState(0);
   const [restSound, setRestSoundState] = useState(true);
+  const nativeAlarm = useRef(false);
 
   useEffect(() => {
     try {
@@ -124,18 +133,37 @@ export function useWorkoutRestTimer() {
       } catch {
         // ignore
       }
+      void startRestNotification(ends, "Отдых").then((native) => {
+        nativeAlarm.current = native;
+      });
     },
     [restSeconds],
   );
 
+  const extendRest = useCallback((extraSec = 30) => {
+    setRestEndsAt((current) => {
+      const base = current && current > Date.now() ? current : Date.now();
+      const ends = base + extraSec * 1000;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(ends));
+      } catch {
+        // ignore
+      }
+      void shiftRestNotification(ends, extraSec * 1000);
+      return ends;
+    });
+  }, []);
+
   const clearRest = useCallback(() => {
     setRestEndsAt(null);
     setRestLeft(0);
+    nativeAlarm.current = false;
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
       // ignore
     }
+    void clearRestNotification();
   }, []);
 
   useEffect(() => {
@@ -153,7 +181,7 @@ export function useWorkoutRestTimer() {
         } catch {
           // ignore
         }
-        if (restSound) playRestEndBeep();
+        if (restSound && !nativeAlarm.current) playRestEndBeep();
         if (typeof navigator !== "undefined" && "vibrate" in navigator) {
           try {
             navigator.vibrate([200, 100, 200]);
@@ -164,9 +192,28 @@ export function useWorkoutRestTimer() {
       }
     };
     tick();
-    const id = window.setInterval(tick, 250);
+    const id = window.setInterval(() => {
+      const nativeEnds = readNativeRestEndsAt();
+      if (nativeEnds && restEndsAt && Math.abs(nativeEnds - restEndsAt) > 1500) {
+        setRestEndsAt(nativeEnds);
+        try {
+          localStorage.setItem(STORAGE_KEY, String(nativeEnds));
+        } catch {
+          // ignore
+        }
+        return;
+      }
+      tick();
+    }, 250);
     return () => window.clearInterval(id);
   }, [restEndsAt, restSound]);
+
+  useEffect(() => {
+    return subscribeRestNotificationActions((action) => {
+      if (action === "skip") clearRest();
+      else extendRest(30);
+    });
+  }, [clearRest, extendRest]);
 
   return {
     restSeconds,
@@ -176,6 +223,7 @@ export function useWorkoutRestTimer() {
     restSound,
     setRestSound,
     startRest,
+    extendRest,
     clearRest,
     REST_OPTIONS,
     formatRest: formatRestClock,
@@ -186,29 +234,27 @@ export function useWorkoutRestTimer() {
 export function WorkoutRestTimerBanner({
   restEndsAt,
   restLeft,
+  restSeconds = 90,
   onSkip,
+  onAdd,
 }: {
   restEndsAt: number | null;
   restLeft: number;
+  restSeconds?: number;
   onSkip: () => void;
+  onAdd?: () => void;
 }) {
   if (!restEndsAt || !Number.isFinite(restEndsAt)) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-      <div className="pointer-events-auto flex w-full max-w-lg items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-ink)]">Отдых</p>
-          <p className="text-3xl font-semibold tabular-nums text-[var(--foreground)]">
-            {formatRestClock(restLeft)}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="rounded-lg border border-[var(--border-quiet)] bg-white px-3 py-2 text-sm font-medium text-[var(--muted-strong)]"
-          onClick={onSkip}
-        >
-          Пропустить
-        </button>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="gym-rest-dock pointer-events-auto w-full max-w-lg">
+        <RestRing
+          totalSec={restSeconds}
+          leftSec={restLeft}
+          running
+          onAdd={onAdd}
+          onSkip={onSkip}
+        />
       </div>
     </div>
   );

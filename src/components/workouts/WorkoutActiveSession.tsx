@@ -7,6 +7,7 @@ import { ExerciseRow } from "@/components/workouts/ExerciseRow";
 import type { OverflowMenuItem } from "@/components/workouts/OverflowMenu";
 import { OverflowMenu } from "@/components/workouts/OverflowMenu";
 import { RestTimer } from "@/components/workouts/RestTimer";
+import { WorkoutRestTimerBanner } from "@/components/workouts/WorkoutRestTimer";
 import { SessionSheet } from "@/components/workouts/SessionSheet";
 import { SetTable, type SetTableFields } from "@/components/workouts/SetTable";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
@@ -19,6 +20,7 @@ import {
   buildSetTableRows,
   exerciseSetCounts,
   formatBestTarget,
+  formatLastTimePhrase,
   nextUnfinishedExerciseId,
   pickInitialExpandedId,
   shouldAutoExpandNext,
@@ -54,6 +56,7 @@ import {
   collectPreferredLevers,
 } from "@/lib/workouts/progression-lever-memory";
 import { validateSetDraft } from "@/lib/workouts/set-draft";
+import { getExerciseRestSec, REST_OPTIONS, setExerciseRestSec } from "@/lib/workouts/rest-timer";
 import { SET_TYPE_LABELS, type SetType } from "@/lib/workouts/set-meta";
 
 type Progress = {
@@ -265,6 +268,7 @@ export type WorkoutActiveSessionProps = {
   restSound: boolean;
   setRestSound: (v: boolean) => void;
   startRest: (sec?: number) => void;
+  extendRest?: () => void;
   clearRest: () => void;
   restOptions: readonly number[];
   liveElapsedLabel: string;
@@ -329,7 +333,11 @@ export type WorkoutActiveSessionProps = {
   deleteExercise: (exerciseId: string) => Promise<void>;
   addSet: (exerciseId: string, draft?: SetDraft) => Promise<boolean>;
   completePlannedSet: (exerciseId: string, setId: string, draft: SetDraft) => Promise<boolean>;
-  addExercise: (name?: string, kind?: ExerciseKind) => Promise<void>;
+  addExercise: (
+    name?: string,
+    kind?: ExerciseKind,
+    extra?: { restSec?: number; muscle?: string },
+  ) => Promise<void>;
   applyPasteLog: () => Promise<void>;
 };
 
@@ -349,6 +357,7 @@ export function WorkoutActiveSession({
   restSound,
   setRestSound,
   startRest,
+  extendRest,
   clearRest,
   restOptions,
   liveElapsedLabel,
@@ -364,7 +373,6 @@ export function WorkoutActiveSession({
   queuedSets,
   flushSummary = null,
   insights,
-  libraryHits,
   newExerciseKind,
   setNewExerciseKind,
   exerciseName,
@@ -413,6 +421,7 @@ export function WorkoutActiveSession({
   const [timeOpen, setTimeOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
   const [noteExerciseId, setNoteExerciseId] = useState<string | null>(null);
+  const [exerciseRestSec, setExerciseRestSecState] = useState(restSeconds);
   const [historyName, setHistoryName] = useState<string | null>(null);
   const [editStartTime, setEditStartTime] = useState(() =>
     detail.startedAt ? toTimeInputValue(detail.startedAt) : "12:00",
@@ -648,6 +657,10 @@ export function WorkoutActiveSession({
 
   const clock = detail.clockStatus ?? "idle";
   const noteExercise = detail.exercises.find((ex) => ex.id === noteExerciseId) ?? null;
+  useEffect(() => {
+    if (!noteExercise) return;
+    setExerciseRestSecState(getExerciseRestSec(noteExercise.name) ?? restSeconds);
+  }, [noteExercise, restSeconds]);
   const historyExercise = detail.exercises.find((ex) => ex.name === historyName) ?? null;
 
   const workoutMenu: OverflowMenuItem[] = [
@@ -689,6 +702,13 @@ export function WorkoutActiveSession({
 
   return (
     <div className="gym-session-scene">
+      <WorkoutRestTimerBanner
+        restEndsAt={restEndsAt}
+        restLeft={restLeft}
+        restSeconds={restSeconds}
+        onSkip={clearRest}
+        onAdd={extendRest}
+      />
       {showSummary ? (
         <WorkoutSessionSummary
           date={detail.date}
@@ -849,12 +869,13 @@ export function WorkoutActiveSession({
           const counts = exerciseSetCounts(ex.sets, ex.lastTime?.sets.length ?? 0);
           const goal = bestAndTarget(ex, detail.progressRate, historyByName[ex.name]);
           const bestTarget = formatBestTarget(goal.best, goal.target);
+          const lastLine = formatLastTimePhrase(ex.lastTime?.sets?.[0], ex.kind);
           const expanded = expandedId === ex.id;
           const prevEx = detail.exercises[exIndex - 1];
           const addLabel =
             ex.kind === "cardio" ? "+ Отрезок" : ex.kind === "duration" ? "+ Раунд" : "+ Подход";
           const menu: OverflowMenuItem[] = [
-            { key: "note", label: "Заметка", onClick: () => setNoteExerciseId(ex.id) },
+            { key: "note", label: "Ещё", onClick: () => setNoteExerciseId(ex.id) },
             {
               key: "history",
               label: "Прогресс и PR",
@@ -962,8 +983,9 @@ export function WorkoutActiveSession({
                   ? `${counts.label} · круг ${circuitRound}`
                   : counts.label
               }
-              bestTarget={bestTarget}
-              expanded={expanded}
+                bestTarget={bestTarget}
+                lastLine={lastLine}
+                expanded={expanded}
               superset={ex.supersetGroup ?? null}
               pending={ex.sets.some((s) => s.pendingLocal)}
               menu={menu}
@@ -1010,17 +1032,16 @@ export function WorkoutActiveSession({
           busy={busy}
           kind={newExerciseKind}
           name={exerciseName}
-          hits={libraryHits}
           suggestions={(insights?.suggestions ?? []).slice(0, 8).map((s) => ({
             name: s.name,
             count: s.count,
           }))}
           onKind={setNewExerciseKind}
           onName={setExerciseName}
-          onAdd={(name, kind) => {
+          onAdd={(name, kind, extra) => {
             const typed = (name ?? exerciseName).trim();
             if (!typed) return;
-            void addExercise(name, kind).then(() => setAddOpen(false));
+            void addExercise(name, kind, extra).then(() => setAddOpen(false));
           }}
           onClose={() => setAddOpen(false)}
         />
@@ -1040,7 +1061,8 @@ export function WorkoutActiveSession({
       ) : null}
 
       {noteExercise ? (
-        <SessionSheet title={noteExercise.name} onClose={() => setNoteExerciseId(null)}>
+        <SessionSheet title="Ещё" onClose={() => setNoteExerciseId(null)}>
+          <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">{noteExercise.name}</p>
           <label className="flex flex-col gap-1 text-xs text-[var(--muted)]">
             Заметка
             <input
@@ -1054,8 +1076,26 @@ export function WorkoutActiveSession({
               }}
             />
           </label>
+          <div className="mt-3">
+            <p className="text-xs text-[var(--muted)]">Отдых после этого упражнения</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {REST_OPTIONS.map((sec) => (
+                  <button
+                    key={sec}
+                    type="button"
+                    className={`gym-chip ${exerciseRestSec === sec ? "is-on" : ""}`}
+                    onClick={() => {
+                      setExerciseRestSec(noteExercise.name, sec);
+                      setExerciseRestSecState(sec);
+                    }}
+                  >
+                    {sec} с
+                  </button>
+                ))}
+            </div>
+          </div>
           <label className="mt-3 flex flex-col gap-1 text-xs text-[var(--muted)]">
-            Усилие следующего подхода
+            Усилие, RPE
             <input
               inputMode="decimal"
               className="min-h-[44px] rounded-lg border border-[var(--border-quiet)] px-3 text-base"

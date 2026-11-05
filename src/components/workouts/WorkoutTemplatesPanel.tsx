@@ -30,7 +30,7 @@ export function WorkoutTemplatesPanel({
     <div className="gym-hub-scene gap-3">
       <button
         type="button"
-        className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
+        className="gym-primary"
         onClick={onCreateNew}
       >
         + Новый шаблон
@@ -45,7 +45,7 @@ export function WorkoutTemplatesPanel({
           {routines.map((r) => (
             <li
               key={r.id}
-              className="flex items-stretch gap-2 rounded-xl border border-[var(--border-hairline)] bg-[var(--surface-mist)]"
+              className="gym-template"
             >
               <button
                 type="button"

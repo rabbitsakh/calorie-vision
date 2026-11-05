@@ -659,7 +659,8 @@ import java.util.Calendar;
  * Capacitor JS is only injected on the local shell. After login the WebView
  * has no window.Capacitor — Preferences and LocalNotifications plugins are
  * unreachable. CvSession, CvReminders and CvFiles are JavascriptInterfaces on every origin.
- * CvFilesPlugin is also a Capacitor plugin for the local shell (rustore/cap-www).
+ * CvFilesPlugin и CvRestTimerPlugin — Capacitor-плагины локального shell.
+ * CvRest держит таймер отдыха на экране блокировки.
  */
 public class MainActivity extends BridgeActivity {
   private static final String PREFS_GROUP = "CapacitorStorage";
@@ -673,6 +674,7 @@ public class MainActivity extends BridgeActivity {
   public void onCreate(Bundle savedInstanceState) {
     // До super: BridgeActivity собирает список плагинов внутри onCreate.
     registerPlugin(CvFilesPlugin.class);
+    registerPlugin(CvRestTimerPlugin.class);
     super.onCreate(savedInstanceState);
     attachBridges();
   }
@@ -709,6 +711,7 @@ public class MainActivity extends BridgeActivity {
       bridgeWebView.addJavascriptInterface(new CvSessionBridge(this), "CvSession");
       bridgeWebView.addJavascriptInterface(new CvRemindersBridge(this), "CvReminders");
       bridgeWebView.addJavascriptInterface(new CvFilesPlugin.JsBridge(this), "CvFiles");
+      bridgeWebView.addJavascriptInterface(new CvRestTimerPlugin.JsBridge(this), "CvRest");
       attachDownloadListener(bridgeWebView);
       ensureReminderChannel();
     } catch (Exception ignored) {

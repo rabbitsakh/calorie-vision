@@ -19,7 +19,7 @@ export function SessionSheet({
       <div
         role="dialog"
         aria-label={title}
-        className="max-h-[85vh] w-full max-w-lg overflow-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl"
+        className="gym-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between gap-2">

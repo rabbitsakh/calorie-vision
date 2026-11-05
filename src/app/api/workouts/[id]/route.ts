@@ -3,6 +3,7 @@ import { notFoundResourceResponse } from "@/lib/api-auth-guards";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { sweepIdleSessions } from "@/lib/workouts/apply-session-clock";
 import {
   buildExerciseHistoryByNormName,
   historyForExerciseName,
@@ -89,6 +90,7 @@ export async function GET(_request: NextRequest, context: Ctx) {
     if (response) return response;
 
     const { id } = await context.params;
+    await sweepIdleSessions(prisma, session.user.id);
     const row = await loadOwnedSession(session.user.id, id);
     if (!row) {
       const miss = notFoundResourceResponse("Тренировка");
@@ -135,6 +137,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       endedAt?: Date | null;
       pausedAt?: Date | null;
       pausedMs?: number;
+      endedBy?: string | null;
     } = {};
 
     if (body.date !== undefined) {
@@ -174,6 +177,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         return NextResponse.json({ error: normalized.error }, { status: 400 });
       }
       Object.assign(data, normalized.data);
+      data.endedBy = "manual";
     } else if (body.clock === "start") {
       data.startedAt = existing.startedAt ?? new Date();
       data.endedAt = null;
@@ -223,6 +227,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         data.pausedMs = r.pausedMs;
       }
       data.endedAt = new Date();
+      data.endedBy = "manual";
     }
 
     const muscleGroups =
