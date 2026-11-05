@@ -1105,8 +1105,9 @@ export function parsePieceCountFromMessage(text: string): number | null {
     if (Number.isFinite(n) && n > 0 && n <= 40) return Math.round(n);
   }
   // Count glued to a piece food: «4 варёных яйца», «2 банана».
+  // «яйц» записан экранированием: буква «и» вместо «й» не ловит «яйца» после «съел».
   const beforeFood = new RegExp(
-    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+)?(?:яиц\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*)`,
+    String.raw`(\d+)\s+(?:вар[её]н\p{L}*\s+)?(?:\u044f\u0439\u0446\p{L}*|банан\p{L}*|яблок\p{L}*|апельсин\p{L}*|мандарин\p{L}*|сосиск\p{L}*|котлет\p{L}*)`,
     "iu",
   ).exec(text);
   if (beforeFood?.[1]) {
@@ -1202,7 +1203,7 @@ export function heuristicRepairMultiDishActions(
 
 /**
  * Offline: model listed one dish with kcal in a bullet but forgot cv-actions
- * («Ок, кидаю в план: - Перекус: протеин … (~220 ккал)»).
+ * («- Перекус: протеин … (~220 ккал)»).
  */
 export function heuristicRepairFromDraftReply(
   userMessage: string,
@@ -1252,6 +1253,100 @@ function stripMealSlotPrefix(name: string): string {
     .slice(0, 120);
 }
 
+const CONSUMPTION_VERB_RE =
+  /(?:^|[^\p{L}\p{N}])(?:съел(?:а)?|выпил(?:а)?|поел(?:а)?|покушал(?:а)?|скушал(?:а)?|перекусил(?:а)?|закусил(?:а)?|заел(?:а)?|запил(?:а)?|попил(?:а)?|доел(?:а)?|употребил(?:а)?)(?=$|[^\p{L}\p{N}])/iu;
+
+/** «перенеси», «исправь», «измени», «не в 10, а в 11» — правка уже существующей записи. */
+const EXPLICIT_MEAL_EDIT_RE =
+  /исправ|поправ|смени|измени|перенес|перемест|перекин|удал|убери/iu;
+
+const TIME_CORRECTION_RE =
+  /не\s+(?:в\s+)?\d{1,2}(?:\s*[:.]\s*\d{2})?[^.\n]{0,24}?(?:^|[^\p{L}\p{N}])а\s+(?:в\s+)?\d{1,2}/iu;
+
+export function messageHasExplicitMealEdit(message: string): boolean {
+  const text = message.trim();
+  if (!text) return false;
+  return EXPLICIT_MEAL_EDIT_RE.test(text) || TIME_CORRECTION_RE.test(text);
+}
+
+/**
+ * Новый продукт с количеством и глаголом употребления — это добавление.
+ * Время и приём пищи здесь атрибуты записи, а не правка слота.
+ */
+export function messageLogsNewEatenFood(message: string): boolean {
+  const text = message.trim();
+  if (!text || !CONSUMPTION_VERB_RE.test(text)) return false;
+  if (parsePortionGramsFromMessage(text) == null && parsePieceCountFromMessage(text) == null) {
+    return false;
+  }
+  const tokenEnd = String.raw`(?=$|[^\p{L}\p{N}])`;
+  const tokenStart = String.raw`(?:^|[^\p{L}\p{N}])`;
+  const product = text
+    .replace(CONSUMPTION_VERB_RE, " ")
+    .replace(/\d+(?:[.,]\d+)?/g, " ")
+    .replace(
+      new RegExp(
+        tokenStart +
+          String.raw`(?:грамм(?:а|ов)?|гр|г|мл|литр(?:а|ов|ы)?|л|шт(?:ук[аи])?)` +
+          tokenEnd,
+        "giu",
+      ),
+      " ",
+    )
+    .replace(new RegExp(tokenStart + MEAL_SLOT_STEM_RE + tokenEnd, "giu"), " ")
+    .replace(
+      new RegExp(
+        tokenStart +
+          String.raw`(?:сегодня|вчера|завтра|утром|вечером|днем|днём|ночью|пожалуйста|весь|это|на|в|во)` +
+          tokenEnd,
+        "giu",
+      ),
+      " ",
+    );
+  const stop = new Set(["был", "была", "было", "только", "просто", "очень", "ещё", "еще", "тоже"]);
+  return product
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .split(/[^\p{L}]+/u)
+    .some((token) => token.length >= 3 && !stop.has(token));
+}
+
+/** Запрос к таблице КБЖУ: без глагола, граммов, слота и часов. Падеж «протеина» → «протеин». */
+function foodLookupQueries(userMessage: string): string[] {
+  const amountEnd = String.raw`(?=$|\s|[^\p{L}\p{N}])`;
+  const cleaned = userMessage
+    .replace(new RegExp(CONSUMPTION_VERB_RE.source, "giu"), " ")
+    .replace(
+      /(?:^|\s)(?:добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)(?=$|\s|[^\p{L}\p{N}])/giu,
+      " ",
+    )
+    .replace(
+      new RegExp(
+        String.raw`\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)` + amountEnd,
+        "giu",
+      ),
+      " ",
+    )
+    .replace(
+      new RegExp(`(?:(?:на|в|во)\\s+)?${MEAL_SLOT_STEM_RE}(?=$|\\s|[^\\p{L}\\p{N}])`, "giu"),
+      " ",
+    )
+    .replace(/(?:в|на|к|около)\s*\d{1,2}(?:\s*[:.]\s*\d{2})?(?=$|\s|[^\p{L}\p{N}])/giu, " ")
+    .replace(/\b\d{1,2}:\d{2}\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const nominative = cleaned
+    .split(/\s+/)
+    .map((token) => {
+      const folded = token.toLowerCase().replace(/ё/g, "е");
+      if (folded.length >= 6 && /[ая]$/u.test(folded)) return folded.slice(0, -1);
+      return token;
+    })
+    .join(" ")
+    .trim();
+  return [...new Set([cleaned, nominative, userMessage.trim()].filter((query) => query.length >= 3))];
+}
+
 /**
  * Offline repair for clear drink/food write intents (beer liters, etc.)
  * when the model moralizes without cv-actions.
@@ -1260,35 +1355,29 @@ function stripMealSlotPrefix(name: string): string {
 export function heuristicRepairWriteActions(userMessage: string): AssistantActions | null {
   if (!userWantsWrite(userMessage)) return null;
   if (messageLooksLikeMultiDish(userMessage)) return null;
+  if (messageHasExplicitMealEdit(userMessage) && !messageLogsNewEatenFood(userMessage)) return null;
 
   const drinkQ = drinkLookupQuery(userMessage);
-  const cleaned = userMessage
-    .replace(/^\s*я\s+(съел|выпил|поел)\s+/i, "")
-    .replace(
-      /(?:^|\s)(?:добав\S*|закинь|запиш\S*|кинь|положи|внеси|сохран\S*)(?=$|\s)/giu,
-      " ",
-    )
-    .replace(/\d+(?:[.,]\d+)?\s*(?:л|литр(?:а|ов|ы)?|мл|г|гр|грамм(?:а|ов)?)\b/gi, " ")
-    .replace(
-      new RegExp(`(?:(?:на|в|во)\\s+)?${MEAL_SLOT_STEM_RE}(?=$|\\s|[^\\p{L}\\p{N}])`, "giu"),
-      " ",
-    )
-    .replace(/\s+/g, " ")
-    .trim();
-  const pack =
-    (drinkQ ? lookupRuNutritionTable(drinkQ) : null) ??
-    lookupRuNutritionTable(cleaned) ??
-    lookupRuNutritionTable(userMessage);
+  let pack = drinkQ ? lookupRuNutritionTable(drinkQ) : null;
+  if (!pack) {
+    for (const query of foodLookupQueries(userMessage)) {
+      pack = lookupRuNutritionTable(query);
+      if (pack) break;
+    }
+  }
   if (!pack) return null;
 
   const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
-  const portion = parsePortionGramsFromMessage(userMessage) ?? baseGrams;
-  const scale = portion / baseGrams;
+  const grams = parsePortionGramsFromMessage(userMessage);
+  const pieces = grams == null ? parsePieceCountFromMessage(userMessage) : null;
+  const perPiece = pieces != null && pieces > 0 && packLooksPerPiece(pack.dishName);
+  const scale = grams != null ? grams / baseGrams : perPiece && pieces != null ? pieces : 1;
   const num = (v?: number) =>
     v == null || !Number.isFinite(v) ? undefined : Math.round(v * scale * 10) / 10;
   const unit = drinkQ || /мл|литр|\bл\b/i.test(userMessage) ? "мл" : "г";
-  const name =
-    portion !== baseGrams ? `${pack.dishName} (${portion} ${unit})` : pack.dishName;
+  let name = pack.dishName;
+  if (grams != null && grams !== baseGrams) name = `${pack.dishName} (${grams} ${unit})`;
+  else if (perPiece && pieces != null && pieces > 1) name = `${pack.dishName} (${pieces} шт)`;
   const { note, targetDate } = mealMetaFromMessage(userMessage);
 
   return {
@@ -1313,6 +1402,8 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
  */
 export function heuristicRepairSlotEditActions(userMessage: string): AssistantActions | null {
   if (!userWantsWrite(userMessage)) return null;
+  // «Выпил 70г протеина на перекус в 10:30» — новая запись. Часы и слот не правка.
+  if (messageLogsNewEatenFood(userMessage)) return null;
   const targetDate = extractTargetDateFromMessage(userMessage) ?? "сегодня";
   const text = userMessage.trim();
   const move = extractMealSlotMoveFromMessage(userMessage);
@@ -1400,6 +1491,7 @@ export function heuristicRepairPortionPatchActions(
   userMessage: string,
 ): AssistantActions | null {
   if (!userWantsWrite(userMessage)) return null;
+  if (messageLogsNewEatenFood(userMessage)) return null;
   const text = userMessage.trim();
   if (!/исправ|поправ|сделай|поставь|измени|порци/i.test(text)) return null;
   if (/добав|съел|запиш|закинь|положи|внеси/i.test(text)) return null;
@@ -1529,6 +1621,19 @@ export function preferSlotEditActions(
   userMessage: string,
   actions: AssistantActions | null | undefined,
 ): AssistantActions | null {
+  if (messageLogsNewEatenFood(userMessage)) {
+    if (!actions?.meals?.length || !actions.patchMeals?.length) return actions ?? null;
+    const next: AssistantActions = { ...actions };
+    delete next.patchMeals;
+    if (next.summary && /→/.test(next.summary) && /подтверди/i.test(next.summary)) {
+      const names = (next.meals ?? [])
+        .map((meal) => meal.name.split(" (")[0])
+        .slice(0, 4)
+        .join(", ");
+      if (names) next.summary = `к подтверждению: ${names}`;
+    }
+    return next;
+  }
   const slot = heuristicRepairSlotEditActions(userMessage);
   if (slot) {
     if (slot.deleteMeals?.length) {
@@ -1686,6 +1791,8 @@ async function repairAssistantWriteActionsInner(opts: {
     'Обязательно: "apply": true если есть что записать.',
     'Поля: meals[{name,kcal,...}], deleteMeals[], patchMeals[], shopping[], workoutDays[], waterMl, weightKg, startWorkout, startEmptyWorkout, repeatWorkout, patchWorkout, targetDate, summary.',
     "meals.note = завтрак|обед|ужин|перекус если понятно, иначе перекус.",
+    "Новый продукт с количеством и глаголом «съел/выпил/перекусил/поел» — всегда meals[], даже если названы время и приём: «выпил 70г протеина на перекус в 10:30», «съел 2 яйца на завтрак в 8». Время → meals.time, приём → meals.note. Не patchMeals.",
+    "patchMeals и deleteMeals — только явная правка уже записанного: «перенеси», «исправь», «измени», «не в 10, а в 11», «перенеси перекус на 11:00», «исправь вес протеина на 50 г».",
     "«Исправь завтрак на 6:30» → patchMeals:[{match:\"завтрак\",mealType:\"BREAKFAST\",time:\"06:30\"}] (один объект на весь слот).",
     "«Удали ужин» → deleteMeals:[{match:\"ужин\",mealType:\"DINNER\"}].",
     "«Перенеси обед в ужин» → patchMeals:[{match:\"обед\",mealType:\"LUNCH\",toMealType:\"DINNER\"}].",
