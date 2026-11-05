@@ -79,6 +79,7 @@ export type TodaySessionCard = {
   elapsedLabel?: string;
   /** Exercises that set a new PR in this session. */
   prCount?: number;
+  energyLabel?: string | null;
 };
 
 export type LastWorkoutRepeat = {
@@ -505,6 +506,7 @@ export function WorkoutWeekPlan({
                 {active.exerciseCount} упр. · {sessionMetric(active)}
                 {active.elapsedLabel ? ` · ${active.elapsedLabel}` : ""}
               </p>
+              {active.energyLabel ? <p className="gym-energy-line">{active.energyLabel}</p> : null}
             </div>
           </div>
         ) : null}
@@ -524,6 +526,7 @@ export function WorkoutWeekPlan({
                     <p className="text-xs text-[var(--muted)]">
                       {s.exerciseCount} упр. · {s.setCount} подх.
                     </p>
+                    {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
                   </div>
                   <button
                     type="button"
@@ -710,6 +713,7 @@ export function WorkoutWeekPlan({
                       ) : null}
                     </p>
                     <p className="text-xs text-[var(--muted)]">{sessionMetric(s)}</p>
+                    {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <button

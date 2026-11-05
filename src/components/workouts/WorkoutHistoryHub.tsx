@@ -32,6 +32,7 @@ export type HistorySessionRow = {
   prCount?: number;
   clockStatus?: "idle" | "running" | "paused" | "finished" | null;
   elapsedLabel?: string | null;
+  energyLabel?: string | null;
 };
 
 export type HistoryInsights = {
@@ -406,6 +407,7 @@ export function WorkoutHistoryHub({
                   {s.exerciseCount} упр. · {s.setCount}{" "}
                   {s.cardioOnly ? "отр." : "подх."}
                 </p>
+                {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
               </div>
               <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
                 {s.cardioOnly

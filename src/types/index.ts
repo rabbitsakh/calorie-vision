@@ -1,4 +1,5 @@
 import type { GoalPace, NutrientComparison, Sex, WeightGoal } from "@/lib/diet";
+import type { TrainingDayInfo } from "@/lib/training-day";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 
 export type RecognitionResponse = {
@@ -78,6 +79,8 @@ export type DayMealsResponse = {
   sex: Sex | null;
   weightKg: number | null;
   target: DietTarget | null;
+  /** Надбавка дня тренировки. null — обычный день, база без изменений. */
+  trainingDay?: TrainingDayInfo | null;
   /** BMR → TDEE → goal explanation when targets are available. */
   calorieExplanation?: string | null;
   comparison: {

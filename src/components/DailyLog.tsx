@@ -127,7 +127,7 @@ export function DailyLog({
   const [daySummary, setDaySummary] = useState<
     Pick<
       DayMealsResponse,
-      "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex" | "calorieExplanation"
+      "comparison" | "calorieTone" | "weightKg" | "dietLabel" | "sex" | "calorieExplanation" | "trainingDay"
     >
   >({
     comparison: null,
@@ -136,6 +136,7 @@ export function DailyLog({
     dietLabel: null,
     sex: null,
     calorieExplanation: null,
+    trainingDay: null,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -213,6 +214,7 @@ export function DailyLog({
         dietLabel: data.dietLabel ?? null,
         sex: data.sex ?? null,
         calorieExplanation: data.calorieExplanation ?? null,
+        trainingDay: data.trainingDay ?? null,
       });
     },
     [onTotalsChange],
@@ -934,6 +936,11 @@ export function DailyLog({
               {Math.round(daySummary.comparison.calories.target).toLocaleString("ru-RU")} ккал
             </span>
           ) : null}
+          {daySummary.trainingDay?.label ? (
+            <p className="training-day-note training-day-note--inline basis-full" role="status">
+              {daySummary.trainingDay.label}
+            </p>
+          ) : null}
           {/* Scene feed: one flow — Дневник → Фильтры → Клетч./Сахар (no justify-between). */}
           {sceneFeed && !loading && !error && entries.length > 0 ? (
             <button
@@ -1000,6 +1007,7 @@ export function DailyLog({
                   dietLabel={daySummary.dietLabel}
                   sex={daySummary.sex}
                   calorieExplanation={daySummary.calorieExplanation}
+                  trainingDay={daySummary.trainingDay}
                 />
                 {daySummary.comparison.calories.target > 0 ? (() => {
                   const target = daySummary.comparison!.calories.target;

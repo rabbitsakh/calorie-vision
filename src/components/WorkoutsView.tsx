@@ -201,6 +201,7 @@ type SessionSummary = {
   clockStatus?: "idle" | "running" | "paused" | "finished";
   /** Exercises that set a new PR in this session. */
   prCount?: number;
+  energyLabel?: string | null;
 };
 
 type SessionExercise = {
@@ -208,6 +209,7 @@ type SessionExercise = {
   name: string;
   kind: ExerciseKind;
   note: string | null;
+  catalogId?: string | null;
   muscleGroup: string | null;
   muscleLabel: string | null;
   load: number;
@@ -368,6 +370,8 @@ export function WorkoutsView({
   const searchParams = useSearchParams();
   const viewDate = selectedDate && selectedDate.length >= 8 ? selectedDate : todayKey;
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [bodyWeightKg, setBodyWeightKg] = useState<number | null>(null);
+  const [weightKnown, setWeightKnown] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [queuedSets, setQueuedSets] = useState(0);
@@ -458,9 +462,13 @@ export function WorkoutsView({
         q.set("from", `${ym}-01`);
         q.set("to", monthEndKey(`${ym}-01`));
       }
-      const data = await readJson<{ sessions: SessionSummary[] }>(
+      const data = await readJson<{ sessions: SessionSummary[]; bodyWeightKg?: number | null }>(
         await fetch(withBasePath(`/api/workouts?${q}`)),
       );
+      setBodyWeightKg(
+        typeof data.bodyWeightKg === "number" && data.bodyWeightKg > 0 ? data.bodyWeightKg : null,
+      );
+      setWeightKnown(true);
       setSessions([...locals, ...data.sessions]);
     } catch (err) {
       if (locals.length > 0) {
@@ -2336,6 +2344,7 @@ export function WorkoutsView({
         clearRest={clearRest}
         restOptions={REST_OPTIONS}
         liveElapsedLabel={liveElapsedLabel}
+        bodyWeightKg={weightKnown ? bodyWeightKg : undefined}
         focusExerciseId={focusExerciseId}
         setFocusExerciseId={setFocusExerciseId}
         circuitRound={circuitRound}
@@ -2546,6 +2555,7 @@ export function WorkoutsView({
               clockStatus: s.clockStatus,
               elapsedLabel: s.elapsedLabel,
               prCount: s.prCount,
+              energyLabel: s.energyLabel,
             }))}
           onOpenSession={(id, opts) => {
             void (async () => {

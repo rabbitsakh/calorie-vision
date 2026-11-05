@@ -3043,6 +3043,15 @@ select {
   max-width: 22rem;
 }
 
+.day-hero-training {
+  margin-top: 0.55rem;
+  max-width: 28rem;
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--accent-ink);
+}
+
 .day-hero-meta {
   font-size: 0.9rem;
   font-weight: 500;
@@ -9449,6 +9458,71 @@ button.profile-settings__door:disabled {
 
 .gym-session-card > button {
   min-height: 72px;
+}
+
+.gym-energy-line {
+  margin-top: 0.15rem;
+  max-width: 18rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--accent-ink);
+}
+
+.gym-energy-live {
+  display: flex;
+  min-width: 0;
+  max-width: 16rem;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: 0.2rem;
+  text-align: left;
+}
+
+.gym-energy-live__kcal {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-ink);
+  line-height: 1.1;
+}
+
+.gym-energy-live__note {
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--muted-strong);
+}
+
+.training-day-note {
+  border-radius: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: var(--accent-soft);
+  padding: 0.7rem 0.85rem;
+  color: var(--accent-ink);
+}
+
+.training-day-note--inline {
+  margin-top: 0.15rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.training-day-note__title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.training-day-note__body {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .gym-template {

@@ -49,6 +49,8 @@ type Props = {
   previousLoad: number;
   targetLoad: number;
   exercises: SummaryExercise[];
+  energyLabel?: string | null;
+  energyNote?: string | null;
   /** Rule-based next-session targets (Wave L). */
   nextTargets?: NextSessionTargetsCard | null;
   onClose: () => void;
@@ -114,6 +116,8 @@ export function WorkoutSessionSummary({
   previousLoad,
   targetLoad,
   exercises,
+  energyLabel = null,
+  energyNote = null,
   nextTargets = null,
   onClose,
   onBackToList,
@@ -375,6 +379,15 @@ export function WorkoutSessionSummary({
     },
   ];
 
+  if (energyLabel) {
+    metrics.push({
+      key: "energy",
+      label: "Расход",
+      value: energyLabel,
+      accent: true,
+    });
+  }
+
   if (card.deltaPctVsPrevious != null) {
     metrics.push({
       key: "delta",
@@ -408,6 +421,7 @@ export function WorkoutSessionSummary({
       onDismiss={onBackToList}
       dismissLabel="К списку"
     >
+      {energyNote ? <p className="gym-energy-line mb-3">{energyNote}</p> : null}
       {recoveryLine ? (
         <p
           className="mb-3 rounded-xl border border-[var(--accent)]/35 bg-[var(--accent)]/15 px-3 py-2 text-sm font-semibold text-[var(--accent-soft)]"

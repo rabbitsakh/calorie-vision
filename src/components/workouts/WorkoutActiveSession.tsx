@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ExerciseAddSheet } from "@/components/workouts/ExerciseAddSheet";
 import { ExerciseHistorySheet, type ExerciseHistoryBundle } from "@/components/workouts/ExerciseHistorySheet";
 import { ExerciseRow } from "@/components/workouts/ExerciseRow";
@@ -37,6 +37,11 @@ import {
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
 import { sessionElapsedSec } from "@/lib/workouts/session-clock";
+import {
+  estimateSessionEnergy,
+  formatSessionEnergyCaption,
+  formatSessionEnergyKcal,
+} from "@/lib/workouts/energy";
 import { formatWorkoutLoad } from "@/lib/workouts/format";
 import {
   BLOCK_MODE_LABELS,
@@ -126,6 +131,7 @@ type SessionExercise = {
   name: string;
   kind: ExerciseKind;
   note: string | null;
+  catalogId?: string | null;
   muscleGroup: string | null;
   muscleLabel: string | null;
   load: number;
@@ -272,6 +278,8 @@ export type WorkoutActiveSessionProps = {
   clearRest: () => void;
   restOptions: readonly number[];
   liveElapsedLabel: string;
+  /** undefined — вес ещё не загружен; null — измерений нет. */
+  bodyWeightKg?: number | null;
   focusExerciseId: string | null;
   setFocusExerciseId: (id: string | null) => void;
   circuitRound: number;
@@ -361,6 +369,7 @@ export function WorkoutActiveSession({
   clearRest,
   restOptions,
   liveElapsedLabel,
+  bodyWeightKg,
   focusExerciseId,
   setFocusExerciseId,
   circuitRound,
@@ -431,6 +440,33 @@ export function WorkoutActiveSession({
   );
   const [timeBusy, setTimeBusy] = useState(false);
   const prevFocus = useRef(focusExerciseId);
+  const liveEnergy = useMemo(() => {
+    if (bodyWeightKg === undefined) return null;
+    void liveElapsedLabel;
+    return estimateSessionEnergy({
+      weightKg: bodyWeightKg,
+      elapsedSec: sessionElapsedSec({
+        startedAt: detail.startedAt ?? null,
+        endedAt: detail.endedAt ?? null,
+        pausedAt: detail.pausedAt ?? null,
+        pausedMs: detail.pausedMs ?? 0,
+      }),
+      exercises: detail.exercises.map((exercise) => ({
+        name: exercise.name,
+        kind: exercise.kind,
+        catalogId: exercise.catalogId,
+        sets: exercise.sets.map((set) => ({
+          completed: set.completed,
+          durationSec: set.durationSec,
+          setType: set.setType,
+        })),
+      })),
+    });
+  }, [bodyWeightKg, detail, liveElapsedLabel]);
+  const liveEnergyLabel =
+    liveEnergy && liveEnergy.kcal > 0 ? formatSessionEnergyKcal(liveEnergy) : null;
+  const liveEnergyCaption =
+    liveEnergy && liveEnergy.kcal > 0 ? formatSessionEnergyCaption(liveEnergy) : null;
 
   useEffect(() => {
     setExpandedId(pickInitialExpandedId(detail.exercises.map(toExpandInput)));
@@ -727,6 +763,8 @@ export function WorkoutActiveSession({
           previousLoad={progress?.previousLoad ?? 0}
           targetLoad={progress?.targetLoad ?? 0}
           exercises={summaryExercises}
+          energyLabel={liveEnergyLabel}
+          energyNote={liveEnergyCaption}
           nextTargets={nextTargets}
           onClose={() => setShowSummary(false)}
           onBackToList={onSummaryBackToList}
@@ -766,7 +804,11 @@ export function WorkoutActiveSession({
         <button
           type="button"
           className="min-h-[44px] min-w-[44px] px-1 text-left"
-          aria-label="Время тренировки"
+          aria-label={
+            liveEnergyLabel
+              ? `Время тренировки, расход ${liveEnergyLabel}`
+              : "Время тренировки"
+          }
           onClick={() => {
             if (clock === "idle") void patchClock("start");
           }}
@@ -777,6 +819,12 @@ export function WorkoutActiveSession({
           <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             {CLOCK_HINT[clock]}
           </span>
+          {liveEnergyLabel ? (
+            <span className="gym-energy-live" title={liveEnergyCaption ?? undefined}>
+              <span className="gym-energy-live__kcal">{liveEnergyLabel}</span>
+              {liveEnergyCaption ? <span className="gym-energy-live__note">{liveEnergyCaption}</span> : null}
+            </span>
+          ) : null}
         </button>
         {!detail.cardioOnly && clock !== "finished" ? (
           <RestTimer

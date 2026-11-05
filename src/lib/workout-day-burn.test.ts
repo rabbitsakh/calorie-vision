@@ -1,36 +1,51 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { FALLBACK_BODY_WEIGHT_KG, GENERIC_CARDIO_MET } from "./workouts/energy.ts";
 import {
   estimateDayWorkoutBurnKcal,
   estimateSessionBurnKcal,
   formatWorkoutBurnHint,
 } from "./workout-day-burn.ts";
 
-test("estimateSessionBurnKcal uses cardio minutes", () => {
+test("estimateSessionBurnKcal считает кардио по MET и весу, без пола «N ккал»", () => {
   const kcal = estimateSessionBurnKcal({
     cardioDurationSec: 30 * 60,
     cardioOnly: true,
     endedAt: "2026-09-30T10:00:00.000Z",
   });
-  assert.equal(kcal, 240);
+  assert.equal(kcal, Math.round(GENERIC_CARDIO_MET * FALLBACK_BODY_WEIGHT_KG * 0.5));
+  assert.notEqual(kcal, 80);
 });
 
-test("estimateSessionBurnKcal uses elapsed for strength", () => {
-  const kcal = estimateSessionBurnKcal({
+test("estimateSessionBurnKcal: силовая по времени сессии, известный вес меняет итог", () => {
+  const fallback = estimateSessionBurnKcal({
     elapsedSec: 40 * 60,
     totalLoad: 2000,
     setCount: 12,
     endedAt: "2026-09-30T10:00:00.000Z",
   });
-  assert.equal(kcal, 200);
+  const weighed = estimateSessionBurnKcal({
+    elapsedSec: 40 * 60,
+    weightKg: 80,
+    endedAt: "2026-09-30T10:00:00.000Z",
+  });
+  assert.equal(fallback, Math.round(5 * FALLBACK_BODY_WEIGHT_KG * (40 / 60)));
+  assert.equal(weighed, Math.round(5 * 80 * (40 / 60)));
+  assert.ok(weighed > fallback);
 });
 
-test("estimateDayWorkoutBurnKcal sums sessions", () => {
+test("пустая завершённая сессия не получает константу", () => {
+  assert.equal(estimateSessionBurnKcal({ endedAt: "2026-09-30T10:00:00.000Z" }), 0);
+});
+
+test("estimateDayWorkoutBurnKcal суммирует сессии", () => {
+  const cardio = Math.round(GENERIC_CARDIO_MET * FALLBACK_BODY_WEIGHT_KG * (20 / 60));
+  const strength = Math.round(5 * FALLBACK_BODY_WEIGHT_KG * 0.5);
   const total = estimateDayWorkoutBurnKcal([
     { cardioDurationSec: 20 * 60, cardioOnly: true, endedAt: "x" },
     { elapsedSec: 30 * 60, endedAt: "y" },
   ]);
-  assert.equal(total, 160 + 150);
+  assert.equal(total, cardio + strength);
 });
 
 test("formatWorkoutBurnHint", () => {
