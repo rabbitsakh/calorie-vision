@@ -13,6 +13,8 @@ import {
   heuristicRepairStartWorkoutActions,
   heuristicRepairSlotEditActions,
   heuristicRepairWriteActions,
+  messageHasExplicitMealEdit,
+  messageLogsNewEatenFood,
   messageLooksLikeMultiDish,
   needsWriteRepair,
   heuristicRepairFromProseKcal,
@@ -928,4 +930,68 @@ test("повтор в том же чате: карточка содержит в
   assert.equal(again!.meals!.find((m) => /желе/i.test(m.name))!.kcal, 100);
   assert.ok(again!.meals!.some((m) => /сырник/i.test(m.name) && m.kcal === 300));
   assert.ok(again!.meals!.some((m) => /топпинг/i.test(m.name) && m.kcal === 50));
+});
+
+test("время и приём у нового продукта — добавление, не правка слота", () => {
+  const protein = "я выпил 70г протеина на перекус в 10:30";
+  const isolate = "Я выпил 70г протеина изолята на перекус в 10:30";
+  const eggs = "съел 2 яйца на завтрак в 8";
+  for (const phrase of [protein, isolate, eggs]) {
+    assert.equal(messageLogsNewEatenFood(phrase), true, phrase);
+    assert.equal(heuristicRepairSlotEditActions(phrase), null, phrase);
+    assert.equal(heuristicRepairPortionPatchActions(phrase), null, phrase);
+  }
+
+  const drank = heuristicRepairWriteActions(protein);
+  assert.ok(drank?.meals?.length);
+  assert.equal(drank?.patchMeals, undefined);
+  assert.match(drank!.meals![0]!.name, /протеин/i);
+  assert.match(drank!.meals![0]!.name, /70/);
+  assert.equal(drank!.meals![0]!.note, "перекус");
+
+  const isolateMeal = heuristicRepairWriteActions(isolate);
+  assert.match(isolateMeal!.meals![0]!.name, /протеин/i);
+  assert.equal(isolateMeal!.meals![0]!.note, "перекус");
+  assert.equal(isolateMeal?.patchMeals, undefined);
+
+  const eggMeal = heuristicRepairWriteActions(eggs);
+  assert.match(eggMeal!.meals![0]!.name, /яйц/i);
+  assert.match(eggMeal!.meals![0]!.name, /2 шт/);
+  assert.equal(eggMeal!.meals![0]!.note, "завтрак");
+  assert.equal(eggMeal?.patchMeals, undefined);
+});
+
+test("перенеси перекус на 11:00 — правка времени, не новое блюдо", () => {
+  const phrase = "перенеси перекус на 11:00";
+  assert.equal(messageLogsNewEatenFood(phrase), false);
+  assert.equal(messageHasExplicitMealEdit(phrase), true);
+  const actions = heuristicRepairSlotEditActions(phrase);
+  assert.equal(actions?.meals, undefined);
+  assert.equal(actions?.patchMeals?.[0]?.mealType, "SNACK");
+  assert.equal(actions?.patchMeals?.[0]?.time, "11:00");
+  assert.match(actions?.summary ?? "", /перекус → 11:00/);
+});
+
+test("исправь вес протеина на 50 г — правка порции, не новое блюдо", () => {
+  const phrase = "исправь вес протеина на 50 г";
+  assert.equal(messageLogsNewEatenFood(phrase), false);
+  assert.equal(messageHasExplicitMealEdit(phrase), true);
+  assert.equal(heuristicRepairSlotEditActions(phrase), null);
+  assert.equal(heuristicRepairWriteActions(phrase), null);
+  const actions = heuristicRepairPortionPatchActions(phrase);
+  assert.equal(actions?.meals, undefined);
+  assert.equal(actions?.patchMeals?.[0]?.portionGrams, 50);
+  assert.match(actions?.patchMeals?.[0]?.match ?? "", /протеин/i);
+});
+
+test("модель вернула и правку, и продукт — остаётся карточка добавления", () => {
+  const fixed = preferSlotEditActions("я выпил 70г протеина на перекус в 10:30", {
+    apply: true,
+    summary: "перекус → 10:30 — подтверди",
+    meals: [{ name: "Протеин изолят (70 г)", kcal: 259, protein: 60, note: "перекус", time: "10:30" }],
+    patchMeals: [{ match: "перекус", mealType: "SNACK", time: "10:30" }],
+  });
+  assert.equal(fixed?.patchMeals, undefined);
+  assert.match(fixed?.meals?.[0]?.name ?? "", /протеин/i);
+  assert.doesNotMatch(fixed?.summary ?? "", /→/);
 });

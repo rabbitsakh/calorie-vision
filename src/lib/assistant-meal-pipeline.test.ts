@@ -385,3 +385,98 @@ test("лог неудачного разбора хранит хеш, а не ф
   assert.equal(event.phraseHash.length, 16);
   assert.notEqual(event.phraseHash, phrase);
 });
+
+test("выпил 70г протеина на перекус в 10:30 — карточка еды, не правка", async () => {
+  const user = "я выпил 70г протеина на перекус в 10:30";
+  const raw = [
+    "Ок, кидаю в план.",
+    "",
+    "Вот что ты съел на перекус в 10:30:",
+    "- Протеин изолят (70 г)",
+    "",
+    "Нажмите подтвердить, чтобы сохранить изменения.",
+  ].join("\n");
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.actions?.patchMeals, undefined);
+  assert.equal(out.card.length, 1);
+  assert.match(out.card[0]!.name, /протеин/i);
+  assert.equal(gramsOf(out.card[0]!.name), 70);
+  assert.equal(out.actions?.meals?.[0]?.note, "перекус");
+  assert.equal(out.actions?.meals?.[0]?.time, "10:30");
+  assert.doesNotMatch(out.reply, /кидаю в план/i);
+  assert.match(out.reply, /Протеин изолят/);
+});
+
+test("съел 2 яйца на завтрак в 8 — добавление, не правка", async () => {
+  const user = "съел 2 яйца на завтрак в 8";
+  const raw = "Ок, кидаю в план. На завтрак два яйца.";
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.actions?.patchMeals, undefined);
+  assert.ok(out.card.length >= 1);
+  assert.match(out.card[0]!.name, /яйц/i);
+  assert.equal(out.actions?.meals?.[0]?.note, "завтрак");
+  assert.doesNotMatch(out.reply, /кидаю в план/i);
+});
+
+test("модель вернула правку слота вместо продукта — карточка добавления остаётся", async () => {
+  const user = "Я выпил 70г протеина изолята на перекус в 10:30";
+  const raw =
+    "Ок, кидаю в план.\n\nВот что ты съел на перекус в 10:30:\n- Протеин изолят (70 г)" +
+    fence({
+      apply: true,
+      summary: "перекус → 10:30 — подтверди",
+      patchMeals: [{ match: "перекус", mealType: "SNACK", time: "10:30" }],
+    });
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.actions?.patchMeals, undefined);
+  assert.ok((out.actions?.meals?.length ?? 0) >= 1);
+  assert.match(out.card[0]!.name, /протеин/i);
+  assert.equal(out.actions?.meals?.[0]?.note, "перекус");
+  assert.equal(out.actions?.meals?.[0]?.time, "10:30");
+  assert.doesNotMatch(out.reply, /кидаю в план/i);
+});
+
+test("и правка, и продукты в одном ответе — показываем добавление", async () => {
+  const user = "я выпил 70г протеина на перекус в 10:30";
+  const raw =
+    "Вот что записать в дневник." +
+    fence({
+      apply: true,
+      summary: "перекус → 10:30 — подтверди",
+      meals: [
+        {
+          name: "Протеин изолят",
+          kcal: 259,
+          protein: 60,
+          fat: 1,
+          carbs: 2,
+          note: "перекус",
+          time: "10:30",
+        },
+      ],
+      patchMeals: [{ match: "перекус", mealType: "SNACK", time: "10:30" }],
+    });
+  const out = await runAssistantMealFixture({ rawReply: raw, userMessage: user });
+  assert.equal(out.actions?.patchMeals, undefined);
+  assert.match(out.card[0]!.name, /протеин/i);
+  assert.equal(out.card[0]!.kcal, 259);
+  assert.equal(out.actions?.meals?.[0]?.time, "10:30");
+});
+
+test("перенеси перекус и исправь вес остаются правками", async () => {
+  const move = await runAssistantMealFixture({
+    rawReply: "Переношу перекус.",
+    userMessage: "перенеси перекус на 11:00",
+  });
+  assert.equal(move.card.length, 0);
+  assert.equal(move.actions?.patchMeals?.[0]?.mealType, "SNACK");
+  assert.equal(move.actions?.patchMeals?.[0]?.time, "11:00");
+
+  const portion = await runAssistantMealFixture({
+    rawReply: "Поправлю порцию.",
+    userMessage: "исправь вес протеина на 50 г",
+  });
+  assert.equal(portion.card.length, 0);
+  assert.equal(portion.actions?.meals, undefined);
+  assert.equal(portion.actions?.patchMeals?.[0]?.portionGrams, 50);
+});

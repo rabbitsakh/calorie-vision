@@ -14,6 +14,7 @@ import {
   heuristicRepairRepeatWorkoutActions,
   heuristicRepairSlotEditActions,
   heuristicRepairStartWorkoutActions,
+  messageLogsNewEatenFood,
   needsWriteRepair,
   parseStructuredMealsDetailed,
   preferMultiDishActions,
@@ -26,6 +27,7 @@ import {
   structuredMealsToAssistantMeals,
   validateStructuredMeals,
 } from "@/lib/assistant-meal-schema";
+import { stripDiaryPlanThrowaway } from "@/lib/assistant-honesty";
 import { enrichQuickMealsFromText, type QuickMeal } from "@/lib/quick-log";
 
 export type AssistantMealParseEvent = {
@@ -111,7 +113,7 @@ export async function resolveAssistantTurnActions(opts: {
   parse: AssistantMealParseEvent;
 }> {
   const split = splitAssistantReply(opts.rawReply.trim());
-  const reply = split.reply;
+  let reply = split.reply;
   let actions = split.actions;
   const jsonDishCount = split.actions?.meals?.length ?? 0;
   let repairLlmUsed = false;
@@ -156,7 +158,14 @@ export async function resolveAssistantTurnActions(opts: {
     }
   }
 
-  if (!structuredExtractUsed && !opts.previewPending && needsWriteRepair(opts.userMessage, actions, reply)) {
+  const loggingNewFood = messageLogsNewEatenFood(opts.userMessage);
+  // Патч слота на фразе «выпил 70г … в 10:30» не считается готовой записью: продукт ещё надо собрать.
+  if (
+    !structuredExtractUsed &&
+    !opts.previewPending &&
+    (needsWriteRepair(opts.userMessage, actions, reply) ||
+      (loggingNewFood && !actions?.meals?.length))
+  ) {
     opts.onBeforeRepair?.();
     const repaired = await repairAssistantWriteActions({
       userMessage: opts.userMessage,
@@ -196,6 +205,10 @@ export async function resolveAssistantTurnActions(opts: {
 
   if (!opts.previewPending) {
     actions = pruneNoopAssistantActions(actions);
+  }
+
+  if (actions?.meals?.length) {
+    reply = stripDiaryPlanThrowaway(reply);
   }
 
   if (actions?.targetDate) {

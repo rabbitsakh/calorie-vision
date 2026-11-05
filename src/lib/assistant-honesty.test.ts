@@ -5,6 +5,7 @@ import {
   replyClaimsSaved,
   sanitizePendingWriteReply,
   sanitizePhotoPreviewReply,
+  stripDiaryPlanThrowaway,
 } from "./assistant-honesty.ts";
 
 test("hasPhotoPreviewPending detects ok preview tool", () => {
@@ -44,6 +45,19 @@ test("sanitizePendingWriteReply strips ActionCard false claim", () => {
 test("sanitizePendingWriteReply keeps honest confirm CTA", () => {
   const honest = "Протеин ~260 ккал. Подтверди «В дневник» ниже.";
   assert.equal(sanitizePendingWriteReply(honest), honest);
+});
+
+test("stripDiaryPlanThrowaway убирает «кидаю в план» из записи еды", () => {
+  const out = stripDiaryPlanThrowaway(
+    "Ок, кидаю в план.\n\nВот что ты съел на перекус в 10:30:\n- Протеин изолят (70 г)\n\nНажмите подтвердить, чтобы сохранить изменения.",
+  );
+  assert.doesNotMatch(out, /кидаю в план/i);
+  assert.match(out, /Протеин изолят/);
+  assert.match(out, /подтвердить/i);
+  assert.equal(
+    stripDiaryPlanThrowaway("Кидаю в план зала на завтра: жим и тяга."),
+    "Кидаю в план зала на завтра: жим и тяга.",
+  );
 });
 
 test("sanitizePendingWriteReply strips false ✓ В рацион tool echo", () => {

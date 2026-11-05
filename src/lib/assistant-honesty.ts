@@ -67,6 +67,26 @@ export function sanitizePhotoPreviewReply(reply: string): string {
   });
 }
 
+const DIARY_PLAN_LINE =
+  /^(?:ок[,!.]?\s*)?(?:я\s+)?(?:кидаю|кинул(?:а)?|закидываю|закинул(?:а)?)\s+в\s+план\s*[.!:…,-]?\s*$/iu;
+
+const DIARY_PLAN_PREFIX =
+  /^(?:ок[,!.]?\s*)?(?:я\s+)?(?:кидаю|кинул(?:а)?|закидываю|закинул(?:а)?)\s+в\s+план\s*[.!:…,-]\s+/iu;
+
+/**
+ * «Ок, кидаю в план» — про план зала, не про запись еды в дневник.
+ * Снимаем фразу с ответа, когда ход добавляет блюда.
+ */
+export function stripDiaryPlanThrowaway(reply: string): string {
+  return reply
+    .split(/\r?\n/)
+    .map((line) => line.replace(DIARY_PLAN_PREFIX, "").trimEnd())
+    .filter((line) => !DIARY_PLAN_LINE.test(line.trim()))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /**
  * ActionCard pending: model often says «Добавил…» before the user taps CTA.
  */
