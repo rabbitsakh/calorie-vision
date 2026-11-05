@@ -10,7 +10,7 @@ import {
   EXERCISE_CATALOG,
   type CatalogExercise,
 } from "@/lib/workouts/exercise-catalog";
-import { exerciseNameSimilarity, normalizeExerciseName } from "@/lib/workouts/exercise-name";
+import { normalizeExerciseName, scoreExercisePhrase } from "@/lib/workouts/exercise-name";
 
 export type MatchVerdict =
   | { status: "confident"; catalogId: string; name: string; score: number }
@@ -20,18 +20,20 @@ export type MatchVerdict =
 const CONFIDENT_SIMILARITY = 0.93;
 const UNCERTAIN_SIMILARITY = 0.82;
 
-type Scored = { row: CatalogExercise; score: number; exact: boolean };
+type Scored = { row: CatalogExercise; score: number; exact: boolean; phraseLen: number };
 
 function scoreRow(queryNorm: string, row: CatalogExercise): Scored {
-  if (queryNorm === row.nameNorm || row.synonymNorms.includes(queryNorm)) {
-    return { row, score: 1, exact: true };
+  let best = 0;
+  let phraseLen = 0;
+  for (const phrase of [row.nameNorm, ...row.synonymNorms]) {
+    const score = scoreExercisePhrase(queryNorm, phrase);
+    const len = phrase.split(" ").filter(Boolean).length;
+    if (score > best || (score === best && len > phraseLen)) {
+      best = score;
+      phraseLen = len;
+    }
   }
-  let best = exerciseNameSimilarity(queryNorm, row.nameNorm);
-  for (const syn of row.synonymNorms) {
-    const sim = exerciseNameSimilarity(queryNorm, syn);
-    if (sim > best) best = sim;
-  }
-  return { row, score: best, exact: false };
+  return { row, score: best, exact: best >= 1, phraseLen };
 }
 
 /** Классификация одного названия. Короткие и неоднозначные не склеиваются. */
@@ -45,7 +47,7 @@ export function matchExerciseName(
   const ranked = catalog
     .map((row) => scoreRow(key, row))
     .filter((s) => s.exact || s.score >= UNCERTAIN_SIMILARITY)
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score || b.phraseLen - a.phraseLen);
 
   if (ranked.length === 0) return { status: "none" };
 

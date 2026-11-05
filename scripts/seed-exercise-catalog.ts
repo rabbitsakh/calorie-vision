@@ -8,7 +8,11 @@
  *   npx tsx scripts/seed-exercise-catalog.ts
  */
 import { prisma } from "../src/lib/prisma.ts";
-import { EXERCISE_CATALOG } from "../src/lib/workouts/exercise-catalog.ts";
+import {
+  EXERCISE_CATALOG,
+  planCatalogUpsert,
+  toCatalogSeedData,
+} from "../src/lib/workouts/exercise-catalog.ts";
 
 function wantsDryRun(argv: string[]): boolean {
   return argv.includes("--dry-run");
@@ -16,39 +20,26 @@ function wantsDryRun(argv: string[]): boolean {
 
 async function main(): Promise<void> {
   const dry = wantsDryRun(process.argv.slice(2));
-  console.info(`Справочник: ${EXERCISE_CATALOG.length} упражнений`);
+  const rows = EXERCISE_CATALOG.map(toCatalogSeedData);
+  console.info(`Справочник: ${rows.length} упражнений`);
   if (dry) {
-    console.info("Сухой прогон: база не изменялась");
+    console.info("Сухой прогон: база не изменялась. Запись идёт upsert по id: синонимы обновляются, новые позиции добавляются, старые id не удаляются.");
     return;
   }
-  for (const row of EXERCISE_CATALOG) {
+  const existing = await prisma.exerciseCatalog.findMany({ select: { id: true } });
+  const plan = planCatalogUpsert(
+    existing.map((row) => row.id),
+    rows,
+  );
+  console.info(
+    `Уже в базе: ${existing.length}. Обновить: ${plan.updates.length}. Добавить: ${plan.inserts.length}. Оставить как есть: ${plan.kept.length}.`,
+  );
+  for (const row of rows) {
+    const { id, ...data } = row;
     await prisma.exerciseCatalog.upsert({
-      where: { id: row.id },
-      create: {
-        id: row.id,
-        name: row.name,
-        nameNorm: row.nameNorm,
-        tracking: row.tracking,
-        kind: row.kind,
-        primaryMuscles: row.primary,
-        secondaryMuscles: row.secondary,
-        equipment: row.equipment,
-        synonyms: row.synonyms,
-        defaultRestSec: row.defaultRestSec,
-        sortOrder: row.sortOrder,
-      },
-      update: {
-        name: row.name,
-        nameNorm: row.nameNorm,
-        tracking: row.tracking,
-        kind: row.kind,
-        primaryMuscles: row.primary,
-        secondaryMuscles: row.secondary,
-        equipment: row.equipment,
-        synonyms: row.synonyms,
-        defaultRestSec: row.defaultRestSec,
-        sortOrder: row.sortOrder,
-      },
+      where: { id },
+      create: { id, ...data },
+      update: data,
     });
   }
   console.info("Справочник записан");

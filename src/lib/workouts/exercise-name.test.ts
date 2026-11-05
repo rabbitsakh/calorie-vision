@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 import {
   exerciseNamesMatch,
   exerciseNameSimilarity,
+  exercisePhraseCovers,
   normalizeExerciseName,
   pickBestNameMatch,
+  scoreExercisePhrase,
 } from "./exercise-name.ts";
 
 describe("normalizeExerciseName", () => {
@@ -24,6 +26,15 @@ describe("normalizeExerciseName", () => {
     assert.equal(normalizeExerciseName("Жим лёжа!!!"), "жим лежа");
     assert.equal(normalizeExerciseName("Тяга (верхнего блока)"), "тяга верхнего блока");
   });
+
+  it("сводит опечатки бицепса и сквота", () => {
+    assert.equal(
+      normalizeExerciseName("Молотки на бийепс"),
+      normalizeExerciseName("Молотки на бицепс"),
+    );
+    assert.equal(normalizeExerciseName("Скват"), "присед");
+    assert.equal(normalizeExerciseName("сквот"), "присед");
+  });
 });
 
 describe("exerciseNamesMatch", () => {
@@ -40,6 +51,29 @@ describe("exerciseNamesMatch", () => {
 
   it("does not match short unrelated names", () => {
     assert.equal(exerciseNamesMatch("Жим", "Жимка"), false);
+  });
+});
+
+describe("scoreExercisePhrase", () => {
+  it("считает шолдер пресс и shoulder press одним названием", () => {
+    assert.equal(scoreExercisePhrase("шолдер пресс", "shoulder press"), 1);
+  });
+
+  it("пропускает стоя и в тренажере, но не другое движение", () => {
+    assert.equal(exercisePhraseCovers("подъем штанги на бицепс стоя", "подъем штанги на бицепс"), true);
+    assert.equal(
+      exercisePhraseCovers("разгибание ног в тренажере", "разгибание ног"),
+      true,
+    );
+    assert.equal(
+      exercisePhraseCovers("подъем штанги на бицепс стоя обратным хватом узко", "подъем штанги на бицепс"),
+      false,
+    );
+    assert.equal(
+      exercisePhraseCovers("тяга в блоке на трицепс из за спины", "тяга в блоке на трицепс"),
+      false,
+    );
+    assert.equal(exercisePhraseCovers("бабочка на заднюю дельту", "бабочка"), false);
   });
 });
 
