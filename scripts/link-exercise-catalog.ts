@@ -2,6 +2,9 @@
  * Привязка пользовательских упражнений к справочнику.
  * Уверенные совпадения переименовываются в каноническое название,
  * чтобы история, рекорды и 1RM склеились. Сомнительные не меняются.
+ * В группе библиотеки сначала перепривязываются упражнения,
+ * затем удаляются лишние строки, и только потом переименовывается
+ * оставляемая. Если канонический nameNorm уже есть, остаётся эта строка.
  *
  * Сухой прогон (по умолчанию):
  *   npx tsx scripts/link-exercise-catalog.ts
@@ -14,22 +17,19 @@
  *   npx tsx scripts/link-exercise-catalog.ts --rollback /tmp/catalog-link-report.json
  */
 import { writeFileSync } from "node:fs";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../src/lib/prisma.ts";
 import { catalogById } from "../src/lib/workouts/exercise-catalog.ts";
 import { matchExerciseName } from "../src/lib/workouts/catalog-link.ts";
 import { normalizeExerciseName } from "../src/lib/workouts/exercise-name.ts";
-
-type LibraryRow = {
-  id: string;
-  userId: string;
-  name: string;
-  nameNorm: string;
-  kind: string;
-  defaultMuscleGroup: string | null;
-  useCount: number;
-  lastUsedAt: Date;
-  catalogId: string | null;
-};
+import {
+  buildApplyOperations,
+  buildRollbackOperations,
+  planLibraryMerges,
+  type CatalogLinkOp,
+  type LibraryRow,
+  type RollbackOp,
+} from "../src/lib/workouts/link-catalog-merge.ts";
 
 type Report = {
   version: 1;
@@ -55,11 +55,80 @@ function argValue(argv: string[], flag: string): string | null {
   return argv[index + 1] ?? null;
 }
 
-function serializeLibrary(row: LibraryRow): LibraryRow {
+function libraryWrite(row: LibraryRow) {
   return {
-    ...row,
+    name: row.name,
+    nameNorm: row.nameNorm,
+    kind: row.kind,
+    defaultMuscleGroup: row.defaultMuscleGroup,
+    useCount: row.useCount,
     lastUsedAt: new Date(row.lastUsedAt),
+    catalogId: row.catalogId,
   };
+}
+
+async function applyRollbackOp(tx: Prisma.TransactionClient, op: RollbackOp): Promise<void> {
+  if (op.type === "restore-library") {
+    await tx.workoutExerciseLibrary.update({
+      where: { id: op.row.id },
+      data: libraryWrite(op.row),
+    });
+    return;
+  }
+  if (op.type === "recreate-library") {
+    await tx.workoutExerciseLibrary.create({
+      data: {
+        id: op.row.id,
+        userId: op.row.userId,
+        ...libraryWrite(op.row),
+      },
+    });
+    return;
+  }
+  if (op.type === "restore-exercise") {
+    await tx.workoutExercise.update({
+      where: { id: op.id },
+      data: { name: op.name, catalogId: op.catalogId },
+    });
+    return;
+  }
+  await tx.workoutRoutineExercise.update({
+    where: { id: op.id },
+    data: { name: op.name },
+  });
+}
+
+async function applyLinkOp(tx: Prisma.TransactionClient, op: CatalogLinkOp): Promise<void> {
+  if (op.type === "rebind-exercise") {
+    await tx.workoutExercise.update({
+      where: { id: op.id },
+      data: { name: op.name, catalogId: op.catalogId },
+    });
+    return;
+  }
+  if (op.type === "rebind-routine") {
+    await tx.workoutRoutineExercise.update({
+      where: { id: op.id },
+      data: { name: op.name },
+    });
+    return;
+  }
+  if (op.type === "delete-library") {
+    await tx.workoutExerciseLibrary.deleteMany({ where: { id: { in: op.ids } } });
+    return;
+  }
+  await tx.workoutExerciseLibrary.update({
+    where: { id: op.id },
+    data: {
+      name: op.data.name,
+      nameNorm: op.data.nameNorm,
+      catalogId: op.data.catalogId,
+      useCount: op.data.useCount,
+      lastUsedAt: new Date(op.data.lastUsedAt),
+      kind: op.data.kind,
+      defaultMuscleGroup: op.data.defaultMuscleGroup,
+    },
+  });
 }
 
 async function rollback(path: string): Promise<void> {
@@ -69,48 +138,9 @@ async function rollback(path: string): Promise<void> {
   if (!data) {
     throw new Error("В отчёте нет блока rollback — откатывать нечего");
   }
+  const ops = buildRollbackOperations(data);
   await prisma.$transaction(async (tx) => {
-    for (const row of data.libraryDeleted) {
-      await tx.workoutExerciseLibrary.create({
-        data: {
-          id: row.id,
-          userId: row.userId,
-          name: row.name,
-          nameNorm: row.nameNorm,
-          kind: row.kind,
-          defaultMuscleGroup: row.defaultMuscleGroup,
-          useCount: row.useCount,
-          lastUsedAt: new Date(row.lastUsedAt),
-          catalogId: row.catalogId,
-        },
-      });
-    }
-    for (const row of data.libraryUpdates) {
-      await tx.workoutExerciseLibrary.update({
-        where: { id: row.id },
-        data: {
-          name: row.name,
-          nameNorm: row.nameNorm,
-          kind: row.kind,
-          defaultMuscleGroup: row.defaultMuscleGroup,
-          useCount: row.useCount,
-          lastUsedAt: new Date(row.lastUsedAt),
-          catalogId: row.catalogId,
-        },
-      });
-    }
-    for (const row of data.exercises) {
-      await tx.workoutExercise.update({
-        where: { id: row.id },
-        data: { name: row.name, catalogId: row.catalogId },
-      });
-    }
-    for (const row of data.routineExercises) {
-      await tx.workoutRoutineExercise.update({
-        where: { id: row.id },
-        data: { name: row.name },
-      });
-    }
+    for (const op of ops) await applyRollbackOp(tx, op);
   });
   console.info(
     `Откат: упражнения ${data.exercises.length}, шаблоны ${data.routineExercises.length}, библиотека ${data.libraryUpdates.length}+${data.libraryDeleted.length}`,
@@ -190,77 +220,11 @@ async function main(): Promise<void> {
     routinePatches.push({ id: row.id, name: canonical.name });
   }
 
-  const byUser = new Map<string, LibraryRow[]>();
-  for (const row of library) {
-    const list = byUser.get(row.userId) ?? [];
-    list.push(row);
-    byUser.set(row.userId, list);
-  }
-
-  type LibraryPlan = {
-    keeperId: string;
-    data: {
-      name: string;
-      nameNorm: string;
-      catalogId: string;
-      useCount: number;
-      lastUsedAt: Date;
-      kind: string;
-      defaultMuscleGroup: string | null;
-    };
-    deleteIds: string[];
-    before: LibraryRow[];
-  };
-  const libraryPlans: LibraryPlan[] = [];
-
-  for (const rows of byUser.values()) {
-    const groups = new Map<string, LibraryRow[]>();
-    for (const row of rows) {
-      const match = matchExerciseName(row.name);
-      if (match.status !== "confident") continue;
-      const list = groups.get(match.catalogId) ?? [];
-      list.push(row);
-      groups.set(match.catalogId, list);
-    }
-    for (const [catalogId, group] of groups) {
-      const canonical = catalogById(catalogId);
-      if (!canonical) continue;
-      const occupied = rows.find(
-        (row) => row.nameNorm === canonical.nameNorm && !group.some((item) => item.id === row.id),
-      );
-      if (occupied) {
-        report.uncertain += 1;
-        if (report.uncertainSamples.length < 40) {
-          report.uncertainSamples.push({
-            name: group.map((row) => row.name).join(" / "),
-            candidate: canonical.name,
-            score: 1,
-            reason: "каноническое имя уже занято другой записью библиотеки",
-          });
-        }
-        continue;
-      }
-      const keeper = [...group].sort((a, b) => b.useCount - a.useCount || b.lastUsedAt.getTime() - a.lastUsedAt.getTime())[0]!;
-      const useCount = group.reduce((sum, row) => sum + row.useCount, 0);
-      const lastUsedAt = group.reduce(
-        (max, row) => (row.lastUsedAt > max ? row.lastUsedAt : max),
-        keeper.lastUsedAt,
-      );
-      libraryPlans.push({
-        keeperId: keeper.id,
-        data: {
-          name: canonical.name,
-          nameNorm: canonical.nameNorm,
-          catalogId,
-          useCount,
-          lastUsedAt,
-          kind: canonical.kind,
-          defaultMuscleGroup: keeper.defaultMuscleGroup ?? canonical.primary[0] ?? null,
-        },
-        deleteIds: group.filter((row) => row.id !== keeper.id).map((row) => row.id),
-        before: group.map(serializeLibrary),
-      });
-    }
+  const libraryPlan = planLibraryMerges(library);
+  const libraryPlans = libraryPlan.plans;
+  for (const sample of libraryPlan.uncertain) {
+    report.uncertain += 1;
+    if (report.uncertainSamples.length < 40) report.uncertainSamples.push(sample);
   }
 
   report.renamedExercises = exercisePatches.length;
@@ -286,30 +250,20 @@ async function main(): Promise<void> {
   }
 
   if (apply) {
+    for (const plan of libraryPlans) {
+      const keeper = plan.before.find((row) => row.id === plan.keeperId);
+      if (keeper) report.rollback?.libraryUpdates.push(keeper);
+      for (const row of plan.before) {
+        if (row.id !== plan.keeperId) report.rollback?.libraryDeleted.push(row);
+      }
+    }
+    const ops = buildApplyOperations({
+      plans: libraryPlans,
+      exercisePatches,
+      routinePatches,
+    });
     await prisma.$transaction(async (tx) => {
-      for (const plan of libraryPlans) {
-        const keeper = plan.before.find((row) => row.id === plan.keeperId);
-        if (keeper) report.rollback?.libraryUpdates.push(keeper);
-        for (const row of plan.before) {
-          if (row.id !== plan.keeperId) report.rollback?.libraryDeleted.push(row);
-        }
-        await tx.workoutExerciseLibrary.update({ where: { id: plan.keeperId }, data: plan.data });
-        if (plan.deleteIds.length > 0) {
-          await tx.workoutExerciseLibrary.deleteMany({ where: { id: { in: plan.deleteIds } } });
-        }
-      }
-      for (const patch of exercisePatches) {
-        await tx.workoutExercise.update({
-          where: { id: patch.id },
-          data: { name: patch.name, catalogId: patch.catalogId },
-        });
-      }
-      for (const patch of routinePatches) {
-        await tx.workoutRoutineExercise.update({
-          where: { id: patch.id },
-          data: { name: patch.name },
-        });
-      }
+      for (const op of ops) await applyLinkOp(tx, op);
     });
     console.info("Изменения записаны. Файл отчёта нужен для отката.");
   } else {
