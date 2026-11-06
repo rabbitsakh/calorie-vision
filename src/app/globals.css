@@ -9587,11 +9587,10 @@ button.profile-settings__door:disabled {
 }
 
 .gym-recovery__row {
-  display: grid;
-  grid-template-columns: minmax(4.5rem, 6.5rem) 1fr auto;
-  gap: 0.45rem;
-  align-items: baseline;
-  padding: 0.35rem 0.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.4rem 0.15rem;
   border-top: 1px solid var(--border-hairline);
 }
 
@@ -9610,7 +9609,6 @@ button.profile-settings__door:disabled {
 .gym-recovery__ago {
   font-size: 0.72rem;
   color: var(--muted);
-  text-align: right;
 }
 
 .gym-progress-charts {

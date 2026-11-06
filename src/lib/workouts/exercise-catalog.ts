@@ -6,7 +6,7 @@
 
 import type { ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { normalizeExerciseName } from "@/lib/workouts/exercise-name";
-import { MUSCLE_GROUP_KEYS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import { canonicalizeMuscleKey, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
 export const TRACKING_TYPES = ["weight_reps", "reps", "time", "distance"] as const;
 export type TrackingType = (typeof TRACKING_TYPES)[number];
@@ -73,11 +73,12 @@ type Row = [
 function muscles(raw: string): MuscleGroupKey[] {
   if (!raw.trim()) return [];
   const out: MuscleGroupKey[] = [];
+  const seen = new Set<MuscleGroupKey>();
   for (const part of raw.split(",")) {
-    const key = part.trim();
-    if ((MUSCLE_GROUP_KEYS as readonly string[]).includes(key)) {
-      out.push(key as MuscleGroupKey);
-    }
+    const key = canonicalizeMuscleKey(part);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
   }
   return out;
 }

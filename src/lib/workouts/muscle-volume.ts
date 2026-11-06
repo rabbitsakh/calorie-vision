@@ -4,8 +4,9 @@
  *
  * Тоннаж (вес × повторы рабочих подходов) и длительность кардио:
  * основные мышцы делят 100% поровну, вспомогательные — половину, тоже поровну.
- * Нет catalogId или неизвестный id — весь объём на ручную группу упражнения.
- * Ручной список групп на самой тренировке здесь не используется.
+ * Нет catalogId или неизвестный id — весь объём на ручную группу упражнения,
+ * а если её нет, на группы, отмеченные у самой тренировки.
+ * Дата прямой нагрузки — день тренировки в дневнике, не часы таймера.
  */
 
 import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
@@ -13,7 +14,7 @@ import { catalogById } from "@/lib/workouts/exercise-catalog";
 import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { roundLoad, setLoad } from "@/lib/workouts/load";
 import {
-  isMuscleGroupKey,
+  canonicalizeMuscleKey,
   MUSCLE_GROUP_KEYS,
   muscleGroupLabel,
   type MuscleGroupKey,
@@ -48,6 +49,12 @@ export type MuscleVolumeSet = {
 export type MuscleVolumeExercise = {
   catalogId?: string | null;
   muscleGroup?: string | null;
+  /**
+   * Сырые мышцы, если справочник в базе назвал их мельче, чем «Ноги» / «Плечи».
+   * Используются, только когда catalogId не находится в коде.
+   */
+  primaryMuscles?: readonly string[] | null;
+  secondaryMuscles?: readonly string[] | null;
   kind?: string | null;
   sets: readonly MuscleVolumeSet[];
 };
@@ -56,20 +63,36 @@ export type MuscleVolumeSession = {
   date: string;
   endedAt?: Date | string | null;
   startedAt?: Date | string | null;
+  /** Ручные группы самой тренировки. Запасной вариант, если у упражнения мышц нет. */
+  sessionGroups?: readonly string[] | null;
   exercises: readonly MuscleVolumeExercise[];
 };
 
 export type MuscleRecoveryRow = {
   key: MuscleGroupKey;
   label: string;
-  /** кг·повт за неделю (силовые и weighted). */
+  /** Прямой силовой объём за неделю, кг·повт. */
+  directTonnage: number;
+  /** Косвенный силовой объём за неделю (вспомогательная роль). */
+  indirectTonnage: number;
+  /** Прямая длительность за неделю: кардио и упражнения на время, секунды. */
+  directDurationSec: number;
+  /** Косвенная длительность за неделю, секунды. */
+  indirectDurationSec: number;
+  /** Сумма прямого и косвенного тоннажа. */
   tonnage: number;
-  /** Секунды кардио и упражнений «на время» за неделю. */
+  /** Сумма прямой и косвенной длительности. */
   durationSec: number;
-  /** Прямые рабочие подходы за неделю (основные мышцы или ручная группа). */
+  /** Прямые рабочие подходы за неделю. */
   directSets: number;
   status: MuscleRecoveryStatus;
-  /** null — прямой нагрузки ещё не было. */
+  /** День последней прямой нагрузки (YYYY-MM-DD) или null. */
+  lastDirectDate: string | null;
+  /** Прямой объём только этого дня, не текущей недели. */
+  lastDirectTonnage: number;
+  /** Прямая длительность только этого дня, секунды. */
+  lastDirectDurationSec: number;
+  /** null — прямой нагрузки ещё не было. Считается от полудня этого дня. */
   hoursSinceStrong: number | null;
 };
 
@@ -109,6 +132,11 @@ type Stimulus = {
   directUnits: number;
 };
 
+/**
+ * В объём входят завершённые подходы любого рабочего типа:
+ * рабочий, дроп, отказ и отдых-пауза. Разминка и неотмеченные — нет.
+ * Не сужаем до setType === "working": отказ и дроп — реальное усилие.
+ */
 function exerciseStimulus(exercise: MuscleVolumeExercise): Stimulus {
   const kind = parseExerciseKind(exercise.kind);
   const working = exercise.sets.filter((set) => setCountsTowardLoad(set));
@@ -148,48 +176,82 @@ function exerciseStimulus(exercise: MuscleVolumeExercise): Stimulus {
 
 type MuscleTarget = { group: MuscleGroupKey; role: "primary" | "secondary" };
 
-function exerciseTargets(exercise: MuscleVolumeExercise): MuscleTarget[] {
+function uniqueGroups(raw: readonly string[]): MuscleGroupKey[] {
+  const out: MuscleGroupKey[] = [];
+  const seen = new Set<MuscleGroupKey>();
+  for (const item of raw) {
+    const key = canonicalizeMuscleKey(item);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
+function exerciseTargets(
+  exercise: MuscleVolumeExercise,
+  sessionGroups: readonly string[],
+): MuscleTarget[] {
   const catalogId = exercise.catalogId?.trim();
   if (catalogId) {
     const row = catalogById(catalogId);
     if (row && (row.primary.length > 0 || row.secondary.length > 0)) {
-      const primary = row.primary.filter((group, index) => row.primary.indexOf(group) === index);
-      const secondary = row.secondary.filter(
-        (group, index) => row.secondary.indexOf(group) === index && !primary.includes(group),
-      );
+      const primary = uniqueGroups(row.primary);
+      const secondary = uniqueGroups(row.secondary).filter((group) => !primary.includes(group));
       return [
         ...primary.map((group) => ({ group, role: "primary" as const })),
         ...secondary.map((group) => ({ group, role: "secondary" as const })),
       ];
     }
   }
-  const manual = exercise.muscleGroup?.trim() ?? "";
-  if (isMuscleGroupKey(manual)) {
-    return [{ group: manual, role: "primary" }];
+
+  const listedPrimary = uniqueGroups(exercise.primaryMuscles ?? []);
+  const listedSecondary = uniqueGroups(exercise.secondaryMuscles ?? []).filter(
+    (group) => !listedPrimary.includes(group),
+  );
+  if (listedPrimary.length > 0 || listedSecondary.length > 0) {
+    return [
+      ...listedPrimary.map((group) => ({ group, role: "primary" as const })),
+      ...listedSecondary.map((group) => ({ group, role: "secondary" as const })),
+    ];
   }
-  return [];
+
+  const manual = canonicalizeMuscleKey(exercise.muscleGroup ?? "");
+  if (manual) return [{ group: manual, role: "primary" }];
+
+  return uniqueGroups(sessionGroups).map((group) => ({ group, role: "primary" as const }));
 }
 
+/** Полдень дня в дневнике. Старый startedAt/endedAt не отодвигает тренировку. */
 function sessionInstantMs(session: MuscleVolumeSession): number {
-  const raw = session.endedAt ?? session.startedAt;
-  if (raw instanceof Date && Number.isFinite(raw.getTime())) return raw.getTime();
-  if (typeof raw === "string") {
-    const parsed = Date.parse(raw);
-    if (Number.isFinite(parsed)) return parsed;
-  }
   const noon = Date.parse(`${session.date}T12:00:00`);
   return Number.isFinite(noon) ? noon : 0;
 }
 
 type GroupAccum = {
-  tonnage: number;
-  durationSec: number;
+  directTonnage: number;
+  indirectTonnage: number;
+  directDurationSec: number;
+  indirectDurationSec: number;
   directSets: number;
   lastStrongMs: number | null;
+  lastDirectDate: string | null;
+  lastDirectTonnage: number;
+  lastDirectDurationSec: number;
 };
 
 function emptyAccum(): GroupAccum {
-  return { tonnage: 0, durationSec: 0, directSets: 0, lastStrongMs: null };
+  return {
+    directTonnage: 0,
+    indirectTonnage: 0,
+    directDurationSec: 0,
+    indirectDurationSec: 0,
+    directSets: 0,
+    lastStrongMs: null,
+    lastDirectDate: null,
+    lastDirectTonnage: 0,
+    lastDirectDurationSec: 0,
+  };
 }
 
 export function buildMuscleRecoveryMap(
@@ -217,7 +279,7 @@ export function buildMuscleRecoveryMap(
       if (stimulus.tonnage <= 0 && stimulus.durationSec <= 0 && stimulus.directUnits <= 0) {
         continue;
       }
-      const targets = exerciseTargets(exercise);
+      const targets = exerciseTargets(exercise, session.sessionGroups ?? []);
       if (targets.length === 0) continue;
       const primaries = targets.filter((target) => target.role === "primary");
       const secondaries = targets.filter((target) => target.role === "secondary");
@@ -227,19 +289,29 @@ export function buildMuscleRecoveryMap(
 
       for (const target of primaries) {
         const bucket = touch(target.group);
-        if (stimulus.directUnits > 0 && (bucket.lastStrongMs == null || at >= bucket.lastStrongMs)) {
-          bucket.lastStrongMs = at;
+        if (stimulus.directUnits > 0) {
+          const newer = bucket.lastDirectDate == null || session.date > bucket.lastDirectDate;
+          if (newer) {
+            bucket.lastStrongMs = at;
+            bucket.lastDirectDate = session.date;
+            bucket.lastDirectTonnage = 0;
+            bucket.lastDirectDurationSec = 0;
+          }
+          if (session.date === bucket.lastDirectDate) {
+            bucket.lastDirectTonnage += stimulus.tonnage * primaryShare;
+            bucket.lastDirectDurationSec += stimulus.durationSec * primaryShare;
+          }
         }
         if (!inWeek) continue;
-        bucket.tonnage += stimulus.tonnage * primaryShare;
-        bucket.durationSec += stimulus.durationSec * primaryShare;
+        bucket.directTonnage += stimulus.tonnage * primaryShare;
+        bucket.directDurationSec += stimulus.durationSec * primaryShare;
         bucket.directSets += stimulus.directUnits;
       }
       if (!inWeek) continue;
       for (const target of secondaries) {
         const bucket = touch(target.group);
-        bucket.tonnage += stimulus.tonnage * secondaryShare;
-        bucket.durationSec += stimulus.durationSec * secondaryShare;
+        bucket.indirectTonnage += stimulus.tonnage * secondaryShare;
+        bucket.indirectDurationSec += stimulus.durationSec * secondaryShare;
       }
     }
   }
@@ -248,17 +320,33 @@ export function buildMuscleRecoveryMap(
   for (const key of MUSCLE_GROUP_KEYS) {
     const bucket = groups.get(key);
     if (!bucket) continue;
-    const hasWeek = bucket.tonnage > 0 || bucket.durationSec > 0 || bucket.directSets > 0;
+    const directTonnage = roundLoad(bucket.directTonnage);
+    const indirectTonnage = roundLoad(bucket.indirectTonnage);
+    const directDurationSec = Math.round(bucket.directDurationSec);
+    const indirectDurationSec = Math.round(bucket.indirectDurationSec);
+    const hasWeek =
+      directTonnage > 0 ||
+      indirectTonnage > 0 ||
+      directDurationSec > 0 ||
+      indirectDurationSec > 0 ||
+      bucket.directSets > 0;
     if (!hasWeek && bucket.lastStrongMs == null) continue;
     const hours =
       bucket.lastStrongMs == null ? null : Math.round(((nowMs - bucket.lastStrongMs) / 3_600_000) * 10) / 10;
     rows.push({
       key,
       label: muscleGroupLabel(key),
-      tonnage: roundLoad(bucket.tonnage),
-      durationSec: Math.round(bucket.durationSec),
+      directTonnage,
+      indirectTonnage,
+      directDurationSec,
+      indirectDurationSec,
+      tonnage: roundLoad(directTonnage + indirectTonnage),
+      durationSec: directDurationSec + indirectDurationSec,
       directSets: bucket.directSets,
       status: recoveryStatusForGroup(key, bucket.lastStrongMs, nowMs),
+      lastDirectDate: bucket.lastDirectDate,
+      lastDirectTonnage: roundLoad(bucket.lastDirectTonnage),
+      lastDirectDurationSec: Math.round(bucket.lastDirectDurationSec),
       hoursSinceStrong: hours != null && hours < 0 ? 0 : hours,
     });
   }
@@ -271,8 +359,10 @@ export function buildMuscleRecoveryMap(
   rows.sort(
     (a, b) =>
       statusOrder[a.status] - statusOrder[b.status] ||
-      b.tonnage - a.tonnage ||
-      b.durationSec - a.durationSec ||
+      b.directTonnage - a.directTonnage ||
+      b.indirectTonnage - a.indirectTonnage ||
+      b.directDurationSec - a.directDurationSec ||
+      b.indirectDurationSec - a.indirectDurationSec ||
       MUSCLE_GROUP_KEYS.indexOf(a.key) - MUSCLE_GROUP_KEYS.indexOf(b.key),
   );
 

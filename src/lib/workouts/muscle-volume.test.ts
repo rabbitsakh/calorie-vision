@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { canonicalizeMuscleKey } from "./muscle-groups.ts";
 import {
   buildMuscleRecoveryMap,
   recoveryStatusForGroup,
@@ -148,4 +149,266 @@ test("a group outside the recovery window is fresh even with older volume", () =
   assert.equal(legs?.status, "fresh");
   assert.equal(map.weekStart, "2026-11-02");
   assert.equal(map.weekEnd, "2026-11-08");
+});
+
+test("fine muscle names roll up into every map group", () => {
+  const cases: Array<[string, string]> = [
+    ["quadriceps", "legs"],
+    ["hamstrings", "legs"],
+    ["glutes", "legs"],
+    ["calves", "legs"],
+    ["бицепс бедра", "legs"],
+    ["ягодицы", "legs"],
+    ["дельты", "shoulders"],
+    ["rear-delt", "shoulders"],
+    ["передняя дельта", "shoulders"],
+    ["задняя дельта", "shoulders"],
+    ["lats", "back"],
+    ["трапеции", "back"],
+    ["pecs", "chest"],
+    ["грудь", "chest"],
+    ["бицепс", "biceps"],
+    ["трицепс", "triceps"],
+    ["пресс", "abs"],
+    ["кардио", "cardio"],
+  ];
+  for (const [raw, group] of cases) {
+    assert.equal(canonicalizeMuscleKey(raw), group, raw);
+  }
+});
+
+test("direct shoulder press, smith, raises and rear delt stay direct beside bench", () => {
+  const set = (weightKg: number, reps: number) => [
+    { weightKg, reps, setType: "working" as const, completed: true },
+  ];
+  const map = buildMuscleRecoveryMap(
+    [
+      {
+        date: "2026-11-04",
+        startedAt: "2026-10-28T08:00:00.000Z",
+        exercises: [
+          { catalogId: "ohp", kind: "strength", sets: set(40, 8) },
+          { catalogId: "smith-ohp", kind: "strength", sets: set(30, 10) },
+          { catalogId: "lateral", kind: "strength", sets: set(10, 12) },
+          { catalogId: "rear-delt", kind: "strength", sets: set(8, 15) },
+        ],
+      },
+      {
+        date: "2026-11-05",
+        exercises: [{ catalogId: "bench-press", kind: "strength", sets: set(100, 5) }],
+      },
+    ],
+    { weekOf: "2026-11-05", now: NOW },
+  );
+  const shoulders = map.rows.find((row) => row.key === "shoulders");
+  assert.ok(shoulders);
+  assert.equal(shoulders?.directTonnage, 40 * 8 + 30 * 10 + 10 * 12 + 8 * 15);
+  assert.equal(shoulders?.indirectTonnage, 125);
+  assert.equal(shoulders?.directSets, 4);
+  assert.equal(shoulders?.lastDirectDate, "2026-11-04");
+  assert.ok((shoulders?.hoursSinceStrong ?? 99) < 48);
+  assert.equal(shoulders?.status, "loaded");
+});
+
+test("squat, curl, glutes and calves are direct legs; cardio minutes do not replace them", () => {
+  const map = buildMuscleRecoveryMap(
+    [
+      {
+        date: "2026-11-04",
+        exercises: [
+          {
+            catalogId: "squat",
+            kind: "strength",
+            sets: [{ weightKg: 100, reps: 5, setType: "working", completed: true }],
+          },
+          {
+            catalogId: "leg-curl",
+            kind: "strength",
+            sets: [{ weightKg: 40, reps: 10, setType: "working", completed: true }],
+          },
+          {
+            catalogId: "hip-thrust",
+            kind: "strength",
+            sets: [{ weightKg: 80, reps: 8, setType: "working", completed: true }],
+          },
+          {
+            catalogId: "calf-stand",
+            kind: "strength",
+            sets: [{ weightKg: 50, reps: 12, setType: "working", completed: true }],
+          },
+          {
+            muscleGroup: null,
+            primaryMuscles: ["quadriceps", "hamstrings"],
+            secondaryMuscles: ["glutes", "calves"],
+            kind: "strength",
+            sets: [{ weightKg: 20, reps: 10, setType: "working", completed: true }],
+          },
+        ],
+      },
+      {
+        date: "2026-11-05",
+        exercises: [
+          {
+            catalogId: "walk-incline",
+            kind: "cardio",
+            sets: [{ durationSec: 1800, distanceKm: 2, setType: "working", completed: true }],
+          },
+        ],
+      },
+    ],
+    { weekOf: "2026-11-05", now: NOW },
+  );
+  const legs = map.rows.find((row) => row.key === "legs");
+  assert.ok(legs);
+  assert.equal(legs?.directTonnage, 100 * 5 + 40 * 10 + 80 * 8 + 50 * 12 + 200);
+  assert.equal(legs?.indirectDurationSec, 900);
+  assert.equal(legs?.directDurationSec, 0);
+  assert.equal(legs?.lastDirectDate, "2026-11-04");
+  assert.notEqual(legs?.status, "fresh");
+});
+
+test("deadlift loads the back directly and the legs only as assistance", () => {
+  const map = buildMuscleRecoveryMap(
+    [
+      {
+        date: "2026-11-05",
+        exercises: [
+          {
+            catalogId: "deadlift",
+            kind: "strength",
+            sets: [{ weightKg: 140, reps: 5, setType: "working", completed: true }],
+          },
+        ],
+      },
+    ],
+    { weekOf: "2026-11-05", now: NOW },
+  );
+  const back = map.rows.find((row) => row.key === "back");
+  const legs = map.rows.find((row) => row.key === "legs");
+  assert.equal(back?.directTonnage, 700);
+  assert.equal(back?.lastDirectDate, "2026-11-05");
+  assert.equal(legs?.directTonnage, 0);
+  assert.equal(legs?.indirectTonnage, 350);
+  assert.equal(legs?.lastDirectDate, null);
+});
+
+test("unlinked exercise uses the session muscle tag, and a stale clock does not move the day", () => {
+  const map = buildMuscleRecoveryMap(
+    [
+      {
+        date: "2026-11-05",
+        startedAt: "2026-10-24T08:00:00.000Z",
+        sessionGroups: ["Плечи"],
+        exercises: [
+          {
+            catalogId: null,
+            muscleGroup: null,
+            kind: "strength",
+            sets: [{ weightKg: 25, reps: 10, setType: "working", completed: true }],
+          },
+        ],
+      },
+    ],
+    { weekOf: "2026-11-05", now: NOW },
+  );
+  const shoulders = map.rows.find((row) => row.key === "shoulders");
+  assert.equal(shoulders?.directTonnage, 250);
+  assert.equal(shoulders?.indirectTonnage, 0);
+  assert.equal(shoulders?.lastDirectDate, "2026-11-05");
+  assert.ok((shoulders?.hoursSinceStrong ?? 99) < 24);
+});
+
+test("prod shape: this week's indirect load is not the older direct session", () => {
+  const sakhalinEvening = new Date("2026-11-06T07:00:00.000Z");
+  const done = (weightKg: number, reps: number, setType: string) => ({
+    weightKg,
+    reps,
+    setType,
+    completed: true,
+  });
+  const map = buildMuscleRecoveryMap(
+    [
+      {
+        date: "2026-10-25",
+        sessionGroups: ["legs"],
+        exercises: [
+          {
+            catalogId: "leg-ext",
+            muscleGroup: null,
+            kind: "strength",
+            sets: [done(20, 15, "warmup"), done(468, 10, "working")],
+          },
+          {
+            catalogId: "leg-curl",
+            muscleGroup: null,
+            kind: "strength",
+            sets: [done(358, 10, "working"), done(30, 10, "failure")],
+          },
+          {
+            catalogId: "squat-machine",
+            muscleGroup: null,
+            kind: "strength",
+            sets: [done(1164, 10, "working"), done(80, 10, "drop")],
+          },
+        ],
+      },
+      {
+        date: "2026-10-30",
+        sessionGroups: ["cardio", "chest", "shoulders"],
+        exercises: [
+          {
+            catalogId: "smith-ohp",
+            muscleGroup: null,
+            kind: "strength",
+            sets: [done(729, 10, "working"), done(60, 20, "failure"), done(60, 20, "failure")],
+          },
+        ],
+      },
+      {
+        date: "2026-11-03",
+        exercises: [
+          {
+            catalogId: "bike",
+            kind: "cardio",
+            sets: [{ durationSec: 25 * 60, distanceKm: 8, setType: "working", completed: true }],
+          },
+          {
+            catalogId: "bench-press",
+            muscleGroup: null,
+            kind: "strength",
+            sets: [done(175, 10, "working")],
+          },
+        ],
+      },
+      {
+        date: "2026-11-04",
+        exercises: [
+          {
+            catalogId: "bike",
+            kind: "cardio",
+            sets: [{ durationSec: 35 * 60, distanceKm: 10, setType: "working", completed: true }],
+          },
+        ],
+      },
+    ],
+    { weekOf: "2026-11-06", now: sakhalinEvening },
+  );
+
+  const legs = map.rows.find((row) => row.key === "legs");
+  const shoulders = map.rows.find((row) => row.key === "shoulders");
+  assert.equal(map.weekStart, "2026-11-02");
+  assert.equal(map.weekEnd, "2026-11-08");
+
+  assert.equal(legs?.directTonnage, 0);
+  assert.equal(legs?.indirectDurationSec, 30 * 60);
+  assert.equal(legs?.lastDirectDate, "2026-10-25");
+  assert.equal(legs?.lastDirectTonnage, 19900 + 300 + 800);
+  assert.equal(Math.round((legs?.hoursSinceStrong ?? 0) / 24), 12);
+
+  assert.equal(shoulders?.directTonnage, 0);
+  assert.equal(shoulders?.indirectTonnage, 437.5);
+  assert.equal(shoulders?.lastDirectDate, "2026-10-30");
+  assert.equal(shoulders?.lastDirectTonnage, 7290 + 2400);
+  assert.equal(Math.round((shoulders?.hoursSinceStrong ?? 0) / 24), 7);
+  assert.notEqual(shoulders?.indirectTonnage, shoulders?.lastDirectTonnage);
 });
