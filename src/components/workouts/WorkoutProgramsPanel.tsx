@@ -15,6 +15,7 @@ import {
   GYM_PROGRAMS,
   planProgramSave,
   programPreviewLines,
+  uniqueDraftName,
   type RoutineDraft,
 } from "@/lib/workouts/programs";
 
@@ -49,22 +50,31 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
   const [preview, setPreview] = useState<CoachPreview | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const toggleEquipment = (key: EquipmentKey) => {
     setEquipment((prev) => (prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]));
   };
 
   const saveDrafts = async (drafts: RoutineDraft[], start: boolean) => {
+    if (saving || busy) return;
+    setSaving(true);
     setMessage(null);
-    const result = await onSaveDrafts(drafts);
-    if (result.saved === 0 && result.skipped > 0) {
-      setMessage("Такой шаблон уже есть — второй не создаю.");
-    } else if (result.skipped > 0) {
-      setMessage(`Сохранено ${result.saved}. Уже были: ${result.skipped}.`);
-    } else if (result.saved > 0) {
-      setMessage(result.saved === 1 ? "Шаблон сохранён." : `Сохранено шаблонов: ${result.saved}.`);
+    try {
+      const result = await onSaveDrafts(drafts);
+      if (result.saved === 0 && result.skipped > 0) {
+        setMessage("Такой шаблон уже есть — второй не создаю.");
+      } else if (result.skipped > 0) {
+        setMessage(`Сохранено ${result.saved}. Уже были: ${result.skipped}.`);
+      } else if (result.saved > 0) {
+        setMessage(result.saved === 1 ? "Шаблон сохранён." : `Сохранено шаблонов: ${result.saved}.`);
+      }
+      if (start && result.firstId) onStart(result.firstId);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Не удалось сохранить шаблон");
+    } finally {
+      setSaving(false);
     }
-    if (start && result.firstId) onStart(result.firstId);
   };
 
   const askCoach = async () => {
@@ -103,7 +113,8 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
             <li key={program.id} className="rounded-xl border border-[var(--border-hairline)] px-3 py-2.5">
               <button
                 type="button"
-                className="w-full text-left"
+                className="min-h-11 w-full text-left"
+                aria-expanded={open}
                 onClick={() => setOpenId(open ? null : program.id)}
               >
                 <p className="font-semibold text-[var(--foreground)]">{program.title}</p>
@@ -127,7 +138,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
                   ))}
                   <button
                     type="button"
-                    disabled={busy || !plan}
+                    disabled={busy || saving || !plan}
                     className="gym-primary mt-3"
                     onClick={() => {
                       const drafts = (plan ?? []).filter((step) => !step.skip).map((step) => step.draft);
@@ -157,6 +168,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
             <button
               key={item}
               type="button"
+              aria-pressed={goal === item}
               className={`min-h-11 rounded-full px-3 text-xs font-semibold ${
                 goal === item ? "bg-[var(--accent)] text-white" : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
               }`}
@@ -183,6 +195,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
             <button
               key={item}
               type="button"
+              aria-pressed={experience === item}
               className={`min-h-11 rounded-full px-3 text-xs font-semibold ${
                 experience === item
                   ? "bg-[var(--accent)] text-white"
@@ -199,6 +212,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
             <button
               key={key}
               type="button"
+              aria-pressed={equipment.includes(key)}
               className={`min-h-11 rounded-full px-3 text-xs font-semibold ${
                 equipment.includes(key)
                   ? "bg-[var(--accent)] text-white"
@@ -211,7 +225,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
           ))}
         </div>
         <label className="mt-2 block text-xs font-medium text-[var(--muted-strong)]">
-          Ограничения, если есть
+          Что не брать. Это не оценка здоровья.
           <textarea
             value={limitations}
             maxLength={240}
@@ -221,7 +235,10 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
             className="mt-1 w-full rounded-lg border border-[var(--border-quiet)] px-2 py-1.5 text-sm"
           />
         </label>
-        <button type="button" className="gym-primary mt-2" disabled={asking || busy} onClick={() => void askCoach()}>
+        {equipment.length === 0 ? (
+          <p className="mt-2 text-xs text-[var(--muted)]">Отметьте, что есть под рукой. Без выбора останется только свой вес.</p>
+        ) : null}
+        <button type="button" className="gym-primary mt-2" disabled={asking || busy || saving} onClick={() => void askCoach()}>
           {asking ? "Собираю…" : "Предложить тренировку"}
         </button>
         {preview ? (
@@ -243,11 +260,11 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
               <button
                 type="button"
                 className="min-h-11 rounded-full bg-[var(--accent)] px-3 text-xs font-semibold text-white disabled:opacity-40"
-                disabled={busy}
+                disabled={busy || saving}
                 onClick={() => {
                   const draft = draftFromPreview(preview);
                   if (!draft) return;
-                  void saveDrafts([draft], false);
+                  void saveDrafts([{ ...draft, name: uniqueDraftName(draft.name, existingNames) }], false);
                 }}
               >
                 Сохранить шаблон
@@ -255,19 +272,23 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
               <button
                 type="button"
                 className="min-h-11 rounded-full bg-white px-3 text-xs font-semibold text-[var(--accent-ink)] disabled:opacity-40"
-                disabled={busy}
+                disabled={busy || saving}
                 onClick={() => {
                   const draft = draftFromPreview(preview);
                   if (!draft) return;
-                  void saveDrafts([draft], true);
+                  void saveDrafts([{ ...draft, name: uniqueDraftName(draft.name, existingNames) }], true);
                 }}
               >
-                Начать
+                Сохранить и начать
               </button>
             </div>
           </div>
         ) : null}
-        {message ? <p className="mt-2 text-sm text-[var(--muted-strong)]">{message}</p> : null}
+        {message ? (
+          <p className="mt-2 text-sm text-[var(--muted-strong)]" role="status">
+            {message}
+          </p>
+        ) : null}
       </div>
     </section>
   );

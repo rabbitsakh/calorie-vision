@@ -94,6 +94,39 @@ test("сбой ИИ даёт запасной шаблон и помечает �
   assert.equal(dumbbells.exercises.some((exercise) => exercise.catalogId === "squat"), false);
 });
 
+test("пустое оборудование не открывает штангу, изоляция не получает 5×5, таймаут даёт запасной", async () => {
+  const bodyweight = fallbackCoachPlan(
+    { ...base, equipment: [], goal: "strength", experience: "regular", minutes: 45 },
+    [],
+    null,
+  );
+  assert.ok(bodyweight.exercises.length >= 1);
+  assert.ok(
+    bodyweight.exercises.every((exercise) => catalogById(exercise.catalogId)?.equipment === "bodyweight"),
+  );
+
+  const heavy = fallbackCoachPlan(
+    { ...base, goal: "strength", experience: "regular", minutes: 90, equipment: ["cable", "bodyweight"] },
+    [],
+    null,
+  );
+  const pull = heavy.exercises.find((exercise) => exercise.catalogId === "lat-pulldown");
+  const assist = heavy.exercises.find((exercise) => exercise.catalogId === "pushdown" || exercise.catalogId === "crunch");
+  assert.equal(pull?.sets, 5);
+  assert.equal(pull?.reps, 5);
+  assert.ok(assist);
+  assert.notEqual(assist?.sets, 5);
+
+  const timedOut = await buildCoachPreview({
+    request: base,
+    freshness: [],
+    food: null,
+    timeoutMs: 20,
+    complete: () => new Promise(() => {}),
+  });
+  assert.equal(timedOut.source, "fallback");
+});
+
 test("свежая группа предпочтительнее уже нагруженной", () => {
   const preview = fallbackCoachPlan(
     base,

@@ -176,6 +176,16 @@ export type ProgramSaveStep = {
   draft: RoutineDraft;
 };
 
+/** Имя черновика ИИ не должно совпасть со старым шаблоном и открыть его по ошибке. */
+export function uniqueDraftName(name: string, existingNames: readonly string[]): string {
+  const have = new Set(existingNames.map((item) => item.trim()));
+  const base = name.trim().slice(0, 110) || "Тренировка";
+  if (!have.has(base)) return base;
+  let n = 2;
+  while (have.has(`${base} · ${n}`)) n += 1;
+  return `${base} · ${n}`.slice(0, 120);
+}
+
 /** Повторное сохранение дня с тем же именем не создаёт второй шаблон. */
 export function planProgramSave(
   existingNames: readonly string[],
