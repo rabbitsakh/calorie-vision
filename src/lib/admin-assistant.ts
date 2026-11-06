@@ -30,6 +30,18 @@ export type AssistantActions = {
     mealSlot?: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
     /** Строка была в списке, но без ккал и без строки в таблице. На карточке — «не разобрано». */
     unparsed?: boolean;
+    /**
+     * estimate — числа из типовой строки справочника, не с этикетки.
+     * unknown — справочник молчит, нули в ответе модели были пустыми полями.
+     */
+    nutritionBasis?: "estimate" | "unknown";
+    /** Плотность на 100 г/мл, если состав взят из справочника. */
+    per100?: {
+      calories: number;
+      protein?: number;
+      fat?: number;
+      carbs?: number;
+    };
   }>;
   /**
    * В прозе блюд больше, чем в карточке. Клиент предлагает дописать строку.

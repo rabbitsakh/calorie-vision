@@ -28,6 +28,7 @@ import {
   validateStructuredMeals,
 } from "@/lib/assistant-meal-schema";
 import { stripDiaryPlanThrowaway } from "@/lib/assistant-honesty";
+import { enrichUnsetMealNutrition } from "@/lib/assistant-meal-nutrition";
 import { enrichQuickMealsFromText, type QuickMeal } from "@/lib/quick-log";
 
 export type AssistantMealParseEvent = {
@@ -205,6 +206,13 @@ export async function resolveAssistantTurnActions(opts: {
 
   if (!opts.previewPending) {
     actions = pruneNoopAssistantActions(actions);
+  }
+
+  if (!opts.previewPending && actions?.meals?.length) {
+    actions = {
+      ...actions,
+      meals: enrichUnsetMealNutrition(actions.meals, `${opts.userMessage}\n${reply}`),
+    };
   }
 
   if (actions?.meals?.length) {

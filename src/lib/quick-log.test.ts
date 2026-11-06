@@ -106,6 +106,11 @@ test("renameQuickMeal сохраняет граммы, mealsReadyForSave отб�
   assert.equal(packed.ready.length, 2);
   assert.equal(packed.ready[1]?.name, "Матча");
   assert.equal(packed.ready[1]?.unparsed, undefined);
+  const unknown = mealsReadyForSave([
+    { name: "Кварцевый мусс", grams: 40, kcal: 0, protein: 0, fat: 0, carbs: 0, nutritionBasis: "unknown" },
+  ]);
+  assert.equal(unknown.ready.length, 0);
+  assert.equal(unknown.skipped, 1);
 });
 
 test("totals, slot tag and save label", () => {

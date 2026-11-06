@@ -1,6 +1,6 @@
 /**
  * Одна проверка карточки еды для чата, фото и штрихкода.
- * Неизвестная порция остаётся пустой: 100 г сами не подставляются.
+ * Неизвестная порция остаётся пустой.
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
@@ -10,6 +10,8 @@ import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
 import type { SaveMealInput } from "@/lib/save-meal";
 import { splitQuickPortion, type QuickMeal } from "@/lib/quick-log";
+
+export const FOOD_CONFIRM_PORTION_SKIM = "проверь порцию.";
 
 export type FoodConfirmSource = "chat" | "photo" | "barcode";
 export type FoodConfirmUnit = "г" | "мл" | "шт";
@@ -37,6 +39,8 @@ export type FoodConfirmDish = {
   time?: string | null;
   unparsed?: boolean;
   per100?: FoodConfirmPer100 | null;
+  /** estimate — типовая строка справочника. unknown — состав не найден, нули не показываем. */
+  nutritionBasis?: "estimate" | "unknown";
   source: FoodConfirmSource;
   barcode?: string;
   brand?: string;
@@ -60,6 +64,16 @@ function scaleOpt(value: number | null | undefined, ratio: number): number | nul
 
 function atwater(protein: number, fat: number, carbs: number): number {
   return 4 * protein + 9 * fat + 4 * carbs;
+}
+
+export function foodConfirmNutritionNote(dish: Pick<FoodConfirmDish, "nutritionBasis">): string | null {
+  if (dish.nutritionBasis === "unknown") return "КБЖУ не определены — нужно уточнить";
+  if (dish.nutritionBasis === "estimate") return "Типовая оценка по справочнику";
+  return null;
+}
+
+export function foodConfirmMissingPortionError(name: string): string {
+  return `Укажите порцию у «${name}».`;
 }
 
 export function foodConfirmEnergyWarning(dish: FoodConfirmDish): string | null {
@@ -128,7 +142,14 @@ export function prepareFoodConfirmSave(dishes: FoodConfirmDish[]):
     if (dish.grams == null || dish.grams <= 0) {
       return {
         ok: false,
-        error: `Укажите порцию у «${name}». 100 г сами не подставим.`,
+        error: foodConfirmMissingPortionError(name),
+        warnings,
+      };
+    }
+    if (dish.nutritionBasis === "unknown" && !(typeof dish.kcal === "number" && dish.kcal > 0)) {
+      return {
+        ok: false,
+        error: `КБЖУ у «${name}» не определены — уточните калории`,
         warnings,
       };
     }
@@ -201,17 +222,26 @@ export function foodConfirmFromQuickMeal(meal: QuickMeal, source: FoodConfirmSou
         : null;
   const unit: FoodConfirmUnit =
     meal.unit === "мл" || meal.unit === "шт" ? meal.unit : named.unit === "мл" && meal.grams == null ? "мл" : "г";
+  const unknown = meal.nutritionBasis === "unknown";
+  const macro = (value: number | undefined) =>
+    unknown || typeof value !== "number" || !Number.isFinite(value) ? null : value;
   return {
     name: (named.base || meal.name).trim(),
     grams,
     unit,
-    kcal: typeof meal.kcal === "number" && Number.isFinite(meal.kcal) ? Math.round(meal.kcal) : null,
-    protein: typeof meal.protein === "number" ? meal.protein : null,
-    fat: typeof meal.fat === "number" ? meal.fat : null,
-    carbs: typeof meal.carbs === "number" ? meal.carbs : null,
+    kcal: unknown
+      ? null
+      : typeof meal.kcal === "number" && Number.isFinite(meal.kcal)
+        ? Math.round(meal.kcal)
+        : null,
+    protein: macro(meal.protein),
+    fat: macro(meal.fat),
+    carbs: macro(meal.carbs),
     mealSlot: slotFromNote(meal.note, meal.mealSlot ?? null),
     time: meal.time ?? null,
     unparsed: meal.unparsed,
+    per100: meal.per100 ?? null,
+    nutritionBasis: meal.nutritionBasis,
     source,
   };
 }
@@ -302,7 +332,7 @@ export function foodConfirmFromPhotoDraft(
 /**
  * Порция после поиска или замены продукта.
  * Явные граммы пользователя, нетто и порция не равная 100 г сохраняются.
- * Иначе порция пустая: калории показываем на 100 г, 100 г сами не пишем.
+ * Иначе порция пустая: калории остаются плотностью на 100 г, в порцию их не пишем.
  */
 export function portionAfterProductLookup(input: {
   currentGrams?: number | null;

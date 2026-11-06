@@ -218,6 +218,9 @@ export function mealsReadyForSave(meals: QuickMeal[]): { ready: QuickMeal[]; ski
   const ready = meals
     .filter((meal) => {
       if (!meal.name.trim()) return false;
+      if (meal.nutritionBasis === "unknown" && !(typeof meal.kcal === "number" && meal.kcal > 0)) {
+        return false;
+      }
       if (meal.unparsed && !(typeof meal.kcal === "number" && meal.kcal > 0)) return false;
       return true;
     })
