@@ -13,7 +13,7 @@ test("estimateSessionBurnKcal считает кардио по MET и весу, 
     cardioOnly: true,
     endedAt: "2026-09-30T10:00:00.000Z",
   });
-  assert.equal(kcal, Math.round(GENERIC_CARDIO_MET * FALLBACK_BODY_WEIGHT_KG * 0.5));
+  assert.equal(kcal, Math.round((GENERIC_CARDIO_MET - 1) * FALLBACK_BODY_WEIGHT_KG * 0.5));
   assert.notEqual(kcal, 80);
 });
 
@@ -29,8 +29,8 @@ test("estimateSessionBurnKcal: силовая по времени сессии, 
     weightKg: 80,
     endedAt: "2026-09-30T10:00:00.000Z",
   });
-  assert.equal(fallback, Math.round(5 * FALLBACK_BODY_WEIGHT_KG * (40 / 60)));
-  assert.equal(weighed, Math.round(5 * 80 * (40 / 60)));
+  assert.equal(fallback, Math.round(4 * FALLBACK_BODY_WEIGHT_KG * (40 / 60)));
+  assert.equal(weighed, Math.round(4 * 80 * (40 / 60)));
   assert.ok(weighed > fallback);
 });
 
@@ -39,8 +39,8 @@ test("пустая завершённая сессия не получает к�
 });
 
 test("estimateDayWorkoutBurnKcal суммирует сессии", () => {
-  const cardio = Math.round(GENERIC_CARDIO_MET * FALLBACK_BODY_WEIGHT_KG * (20 / 60));
-  const strength = Math.round(5 * FALLBACK_BODY_WEIGHT_KG * 0.5);
+  const cardio = Math.round((GENERIC_CARDIO_MET - 1) * FALLBACK_BODY_WEIGHT_KG * (20 / 60));
+  const strength = Math.round(4 * FALLBACK_BODY_WEIGHT_KG * 0.5);
   const total = estimateDayWorkoutBurnKcal([
     { cardioDurationSec: 20 * 60, cardioOnly: true, endedAt: "x" },
     { elapsedSec: 30 * 60, endedAt: "y" },
