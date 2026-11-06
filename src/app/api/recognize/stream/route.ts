@@ -15,15 +15,17 @@ import {
 import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
 import { saveImageBuffer } from "@/lib/upload";
+import {
+  createGuardedSse,
+  isClosedControllerError,
+  settleGuardedSse,
+  type GuardedSse,
+} from "@/lib/sse-guard";
 
 const RECOGNIZE_RATE_LIMIT = 12;
 const RECOGNIZE_RATE_WINDOW_MS = 60_000;
 /** Never block SSE `done` longer — client unlocks save after vision preview. */
 const STREAM_ENRICH_TIMEOUT_MS = 10_000;
-
-function sseEncode(event: string, data: unknown): Uint8Array {
-  return new TextEncoder().encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-}
 
 export async function POST(request: NextRequest) {
   const { session, response } = await requireSession();
@@ -90,13 +92,17 @@ export async function POST(request: NextRequest) {
   const recognitionContext =
     context ?? parseRecognitionContext(request.nextUrl.searchParams.get("context"));
 
+  let sse: GuardedSse | null = null;
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const active = createGuardedSse(controller, { signal: request.signal });
+      sse = active;
       const send = (event: string, data: unknown) => {
-        controller.enqueue(sseEncode(event, data));
+        active.send(event, data);
       };
 
-      try {
+      await settleGuardedSse(active, async () => {
+        try {
         const imagePath = await saveImageBuffer(compressed.buffer, compressed.mimeType, {
           ownerUserId: session.user.id,
         });
@@ -134,9 +140,11 @@ export async function POST(request: NextRequest) {
             (vision.photoKind === "label" ? "label" : "gigachat"),
           photoKind: vision.photoKind ?? "meal",
         });
+        if (active.isClosed()) return;
         send("vision", { recognition: visionPreview });
 
         let enrichmentTimedOut = false;
+        if (active.isClosed()) return;
         const recognition = await withTimeoutFallback(
           enrichRecognitionAfterVision(vision, session.user.id),
           STREAM_ENRICH_TIMEOUT_MS,
@@ -149,6 +157,7 @@ export async function POST(request: NextRequest) {
             enrichmentTimedOut = true;
           },
         );
+        if (active.isClosed()) return;
         trackFirstPhotoRecognized(session.user.id);
         send("done", {
           imagePath,
@@ -156,18 +165,21 @@ export async function POST(request: NextRequest) {
             ? { ...recognition, enrichmentTimedOut: true }
             : recognition,
         });
-      } catch (error) {
-        console.error(error);
-        const message =
-          error instanceof Error ? error.message : "Не удалось распознать фото";
-        const status = isGigaChatApiError(error) ? error.status : 500;
-        send("error", {
-          error: message,
-          status: status === 429 ? 429 : status >= 400 && status < 600 ? status : 500,
-        });
-      } finally {
-        controller.close();
-      }
+        } catch (error) {
+          if (active.isClosed() || isClosedControllerError(error)) return;
+          console.error(error);
+          const message =
+            error instanceof Error ? error.message : "Не удалось распознать фото";
+          const status = isGigaChatApiError(error) ? error.status : 500;
+          send("error", {
+            error: message,
+            status: status === 429 ? 429 : status >= 400 && status < 600 ? status : 500,
+          });
+        }
+      }, () => {});
+    },
+    cancel() {
+      sse?.close();
     },
   });
 

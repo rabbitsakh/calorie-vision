@@ -27,6 +27,7 @@ import {
   sanitizePhotoPreviewReply,
 } from "@/lib/assistant-honesty";
 import { extractMealTypeFromMessage, mealTypeKeyFromLabel } from "@/lib/assistant-meal-time";
+import { createGuardedSse, isClosedControllerError, type GuardedSse } from "@/lib/sse-guard";
 import {
   collectUndoFromTools,
   decodeImageBase64,
@@ -96,10 +97,16 @@ export async function POST(request: NextRequest) {
   const lastUser = messages[messages.length - 1]?.content ?? "";
 
   const encoder = new TextEncoder();
+  let guard: GuardedSse | null = null;
   const stream = new ReadableStream({
     async start(controller) {
+      const active = createGuardedSse(controller, {
+        signal: request.signal,
+        encode: (event, data) => encoder.encode(sse(event, data)),
+      });
+      guard = active;
       const send = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode(sse(event, data)));
+        active.send(event, data);
       };
       const toolResults: AssistantToolResult[] = [];
       try {
@@ -131,9 +138,13 @@ export async function POST(request: NextRequest) {
             },
           );
           // Keep proxies from buffering the whole recognition wait.
-          controller.enqueue(encoder.encode(": ping\n\n"));
+          active.ping();
           let tick = 0;
           const heartbeat = setInterval(() => {
+            if (active.isClosed()) {
+              clearInterval(heartbeat);
+              return;
+            }
             tick += 1;
             send("status", {
               text:
@@ -141,7 +152,7 @@ export async function POST(request: NextRequest) {
                   ? "Ещё распознаю фото…"
                   : "Смотрю состав и калории…",
             });
-            controller.enqueue(encoder.encode(": ping\n\n"));
+            active.ping();
           }, 4000);
           let photoResult: AssistantToolResult;
           try {
@@ -286,6 +297,7 @@ export async function POST(request: NextRequest) {
           source: "gigachat",
         });
       } catch (error) {
+        if (active.isClosed() || isClosedControllerError(error)) return;
         console.error("assistant stream", error);
         if (toolResults.some((t) => t.ok)) {
           send("done", {
@@ -303,8 +315,11 @@ export async function POST(request: NextRequest) {
           send("error", { error: "Ассистент сейчас недоступен" });
         }
       } finally {
-        controller.close();
+        active.close();
       }
+    },
+    cancel() {
+      guard?.close();
     },
   });
 
