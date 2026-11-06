@@ -5,12 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { formatCalorieEstimate } from "@/lib/calorie-estimate-range";
 import type { FoodRecognitionResult } from "@/lib/food-types";
+import { appendRecognizePhoto, GUEST_RECOGNIZE_LIMIT, guestMacroLine } from "@/lib/guest-recognize";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
 import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 const GUEST_USED_KEY = "cv-guest-recognize-used";
-const GUEST_LIMIT = 2;
+const GUEST_LIMIT = GUEST_RECOGNIZE_LIMIT;
 
 type GuestResult = {
   imagePath?: string;
@@ -48,6 +49,7 @@ function flatten(recognition: FoodRecognitionResult): FoodRecognitionResult[] {
  */
 export function GuestTryClient() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
   const [used, setUsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function GuestTryClient() {
     setResult(null);
     try {
       const form = new FormData();
-      form.append("image", file);
+      appendRecognizePhoto(form, file);
       const resp = await fetch(withBasePath("/api/recognize/guest"), {
         method: "POST",
         body: form,
@@ -76,7 +78,13 @@ export function GuestTryClient() {
         error?: string;
         imagePath?: string;
         recognition?: FoodRecognitionResult;
+        guestLimit?: number;
       };
+      if (resp.status === 429 && payload.guestLimit === GUEST_LIMIT) {
+        setUsed(GUEST_LIMIT);
+        setError(payload.error ?? "Лимит без входа исчерпан");
+        return;
+      }
       if (!resp.ok || !payload.recognition) {
         setError(payload.error ?? "Не удалось распознать фото");
         return;
@@ -124,6 +132,14 @@ export function GuestTryClient() {
           disabled={busy || blocked}
           onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
         />
+        <input
+          ref={galleryRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={busy || blocked}
+          onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
+        />
 
         <button
           type="button"
@@ -133,6 +149,16 @@ export function GuestTryClient() {
         >
           {busy ? "Распознаём…" : blocked ? "Лимит на сегодня" : "Сфотографировать"}
         </button>
+        {!blocked ? (
+          <button
+            type="button"
+            className="btn btn-secondary guest-try-gallery"
+            disabled={busy}
+            onClick={() => galleryRef.current?.click()}
+          >
+            Выбрать снимок
+          </button>
+        ) : null}
 
         {blocked ? (
           <p className="guest-try-hint">
@@ -159,13 +185,16 @@ export function GuestTryClient() {
         <section className="guest-try-result" aria-label="Результат">
           <h2 className="guest-try-result-title">Результат</h2>
           <ul className="guest-try-list">
-            {dishes.map((dish, i) => (
+            {dishes.map((dish, i) => {
+              const macros = guestMacroLine(dish);
+              return (
               <li key={`${dish.dishName}-${i}`} className="guest-try-card">
                 <p className="guest-try-dish">{decodeHtmlEntities(dish.dishName)}</p>
                 <p className="guest-try-kcal">
                   {formatCalorieEstimate(dish.calories, dish.confidence)}
                   {dish.portionGrams ? ` · ${Math.round(dish.portionGrams)} г` : ""}
                 </p>
+                {macros ? <p className="guest-try-macros">{macros}</p> : null}
                 {dish.confidence < 0.65 && dish.alternatives?.length ? (
                   <p className="guest-try-alts">
                     Варианты:{" "}
@@ -176,7 +205,8 @@ export function GuestTryClient() {
                   </p>
                 ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
           <Link href="/login" className="btn btn-primary guest-try-save">
             Войти и сохранить в дневник

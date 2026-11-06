@@ -1088,12 +1088,24 @@ select {
   font-weight: 700;
 }
 
+.guest-try-gallery {
+  width: 100%;
+  margin-top: 0.55rem;
+}
+
 .guest-try-kcal {
   margin: 0.25rem 0 0;
   font-size: 1.05rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
   color: var(--accent-ink);
+}
+
+.guest-try-macros {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 
 .guest-try-alts {

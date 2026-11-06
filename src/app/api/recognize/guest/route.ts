@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { isGigaChatApiError } from "@/lib/ai/gigachat-errors";
 import { getImageDimensions } from "@/lib/ai/image-utils";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
-import { checkRateLimitAsync } from "@/lib/rate-limit";
+import { GUEST_RECOGNIZE_LIMIT } from "@/lib/guest-recognize";
+import { gateGuestRecognize } from "@/lib/guest-recognize-gate";
 import { loadLowConfidenceThresholdFromDb } from "@/lib/recognition-threshold-store";
-import { prepareRecognizeUpload, parseRecognitionContext } from "@/lib/recognize-upload";
+import { parseRecognitionContext } from "@/lib/recognize-upload";
 import { saveImageBuffer } from "@/lib/upload";
 
 export const dynamic = "force-dynamic";
 
 /** Soft trial: 2 photos / day / IP without an account. */
-const GUEST_LIMIT = 2;
-const GUEST_WINDOW_MS = 24 * 60 * 60_000;
+const GUEST_LIMIT = GUEST_RECOGNIZE_LIMIT;
 
 function clientIp(request: NextRequest): string {
   const fwd = request.headers.get("x-forwarded-for");
@@ -29,36 +29,26 @@ function clientIp(request: NextRequest): string {
  * For the public «попробуйте без входа» flow on /try.
  */
 export async function POST(request: NextRequest) {
+  const gate = await gateGuestRecognize(request, clientIp(request));
+  if (!gate.ok) {
+    const headers: Record<string, string> = {};
+    if (gate.status === 429 && gate.retryAfterSec) {
+      headers["Retry-After"] = String(gate.retryAfterSec);
+    }
+    return NextResponse.json(
+      {
+        error: gate.error,
+        ...(gate.retryAfterSec ? { retryAfterSec: gate.retryAfterSec } : {}),
+        guestLimit: GUEST_LIMIT,
+      },
+      { status: gate.status, headers },
+    );
+  }
+
   try {
     await loadLowConfidenceThresholdFromDb();
 
-    const ip = clientIp(request);
-    const rate = await checkRateLimitAsync(
-      `recognize-guest:${ip}`,
-      GUEST_LIMIT,
-      GUEST_WINDOW_MS,
-    );
-    if (!rate.allowed) {
-      return NextResponse.json(
-        {
-          error: `Без входа доступно ${GUEST_LIMIT} фото в сутки. Войдите, чтобы продолжить.`,
-          retryAfterSec: rate.retryAfterSec,
-          guestLimit: GUEST_LIMIT,
-        },
-        {
-          status: 429,
-          headers: { "Retry-After": String(rate.retryAfterSec) },
-        },
-      );
-    }
-
-    const formData = await request.formData();
-    const prepared = await prepareRecognizeUpload(formData);
-    if (!prepared.ok) {
-      return NextResponse.json({ error: prepared.error }, { status: prepared.status });
-    }
-
-    const { compressed, visionFilename, barcodeHint, context } = prepared.data;
+    const { compressed, visionFilename, barcodeHint, context } = gate.prepared;
     const recognitionContext =
       context ?? parseRecognitionContext(request.nextUrl.searchParams.get("context"));
     const dimensions = await getImageDimensions(compressed.buffer);

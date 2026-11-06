@@ -1,4 +1,5 @@
 import { compressImageFileForUpload } from "@/lib/client-image-compress";
+import { appendRecognizePhoto } from "@/lib/guest-recognize";
 import { decodeBarcodeFromImageFile } from "@/lib/decode-barcode-client";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import { humanizeClientFetchError, isNetworkFetchError, readApiJson } from "@/lib/read-api-json";
@@ -89,7 +90,7 @@ export async function recognizePhotoFile(
   }
 
   const formData = new FormData();
-  formData.append("photo", uploadFile, uploadNameForFile(uploadFile));
+  appendRecognizePhoto(formData, uploadFile, uploadNameForFile(uploadFile));
   if (localBarcode) {
     formData.append("barcode", localBarcode);
   }
