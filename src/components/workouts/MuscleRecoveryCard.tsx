@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateShort } from "@/lib/dates";
 import { formatDurationMinutes } from "@/lib/workouts/cardio";
 import { formatWorkoutLoad } from "@/lib/workouts/format";
 import type { MuscleRecoveryMap, MuscleRecoveryRow, MuscleRecoveryStatus } from "@/lib/workouts/muscle-volume";
@@ -12,18 +13,6 @@ const STATUS_LABEL: Record<MuscleRecoveryStatus, string> = {
   fresh: "Свежие",
 };
 
-function weekValue(row: MuscleRecoveryRow): string {
-  const parts: string[] = [];
-  if (row.tonnage > 0) parts.push(`${formatWorkoutLoad(row.tonnage)} кг·повт`);
-  if (row.durationSec > 0) parts.push(formatDurationMinutes(row.durationSec));
-  if (parts.length > 0) {
-    const value = parts.join(" · ");
-    return row.directSets > 0 ? value : `${value} · косвенно`;
-  }
-  if (row.directSets > 0) return row.key === "cardio" ? "без времени" : "без отягощения";
-  return "на этой неделе тихо";
-}
-
 function agoLabel(hours: number | null): string | null {
   if (hours == null) return null;
   if (hours < 1) return "только что";
@@ -31,6 +20,35 @@ function agoLabel(hours: number | null): string | null {
   const days = Math.round(hours / 24);
   if (days <= 1) return "вчера";
   return `${days} дн. назад`;
+}
+
+function WeekLines({ row }: { row: MuscleRecoveryRow }) {
+  const lines: string[] = [];
+  if (row.directTonnage > 0) {
+    lines.push(`силовая ${formatWorkoutLoad(row.directTonnage)} кг·повт`);
+  }
+  if (row.indirectTonnage > 0) {
+    lines.push(`косвенно ${formatWorkoutLoad(row.indirectTonnage)} кг·повт`);
+  }
+  if (row.directDurationSec > 0) {
+    lines.push(
+      row.key === "cardio"
+        ? `кардио ${formatDurationMinutes(row.directDurationSec)}`
+        : `время ${formatDurationMinutes(row.directDurationSec)}`,
+    );
+  }
+  if (row.indirectDurationSec > 0) {
+    lines.push(`косвенно кардио ${formatDurationMinutes(row.indirectDurationSec)}`);
+  }
+  if (lines.length === 0 && row.directSets > 0) {
+    lines.push(row.key === "cardio" ? "без времени" : "без отягощения");
+  }
+  if (lines.length === 0) lines.push("на этой неделе тихо");
+  return (
+    <p className="gym-recovery__value">
+      за неделю: {lines.join(" · ")}
+    </p>
+  );
 }
 
 export function MuscleRecoveryCard({
@@ -46,10 +64,11 @@ export function MuscleRecoveryCard({
     <div className="gym-recovery">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-          Мышцы на этой неделе
+          Мышцы · объём {formatDateShort(map.weekStart)}–{formatDateShort(map.weekEnd)}
         </p>
         <p className="mt-1 text-[11px] leading-snug text-[var(--muted)]">
-          По справочнику: прямая нагрузка и доля вспомогательных. Ориентир по давности, не совет врача.
+          Килограммы — силовая за эту неделю, минуты — кардио. Дата ниже — последняя прямая
+          тренировка группы. Ориентир, не совет врача.
         </p>
       </div>
       {STATUS_ORDER.map((status) => {
@@ -61,11 +80,19 @@ export function MuscleRecoveryCard({
             <ul className="gym-recovery__list">
               {rows.map((row) => {
                 const ago = agoLabel(row.hoursSinceStrong);
+                const when = row.lastDirectDate ? formatDateShort(row.lastDirectDate) : null;
                 return (
                   <li key={row.key} className="gym-recovery__row">
                     <span className="gym-recovery__name">{row.label}</span>
-                    <span className="gym-recovery__value">{weekValue(row)}</span>
-                    {ago ? <span className="gym-recovery__ago">{ago}</span> : null}
+                    <WeekLines row={row} />
+                    {ago ? (
+                      <p className="gym-recovery__ago">
+                        последняя прямая: {ago}
+                        {when ? ` · ${when}` : ""}
+                      </p>
+                    ) : (
+                      <p className="gym-recovery__ago">прямой тренировки ещё не было</p>
+                    )}
                   </li>
                 );
               })}

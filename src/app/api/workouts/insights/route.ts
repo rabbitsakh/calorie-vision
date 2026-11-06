@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
         date: row.date,
         endedAt: row.endedAt,
         startedAt: row.startedAt,
+        sessionGroups: row.muscles.map((muscle) => muscle.groupKey),
         exercises: row.exercises.map((exercise) => ({
           catalogId: exercise.catalogId,
           muscleGroup: exercise.muscleGroup,
