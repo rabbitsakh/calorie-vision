@@ -60,6 +60,23 @@ test("mealsPayloadFromActions берёт граммы из имени и про�
   assert.equal(meals[1]?.dishName, "Молоко (250 мл)");
 });
 
+test("mealsPayloadFromActions сохраняет настоящий ноль и пропускает неизвестный состав", () => {
+  const meals = mealsPayloadFromActions(
+    {
+      meals: [
+        { name: "Кола без сахара", kcal: 0, protein: 0, fat: 0, carbs: 0 },
+        { name: "Кварцевый мусс", kcal: 0, protein: 0, fat: 0, carbs: 0, nutritionBasis: "unknown" },
+      ],
+    },
+    "2026-11-06",
+  );
+  assert.equal(meals.length, 1);
+  assert.equal(meals[0]?.calories, 0);
+  assert.equal(meals[0]?.protein, 0);
+  assert.equal(meals[0]?.fat, 0);
+  assert.equal(meals[0]?.carbs, 0);
+});
+
 test("exercisesFromWorkoutDay never emits упражнение N", () => {
   const exs = exercisesFromWorkoutDay({ focus: "Грудь" });
   assert.ok(exs.length >= 3);

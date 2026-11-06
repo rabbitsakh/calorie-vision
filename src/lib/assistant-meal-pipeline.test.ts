@@ -325,8 +325,11 @@ test("структурное извлечение важнее regex и не п�
   const chicken = out.card.find((meal) => /куриц/i.test(meal.name));
   assert.equal(buckwheat?.grams, 180);
   assert.equal(buckwheat?.kcal, 210);
+  assert.equal(buckwheat?.nutritionBasis, undefined);
   assert.equal(buckwheat?.mealSlot, "LUNCH");
   assert.equal(chicken?.grams, undefined);
+  assert.equal(chicken?.carbs, 0);
+  assert.equal(chicken?.kcal, 250);
   assert.equal(out.payload.find((row) => /куриц/i.test(row.dishName))?.portionGrams, undefined);
   assert.equal(out.payload.find((row) => /греч/i.test(row.dishName))?.portionGrams, 180);
 });
@@ -401,6 +404,11 @@ test("выпил 70г протеина на перекус в 10:30 — карт
   assert.equal(out.card.length, 1);
   assert.match(out.card[0]!.name, /протеин/i);
   assert.equal(gramsOf(out.card[0]!.name), 70);
+  assert.equal(out.card[0]!.kcal, 259);
+  assert.equal(out.card[0]!.protein, 59.5);
+  assert.equal(out.card[0]!.fat, 0.7);
+  assert.equal(out.card[0]!.carbs, 2.1);
+  assert.equal(out.card[0]!.nutritionBasis, "estimate");
   assert.equal(out.actions?.meals?.[0]?.note, "перекус");
   assert.equal(out.actions?.meals?.[0]?.time, "10:30");
   assert.doesNotMatch(out.reply, /кидаю в план/i);
@@ -479,4 +487,94 @@ test("перенеси перекус и исправь вес остаются 
   assert.equal(portion.card.length, 0);
   assert.equal(portion.actions?.meals, undefined);
   assert.equal(portion.actions?.patchMeals?.[0]?.portionGrams, 50);
+});
+
+test("нули КБЖУ протеина изолята становятся оценкой на 70 г, а не порцией 100 г", async () => {
+  const user = "я выпил 70г протеина на перекус в 10:30";
+  const raw = [
+    "Вот твоя запись:",
+    "- Протеин изолят (70 г)",
+    "",
+    "Нажмите подтвердить, чтобы сохранить изменения.",
+  ].join("\n");
+  const out = await runAssistantMealFixture({
+    rawReply: raw,
+    userMessage: user,
+    extractMeals: async () => ({
+      meals: [
+        {
+          name: "Протеин изолят",
+          grams: 70,
+          unit: "г",
+          kcal: 0,
+          protein: 0,
+          fat: 0,
+          carbs: 0,
+          mealSlot: "SNACK",
+        },
+      ],
+    }),
+  });
+  assert.equal(out.parse.structuredExtractUsed, true);
+  assert.equal(out.card.length, 1);
+  assert.equal(out.card[0]!.grams, 70);
+  assert.equal(gramsOf(out.card[0]!.name), 70);
+  assert.equal(out.card[0]!.kcal, 259);
+  assert.equal(out.card[0]!.protein, 59.5);
+  assert.equal(out.card[0]!.fat, 0.7);
+  assert.equal(out.card[0]!.carbs, 2.1);
+  assert.equal(out.card[0]!.nutritionBasis, "estimate");
+  assert.equal(out.card[0]!.per100?.calories, 370);
+  assert.equal(out.actions?.patchMeals, undefined);
+  assert.equal(out.actions?.meals?.[0]?.note, "перекус");
+  assert.equal(out.actions?.meals?.[0]?.time, "10:30");
+});
+
+test("сывороточный протеин без чисел в тексте тоже берётся из справочника", async () => {
+  const out = await runAssistantMealFixture({
+    rawReply: "Запиши: сывороточный протеин 30 г.",
+    userMessage: "выпил 30 г сывороточного протеина",
+    extractMeals: async () => ({
+      meals: [
+        {
+          name: "Сывороточный протеин",
+          grams: 30,
+          unit: "г",
+          kcal: 0,
+          protein: 0,
+          fat: 0,
+          carbs: 0,
+          mealSlot: "SNACK",
+        },
+      ],
+    }),
+  });
+  assert.equal(out.card[0]!.grams, 30);
+  assert.equal(out.card[0]!.kcal, 111);
+  assert.equal(out.card[0]!.protein, 25.5);
+  assert.equal(out.card[0]!.nutritionBasis, "estimate");
+});
+
+test("правка веса протеина не превращается в новую оценку КБЖУ", async () => {
+  const out = await runAssistantMealFixture({
+    rawReply: "Поправлю порцию.",
+    userMessage: "исправь вес протеина на 50 г",
+    extractMeals: async () => ({
+      meals: [
+        {
+          name: "Протеин изолят",
+          grams: 50,
+          unit: "г",
+          kcal: 0,
+          protein: 0,
+          fat: 0,
+          carbs: 0,
+          mealSlot: "SNACK",
+        },
+      ],
+    }),
+  });
+  assert.equal(out.card.length, 0);
+  assert.equal(out.actions?.meals, undefined);
+  assert.equal(out.actions?.patchMeals?.[0]?.portionGrams, 50);
 });

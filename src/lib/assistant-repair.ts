@@ -30,6 +30,7 @@ import {
   parseMealTypeKey,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
+import { referencePer100 } from "@/lib/assistant-meal-nutrition";
 import { dishNameScore, splitQuickPortion } from "@/lib/quick-log";
 
 /** True when a patch would change something (not a bare match-only noop). */
@@ -795,6 +796,7 @@ function mealLineFromFragment(
   let protein: number | undefined;
   let fat: number | undefined;
   let carbs: number | undefined;
+  let pricedFromTable = false;
 
   const macros = extractTrailingMacros(rest);
   if (macros) {
@@ -837,6 +839,7 @@ function mealLineFromFragment(
     lookupRuNutritionTable(sanitizeAssistantMealName(rest));
 
   if (kcal == null && pack) {
+    pricedFromTable = true;
     const baseGrams = pack.portionGrams > 0 ? pack.portionGrams : 100;
     let scale: number;
     if (portion != null && portion > 0) {
@@ -903,6 +906,9 @@ function mealLineFromFragment(
     protein,
     fat,
     carbs,
+    ...(pricedFromTable && pack
+      ? { nutritionBasis: "estimate" as const, per100: referencePer100(pack) }
+      : {}),
     ...(lineNote ? { note: lineNote } : {}),
   };
 }
@@ -1390,6 +1396,8 @@ export function heuristicRepairWriteActions(userMessage: string): AssistantActio
         protein: num(pack.protein),
         fat: num(pack.fat),
         carbs: num(pack.carbs),
+        nutritionBasis: "estimate",
+        per100: referencePer100(pack),
         note,
       },
     ],

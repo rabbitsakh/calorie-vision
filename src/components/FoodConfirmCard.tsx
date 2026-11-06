@@ -2,7 +2,9 @@
 
 import { useMemo, useState, type ReactElement } from "react";
 import {
+  FOOD_CONFIRM_PORTION_SKIM,
   foodConfirmEnergyWarning,
+  foodConfirmNutritionNote,
   foodConfirmToSaveInputs,
   prepareFoodConfirmSave,
   withFoodConfirmGrams,
@@ -142,8 +144,8 @@ function SimpleFoodConfirm({
         <img src={imageUrl} alt="" className="confirm-family-hero" />
       ) : null}
       <p className="confirm-family-skim">
-        {source === "barcode" ? "Штрихкод" : source === "photo" ? "Фото" : "Чат"} · {date} ·
-        проверь порцию. 100 г сами не подставим.
+        {source === "barcode" ? "Штрихкод" : source === "photo" ? "Фото" : "Чат"} · {date} ·{" "}
+        {FOOD_CONFIRM_PORTION_SKIM}
       </p>
       <div className="mb-2 flex flex-wrap gap-1" role="radiogroup" aria-label="Приём пищи">
         {SLOTS.map((slot) => (
@@ -169,6 +171,7 @@ function SimpleFoodConfirm({
       <div className="space-y-2.5">
         {rows.map((dish, index) => {
           const energy = foodConfirmEnergyWarning(dish);
+          const nutritionNote = foodConfirmNutritionNote(dish);
           return (
             <div key={`${dish.name}-${index}`} className="confirm-family-dish">
               <input
@@ -245,6 +248,8 @@ function SimpleFoodConfirm({
                           ...dish,
                           [key]: value != null && Number.isFinite(value) ? value : null,
                           unparsed: false,
+                          nutritionBasis: undefined,
+                          per100: null,
                         });
                       }}
                     />
@@ -257,7 +262,16 @@ function SimpleFoodConfirm({
                   {dish.per100 ? ` · ${Math.round(dish.per100.calories)} ккал на 100 ${dish.unit === "мл" ? "мл" : "г"}` : ""}
                 </p>
               ) : null}
-              {dish.unparsed && dish.kcal == null ? (
+              {nutritionNote ? (
+                <p
+                  className={`mt-1 text-[10px] font-semibold ${
+                    dish.nutritionBasis === "unknown" ? "text-amber-800" : "text-[var(--muted)]"
+                  }`}
+                >
+                  {nutritionNote}
+                </p>
+              ) : null}
+              {dish.unparsed && dish.kcal == null && dish.nutritionBasis !== "unknown" ? (
                 <p className="mt-1 text-[10px] font-semibold text-[var(--muted)]">не разобрано</p>
               ) : null}
               {energy ? <p className="mt-1 text-[10px] font-semibold text-amber-800">{energy}</p> : null}

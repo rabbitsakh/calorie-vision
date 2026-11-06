@@ -143,6 +143,7 @@ export function mealsPayloadFromActions(
   const meals = actions.meals ?? [];
   return meals
     .filter((m) => m.name.trim())
+    .filter((m) => m.nutritionBasis !== "unknown")
     .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
     .slice(0, 12)
     .map((m) => {
@@ -170,7 +171,7 @@ export function mealsPayloadFromActions(
         dishName,
         calories:
           typeof m.kcal === "number" && Number.isFinite(m.kcal)
-            ? Math.max(1, Math.round(m.kcal))
+            ? Math.max(0, Math.round(m.kcal))
             : 200,
         ...(grams != null && grams > 0 && unit !== "шт" ? { portionGrams: grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)

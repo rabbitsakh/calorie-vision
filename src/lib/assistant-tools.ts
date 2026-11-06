@@ -157,6 +157,7 @@ export async function toolSaveMeals(opts: {
   const created: Array<{ id: string; dishName: string; calories: number }> = [];
   const meals = (opts.actions.meals ?? [])
     .filter((m) => m.name.trim())
+    .filter((m) => m.nutritionBasis !== "unknown")
     .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
     .slice(0, 12);
   for (let i = 0; i < entries.length; i++) {
