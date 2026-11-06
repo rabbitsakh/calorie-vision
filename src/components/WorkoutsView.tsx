@@ -41,6 +41,8 @@ import { WorkoutLibraryPanel } from "@/components/workouts/WorkoutLibraryPanel";
 import { WorkoutRoutineEditor } from "@/components/workouts/WorkoutRoutineEditor";
 import { WorkoutCreateSessionPanel } from "@/components/workouts/WorkoutCreateSessionPanel";
 import { WorkoutTemplatesPanel } from "@/components/workouts/WorkoutTemplatesPanel";
+import { WorkoutProgramsPanel } from "@/components/workouts/WorkoutProgramsPanel";
+import type { RoutineDraft } from "@/lib/workouts/programs";
 import { WorkoutHistoryHub } from "@/components/workouts/WorkoutHistoryHub";
 import { WorkoutActiveSession } from "@/components/workouts/WorkoutActiveSession";
 import { formatWorkoutLoad } from "@/lib/workouts/format";
@@ -2611,6 +2613,41 @@ export function WorkoutsView({
       {hubTab === "library" ? <WorkoutLibraryPanel /> : null}
 
       {hubTab === "templates" ? (
+        <>
+        <WorkoutProgramsPanel
+          existingNames={routines.map((routine) => routine.name)}
+          busy={busy}
+          onStart={(id) => void startRoutine(id)}
+          onSaveDrafts={async (drafts: RoutineDraft[]) => {
+            let saved = 0;
+            let skipped = 0;
+            let firstId: string | null = null;
+            for (const draft of drafts) {
+              const existing = routines.find((routine) => routine.name === draft.name);
+              if (existing) {
+                skipped += 1;
+                firstId ??= existing.id;
+                continue;
+              }
+              const data = await readJson<{ routine: { id: string } }>(
+                await fetch(withBasePath("/api/workouts/routines"), {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: draft.name,
+                    note: draft.note,
+                    muscleGroups: draft.muscleGroups,
+                    exercises: draft.exercises,
+                  }),
+                }),
+              );
+              saved += 1;
+              firstId ??= data.routine.id;
+            }
+            await loadRoutines();
+            return { saved, skipped, firstId };
+          }}
+        />
         <WorkoutTemplatesPanel
           routines={routines}
           busy={busy}
@@ -2619,6 +2656,7 @@ export function WorkoutsView({
           onEdit={(id) => setEditingRoutineId(id)}
           onDelete={(id) => void deleteRoutine(id)}
         />
+        </>
       ) : null}
 
       {hubTab === "history" ? (
