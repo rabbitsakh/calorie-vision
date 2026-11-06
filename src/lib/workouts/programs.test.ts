@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { catalogById } from "./exercise-catalog.ts";
-import { GYM_PROGRAMS, planProgramSave, programPreviewLines, routineDraftFromDay } from "./programs.ts";
+import { resolveLoggedExercise } from "./catalog-link.ts";
+import {
+  GYM_PROGRAMS,
+  planProgramSave,
+  programPreviewLines,
+  routineDraftFromDay,
+  uniqueDraftName,
+} from "./programs.ts";
 
 test("готовые программы ссылаются на реальные упражнения справочника", () => {
   assert.equal(GYM_PROGRAMS.length, 3);
@@ -36,4 +43,33 @@ test("повторное сохранение программы не созда
   const partial = planProgramSave([names[0]!], "five");
   assert.equal(partial!.filter((step) => step.skip).length, 1);
   assert.equal(planProgramSave([], "нет"), null);
+});
+
+test("канонические имена программ уверенно клеятся к тому же catalogId", () => {
+  for (const program of GYM_PROGRAMS) {
+    for (const day of program.days) {
+      for (const item of day.slots) {
+        const row = catalogById(item.catalogId);
+        assert.ok(row);
+        const resolved = resolveLoggedExercise({
+          name: row!.name,
+          kind: row!.kind,
+          muscleGroup: row!.primary[0] ?? null,
+        });
+        assert.equal(resolved.catalogId, item.catalogId, row!.name);
+      }
+    }
+  }
+});
+
+test("черновик ИИ получает новое имя, если такое уже есть", () => {
+  assert.equal(uniqueDraftName("Тренировка на сегодня", []), "Тренировка на сегодня");
+  assert.equal(
+    uniqueDraftName("Тренировка на сегодня", ["Тренировка на сегодня"]),
+    "Тренировка на сегодня · 2",
+  );
+  assert.equal(
+    uniqueDraftName("Тренировка на сегодня", ["Тренировка на сегодня", "Тренировка на сегодня · 2"]),
+    "Тренировка на сегодня · 3",
+  );
 });

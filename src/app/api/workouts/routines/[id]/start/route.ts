@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { resolveLoggedExercise } from "@/lib/workouts/catalog-link";
+import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { DEFAULT_PROGRESS_RATE, parseProgressRate } from "@/lib/workouts/load";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
 import {
@@ -73,13 +75,23 @@ export async function POST(request: NextRequest, context: Ctx) {
         (a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id),
       );
 
+      const resolvedExercises = exercises.map((ex) =>
+        resolveLoggedExercise({
+          name: ex.name,
+          kind: parseExerciseKind(ex.kind, "strength"),
+          muscleGroup: ex.muscleGroup,
+        }),
+      );
+
       for (const [i, ex] of exercises.entries()) {
+        const resolved = resolvedExercises[i]!;
         const createdEx = await tx.workoutExercise.create({
           data: {
             sessionId: row.id,
-            name: ex.name,
-            kind: ex.kind ?? "strength",
-            muscleGroup: ex.muscleGroup,
+            name: resolved.name,
+            kind: resolved.kind,
+            muscleGroup: resolved.muscleGroup,
+            catalogId: resolved.catalogId,
             sortOrder: i,
             ...(ex.supersetGroup ? { supersetGroup: ex.supersetGroup } : {}),
             blockMode: ex.blockMode ?? "normal",
@@ -109,10 +121,11 @@ export async function POST(request: NextRequest, context: Ctx) {
       await touchExerciseLibraryMany(
         tx,
         session.user.id,
-        exercises.map((ex) => ({
+        resolvedExercises.map((ex) => ({
           name: ex.name,
           kind: ex.kind,
           muscleGroup: ex.muscleGroup,
+          catalogId: ex.catalogId,
         })),
       );
 

@@ -21,33 +21,37 @@ export type CoachAvoid = "knee" | "back" | "shoulder" | "wrist";
 export type CoachPoolItem = {
   catalogId: string;
   avoid: readonly CoachAvoid[];
+  /** main — база под 5×5; assist — изоляция, ей не нужен тот же объём. */
+  load: "main" | "assist";
 };
 
 /** Короткий пул, который и промпт, и проверка считают допустимым. */
 export const COACH_POOL: readonly CoachPoolItem[] = [
-  { catalogId: "squat", avoid: ["knee", "back"] },
-  { catalogId: "leg-press", avoid: ["knee"] },
-  { catalogId: "leg-curl", avoid: [] },
-  { catalogId: "hip-thrust", avoid: [] },
-  { catalogId: "rdl", avoid: ["back"] },
-  { catalogId: "lunge-db", avoid: ["knee"] },
-  { catalogId: "calf-stand", avoid: [] },
-  { catalogId: "bench-press", avoid: ["shoulder", "wrist"] },
-  { catalogId: "db-bench", avoid: ["shoulder", "wrist"] },
-  { catalogId: "machine-press", avoid: ["shoulder"] },
-  { catalogId: "pushup", avoid: ["shoulder", "wrist"] },
-  { catalogId: "ohp", avoid: ["shoulder"] },
-  { catalogId: "db-ohp", avoid: ["shoulder"] },
-  { catalogId: "lateral", avoid: ["shoulder"] },
-  { catalogId: "bb-row", avoid: ["back"] },
-  { catalogId: "db-row", avoid: ["back"] },
-  { catalogId: "lat-pulldown", avoid: [] },
-  { catalogId: "seated-row", avoid: [] },
-  { catalogId: "face-pull", avoid: ["shoulder"] },
-  { catalogId: "bb-curl", avoid: ["wrist"] },
-  { catalogId: "pushdown", avoid: [] },
-  { catalogId: "crunch", avoid: [] },
+  { catalogId: "squat", avoid: ["knee", "back"], load: "main" },
+  { catalogId: "leg-press", avoid: ["knee"], load: "main" },
+  { catalogId: "leg-curl", avoid: [], load: "assist" },
+  { catalogId: "hip-thrust", avoid: [], load: "main" },
+  { catalogId: "rdl", avoid: ["back"], load: "main" },
+  { catalogId: "lunge-db", avoid: ["knee"], load: "assist" },
+  { catalogId: "calf-stand", avoid: [], load: "assist" },
+  { catalogId: "bench-press", avoid: ["shoulder", "wrist"], load: "main" },
+  { catalogId: "db-bench", avoid: ["shoulder", "wrist"], load: "main" },
+  { catalogId: "machine-press", avoid: ["shoulder"], load: "main" },
+  { catalogId: "pushup", avoid: ["shoulder", "wrist"], load: "assist" },
+  { catalogId: "ohp", avoid: ["shoulder"], load: "main" },
+  { catalogId: "db-ohp", avoid: ["shoulder"], load: "main" },
+  { catalogId: "lateral", avoid: ["shoulder"], load: "assist" },
+  { catalogId: "bb-row", avoid: ["back"], load: "main" },
+  { catalogId: "db-row", avoid: ["back"], load: "main" },
+  { catalogId: "lat-pulldown", avoid: [], load: "main" },
+  { catalogId: "seated-row", avoid: [], load: "main" },
+  { catalogId: "face-pull", avoid: ["shoulder"], load: "assist" },
+  { catalogId: "bb-curl", avoid: ["wrist"], load: "assist" },
+  { catalogId: "pushdown", avoid: [], load: "assist" },
+  { catalogId: "crunch", avoid: [], load: "assist" },
 ];
+
+const COACH_AI_TIMEOUT_MS = 20_000;
 
 export type CoachInput = {
   goal: CoachGoal;
@@ -111,8 +115,10 @@ export function avoidTagsFromText(text: string): Set<CoachAvoid> {
   return tags;
 }
 
-function setsFor(input: CoachInput): { sets: number; reps: number } {
-  if (input.goal === "strength" && input.experience !== "new") return { sets: 5, reps: 5 };
+function setsFor(input: CoachInput, load: CoachPoolItem["load"]): { sets: number; reps: number } {
+  if (input.goal === "strength" && input.experience !== "new" && load === "main") {
+    return { sets: 5, reps: 5 };
+  }
   if (input.experience === "new") return { sets: 2, reps: 10 };
   if (input.goal === "muscle") return { sets: 3, reps: 10 };
   return { sets: 3, reps: 8 };
@@ -131,7 +137,7 @@ function allowedPool(input: CoachInput): CoachPoolItem[] {
     if (item.avoid.some((tag) => avoid.has(tag))) return false;
     const row = catalogById(item.catalogId);
     if (!row) return false;
-    if (equipment.size === 0) return true;
+    if (equipment.size === 0) return row.equipment === "bodyweight";
     return equipment.has(row.equipment) || row.equipment === "bodyweight";
   });
 }
@@ -147,7 +153,6 @@ export function fallbackCoachPlan(
   freshness: readonly MuscleFreshness[],
   food: FoodContext | null,
 ): CoachPreview {
-  const scheme = setsFor(input);
   const want = exerciseCount(input.minutes);
   const score = new Map(freshness.map((row) => [row.key, statusScore(row.status)]));
   const pool = allowedPool(input).sort((a, b) => {
@@ -170,13 +175,12 @@ export function fallbackCoachPlan(
     if (picked.some((have) => have.catalogId === item.catalogId)) continue;
     picked.push(item);
   }
-  return previewFromSlots(input, picked.slice(0, want), scheme, "fallback", SAFE_NOTE, food);
+  return previewFromSlots(input, picked.slice(0, want), "fallback", SAFE_NOTE, food);
 }
 
 function previewFromSlots(
   input: CoachInput,
   items: readonly CoachPoolItem[],
-  scheme: { sets: number; reps: number },
   source: CoachPreview["source"],
   note: string,
   food: FoodContext | null,
@@ -188,6 +192,7 @@ function previewFromSlots(
     if (!row) continue;
     const muscle = row.primary[0] ?? null;
     if (muscle) muscles.add(muscle);
+    const scheme = setsFor(input, item.load);
     exercises.push({
       catalogId: row.id,
       name: row.name,
@@ -333,11 +338,18 @@ export async function buildCoachPreview(input: {
   freshness: readonly MuscleFreshness[];
   food: FoodContext | null;
   complete: ((prompt: string) => Promise<string>) | null;
+  timeoutMs?: number;
 }): Promise<CoachPreview> {
   const fallback = () => fallbackCoachPlan(input.request, input.freshness, input.food);
   if (!input.complete) return fallback();
+  const timeoutMs = input.timeoutMs ?? COACH_AI_TIMEOUT_MS;
   try {
-    const text = await input.complete(coachPrompt(input.request, input.freshness));
+    const text = await Promise.race([
+      input.complete(coachPrompt(input.request, input.freshness)),
+      new Promise<string>((_, reject) => {
+        setTimeout(() => reject(new Error("timeout")), timeoutMs);
+      }),
+    ]);
     return validateCoachJson(text, input.request, input.food) ?? fallback();
   } catch {
     return fallback();
