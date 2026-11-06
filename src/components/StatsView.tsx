@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
+import { StatsBarChart } from "@/components/StatsBarChart";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { formatDateShort, getMonthGrid, parseDateInput, shiftDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -9,7 +10,7 @@ import { withBasePath } from "@/lib/paths";
 import { assistantWeekLink } from "@/lib/push-deeplink";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { pluralDays } from "@/lib/russian-text";
-import { axisLabelIndices, sparseValueLabelIndices } from "@/lib/stats-chart-layout";
+import { axisLabelIndices, chartRange, sparseValueLabelIndices, yAxisTicks } from "@/lib/stats-chart-layout";
 import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
 import {
   buildPrimaryStatsInsight,
@@ -68,20 +69,6 @@ type StatsViewProps = {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function chartRange(values: number[], paddingRatio = 0.1): { min: number; max: number } {
-  const filtered = values.filter((v) => v > 0);
-  if (filtered.length === 0) return { min: 0, max: 1 };
-  const rawMin = Math.min(...filtered);
-  const rawMax = Math.max(...filtered);
-  if (rawMin === rawMax) {
-    const pad = Math.max(rawMin * 0.05, 1);
-    return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
-  }
-  const span = rawMax - rawMin;
-  const pad = span * paddingRatio;
-  return { min: Math.max(0, rawMin - pad), max: rawMax + pad };
-}
-
 /** Shared chrome for stats chart cards: title + optional right meta + optional under-line. */
 function StatsSectionHeader({
   title,
@@ -116,178 +103,6 @@ function formatAxisDate(dateKey: string, compact: boolean): string {
 function formatChartValue(value: number, key: "calories" | "weightKg"): string {
   if (key === "weightKg") return Number.isInteger(value) ? String(value) : value.toFixed(1);
   return String(Math.round(value));
-}
-
-function yAxisTicks(min: number, max: number, count = 4): number[] {
-  if (count < 2) return [max, min];
-  const span = max - min;
-  const ticks: number[] = [];
-  for (let i = 0; i < count; i++) ticks.push(min + (span * i) / (count - 1));
-  return ticks.reverse();
-}
-
-// ── BarChart ──────────────────────────────────────────────────────────────────
-
-function BarChart({
-  days,
-  valueKey,
-  unit,
-  period,
-  targetValue,
-}: {
-  days: StatsDay[];
-  valueKey: "calories" | "weightKg";
-  unit: string;
-  period: "week" | "month" | "quarter";
-  targetValue?: number | null;
-}) {
-  const values = days.map((d) => (valueKey === "weightKg" ? (d.weightKg ?? 0) : d.calories));
-  const presentValues = values.filter((v) => v > 0);
-  // Include target in range so the dashed line is always visible
-  const rangeValues = targetValue ? [...presentValues, targetValue] : presentValues;
-  const { min, max } = chartRange(rangeValues);
-  const span = Math.max(max - min, 1);
-  const ticks = yAxisTicks(min, max);
-  const plotHeight = 144;
-  const showValueLabels = period === "week";
-  const labelAreaHeight = showValueLabels ? 36 : 8;
-  const labelGap = 4;
-  const totalHeight = plotHeight + labelAreaHeight;
-
-  const valueLabelClass = "text-xs";
-
-  function barHeightPx(v: number | null | undefined): number {
-    if (!v || v <= 0) return 0;
-    return Math.max(Math.round(((v - min) / span) * plotHeight), 6);
-  }
-
-  // Y position (px from top) for a given value within the bar zone
-  function yPxFromTop(v: number): number {
-    return labelAreaHeight + plotHeight - barHeightPx(v);
-  }
-
-  const targetYPx = targetValue && targetValue > 0 ? yPxFromTop(targetValue) : null;
-  const xLabels = axisLabelIndices(days.length, period);
-  const compactAxis = days.length > 5;
-  // Value callouts only on week — denser periods clip into each other on mobile.
-  const valueLabelIdx = showValueLabels
-    ? sparseValueLabelIndices(
-        days
-          .map((d, index) => ({
-            index,
-            value: valueKey === "weightKg" ? (d.weightKg ?? 0) : d.calories,
-          }))
-          .filter((p) => p.value > 0),
-        5,
-      )
-    : new Set<number>();
-
-  return (
-    <div className="flex gap-2 sm:gap-3">
-      {/* Y-axis labels */}
-      <div
-        className="relative shrink-0 text-right text-xs font-medium text-[var(--muted)]"
-        style={{ height: totalHeight, width: "2.75rem" }}
-        aria-hidden="true"
-      >
-        {ticks.map((tick, i) => (
-          <span
-            key={`${tick}-${i}`}
-            className="absolute right-0 -translate-y-1/2 leading-none"
-            style={{ top: `${labelAreaHeight + (i / (ticks.length - 1)) * plotHeight}px` }}
-          >
-            {formatChartValue(tick, valueKey)}
-          </span>
-        ))}
-      </div>
-
-      {/* Plot area */}
-      <div className="min-w-0 flex-1 overflow-hidden border-l border-[var(--border-quiet)] pl-2 sm:pl-3">
-        <div className="relative" style={{ height: totalHeight }}>
-          {/* Dashed grid lines in bar zone */}
-          {ticks.map((tick, i) => (
-            <div
-              key={`grid-${i}`}
-              className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-[var(--border-hairline)]"
-              style={{ top: `${labelAreaHeight + (i / (ticks.length - 1)) * plotHeight}px` }}
-            />
-          ))}
-
-          {/* Target line — amber, full width, inside bar zone */}
-          {targetYPx !== null ? (
-            <div
-              className="pointer-events-none absolute left-0 right-0 z-10 border-t-2 border-dashed border-amber-400"
-              style={{ top: `${targetYPx}px` }}
-            />
-          ) : null}
-
-          {/* Bars + labels */}
-          <div className="absolute inset-0 flex gap-px sm:gap-0.5">
-            {days.map((day, index) => {
-              const value = valueKey === "weightKg" ? day.weightKg : day[valueKey];
-              const heightPx = barHeightPx(value);
-              const barColor = valueKey === "calories"
-                ? targetValue && value && value > targetValue
-                  ? "bg-rose-500"
-                  : targetValue && value && value >= targetValue * 0.9
-                    ? "bg-[var(--accent)]"
-                    : "bg-[var(--accent)]"
-                : "bg-[var(--accent-water)]";
-              const labelValue = value && value > 0 && valueLabelIdx.has(index);
-
-              return (
-                <div key={day.date} className="relative min-w-0 flex-1 overflow-hidden">
-                  {value && value > 0 ? (
-                    <>
-                      <div
-                        className={`absolute bottom-0 left-1/2 w-[70%] max-w-8 -translate-x-1/2 rounded-t-md ${barColor}`}
-                        style={{ height: `${heightPx}px` }}
-                        title={`${formatDateShort(day.date)}: ${formatChartValue(value, valueKey)} ${unit}`}
-                      />
-                      {labelValue ? (
-                        <div
-                          className="pointer-events-none absolute inset-x-0 flex justify-center overflow-hidden"
-                          style={{ bottom: `${heightPx + labelGap}px` }}
-                        >
-                          <span
-                            className={`font-semibold leading-none text-[var(--muted-strong)] ${valueLabelClass}`}
-                            style={{ writingMode: "vertical-lr", transform: "rotate(180deg)" }}
-                          >
-                            {formatChartValue(value, valueKey)}
-                          </span>
-                        </div>
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="absolute bottom-0 left-1/2 h-0.5 w-[70%] max-w-8 -translate-x-1/2 rounded bg-[var(--accent-soft)]" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* X-axis date labels — fixed h-4 slot so labeled columns share one baseline */}
-        <div className="mt-1 flex gap-px overflow-hidden sm:gap-0.5" aria-hidden="true">
-          {days.map((day, index) => {
-            const show = xLabels.has(index);
-            return (
-              <div
-                key={`${day.date}-lbl`}
-                className="flex h-4 min-w-0 flex-1 shrink-0 items-center justify-center overflow-hidden"
-              >
-                {show ? (
-                  <span className="block w-full truncate text-center text-[10px] font-medium leading-none text-[var(--muted)] sm:text-xs">
-                    {formatAxisDate(day.date, compactAxis && index !== 0 && index !== days.length - 1)}
-                  </span>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
 }
 
 // ── WeightLineChart ───────────────────────────────────────────────────────────
@@ -960,7 +775,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               }
             />
             <div className="mt-4">
-              <BarChart days={data.days} valueKey="calories" unit="ккал" period={period} targetValue={data.calorieTarget} />
+              <StatsBarChart days={data.days} period={period} targetValue={data.calorieTarget} />
             </div>
           </section>
 
