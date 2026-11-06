@@ -22,6 +22,10 @@ function agoLabel(hours: number | null): string | null {
   return `${days} дн. назад`;
 }
 
+function inShownWeek(date: string | null, map: MuscleRecoveryMap): boolean {
+  return date != null && date >= map.weekStart && date <= map.weekEnd;
+}
+
 function WeekLines({ row }: { row: MuscleRecoveryRow }) {
   const lines: string[] = [];
   if (row.directTonnage > 0) {
@@ -67,8 +71,9 @@ export function MuscleRecoveryCard({
           Мышцы · объём {formatDateShort(map.weekStart)}–{formatDateShort(map.weekEnd)}
         </p>
         <p className="mt-1 text-[11px] leading-snug text-[var(--muted)]">
-          Килограммы — силовая за эту неделю, минуты — кардио. Дата ниже — последняя прямая
-          тренировка группы. Ориентир, не совет врача.
+          Первая строка — только эта неделя. Вторая — день последней прямой нагрузки и её
+          объём, даже если он был раньше. Рабочие, дроп и отказ входят, разминка нет.
+          Ориентир, не совет врача.
         </p>
       </div>
       {STATUS_ORDER.map((status) => {
@@ -81,14 +86,26 @@ export function MuscleRecoveryCard({
               {rows.map((row) => {
                 const ago = agoLabel(row.hoursSinceStrong);
                 const when = row.lastDirectDate ? formatDateShort(row.lastDirectDate) : null;
+                const directThisWeek = inShownWeek(row.lastDirectDate, map);
+                const thenLoad =
+                  row.lastDirectTonnage > 0
+                    ? `${formatWorkoutLoad(row.lastDirectTonnage)} кг·повт`
+                    : row.lastDirectDurationSec > 0
+                      ? formatDurationMinutes(row.lastDirectDurationSec)
+                      : null;
                 return (
                   <li key={row.key} className="gym-recovery__row">
                     <span className="gym-recovery__name">{row.label}</span>
                     <WeekLines row={row} />
-                    {ago ? (
+                    {ago && when ? (
                       <p className="gym-recovery__ago">
-                        последняя прямая: {ago}
-                        {when ? ` · ${when}` : ""}
+                        последняя прямая: {when}
+                        {ago ? ` · ${ago}` : ""}
+                        {thenLoad
+                          ? directThisWeek
+                            ? ""
+                            : ` · в тот день ${thenLoad}, не за эту неделю`
+                          : ""}
                       </p>
                     ) : (
                       <p className="gym-recovery__ago">прямой тренировки ещё не было</p>

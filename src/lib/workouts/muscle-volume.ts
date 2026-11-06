@@ -88,6 +88,10 @@ export type MuscleRecoveryRow = {
   status: MuscleRecoveryStatus;
   /** День последней прямой нагрузки (YYYY-MM-DD) или null. */
   lastDirectDate: string | null;
+  /** Прямой объём только этого дня, не текущей недели. */
+  lastDirectTonnage: number;
+  /** Прямая длительность только этого дня, секунды. */
+  lastDirectDurationSec: number;
   /** null — прямой нагрузки ещё не было. Считается от полудня этого дня. */
   hoursSinceStrong: number | null;
 };
@@ -128,6 +132,11 @@ type Stimulus = {
   directUnits: number;
 };
 
+/**
+ * В объём входят завершённые подходы любого рабочего типа:
+ * рабочий, дроп, отказ и отдых-пауза. Разминка и неотмеченные — нет.
+ * Не сужаем до setType === "working": отказ и дроп — реальное усилие.
+ */
 function exerciseStimulus(exercise: MuscleVolumeExercise): Stimulus {
   const kind = parseExerciseKind(exercise.kind);
   const working = exercise.sets.filter((set) => setCountsTowardLoad(set));
@@ -227,6 +236,8 @@ type GroupAccum = {
   directSets: number;
   lastStrongMs: number | null;
   lastDirectDate: string | null;
+  lastDirectTonnage: number;
+  lastDirectDurationSec: number;
 };
 
 function emptyAccum(): GroupAccum {
@@ -238,6 +249,8 @@ function emptyAccum(): GroupAccum {
     directSets: 0,
     lastStrongMs: null,
     lastDirectDate: null,
+    lastDirectTonnage: 0,
+    lastDirectDurationSec: 0,
   };
 }
 
@@ -276,9 +289,18 @@ export function buildMuscleRecoveryMap(
 
       for (const target of primaries) {
         const bucket = touch(target.group);
-        if (stimulus.directUnits > 0 && (bucket.lastStrongMs == null || at >= bucket.lastStrongMs)) {
-          bucket.lastStrongMs = at;
-          bucket.lastDirectDate = session.date;
+        if (stimulus.directUnits > 0) {
+          const newer = bucket.lastDirectDate == null || session.date > bucket.lastDirectDate;
+          if (newer) {
+            bucket.lastStrongMs = at;
+            bucket.lastDirectDate = session.date;
+            bucket.lastDirectTonnage = 0;
+            bucket.lastDirectDurationSec = 0;
+          }
+          if (session.date === bucket.lastDirectDate) {
+            bucket.lastDirectTonnage += stimulus.tonnage * primaryShare;
+            bucket.lastDirectDurationSec += stimulus.durationSec * primaryShare;
+          }
         }
         if (!inWeek) continue;
         bucket.directTonnage += stimulus.tonnage * primaryShare;
@@ -323,6 +345,8 @@ export function buildMuscleRecoveryMap(
       directSets: bucket.directSets,
       status: recoveryStatusForGroup(key, bucket.lastStrongMs, nowMs),
       lastDirectDate: bucket.lastDirectDate,
+      lastDirectTonnage: roundLoad(bucket.lastDirectTonnage),
+      lastDirectDurationSec: Math.round(bucket.lastDirectDurationSec),
       hoursSinceStrong: hours != null && hours < 0 ? 0 : hours,
     });
   }
