@@ -314,9 +314,80 @@ export type SessionForPrCount = {
   exercises: Array<{
     name: string;
     kind?: string | null;
+    catalogId?: string | null;
     sets: readonly PrSet[];
   }>;
 };
+
+export type SessionPrHit = {
+  name: string;
+  /** Короткая строка из formatPrSummary, например «PR 90 кг × 5». */
+  label: string;
+};
+
+/** Одна линия прогресса: catalogId, иначе нормализованное название. */
+export function exerciseProgressKey(exercise: {
+  name: string;
+  catalogId?: string | null;
+}): string {
+  const catalogId = exercise.catalogId?.trim();
+  if (catalogId) return `cat:${catalogId}`;
+  const name = normalizeExerciseName(exercise.name);
+  return name ? `name:${name}` : "";
+}
+
+/** «Жим штанги лёжа · 90 кг × 5 · ~1ПМ 105 кг» для ленты и итога. */
+export function formatSessionPrLabel(hit: SessionPrHit): string {
+  const rest = hit.label.replace(/^PR\s+/, "");
+  return `${hit.name} · ${rest}`;
+}
+
+function chronologicalSessions(sessions: readonly SessionForPrCount[]): SessionForPrCount[] {
+  return [...sessions].sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date);
+    const ta = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+    const tb = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+    if (ta !== tb) return ta - tb;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+/**
+ * Рекорды каждой тренировки. Дубли с одним catalogId считаются одним движением.
+ */
+export function prHitsBySessionId(
+  sessions: readonly SessionForPrCount[],
+): Map<string, SessionPrHit[]> {
+  const bestByExercise = new Map<string, ExercisePrs>();
+  const hits = new Map<string, SessionPrHit[]>();
+
+  for (const session of chronologicalSessions(sessions)) {
+    const grouped = new Map<string, { name: string; kind?: string | null; sets: PrSet[] }>();
+    for (const exercise of session.exercises) {
+      const key = exerciseProgressKey(exercise);
+      if (!key) continue;
+      const prev = grouped.get(key);
+      if (!prev) {
+        grouped.set(key, { name: exercise.name, kind: exercise.kind, sets: [...exercise.sets] });
+      } else {
+        prev.sets.push(...exercise.sets);
+      }
+    }
+
+    const sessionHits: SessionPrHit[] = [];
+    for (const [key, exercise] of grouped) {
+      const after = computeExercisePrs(exercise.kind, exercise.sets);
+      const before = bestByExercise.get(key) ?? null;
+      const beat = describePrBeat(before, after);
+      if (beat) sessionHits.push({ name: exercise.name, label: beat });
+      const merged = before ? mergeExercisePrs([before, after]) : after;
+      if (merged) bestByExercise.set(key, merged);
+    }
+    hits.set(session.id, sessionHits);
+  }
+
+  return hits;
+}
 
 /**
  * Walk sessions oldest→newest and count how many exercises set a new PR in each session.
@@ -325,32 +396,8 @@ export type SessionForPrCount = {
 export function countPrsBySessionId(
   sessions: readonly SessionForPrCount[],
 ): Map<string, number> {
-  const chronological = [...sessions].sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date);
-    const ta = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
-    const tb = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
-    if (ta !== tb) return ta - tb;
-    return a.id.localeCompare(b.id);
-  });
-
-  const bestByExercise = new Map<string, ExercisePrs>();
+  const hits = prHitsBySessionId(sessions);
   const counts = new Map<string, number>();
-
-  for (const session of chronological) {
-    let prCount = 0;
-    for (const ex of session.exercises) {
-      const key = normalizeExerciseName(ex.name);
-      if (!key) continue;
-      const after = computeExercisePrs(ex.kind, ex.sets);
-      const before = bestByExercise.get(key) ?? null;
-      if (describePrBeat(before, after)) {
-        prCount += 1;
-      }
-      const merged = before ? mergeExercisePrs([before, after]) : after;
-      if (merged) bestByExercise.set(key, merged);
-    }
-    counts.set(session.id, prCount);
-  }
-
+  for (const [id, list] of hits) counts.set(id, list.length);
   return counts;
 }

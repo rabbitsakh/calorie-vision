@@ -22,6 +22,8 @@ import {
   WEEKDAY_LABELS_RU,
 } from "@/lib/workouts/weekdays";
 import type { SerializedRoutine } from "@/lib/workouts/routines";
+import { MuscleRecoveryCard } from "@/components/workouts/MuscleRecoveryCard";
+import type { MuscleRecoveryMap } from "@/lib/workouts/muscle-volume";
 
 type PlanRemoveUndo = {
   routineId: string;
@@ -113,6 +115,8 @@ type Props = {
   onPlanChanged?: () => void;
   onGoTemplates: () => void;
   busy?: boolean;
+  /** Недельная карта мышц из справочника. */
+  muscleMap?: MuscleRecoveryMap | null;
 };
 
 function formatLoad(value: number): string {
@@ -188,6 +192,7 @@ export function WorkoutWeekPlan({
   onPlanChanged,
   onGoTemplates,
   busy,
+  muscleMap = null,
 }: Props) {
   const timezone = useTimezone();
   const [data, setData] = useState<PlanResponse | null>(null);
@@ -491,6 +496,8 @@ export function WorkoutWeekPlan({
         <LeverRecoveryStrip />
         <GymCollectionWear />
       </div>
+
+      {muscleMap ? <MuscleRecoveryCard map={muscleMap} /> : null}
 
       <div className="gym-today-feed">
         {active ? (

@@ -9549,6 +9549,98 @@ button.profile-settings__door:disabled {
   border-radius: var(--radius-md);
 }
 
+.gym-recovery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.gym-recovery__band {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gym-recovery__status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gym-recovery__status--loaded {
+  color: var(--accent-ink);
+}
+
+.gym-recovery__status--recovering {
+  color: #9a6700;
+}
+
+.gym-recovery__status--fresh {
+  color: var(--muted);
+}
+
+.gym-recovery__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gym-recovery__row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 6.5rem) 1fr auto;
+  gap: 0.45rem;
+  align-items: baseline;
+  padding: 0.35rem 0.15rem;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.gym-recovery__name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.gym-recovery__value {
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-strong);
+}
+
+.gym-recovery__ago {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: right;
+}
+
+.gym-progress-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.gym-progress-chart__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gym-progress-chart__value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+
 .gym-rest-dock {
   border-radius: 1.5rem;
   border: 1px solid var(--border-quiet);

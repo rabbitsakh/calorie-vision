@@ -34,6 +34,7 @@ import {
   shouldRepeatPreviousSession,
 } from "@/lib/workouts/session-create";
 import { type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
+import type { MuscleRecoveryMap } from "@/lib/workouts/muscle-volume";
 import { useWorkoutRestTimer } from "@/components/workouts/WorkoutRestTimer";
 import { WorkoutWeekPlan } from "@/components/workouts/WorkoutWeekPlan";
 import { WorkoutLibraryPanel } from "@/components/workouts/WorkoutLibraryPanel";
@@ -201,6 +202,7 @@ type SessionSummary = {
   clockStatus?: "idle" | "running" | "paused" | "finished";
   /** Exercises that set a new PR in this session. */
   prCount?: number;
+  prHits?: Array<{ name: string; label: string }>;
   energyLabel?: string | null;
 };
 
@@ -276,6 +278,7 @@ type Insights = {
   monthlySessionCount?: number;
   monthTrendPct?: number | null;
   monthCardioTrendPct?: number | null;
+  muscleMap?: MuscleRecoveryMap | null;
 };
 
 type LibraryEntry = {
@@ -320,6 +323,10 @@ type ChartPoint = {
   distance: number;
   duration: number;
   reps: number;
+  estimated1Rm?: number;
+  bestSetKg?: number;
+  bestSetReps?: number;
+  bestSetVolume?: number;
 };
 
 type HistoryBundle = {
@@ -330,6 +337,7 @@ type HistoryBundle = {
   topWeightDeltaKg: number | null;
   bestPaceDeltaSec: number | null;
   metric: "weight" | "volume" | "pace" | "reps" | "duration" | "distance";
+  linkedByCatalog?: boolean;
 };
 
 const formatLoad = formatWorkoutLoad;
@@ -2177,11 +2185,17 @@ export function WorkoutsView({
     }
   };
 
-  const toggleExerciseHistory = async (name: string, kind: ExerciseKind) => {
+  const toggleExerciseHistory = async (
+    name: string,
+    kind: ExerciseKind,
+    catalogId?: string | null,
+  ) => {
     const open = !historyOpen[name];
     setHistoryOpen((prev) => ({ ...prev, [name]: open }));
     if (!open || historyByName[name]) return;
     try {
+      const query = new URLSearchParams({ name });
+      if (catalogId) query.set("catalogId", catalogId);
       const data = await readJson<{
         points: TimelinePoint[];
         chart: ChartPoint[];
@@ -2189,10 +2203,9 @@ export function WorkoutsView({
         kind: string;
         topWeightDeltaKg: number | null;
         bestPaceDeltaSec: number | null;
+        linkedByCatalog?: boolean;
       }>(
-        await fetch(
-          withBasePath(`/api/workouts/exercise-history?name=${encodeURIComponent(name)}`),
-        ),
+        await fetch(withBasePath(`/api/workouts/exercise-history?${query.toString()}`)),
       );
       const defaultMetric: HistoryBundle["metric"] =
         kind === "cardio" || data.kind === "cardio"
@@ -2212,6 +2225,7 @@ export function WorkoutsView({
           topWeightDeltaKg: data.topWeightDeltaKg,
           bestPaceDeltaSec: data.bestPaceDeltaSec,
           metric: defaultMetric,
+          linkedByCatalog: data.linkedByCatalog,
         },
       }));
     } catch (err) {
@@ -2590,6 +2604,7 @@ export function WorkoutsView({
             void loadRoutines();
           }}
           onGoTemplates={() => setHubTab("templates")}
+          muscleMap={insights?.muscleMap ?? null}
         />
       ) : null}
 

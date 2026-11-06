@@ -20,6 +20,10 @@ export type HistoryChartPoint = {
   distance: number;
   duration: number;
   reps: number;
+  estimated1Rm?: number;
+  bestSetKg?: number;
+  bestSetReps?: number;
+  bestSetVolume?: number;
 };
 
 export type HistoryPoint = {
@@ -42,6 +46,7 @@ export type ExerciseHistoryBundle = {
   topWeightDeltaKg: number | null;
   bestPaceDeltaSec: number | null;
   metric: "weight" | "volume" | "pace" | "reps" | "duration" | "distance";
+  linkedByCatalog?: boolean;
 };
 
 function sparklinePath(values: number[], width: number, height: number): string {
@@ -56,6 +61,103 @@ function sparklinePath(values: number[], width: number, height: number): string 
       return `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(" ");
+}
+
+function SeriesSparkline({
+  points,
+  values,
+}: {
+  points: HistoryChartPoint[];
+  values: number[];
+}) {
+  const usable = values
+    .map((value, index) => ({ value, index }))
+    .filter((point) => Number.isFinite(point.value) && point.value > 0);
+  if (usable.length < 2) {
+    return <p className="mt-1 text-xs text-[var(--muted)]">Мало точек для линии</p>;
+  }
+  const series = usable.map((point) => point.value);
+  const w = 240;
+  const h = 56;
+  const d = sparklinePath(series, w, h);
+  const last = series[series.length - 1]!;
+  const min = Math.min(...series);
+  const max = Math.max(...series);
+  const span = max - min || 1;
+  const lx = w;
+  const ly = h - ((last - min) / span) * (h - 4) - 2;
+  const firstDate = points[usable[0]!.index]?.date;
+  const lastDate = points[usable[usable.length - 1]!.index]?.date;
+  return (
+    <div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="gym-spark mt-1 h-16 w-full" aria-hidden>
+        <path d={d} fill="none" stroke="var(--accent, #0f766e)" strokeWidth="2" />
+        <circle cx={lx} cy={ly} r="3.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="1" />
+      </svg>
+      {firstDate && lastDate ? (
+        <p className="mt-1 flex justify-between text-[10px] text-[var(--muted)]">
+          <span>{formatDateShort(firstDate)}</span>
+          <span>{formatDateShort(lastDate)}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function latestPositive(values: number[]): number | null {
+  for (let i = values.length - 1; i >= 0; i -= 1) {
+    const value = values[i]!;
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return null;
+}
+
+function StrengthProgressCharts({ points }: { points: HistoryChartPoint[] }) {
+  const e1rm = points.map((point) => point.estimated1Rm ?? 0);
+  const bestKg = points.map((point) => point.bestSetKg ?? point.weight);
+  const volume = points.map((point) => point.volume);
+  const latestBest = [...points].reverse().find((point) => (point.bestSetKg ?? point.weight) > 0);
+  const bestLabel = latestBest
+    ? `${latestBest.bestSetKg ?? latestBest.weight} кг × ${latestBest.bestSetReps ?? latestBest.reps}`
+    : "—";
+  const series = [
+    {
+      key: "e1rm",
+      label: "~1ПМ",
+      value: latestPositive(e1rm),
+      text: (value: number) => `${value} кг`,
+      values: e1rm,
+    },
+    {
+      key: "best",
+      label: "Лучший подход",
+      value: latestPositive(bestKg),
+      text: () => bestLabel,
+      values: bestKg,
+    },
+    {
+      key: "volume",
+      label: "Объём",
+      value: latestPositive(volume),
+      text: (value: number) => formatWorkoutLoad(value),
+      values: volume,
+    },
+  ];
+  return (
+    <div className="gym-progress-charts">
+      {series.map((item) => (
+        <div key={item.key} className="gym-progress-chart">
+          <p className="gym-progress-chart__label">
+            <span>{item.label}</span>
+            <span className="gym-progress-chart__value">
+              {item.value == null ? "—" : item.text(item.value)}
+            </span>
+          </p>
+          <SeriesSparkline points={points} values={item.values} />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function ExerciseSparkline({
@@ -118,6 +220,8 @@ export function ExerciseHistorySheet({
   onClose: () => void;
 }) {
   const isCardio = kind === "cardio";
+  const showStrengthCharts =
+    !isCardio && kind !== "bodyweight" && kind !== "duration" && kind !== "assisted";
   const metrics: ExerciseHistoryBundle["metric"][] = isCardio
     ? ["pace", "distance"]
     : kind === "bodyweight"
@@ -137,23 +241,34 @@ export function ExerciseHistorySheet({
           {bundle.prSummary ? (
             <p className="mb-2 font-semibold text-[var(--accent-ink)]">{bundle.prSummary}</p>
           ) : null}
-          <div className="mb-1 flex flex-wrap gap-1">
-            {metrics.map((m) => (
-              <button
-                key={m}
-                type="button"
-                className={`min-h-[44px] rounded-full px-3 text-xs font-semibold uppercase ${
-                  bundle.metric === m
-                    ? "bg-[var(--accent)] text-white"
-                    : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
-                }`}
-                onClick={() => onMetric(m)}
-              >
-                {METRIC_LABEL[m]}
-              </button>
-            ))}
-          </div>
-          <ExerciseSparkline points={bundle.chart} metric={bundle.metric} />
+          {bundle.linkedByCatalog ? (
+            <p className="mb-2 text-xs text-[var(--muted)]">
+              Одна линия по справочнику: одинаковые движения с разными названиями здесь вместе.
+            </p>
+          ) : null}
+          {showStrengthCharts ? (
+            <StrengthProgressCharts points={bundle.chart} />
+          ) : (
+            <>
+              <div className="mb-1 flex flex-wrap gap-1">
+                {metrics.map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    className={`min-h-[44px] rounded-full px-3 text-xs font-semibold uppercase ${
+                      bundle.metric === m
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--accent-soft)] text-[var(--muted-strong)]"
+                    }`}
+                    onClick={() => onMetric(m)}
+                  >
+                    {METRIC_LABEL[m]}
+                  </button>
+                ))}
+              </div>
+              <ExerciseSparkline points={bundle.chart} metric={bundle.metric} />
+            </>
+          )}
           <ul className="mt-2 space-y-1">
             {bundle.points.map((p) => (
               <li

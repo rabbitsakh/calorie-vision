@@ -4,10 +4,8 @@ import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { sweepIdleSessions } from "@/lib/workouts/apply-session-clock";
-import {
-  buildExerciseHistoryByNormName,
-  historyForExerciseName,
-} from "@/lib/workouts/history";
+import { buildExerciseHistoryIndex, historyForExercise } from "@/lib/workouts/history";
+import { prHitsBySessionId } from "@/lib/workouts/prs";
 import {
   buildProgressSummary,
   findPreviousSession,
@@ -63,9 +61,9 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
     progressRate: detail.progressRate,
   });
 
-  const byNorm = buildExerciseHistoryByNormName(history, { excludeSessionId: detail.id });
+  const historyIndex = buildExerciseHistoryIndex(history, { excludeSessionId: detail.id });
   const exercises = detail.exercises.map((ex) => {
-    const last = historyForExerciseName(byNorm, ex.name);
+    const last = historyForExercise(historyIndex, { name: ex.name, catalogId: ex.catalogId });
     return {
       ...ex,
       lastTime: last
@@ -77,9 +75,23 @@ async function withProgress(userId: string, detail: ReturnType<typeof serializeS
         : null,
     };
   });
+  const prHits =
+    prHitsBySessionId(
+      history.map((row) => ({
+        id: row.id,
+        date: row.date,
+        createdAt: row.createdAt,
+        exercises: row.exercises.map((exercise) => ({
+          name: exercise.name,
+          kind: exercise.kind,
+          catalogId: exercise.catalogId,
+          sets: exercise.sets,
+        })),
+      })),
+    ).get(detail.id) ?? [];
 
   return {
-    session: { ...detail, exercises },
+    session: { ...detail, exercises, prHits },
     progress,
   };
 }

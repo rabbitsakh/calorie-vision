@@ -124,6 +124,7 @@ type SessionSummary = {
   elapsedSec?: number;
   elapsedLabel?: string;
   clockStatus?: "idle" | "running" | "paused" | "finished";
+  prHits?: Array<{ name: string; label: string }>;
 };
 
 type SessionExercise = {
@@ -317,7 +318,11 @@ export type WorkoutActiveSessionProps = {
   applyAllLastSets: () => void | Promise<void>;
   saveAsRoutine: (sessionId: string, name: string) => Promise<void>;
   deleteSession: () => Promise<void>;
-  toggleExerciseHistory: (name: string, kind: ExerciseKind) => Promise<void>;
+  toggleExerciseHistory: (
+    name: string,
+    kind: ExerciseKind,
+    catalogId?: string | null,
+  ) => Promise<void>;
   saveSessionNote: (note: string) => Promise<void>;
   flushQueuedSets: () => Promise<void>;
   moveExercise: (id: string, dir: "up" | "down") => Promise<void>;
@@ -500,7 +505,10 @@ export function WorkoutActiveSession({
       load: ex.load,
       setCount: ex.sets.length,
       completedCount: ex.sets.filter((s) => s.completed).length,
-      prLine: hist?.prSummary ?? null,
+      prLine:
+        (detail.prHits ?? []).find((hit) => hit.name === ex.name)?.label ??
+        hist?.prSummary ??
+        null,
       progressionKind: hist
         ? adviseProgression(
             hist.points.map((p) => ({
@@ -763,6 +771,10 @@ export function WorkoutActiveSession({
           previousLoad={progress?.previousLoad ?? 0}
           targetLoad={progress?.targetLoad ?? 0}
           exercises={summaryExercises}
+          recordLines={(detail.prHits ?? []).map((hit) => {
+            const rest = hit.label.replace(/^PR\s+/, "");
+            return `${hit.name} · ${rest}`;
+          })}
           energyLabel={liveEnergyLabel}
           energyNote={liveEnergyCaption}
           nextTargets={nextTargets}
@@ -929,7 +941,7 @@ export function WorkoutActiveSession({
               label: "Прогресс и PR",
               onClick: () => {
                 setHistoryName(ex.name);
-                if (!historyOpen[ex.name]) void toggleExerciseHistory(ex.name, ex.kind);
+                if (!historyOpen[ex.name]) void toggleExerciseHistory(ex.name, ex.kind, ex.catalogId);
               },
             },
             ...((ex.lastTime?.sets.length ?? 0) > 0
@@ -1252,7 +1264,11 @@ export function WorkoutActiveSession({
           }
           onClose={() => {
             if (historyOpen[historyExercise.name]) {
-              void toggleExerciseHistory(historyExercise.name, historyExercise.kind);
+              void toggleExerciseHistory(
+                historyExercise.name,
+                historyExercise.kind,
+                historyExercise.catalogId,
+              );
             }
             setHistoryName(null);
           }}

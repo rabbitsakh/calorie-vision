@@ -16,6 +16,8 @@ export type DayFeedEvent = {
   live?: boolean;
   /** Gym PR badge in the feed. */
   record?: boolean;
+  /** Конкретный рекорд этой тренировки, если он уже посчитан. */
+  recordLine?: string | null;
   /** Water quick-add (+250). */
   waterAddMl?: number;
 };
@@ -29,6 +31,8 @@ export type GymSessionSummaryLike = {
   setCount?: number;
   clockStatus?: string;
   prCount?: number;
+  /** «Жим · 90 кг × 5» — рекорды этой тренировки. */
+  prLabels?: string[];
   /** Уже собранная строка расхода, без пересчёта MET на клиенте. */
   energyLabel?: string | null;
 };
@@ -65,6 +69,12 @@ export function gymSessionEvent(s: GymSessionSummaryLike): DayFeedEvent | null {
   const live = s.clockStatus === "running" || s.clockStatus === "paused";
   const minutes = s.elapsedSec != null && s.elapsedSec > 0 ? Math.round(s.elapsedSec / 60) : null;
   const record = (s.prCount ?? 0) > 0 && !live;
+  const labels = (s.prLabels ?? []).map((label) => label.trim()).filter(Boolean);
+  const recordLine = record && labels.length > 0
+    ? labels.length === 1
+      ? labels[0]!
+      : `${labels[0]} · ещё ${labels.length - 1}`
+    : null;
   const parts = [
     s.muscleLabels?.length ? s.muscleLabels.slice(0, 3).join(" · ") : null,
     live ? "идёт" : minutes != null ? `${minutes} мин` : null,
@@ -81,6 +91,7 @@ export function gymSessionEvent(s: GymSessionSummaryLike): DayFeedEvent | null {
     href: "/workouts",
     live,
     record,
+    recordLine,
   };
 }
 
