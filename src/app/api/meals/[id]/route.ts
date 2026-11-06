@@ -36,7 +36,7 @@ export async function PATCH(
     if (body.dishName !== undefined && !body.dishName.trim()) {
       return NextResponse.json({ error: "Название не может быть пустым" }, { status: 400 });
     }
-    if (body.calories !== undefined && (!Number.isFinite(body.calories) || body.calories <= 0)) {
+    if (body.calories !== undefined && (!Number.isFinite(body.calories) || body.calories < 0)) {
       return NextResponse.json({ error: "Укажите корректную калорийность" }, { status: 400 });
     }
 

@@ -3,6 +3,7 @@
  */
 
 import type { AssistantActions } from "@/lib/admin-assistant";
+import { knownCalories } from "@/lib/known-calories";
 import { splitQuickPortion } from "@/lib/quick-log";
 import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
@@ -145,6 +146,7 @@ export function mealsPayloadFromActions(
     .filter((m) => m.name.trim())
     .filter((m) => m.nutritionBasis !== "unknown")
     .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
+    .filter((m) => knownCalories(m.kcal) != null)
     .slice(0, 12)
     .map((m) => {
       const time = parseMealTimeHHMM(m.time);
@@ -169,10 +171,7 @@ export function mealsPayloadFromActions(
       return {
         date,
         dishName,
-        calories:
-          typeof m.kcal === "number" && Number.isFinite(m.kcal)
-            ? Math.max(0, Math.round(m.kcal))
-            : 200,
+        calories: knownCalories(m.kcal) ?? 0,
         ...(grams != null && grams > 0 && unit !== "шт" ? { portionGrams: grams } : {}),
         ...(typeof m.protein === "number" && Number.isFinite(m.protein)
           ? { protein: Math.max(0, m.protein) }

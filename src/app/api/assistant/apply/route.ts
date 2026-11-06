@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth-session";
 import { requireDateKey, toDateKeyTz } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { normalizeAssistantActions, type AssistantActions } from "@/lib/admin-assistant";
+import { knownCalories } from "@/lib/known-calories";
 import {
   checkAssistantWriteLimit,
   rateLimitResponse,
@@ -139,35 +140,43 @@ export async function POST(request: NextRequest) {
         body.mealType === "SNACK"
           ? body.mealType
           : undefined;
-      const parsedDrafts = drafts
-        .filter((d): d is Record<string, unknown> => Boolean(d) && typeof d === "object")
-        .map((d) => {
-          const rawSlot = d.mealType;
-          const draftMealType =
-            rawSlot === "BREAKFAST" ||
-            rawSlot === "LUNCH" ||
-            rawSlot === "DINNER" ||
-            rawSlot === "SNACK"
-              ? (rawSlot as "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK")
-              : undefined;
-          return {
-            dishName: typeof d.dishName === "string" ? d.dishName : "Блюдо",
-            calories: typeof d.calories === "number" ? d.calories : 200,
-            protein: typeof d.protein === "number" ? d.protein : undefined,
-            fat: typeof d.fat === "number" ? d.fat : undefined,
-            carbs: typeof d.carbs === "number" ? d.carbs : undefined,
-            fiber: typeof d.fiber === "number" ? d.fiber : undefined,
-            sugar: typeof d.sugar === "number" ? d.sugar : undefined,
-            portionGrams: typeof d.portionGrams === "number" ? d.portionGrams : undefined,
-            mealType: draftMealType,
-            confidence: typeof d.confidence === "number" ? d.confidence : undefined,
-            photoKind: typeof d.photoKind === "string" ? d.photoKind : undefined,
-            barcode: typeof d.barcode === "string" ? d.barcode : undefined,
-            brand: typeof d.brand === "string" ? d.brand : undefined,
-            recognitionSource:
-              typeof d.recognitionSource === "string" ? d.recognitionSource : undefined,
-          };
+      const parsedDrafts = [];
+      for (const d of drafts) {
+        if (!d || typeof d !== "object") continue;
+        const row = d as Record<string, unknown>;
+        const calories = knownCalories(row.calories);
+        if (calories == null) {
+          return NextResponse.json({ error: "Укажите калории у каждого блюда" }, { status: 400 });
+        }
+        const rawSlot = row.mealType;
+        const draftMealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK" | undefined =
+          rawSlot === "BREAKFAST" ||
+          rawSlot === "LUNCH" ||
+          rawSlot === "DINNER" ||
+          rawSlot === "SNACK"
+            ? rawSlot
+            : undefined;
+        parsedDrafts.push({
+          dishName: typeof row.dishName === "string" ? row.dishName : "Блюдо",
+          calories,
+          protein: typeof row.protein === "number" ? row.protein : undefined,
+          fat: typeof row.fat === "number" ? row.fat : undefined,
+          carbs: typeof row.carbs === "number" ? row.carbs : undefined,
+          fiber: typeof row.fiber === "number" ? row.fiber : undefined,
+          sugar: typeof row.sugar === "number" ? row.sugar : undefined,
+          portionGrams: typeof row.portionGrams === "number" ? row.portionGrams : undefined,
+          mealType: draftMealType,
+          confidence: typeof row.confidence === "number" ? row.confidence : undefined,
+          photoKind: typeof row.photoKind === "string" ? row.photoKind : undefined,
+          barcode: typeof row.barcode === "string" ? row.barcode : undefined,
+          brand: typeof row.brand === "string" ? row.brand : undefined,
+          recognitionSource:
+            typeof row.recognitionSource === "string" ? row.recognitionSource : undefined,
         });
+      }
+      if (!parsedDrafts.length) {
+        return NextResponse.json({ error: "Нет черновика фото" }, { status: 400 });
+      }
       const result = await toolSavePhotoDrafts({
         userId: session.user.id,
         date,

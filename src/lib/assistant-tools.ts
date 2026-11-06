@@ -24,12 +24,13 @@ import { hourInTimezone, inferMealTypeFromHour } from "@/lib/meal-type";
 import { recognizeFoodWithAI } from "@/lib/food-recognition";
 import { flattenRecognitionItems } from "@/lib/recognition-items";
 import { prisma } from "@/lib/prisma";
+import { knownCalories, recognitionCalorieLabel } from "@/lib/known-calories";
 import { buildMealCreateData, validateSaveMealInput, type SaveMealInput } from "@/lib/save-meal";
 import {
   normalizeShoppingName,
   type ShoppingListItem,
 } from "@/lib/shopping-list";
-import { saveImageBuffer } from "@/lib/upload";
+import { mealImagePathForUser, saveImageBuffer } from "@/lib/upload";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import { touchExerciseLibraryMany } from "@/lib/workouts/library";
 import { isMuscleGroupKey } from "@/lib/workouts/muscle-groups";
@@ -159,6 +160,7 @@ export async function toolSaveMeals(opts: {
     .filter((m) => m.name.trim())
     .filter((m) => m.nutritionBasis !== "unknown")
     .filter((m) => !(m.unparsed && !(typeof m.kcal === "number" && m.kcal > 0)))
+    .filter((m) => knownCalories(m.kcal) != null)
     .slice(0, 12);
   for (let i = 0; i < entries.length; i++) {
     const raw = entries[i]!;
@@ -174,8 +176,13 @@ export async function toolSaveMeals(opts: {
     };
     const validated = validateSaveMealInput(input);
     if (validated.error || !validated.date) continue;
+    const imagePath = await mealImagePathForUser(opts.userId, input.imagePath);
     const row = await prisma.mealEntry.create({
-      data: buildMealCreateData(opts.userId, input, validated.date),
+      data: buildMealCreateData(
+        opts.userId,
+        { ...input, imagePath: imagePath ?? undefined },
+        validated.date,
+      ),
     });
     created.push({ id: row.id, dishName: row.dishName, calories: row.calories });
   }
@@ -1042,7 +1049,7 @@ export async function toolRecognizeAndSaveMeal(opts: {
     const items = flattenRecognitionItems(recognition);
     const drafts = items.map((item) => ({
       dishName: item.dishName || "Блюдо",
-      calories: item.calories || 200,
+      calories: knownCalories(item.calories) ?? 0,
       protein: item.protein,
       fat: item.fat,
       carbs: item.carbs,
@@ -1058,7 +1065,7 @@ export async function toolRecognizeAndSaveMeal(opts: {
 
     if (!save) {
       const preview = drafts
-        .map((d) => `${d.dishName} — ${d.calories} ккал`)
+        .map((d) => `${d.dishName} — ${recognitionCalorieLabel(d.calories)}`)
         .join("; ");
       return {
         ok: true,
@@ -1098,8 +1105,13 @@ export async function toolRecognizeAndSaveMeal(opts: {
       };
       const validated = validateSaveMealInput(input);
       if (validated.error || !validated.date) continue;
+      const owned = await mealImagePathForUser(opts.userId, input.imagePath);
       const row = await prisma.mealEntry.create({
-        data: buildMealCreateData(opts.userId, input, validated.date),
+        data: buildMealCreateData(
+          opts.userId,
+          { ...input, imagePath: owned ?? undefined },
+          validated.date,
+        ),
       });
       created.push({ id: row.id, dishName: row.dishName, calories: row.calories });
     }
@@ -1153,6 +1165,7 @@ export async function toolSavePhotoDrafts(opts: {
   if (!drafts.length) {
     return { ok: false, tool: "save_photo_drafts", message: "Нет блюд для сохранения" };
   }
+  const imagePath = await mealImagePathForUser(opts.userId, opts.imagePath);
   const mealGroupId = drafts.length > 1 ? randomUUID() : undefined;
   const created: Array<{ id: string; dishName: string; calories: number }> = [];
   for (const draft of drafts) {
@@ -1163,10 +1176,18 @@ export async function toolSavePhotoDrafts(opts: {
       draft.mealType === "SNACK"
         ? draft.mealType
         : opts.mealType;
+    const calories = knownCalories(draft.calories);
+    if (calories == null) {
+      return {
+        ok: false,
+        tool: "save_photo_drafts",
+        message: `Укажите калории у «${draft.dishName || "блюда"}»`,
+      };
+    }
     const input: SaveMealInput = {
       date: opts.date,
       dishName: draft.dishName || "Блюдо",
-      calories: draft.calories || 200,
+      calories,
       protein: draft.protein,
       fat: draft.fat,
       carbs: draft.carbs,
@@ -1174,7 +1195,7 @@ export async function toolSavePhotoDrafts(opts: {
       sugar: draft.sugar,
       portionGrams: draft.portionGrams,
       confidence: draft.confidence,
-      imagePath: opts.imagePath,
+      imagePath: imagePath ?? undefined,
       mealGroupId,
       recognitionSource: draft.recognitionSource ?? "assistant-photo",
       photoKind: draft.photoKind,

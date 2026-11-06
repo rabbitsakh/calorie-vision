@@ -106,10 +106,10 @@ export function dishNeedsReview(
   return {
     lowConfidence:
       !trusted && dish.original.confidence < lowConfidenceThreshold,
-    missingCalories: isMissingCaloriesForReview(
-      Number(dish.calories),
-      dish.original.per100g,
-    ),
+    missingCalories:
+      dish.calories.trim() === "0"
+        ? false
+        : isMissingCaloriesForReview(Number(dish.calories), dish.original.per100g),
     missingMacros: isMissingMacrosForReview({
       dishName: dish.dishName,
       brand: dish.original.brand,

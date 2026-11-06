@@ -12,6 +12,7 @@ import { scaleNutritionByPortion } from "@/lib/nutrition";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { parseCustomFoodsCsv } from "@/lib/custom-foods-csv";
+import { caloriesFromField, macroFromField } from "@/lib/known-calories";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
 import { useTimezone } from "@/lib/use-timezone";
 import type { SaveMealInput } from "@/lib/save-meal";
@@ -188,15 +189,21 @@ export function FavoriteFoods({ selectedDate, onSaved, embedded = false }: Favor
   async function handleAdd() {
     setAdding(true);
     try {
+      const parsedCalories = caloriesFromField(calories);
+      if (parsedCalories == null || parsedCalories <= 0) {
+        setLogNotice("Укажите калорийность больше нуля");
+        return;
+      }
+      const portion = macroFromField(portionGrams);
       const payload = {
         name,
-        calories: Number(calories),
-        protein: protein ? Number(protein) : null,
-        fat: fat ? Number(fat) : null,
-        carbs: carbs ? Number(carbs) : null,
-        fiber: fiber ? Number(fiber) : null,
-        sugar: sugar ? Number(sugar) : null,
-        portionGrams: portionGrams ? Number(portionGrams) : null,
+        calories: parsedCalories,
+        protein: macroFromField(protein),
+        fat: macroFromField(fat),
+        carbs: macroFromField(carbs),
+        fiber: macroFromField(fiber),
+        sugar: macroFromField(sugar),
+        portionGrams: portion != null && portion > 0 ? portion : null,
       };
       const resp = await fetch(
         withBasePath(editingId ? `/api/custom-foods/${editingId}` : "/api/custom-foods"),

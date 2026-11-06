@@ -74,8 +74,25 @@ export function imagePathRefersToUpload(imagePath: string | null | undefined, id
 }
 
 /**
+ * Чужой sidecar не открывается записью в своём дневнике.
+ * Без sidecar доступ остаётся у того, кто уже ссылается на файл (старые фото и гостевой снимок).
+ */
+export function decideUploadAccess(input: {
+  ownerUserId: string | null;
+  requesterUserId: string;
+  isAdmin?: boolean;
+  referencedByRequester: boolean;
+}): boolean {
+  if (!input.requesterUserId) return false;
+  if (input.isAdmin) return true;
+  if (input.ownerUserId) return input.ownerUserId === input.requesterUserId;
+  return input.referencedByRequester;
+}
+
+/**
  * Session user may read an upload if they own the sidecar, a meal with that photo,
  * or the profile avatar — or if they are admin.
+ * A meal row does not override a sidecar that belongs to someone else.
  */
 export async function userCanAccessUpload(
   id: string,
@@ -85,14 +102,8 @@ export async function userCanAccessUpload(
   if (!id || !userId) {
     return false;
   }
-  if (options?.isAdmin) {
-    return true;
-  }
 
   const owner = await readUploadOwner(id);
-  if (owner === userId) {
-    return true;
-  }
 
   const uploadNeedle = `/api/uploads/${id}`;
   const legacyNeedle = `/uploads/${id}`;
@@ -124,7 +135,26 @@ export async function userCanAccessUpload(
     }),
   ]);
 
-  return Boolean(mealHit || avatarHit);
+  return decideUploadAccess({
+    ownerUserId: owner,
+    requesterUserId: userId,
+    isAdmin: options?.isAdmin,
+    referencedByRequester: Boolean(mealHit || avatarHit),
+  });
+}
+
+/** Ссылка на чужое фото не сохраняется. Свой файл и путь не из /api/uploads остаются. */
+export async function mealImagePathForUser(
+  userId: string,
+  imagePath: string | null | undefined,
+): Promise<string | null> {
+  const trimmed = imagePath?.trim() ?? "";
+  if (!trimmed) return null;
+  const id = resolveLegacyImageId(trimmed);
+  if (!id) return trimmed;
+  const owner = await readUploadOwner(id);
+  if (owner && owner !== userId) return null;
+  return trimmed;
 }
 
 export async function saveImageBuffer(
