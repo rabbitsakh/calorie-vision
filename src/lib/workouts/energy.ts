@@ -1,8 +1,14 @@
 /**
- * Расход тренировки по MET: ккал = MET × вес_кг × часы.
- * Компендиум / ACSM. Точный MET берётся из справочника, если он задан;
- * иначе — вилка 3–6 для свободных весов и ниже для тренажёров.
- * Пустая сессия не получает константу «N ккал».
+ * Оценка расхода по Компендиуму физической активности 2011
+ * (Ainsworth et al., Med Sci Sports Exerc. 2011;43(8):1575–1581).
+ *
+ * MET в Компендиуме — gross: уже включает покой (1 MET).
+ * На карточке и в надбавке к норме показываем active = (MET − 1) × кг × часы,
+ * чтобы не прибавить покой второй раз к BMR.
+ * Это популяционная оценка, не измерение.
+ *
+ * Ходьба и бег: код берётся по скорости (дистанция / длительность),
+ * а не по слову «дорожка». Без скорости высокая интенсивность не ставится.
  */
 
 import { matchExerciseName } from "@/lib/workouts/catalog-link";
@@ -27,11 +33,18 @@ export const BODYWEIGHT_VIGOROUS_MET = 6;
 /** Удержание (планка) и прочие упражнения на время. */
 export const DURATION_MET = 3.5;
 /**
- * Кардио без узнаваемого вида.
- * 6.8 MET — велотренажёр, умеренно (02011). На 70 кг это ≈ 8 ккал/мин,
- * как прежняя оценка кардио, пока упражнение не распознано точнее.
+ * Кардио без вида и без скорости.
+ * 02064 home exercise, general — 3.8 MET. Не бег и не «умеренно-высокая» велонагрузка.
  */
-export const GENERIC_CARDIO_MET = 6.8;
+export const GENERIC_CARDIO_MET = 3.8;
+/** 17190 ходьба 2.8–3.2 мили/ч, ровно, умеренно. */
+export const WALK_MODERATE_MET = 3.5;
+/** 12020 jogging, general — бег без известной скорости, не 8.3. */
+export const JOG_GENERAL_MET = 7;
+/** 4 мили/ч — самый медленный бег в таблице (12029). Медленнее считаем ходьбой. */
+export const RUN_MIN_KMH = 4 * 1.609344;
+/** 5 мили/ч — самая быстрая ровная ходьба в таблице (17231). */
+export const WALK_MAX_KMH = 5 * 1.609344;
 /** Оставшееся время таймера без упражнений — спокойное перемещение, не бег. */
 export const GAP_MET = 2.5;
 
@@ -42,19 +55,21 @@ export const ESTIMATED_SET_SEC = 130;
  * Точный MET справочника (Компендиум, умеренная работа).
  * Нет ключа — оценка по типу и снаряду.
  */
+/**
+ * Фиксированные коды только там, где скорость не различает ходьбу и бег.
+ * Бег и дорожка сюда не входят: им нужен темп.
+ */
 export const CATALOG_MET: Readonly<Record<string, number>> = {
-  run: 8.3,
-  treadmill: 8.3,
-  "interval-run": 9.8,
   ellipse: 5,
-  bike: 6.8,
-  spin: 8.8,
-  "row-erg": 6,
-  "row-water": 6,
-  rope: 11.8,
+  bike: 4.8,
+  "bike-out": 4.8,
+  spin: 8.5,
+  "row-erg": 4.8,
+  "row-water": 4.8,
+  rope: 8.8,
   stepper: 9,
   swim: 6,
-  "ski-erg": 7,
+  "ski-erg": 6.8,
   burpee: 8,
 };
 
@@ -92,26 +107,13 @@ const VIGOROUS_BODYWEIGHT_IDS = new Set([
   "ring-pushup",
 ]);
 
-/** Более специфичные шаблоны раньше общих («сайкл» до «вело», «интервал» до «бег»). */
-const CARDIO_NAME_MET: Array<[RegExp, number]> = [
-  [/эллип|elliptical/, CATALOG_MET.ellipse!],
-  [/сайкл|spin/, CATALOG_MET.spin!],
-  [/вело|bike|bicycle|велосипед/, CATALOG_MET.bike!],
-  [/интервал/, CATALOG_MET["interval-run"]!],
-  [/бег|run|treadmill|дорожк/, CATALOG_MET.run!],
-  [/греб|rowing/, CATALOG_MET["row-erg"]!],
-  [/скакал|rope/, CATALOG_MET.rope!],
-  [/степпер|stair/, CATALOG_MET.stepper!],
-  [/плав|swim/, CATALOG_MET.swim!],
-  [/лыж|ski/, CATALOG_MET["ski-erg"]!],
-];
-
 const MACHINE_NAME = /тренажер|смит|хаммер|кроссовер|блок/;
 const COMPOUND_NAME = /присед|станов|жим лежа|тяга|выпад|румын/;
 
 export type EnergySet = {
   completed?: boolean | null;
   durationSec?: number | null;
+  distanceKm?: number | null;
   setType?: string | null;
 };
 
@@ -131,9 +133,15 @@ export type SessionEnergy = {
   weightSource: "measured" | "fallback";
   durationSource: "clock" | "logged" | "estimated" | "none";
   approximate: boolean;
-  approximateReasons: Array<"weight" | "duration" | "gap">;
+  approximateReasons: Array<"weight" | "duration" | "gap" | "intensity">;
+  /** (MET − 1) × кг × часы. Это число на карточке и в надбавке к норме. */
   cardioKcal: number;
   strengthKcal: number;
+  /** MET × кг × часы, вместе с покоем. В норму не прибавляется. */
+  grossKcal: number;
+  paceKmh: number | null;
+  /** ходьба / бег / название снаряда, если вид узнан. */
+  movement: string | null;
 };
 
 const nameCache = new Map<string, string | null>();
@@ -158,19 +166,149 @@ function rowFor(exercise: EnergyExercise): CatalogExercise | null {
   return id ? catalogById(id) : null;
 }
 
-function cardioMetFromName(name: string): number | null {
-  const key = normalizeExerciseName(name);
-  if (!key) return null;
-  for (const [re, met] of CARDIO_NAME_MET) {
-    if (re.test(key)) return met;
+type Ambulation = "walk" | "run" | "either" | "incline";
+
+type CardioProfile = {
+  met: number;
+  movement: string | null;
+  /** Скорость или усилие не из чего вывести — интенсивность занижена специально. */
+  unspecified: boolean;
+  paceKmh: number | null;
+};
+
+function kmhToMph(kmh: number): number {
+  return kmh / 1.609344;
+}
+
+/** Ближайшая опубликованная точка. При равенстве — меньший MET, без интерполяции. */
+function nearestMet(mph: number, points: ReadonlyArray<{ mph: number; met: number }>): number {
+  let best = points[0]!;
+  let bestDist = Infinity;
+  for (const point of points) {
+    const dist = Math.abs(point.mph - mph);
+    if (dist < bestDist - 1e-9 || (Math.abs(dist - bestDist) <= 1e-9 && point.met < best.met)) {
+      best = point;
+      bestDist = dist;
+    }
   }
+  return best.met;
+}
+
+/** Ровная ходьба, таблица 17151–17231. 2.8–3.2 мили/ч — отдельный диапазон 17190, не «ближайшая точка». */
+function walkingMet(mph: number): number {
+  if (mph < 2) return 2;
+  if (mph >= 2.8 && mph <= 3.2) return WALK_MODERATE_MET;
+  return nearestMet(mph, [
+    { mph: 2, met: 2.8 },
+    { mph: 2.5, met: 3 },
+    { mph: 3.5, met: 4.3 },
+    { mph: 4, met: 5 },
+    { mph: 4.5, met: 7 },
+    { mph: 5, met: 8.3 },
+  ]);
+}
+
+/** Бег 12029–12135. Медленнее 4 миль/ч в этой таблице нет. */
+function runningMet(mph: number): number {
+  return nearestMet(mph, [
+    { mph: 4, met: 6 },
+    { mph: 5, met: 8.3 },
+    { mph: 5.2, met: 9 },
+    { mph: 6, met: 9.8 },
+    { mph: 6.7, met: 10.5 },
+    { mph: 7, met: 11 },
+    { mph: 7.5, met: 11.5 },
+    { mph: 8, met: 11.8 },
+    { mph: 8.6, met: 12.3 },
+    { mph: 9, met: 12.8 },
+    { mph: 10, met: 14.5 },
+    { mph: 11, met: 16 },
+    { mph: 12, met: 19 },
+    { mph: 13, met: 19.8 },
+    { mph: 14, met: 23 },
+  ]);
+}
+
+function saysRun(key: string): boolean {
+  return /(^|\s)бег(\s|$)|running|\brun\b|jogging|пробежк/.test(key);
+}
+
+/**
+ * Слово «дорожка» / «беговая» само по себе — не бег.
+ * «Ходьба» важнее дорожки. «Бег» как отдельное слово — явный бег, темп всё равно может его поправить.
+ */
+function explicitAmbulation(userName: string, catalogId: string | null): Ambulation | null {
+  const key = normalizeExerciseName(userName);
+  if (catalogId === "walk-incline" || /ходьба в горку|ходьба в наклоне|incline walk/.test(key)) {
+    return "incline";
+  }
+  if (catalogId === "walk" || catalogId === "walk-tread" || /ходьб|\bwalk\b|walking/.test(key)) {
+    return "walk";
+  }
+  if (catalogId === "interval-run" || /интервальн/.test(key)) return "run";
+  if (saysRun(key) || catalogId === "run") return "run";
+  if (catalogId === "treadmill" || /дорожк|treadmill|беговая/.test(key)) return "either";
   return null;
 }
 
-function metFromEquipment(row: CatalogExercise, kind: ExerciseKind): number {
-  if (kind === "cardio" || row.equipment === "cardio") {
-    return cardioMetFromName(row.name) ?? GENERIC_CARDIO_MET;
+function modalityMet(userName: string, catalogId: string | null): Omit<CardioProfile, "paceKmh"> | null {
+  const key = normalizeExerciseName(userName);
+  const hit = (id: string, pattern: RegExp, met: number, movement: string, unspecified: boolean) =>
+    catalogId === id || pattern.test(key) ? { met, movement, unspecified } : null;
+  return (
+    hit("ellipse", /эллип|elliptical/, 5, "эллипс", false) ??
+    hit("spin", /сайкл|\bspin\b/, 8.5, "сайкл", false) ??
+    hit("bike", /велотренаж|exercise bike/, 4.8, "вело", true) ??
+    hit("bike-out", /велосипед|\bbike\b|cycling/, 4.8, "вело", true) ??
+    hit("row-erg", /греб|rowing/, 4.8, "гребля", true) ??
+    hit("row-water", /академическ/, 4.8, "гребля", true) ??
+    hit("rope", /скакал|jump rope|\brope\b/, 8.8, "скакалка", true) ??
+    hit("stepper", /степпер|stair/, 9, "степпер", false) ??
+    hit("swim", /плав|swim/, 6, "плавание", true) ??
+    hit("ski-erg", /лыж|\bski\b/, 6.8, "лыжи", false) ??
+    hit("burpee", /берпи|burpee/, 8, "берпи", true)
+  );
+}
+
+function ambulationFromPace(paceKmh: number, explicit: Ambulation): { met: number; movement: string } {
+  const mph = kmhToMph(paceKmh);
+  if (explicit === "incline" && mph >= 2.9 && mph <= 3.5) {
+    return { met: 5.3, movement: "ходьба в горку" };
   }
+  const clearlyRunning = paceKmh >= RUN_MIN_KMH && explicit !== "walk";
+  const walkTooFast = explicit === "walk" && paceKmh > WALK_MAX_KMH;
+  if (clearlyRunning || walkTooFast) {
+    return { met: runningMet(mph), movement: "бег" };
+  }
+  return { met: walkingMet(mph), movement: "ходьба" };
+}
+
+function cardioProfile(exercise: EnergyExercise, paceKmh: number | null): CardioProfile | null {
+  const kind = parseExerciseKind(exercise.kind);
+  const row = rowFor(exercise);
+  const id = row?.id ?? (exercise.catalogId || null);
+  const name = exercise.name ?? "";
+  const amb = explicitAmbulation(name, id);
+  const modality = modalityMet(name, id);
+  if (!amb && !modality && kind !== "cardio" && row?.equipment !== "cardio") return null;
+  if (amb) {
+    if (paceKmh != null && paceKmh > 0) {
+      const decided = ambulationFromPace(paceKmh, amb);
+      return { ...decided, unspecified: false, paceKmh };
+    }
+    if (amb === "incline") {
+      return { met: 5.3, movement: "ходьба в горку", unspecified: true, paceKmh: null };
+    }
+    if (amb === "run") {
+      return { met: JOG_GENERAL_MET, movement: "бег", unspecified: true, paceKmh: null };
+    }
+    return { met: WALK_MODERATE_MET, movement: "ходьба", unspecified: true, paceKmh: null };
+  }
+  if (modality) return { ...modality, paceKmh: null };
+  return { met: GENERIC_CARDIO_MET, movement: null, unspecified: true, paceKmh: null };
+}
+
+function metFromEquipment(row: CatalogExercise, kind: ExerciseKind): number {
   if (kind === "duration") return DURATION_MET;
   if (kind === "assisted") return MACHINE_MET;
   if (kind === "weighted_bw") return FREE_WEIGHT_VIGOROUS_MET;
@@ -186,9 +324,7 @@ function metFromEquipment(row: CatalogExercise, kind: ExerciseKind): number {
 }
 
 function metWithoutCatalog(name: string, kind: ExerciseKind): number {
-  const named = cardioMetFromName(name);
-  if (kind === "cardio") return named ?? GENERIC_CARDIO_MET;
-  if (named != null && kind !== "strength") return named;
+  if (kind === "cardio") return GENERIC_CARDIO_MET;
   if (kind === "duration") return DURATION_MET;
   if (kind === "assisted") return MACHINE_MET;
   if (kind === "weighted_bw") return FREE_WEIGHT_VIGOROUS_MET;
@@ -199,8 +335,10 @@ function metWithoutCatalog(name: string, kind: ExerciseKind): number {
   return FREE_WEIGHT_MET;
 }
 
-/** MET одного упражнения: точное значение справочника или оценка ACSM. */
-export function metForExercise(exercise: EnergyExercise): number {
+/** MET одного упражнения. Для ходьбы и бега нужен темп, иначе интенсивность не завышается. */
+export function metForExercise(exercise: EnergyExercise, paceKmh?: number | null): number {
+  const cardio = cardioProfile(exercise, paceKmh ?? null);
+  if (cardio) return cardio.met;
   const kind = parseExerciseKind(exercise.kind);
   const row = rowFor(exercise);
   if (row) {
@@ -247,7 +385,19 @@ function emptyEnergy(weightKg: number, weightSource: SessionEnergy["weightSource
     approximateReasons: weightSource === "fallback" ? ["weight"] : [],
     cardioKcal: 0,
     strengthKcal: 0,
+    grossKcal: 0,
+    paceKmh: null,
+    movement: null,
   };
+}
+
+function positive(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function distanceKmOf(exercise: EnergyExercise): number {
+  return completedSets(exercise).reduce((sum, set) => sum + positive(set.distanceKm), 0);
 }
 
 export function estimateSessionEnergy(input: {
@@ -262,13 +412,28 @@ export function estimateSessionEnergy(input: {
   const exercises = input.exercises ?? [];
   const elapsed = Math.max(0, Math.round(Number(input.elapsedSec) || 0));
 
-  const resolved = exercises.map((exercise) => {
+  const distanceIndexes = exercises
+    .map((exercise, index) => (distanceKmOf(exercise) > 0 ? index : -1))
+    .filter((index) => index >= 0);
+  const soleDistance = distanceIndexes.length === 1 ? distanceIndexes[0]! : -1;
+
+  const resolved = exercises.map((exercise, index) => {
     const kind = parseExerciseKind(exercise.kind);
+    const ownSec = timedSec(exercise);
+    const km = distanceKmOf(exercise);
+    let paceKmh: number | null = null;
+    if (km > 0 && ownSec > 0) paceKmh = km / (ownSec / 3600);
+    else if (km > 0 && ownSec <= 0 && index === soleDistance && elapsed > 0) {
+      paceKmh = km / (elapsed / 3600);
+    }
+    const cardio = cardioProfile(exercise, paceKmh);
+    const met = cardio?.met ?? metForExercise(exercise, paceKmh);
     return {
-      met: metForExercise(exercise),
-      role: (kind === "cardio" ? "cardio" : "strength") as Segment["role"],
-      timed: timedSec(exercise),
+      met,
+      role: (cardio || kind === "cardio" ? "cardio" : "strength") as Segment["role"],
+      timed: ownSec,
       sets: setCount(exercise),
+      cardio,
     };
   });
 
@@ -329,19 +494,33 @@ export function estimateSessionEnergy(input: {
 
   let cardio = 0;
   let strength = 0;
+  let gross = 0;
   let metSec = 0;
   let totalSec = 0;
   for (const segment of segments) {
-    const kcal = kcalFromMet(segment.met, weightKg, segment.sec);
-    if (segment.role === "cardio") cardio += kcal;
-    else strength += kcal;
+    const active = kcalFromMet(Math.max(0, segment.met - 1), weightKg, segment.sec);
+    gross += kcalFromMet(segment.met, weightKg, segment.sec);
+    if (segment.role === "cardio") cardio += active;
+    else strength += active;
     metSec += segment.met * segment.sec;
     totalSec += segment.sec;
+  }
+  const cardios = resolved.filter((row) => row.cardio);
+  let movement: string | null = null;
+  let paceKmh: number | null = null;
+  let intensityUncertain = false;
+  if (cardios.length === 1 && cardios[0]?.cardio) {
+    movement = cardios[0].cardio.movement;
+    paceKmh = cardios[0].cardio.paceKmh;
+    intensityUncertain = cardios[0].cardio.unspecified;
+  } else if (cardios.length > 1) {
+    intensityUncertain = true;
   }
   const reasons: SessionEnergy["approximateReasons"] = [];
   if (!measured) reasons.push("weight");
   if (durationApproximate) reasons.push("duration");
   if (gapApproximate) reasons.push("gap");
+  if (intensityUncertain) reasons.push("intensity");
   return {
     kcal: Math.round(cardio + strength),
     met: totalSec > 0 ? Math.round((metSec / totalSec) * 10) / 10 : 0,
@@ -353,6 +532,9 @@ export function estimateSessionEnergy(input: {
     approximateReasons: reasons,
     cardioKcal: Math.round(cardio),
     strengthKcal: Math.round(strength),
+    grossKcal: Math.round(gross),
+    paceKmh,
+    movement,
   };
 }
 
@@ -384,24 +566,30 @@ export function formatSessionEnergyKcal(energy: SessionEnergy): string {
   return `${energy.approximate ? "~" : ""}${energy.kcal} ккал`;
 }
 
-/** Короткая подпись под калориями: откуда вес и время. */
+function formatPace(kmh: number): string {
+  const rounded = Math.round(kmh * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(".", ",");
+  return `${text} км/ч`;
+}
+
+/** Подпись всегда говорит, что это оценка, а не измерение. */
 export function formatSessionEnergyCaption(energy: SessionEnergy): string {
-  const missingWeight = energy.weightSource === "fallback";
-  const estimatedTime = energy.approximateReasons.includes("duration");
-  const gap = energy.approximateReasons.includes("gap");
-  if (missingWeight && estimatedTime) {
-    return `примерно: нет веса, считаем от ${FALLBACK_BODY_WEIGHT_KG} кг, время по подходам`;
+  const parts = ["оценка, сверх покоя"];
+  if (energy.movement && energy.paceKmh != null && energy.paceKmh > 0) {
+    parts.push(`${energy.movement} ${formatPace(energy.paceKmh)}`);
+  } else if (energy.movement) {
+    parts.push(energy.movement);
   }
-  if (missingWeight) {
-    return `примерно: нет веса, считаем от ${FALLBACK_BODY_WEIGHT_KG} кг`;
+  if (energy.approximateReasons.includes("intensity")) parts.push("скорость неизвестна");
+  if (energy.weightSource === "fallback") {
+    parts.push(`нет веса, считаем от ${FALLBACK_BODY_WEIGHT_KG} кг`);
+  } else {
+    parts.push(formatKg(energy.weightKg));
   }
-  if (estimatedTime) {
-    return `примерно: время по подходам · ${formatKg(energy.weightKg)}`;
-  }
-  if (gap) {
-    return `примерно: часть времени без упражнений · ${formatKg(energy.weightKg)}`;
-  }
-  return `MET ${formatMet(energy.met)} · ${formatKg(energy.weightKg)}`;
+  if (energy.approximateReasons.includes("duration")) parts.push("время по подходам");
+  if (energy.approximateReasons.includes("gap")) parts.push("часть времени без упражнений");
+  if (energy.met > 0) parts.push(`MET ${formatMet(energy.met)}`);
+  return parts.join(" · ");
 }
 
 export function formatSessionEnergyLine(energy: SessionEnergy): string | null {

@@ -463,6 +463,7 @@ export function WorkoutActiveSession({
         sets: exercise.sets.map((set) => ({
           completed: set.completed,
           durationSec: set.durationSec,
+          distanceKm: set.distanceKm,
           setType: set.setType,
         })),
       })),

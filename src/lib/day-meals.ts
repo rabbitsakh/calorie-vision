@@ -95,6 +95,7 @@ export async function buildDayMealsPayload(userId: string, date: string) {
     weightKg: weight?.weightKg ?? burnWeightKg ?? 0,
     sex,
     heightCm: user?.heightCm,
+    activityLevel: activity,
   });
   const target = adjusted.target;
   const trainingDay = adjusted.training;

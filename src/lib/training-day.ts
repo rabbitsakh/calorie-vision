@@ -5,7 +5,7 @@
  * Удаление тренировки — снова пустой список сессий, и надбавка исчезает.
  */
 
-import { macroWeightKg, round1, type DietTarget, type Sex } from "@/lib/diet";
+import { macroWeightKg, round1, type ActivityLevel, type DietTarget, type Sex } from "@/lib/diet";
 import type { SessionEnergy } from "@/lib/workouts/energy";
 
 /** +0,25 г/кг — внутри обычной вилки 0,2–0,3 г/кг к уже посчитанной белковой цели. */
@@ -24,6 +24,11 @@ export type TrainingDayInfo = {
   burnApproximate: boolean;
   /** Сессии, из-за которых день считается тренировочным. */
   sessionCount: number;
+  /**
+   * Норма по активности уже предполагает тренировки (умеренная / высокая).
+   * Расход на карточке остаётся, в цель по калориям второй раз не прибавляется.
+   */
+  activityAlreadyCountsTraining: boolean;
   /** Одна строка для героя и дневника. */
   label: string | null;
   /** Развёрнуто в блоке нормы: обычная цель и сегодняшняя надбавка. */
@@ -93,34 +98,49 @@ export function trainingProteinBonusG(
   return round1(macro * TRAINING_PROTEIN_G_PER_KG);
 }
 
+function activityAlreadyCountsTraining(level: ActivityLevel | null | undefined): boolean {
+  return level === "MODERATE" || level === "ACTIVE";
+}
+
 function buildCopy(info: Omit<TrainingDayInfo, "label" | "detail">): Pick<TrainingDayInfo, "label" | "detail"> {
   if (!info.trainingDay && info.calorieBonusKcal <= 0) {
     return { label: null, detail: null };
   }
-  const approx = info.burnApproximate ? " · калории приблизительные" : "";
+  const approx = info.burnApproximate ? " Оценка, не измерение." : "";
+  if (info.activityAlreadyCountsTraining && info.burnKcal > 0) {
+    const protein =
+      info.proteinBonusG > 0 ? ` · белок +${formatG(info.proteinBonusG)} г` : "";
+    const label = info.trainingDay
+      ? `День тренировки · норма уже включает тренировки, ${info.burnKcal} ккал сверх покоя не добавляем второй раз${protein}`
+      : null;
+    const detail = info.trainingDay
+      ? `Обычная цель ${info.baseCalories} ккал уже посчитана с тренировками в активности. ${info.burnKcal} ккал сверх покоя на карточке — оценка, в цель их не прибавляем.${protein ? ` Белок +${formatG(info.proteinBonusG)} г.` : ""}`
+      : null;
+    return { label, detail };
+  }
   if (!info.trainingDay) {
-    const label = `К цели добавлены ${info.calorieBonusKcal} ккал за тренировку${approx}`;
+    const label = `К цели добавлены ${info.calorieBonusKcal} ккал сверх покоя${approx ? " · оценка" : ""}`;
     return {
       label,
-      detail: `${label}. Белок без изменений: это не силовая и не долгое кардио.`,
+      detail: `${label}. Это не полный расход: покой уже в норме дня. Белок без изменений: это не силовая и не долгое кардио.`,
     };
   }
   const protein =
     info.proteinBonusG > 0 ? ` · белок +${formatG(info.proteinBonusG)} г` : "";
   const calories =
     info.calorieBonusKcal > 0
-      ? `ещё ${info.calorieBonusKcal} ккал на восстановление`
+      ? `ещё ${info.calorieBonusKcal} ккал сверх покоя`
       : "расход появится, когда будет длительность";
-  const label = `День тренировки · ${calories}${protein}${approx}`;
+  const label = `День тренировки · ${calories}${protein}${info.burnApproximate ? " · оценка" : ""}`;
   const recovery =
     info.calorieBonusKcal > 0
-      ? `ещё ${info.calorieBonusKcal} ккал на восстановление`
+      ? `ещё ${info.calorieBonusKcal} ккал сверх покоя — оценка, не измерение`
       : "калории тренировки появятся вместе с длительностью";
   const proteinLine =
     info.proteinBonusG > 0
       ? ` и белок +${formatG(info.proteinBonusG)} г (0,25 г/кг)`
       : "";
-  const detail = `Обычная цель ${info.baseCalories} ккал и ${formatG(info.baseProtein)} г белка. Сегодня ${recovery}${proteinLine}.${info.burnApproximate ? " Калории тренировки приблизительные." : ""}`;
+  const detail = `Обычная цель ${info.baseCalories} ккал и ${formatG(info.baseProtein)} г белка. Сегодня ${recovery}${proteinLine}.`;
   return { label, detail };
 }
 
@@ -138,17 +158,19 @@ export function applyTrainingDayGoals(
     weightKg: number;
     sex?: Sex | null;
     heightCm?: number | null;
+    activityLevel?: ActivityLevel | null;
   },
 ): { target: DietTarget; training: TrainingDayInfo | null } {
   const burnKcal = Math.max(0, Math.round(Number(input.burnKcal) || 0));
   const trainingDay = Boolean(input.trainingDay);
-  if (!trainingDay && burnKcal <= 0) {
+  const counts = activityAlreadyCountsTraining(input.activityLevel);
+  const calorieBonusKcal = counts ? 0 : burnKcal;
+  if (!trainingDay && calorieBonusKcal <= 0) {
     return { target: base, training: null };
   }
   const proteinBonusG = trainingDay
     ? trainingProteinBonusG(input.weightKg, input.sex, input.heightCm)
     : 0;
-  const calorieBonusKcal = burnKcal;
   const partial = {
     trainingDay,
     calorieBonusKcal,
@@ -158,6 +180,7 @@ export function applyTrainingDayGoals(
     burnKcal,
     burnApproximate: Boolean(input.burnApproximate) && burnKcal > 0,
     sessionCount: Math.max(0, input.sessionCount ?? (trainingDay ? 1 : 0)),
+    activityAlreadyCountsTraining: counts,
   };
   const copy = buildCopy(partial);
   const training: TrainingDayInfo = { ...partial, ...copy };
@@ -174,7 +197,12 @@ export function applyTrainingDayGoals(
 export function dayTrainingFromSessions(
   base: DietTarget | null,
   sessions: Array<{ notable: boolean; energy: SessionEnergy }>,
-  profile: { weightKg: number; sex?: Sex | null; heightCm?: number | null },
+  profile: {
+    weightKg: number;
+    sex?: Sex | null;
+    heightCm?: number | null;
+    activityLevel?: ActivityLevel | null;
+  },
 ): { target: DietTarget | null; training: TrainingDayInfo | null } {
   if (!base) return { target: null, training: null };
   const notable = sessions.filter((session) => session.notable);
@@ -190,5 +218,6 @@ export function dayTrainingFromSessions(
     weightKg: profile.weightKg,
     sex: profile.sex,
     heightCm: profile.heightCm,
+    activityLevel: profile.activityLevel,
   });
 }
