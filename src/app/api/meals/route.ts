@@ -10,6 +10,7 @@ import {
   validateSaveMealInput,
   type SaveMealInput,
 } from "@/lib/save-meal";
+import { mealImagePathForUser } from "@/lib/upload";
 
 type SaveMealBody = SaveMealInput;
 type BatchSaveMealBody = { entries: SaveMealInput[] };
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
       const entries = await prisma.$transaction(async (tx) => {
         const created = [];
         for (const row of validated) {
-          const data = buildMealCreateData(session.user.id, row.entry, row.date);
+          const imagePath = await mealImagePathForUser(session.user.id, row.entry.imagePath);
+          const data = buildMealCreateData(session.user.id, { ...row.entry, imagePath: imagePath ?? undefined }, row.date);
           if (mealGroupId && !data.mealGroupId) {
             data.mealGroupId = mealGroupId;
           }
@@ -81,8 +83,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
+    const imagePath = await mealImagePathForUser(session.user.id, body.imagePath);
     const entry = await prisma.mealEntry.create({
-      data: buildMealCreateData(session.user.id, body, validation.date),
+      data: buildMealCreateData(session.user.id, { ...body, imagePath: imagePath ?? undefined }, validation.date),
     });
 
     await rememberMealCorrectionIfNeeded(session.user.id, body);

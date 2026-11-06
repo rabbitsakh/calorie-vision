@@ -8,6 +8,7 @@ import { dateKeyAndTimeToIso, toTimeInputValue } from "@/lib/dates";
 import { getImageUrl, withBasePath } from "@/lib/paths";
 import { RECOGNITION_SOURCE_LABELS } from "@/lib/food-types";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { caloriesFromField, photoConfirmCaloriesError } from "@/lib/known-calories";
 import {
   draftFromRecognition,
   draftsFromRecognition,
@@ -619,9 +620,10 @@ export function FoodConfirmSheet({
   }
 
   async function buildSavePayload(dish: DishDraft, mealGroupId?: string) {
-    const parsedCalories = Number(dish.calories);
-    if (!dish.dishName.trim() || !Number.isFinite(parsedCalories) || parsedCalories <= 0) {
-      throw new Error("Проверьте название и калорийность каждого блюда");
+    const calorieError = photoConfirmCaloriesError(dish.calories);
+    const parsedCalories = caloriesFromField(dish.calories);
+    if (!dish.dishName.trim() || calorieError || parsedCalories == null) {
+      throw new Error(calorieError ?? "Проверьте название и калорийность каждого блюда");
     }
 
     const parsedProtein = parseOptionalNumber(dish.protein);

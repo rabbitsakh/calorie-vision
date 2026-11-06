@@ -10,6 +10,7 @@ import {
 } from "@/lib/dates";
 import { withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
+import { caloriesFromField, macroFromField } from "@/lib/known-calories";
 import {
   formatMacro,
   nutritionBaseline,
@@ -148,15 +149,20 @@ export function InlineEdit({
       if (!eatenAt) {
         throw new Error("Укажите корректное время");
       }
+      const parsedCalories = caloriesFromField(calories);
+      if (parsedCalories == null) {
+        throw new Error("Укажите корректную калорийность");
+      }
+      const portion = macroFromField(portionGrams);
       await onSave({
         dishName,
-        calories: Number(calories),
-        protein: protein ? Number(protein) : null,
-        fat: fat ? Number(fat) : null,
-        carbs: carbs ? Number(carbs) : null,
-        fiber: fiber ? Number(fiber) : null,
-        sugar: sugar ? Number(sugar) : null,
-        portionGrams: portionGrams ? Number(portionGrams) : null,
+        calories: parsedCalories,
+        protein: macroFromField(protein),
+        fat: macroFromField(fat),
+        carbs: macroFromField(carbs),
+        fiber: macroFromField(fiber),
+        sugar: macroFromField(sugar),
+        portionGrams: portion != null && portion > 0 ? portion : null,
         mealType: mealType || null,
         eatenAt,
         ...(dateKey !== entry.date ? { date: dateKey } : {}),
@@ -176,7 +182,7 @@ export function InlineEdit({
         </div>
         <div className="field">
           <label className="text-xs">Калории, ккал</label>
-          <input type="number" min="1" inputMode="decimal" className="text-base" value={calories} onChange={(e) => setCalories(e.target.value)} required />
+          <input type="number" min="0" inputMode="decimal" className="text-base" value={calories} onChange={(e) => setCalories(e.target.value)} required />
         </div>
         <div className="field">
           <label className="text-xs">Порция, г</label>
