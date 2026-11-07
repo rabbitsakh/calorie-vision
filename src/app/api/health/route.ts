@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readPackageVersion } from "@/lib/read-package-version";
+import { buildHealthBody } from "@/lib/build-identity";
+import { readDisplayedBuildIdentity } from "@/lib/read-build-identity";
 
 export const dynamic = "force-dynamic";
 
@@ -8,20 +9,13 @@ export const dynamic = "force-dynamic";
  * CORS * — Capacitor shell probes from https://localhost / capacitor origin.
  */
 export async function GET() {
-  return NextResponse.json(
-    {
-      ok: true,
-      service: "calorie-vision",
-      version: readPackageVersion(),
+  return NextResponse.json(buildHealthBody(readDisplayedBuildIdentity()), {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Cache-Control": "no-store",
     },
-    {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
-        "Cache-Control": "no-store",
-      },
-    },
-  );
+  });
 }
 
 export async function OPTIONS() {

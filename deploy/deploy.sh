@@ -148,7 +148,9 @@ deploy_stats() {
   local total=$((SECONDS - _DEPLOY_T0))
   local sha ver mode mem heap health
   sha="$(git rev-parse --short HEAD 2>/dev/null || echo '?')"
-  ver="$(node -e "console.log(require('./package.json').version)" 2>/dev/null || echo '?')"
+  # package.json после сборки откатывается к закоммиченной версии. Штамп берётся из git.
+  ver="$(node --experimental-strip-types --no-warnings -e "import { readBuildStamp } from './src/lib/read-build-identity.ts'; console.log(readBuildStamp().version)" 2>/dev/null \
+    || node -e "console.log(require('./package.json').version)" 2>/dev/null || echo '?')"
   if (( KEEP_LIVE )); then
     mode="live · сайт не гасили"
   else

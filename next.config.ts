@@ -1,10 +1,12 @@
 import { withSentryConfig } from "@sentry/nextjs";
-import { readPackageVersion } from "./src/lib/read-package-version";
+import { readBuildStamp } from "./src/lib/read-build-identity.ts";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-const appVersion = readPackageVersion();
+const buildStamp = readBuildStamp();
+const appVersion = buildStamp.version;
+const appCommit = buildStamp.commit ?? "";
 
-console.info(`Calorie Vision v${appVersion}`);
+console.info(`Calorie Vision v${appVersion}${buildStamp.commit ? ` (${buildStamp.commit})` : ""}`);
 
 /** Parallel webpack workers — default 2 fits ~4c/8 GB; override with NEXT_BUILD_CPUS=1 on tight VPS. */
 const buildCpus = Number.parseInt(process.env.NEXT_BUILD_CPUS ?? "2", 10);
@@ -27,6 +29,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BASE_PATH: basePath,
     NEXT_PUBLIC_APP_VERSION: appVersion,
+    NEXT_PUBLIC_APP_COMMIT: appCommit,
   },
 };
 
