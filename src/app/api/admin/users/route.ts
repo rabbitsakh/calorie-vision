@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseAdminPageOffset, parseAdminPageSize, type AdminUserRow } from "@/lib/admin";
+import { signupSourceLabel } from "@/lib/signup-attribution";
 import { requireAdmin } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
           timezone: true,
           image: true,
           createdAt: true,
+          signupAttribution: true,
           _count: {
             select: {
               mealEntries: true,
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
       mealCount: row._count.mealEntries,
       weightCount: row._count.weightEntries,
       photoCount: photosByUser.get(row.id) ?? 0,
+      signupSource: signupSourceLabel(row.signupAttribution),
     }));
 
     return NextResponse.json({

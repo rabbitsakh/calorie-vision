@@ -15,6 +15,8 @@ export type AdminUserRow = {
   mealCount: number;
   weightCount: number;
   photoCount: number;
+  /** utm_source · utm_campaign, если человек пришёл с рекламы. */
+  signupSource: string | null;
 };
 
 export type AdminUsersResponse = {

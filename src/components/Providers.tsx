@@ -2,6 +2,7 @@
 
 import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect, type ReactNode } from "react";
+import { AttributionCapture } from "@/components/AttributionCapture";
 import { CapacitorQueueBadgeHost } from "@/components/CapacitorQueueBadgeHost";
 import { MetrikaFunnel } from "@/components/MetrikaFunnel";
 import { detectCapacitorShell, markCapacitorShell } from "@/lib/capacitor-bridge";
@@ -104,6 +105,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <CapacitorQueueBadgeHost />
       <CapacitorReminderDeepLink />
       <MetrikaFunnel />
+      <AttributionCapture />
       {children}
     </SessionProvider>
   );

@@ -78,6 +78,8 @@ model User {
   workoutPrefsJson Json?
   /** AI assistant prefs: likes / dislikes / free-text notes (JSON). */
   assistantPrefsJson Json?
+  /** First-touch ad UTMs (utm_source…utm_term). Set once, no later overwrite. */
+  signupAttribution Json?
   /** Equipped collection frame key (synced across devices). */
   equippedFrameKey   String? @db.VarChar(64)
   /** Equipped diary sticker key (synced across devices). */
