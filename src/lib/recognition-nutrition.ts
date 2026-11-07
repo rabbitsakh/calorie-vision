@@ -2,6 +2,7 @@ import type { FoodRecognitionResult } from "./food-types";
 import { looksLikePreparedFoodName } from "./ai/sticker-vision";
 import { inferDrinkPackMlFromText, looksLikeDrinkName } from "./portion-unit";
 import { isSuspiciousSoupOnPackaged, looksLikeSoupName } from "./package-name-guard";
+import { applyNutritionConsistency } from "./nutrition-consistency";
 import { nutritionBaseline, scaleNutritionByPortion, type NutritionValues } from "./nutrition";
 
 const DEFAULT_MEAL_PORTION_GRAMS = 250;
@@ -788,17 +789,19 @@ export function normalizeRecognitionNutrition(result: FoodRecognitionResult): Fo
     portionGrams: portionGrams && portionGrams > 0 ? portionGrams : undefined,
   });
 
-  return clearSuspiciousZeroFiberSugar({
-    ...coalesced,
-    per100g,
-    calories: reconciled.calories,
-    protein: reconciled.protein,
-    fat: reconciled.fat,
-    carbs: reconciled.carbs,
-    fiber,
-    sugar,
-    portionGrams,
-  });
+  return clearSuspiciousZeroFiberSugar(
+    applyNutritionConsistency({
+      ...coalesced,
+      per100g,
+      calories: reconciled.calories,
+      protein: reconciled.protein,
+      fat: reconciled.fat,
+      carbs: reconciled.carbs,
+      fiber,
+      sugar,
+      portionGrams,
+    }),
+  );
 }
 
 /** True when confirm should warn about missing calories (per-100 density recovers totals). */

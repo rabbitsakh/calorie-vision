@@ -1,4 +1,4 @@
-import { FOOD_JSON_SHAPE, FOOD_RECOGNITION_PROMPT } from "./prompt";
+import { FOOD_JSON_SHAPE, FOOD_RECOGNITION_PROMPT, FOOD_VISION_ACCURACY_RULES } from "./prompt";
 
 /** Main vision JSON without fiber/sugar — filled by post-vision enrichment. */
 export const FOOD_JSON_SHAPE_SLIM = `{
@@ -47,7 +47,8 @@ ${FOOD_JSON_SHAPE_SLIM}
 - meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
 - meal/package: несколько видимых единиц (разные ИЛИ одинаковые) → items 2–8 по одной на единицу; иначе items []
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
-- не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1`;
+- не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
+${FOOD_VISION_ACCURACY_RULES}`;
 
 const SLIM_PROMPT = `Ты диетолог и CV-эксперт. Проанализируй ФОТО еды.
 
@@ -69,7 +70,8 @@ ${FOOD_JSON_SHAPE_SLIM}
 - meal/package без таблицы: per100g нули; calories/protein/fat/carbs — на всю порцию portionGrams
 - meal/package: несколько видимых единиц (разные ИЛИ одинаковые) → items 2–8 по одной на единицу; иначе items []
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
-- не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1`;
+- не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
+${FOOD_VISION_ACCURACY_RULES}`;
 
 export function resolvePromptVariant(): PromptVariant {
   const env = process.env.GIGACHAT_PROMPT_VARIANT?.trim().toLowerCase();

@@ -1,3 +1,5 @@
+import { FOOD_VISION_ACCURACY_RULES } from "./prompt";
+
 /** Shared compact JSON shape for short category second-passes. */
 export const CATEGORY_JSON_SHAPE = `{
   "photoKind": "meal",
@@ -48,7 +50,8 @@ ${CATEGORY_JSON_SHAPE}
 - верхние calories/protein/fat/carbs/fiber/sugar/portionGrams = суммы по items
 - barcode: "", brand: "", alternatives: [], per100g: все нули
 - не сливай мясо и гарнир в один item; не сливай две одинаковые упаковки в один item
-- не выдумывай блюда, которых нет на фото`;
+- не выдумывай блюда, которых нет на фото
+${FOOD_VISION_ACCURACY_RULES}`;
 }
 
 /**
@@ -134,5 +137,7 @@ ${CATEGORY_JSON_SHAPE}
 - sugar: особенно важен для соков/газировки/молочных напитков
 - если на этикетке «на 100 мл» — заполни per100g и пересчитай верхние поля на объём; не оставляй ккал/100 мл в calories
 - items: [], alternatives: []
+- для пива, вина и крепкого calories включают спирт (≈7 ккал/г этанола), не только БЖУ
+- сахар в кофе, сироп и молоко в латте — в carbs и calories
 - не путай твёрдую еду с напитком`;
 }
