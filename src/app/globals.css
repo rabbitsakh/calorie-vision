@@ -10165,3 +10165,116 @@ button.profile-settings__door:disabled {
     background-color: var(--card);
   }
 }
+
+.gym-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.gym-tour__backdrop,
+.gym-tour__hole {
+  position: fixed;
+  pointer-events: auto;
+}
+
+.gym-tour__backdrop {
+  inset: 0;
+  background: rgba(7, 26, 23, 0.55);
+}
+
+.gym-tour__hole {
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+}
+
+.gym-tour__card {
+  position: fixed;
+  left: max(0.75rem, env(safe-area-inset-left));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 91;
+  max-width: 24rem;
+  margin-inline: auto;
+  border-radius: 1.15rem;
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.95rem 1rem 0.85rem;
+  box-shadow: var(--shadow-card);
+}
+
+.gym-tour__card--bottom {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+.gym-tour__card--top {
+  top: calc(0.75rem + env(safe-area-inset-top));
+}
+
+.gym-tour__kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.gym-tour__title {
+  margin: 0.25rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.gym-tour__body {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 620;
+  line-height: 1.4;
+  color: var(--muted-strong);
+}
+
+.gym-tour__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.gym-tour__dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.gym-tour__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+.gym-tour__dot.is-on {
+  width: 16px;
+  background: var(--accent);
+}
+
+.gym-tour__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gym-tour__skip {
+  min-height: 40px;
+  padding: 0 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted-strong);
+}
+
+.gym-tour__next {
+  min-height: 40px;
+  padding-inline: 0.95rem;
+}

@@ -862,6 +862,12 @@ export function WorkoutsView({
   }, [searchParams, router, viewDate]);
 
   useEffect(() => {
+    const tour = searchParams.get("tour");
+    if (tour === "programs" || tour === "coach") setHubTab("templates");
+    else if (tour === "muscles") setHubTab("today");
+  }, [searchParams]);
+
+  useEffect(() => {
     if (detail?.muscleKeys?.length) {
       void loadInsights(detail.muscleKeys);
     }
@@ -2482,6 +2488,7 @@ export function WorkoutsView({
               key={id}
               type="button"
               role="tab"
+              data-tour={id === "today" ? "gym-today" : undefined}
               aria-selected={active}
               onClick={() => {
                 if (id === "today") {

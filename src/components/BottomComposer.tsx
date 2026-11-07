@@ -105,7 +105,7 @@ export function BottomComposer({ date, disabled = false }: Props) {
         role="search"
         aria-label="Записать еду"
       >
-        <Link href={assistantHref} className="bottom-composer-ai" aria-label="AI‑ассистент">
+        <Link href={assistantHref} className="bottom-composer-ai" aria-label="AI‑ассистент" data-tour="assistant">
           <svg aria-hidden className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M12 3l1.2 3.6L17 8l-3.8 1.4L12 13l-1.2-3.6L7 8l3.8-1.4L12 3z" strokeLinejoin="round" />
             <path d="M18.5 13.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z" strokeLinejoin="round" />
