@@ -1,4 +1,5 @@
 import { looksLikeImageBuffer } from "@/lib/ai/image-utils";
+import { RECOGNIZE_PHOTO_ALIAS, RECOGNIZE_PHOTO_FIELD } from "@/lib/guest-recognize";
 import { compressFoodImage } from "@/lib/image-compress";
 import { MAX_UPLOAD_INPUT_BYTES } from "@/lib/upload-limits";
 
@@ -42,11 +43,20 @@ export function parseRecognitionContext(
   return undefined;
 }
 
+/** Сначала `photo`, затем устаревшее `image` с /try. */
+export function recognizePhotoEntry(formData: FormData): FormDataEntryValue | null {
+  for (const key of [RECOGNIZE_PHOTO_FIELD, RECOGNIZE_PHOTO_ALIAS]) {
+    const value = formData.get(key);
+    if (isUploadFile(value) && value.size > 0) return value;
+  }
+  return formData.get(RECOGNIZE_PHOTO_FIELD) ?? formData.get(RECOGNIZE_PHOTO_ALIAS);
+}
+
 export async function prepareRecognizeUpload(formData: FormData): Promise<
   | { ok: true; data: PreparedRecognizeUpload }
   | { ok: false; error: string; status: number }
 > {
-  const file = formData.get("photo");
+  const file = recognizePhotoEntry(formData);
 
   if (!isUploadFile(file) || file.size <= 0) {
     return { ok: false, error: "Фото не найдено", status: 400 };
