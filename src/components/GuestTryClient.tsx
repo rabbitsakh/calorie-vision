@@ -5,7 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
 import { formatCalorieEstimate } from "@/lib/calorie-estimate-range";
 import type { FoodRecognitionResult } from "@/lib/food-types";
-import { appendRecognizePhoto, GUEST_RECOGNIZE_LIMIT, guestMacroLine } from "@/lib/guest-recognize";
+import {
+  appendRecognizePhoto,
+  GUEST_AFTER_RESULT_NOTE,
+  GUEST_RECOGNIZE_LIMIT,
+  guestLimitExhaustedMessage,
+  guestMacroLine,
+} from "@/lib/guest-recognize";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
 import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
@@ -35,6 +41,19 @@ function bumpUsed(): number {
     // ignore
   }
   return next;
+}
+
+function GuestNextLinks() {
+  return (
+    <>
+      <Link href="/login" className="btn btn-primary guest-try-save">
+        Зарегистрироваться и сохранить
+      </Link>
+      <Link href="/install" className="btn btn-secondary guest-try-save">
+        Скачать приложение
+      </Link>
+    </>
+  );
 }
 
 function flatten(recognition: FoodRecognitionResult): FoodRecognitionResult[] {
@@ -82,7 +101,7 @@ export function GuestTryClient() {
       };
       if (resp.status === 429 && payload.guestLimit === GUEST_LIMIT) {
         setUsed(GUEST_LIMIT);
-        setError(payload.error ?? "Лимит без входа исчерпан");
+        setError(payload.error ?? guestLimitExhaustedMessage());
         return;
       }
       if (!resp.ok || !payload.recognition) {
@@ -161,13 +180,10 @@ export function GuestTryClient() {
         ) : null}
 
         {blocked ? (
-          <p className="guest-try-hint">
-            Лимит исчерпан.{" "}
-            <Link href="/login" className="font-semibold text-[var(--accent)]">
-              Войдите
-            </Link>
-            , чтобы распознавать дальше и вести дневник.
-          </p>
+          <div className="guest-try-next" role="status">
+            <p>{guestLimitExhaustedMessage()}</p>
+            {dishes.length === 0 ? <GuestNextLinks /> : null}
+          </div>
         ) : (
           <p className="guest-try-hint">
             Тарелка, упаковка или этикетка — лучше при хорошем свете. {PHOTO_SCALE_TIP_SHORT}
@@ -208,9 +224,10 @@ export function GuestTryClient() {
               );
             })}
           </ul>
-          <Link href="/login" className="btn btn-primary guest-try-save">
-            Войти и сохранить в дневник
-          </Link>
+          <div className="guest-try-next">
+            <p>{GUEST_AFTER_RESULT_NOTE}</p>
+            <GuestNextLinks />
+          </div>
         </section>
       ) : null}
     </main>

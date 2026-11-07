@@ -1,6 +1,5 @@
 import { randomUUID } from "crypto";
 import https from "https";
-import { URL } from "url";
 import type { FoodRecognitionResult } from "../food-types";
 import {
   buildBarcodeLookupPrompt,

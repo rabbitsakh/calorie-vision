@@ -7,6 +7,7 @@ import type { NextRequest } from "next/server";
 import {
   GUEST_RECOGNIZE_LIMIT,
   GUEST_RECOGNIZE_WINDOW_MS,
+  guestLimitExhaustedMessage,
 } from "@/lib/guest-recognize";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import {
@@ -48,7 +49,7 @@ export async function gateGuestRecognize(
     return {
       ok: false,
       status: 429,
-      error: `Без входа доступно ${GUEST_RECOGNIZE_LIMIT} фото в сутки. Войдите, чтобы продолжить.`,
+      error: guestLimitExhaustedMessage(),
       retryAfterSec: rate.retryAfterSec,
     };
   }

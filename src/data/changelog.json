@@ -1,5 +1,16 @@
 [
   {
+    "version": "3.6.0",
+    "date": "2026-11-07",
+    "summary": "Версия пакета догнала штамп сборки 3.6.0",
+    "items": [
+      {
+        "kind": "improvement",
+        "text": "npm start показывает 3.6.0. Штамп по числу влитий и health по-прежнему главнее файла package.json"
+      }
+    ]
+  },
+  {
     "version": "3.1.7",
     "date": "2026-10-29",
     "summary": "design D35: moment hero CTA, quick-log portions + meal slot",

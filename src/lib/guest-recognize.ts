@@ -5,6 +5,15 @@
 
 export const GUEST_RECOGNIZE_LIMIT = 2;
 export const GUEST_RECOGNIZE_WINDOW_MS = 24 * 60 * 60_000;
+
+/** Текст, когда 2 гостевых фото на IP уже потрачены. */
+export function guestLimitExhaustedMessage(limit = GUEST_RECOGNIZE_LIMIT): string {
+  return `Гостевой лимит исчерпан: без входа доступно ${limit} фото в сутки. Зарегистрируйтесь, чтобы продолжить и сохранять блюда в дневник.`;
+}
+
+/** Под результатом /try: оценка не записана, пока нет аккаунта. */
+export const GUEST_AFTER_RESULT_NOTE =
+  "Это оценка по фото, в дневник она не записана. Зарегистрируйтесь, чтобы сохранять блюда, или скачайте приложение.";
 export const RECOGNIZE_PHOTO_FIELD = "photo";
 export const RECOGNIZE_PHOTO_ALIAS = "image";
 
