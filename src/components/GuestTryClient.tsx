@@ -14,6 +14,12 @@ import {
 } from "@/lib/guest-recognize";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { withBasePath } from "@/lib/paths";
+import {
+  hrefWithAttribution,
+  mergeFirstTouch,
+  readStoredAttribution,
+  type SignupAttribution,
+} from "@/lib/signup-attribution";
 import { PHOTO_SCALE_TIP_SHORT } from "@/lib/photo-scale-tip";
 
 const GUEST_USED_KEY = "cv-guest-recognize-used";
@@ -43,10 +49,10 @@ function bumpUsed(): number {
   return next;
 }
 
-function GuestNextLinks() {
+function GuestNextLinks({ loginHref }: { loginHref: string }) {
   return (
     <>
-      <Link href="/login" className="btn btn-primary guest-try-save">
+      <Link href={loginHref} className="btn btn-primary guest-try-save">
         Зарегистрироваться и сохранить
       </Link>
       <Link href="/install" className="btn btn-secondary guest-try-save">
@@ -73,6 +79,13 @@ export function GuestTryClient() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GuestResult | null>(null);
+  const [attribution, setAttribution] = useState<SignupAttribution | null>(null);
+
+  useEffect(() => {
+    setAttribution(mergeFirstTouch(readStoredAttribution(window.localStorage), null));
+  }, []);
+
+  const loginHref = hrefWithAttribution("/login", attribution);
 
   useEffect(() => {
     setUsed(readUsed());
@@ -127,7 +140,7 @@ export function GuestTryClient() {
           <BrandMark size={40} decorative={false} />
           <span>Calorie Vision</span>
         </Link>
-        <Link href="/login" className="btn btn-primary text-sm">
+        <Link href={loginHref} className="btn btn-primary text-sm">
           Войти
         </Link>
       </header>
@@ -182,7 +195,7 @@ export function GuestTryClient() {
         {blocked ? (
           <div className="guest-try-next" role="status">
             <p>{guestLimitExhaustedMessage()}</p>
-            {dishes.length === 0 ? <GuestNextLinks /> : null}
+            {dishes.length === 0 ? <GuestNextLinks loginHref={loginHref} /> : null}
           </div>
         ) : (
           <p className="guest-try-hint">
@@ -226,7 +239,7 @@ export function GuestTryClient() {
           </ul>
           <div className="guest-try-next">
             <p>{GUEST_AFTER_RESULT_NOTE}</p>
-            <GuestNextLinks />
+            <GuestNextLinks loginHref={loginHref} />
           </div>
         </section>
       ) : null}

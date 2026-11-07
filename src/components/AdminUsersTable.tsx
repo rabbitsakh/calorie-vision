@@ -151,6 +151,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
                 {sexLabel(user.sex) ?? "пол не указан"}
                 {" · "}
                 {formatRegisteredAt(user.createdAt)}
+                {user.signupSource ? ` · ${user.signupSource}` : ""}
               </p>
               {showCounts ? (
                 <p className="mt-1 text-sm text-slate-500">
@@ -179,6 +180,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
               <th>Телефон</th>
               <th>Пол</th>
               <th>Регистрация</th>
+              <th>Источник</th>
               {showCounts ? (
                 <>
                   <th>Блюда</th>
@@ -202,6 +204,7 @@ export function AdminUsersTable({ showCounts = false }: AdminUsersTableProps) {
                 <td>{user.phone ? formatPhoneDisplay(user.phone) : "—"}</td>
                 <td>{sexLabel(user.sex) ?? "—"}</td>
                 <td>{formatRegisteredAt(user.createdAt)}</td>
+                <td>{user.signupSource ?? "—"}</td>
                 {showCounts ? (
                   <>
                     <td>{user.mealCount}</td>
