@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { isStaleServerActionError, reloadOnceForStaleServerAction } from "@/lib/stale-server-action";
 
 export default function GlobalError({
   error,
@@ -9,9 +10,24 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [hold, setHold] = useState(() => isStaleServerActionError(error));
+
   useEffect(() => {
+    if (reloadOnceForStaleServerAction(error)) return;
+    if (isStaleServerActionError(error)) {
+      setHold(false);
+      return;
+    }
     console.error(error);
   }, [error]);
+
+  if (hold) {
+    return (
+      <html lang="ru">
+        <body />
+      </html>
+    );
+  }
 
   return (
     <html lang="ru">
