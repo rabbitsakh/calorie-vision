@@ -8,6 +8,8 @@ import { NextRequest } from "next/server";
 import sharp from "sharp";
 import {
   appendRecognizePhoto,
+  GUEST_AFTER_RESULT_NOTE,
+  guestLimitExhaustedMessage,
   guestMacroLine,
   RECOGNIZE_PHOTO_FIELD,
 } from "./guest-recognize.ts";
@@ -123,8 +125,16 @@ test("нет файла и не-multipart — 400, квота гостя не т
   assert.equal(blocked.ok, false);
   if (blocked.ok) return;
   assert.equal(blocked.status, 429);
+  assert.equal(blocked.error, guestLimitExhaustedMessage());
+  assert.match(blocked.error, /Гостевой лимит исчерпан/);
   assert.match(blocked.error, /2 фото/);
   assert.ok((blocked.retryAfterSec ?? 0) > 0);
+});
+
+test("после результата гостя зовут зарегистрироваться или скачать приложение", () => {
+  assert.match(GUEST_AFTER_RESULT_NOTE, /Зарегистрируйтесь/);
+  assert.match(GUEST_AFTER_RESULT_NOTE, /скачайте приложение/);
+  assert.match(guestLimitExhaustedMessage(), /Зарегистрируйтесь/);
 });
 
 test("строка БЖУ показывает настоящий ноль и не выдумывает пустые поля", () => {

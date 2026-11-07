@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, test } from "node:test";
 import {
   DEFAULT_APK_PATH,
@@ -20,6 +22,23 @@ afterEach(() => {
   else process.env.NEXT_PUBLIC_RUSTORE_URL = PREV_RUSTORE;
   if (PREV_BASE === undefined) delete process.env.NEXT_PUBLIC_BASE_PATH;
   else process.env.NEXT_PUBLIC_BASE_PATH = PREV_BASE;
+});
+
+test("релиз Android 3.6.0 поднимает versionCode выше 3.1.7", () => {
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
+    version: string;
+  };
+  const twa = JSON.parse(readFileSync(join(process.cwd(), "rustore/twa-manifest.json"), "utf8")) as {
+    appVersionName: string;
+    appVersionCode: number;
+  };
+  const [major, minor, patch] = pkg.version.split(".").map(Number);
+  const encoded = major * 10000 + minor * 100 + patch;
+  assert.equal(pkg.version, "3.6.0");
+  assert.equal(twa.appVersionName, pkg.version);
+  assert.equal(twa.appVersionCode, encoded);
+  assert.equal(twa.appVersionCode, 30600);
+  assert.ok(twa.appVersionCode > 30107);
 });
 
 test("getApkDownloadUrl defaults to public downloads path", () => {

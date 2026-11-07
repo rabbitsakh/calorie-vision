@@ -973,7 +973,12 @@ select {
     radial-gradient(120% 80% at 50% -10%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 55%),
     var(--background);
   color: var(--foreground);
-  padding: 0 1rem 2.5rem;
+  padding: 0 1rem calc(6.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* На /try нет нижней панели вкладок, иначе полоска cookies висит над кнопками. */
+body:has(.guest-try) .cookie-consent {
+  bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
 }
 
 .guest-try-top {
@@ -1118,6 +1123,24 @@ select {
 .guest-try-save {
   width: 100%;
   text-align: center;
+}
+
+.guest-try-next {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  padding: 0.9rem 0.95rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-quiet);
+  background: color-mix(in srgb, var(--accent) 8%, var(--card));
+}
+
+.guest-try-next p {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 /* D32 — «Как вчера» / избранное above the meal feed */
