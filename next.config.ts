@@ -1,5 +1,5 @@
 import { withSentryConfig } from "@sentry/nextjs";
-import { readBuildStamp } from "./src/lib/read-build-identity";
+import { readBuildStamp } from "./src/lib/read-build-identity.ts";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const buildStamp = readBuildStamp();

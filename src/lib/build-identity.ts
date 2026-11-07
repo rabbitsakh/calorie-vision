@@ -1,4 +1,4 @@
-import { APP_VERSION_BASE, versionFromPullRequestCount } from "./app-version";
+import { APP_VERSION_BASE, versionFromPullRequestCount } from "./app-version.ts";
 
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)$/;
 /** git rev-parse --short, обычно 7, иногда длиннее. */

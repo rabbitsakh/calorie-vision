@@ -4,8 +4,8 @@ import {
   displayedBuildVersion,
   stampBuildVersion,
   type BuildIdentity,
-} from "./build-identity";
-import { readPackageVersion } from "./read-package-version";
+} from "./build-identity.ts";
+import { readPackageVersion } from "./read-package-version.ts";
 
 function runGit(args: string): string | null {
   try {
