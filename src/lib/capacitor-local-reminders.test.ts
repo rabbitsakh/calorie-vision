@@ -119,6 +119,58 @@ test("localReminderCopy gym does not say continue", () => {
   assert.doesNotMatch(copy.body, /продолж/i);
 });
 
+test("пустое вечернее напоминание в приложении только без еды и по включению", () => {
+  const off = buildCapacitorReminderSchedule(quietFirstRunPrefs(), null, null, {
+    date: "2026-11-07",
+    mealCount: 0,
+    totalCalories: 0,
+    calorieTarget: 1800,
+    waterMl: 0,
+    waterTargetMl: 2000,
+    streak: 0,
+    streakBeforeToday: 0,
+    loggedToday: false,
+    hasBreakfast: false,
+    hasLunch: false,
+    hasDinner: false,
+    hasMood: false,
+  });
+  assert.ok(!off.some((item) => item.kind === "unlogged_dinner"));
+
+  const snap = {
+    date: "2026-11-07",
+    mealCount: 0,
+    totalCalories: 0,
+    calorieTarget: 1800,
+    waterMl: 0,
+    waterTargetMl: 2000,
+    streak: 0,
+    streakBeforeToday: 0,
+    loggedToday: false,
+    hasBreakfast: false,
+    hasLunch: false,
+    hasDinner: false,
+    hasMood: false,
+  };
+  const on = buildCapacitorReminderSchedule(
+    { unlogged_dinner: { enabled: true, hour: 17 } },
+    null,
+    null,
+    snap,
+  );
+  const nudge = on.find((item) => item.kind === "unlogged_dinner");
+  assert.equal(nudge?.hour, 17);
+  assert.equal(nudge?.body, "Вы ещё не записали ужин.");
+
+  const eaten = buildCapacitorReminderSchedule(
+    { unlogged_dinner: { enabled: true, hour: 17 } },
+    null,
+    null,
+    { ...snap, mealCount: 2, loggedToday: true, hasDinner: true },
+  );
+  assert.ok(!eaten.some((item) => item.kind === "unlogged_dinner"));
+});
+
 test("disabled kinds are omitted", () => {
   const items = buildCapacitorReminderSchedule(
     {

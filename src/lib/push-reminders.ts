@@ -265,6 +265,15 @@ export function buildReminderPayload(
         tag: "cv-lunch",
       };
 
+    case "unlogged_dinner":
+      if (ctx.mealCount > 0) return null;
+      return {
+        title: "Ужин",
+        body: "Вы ещё не записали ужин.",
+        url: dinnerUrl,
+        tag: "cv-unlogged-dinner",
+      };
+
     case "dinner":
       if (ctx.hasDinner) return null;
       if (ctx.mealCount === 0) {

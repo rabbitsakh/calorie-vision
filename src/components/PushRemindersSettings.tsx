@@ -21,6 +21,7 @@ import {
   QUIET_FIRST_RUN_KINDS,
   REMINDER_SCHEDULE,
   isEmptyPushReminderPrefs,
+  isOptInReminder,
   quietFirstRunPrefs,
   reminderKindLabel,
   type PushReminderPrefs,
@@ -64,8 +65,10 @@ function prefsFromServer(raw: PushReminderPrefs | null | undefined): Record<Remi
   for (const slot of REMINDER_SCHEDULE) {
     const pref = raw![slot.kind];
     if (!pref) {
-      // Missing kind in a saved prefs object → still on (same as effective schedule).
-      rows[slot.kind] = { enabled: true, hour: slot.hour };
+      rows[slot.kind] = {
+        enabled: !isOptInReminder(slot.kind),
+        hour: slot.hour,
+      };
       continue;
     }
     rows[slot.kind] = {
@@ -547,11 +550,14 @@ export function PushRemindersSettings() {
       <div className="mt-4 rounded-2xl border border-[var(--border-quiet)] bg-white px-4 py-3">
         <p className="text-sm font-semibold text-[var(--foreground)]">Какие напоминания слать</p>
         <p className="mt-1 text-sm text-[var(--muted-strong)]">
-          По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. Остальные — по желанию.
+          По умолчанию: обед, ужин, серия, неделя, возвращение и чек-ин. «Вы ещё не записали ужин» выключено, пока не включите. Остальные — по желанию.
         </p>
         <ul className="mt-3 space-y-2">
           {REMINDER_SCHEDULE.filter((slot) => QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {
-            const row = reminderPrefs[slot.kind] ?? { enabled: true, hour: slot.hour };
+            const row = reminderPrefs[slot.kind] ?? {
+              enabled: !isOptInReminder(slot.kind),
+              hour: slot.hour,
+            };
             return (
               <li
                 key={slot.kind}
@@ -605,7 +611,10 @@ export function PushRemindersSettings() {
         {showMoreReminders ? (
           <ul className="mt-2 space-y-2">
             {REMINDER_SCHEDULE.filter((slot) => !QUIET_FIRST_RUN_KINDS.includes(slot.kind)).map((slot) => {
-              const row = reminderPrefs[slot.kind] ?? { enabled: true, hour: slot.hour };
+              const row = reminderPrefs[slot.kind] ?? {
+              enabled: !isOptInReminder(slot.kind),
+              hour: slot.hour,
+            };
               return (
                 <li
                   key={slot.kind}

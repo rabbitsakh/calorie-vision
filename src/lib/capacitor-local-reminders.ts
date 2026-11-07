@@ -95,6 +95,7 @@ export const CAP_REMINDER_IDS: Record<ReminderKind, number> = {
   streak: 9109,
   checkin: 9110,
   gym: 9111,
+  unlogged_dinner: 9112,
 };
 
 const ALL_REMINDER_IDS = Object.values(CAP_REMINDER_IDS);
@@ -232,6 +233,8 @@ export function localReminderCopy(
         };
       }
       return { title: "Обед", body: "Не забудьте обед в дневнике." };
+    case "unlogged_dinner":
+      return { title: "Ужин", body: "Вы ещё не записали ужин." };
     case "dinner":
       if (s?.hasDinner) {
         return {
@@ -451,6 +454,7 @@ export function buildCapacitorReminderSchedule(
       const todayIso = new Date().toISOString().slice(0, 10);
       if (suppressGymDate === todayIso) continue;
     }
+    if (slot.kind === "unlogged_dinner" && diary && diary.mealCount > 0) continue;
     const copy = localReminderCopy(slot.kind, diary);
     items.push({
       id: CAP_REMINDER_IDS[slot.kind],
