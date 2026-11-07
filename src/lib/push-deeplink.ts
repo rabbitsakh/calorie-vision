@@ -12,6 +12,7 @@ export function mealTypeForReminder(kind: ReminderKind): MealType | null {
     case "lunch":
       return "LUNCH";
     case "dinner":
+    case "unlogged_dinner":
       return "DINNER";
     default:
       return null;

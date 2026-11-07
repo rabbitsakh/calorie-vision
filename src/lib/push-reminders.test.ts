@@ -84,13 +84,36 @@ test("quiet defaults keep dinner but skip water_evening", () => {
   assert.deepEqual(remindersForLocalTime(18, 1), ["dinner"]);
 });
 
-test("schedule has 11 reminder slots", () => {
-  assert.equal(REMINDER_SCHEDULE.length, 11);
+test("schedule has 12 reminder slots", () => {
+  assert.equal(REMINDER_SCHEDULE.length, 12);
 });
 
 test("dinner reminder skipped when already logged", () => {
   assert.equal(
     buildReminderPayload("dinner", { ...baseCtx, mealCount: 2, hasDinner: true }),
+    null,
+  );
+});
+
+test("пустое вечернее напоминание выключено, пока его не включат", () => {
+  assert.deepEqual(remindersForLocalTime(17, 1), []);
+  assert.deepEqual(remindersForLocalTime(17, 1, quietFirstRunPrefs()), []);
+  assert.deepEqual(
+    remindersForLocalTime(17, 1, { unlogged_dinner: { enabled: true } }),
+    ["unlogged_dinner"],
+  );
+  assert.deepEqual(
+    remindersForLocalTime(17, 1, { unlogged_dinner: { enabled: false } }),
+    [],
+  );
+});
+
+test("пустое вечернее напоминание только если сегодня нет еды", () => {
+  const empty = buildReminderPayload("unlogged_dinner", baseCtx);
+  assert.equal(empty?.body, "Вы ещё не записали ужин.");
+  assert.match(empty?.url ?? "", /meal=DINNER/);
+  assert.equal(
+    buildReminderPayload("unlogged_dinner", { ...baseCtx, mealCount: 1, hasBreakfast: true }),
     null,
   );
 });

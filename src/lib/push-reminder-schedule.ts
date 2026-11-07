@@ -9,7 +9,8 @@ export type ReminderKind =
   | "checkin"
   | "weekly"
   | "reactivation"
-  | "gym";
+  | "gym"
+  | "unlogged_dinner";
 
 export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekday?: number }> = [
   { kind: "weekly", hour: 9, weekday: 1 },
@@ -19,6 +20,7 @@ export const REMINDER_SCHEDULE: Array<{ kind: ReminderKind; hour: number; weekda
   { kind: "lunch", hour: 13 },
   { kind: "water_midday", hour: 14 },
   { kind: "dinner", hour: 18 },
+  { kind: "unlogged_dinner", hour: 17 },
   { kind: "water_evening", hour: 18 },
   { kind: "calories", hour: 19 },
   { kind: "streak", hour: 20 },
@@ -88,6 +90,13 @@ export function quietFirstRunPrefs(): PushReminderPrefs {
   return prefs;
 }
 
+/** Не входят в тихий набор: шлём только если человек явно включил. */
+export const OPT_IN_REMINDER_KINDS: ReminderKind[] = ["unlogged_dinner"];
+
+export function isOptInReminder(kind: ReminderKind): boolean {
+  return OPT_IN_REMINDER_KINDS.includes(kind);
+}
+
 export function isEmptyPushReminderPrefs(prefs?: PushReminderPrefs | null): boolean {
   return !prefs || Object.keys(prefs).length === 0;
 }
@@ -100,7 +109,9 @@ export function effectiveReminderSchedule(
   const result: Array<{ kind: ReminderKind; hour: number; weekday?: number }> = [];
   for (const slot of REMINDER_SCHEDULE) {
     const pref = resolved[slot.kind];
-    if (pref?.enabled === false) continue;
+    if (isOptInReminder(slot.kind)) {
+      if (pref?.enabled !== true) continue;
+    } else if (pref?.enabled === false) continue;
     const hour =
       pref?.hour != null && Number.isFinite(pref.hour)
         ? Math.min(23, Math.max(0, Math.trunc(pref.hour)))
@@ -129,6 +140,7 @@ export function reminderKindLabel(kind: ReminderKind, hour?: number): string {
     weekly: `Итог недели (пн ${time})`,
     reactivation: `Мягкое возвращение (${time})`,
     gym: `Сегодня зал (${time})`,
+    unlogged_dinner: `Вы ещё не записали ужин (${time})`,
   };
   return labels[kind];
 }
