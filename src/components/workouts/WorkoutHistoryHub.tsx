@@ -10,11 +10,9 @@ import {
   formatMonthTitle,
   getMonthGrid,
 } from "@/lib/dates";
-import {
-  formatDistanceKm,
-  formatDurationMinutes,
-} from "@/lib/workouts/cardio";
+import { formatDistanceKm } from "@/lib/workouts/cardio";
 import { formatWorkoutLoad, formatWorkoutTrend } from "@/lib/workouts/format";
+import { historySessionLoad } from "@/lib/workouts/history-card";
 import { MUSCLE_GROUPS, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 import { MuscleRecoveryCard } from "@/components/workouts/MuscleRecoveryCard";
 import type { MuscleRecoveryMap } from "@/lib/workouts/muscle-volume";
@@ -176,32 +174,27 @@ export function WorkoutHistoryHub({
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-0.5">
+        <div className="gym-cal-grid">
           {getMonthGrid(calYear, calMonth).map((day, i) => {
-            if (!day) return <div key={`e-${i}`} />;
+            if (!day) return <div key={`e-${i}`} className="gym-cal-pad" />;
             const count = calMarked[day] ?? 0;
             const selected = filterPeriod === "day" && filterDate === day;
+            const dayNum = Number(day.slice(8, 10));
             return (
               <button
                 key={day}
                 type="button"
-                className={`relative rounded-lg py-1.5 text-sm tabular-nums ${
-                  selected
-                    ? "bg-[var(--accent)] font-semibold text-white"
-                    : count > 0
-                      ? "bg-[var(--accent-soft)] font-medium text-[var(--accent-ink)] hover:bg-[var(--accent-soft)]"
-                      : "text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
-                }`}
+                className={`gym-cal-day${selected ? " is-selected" : ""}${count > 0 ? " has-session" : ""}`}
+                aria-pressed={selected}
+                aria-label={
+                  count > 0
+                    ? `${dayNum}, ${count === 1 ? "есть тренировка" : `тренировок: ${count}`}`
+                    : String(dayNum)
+                }
                 onClick={() => onPickDay(day)}
               >
-                {Number(day.slice(8, 10))}
-                {count > 0 ? (
-                  <span
-                    className={`absolute bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                      selected ? "bg-white" : "bg-[var(--accent)]"
-                    }`}
-                  />
-                ) : null}
+                <span className="gym-cal-day__num">{dayNum}</span>
+                <span className={`gym-cal-day__mark${count > 0 ? " is-on" : ""}`} aria-hidden />
               </button>
             );
           })}
@@ -381,79 +374,81 @@ export function WorkoutHistoryHub({
       ) : null}
 
       <ul className="flex flex-col gap-2">
-        {sessions.map((s) => (
+        {sessions.map((s) => {
+          const load = historySessionLoad(s);
+          return (
           <li
             key={s.id}
             className="gym-session-card"
           >
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--surface-mist)]"
+              className="gym-session-card__open"
               onClick={() => onOpenSession(s.id, { summary: false })}
             >
-              <div className="min-w-0">
-                <p className="font-semibold text-[var(--foreground)]">
-                  {formatDateWords(s.date)}
+              <div className="gym-session-card__copy">
+                <div className="gym-session-card__head">
+                  <p className="gym-session-card__date">{formatDateWords(s.date)}</p>
                   {s.clockStatus === "finished" ? (
-                    <span className="ml-2 inline-flex rounded-md bg-[var(--surface-mist)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--muted-strong)]">
+                    <span className="gym-session-card__badge">
                       итог{s.elapsedLabel ? ` · ${s.elapsedLabel}` : ""}
                     </span>
                   ) : s.clockStatus === "running" || s.clockStatus === "paused" ? (
-                    <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
+                    <span className="gym-session-card__badge gym-session-card__badge--live">
                       {s.clockStatus === "paused" ? "пауза" : "идёт"}
                     </span>
                   ) : null}
                   {(s.prCount ?? 0) > 0 ? (
-                    <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
+                    <span className="gym-session-card__badge gym-session-card__badge--live">
                       {s.prCount === 1 ? "1 рекорд" : `${s.prCount} рекорда`}
                     </span>
                   ) : null}
+                </div>
+                <p className="gym-session-card__title">
+                  {s.muscleLabels.join(" · ") || "Тренировка"}
                 </p>
-                <p className="truncate text-sm text-[var(--muted-strong)]">{s.muscleLabels.join(" · ")}</p>
-                <p className="text-xs text-[var(--muted)]">
+                <p className="gym-session-card__detail">
                   {s.exerciseCount} упр. · {s.setCount}{" "}
                   {s.cardioOnly ? "отр." : "подх."}
                 </p>
                 {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
               </div>
-              <p className="text-lg font-semibold tabular-nums text-[var(--foreground)]">
-                {s.cardioOnly
-                  ? s.cardioDistanceKm > 0
-                    ? `${formatDistanceKm(s.cardioDistanceKm)} км`
-                    : formatDurationMinutes(s.cardioDurationSec)
-                  : formatWorkoutLoad(s.totalLoad)}
+              <p className="gym-session-card__load">
+                <span className="gym-session-card__load-value">{load.value}</span>
+                <span className="gym-session-card__load-unit">{load.unit}</span>
               </p>
             </button>
-            {s.clockStatus === "finished" ? (
+            <div className="gym-session-card__actions">
+              {s.clockStatus === "finished" ? (
+                <button
+                  type="button"
+                  onClick={() => onOpenSession(s.id, { summary: true })}
+                >
+                  Итог
+                </button>
+              ) : null}
               <button
                 type="button"
-                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
-                onClick={() => onOpenSession(s.id, { summary: true })}
+                disabled={busy}
+                className="is-accent"
+                onClick={() => onRepeat(s.id)}
               >
-                Итог
+                Повторить
               </button>
-            ) : null}
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--accent-ink)] hover:bg-[var(--accent-soft)] disabled:opacity-40"
-              onClick={() => onRepeat(s.id)}
-            >
-              Повторить
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)] hover:bg-[var(--surface-mist)] disabled:opacity-40"
-              title="Сохранить как шаблон"
-              onClick={() =>
-                onSaveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))
-              }
-            >
-              Шаблон
-            </button>
+              <button
+                type="button"
+                disabled={busy}
+                title="Сохранить как шаблон"
+                onClick={() =>
+                  onSaveAsRoutine(s.id, s.note?.trim() || s.muscleLabels.join(" · "))
+                }
+              >
+                Шаблон
+              </button>
+            </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
