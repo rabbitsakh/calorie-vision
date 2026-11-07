@@ -100,7 +100,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
   };
 
   return (
-    <section className="gym-plane" aria-label="Готовые программы">
+    <section className="gym-plane" aria-label="Готовые программы" data-tour="gym-programs">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Готовые программы</p>
       <p className="mt-1 text-sm text-[var(--muted-strong)]">
         Схема из справочника, без весов. В дневник попадёт только после «Сохранить» или «Начать».
@@ -158,7 +158,7 @@ export function WorkoutProgramsPanel({ existingNames, busy, onSaveDrafts, onStar
         })}
       </ul>
 
-      <div className="mt-4 border-t border-[var(--border-hairline)] pt-3">
+      <div className="mt-4 border-t border-[var(--border-hairline)] pt-3" data-tour="gym-coach">
         <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Собрать под себя</p>
         <p className="mt-1 text-xs text-[var(--muted)]">
           Черновик с учётом цели, времени и свежести мышц. Еда не меняет веса. Это не медицинский совет.

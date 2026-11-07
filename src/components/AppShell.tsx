@@ -3,6 +3,7 @@
 import { AuthPanel } from "@/components/AuthPanel";
 import { BrandMark } from "@/components/BrandMark";
 import { FoodAddHost, useFoodAddUi } from "@/components/FoodAddHost";
+import { GymOnboarding } from "@/components/GymOnboarding";
 import { FoodAddModeMenu } from "@/components/FoodAddQuickMenu";
 import { ChestInboxToast } from "@/components/ChestInboxToast";
 import { MetaChestCelebration } from "@/components/MetaChestCelebration";
@@ -183,6 +184,7 @@ export function AppShell({
               {foodAddEnabled ? (
                 <Link
                   href="/assistant"
+                  data-tour="assistant"
                   className={`app-chrome__nav-link${
                     pathname === "/assistant" || pathname.startsWith("/assistant/")
                       ? " app-chrome__nav-link--active"
@@ -199,6 +201,7 @@ export function AppShell({
         </main>
 
         <MobileTabBar date={date} showAdd={foodAddEnabled} />
+        <GymOnboarding />
         <MetaChestCelebration />
         <ChestInboxToast />
         <ReferralChestToast />
