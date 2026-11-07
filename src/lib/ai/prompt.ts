@@ -18,6 +18,15 @@ export const FOOD_JSON_SHAPE = `{
 }`;
 
 /**
+ * Shared accuracy rules for meal vision (weight anchors, hidden fat, strict JSON).
+ * Kept out of label/barcode prompts: those must copy the package, not guess.
+ */
+export const FOOD_VISION_ACCURACY_RULES = `- Вес по фото: обеденная тарелка ≈25 см, вилка ≈19 см, ладонь, стакан 200–250 мл, бутылка 330/500/1000 мл. portionGrams — видимая порция, не подставляй 100 без причины
+- Скрытые масло и соусы: масло на сковороде, сливочное масло, майонез, заправка, соус, тёртый сыр, сахар в напитке. Включи их в fat, carbs и calories, даже если слой тонкий
+- Согласованность: calories ≈ 4·protein + 4·carbs + 9·fat, допуск 15%. Клетчатка внутри углеводов ≈2 ккал/г, этиловый спирт ≈7 ккал/г (пиво, вино, крепкое — не обнуляй эту разницу). Сумма items равна верхним calories, БЖУ и portionGrams
+- Строгий JSON: один объект, без markdown, комментариев и текста до или после`;
+
+/**
  * Main vision prompt — kept short to save GigaChat tokens.
  * Category-specific follow-ups live in later PRs / separate builders.
  */
@@ -45,6 +54,7 @@ ${FOOD_JSON_SHAPE}
 - одинаковые продукты тоже в items отдельно (не сливай в «2× …» без items)
 - alternatives: 0–3 варианта с calories и protein/fat/carbs если можешь; иначе []
 - не еда → dishName "Не удалось распознать еду", calories 0, confidence 0.1
+${FOOD_VISION_ACCURACY_RULES}
 
 Пример смешанной тарелки:
 {"photoKind":"meal","dishName":"Стейк, картофель, салат","brand":"","barcode":"","calories":670,"protein":46,"fat":33,"carbs":32,"fiber":5,"sugar":4,"portionGrams":430,"confidence":0.78,"alternatives":[],"items":[{"dishName":"Стейк говяжий","calories":400,"protein":40,"fat":20,"carbs":0,"fiber":0,"sugar":0,"portionGrams":150,"confidence":0.82},{"dishName":"Картофель запечённый","calories":180,"protein":4,"fat":6,"carbs":28,"fiber":3,"sugar":1,"portionGrams":200,"confidence":0.8},{"dishName":"Салат овощной","calories":90,"protein":2,"fat":7,"carbs":4,"fiber":2,"sugar":3,"portionGrams":80,"confidence":0.7}],"per100g":{"calories":0,"protein":0,"fat":0,"carbs":0,"fiber":0,"sugar":0}}`;
@@ -53,7 +63,8 @@ ${FOOD_JSON_SHAPE}
 export const FOOD_RECOGNITION_RETRY_PROMPT = `По фото еды верни ТОЛЬКО валидный JSON (без markdown) по схеме:
 ${FOOD_JSON_SHAPE}
 
-Исправь предыдущий ответ: валидный JSON; если на фото ≥2 единиц еды (в т.ч. одинаковых) — items 2–8 с ненулевыми calories/portionGrams; fiber/sugar — только если знаешь (не ставь 0 «на всякий случай»).`;
+Исправь предыдущий ответ: валидный JSON; если на фото ≥2 единиц еды (в т.ч. одинаковых) — items 2–8 с ненулевыми calories/portionGrams; fiber/sugar — только если знаешь (не ставь 0 «на всякий случай»).
+Вес по тарелке (~25 см), вилке и стакану. Масло, соус и заправку включи в fat. calories ≈ 4·protein+4·carbs+9·fat (±15%; клетчатка ≈2 ккал/г, спирт ≈7). Сумма items = итог.`;
 
 /** @deprecated use FOOD_RECOGNITION_RETRY_PROMPT as a full retry message */
 export const FOOD_RECOGNITION_RETRY_HINT = `Предыдущий ответ был неполным или невалидным JSON.
