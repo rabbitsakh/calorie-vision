@@ -73,6 +73,11 @@ export function formatAppVersion(version: string): string {
   return `v${version}`;
 }
 
+/** Подпись в подвале и админке. Только env сборки — без git, чтобы не тащить node в клиент. */
 export function getAppVersionLabel(): string {
-  return formatAppVersion(process.env.NEXT_PUBLIC_APP_VERSION ?? APP_VERSION_BASE);
+  const raw = process.env.NEXT_PUBLIC_APP_VERSION?.trim() ?? "";
+  const version = /^\d+\.\d+\.\d+$/.test(raw) ? raw : APP_VERSION_BASE;
+  const commit = process.env.NEXT_PUBLIC_APP_COMMIT?.trim().toLowerCase() ?? "";
+  const sha = /^[0-9a-f]{7,40}$/.test(commit) ? commit : "";
+  return sha ? `v${version} · ${sha}` : `v${version}`;
 }
