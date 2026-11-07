@@ -155,6 +155,14 @@ export function AuthPanel({ compactTrigger = false }: { compactTrigger?: boolean
                   Статистика
                 </Link>
                 <Link
+                  href="/admin/attribution"
+                  role="menuitem"
+                  className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
+                  onClick={() => setOpen(false)}
+                >
+                  Источники
+                </Link>
+                <Link
                   href="/admin/changelog"
                   role="menuitem"
                   className="block px-4 py-2.5 text-sm font-medium text-[var(--muted-strong)] hover:bg-[var(--surface-mist)]"
