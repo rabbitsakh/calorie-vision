@@ -9609,8 +9609,10 @@ button.profile-settings__door:disabled {
 
 .gym-session-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: stretch;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-quiet);
@@ -9619,13 +9621,10 @@ button.profile-settings__door:disabled {
 }
 
 .gym-session-card__open {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.35rem;
-  width: 100%;
+  display: block;
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 0.75rem 0.9rem 0.6rem;
+  padding: 0.65rem 0.7rem;
   text-align: left;
 }
 
@@ -9684,24 +9683,39 @@ button.profile-settings__door:disabled {
   color: var(--muted);
 }
 
+.gym-session-card__rail {
+  display: flex;
+  flex: 0 0 5.15rem;
+  flex-direction: column;
+  align-items: stretch;
+  width: 5.15rem;
+  max-width: 5.5rem;
+  border-left: 1px solid var(--border-hairline);
+}
+
 .gym-session-card__load {
   display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  margin: 0.15rem 0 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  margin: 0;
+  padding: 0.4rem 0.2rem 0.3rem;
+  text-align: center;
 }
 
 .gym-session-card__load-value {
-  font-size: 1.35rem;
+  font-size: 0.95rem;
   font-weight: 750;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 1.1;
   color: var(--foreground);
 }
 
 .gym-session-card__load-unit {
-  font-size: 0.8rem;
-  font-weight: 650;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
   color: var(--muted);
 }
 
@@ -9709,76 +9723,47 @@ button.profile-settings__door:disabled {
   max-width: none;
 }
 
-.gym-session-card__actions {
-  display: flex;
+.gym-session-card__rail > button {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  padding: 0.2rem 0.25rem;
   border-top: 1px solid var(--border-hairline);
-}
-
-.gym-session-card__actions > button {
-  flex: 1 1 0;
-  min-height: 44px;
-  padding: 0.35rem 0.25rem;
-  border-left: 1px solid var(--border-hairline);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1.15;
   color: var(--muted-strong);
 }
 
-.gym-session-card__actions > button:first-child {
-  border-left: 0;
-}
-
-.gym-session-card__actions > button:hover {
+.gym-session-card__rail > button:hover {
   background: var(--surface-mist);
 }
 
-.gym-session-card__actions > button.is-accent {
+.gym-session-card__rail > button.is-accent {
   color: var(--accent-ink);
 }
 
-.gym-session-card__actions > button.is-accent:hover {
+.gym-session-card__rail > button.is-accent:hover {
   background: var(--accent-soft);
 }
 
-.gym-session-card__actions > button:disabled {
+.gym-session-card__rail > button:disabled {
   opacity: 0.4;
 }
 
 @media (min-width: 768px) {
-  .gym-session-card {
-    flex-direction: row;
+  .gym-session-card__rail {
+    flex-basis: 6.25rem;
+    width: 6.25rem;
+    max-width: 6.5rem;
   }
 
-  .gym-session-card__open {
-    flex: 1;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-height: 72px;
+  .gym-session-card__load-value {
+    font-size: 1.05rem;
   }
 
-  .gym-session-card__load {
-    flex-direction: column;
-    align-items: flex-end;
-    margin: 0;
-    text-align: right;
-  }
-
-  .gym-session-card__actions {
-    width: auto;
-    border-top: 0;
-  }
-
-  .gym-session-card__actions > button {
-    flex: 0 0 auto;
-    min-width: 5.25rem;
-    border-left: 1px solid var(--border-hairline);
-    padding: 0 0.7rem;
-  }
-
-  .gym-session-card__actions > button:first-child {
-    border-left: 1px solid var(--border-hairline);
+  .gym-session-card__rail > button {
+    min-height: 2.75rem;
+    font-size: 0.8rem;
   }
 }
 

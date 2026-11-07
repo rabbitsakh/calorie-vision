@@ -413,12 +413,12 @@ export function WorkoutHistoryHub({
                 </p>
                 {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
               </div>
+            </button>
+            <div className="gym-session-card__rail">
               <p className="gym-session-card__load">
                 <span className="gym-session-card__load-value">{load.value}</span>
                 <span className="gym-session-card__load-unit">{load.unit}</span>
               </p>
-            </button>
-            <div className="gym-session-card__actions">
               {s.clockStatus === "finished" ? (
                 <button
                   type="button"
