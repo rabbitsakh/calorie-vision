@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import * as Sentry from "@sentry/nextjs";
+import { isStaleServerActionError, reloadOnceForStaleServerAction } from "@/lib/stale-server-action";
 
 export default function Error({
   error,
@@ -11,10 +12,19 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [hold, setHold] = useState(() => isStaleServerActionError(error));
+
   useEffect(() => {
+    if (reloadOnceForStaleServerAction(error)) return;
+    if (isStaleServerActionError(error)) {
+      setHold(false);
+      return;
+    }
     console.error(error);
     Sentry.captureException(error);
   }, [error]);
+
+  if (hold) return null;
 
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-md flex-col justify-center px-4 py-12">
