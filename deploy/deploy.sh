@@ -4,25 +4,24 @@ set -euo pipefail
 APP_DIR="/var/www/calorie-vision"
 cd "$APP_DIR"
 
-GENERATED_VERSION_FILES=(
-  "package.json"
-  "package-lock.json"
-  "src/data/changelog.json"
-)
-
 # Verbose: DEPLOY_VERBOSE=1 bash deploy/deploy.sh
 DEPLOY_VERBOSE="${DEPLOY_VERBOSE:-0}"
 DEPLOY_LOG="${DEPLOY_LOG:-/tmp/cv-deploy-$$.log}"
 
+# shellcheck source=deploy/git-gate.sh
+source "$APP_DIR/deploy/git-gate.sh"
+
 restore_generated_version_files() {
-  git restore "${GENERATED_VERSION_FILES[@]}" 2>/dev/null || true
+  restore_deploy_generated_files
 }
 
 # If cv-release/deploy was started from an older on-disk script, pull and
 # re-exec once so the quiet progress UI from main actually runs this time.
+# Неудачный pull здесь останавливает скрипт: старый код не собираем и pm2 не трогаем.
 if [[ "${CV_DEPLOY_REEXEC:-}" != "1" ]]; then
-  restore_generated_version_files
-  git pull --ff-only >>"$DEPLOY_LOG" 2>&1 || git pull >>"$DEPLOY_LOG" 2>&1 || true
+  if ! ensure_ff_origin_main; then
+    exit 1
+  fi
   export CV_DEPLOY_REEXEC=1
   export DEPLOY_LOG
   exec bash "$APP_DIR/deploy/deploy.sh"
@@ -224,14 +223,22 @@ deploy_fail() {
 run_soft() {
   local label="$1"
   shift
+  local rc=0
   if [[ "$DEPLOY_VERBOSE" == "1" ]]; then
+    set +e
     "$@"
-    return $?
+    rc=$?
+    set -e
+    return "$rc"
   fi
-  if "$@" >>"$DEPLOY_LOG" 2>&1; then
+  # $? после неудачного if равен 0 — код команды нужно снять до if.
+  set +e
+  "$@" >>"$DEPLOY_LOG" 2>&1
+  rc=$?
+  set -e
+  if (( rc == 0 )); then
     return 0
   fi
-  local rc=$?
   echo "[soft-fail] $label (код $rc)" >>"$DEPLOY_LOG"
   return "$rc"
 }
@@ -430,20 +437,8 @@ swap_next_build() {
 }
 
 progress 2 "Pull"
-restore_generated_version_files
-# Already pulled once in the re-exec prologue / cv-release — a fast second pull is enough
-# unless that failed; then retry with backoff (GitHub HTTPS timeouts on some VPS).
-pull_ok=0
-for attempt in 1 2 3 4; do
-  if run_soft "git pull" git pull; then
-    pull_ok=1
-    break
-  fi
-  deploy_warn "git pull не удался ($attempt/4) — повтор через $((attempt * 8))с…"
-  sleep $((attempt * 8))
-done
-if (( ! pull_ok )); then
-  deploy_fail "git pull после 4 попыток. Проверьте VPS → github.com:443, затем: cv-release --deploy-only"
+# Повторная проверка после re-exec. Провал — выход до npm/build/pm2.
+if ! ensure_ff_origin_main; then
   exit 1
 fi
 
@@ -591,9 +586,12 @@ if ! run_long quiet "Build" "$DEPLOY_BUILD_TIMEOUT" 82 npm run build; then
   elif (( KEEP_LIVE )); then
     deploy_warn "Сборка рядом не удалась — оставляем текущий сайт без перезапуска"
   fi
+  restore_generated_version_files
   exit 1
 fi
 step_timer_end build
+# Next при NEXT_DIST_DIR=.next-build переписывает tsconfig.json и next-env.d.ts.
+restore_generated_version_files
 
 progress 85 "Переключаем .next"
 if ! swap_next_build "$NEXT_DIST_DIR"; then
@@ -603,6 +601,7 @@ if ! swap_next_build "$NEXT_DIST_DIR"; then
       || pm2 start deploy/ecosystem.config.cjs >>"$DEPLOY_LOG" 2>&1 || true
     pm2 save >>"$DEPLOY_LOG" 2>&1 || true
   fi
+  restore_generated_version_files
   exit 1
 fi
 unset NEXT_DIST_DIR
