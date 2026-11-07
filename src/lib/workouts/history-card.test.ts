@@ -50,12 +50,16 @@ test("отметка дня в календаре не растягиваетс�
   assert.match(css, /\.gym-cal-day__num/);
 });
 
-test("карточка истории на телефоне — колонка, действия отдельной строкой", () => {
+test("кг, итог, повторить и шаблон стоят одной вертикальной колонкой", () => {
   const hub = readFileSync(join(root, "components/workouts/WorkoutHistoryHub.tsx"), "utf8");
   const css = readFileSync(join(root, "app/globals.css"), "utf8");
-  assert.match(hub, /gym-session-card__actions/);
-  assert.match(hub, /gym-session-card__title/);
-  assert.doesNotMatch(hub, /truncate text-sm text-\[var\(--muted-strong\)\]/);
-  assert.match(css, /\.gym-session-card \{[\s\S]*flex-direction:\s*column/);
-  assert.match(css, /@media \(min-width: 768px\) \{[\s\S]*\.gym-session-card \{[\s\S]*flex-direction:\s*row/);
+  const rail = hub.slice(hub.indexOf("gym-session-card__rail"), hub.lastIndexOf("</ul>"));
+  const order = ["gym-session-card__load", "Итог", "Повторить", "Шаблон"].map((label) =>
+    rail.indexOf(label),
+  );
+  assert.ok(order.every((at) => at >= 0), "в колонке нет одного из пунктов");
+  assert.deepEqual(order, [...order].sort((a, b) => a - b));
+  assert.match(css, /\.gym-session-card__rail \{[\s\S]*?flex-direction:\s*column/);
+  assert.match(css, /\.gym-session-card__rail > button \{[\s\S]*?min-height:\s*2\.5rem/);
+  assert.doesNotMatch(css, /gym-session-card__actions/);
 });

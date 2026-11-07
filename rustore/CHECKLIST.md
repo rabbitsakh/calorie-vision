@@ -69,5 +69,5 @@
 
 ## После релиза
 
-- [ ] Перед билдом: `npm run sync-version` (или уже свежий `package.json`) — `versionCode` = X*10000+Y*100+Z. Сейчас это **3.6.0 / 30600**. `android/app/build.gradle` в git нет: его пишет Capacitor, а `rustore:cap:build` сам подставляет versionName и versionCode из `package.json` и `rustore/twa-manifest.json`
+- [ ] Перед билдом: `npm run sync-version` (или уже свежий `package.json`) — `versionCode` = X*10000+Y*100+Z. Сейчас это **3.6.4 / 30604**. `android/app/build.gradle` в git нет: его пишет Capacitor, а `rustore:cap:build` сам подставляет versionName и versionCode из `package.json` и `rustore/twa-manifest.json`
 - [ ] При желании — альфа-тестирование в RuStore перед продом
