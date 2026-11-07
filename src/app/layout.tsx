@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AppVersion } from "@/components/AppVersion";
 import { PageFallback } from "@/components/AppShell";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { StaleServerActionReload } from "@/components/StaleServerActionReload";
 import { Providers } from "@/components/Providers";
 import { YandexMetrikaGate } from "@/components/YandexMetrikaGate";
 import { bodyFont, displayFont } from "@/lib/app-fonts";
@@ -108,6 +109,7 @@ export default function RootLayout({
         </Providers>
         {metrikaId ? <YandexMetrikaGate counterId={metrikaId} /> : null}
         <CookieConsentBanner />
+        <StaleServerActionReload />
         <AppVersion />
       </body>
     </html>
