@@ -47,42 +47,36 @@ export function WorkoutTemplatesPanel({
               key={r.id}
               className="gym-template"
             >
-              <button
-                type="button"
-                disabled={busy}
-                className="flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-white disabled:opacity-40"
-                onClick={() => onStart(r.id)}
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold text-[var(--foreground)]">
-                    {r.planLabel ? (
-                      <span className="mr-1 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">
-                        {r.planLabel}
-                      </span>
-                    ) : null}
-                    {r.name}
-                  </p>
-                  <p className="truncate text-xs text-[var(--muted)]">
-                    {r.muscleLabels.join(" · ")} · {r.exerciseCount} упр.
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs font-semibold text-[var(--accent-ink)]">Старт</span>
-              </button>
-              <button
-                type="button"
-                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs font-semibold text-[var(--muted-strong)]"
-                onClick={() => onEdit(r.id)}
-              >
-                ✎
-              </button>
-              <button
-                type="button"
-                className="shrink-0 border-l border-[var(--border-hairline)] px-2.5 text-xs text-[var(--muted)] hover:text-red-600"
-                title="Удалить шаблон"
-                onClick={() => onDelete(r.id)}
-              >
-                ×
-              </button>
+              <div className="gym-template__body">
+                <p className="gym-template__name">
+                  {r.planLabel ? (
+                    <span className="gym-template__plan">{r.planLabel}</span>
+                  ) : null}
+                  {r.name}
+                </p>
+                <p className="gym-template__meta">
+                  {r.muscleLabels.join(" · ")}
+                  {r.muscleLabels.length ? " · " : ""}
+                  {r.exerciseCount} упр.
+                </p>
+              </div>
+              <div className="gym-template__actions">
+                <button type="button" disabled={busy} className="is-accent" onClick={() => onStart(r.id)}>
+                  Старт
+                </button>
+                <button type="button" disabled={busy} onClick={() => onEdit(r.id)}>
+                  Изменить
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  className="is-danger"
+                  title="Удалить шаблон"
+                  onClick={() => onDelete(r.id)}
+                >
+                  Удалить
+                </button>
+              </div>
             </li>
           ))}
         </ul>

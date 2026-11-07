@@ -525,9 +525,9 @@ export function WorkoutWeekPlan({
             </p>
             <ul className="mt-2 space-y-2">
               {drafts.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-2">
+                <li key={s.id} className="gym-today-session">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-[var(--foreground)]">
+                    <p className="gym-today-session__title">
                       {s.muscleLabels.join(" · ") || "Тренировка"}
                     </p>
                     <p className="text-xs text-[var(--muted)]">
@@ -535,14 +535,16 @@ export function WorkoutWeekPlan({
                     </p>
                     {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
                   </div>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="shrink-0 rounded-[var(--radius-control)] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                    onClick={() => onOpenSession(s.id)}
-                  >
-                    Открыть
-                  </button>
+                  <div className="gym-today-session__actions">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="gym-today-session__go"
+                      onClick={() => onOpenSession(s.id)}
+                    >
+                      Открыть
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -584,10 +586,10 @@ export function WorkoutWeekPlan({
                     return (
                       <li
                         key={r.id}
-                        className="flex items-center justify-between gap-2 rounded-[var(--radius-md)] bg-[var(--surface-mist)]/80 px-3 py-2"
+                        className="gym-today-session gym-today-session--tint"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-[var(--foreground)]">
+                          <p className="gym-today-session__title">
                             {r.planLabel ? (
                               <span className="mr-1.5 rounded bg-[var(--accent)] px-1.5 py-0.5 text-xs text-white">
                                 {r.planLabel}
@@ -595,11 +597,11 @@ export function WorkoutWeekPlan({
                             ) : null}
                             {r.name}
                           </p>
-                          <p className="truncate text-xs text-[var(--muted)]">
+                          <p className="text-xs text-[var(--muted)]">
                             {r.exerciseCount} упр. · {r.muscleLabels.join(" · ")}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1.5">
+                        <div className="gym-today-session__actions">
                           {data?.weekday != null ? (
                             <button
                               type="button"
@@ -647,11 +649,11 @@ export function WorkoutWeekPlan({
                           <button
                             type="button"
                             disabled={busy}
-                            className="flex w-full items-center justify-between gap-3 rounded-[1rem] border border-[var(--border-hairline)] bg-[var(--surface-mist)] px-3.5 py-3 text-left disabled:opacity-40"
+                            className="gym-today-session gym-today-session--tint w-full text-left disabled:opacity-40"
                             onClick={() => onStartRoutine(r.id)}
                           >
                             <span className="min-w-0">
-                              <span className="block truncate font-semibold text-[var(--foreground)]">
+                              <span className="gym-today-session__title block">
                                 {r.planLabel ? (
                                   <span className="mr-1.5 rounded bg-[var(--accent)] px-1.5 py-0.5 text-[10px] text-white">
                                     {r.planLabel}
@@ -659,15 +661,15 @@ export function WorkoutWeekPlan({
                                 ) : null}
                                 {r.name}
                               </span>
-                              <span className="mt-0.5 block truncate text-xs text-[var(--muted)]">
+                              <span className="mt-0.5 block text-xs text-[var(--muted)]">
                                 {r.exerciseCount} упр.
                                 {r.muscleLabels.length
                                   ? ` · ${r.muscleLabels.slice(0, 3).join(" · ")}`
                                   : ""}
                               </span>
                             </span>
-                            <span className="shrink-0 text-sm font-bold text-[var(--accent-ink)]">
-                              Старт
+                            <span className="gym-today-session__actions">
+                              <span className="text-sm font-bold text-[var(--accent-ink)]">Старт</span>
                             </span>
                           </button>
                         </li>
@@ -709,9 +711,9 @@ export function WorkoutWeekPlan({
             </p>
             <ul className="mt-2 space-y-2">
               {finished.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-2">
+                <li key={s.id} className="gym-today-session">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-[var(--foreground)]">
+                    <p className="gym-today-session__title">
                       {s.muscleLabels.join(" · ") || "Тренировка"}
                       {(s.prCount ?? 0) > 0 ? (
                         <span className="ml-2 inline-flex rounded-md bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-ink)]">
@@ -722,7 +724,7 @@ export function WorkoutWeekPlan({
                     <p className="text-xs text-[var(--muted)]">{sessionMetric(s)}</p>
                     {s.energyLabel ? <p className="gym-energy-line">{s.energyLabel}</p> : null}
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="gym-today-session__actions">
                     <button
                       type="button"
                       className="text-sm font-semibold text-[var(--accent-ink)]"
@@ -732,7 +734,7 @@ export function WorkoutWeekPlan({
                     </button>
                     <button
                       type="button"
-                      className="text-xs font-medium text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                      className="text-sm font-semibold text-[var(--muted-strong)]"
                       onClick={() => onOpenSession(s.id, { summary: false })}
                     >
                       Изменить
@@ -849,7 +851,7 @@ export function WorkoutWeekPlan({
                                 >
                                   <button
                                     type="button"
-                                    className="min-w-0 truncate text-left font-medium text-[var(--accent-ink)] underline-offset-2 hover:underline"
+                                    className="min-w-0 flex-1 text-left font-medium text-[var(--accent-ink)] underline-offset-2 hover:underline"
                                     onClick={() => onEditRoutine(r.id)}
                                   >
                                     {r.planLabel ? `${r.planLabel}: ` : ""}
