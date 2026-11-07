@@ -57,11 +57,10 @@ fi
 # /usr/local/bin/cv-release copy still picks up merge/deploy fixes this run.
 if [[ "${CV_RELEASE_REEXEC:-}" != "1" ]]; then
   cd "$APP_DIR"
-  git restore package.json package-lock.json src/data/changelog.json 2>/dev/null || true
-  if ! git pull --ff-only >/tmp/cv-release-pull.log 2>&1; then
-    if ! git pull >/tmp/cv-release-pull.log 2>&1; then
-      printf '%s⚠  git pull перед cv-release не удался — см. /tmp/cv-release-pull.log%s\n' "$_R_YELLOW" "$_R_RESET" >&2
-    fi
+  # shellcheck source=deploy/git-gate.sh
+  source "$APP_DIR/deploy/git-gate.sh"
+  if ! ensure_ff_origin_main; then
+    exit 1
   fi
   if [[ ! -f "$RELEASE_SH" ]]; then
     printf '%s%s✗  Нет %s%s\n' "$_R_BOLD" "$_R_RED" "$RELEASE_SH" "$_R_RESET" >&2
