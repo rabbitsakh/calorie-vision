@@ -4,6 +4,7 @@ import {
   WELCOME_SEEN_KEY,
   hasSeenAppWelcomeSync,
   markAppWelcomeSeen,
+  rememberWelcomeSeen,
 } from "./capacitor-welcome.ts";
 
 test("welcome prefs key is stable", () => {
@@ -12,6 +13,16 @@ test("welcome prefs key is stable", () => {
 
 test("hasSeenAppWelcomeSync is true on web (no Capacitor)", () => {
   assert.equal(hasSeenAppWelcomeSync(), true);
+});
+
+test("флаг обучения пишется до проверки моста Capacitor", () => {
+  const bag = new Map<string, string>();
+  rememberWelcomeSeen({
+    setItem: (key, value) => {
+      bag.set(key, value);
+    },
+  });
+  assert.equal(bag.get(WELCOME_SEEN_KEY), "1");
 });
 
 test("markAppWelcomeSeen is a no-op on web", async () => {

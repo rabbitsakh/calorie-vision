@@ -37,13 +37,18 @@ function readLocalSeen(): boolean {
   }
 }
 
-function writeLocalSeen(): void {
-  if (typeof window === "undefined") return;
+export function rememberWelcomeSeen(storage: Pick<Storage, "setItem"> | null): void {
+  if (!storage) return;
   try {
-    window.localStorage.setItem(WELCOME_SEEN_KEY, "1");
+    storage.setItem(WELCOME_SEEN_KEY, "1");
   } catch {
     // private mode / quota — LoginForm must not bounce forever
   }
+}
+
+function writeLocalSeen(): void {
+  if (typeof window === "undefined") return;
+  rememberWelcomeSeen(window.localStorage);
 }
 
 /** Sync check for gates that must not race router.replace. */
@@ -75,9 +80,11 @@ export async function hasSeenAppWelcome(): Promise<boolean> {
 }
 
 export async function markAppWelcomeSeen(): Promise<void> {
+  // Пишем флаг сразу, даже если мост Capacitor ещё не ответил.
+  // Иначе /login считает обучение непройденным и снова открывает первый слайд.
+  writeLocalSeen();
   if (!isCapacitorNative()) return;
   // Sync first so /login never redirects back before Preferences resolves.
-  writeLocalSeen();
   await withTimeout(
     (async () => {
       const { Preferences } = await import("@capacitor/preferences");

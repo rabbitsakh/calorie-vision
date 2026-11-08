@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { Mascot } from "@/components/Mascot";
@@ -51,7 +51,9 @@ export function AppWelcomeSlider({ onFinished }: AppWelcomeSliderProps) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState(false);
-  const slide = SLIDES[index] ?? SLIDES[0];
+  const indexRef = useRef(0);
+  indexRef.current = index;
+  const slide = SLIDES[Math.min(index, SLIDES.length - 1)] ?? SLIDES[0];
   const isLast = index >= SLIDES.length - 1;
 
   const finish = useCallback(async () => {
@@ -66,12 +68,14 @@ export function AppWelcomeSlider({ onFinished }: AppWelcomeSliderProps) {
   }, [leaving, onFinished, router]);
 
   const next = useCallback(() => {
-    if (isLast) {
+    if (indexRef.current >= SLIDES.length - 1) {
       void finish();
       return;
     }
-    setIndex((i) => Math.min(i + 1, SLIDES.length - 1));
-  }, [finish, isLast]);
+    const nextIndex = Math.min(indexRef.current + 1, SLIDES.length - 1);
+    indexRef.current = nextIndex;
+    setIndex(nextIndex);
+  }, [finish]);
 
   useEffect(() => {
     markCapacitorShell();

@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   GYM_TOUR_STEPS,
   GYM_TOUR_STORAGE_KEY,
+  advanceGymTour,
+  gymTourStepIndex,
   markGymTourSeen,
   readGymTourSeen,
   shouldShowGymTour,
@@ -37,4 +39,18 @@ test("показ один раз и только после входа", () => {
   assert.equal(bag.get(GYM_TOUR_STORAGE_KEY), "done");
   assert.equal(readGymTourSeen(storage), true);
   assert.equal(readGymTourSeen(null), true);
+});
+
+test("последний шаг закрывает тур и не возвращает на первый", () => {
+  assert.deepEqual(advanceGymTour(0), { done: false, index: 1 });
+  assert.deepEqual(advanceGymTour(GYM_TOUR_STEPS.length - 2), {
+    done: false,
+    index: GYM_TOUR_STEPS.length - 1,
+  });
+  assert.deepEqual(advanceGymTour(GYM_TOUR_STEPS.length - 1), { done: true });
+  assert.deepEqual(advanceGymTour(GYM_TOUR_STEPS.length), { done: true });
+  assert.equal(gymTourStepIndex("assistant"), GYM_TOUR_STEPS.length - 1);
+  assert.equal(gymTourStepIndex("muscles"), 0);
+  assert.equal(gymTourStepIndex("нет-такого"), 0);
+  assert.equal(gymTourStepIndex(null), 0);
 });
