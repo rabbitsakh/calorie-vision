@@ -5,6 +5,8 @@
  */
 
 import type { MorningTodayBrief } from "@/lib/morning-today";
+import type { ReadyChestSource } from "@/lib/chest-ready-queue";
+import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
 export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera" | "chest";
@@ -85,8 +87,9 @@ export function pickSoftStep(input: SoftStepInput): SoftStep | null {
 export type MomentPhase = "gym" | "morning" | "day" | "evening";
 
 export type MomentCta =
-  | { label: string; href: string; action?: undefined }
-  | { label: string; action: SoftStepAction; href?: undefined };
+  | { label: string; href: string; action?: undefined; disabled?: undefined }
+  | { label: string; action: SoftStepAction; href?: undefined; disabled?: undefined }
+  | { label: string; disabled: true; action?: undefined; href?: undefined };
 
 export type MomentMascot = "cheer" | "tip" | "streak" | "goal" | "idle";
 
@@ -113,6 +116,8 @@ export type MomentHero = {
   ringPct: number | null;
   /** Evening checklist under the hero. */
   checklist: MomentCheck[] | null;
+  /** One line under the evening checklist. */
+  checklistNote: string | null;
 };
 
 export type MomentRoutine = {
@@ -147,7 +152,182 @@ export type MomentHeroInput = {
   waterTarget: number;
   streak: number;
   softStep: SoftStep | null;
+  /** Evening chest meter. Null while /api/rewards has not loaded. */
+  chest?: EveningChestSnapshot | null;
 };
+
+export const CHEST_CHECKLIST_NOTE = "На сундук нужны только еда и вода";
+
+export type EveningChestHead = {
+  source: ReadyChestSource;
+  detail: string;
+  label?: string;
+  milestone?: number;
+};
+
+/** Server meter for the evening hero. `todayMarked` is the quest-day row for today. */
+export type EveningChestSnapshot = {
+  state: "empty" | "filling" | "ready";
+  questDayCount: number;
+  openedQuestChests: number;
+  todayMarked: boolean;
+  per?: number;
+  head: EveningChestHead | null;
+};
+
+/** Water counts for the chest only at 100% of the personal target. */
+export function waterMeetsChest(waterMl: number, waterTarget: number): boolean {
+  return waterTarget > 0 && waterMl >= waterTarget;
+}
+
+/**
+ * Liters for the checklist. Below the target, floor to 0.1 л so 1.99 л
+ * never renders as the same number as the goal.
+ */
+export function formatWaterProgress(ml: number, target: number): string {
+  const format = (liters: number) =>
+    liters.toLocaleString("ru-RU", { maximumFractionDigits: 1, minimumFractionDigits: 0 });
+  const targetL = Math.max(0, target) / 1000;
+  const actualL = Math.max(0, ml) / 1000;
+  const shown = ml < target ? Math.floor(actualL * 10) / 10 : actualL;
+  return `${format(shown)} / ${format(targetL)} л`;
+}
+
+function recordedPctTitle(calories: number, calorieTarget: number | null): string {
+  if (!calorieTarget || calorieTarget <= 0) {
+    return `${formatKcal(calories)} ккал за день`;
+  }
+  const pct = Math.round((calories / calorieTarget) * 100);
+  return `Записано ${pct}% цели`;
+}
+
+function calmDaysLeftLabel(count: number): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  let word = "спокойных дней";
+  if (!(mod100 >= 11 && mod100 <= 14)) {
+    if (mod10 === 1) word = "спокойный день";
+    else if (mod10 >= 2 && mod10 <= 4) word = "спокойных дня";
+  }
+  return `Ещё ${count} ${word} до сундука`;
+}
+
+function sourceChestTitle(head: EveningChestHead): string {
+  if (head.source === "streak") {
+    return head.milestone ? `Сундук за серию ${head.milestone}` : "Сундук за серию";
+  }
+  if (head.source === "week") return "Сундук за спокойную неделю";
+  if (head.source === "challenge") return "Сундук за челлендж";
+  if (head.source === "referral") return "Сундук за приглашение";
+  return "Сундук готов";
+}
+
+function sourceChestCaption(head: EveningChestHead): string {
+  if (head.source === "streak") return "Серия дней";
+  if (head.source === "week") return "Спокойная неделя";
+  if (head.source === "challenge") return head.label?.trim() || "Недельный челлендж";
+  if (head.source === "referral") return "Приглашение друга";
+  return head.detail;
+}
+
+type EveningResolution = {
+  title: string;
+  cta: MomentCta;
+  /** Replaces the soft hint when the chest source must be named. */
+  sourceHint: string | null;
+};
+
+/**
+ * Evening/night hero copy. Opening is offered only when the server meter is ready.
+ */
+export function resolveEveningDay(input: {
+  logged: boolean;
+  waterMl: number;
+  waterTarget: number;
+  calories: number;
+  calorieTarget: number | null;
+  chest?: EveningChestSnapshot | null;
+}): EveningResolution {
+  const chest = input.chest ?? null;
+  const ready = chest?.state === "ready";
+  const head = ready ? chest?.head ?? null : null;
+
+  if (ready && head && head.source !== "quest") {
+    return {
+      title: sourceChestTitle(head),
+      cta: { label: "Открыть сундук", action: "chest" },
+      sourceHint: sourceChestCaption(head),
+    };
+  }
+  if (ready) {
+    return {
+      title: "Сундук готов",
+      cta: { label: "Открыть сундук", action: "chest" },
+      sourceHint: null,
+    };
+  }
+
+  const waterOk = waterMeetsChest(input.waterMl, input.waterTarget);
+  if (!input.logged && input.waterMl > 0) {
+    return {
+      title: recordedPctTitle(input.calories, input.calorieTarget),
+      cta: { label: "Записать еду", action: "food" },
+      sourceHint: null,
+    };
+  }
+  if (!input.logged) {
+    return {
+      title: "День пока без записей",
+      cta: { label: "Сфоткать еду", action: "camera" },
+      sourceHint: null,
+    };
+  }
+  if (!waterOk) {
+    return {
+      title: recordedPctTitle(input.calories, input.calorieTarget),
+      cta: { label: "Долить воду до нормы", action: "water" },
+      sourceHint: null,
+    };
+  }
+
+  if (!chest) {
+    return {
+      title: "День засчитан",
+      cta: { label: "Ещё спокойные дни до сундука", disabled: true },
+      sourceHint: null,
+    };
+  }
+
+  const per = Math.max(1, chest.per ?? QUEST_DAYS_PER_CHEST);
+  const markedDays = Math.max(0, Math.floor(chest.questDayCount) || 0);
+  const opened = Math.max(0, Math.floor(chest.openedQuestChests) || 0);
+  const projected = markedDays + (chest.todayMarked ? 0 : 1);
+  const pending = Math.max(0, Math.floor(projected / per) - opened);
+  const remainder = projected % per;
+
+  if (!chest.todayMarked && pending > 0) {
+    return {
+      title: "Сундук готов",
+      cta: { label: "Открыть сундук", disabled: true },
+      sourceHint: null,
+    };
+  }
+
+  if (chest.todayMarked && markedDays > 0 && markedDays % per === 0 && pending === 0) {
+    return {
+      title: "День засчитан",
+      cta: { label: "Сундук уже открыт", href: "/profile#rewards" },
+      sourceHint: null,
+    };
+  }
+
+  const nextIn = remainder === 0 ? per : per - remainder;
+  return {
+    title: "День засчитан",
+    cta: { label: calmDaysLeftLabel(nextIn), disabled: true },
+    sourceHint: null,
+  };
+}
 
 function formatLiters(ml: number): string {
   const l = Math.round(ml / 100) / 10;
@@ -201,7 +381,7 @@ function macroBars(input: MomentHeroInput): MomentMacro[] | null {
   return rows.length ? rows : null;
 }
 
-const EMPTY_EXTRAS = { macros: null, ringPct: null, checklist: null } as const;
+const EMPTY_EXTRAS = { macros: null, ringPct: null, checklist: null, checklistNote: null } as const;
 
 export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
   if (!input.selectedIsToday) return null;
@@ -260,12 +440,16 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
 
   const isEvening = part === "evening" || part === "night";
 
+  if (isEvening) {
+    return buildEveningHero(input);
+  }
+
   if (!input.logged) {
     return {
-      phase: isEvening ? "evening" : part === "morning" ? "morning" : "day",
+      phase: part === "morning" ? "morning" : "day",
       tone: "soft",
       mascot: "idle",
-      eyebrow: isEvening ? "Сейчас · вечер" : part === "morning" ? "Сейчас · утро" : dayEyebrow(input.hour),
+      eyebrow: part === "morning" ? "Сейчас · утро" : dayEyebrow(input.hour),
       title: "День пока без записей",
       line: input.calorieTarget ? `цель ${formatKcal(input.calorieTarget)} ккал` : "Одна запись — и день открыт",
       hint: null,
@@ -276,61 +460,6 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
   }
 
   const pt = input.proteinTarget ?? 0;
-
-  if (isEvening) {
-    const kcal = Math.round(input.calories);
-    const target = input.calorieTarget && input.calorieTarget > 0 ? input.calorieTarget : null;
-    const pct = target ? Math.round((kcal / target) * 100) : null;
-    const title =
-      pct == null
-        ? `${formatKcal(kcal)} ккал за день`
-        : pct >= 90 && pct <= 108
-          ? "День в цели"
-          : pct > 108
-            ? "Чуть выше цели"
-            : "День почти собран";
-    const checklist: MomentCheck[] = [
-      {
-        label: "Еда",
-        done: (input.mealCount ?? 0) > 0,
-        value: input.mealCount ? `${input.mealCount} ${mealWord(input.mealCount)} записано` : "пока пусто",
-      },
-    ];
-    if (pt > 0) {
-      checklist.push({
-        label: "Белок",
-        done: input.protein >= pt * 0.9,
-        value: `${Math.round(input.protein)} / ${Math.round(pt)} г`,
-      });
-    }
-    if (input.waterTarget > 0) {
-      checklist.push({
-        label: "Вода",
-        done: input.waterMl >= input.waterTarget * 0.9,
-        value: `${formatLiters(input.waterMl)} / ${formatLiters(input.waterTarget)} л`,
-      });
-    }
-    checklist.push({ label: "Зал", done: input.gymDoneToday, value: input.gymDoneToday ? "сделан" : "сегодня без зала" });
-    const tomorrow = input.tomorrowPlanLabel?.trim() || null;
-    const softHint = input.softStep?.label ?? null;
-    return {
-      phase: "evening",
-      tone: "dark",
-      mascot: "streak",
-      eyebrow: "Итог дня",
-      title,
-      line: target
-        ? `${formatKcal(kcal)} из ${formatKcal(target)} ккал${input.streak >= 2 ? ` · серия ${input.streak} дн.` : ""}`
-        : input.streak >= 2
-          ? `серия ${input.streak} дн.`
-          : null,
-      hint: [softHint, tomorrow ? `Завтра: ${tomorrow}` : null].filter(Boolean).join(" · ") || null,
-      cta: { label: "Закрыть день · открыть сундук", action: "chest" },
-      macros: null,
-      ringPct: pct,
-      checklist,
-    };
-  }
 
   let title: string;
   if (input.calorieTarget && input.calorieTarget > 0) {
@@ -363,5 +492,82 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     macros: macroBars(input),
     ringPct: null,
     checklist: null,
+    checklistNote: null,
+  };
+}
+
+function buildEveningChecklist(input: MomentHeroInput): MomentCheck[] {
+  const pt = input.proteinTarget ?? 0;
+  const mealCount = input.mealCount ?? 0;
+  const checklist: MomentCheck[] = [
+    {
+      label: "Еда",
+      done: input.logged && mealCount > 0,
+      value: mealCount > 0 ? `${mealCount} ${mealWord(mealCount)} записано` : "пока пусто",
+    },
+  ];
+  if (pt > 0) {
+    checklist.push({
+      label: "Белок",
+      done: input.protein >= pt * 0.9,
+      value: `${Math.round(input.protein)} / ${Math.round(pt)} г`,
+    });
+  }
+  if (input.waterTarget > 0) {
+    checklist.push({
+      label: "Вода",
+      done: waterMeetsChest(input.waterMl, input.waterTarget),
+      value: formatWaterProgress(input.waterMl, input.waterTarget),
+    });
+  }
+  checklist.push({
+    label: "Зал",
+    done: input.gymDoneToday,
+    value: input.gymDoneToday ? "сделан" : "сегодня без зала",
+  });
+  return checklist;
+}
+
+function buildEveningHero(input: MomentHeroInput): MomentHero {
+  const kcal = Math.round(input.calories);
+  const target = input.calorieTarget && input.calorieTarget > 0 ? input.calorieTarget : null;
+  const pct = target ? Math.round((kcal / target) * 100) : null;
+  const resolved = resolveEveningDay({
+    logged: input.logged,
+    waterMl: input.waterMl,
+    waterTarget: input.waterTarget,
+    calories: input.calories,
+    calorieTarget: input.calorieTarget,
+    chest: input.chest,
+  });
+  const tomorrow = input.tomorrowPlanLabel?.trim() || null;
+  const softHint = resolved.sourceHint ? null : input.softStep?.label ?? null;
+  const hintParts = [
+    resolved.sourceHint,
+    softHint,
+    tomorrow ? `Завтра: ${tomorrow}` : null,
+  ].filter((part): part is string => Boolean(part));
+  const empty = !input.logged && input.waterMl <= 0;
+  return {
+    phase: "evening",
+    tone: empty ? "soft" : "dark",
+    mascot: empty ? "idle" : "streak",
+    eyebrow: empty ? (input.hour >= 5 && input.hour < 11 ? "Сейчас · утро" : "Сейчас · вечер") : "Итог дня",
+    title: resolved.title,
+    line: empty
+      ? target
+        ? `цель ${formatKcal(target)} ккал`
+        : "Одна запись — и день открыт"
+      : target
+        ? `${formatKcal(kcal)} из ${formatKcal(target)} ккал${input.streak >= 2 ? ` · серия ${input.streak} дн.` : ""}`
+        : input.streak >= 2
+          ? `серия ${input.streak} дн.`
+          : null,
+    hint: hintParts.join(" · ") || null,
+    cta: resolved.cta,
+    macros: null,
+    ringPct: empty ? null : pct,
+    checklist: empty ? null : buildEveningChecklist(input),
+    checklistNote: empty ? null : CHEST_CHECKLIST_NOTE,
   };
 }

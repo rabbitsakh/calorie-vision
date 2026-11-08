@@ -7,7 +7,6 @@ import {
   assertStreakChestEligible,
   assertWeekChestEligible,
 } from "@/lib/chest-eligibility";
-import { maybeGrantQuestDayBoost } from "@/lib/chest-day-boost";
 import { buildChestMeter, nextQuestChestBatchIndex } from "@/lib/chest-progress";
 import { listReadyChests } from "@/lib/chest-ready-list";
 import type { ReadyChestItem } from "@/lib/chest-ready-queue";
@@ -39,7 +38,7 @@ async function ownedUniqueCount(userId: string): Promise<number> {
 }
 
 async function buildChestResponse(userId: string) {
-  const [{ queue, questDayCount, openedQuestChests }, ownedUnique] = await Promise.all([
+  const [{ queue, questDayCount, openedQuestChests, todayMarked }, ownedUnique] = await Promise.all([
     listReadyChests(userId),
     ownedUniqueCount(userId),
   ]);
@@ -54,6 +53,7 @@ async function buildChestResponse(userId: string) {
     questDayCount,
     questDaysPerChest: QUEST_DAYS_PER_CHEST,
     openedQuestChests,
+    todayMarked,
     readyCount: chest.readyCount,
     nextChestIn: chest.nextIn,
     chest,
@@ -276,14 +276,13 @@ export async function POST(request: NextRequest) {
       }
       const dayKey = questDaySourceKey(date);
       await markQuestDayComplete(userId, date, dayKey);
-      // C4 — gym or evening check-in accelerates the 3-day meter (+1 credit).
-      const boost = await maybeGrantQuestDayBoost(userId, date);
+      // Бонус зала и настроения новым дням не начисляется. Старые quest-day-boost остаются.
       const chestPayload = await buildChestResponse(userId);
       return NextResponse.json({
         newlyGranted: false,
         reward: null,
-        boosted: boost.boosted,
-        boostKind: boost.kind,
+        boosted: false,
+        boostKind: null,
         ...chestPayload,
       });
     }

@@ -50,6 +50,24 @@ export function ChestDock({
     rarityLabel?: string;
   } | null>(null);
   const todayKey = toDateKey(new Date());
+  const [showRule, setShowRule] = useState(false);
+
+  useEffect(() => {
+    try {
+      setShowRule(window.localStorage.getItem(CHEST_RULE_HINT_KEY) !== "1");
+    } catch {
+      setShowRule(false);
+    }
+  }, []);
+
+  const dismissRule = () => {
+    try {
+      window.localStorage.setItem(CHEST_RULE_HINT_KEY, "1");
+    } catch {
+      // private mode
+    }
+    setShowRule(false);
+  };
 
   const reload = useCallback(async () => {
     if (selectedDate !== today) {
@@ -74,6 +92,7 @@ export function ChestDock({
 
   const handleOpen = useCallback(async () => {
     if (busy || selectedDate !== today) return;
+    if (meter?.state !== "ready") return;
     setBusy(true);
     try {
       const muted = isSoftCelebrationsMutedToday(todayKey);
@@ -122,7 +141,7 @@ export function ChestDock({
     } finally {
       setBusy(false);
     }
-  }, [busy, selectedDate, today, todayKey, reload, onOpened]);
+  }, [busy, meter?.state, selectedDate, today, todayKey, reload, onOpened]);
 
   useEffect(() => {
     const onQuick = () => {
@@ -168,6 +187,14 @@ export function ChestDock({
             {!ready ? (
               <div className="chest-dock-bar" aria-hidden>
                 <span style={{ width: `${pct}%` }} />
+              </div>
+            ) : null}
+            {showRule ? (
+              <div className="chest-dock-rule">
+                <p>{CHEST_RULE_HINT}</p>
+                <button type="button" onClick={dismissRule}>
+                  Понятно
+                </button>
               </div>
             ) : null}
             <p className="sr-only">
@@ -225,6 +252,10 @@ export function ChestDock({
     </>
   );
 }
+
+const CHEST_RULE_HINT_KEY = "cv-chest-calm-hint-v1";
+const CHEST_RULE_HINT =
+  "Сундук копят спокойные дни: запись еды и норма воды. Три таких дня — наклейка, фраза или рамка. Серия и проценты цели считаются отдельно.";
 
 function ChestGlyph({ ready }: { ready: boolean }) {
   return (

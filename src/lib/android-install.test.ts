@@ -24,7 +24,7 @@ afterEach(() => {
   else process.env.NEXT_PUBLIC_BASE_PATH = PREV_BASE;
 });
 
-test("релиз Android 3.6.12 поднимает versionCode выше 3.6.11", () => {
+test("релиз Android 3.6.13 поднимает versionCode выше 3.6.12", () => {
   const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
     version: string;
   };
@@ -34,11 +34,11 @@ test("релиз Android 3.6.12 поднимает versionCode выше 3.6.11",
   };
   const [major, minor, patch] = pkg.version.split(".").map(Number);
   const encoded = major * 10000 + minor * 100 + patch;
-  assert.equal(pkg.version, "3.6.12");
+  assert.equal(pkg.version, "3.6.13");
   assert.equal(twa.appVersionName, pkg.version);
   assert.equal(twa.appVersionCode, encoded);
-  assert.equal(twa.appVersionCode, 30612);
-  assert.ok(twa.appVersionCode > 30611);
+  assert.equal(twa.appVersionCode, 30613);
+  assert.ok(twa.appVersionCode > 30612);
 });
 
 test("getApkDownloadUrl defaults to public downloads path", () => {

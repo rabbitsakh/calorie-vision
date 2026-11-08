@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildMomentHero, pickSoftStep, type MomentHeroInput, type SoftStepInput } from "./moment-hero.ts";
+import {
+  buildMomentHero,
+  formatWaterProgress,
+  pickSoftStep,
+  resolveEveningDay,
+  waterMeetsChest,
+  type EveningChestSnapshot,
+  type MomentHeroInput,
+  type SoftStepInput,
+} from "./moment-hero.ts";
 
 const base: MomentHeroInput = {
   selectedIsToday: true,
@@ -104,11 +113,12 @@ test("buildMomentHero: evening ring + checklist", () => {
     tomorrowPlanLabel: "Ноги",
   });
   assert.equal(m?.phase, "evening");
-  assert.equal(m?.title, "День в цели");
+  assert.equal(m?.title, "Записано 96% цели");
   assert.equal(m?.ringPct, 96);
   assert.equal(m?.line, "2\u00a0020 из 2\u00a0100 ккал · серия 5 дн.");
   assert.equal(m?.hint, "Завтра: Ноги");
-  assert.deepEqual(m?.cta, { label: "Закрыть день · открыть сундук", action: "chest" });
+  assert.deepEqual(m?.cta, { label: "Долить воду до нормы", action: "water" });
+  assert.equal(m?.checklistNote, "На сундук нужны только еда и вода");
   assert.deepEqual(
     m?.checklist?.map((c) => [c.label, c.done, c.value]),
     [
@@ -118,7 +128,7 @@ test("buildMomentHero: evening ring + checklist", () => {
       ["Зал", true, "сделан"],
     ],
   );
-  assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "День почти собран");
+  assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "Записано 71% цели");
 });
 
 test("buildMomentHero: empty day asks for one entry", () => {
@@ -134,6 +144,174 @@ test("buildMomentHero: soft step becomes hint + CTA", () => {
   });
   assert.equal(m?.hint, "Воды пока мало — один стакан уже поможет");
   assert.deepEqual(m?.cta, { label: "Вода", action: "water" });
+});
+
+const calmChest = (
+  patch: Partial<EveningChestSnapshot> & Pick<EveningChestSnapshot, "state">,
+): EveningChestSnapshot => ({
+  questDayCount: 0,
+  openedQuestChests: 0,
+  todayMarked: false,
+  per: 3,
+  head: null,
+  ...patch,
+});
+
+test("вечер: нет записей — сфоткать, без обещания сундука", () => {
+  const day = resolveEveningDay({
+    logged: false,
+    waterMl: 0,
+    waterTarget: 2000,
+    calories: 0,
+    calorieTarget: 2018,
+    chest: null,
+  });
+  assert.equal(day.title, "День пока без записей");
+  assert.deepEqual(day.cta, { label: "Сфоткать еду", action: "camera" });
+});
+
+test("вечер: еда без воды — честный процент и кнопка воды", () => {
+  const day = resolveEveningDay({
+    logged: true,
+    waterMl: 1990,
+    waterTarget: 2000,
+    calories: 400,
+    calorieTarget: 2018,
+    chest: calmChest({ state: "filling", questDayCount: 1, todayMarked: false }),
+  });
+  assert.equal(day.title, "Записано 20% цели");
+  assert.deepEqual(day.cta, { label: "Долить воду до нормы", action: "water" });
+  assert.equal(waterMeetsChest(1990, 2000), false);
+  assert.equal(formatWaterProgress(1990, 2000), "1,9 / 2 л");
+  assert.equal(formatWaterProgress(2000, 2000), "2 / 2 л");
+});
+
+test("вечер: вода без еды", () => {
+  const day = resolveEveningDay({
+    logged: false,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 0,
+    calorieTarget: 2018,
+    chest: null,
+  });
+  assert.equal(day.title, "Записано 0% цели");
+  assert.deepEqual(day.cta, { label: "Записать еду", action: "food" });
+});
+
+test("вечер: зачтено 1 из 3 — кнопка не открывает сундук", () => {
+  const day = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 400,
+    calorieTarget: 2018,
+    chest: calmChest({ state: "filling", questDayCount: 1, todayMarked: true }),
+  });
+  assert.equal(day.title, "День засчитан");
+  assert.deepEqual(day.cta, { label: "Ещё 2 спокойных дня до сундука", disabled: true });
+});
+
+test("вечер: зачтено 2 из 3", () => {
+  const day = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({ state: "filling", questDayCount: 2, todayMarked: true }),
+  });
+  assert.equal(day.title, "День засчитан");
+  assert.deepEqual(day.cta, { label: "Ещё 1 спокойный день до сундука", disabled: true });
+});
+
+test("вечер: сундук готов — открыть только когда meter ready", () => {
+  const waiting = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({ state: "filling", questDayCount: 2, todayMarked: false }),
+  });
+  assert.equal(waiting.title, "Сундук готов");
+  assert.deepEqual(waiting.cta, { label: "Открыть сундук", disabled: true });
+
+  const ready = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({
+      state: "ready",
+      questDayCount: 3,
+      todayMarked: true,
+      head: { source: "quest", detail: "Открой — награда в коллекцию" },
+    }),
+  });
+  assert.equal(ready.title, "Сундук готов");
+  assert.deepEqual(ready.cta, { label: "Открыть сундук", action: "chest" });
+});
+
+test("вечер: очередь пуста и день уже в закрытом круге", () => {
+  const day = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({ state: "filling", questDayCount: 3, openedQuestChests: 1, todayMarked: true }),
+  });
+  assert.equal(day.title, "День засчитан");
+  assert.deepEqual(day.cta, { label: "Сундук уже открыт", href: "/profile#rewards" });
+});
+
+test("вечер: сундук серии, недели и челленджа подписывает источник", () => {
+  const streak = resolveEveningDay({
+    logged: true,
+    waterMl: 500,
+    waterTarget: 2000,
+    calories: 400,
+    calorieTarget: 2018,
+    chest: calmChest({
+      state: "ready",
+      questDayCount: 1,
+      todayMarked: true,
+      head: { source: "streak", detail: "100 дней подряд", milestone: 100, label: "Серия · 100" },
+    }),
+  });
+  assert.equal(streak.title, "Сундук за серию 100");
+  assert.equal(streak.sourceHint, "Серия дней");
+  assert.deepEqual(streak.cta, { label: "Открыть сундук", action: "chest" });
+
+  const week = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({
+      state: "ready",
+      head: { source: "week", detail: "Неделя закрыта", label: "Спокойная неделя" },
+    }),
+  });
+  assert.equal(week.title, "Сундук за спокойную неделю");
+  assert.equal(week.sourceHint, "Спокойная неделя");
+
+  const challenge = resolveEveningDay({
+    logged: true,
+    waterMl: 2000,
+    waterTarget: 2000,
+    calories: 1800,
+    calorieTarget: 2018,
+    chest: calmChest({
+      state: "ready",
+      head: { source: "challenge", detail: "открой", label: "Челлендж · Пять дней дневника" },
+    }),
+  });
+  assert.equal(challenge.title, "Сундук за челлендж");
+  assert.equal(challenge.sourceHint, "Челлендж · Пять дней дневника");
 });
 
 test("pickSoftStep: weight first when no calorie target", () => {

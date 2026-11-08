@@ -23,6 +23,8 @@ import {
 } from "@/lib/morning-today";
 import { trackFirstMealSaveGoal, trackMealSavedGoal } from "@/lib/metrika-funnel";
 import { requestOpenChestQuick } from "@/lib/open-chest-quick";
+import { subscribeChestQueueRefresh } from "@/lib/chest-queue-refresh";
+import type { EveningChestSnapshot } from "@/lib/moment-hero";
 import {
   notifyFoodSaved,
   requestOpenFoodAddPicker,
@@ -303,6 +305,57 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
     }
   }
 
+  const [chest, setChest] = useState<EveningChestSnapshot | null>(null);
+
+  useEffect(() => {
+    if (selectedDate !== today) {
+      setChest(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const resp = await fetch(withBasePath("/api/rewards"), { cache: "no-store" });
+        if (!resp.ok || cancelled) return;
+        const data = (await resp.json()) as {
+          questDayCount?: number;
+          openedQuestChests?: number;
+          todayMarked?: boolean;
+          chest?: {
+            state: EveningChestSnapshot["state"];
+            per?: number;
+            queue?: EveningChestSnapshot["head"][];
+          };
+        };
+        if (cancelled || !data.chest) return;
+        const head = data.chest.queue?.[0] ?? null;
+        setChest({
+          state: data.chest.state,
+          questDayCount: data.questDayCount ?? 0,
+          openedQuestChests: data.openedQuestChests ?? 0,
+          todayMarked: Boolean(data.todayMarked),
+          per: data.chest.per,
+          head: head
+            ? {
+                source: head.source,
+                detail: head.detail,
+                label: head.label,
+                milestone: head.milestone,
+              }
+            : null,
+        });
+      } catch {
+        if (!cancelled) setChest(null);
+      }
+    };
+    void load();
+    const unsub = subscribeChestQueueRefresh(() => void load());
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [selectedDate, today]);
+
   const moment = useMemo(() => {
     const meals = day?.data?.meals;
     const water = day?.data?.water;
@@ -364,8 +417,9 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       waterTarget: water?.target ?? 0,
       streak: streak?.streak ?? 0,
       softStep,
+      chest,
     });
-  }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine, tomorrowPlanLabel]);
+  }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine, tomorrowPlanLabel, chest]);
 
   if (!moment) return null;
 
@@ -472,6 +526,13 @@ export function MomentHeroView({
         {cta.label}
       </>
     );
+    if ("disabled" in cta && cta.disabled) {
+      return (
+        <button type="button" className={`${cls} moment-cta--disabled`} disabled>
+          {cta.label}
+        </button>
+      );
+    }
     if (cta.action) {
       const action = cta.action;
       return (
@@ -480,7 +541,10 @@ export function MomentHeroView({
         </button>
       );
     }
-    const href = cta.href.startsWith("/assistant") ? cta.href : withDateQuery(cta.href, selectedDate);
+    const href =
+      cta.href.includes("#") || cta.href.startsWith("/assistant")
+        ? cta.href
+        : withDateQuery(cta.href, selectedDate);
     return (
       <Link href={href} className={cls}>
         {body}
@@ -577,6 +641,7 @@ export function MomentHeroView({
               <span className="moment-check-value">{c.value}</span>
             </div>
           ))}
+          {moment.checklistNote ? <p className="moment-check-note">{moment.checklistNote}</p> : null}
         </section>
       ) : null}
     </>
