@@ -98,6 +98,7 @@ public class CvRestTimerService extends Service {
       stopSelf();
       return START_NOT_STICKY;
     }
+    // Исключение отсюда роняет весь процесс — пользователь видит рабочий стол.
     scheduleDone(endsAt);
     return START_STICKY;
   }
@@ -158,14 +159,45 @@ public class CvRestTimerService extends Service {
     return PendingIntent.getService(this, action.hashCode(), intent, flags);
   }
 
+  /**
+   * Точный будильник на Android 12+ требует отдельное право. На Android 16 его
+   * часто нет, и {@code setExactAndAllowWhileIdle} бросает SecurityException
+   * уже в сервисе — процесс умирает. Без права ставим неточный будильник.
+   * Политика совпадает с {@code chooseRestAlarmMode} в rest-alarm-policy.ts.
+   */
   private void scheduleDone(long endsAt) {
-    AlarmManager alarms = (AlarmManager) getSystemService(ALARM_SERVICE);
-    if (alarms == null) return;
-    PendingIntent pending = donePending();
+    try {
+      AlarmManager alarms = (AlarmManager) getSystemService(ALARM_SERVICE);
+      if (alarms == null) return;
+      PendingIntent pending = donePending();
+      if (!scheduleExact(alarms, endsAt, pending)) {
+        scheduleInexact(alarms, endsAt, pending);
+      }
+    } catch (Exception ignored) {
+      // Отдых продолжается в WebView. Повторный подход не должен закрывать приложение.
+    }
+  }
+
+  /** @return true, если точный будильник поставлен. */
+  private boolean scheduleExact(AlarmManager alarms, long endsAt, PendingIntent pending) {
+    try {
+      if (Build.VERSION.SDK_INT >= 31 && !alarms.canScheduleExactAlarms()) return false;
+      if (Build.VERSION.SDK_INT >= 23) {
+        alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endsAt, pending);
+      } else {
+        alarms.setExact(AlarmManager.RTC_WAKEUP, endsAt, pending);
+      }
+      return true;
+    } catch (SecurityException denied) {
+      return false;
+    }
+  }
+
+  private void scheduleInexact(AlarmManager alarms, long endsAt, PendingIntent pending) {
     if (Build.VERSION.SDK_INT >= 23) {
-      alarms.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endsAt, pending);
+      alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, endsAt, pending);
     } else {
-      alarms.setExact(AlarmManager.RTC_WAKEUP, endsAt, pending);
+      alarms.set(AlarmManager.RTC_WAKEUP, endsAt, pending);
     }
   }
 
