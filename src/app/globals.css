@@ -3307,6 +3307,28 @@ body:has(.guest-try) .cookie-consent {
   overflow: hidden;
 }
 
+.chest-dock-rule {
+  margin-top: 0.45rem;
+}
+
+.chest-dock-rule p {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--muted-strong);
+}
+
+.chest-dock-rule button {
+  margin-top: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .chest-dock-bar > span {
   display: block;
   height: 100%;
@@ -5983,6 +6005,16 @@ button.profile-settings__door:disabled {
   transform: scale(0.98);
 }
 
+.moment-cta:disabled,
+.moment-cta--disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.moment-cta:disabled:active {
+  transform: none;
+}
+
 .moment-cta--white {
   background: #fff;
   color: var(--accent-ink);
@@ -6164,8 +6196,17 @@ button.profile-settings__door:disabled {
   font-weight: 700;
 }
 
-.moment-check:last-child {
+.moment-check:last-of-type {
   border-bottom: none;
+}
+
+.moment-check-note {
+  margin: 0;
+  padding: 0.35rem 0 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--muted);
 }
 
 .moment-check-dot {

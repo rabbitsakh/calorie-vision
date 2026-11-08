@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
+import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { shouldDeferQuestChestForPostWorkout } from "@/lib/post-workout-nudge";
@@ -100,27 +101,16 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
     markSoftCelebrationSeen("quest-chest", today);
     flushPendingMetaChests();
+    notifyChestQueueRefresh();
 
     if ((result.readyCount ?? 0) > 0) {
-      setHint(
-        result.boosted
-          ? "Сундук готов · бонус за день · открой выше"
-          : "Сундук готов · открой выше на дне",
-      );
+      setHint("Сундук готов · открой выше на дне");
       return;
     }
 
     const nextIn = result.nextChestIn ?? QUEST_DAYS_PER_CHEST;
     if (nextIn <= 0) {
       setHint(null);
-      return;
-    }
-    if (result.boosted) {
-      setHint(
-        result.boostKind === "gym"
-          ? `Зал сегодня · ещё ${nextIn} до сундука`
-          : `Вечер отмечен · ещё ${nextIn} до сундука`,
-      );
       return;
     }
     setHint(`Ещё ${nextIn} лёгких дня до сундука`);

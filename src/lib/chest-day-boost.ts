@@ -41,39 +41,20 @@ export async function detectDayBoost(
   return null;
 }
 
+/** Новые бонусные зачёты выключены. Уже выданные строки не удаляются. */
+export const GRANT_NEW_QUEST_DAY_BOOST = false;
+
 /**
- * Grant optional boost credit for a calm day (idempotent).
- * Counts as an extra `quest_day` row toward the 3-day meter.
+ * Раньше зал или настроение давали второй quest_day.
+ * Для новых дней зачёт больше не создаётся.
  */
 export async function maybeGrantQuestDayBoost(
   userId: string,
-  date: string,
+  _date: string,
 ): Promise<{ boosted: boolean; kind: DayBoostKind; questDayCount: number }> {
-  const kind = await detectDayBoost(userId, date);
-  if (!kind) {
-    const questDayCount = await prisma.userReward.count({
-      where: { userId, rewardKey: "quest_day" },
-    });
-    return { boosted: false, kind: null, questDayCount };
-  }
-
-  const sourceKey = questDayBoostSourceKey(date);
-  const existing = await prisma.userReward.findUnique({
-    where: { userId_sourceKey: { userId, sourceKey } },
-  });
-  if (!existing) {
-    await prisma.userReward.create({
-      data: {
-        userId,
-        rewardKey: "quest_day",
-        source: "quest",
-        sourceKey,
-      },
-    });
-  }
-
+  void GRANT_NEW_QUEST_DAY_BOOST;
   const questDayCount = await prisma.userReward.count({
     where: { userId, rewardKey: "quest_day" },
   });
-  return { boosted: !existing, kind, questDayCount };
+  return { boosted: false, kind: null, questDayCount };
 }

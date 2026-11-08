@@ -17,6 +17,7 @@ import { nextQuestChestBatchIndex } from "@/lib/chest-progress";
 import {
   challengeChestSourceKey,
   QUEST_DAYS_PER_CHEST,
+  questDaySourceKey,
   streakChestSourceKey,
   weekChestSourceKey,
 } from "@/lib/rewards";
@@ -51,6 +52,7 @@ export async function listReadyChests(userId: string): Promise<{
   queue: ReadyChestItem[];
   questDayCount: number;
   openedQuestChests: number;
+  todayMarked: boolean;
 }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -58,10 +60,14 @@ export async function listReadyChests(userId: string): Promise<{
   });
   const today = toDateKeyTz(new Date(), user?.timezone);
 
-  const [questDayCount, openedQuestChests, streak] = await Promise.all([
+  const [questDayCount, openedQuestChests, streak, todayMarkedRow] = await Promise.all([
     prisma.userReward.count({ where: { userId, rewardKey: "quest_day" } }),
     countOpenedQuestChests(userId),
     buildStreakPayload(userId, today),
+    prisma.userReward.findUnique({
+      where: { userId_sourceKey: { userId, sourceKey: questDaySourceKey(today) } },
+      select: { id: true },
+    }),
   ]);
 
   const questReady =
@@ -122,5 +128,5 @@ export async function listReadyChests(userId: string): Promise<{
     challenge: challengeItems,
   });
 
-  return { queue, questDayCount, openedQuestChests };
+  return { queue, questDayCount, openedQuestChests, todayMarked: Boolean(todayMarkedRow) };
 }
