@@ -20,8 +20,8 @@
     "path": "./android.keystore",
     "alias": "calorievision"
   },
-  "appVersionName": "3.6.13",
-  "appVersionCode": 30613,
+  "appVersionName": "3.6.14",
+  "appVersionCode": 30614,
   "shortcuts": [],
   "generatorApp": "bubblewrap",
   "webManifestUrl": "https://calorievision.ru/manifest.json",
