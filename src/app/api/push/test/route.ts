@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { sendPushNotification } from "@/lib/push";
+import { describePushDeliveryFailure } from "@/lib/push-delivery-error";
 import { withBasePath } from "@/lib/paths";
 import { REMINDER_SCHEDULE, reminderKindLabel } from "@/lib/push-reminder-schedule";
 
@@ -51,13 +52,17 @@ export async function POST() {
         );
         delivered += 1;
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes("410") || message.includes("404")) {
+        const failure = describePushDeliveryFailure(error, { userId: session.user.id });
+        if (failure.dropSubscription) {
           await prisma.pushSubscription.deleteMany({
             where: { userId: session.user.id, endpoint: sub.endpoint },
           });
         }
-        errors.push(message);
+        errors.push(
+          failure.statusCode != null
+            ? `Не удалось отправить (HTTP ${failure.statusCode})`
+            : "Не удалось отправить",
+        );
       }
     }
 

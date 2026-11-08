@@ -3,6 +3,7 @@ import { authorizeCron } from "@/lib/cron-auth";
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import { sendPushNotification } from "@/lib/push";
+import { describePushDeliveryFailure } from "@/lib/push-delivery-error";
 import {
   buildReminderPayload,
   computeCalorieTarget,
@@ -237,13 +238,17 @@ export async function GET(request: NextRequest) {
             sent += 1;
             delivered = true;
           } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            if (message.includes("410") || message.includes("404")) {
+            const failure = describePushDeliveryFailure(error, {
+              userId: user.id,
+              kind,
+            });
+            console.error(`[cron/reminders] push ${failure.logLine}`);
+            if (failure.dropSubscription) {
               await prisma.pushSubscription.deleteMany({
                 where: { userId: user.id, endpoint: sub.endpoint },
               });
             }
-            errors.push(`${user.id}/${kind}: ${message}`);
+            errors.push(failure.logLine);
           }
         }
 
