@@ -2,9 +2,11 @@
 
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   GYM_TOUR_STEPS,
+  advanceGymTour,
+  gymTourStepIndex,
   markGymTourSeen,
   readGymTourSeen,
   shouldShowGymTour,
@@ -31,7 +33,9 @@ export function GymOnboarding({ force = false }: { force?: boolean }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => gymTourStepIndex(searchParams.get("tour")));
+  const indexRef = useRef(index);
+  indexRef.current = index;
   const [box, setBox] = useState<Box | null>(null);
 
   useEffect(() => {
@@ -43,12 +47,14 @@ export function GymOnboarding({ force = false }: { force?: boolean }) {
     if (pathname.startsWith("/admin") || pathname.startsWith("/login") || pathname.startsWith("/try")) {
       return;
     }
-    const seen = readGymTourSeen(typeof window === "undefined" ? null : window.localStorage);
+    const seen =
+      readGymTourSeen(window.localStorage) || readGymTourSeen(window.sessionStorage);
     if (!shouldShowGymTour(seen, true)) return;
     setOpen(true);
   }, [force, pathname, status]);
 
-  const step = GYM_TOUR_STEPS[index] ?? GYM_TOUR_STEPS[0];
+  const step =
+    GYM_TOUR_STEPS[Math.min(Math.max(index, 0), GYM_TOUR_STEPS.length - 1)] ?? GYM_TOUR_STEPS[0];
 
   useEffect(() => {
     if (!open || force) return;
@@ -90,7 +96,10 @@ export function GymOnboarding({ force = false }: { force?: boolean }) {
 
   const close = useCallback(
     (done: boolean) => {
-      if (!force && done) markGymTourSeen(window.localStorage);
+      if (!force && done) {
+        markGymTourSeen(window.localStorage);
+        markGymTourSeen(window.sessionStorage);
+      }
       setOpen(false);
       const params = new URLSearchParams(searchParams.toString());
       if (params.has("tour")) {
@@ -147,8 +156,13 @@ export function GymOnboarding({ force = false }: { force?: boolean }) {
               type="button"
               className="btn btn-primary gym-tour__next"
               onClick={() => {
-                if (last) close(true);
-                else setIndex((value) => value + 1);
+                const next = advanceGymTour(indexRef.current);
+                if (next.done) {
+                  close(true);
+                  return;
+                }
+                indexRef.current = next.index;
+                setIndex(next.index);
               }}
             >
               {last ? "Готово" : "Дальше"}

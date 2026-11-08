@@ -41,6 +41,19 @@ export const GYM_TOUR_STEPS: readonly GymTourStep[] = [
   },
 ];
 
+/** Индекс шага из ?tour=. Чужой id не сбрасывает тур на первый шаг. */
+export function gymTourStepIndex(tourId: string | null | undefined): number {
+  if (!tourId) return 0;
+  const index = GYM_TOUR_STEPS.findIndex((step) => step.id === tourId);
+  return index >= 0 ? index : 0;
+}
+
+/** «Дальше» не перескакивает за последний шаг: там тур надо закрыть. */
+export function advanceGymTour(index: number): { done: true } | { done: false; index: number } {
+  if (index >= GYM_TOUR_STEPS.length - 1) return { done: true };
+  return { done: false, index: index + 1 };
+}
+
 export function shouldShowGymTour(seen: boolean, authenticated: boolean): boolean {
   return authenticated && !seen;
 }
