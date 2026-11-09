@@ -81,11 +81,14 @@ import {
   listWorkoutSetDrafts,
   listWorkoutSetDraftsForSession,
   removeWorkoutFinishDraft,
+  insertWorkoutSetDraftAt,
+  moveWorkoutSetDraft,
   removeWorkoutSetDraft,
   removeWorkoutSetDraftsForExercise,
   subscribeWorkoutSetDraftQueue,
   updateWorkoutSetDraft,
 } from "@/lib/workout-set-draft-queue";
+import { clampSetIndex } from "@/lib/workouts/set-order";
 import {
   addLocalWorkoutExercise,
   countLocalWorkoutSessions,
@@ -241,6 +244,20 @@ type SessionExercise = {
   lastTime?: { date: string; kind?: ExerciseKind; sets: HistorySet[] } | null;
 };
 
+type DeletedSetUndo = {
+  exerciseId: string;
+  index: number;
+  weightKg: number | null;
+  reps: number | null;
+  distanceKm: number | null;
+  durationSec: number | null;
+  setType: SetType;
+  completed: boolean;
+  rpe: number | null;
+  /** Черновик без сервера. null — подход уже был в тренировке. */
+  localBody: Record<string, unknown> | null;
+};
+
 type SessionDetail = SessionSummary & {
   exercises: SessionExercise[];
 };
@@ -391,6 +408,7 @@ export function WorkoutsView({
   const [queueRev, setQueueRev] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+  const [deletedSets, setDeletedSets] = useState<DeletedSetUndo[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [creating, setCreating] = useState(false);
   /** Opened via «+» → Тренировка (`?new=1`). */
@@ -776,6 +794,10 @@ export function WorkoutsView({
     void loadRoutines();
     void loadCalendar();
   }, [loadList, loadInsights, loadRoutines, loadCalendar]);
+
+  useEffect(() => {
+    if (!activeId) setDeletedSets([]);
+  }, [activeId]);
 
   useEffect(() => {
     const refresh = () => {
@@ -2243,9 +2265,33 @@ export function WorkoutsView({
 
   const deleteSet = async (setId: string) => {
     if (!detail) return;
+    const view = displayDetail ?? detail;
+    const exercise = view.exercises.find((ex) => ex.sets.some((set) => set.id === setId));
+    const index = exercise?.sets.findIndex((set) => set.id === setId) ?? -1;
+    const set = index >= 0 ? exercise?.sets[index] : undefined;
+    if (!exercise || !set) return;
     const draftId = draftIdFromLocalSetId(setId);
+    const notice: DeletedSetUndo = {
+      exerciseId: exercise.id,
+      index,
+      weightKg: set.weightKg,
+      reps: set.reps,
+      distanceKm: set.distanceKm,
+      durationSec: set.durationSec,
+      setType: set.setType,
+      completed: set.completed,
+      rpe: set.rpe,
+      localBody: null,
+    };
     if (draftId) {
+      const queued = listWorkoutSetDraftsForSession(detail.id).find((item) => item.id === draftId);
+      notice.localBody = queued?.body ?? null;
+      notice.index = listWorkoutSetDraftsForSession(detail.id)
+        .filter((item) => item.exerciseId === exercise.id)
+        .findIndex((item) => item.id === draftId);
+      if (notice.index < 0) notice.index = 0;
       removeWorkoutSetDraft(draftId);
+      setDeletedSets((prev) => [...prev, notice]);
       setError(null);
       return;
     }
@@ -2266,9 +2312,76 @@ export function WorkoutsView({
         }),
       );
       await refreshDetail(data.session);
+      setDeletedSets((prev) => [...prev, notice]);
     } catch (err) {
       setDetail(previous);
       setError(err instanceof Error ? err.message : "Не удалось удалить подход");
+    }
+  };
+
+  const moveSet = async (setId: string, move: "up" | "down") => {
+    if (!detail) return;
+    const draftId = draftIdFromLocalSetId(setId);
+    if (draftId) {
+      moveWorkoutSetDraft(draftId, move);
+      return;
+    }
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/sets/${setId}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ move }),
+        }),
+      );
+      await refreshDetail(data.session);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Не удалось переместить подход");
+    }
+  };
+
+  const undoDeleteSet = async () => {
+    if (!detail || deletedSets.length === 0) return;
+    const notice = deletedSets[deletedSets.length - 1]!;
+    setDeletedSets((prev) => prev.slice(0, -1));
+    if (notice.localBody) {
+      const index = clampSetIndex(
+        listWorkoutSetDraftsForSession(detail.id).filter((item) => item.exerciseId === notice.exerciseId)
+          .length,
+        notice.index,
+      );
+      insertWorkoutSetDraftAt({
+        sessionId: detail.id,
+        exerciseId: notice.exerciseId,
+        body: notice.localBody,
+        indexAmongExercise: index,
+      });
+      return;
+    }
+    const exercise = (displayDetail ?? detail).exercises.find((ex) => ex.id === notice.exerciseId);
+    const insertAt = clampSetIndex(exercise?.sets.length ?? 0, notice.index);
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/exercises/${notice.exerciseId}/sets`), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            weightKg: notice.weightKg,
+            reps: notice.reps,
+            distanceKm: notice.distanceKm,
+            durationSec: notice.durationSec,
+            setType: notice.setType,
+            completed: notice.completed,
+            rpe: notice.rpe,
+            insertAt,
+            restore: true,
+          }),
+        }),
+      );
+      await refreshDetail(data.session);
+    } catch (err) {
+      setDeletedSets((prev) => [...prev, notice]);
+      setError(err instanceof Error ? err.message : "Не удалось вернуть подход");
     }
   };
 
@@ -2444,6 +2557,9 @@ export function WorkoutsView({
         cycleSetType={cycleSetType}
         saveSetFields={saveSetFields}
         deleteSet={deleteSet}
+        moveSet={moveSet}
+        deletedSetNotice={deletedSets.length > 0}
+        undoDeleteSet={() => void undoDeleteSet()}
         deleteExercise={deleteExercise}
         addSet={addSet}
         completePlannedSet={completePlannedSet}

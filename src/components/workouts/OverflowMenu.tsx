@@ -13,10 +13,12 @@ export type OverflowMenuItem = {
 type Props = {
   label: string;
   items: OverflowMenuItem[];
+  /** Значок кнопки. Упражнение — «⋯», подход — «⋮». */
+  glyph?: string;
 };
 
 /** Absolute ⋯ menu — secondary actions must not push the exercise list. */
-export function OverflowMenu({ label, items }: Props) {
+export function OverflowMenu({ label, items, glyph = "⋯" }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +48,7 @@ export function OverflowMenu({ label, items }: Props) {
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
       >
-        ⋯
+        {glyph}
       </button>
       {open ? (
         <div
@@ -63,6 +65,7 @@ export function OverflowMenu({ label, items }: Props) {
                 item.danger ? "text-red-600" : "text-[var(--foreground)]"
               }`}
               onClick={() => {
+                if (item.disabled) return;
                 setOpen(false);
                 item.onClick();
               }}

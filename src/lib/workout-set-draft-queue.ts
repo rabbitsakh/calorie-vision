@@ -153,6 +153,67 @@ export function removeWorkoutSetDraft(id: string): void {
   writeQueue(readQueue().filter((item) => item.id !== id));
 }
 
+function newDraftId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `wset-${Date.now()}`;
+}
+
+/** Переставить черновик только среди подходов того же упражнения. */
+export function moveWorkoutSetDraft(id: string, direction: "up" | "down"): boolean {
+  const items = readQueue();
+  const current = items.find((item) => item.id === id);
+  if (!current) return false;
+  const positions = items
+    .map((item, index) =>
+      item.sessionId === current.sessionId && item.exerciseId === current.exerciseId ? index : -1,
+    )
+    .filter((index) => index >= 0);
+  const pos = positions.findIndex((index) => items[index]?.id === id);
+  const swap = direction === "up" ? pos - 1 : pos + 1;
+  if (pos < 0 || swap < 0 || swap >= positions.length) return false;
+  const next = [...items];
+  const from = positions[pos]!;
+  const to = positions[swap]!;
+  const hold = next[from]!;
+  next[from] = next[to]!;
+  next[to] = hold;
+  writeQueue(next);
+  return true;
+}
+
+/** Вернуть удалённый черновик на прежний индекс среди подходов упражнения. */
+export function insertWorkoutSetDraftAt(input: {
+  sessionId: string;
+  exerciseId: string;
+  body: Record<string, unknown>;
+  indexAmongExercise: number;
+}): string {
+  const id = newDraftId();
+  const items = readQueue();
+  const positions = items
+    .map((item, index) =>
+      item.sessionId === input.sessionId && item.exerciseId === input.exerciseId ? index : -1,
+    )
+    .filter((index) => index >= 0);
+  const at =
+    input.indexAmongExercise >= positions.length
+      ? items.length
+      : positions[Math.max(0, input.indexAmongExercise)]!;
+  const entry: WorkoutSetDraftItem = {
+    id,
+    kind: "failed-workout-set",
+    createdAt: new Date().toISOString(),
+    sessionId: input.sessionId,
+    exerciseId: input.exerciseId,
+    body: input.body,
+  };
+  const next = [...items];
+  next.splice(at, 0, entry);
+  writeQueue(next);
+  return id;
+}
+
 export function removeWorkoutSetDraftsForExercise(exerciseId: string): void {
   writeQueue(readQueue().filter((item) => item.exerciseId !== exerciseId));
 }
