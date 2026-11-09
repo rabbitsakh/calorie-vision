@@ -343,6 +343,9 @@ export type WorkoutActiveSessionProps = {
     }>,
   ) => Promise<void>;
   deleteSet: (setId: string) => Promise<void>;
+  moveSet: (setId: string, direction: "up" | "down") => Promise<void>;
+  deletedSetNotice: boolean;
+  undoDeleteSet: () => void;
   deleteExercise: (exerciseId: string) => Promise<void>;
   addSet: (exerciseId: string, draft?: SetDraft) => Promise<boolean>;
   completePlannedSet: (exerciseId: string, setId: string, draft: SetDraft) => Promise<boolean>;
@@ -421,6 +424,9 @@ export function WorkoutActiveSession({
   cycleSetType,
   saveSetFields,
   deleteSet,
+  moveSet,
+  deletedSetNotice,
+  undoDeleteSet,
   deleteExercise,
   addSet,
   completePlannedSet,
@@ -904,6 +910,17 @@ export function WorkoutActiveSession({
           {flushSummary}
         </div>
       ) : null}
+      {deletedSetNotice ? (
+        <div
+          className="flex items-center justify-between gap-3 rounded-xl bg-[var(--accent-soft)] px-3 py-2 text-sm font-medium text-[var(--accent-ink)]"
+          role="status"
+        >
+          <span>Подход удалён</span>
+          <button type="button" className="min-h-[44px] font-semibold underline" onClick={undoDeleteSet}>
+            Отменить
+          </button>
+        </div>
+      ) : null}
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {detail.exercises.length === 0 ? (
@@ -1069,6 +1086,8 @@ export function WorkoutActiveSession({
                 onLog={(row, fields) => void onLog(ex, row, fields)}
                 onCycleType={(row) => onCycleType(ex, row)}
                 onAddSet={() => onAddExtra(ex, rows)}
+                onMoveSet={(setId, direction) => void moveSet(setId, direction)}
+                onDeleteSet={(setId) => void deleteSet(setId)}
               />
               {draftErrors[ex.id] ? (
                 <p className="px-3 pb-2 text-sm text-red-600" role="alert">

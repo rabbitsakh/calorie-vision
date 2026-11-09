@@ -5,6 +5,7 @@ import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { parseSetCreateForKind } from "@/lib/workouts/set-fields";
 import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { noteLoggedSet } from "@/lib/workouts/apply-session-clock";
+import { assignSortOrders, clampSetIndex } from "@/lib/workouts/set-order";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest, context: Ctx) {
       setType?: unknown;
       completed?: unknown;
       rpe?: unknown;
+      /** Вернуть удалённый подход на прежний индекс. Не запускает часы заново. */
+      insertAt?: unknown;
+      restore?: unknown;
     };
 
     const setType = parseSetType(body.setType);
@@ -51,23 +55,43 @@ export async function POST(request: NextRequest, context: Ctx) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const maxOrder = await prisma.workoutSet.aggregate({
-      where: { exerciseId },
-      _max: { sortOrder: true },
-    });
-    const sortOrder = (maxOrder._max.sortOrder ?? -1) + 1;
+    const restore = body.restore === true;
+    const insertAt =
+      typeof body.insertAt === "number" && Number.isFinite(body.insertAt)
+        ? Math.floor(body.insertAt)
+        : null;
 
-    await prisma.workoutSet.create({
-      data: {
-        exerciseId,
-        ...parsed.fields,
-        setType,
-        completed,
-        rpe: rpe ?? null,
-        sortOrder,
-      },
+    const existing = await prisma.workoutSet.findMany({
+      where: { exerciseId },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      select: { id: true, sortOrder: true },
     });
-    if (completed) {
+    const tail = (existing.at(-1)?.sortOrder ?? -1) + 1;
+
+    await prisma.$transaction(async (tx) => {
+      const created = await tx.workoutSet.create({
+        data: {
+          exerciseId,
+          ...parsed.fields,
+          setType,
+          completed,
+          rpe: rpe ?? null,
+          sortOrder: tail,
+        },
+      });
+      if (insertAt == null) return;
+      const index = clampSetIndex(existing.length, insertAt);
+      const ids = existing.map((row) => row.id);
+      ids.splice(index, 0, created.id);
+      const next = assignSortOrders(ids.map((id) => ({ id })));
+      for (const row of next) {
+        await tx.workoutSet.update({
+          where: { id: row.id },
+          data: { sortOrder: row.sortOrder },
+        });
+      }
+    });
+    if (completed && !restore) {
       await noteLoggedSet(prisma, owned.sessionId);
     }
 

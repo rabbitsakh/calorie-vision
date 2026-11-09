@@ -11,6 +11,7 @@ import {
 } from "@/lib/workouts/active-set-table";
 import type { ExerciseKind } from "@/lib/workouts/exercise-kind";
 import { SET_TYPE_LABELS, SET_TYPE_SHORT, type SetType } from "@/lib/workouts/set-meta";
+import { OverflowMenu } from "@/components/workouts/OverflowMenu";
 
 export type SetTableFields = {
   kg: string;
@@ -29,6 +30,8 @@ type Props = {
   onLog: (row: SetTableRowModel, fields: SetTableFields) => void;
   onCycleType: (row: SetTableRowModel) => void;
   onAddSet: () => void;
+  onMoveSet?: (setId: string, direction: "up" | "down") => void;
+  onDeleteSet?: (setId: string) => void;
 };
 
 function fieldsOf(row: SetTableRowModel): SetTableFields {
@@ -45,9 +48,15 @@ export function SetTable({
   onLog,
   onCycleType,
   onAddSet,
+  onMoveSet,
+  onDeleteSet,
 }: Props) {
   const columns = setTableColumns(kind);
-  const template = setTableGridTemplate(columns);
+  const withMenu = Boolean(onMoveSet && onDeleteSet);
+  const template = withMenu
+    ? `${setTableGridTemplate(columns)} 40px`
+    : setTableGridTemplate(columns);
+  const persisted = rows.filter((row) => row.source === "set" && row.setId);
 
   return (
     <div className="border-t border-[var(--border-quiet)]">
@@ -60,6 +69,7 @@ export function SetTable({
             {col === "check" ? "Готово" : SET_TABLE_COLUMN_LABEL[col]}
           </span>
         ))}
+        {withMenu ? <span className="sr-only">Меню</span> : null}
       </div>
       <ul>
         {rows.map((row) => (
@@ -73,6 +83,18 @@ export function SetTable({
             onCommit={onCommit}
             onLog={onLog}
             onCycleType={onCycleType}
+            reserveMenu={withMenu}
+            menu={
+              withMenu && row.source === "set" && row.setId
+                ? {
+                    canMoveUp: persisted[0]?.setId !== row.setId,
+                    canMoveDown: persisted.at(-1)?.setId !== row.setId,
+                    onUp: () => onMoveSet?.(row.setId!, "up"),
+                    onDown: () => onMoveSet?.(row.setId!, "down"),
+                    onDelete: () => onDeleteSet?.(row.setId!),
+                  }
+                : null
+            }
           />
         ))}
       </ul>
@@ -97,6 +119,8 @@ function SetTableRow({
   onCommit,
   onLog,
   onCycleType,
+  reserveMenu,
+  menu,
 }: {
   row: SetTableRowModel;
   columns: SetTableColumn[];
@@ -106,6 +130,14 @@ function SetTableRow({
   onCommit: Props["onCommit"];
   onLog: Props["onLog"];
   onCycleType: Props["onCycleType"];
+  reserveMenu: boolean;
+  menu: {
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+    onUp: () => void;
+    onDown: () => void;
+    onDelete: () => void;
+  } | null;
 }) {
   const [fields, setFields] = useState<SetTableFields>(() => fieldsOf(row));
   const focused = useRef(false);
@@ -221,6 +253,19 @@ function SetTableRow({
           </label>
         );
       })}
+      {menu ? (
+        <OverflowMenu
+          label={`Действия подхода ${row.number}`}
+          glyph="⋮"
+          items={[
+            { key: "up", label: "Выше", disabled: !menu.canMoveUp || busy, onClick: menu.onUp },
+            { key: "down", label: "Ниже", disabled: !menu.canMoveDown || busy, onClick: menu.onDown },
+            { key: "delete", label: "Удалить", danger: true, disabled: busy, onClick: menu.onDelete },
+          ]}
+        />
+      ) : reserveMenu ? (
+        <span />
+      ) : null}
     </li>
   );
 }

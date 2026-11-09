@@ -5,6 +5,7 @@ import { parseExerciseKind } from "@/lib/workouts/exercise-kind";
 import { parseSetPatchForKind } from "@/lib/workouts/set-fields";
 import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { noteLoggedSet } from "@/lib/workouts/apply-session-clock";
+import { assignSortOrders, moveSetWithinExercise } from "@/lib/workouts/set-order";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ async function ownedSet(userId: string, setId: string) {
     where: { id: setId, exercise: { session: { userId } } },
     select: {
       id: true,
+      exerciseId: true,
+      sortOrder: true,
       exercise: { select: { sessionId: true, kind: true } },
     },
   });
@@ -41,7 +44,34 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       setType?: unknown;
       completed?: unknown;
       rpe?: unknown;
+      /** Только внутри этого упражнения. Не меняет отметку и не трогает отдых. */
+      move?: "up" | "down";
     };
+
+    if (body.move === "up" || body.move === "down") {
+      const siblings = await prisma.workoutSet.findMany({
+        where: { exerciseId: owned.exerciseId },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        select: { id: true, sortOrder: true },
+      });
+      const planned = moveSetWithinExercise(siblings, setId, body.move);
+      if (planned.moved) {
+        const next = assignSortOrders(planned.sets);
+        await prisma.$transaction(
+          next.map((row) =>
+            prisma.workoutSet.update({
+              where: { id: row.id },
+              data: { sortOrder: row.sortOrder },
+            }),
+          ),
+        );
+      }
+      const moved = await prisma.workoutSession.findFirstOrThrow({
+        where: { id: owned.exercise.sessionId },
+        include: sessionInclude,
+      });
+      return NextResponse.json({ session: serializeSessionDetail(moved) });
+    }
 
     const data: {
       weightKg?: number | null;
@@ -112,6 +142,22 @@ export async function DELETE(_request: NextRequest, context: Ctx) {
     }
 
     await prisma.workoutSet.delete({ where: { id: setId } });
+    const remaining = await prisma.workoutSet.findMany({
+      where: { exerciseId: owned.exerciseId },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      select: { id: true },
+    });
+    if (remaining.length > 0) {
+      const next = assignSortOrders(remaining);
+      await prisma.$transaction(
+        next.map((row) =>
+          prisma.workoutSet.update({
+            where: { id: row.id },
+            data: { sortOrder: row.sortOrder },
+          }),
+        ),
+      );
+    }
 
     const row = await prisma.workoutSession.findFirstOrThrow({
       where: { id: owned.exercise.sessionId },
