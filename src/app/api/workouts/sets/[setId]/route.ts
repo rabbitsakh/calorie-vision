@@ -7,6 +7,7 @@ import { isSetType, parseRpe, parseSetType } from "@/lib/workouts/set-meta";
 import { noteLoggedSet } from "@/lib/workouts/apply-session-clock";
 import { assignSortOrders, moveSetWithinExercise } from "@/lib/workouts/set-order";
 import { serializeSessionDetail, sessionInclude } from "@/lib/workouts/serialize";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,7 @@ export async function PATCH(request: NextRequest, context: Ctx) {
       where: { id: owned.exercise.sessionId },
       include: sessionInclude,
     });
+    if (row.endedAt) await grantGymChestForDate(session.user.id, row.date);
     return NextResponse.json({ session: serializeSessionDetail(row) });
   } catch (error) {
     console.error("PATCH /api/workouts/sets/[setId]", error);

@@ -17,6 +17,16 @@ export type BadgeStatsSnapshot = {
   weightLogCount: number;
   /** Completed weekly challenges (completedAt set). */
   challengesCompleted: number;
+  /** Завершённые тренировки с настоящим подходом. */
+  gymSessionCount: number;
+  /** Сколько раз побит уже существующий рекорд упражнения. */
+  gymPrBeats: number;
+  /** Больше всего таких тренировок в одной неделе пн–вс. */
+  gymBestWeekSessions: number;
+  /** Дни, где тренировка и белок в дневной цели. */
+  comboDayCount: number;
+  /** Самая длинная серия комбо-дней подряд. */
+  comboStreakBest: number;
 };
 
 export type NextBadgeHint = BadgeDef & {
@@ -32,7 +42,9 @@ export type BadgeGroupId =
   | "water"
   | "target"
   | "weight"
-  | "challenges";
+  | "challenges"
+  | "gym"
+  | "combo";
 
 export const BADGE_GROUP_LABELS: Record<BadgeGroupId, string> = {
   streak: "Серия",
@@ -41,6 +53,8 @@ export const BADGE_GROUP_LABELS: Record<BadgeGroupId, string> = {
   target: "Коридор",
   weight: "Вес",
   challenges: "Челленджи",
+  gym: "Зал",
+  combo: "Комбо",
 };
 
 export function badgeGroup(key: string): BadgeGroupId {
@@ -50,6 +64,8 @@ export function badgeGroup(key: string): BadgeGroupId {
   if (key === "week_on_target" || key === "month_on_target") return "target";
   if (key.startsWith("weight_")) return "weight";
   if (key.startsWith("challenges_")) return "challenges";
+  if (key.startsWith("gym_")) return "gym";
+  if (key.startsWith("combo_")) return "combo";
   return "meals";
 }
 
@@ -172,6 +188,46 @@ export const BADGE_DEFS: BadgeDef[] = [
     title: "Год привычек",
     description: "Закрыть 12 недельных челленджей",
   },
+  {
+    key: "gym_first",
+    title: "Первая тренировка",
+    description: "Завершить тренировку хотя бы с одним подходом",
+  },
+  {
+    key: "gym_10",
+    title: "Десять тренировок",
+    description: "10 завершённых тренировок с подходами",
+  },
+  {
+    key: "gym_30",
+    title: "Тридцать тренировок",
+    description: "30 завершённых тренировок с подходами",
+  },
+  {
+    key: "gym_pr",
+    title: "Личный рекорд",
+    description: "Побить свой вес или повторы в упражнении",
+  },
+  {
+    key: "gym_week_3",
+    title: "Три тренировки за неделю",
+    description: "3 тренировки с подходами в одну неделю",
+  },
+  {
+    key: "combo_first",
+    title: "Первый комбо-день",
+    description: "Тренировка и белок в дневной цели в один день",
+  },
+  {
+    key: "combo_3",
+    title: "Три комбо подряд",
+    description: "3 комбо-дня подряд",
+  },
+  {
+    key: "combo_7",
+    title: "Неделя комбо",
+    description: "7 комбо-дней подряд",
+  },
 ];
 
 export function badgeDef(key: string): BadgeDef | undefined {
@@ -233,6 +289,22 @@ export function getBadgeProgress(
       return { current: Math.min(stats.challengesCompleted, 4), target: 4 };
     case "challenges_12":
       return { current: Math.min(stats.challengesCompleted, 12), target: 12 };
+    case "gym_first":
+      return { current: Math.min(stats.gymSessionCount, 1), target: 1 };
+    case "gym_10":
+      return { current: Math.min(stats.gymSessionCount, 10), target: 10 };
+    case "gym_30":
+      return { current: Math.min(stats.gymSessionCount, 30), target: 30 };
+    case "gym_pr":
+      return { current: Math.min(stats.gymPrBeats, 1), target: 1 };
+    case "gym_week_3":
+      return { current: Math.min(stats.gymBestWeekSessions, 3), target: 3 };
+    case "combo_first":
+      return { current: Math.min(stats.comboDayCount, 1), target: 1 };
+    case "combo_3":
+      return { current: Math.min(stats.comboStreakBest, 3), target: 3 };
+    case "combo_7":
+      return { current: Math.min(stats.comboStreakBest, 7), target: 7 };
     default:
       return null;
   }
@@ -286,5 +358,10 @@ export function emptyBadgeStats(): BadgeStatsSnapshot {
     monthOnTargetDays: 0,
     weightLogCount: 0,
     challengesCompleted: 0,
+    gymSessionCount: 0,
+    gymPrBeats: 0,
+    gymBestWeekSessions: 0,
+    comboDayCount: 0,
+    comboStreakBest: 0,
   };
 }

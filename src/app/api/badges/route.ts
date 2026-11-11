@@ -17,6 +17,7 @@ import {
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { computeStreakFromSet, shiftDateKeyUtc } from "@/lib/streak-utils";
+import { grantGymChestForDate, loadGymBadgeSnapshot } from "@/lib/gym-reward-grant";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ async function loadBadgeStats(userId: string): Promise<{
     weightLogCount,
     challengesCompleted,
     monthMeals,
+    gym,
   ] = await Promise.all([
     prisma.mealEntry.findMany({
       where: { userId },
@@ -77,6 +79,7 @@ async function loadBadgeStats(userId: string): Promise<{
       where: { userId, date: { in: monthDates } },
       select: { date: true, calories: true },
     }),
+    loadGymBadgeSnapshot(userId),
   ]);
 
   // Include freeze days in badge streak (#30)
@@ -125,6 +128,11 @@ async function loadBadgeStats(userId: string): Promise<{
     monthOnTargetDays,
     weightLogCount,
     challengesCompleted,
+    gymSessionCount: gym.gymSessionCount,
+    gymPrBeats: gym.gymPrBeats,
+    gymBestWeekSessions: gym.gymBestWeekSessions,
+    comboDayCount: gym.comboDayCount,
+    comboStreakBest: gym.comboStreakBest,
   };
 
   const earnedKeys = new Set(existing.map((b) => b.badgeKey));
@@ -182,7 +190,8 @@ export async function POST() {
     if (response) return response;
 
     const userId = session.user.id;
-    const { stats, candidates } = await loadBadgeStats(userId);
+    const { today, stats, candidates } = await loadBadgeStats(userId);
+    await grantGymChestForDate(userId, today);
     const newlyUnlocked: string[] = [];
 
     if (candidates.length > 0) {

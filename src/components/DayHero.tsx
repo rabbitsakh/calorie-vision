@@ -43,6 +43,7 @@ type ProgressData = {
   weightKg: number | null;
   trainingLabel: string | null;
   trainingSessionCount: number;
+  comboDay: boolean;
 };
 
 type DayHeroProps = {
@@ -61,6 +62,7 @@ function progressFromPayload(
       protein: number;
     } | null;
     trainingDay?: TrainingDayInfo | null;
+    comboDay?: boolean;
   },
   water: { totalMl: number; target: number },
   weightKg?: number | null,
@@ -79,6 +81,7 @@ function progressFromPayload(
     weightKg: weightKg != null && Number.isFinite(weightKg) ? weightKg : null,
     trainingLabel: training?.label ?? null,
     trainingSessionCount: training?.sessionCount ?? 0,
+    comboDay: meals.comboDay === true,
   };
 }
 
@@ -232,6 +235,7 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
             protein: number;
           } | null;
           trainingDay?: TrainingDayInfo | null;
+          comboDay?: boolean;
         };
         const water = waterResp.ok
           ? ((await waterResp.json()) as { totalMl: number; target: number })
@@ -364,6 +368,11 @@ export function DayHero({ selectedDate, today, refreshKey }: DayHeroProps) {
         {data?.trainingLabel ? (
           <p className="day-hero-training" role="status">
             {data.trainingLabel}
+          </p>
+        ) : null}
+        {data?.comboDay ? (
+          <p className="day-hero-training" role="status">
+            Комбо-день · тренировка и белок в цели
           </p>
         ) : null}
 

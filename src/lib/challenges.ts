@@ -66,13 +66,13 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
   {
     key: "gym_2",
     title: "Две тренировки",
-    description: "Завершите 2 тренировки на этой неделе",
+    description: "Завершите 2 тренировки с подходами на этой неделе",
     target: 2,
   },
   {
     key: "gym_3",
     title: "Три тренировки",
-    description: "Завершите 3 тренировки на этой неделе",
+    description: "Завершите 3 тренировки с подходами на этой неделе",
     target: 3,
   },
 ];

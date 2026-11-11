@@ -11,6 +11,7 @@ import {
   type SaveMealInput,
 } from "@/lib/save-meal";
 import { mealImagePathForUser } from "@/lib/upload";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 type SaveMealBody = SaveMealInput;
 type BatchSaveMealBody = { entries: SaveMealInput[] };
@@ -75,6 +76,9 @@ export async function POST(request: NextRequest) {
       const confirmed = validated.filter((row) => isMealConfirmInput(row.entry)).length;
       if (confirmed > 0) trackMealConfirmed(session.user.id, confirmed);
 
+      const dates = [...new Set(validated.map((row) => row.date))];
+      await Promise.all(dates.map((date) => grantGymChestForDate(session.user.id, date)));
+
       return NextResponse.json({ entries });
     }
 
@@ -91,6 +95,7 @@ export async function POST(request: NextRequest) {
     await rememberMealCorrectionIfNeeded(session.user.id, body);
 
     if (isMealConfirmInput(body)) trackMealConfirmed(session.user.id, 1);
+    await grantGymChestForDate(session.user.id, validation.date);
 
     return NextResponse.json({ entry });
   } catch (error) {

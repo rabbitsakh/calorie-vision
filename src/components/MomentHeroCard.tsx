@@ -68,7 +68,13 @@ type PlanPayload = {
   >;
 };
 type SessionsPayload = {
-  sessions?: Array<{ clockStatus?: string; endedAt?: string | null; muscleLabels?: string[] }>;
+  sessions?: Array<{
+    clockStatus?: string;
+    endedAt?: string | null;
+    muscleLabels?: string[];
+    qualifiesForReward?: boolean;
+    setCount?: number;
+  }>;
 };
 
 type MealIdea = {
@@ -204,7 +210,12 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
         }
         if (sessResp.ok) {
           const sessions = ((await sessResp.json()) as SessionsPayload).sessions ?? [];
-          setGymDone(sessions.some((s) => s.clockStatus === "finished" || Boolean(s.endedAt)));
+          setGymDone(
+            sessions.some((s) => {
+              if (typeof s.qualifiesForReward === "boolean") return s.qualifiesForReward;
+              return Boolean(s.endedAt) && (Number(s.setCount) || 0) > 0;
+            }),
+          );
           const live = sessions.find(
             (s) => s.clockStatus === "running" || s.clockStatus === "paused",
           );

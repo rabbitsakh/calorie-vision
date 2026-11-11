@@ -36,6 +36,8 @@ const GROUP_ORDER: BadgeGroupId[] = [
   "target",
   "weight",
   "challenges",
+  "gym",
+  "combo",
 ];
 
 function NextBadgeSection({ hint }: { hint: NextBadgeHint }) {

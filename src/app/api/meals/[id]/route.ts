@@ -5,6 +5,7 @@ import { requireDateKey } from "@/lib/dates";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { parseEatenAt } from "@/lib/eaten-at";
 import { prisma } from "@/lib/prisma";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 export async function PATCH(
   request: NextRequest,
@@ -90,6 +91,12 @@ export async function PATCH(
       const miss = notFoundMealResponse();
       return NextResponse.json({ error: miss.error }, { status: miss.status });
     }
+
+    const meal = await prisma.mealEntry.findFirst({
+      where: { id, userId: session.user.id },
+      select: { date: true },
+    });
+    if (meal) await grantGymChestForDate(session.user.id, meal.date);
 
     return NextResponse.json({ ok: true });
   } catch (error) {

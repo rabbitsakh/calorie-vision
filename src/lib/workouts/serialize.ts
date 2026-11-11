@@ -16,6 +16,7 @@ import {
 } from "@/lib/workouts/load";
 import { muscleGroupLabel, normalizeGroupKeys } from "@/lib/workouts/muscle-groups";
 import { parseSetType, type SetType } from "@/lib/workouts/set-meta";
+import { sessionQualifiesForGymReward } from "@/lib/gym-rewards";
 import {
   formatSessionClock,
   sessionClockStatus,
@@ -113,6 +114,10 @@ export function serializeSessionSummary(session: DbSession) {
     muscleLabels: muscleKeys.map(muscleGroupLabel),
     exerciseCount: session.exercises.length,
     setCount: session.exercises.reduce((n, ex) => n + ex.sets.length, 0),
+    qualifiesForReward: sessionQualifiesForGymReward(
+      session.endedAt != null,
+      session.exercises.flatMap((exercise) => exercise.sets),
+    ),
     totalLoad,
     loadByGroup,
     cardioDistanceKm: cardio.distanceKm,

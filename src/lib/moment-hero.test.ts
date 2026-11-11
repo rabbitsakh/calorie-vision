@@ -95,6 +95,10 @@ test("buildMomentHero: daytime shows remaining kcal and Б/Ж/У bars", () => {
     buildMomentHero({ ...base, gymDoneToday: true })?.line,
     "после зала добери ~48 г белка · вода 0,9 из 2 л · зал ✓",
   );
+  assert.equal(
+    buildMomentHero({ ...base, gymDoneToday: true, protein: 118 })?.line,
+    "комбо-день · тренировка и белок · вода 0,9 из 2 л",
+  );
 });
 
 test("buildMomentHero: daytime over target", () => {
@@ -118,14 +122,17 @@ test("buildMomentHero: evening ring + checklist", () => {
   assert.equal(m?.line, "2\u00a0020 из 2\u00a0100 ккал · серия 5 дн.");
   assert.equal(m?.hint, "Завтра: Ноги");
   assert.deepEqual(m?.cta, { label: "Долить воду до нормы", action: "water" });
-  assert.equal(m?.checklistNote, "На сундук нужны только еда и вода");
+  assert.equal(
+    m?.checklistNote,
+    "Еда и вода — один зачёт. Тренировка с подходами — ещё один, один раз за день.",
+  );
   assert.deepEqual(
     m?.checklist?.map((c) => [c.label, c.done, c.value]),
     [
       ["Еда", true, "4 приёма записано"],
       ["Белок", true, "118 / 120 г"],
       ["Вода", false, "0,9 / 2 л"],
-      ["Зал", true, "сделан"],
+      ["Зал", true, "комбо-день"],
     ],
   );
   assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "Записано 71% цели");

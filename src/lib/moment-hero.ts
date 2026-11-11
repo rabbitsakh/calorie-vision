@@ -6,6 +6,7 @@
 
 import type { MorningTodayBrief } from "@/lib/morning-today";
 import type { ReadyChestSource } from "@/lib/chest-ready-queue";
+import { isComboDay } from "@/lib/gym-rewards";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { dayPartFromHour } from "@/lib/splash-tips";
 
@@ -156,7 +157,8 @@ export type MomentHeroInput = {
   chest?: EveningChestSnapshot | null;
 };
 
-export const CHEST_CHECKLIST_NOTE = "На сундук нужны только еда и вода";
+export const CHEST_CHECKLIST_NOTE =
+  "Еда и вода — один зачёт. Тренировка с подходами — ещё один, один раз за день.";
 
 export type EveningChestHead = {
   source: ReadyChestSource;
@@ -474,10 +476,18 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     title = `${formatKcal(input.calories)} ккал сегодня`;
   }
   const proteinLeft = pt > 0 ? Math.round(pt - input.protein) : 0;
+  const combo = isComboDay({
+    qualifyingWorkout: input.gymDoneToday,
+    protein: input.protein,
+    proteinTarget: pt,
+  });
   const parts = [
-    input.gymDoneToday && proteinLeft > 5 ? `после зала добери ~${proteinLeft} г белка` : null,
+    combo ? "комбо-день · тренировка и белок" : null,
+    !combo && input.gymDoneToday && proteinLeft > 5
+      ? `после зала добери ~${proteinLeft} г белка`
+      : null,
     waterPart(input),
-    input.gymDoneToday ? "зал ✓" : null,
+    !combo && input.gymDoneToday ? "зал ✓" : null,
   ].filter((p): p is string => Boolean(p));
 
   return {
@@ -520,10 +530,15 @@ function buildEveningChecklist(input: MomentHeroInput): MomentCheck[] {
       value: formatWaterProgress(input.waterMl, input.waterTarget),
     });
   }
+  const combo = isComboDay({
+    qualifyingWorkout: input.gymDoneToday,
+    protein: input.protein,
+    proteinTarget: pt,
+  });
   checklist.push({
     label: "Зал",
     done: input.gymDoneToday,
-    value: input.gymDoneToday ? "сделан" : "сегодня без зала",
+    value: combo ? "комбо-день" : input.gymDoneToday ? "сделан" : "сегодня без зала",
   });
   return checklist;
 }
