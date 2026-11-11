@@ -12,6 +12,7 @@ import { MobileTabBar } from "@/components/MobileTabBar";
 import { NavIcon } from "@/components/NavIcons";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { WeightQuickSheet } from "@/components/WeightQuickSheet";
+import { RuStoreReviewPrompt } from "@/components/RuStoreReviewPrompt";
 import { WaterQuickSheet } from "@/components/WaterQuickSheet";
 import { APP_NAV, isFoodAddPath, navKeepsDate } from "@/lib/navigation";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
@@ -207,6 +208,7 @@ export function AppShell({
         <ReferralChestToast />
         <WaterQuickSheet />
         <WeightQuickSheet />
+        <RuStoreReviewPrompt />
       </div>
     </FoodAddHost>
   );

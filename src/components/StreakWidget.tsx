@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { freezeBannerCopy } from "@/lib/motivation-voice";
+import { trackStreakFreezeGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { pluralDays } from "@/lib/russian-text";
@@ -105,6 +106,7 @@ export function StreakWidget({
         body: JSON.stringify({ date: yesterday, today: selectedDate }),
       });
       if (resp.ok) {
+        trackStreakFreezeGoal(yesterday);
         if (day?.refresh) {
           await day.refresh(true);
         } else {

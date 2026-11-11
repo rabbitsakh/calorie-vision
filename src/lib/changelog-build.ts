@@ -205,6 +205,10 @@ const TITLE_TRANSLATIONS: Array<[RegExp, string]> = [
     /^feat: зал снова идёт в сундук/i,
     "Зал снова копится в сундук: значки тренировок и комбо-день",
   ],
+  [
+    /^feat: просьба оценить в RuStore и события геймификации/i,
+    "В Android после третьего закрытого дня можно оценить приложение в RuStore. События геймификации уходят в Метрику",
+  ],
 ];
 
 export function translateTitle(title: string): string {

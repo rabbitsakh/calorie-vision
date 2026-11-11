@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalRationDay } from "@/components/RationDayProvider";
+import { trackChallengeSnapshot } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 
 type ActiveChallenge = {
+  challengeKey?: string;
   title: string;
   progress: number;
   target: number;
   completed: boolean;
+  weekStart?: string;
 };
 
 type ChallengeStripProps = {
@@ -51,6 +54,17 @@ export function ChallengeStrip({ selectedDate, refreshKey, onOpenHabits }: Chall
       setActive(bootstrapped);
     }
   }, [bootstrapped, day, day?.loading, day?.refreshKey]);
+
+  useEffect(() => {
+    if (!active?.challengeKey || !active.weekStart) return;
+    trackChallengeSnapshot({
+      weekStart: active.weekStart,
+      challengeKey: active.challengeKey,
+      progress: active.progress,
+      target: active.target,
+      completed: active.completed,
+    });
+  }, [active]);
 
   if (active === undefined || !active) return null;
 

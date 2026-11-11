@@ -13,7 +13,9 @@ import {
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
 import { isFirstWeekQuiet } from "@/lib/first-hour-trust";
+import { trackComboDayGoal, trackQuestDoneGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
+import { publishReviewMoment, rememberSuccessDays } from "@/lib/rustore-review-prompt";
 import { withDateQuery } from "@/lib/use-selected-date";
 import Link from "next/link";
 
@@ -107,6 +109,10 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
     flushPendingMetaChests();
     notifyChestQueueRefresh();
 
+    const successDays = result.questDayCount ?? 0;
+    rememberSuccessDays(successDays);
+    publishReviewMoment({ moment: "day-closed", successDays });
+
     if ((result.readyCount ?? 0) > 0) {
       setHint("Сундук готов · открой выше на дне");
       return;
@@ -129,6 +135,26 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
   useEffect(() => {
     void tryClaim();
   }, [tryClaim, refreshKey]);
+
+  useEffect(() => {
+    if (selectedDate !== today || !progress) return;
+    for (const quest of progress.quests) {
+      if (quest.done) trackQuestDoneGoal(today, quest.id);
+    }
+    const comboNow = isComboDay({
+      qualifyingWorkout: gymSessionCount > 0,
+      protein: day?.data?.meals?.totalProtein ?? 0,
+      proteinTarget: day?.data?.meals?.target?.protein ?? 0,
+    });
+    if (comboNow) trackComboDayGoal(today);
+  }, [
+    selectedDate,
+    today,
+    progress,
+    gymSessionCount,
+    day?.data?.meals?.totalProtein,
+    day?.data?.meals?.target?.protein,
+  ]);
 
   if (!progress || selectedDate !== today) return null;
 
