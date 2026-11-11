@@ -81,6 +81,8 @@ export type DayMealsResponse = {
   target: DietTarget | null;
   /** Надбавка дня тренировки. null — обычный день, база без изменений. */
   trainingDay?: TrainingDayInfo | null;
+  /** Завершённая тренировка с подходом и белок в дневной цели. */
+  comboDay?: boolean;
   /** BMR → TDEE → goal explanation when targets are available. */
   calorieExplanation?: string | null;
   comparison: {

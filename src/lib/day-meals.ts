@@ -17,6 +17,7 @@ import { dayTrainingFromSessions, isNotableTrainingSession } from "@/lib/trainin
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { estimateDbSessionEnergy } from "@/lib/workouts/energy";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
+import { isComboDay, sessionQualifiesForGymReward } from "@/lib/gym-rewards";
 
 export async function buildDayMealsPayload(userId: string, date: string) {
   const [entries, user, weight, latestWeight, sessions] = await Promise.all([
@@ -99,6 +100,17 @@ export async function buildDayMealsPayload(userId: string, date: string) {
   });
   const target = adjusted.target;
   const trainingDay = adjusted.training;
+  const qualifyingWorkout = sessions.some((row) =>
+    sessionQualifiesForGymReward(
+      row.endedAt != null,
+      row.exercises.flatMap((exercise) => exercise.sets),
+    ),
+  );
+  const comboDay = isComboDay({
+    qualifyingWorkout,
+    protein: totalProtein,
+    proteinTarget: target?.protein ?? 0,
+  });
   const comparison = target
     ? {
         calories: compareNutrient(totalCalories, target.calories),
@@ -129,6 +141,7 @@ export async function buildDayMealsPayload(userId: string, date: string) {
     weightKg: weight?.weightKg ?? null,
     target,
     trainingDay,
+    comboDay,
     calorieExplanation: breakdown?.explanation ?? null,
     comparison,
     calorieTone: goal && comparison ? calorieTone(comparison.calories, goal) : null,

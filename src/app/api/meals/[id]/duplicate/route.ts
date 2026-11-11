@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { mealEntryCloneData } from "@/lib/meal-entry-clone";
 import { prisma } from "@/lib/prisma";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 export async function POST(
   _request: NextRequest,
@@ -25,6 +26,7 @@ export async function POST(
     const entry = await prisma.mealEntry.create({
       data: mealEntryCloneData(source),
     });
+    await grantGymChestForDate(session.user.id, entry.date);
 
     return NextResponse.json({ entry });
   } catch (error) {

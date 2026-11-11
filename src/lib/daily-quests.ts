@@ -1,6 +1,7 @@
 /**
  * Soft daily micro-quests (wave 4) — not a second weekly challenge.
- * Chest claim uses meal + water only; gym is a bonus strip credit.
+ * Еда и вода закрывают спокойный день. Тренировка с подходами — отдельный
+ * зачёт сундука (один раз за день), поэтому квест зала не блокирует allDone.
  */
 
 export type DailyQuestId = "log_meal" | "drink_water" | "gym_today";
@@ -26,8 +27,8 @@ export const DAILY_QUESTS: DailyQuestDef[] = [
   },
   {
     id: "gym_today",
-    title: "Зал сегодня",
-    doneHint: "Есть тренировка",
+    title: "Тренировка",
+    doneHint: "Зачёт в сундук",
     bonus: true,
   },
 ];

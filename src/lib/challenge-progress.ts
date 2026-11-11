@@ -19,6 +19,7 @@ import {
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { toDateKeyTz } from "@/lib/dates";
+import { setQualifiesForGymReward } from "@/lib/gym-rewards";
 
 export type ActiveChallengePayload = {
   challengeKey: string;
@@ -109,16 +110,33 @@ export async function computeChallengeProgress(
   }
 
   if (key === "gym_2" || key === "gym_3") {
-    // Finished sessions only — draft/local clocks don't count until synced+ended.
+    // Завершённые сессии с настоящим подходом. Пустой «финиш» и разминка не идут в награду.
     const rows = await prisma.workoutSession.findMany({
       where: {
         userId,
         date: { in: dates },
         endedAt: { not: null },
       },
-      select: { id: true },
+      select: {
+        exercises: {
+          select: {
+            sets: {
+              select: {
+                completed: true,
+                setType: true,
+                weightKg: true,
+                reps: true,
+                distanceKm: true,
+                durationSec: true,
+              },
+            },
+          },
+        },
+      },
     });
-    return rows.length;
+    return rows.filter((row) =>
+      row.exercises.some((exercise) => exercise.sets.some((set) => setQualifiesForGymReward(set))),
+    ).length;
   }
 
   return 0;

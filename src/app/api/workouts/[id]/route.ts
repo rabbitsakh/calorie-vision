@@ -18,6 +18,7 @@ import {
   serializeSessionSummary,
   sessionInclude,
 } from "@/lib/workouts/serialize";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 export const dynamic = "force-dynamic";
 
@@ -261,6 +262,10 @@ export async function PATCH(request: NextRequest, context: Ctx) {
         include: sessionInclude,
       });
     });
+
+    if (updated.endedAt) {
+      await grantGymChestForDate(session.user.id, updated.date);
+    }
 
     return NextResponse.json(await withProgress(session.user.id, serializeSessionDetail(updated)));
   } catch (error) {

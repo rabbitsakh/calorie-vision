@@ -11,6 +11,7 @@ import { buildChestMeter, nextQuestChestBatchIndex } from "@/lib/chest-progress"
 import { listReadyChests } from "@/lib/chest-ready-list";
 import type { ReadyChestItem } from "@/lib/chest-ready-queue";
 import { grantChestReward, markQuestDayComplete, type GrantChestResult } from "@/lib/reward-grant";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 import {
   challengeChestSourceKey,
   QUEST_DAYS_PER_CHEST,
@@ -276,7 +277,9 @@ export async function POST(request: NextRequest) {
       }
       const dayKey = questDaySourceKey(date);
       await markQuestDayComplete(userId, date, dayKey);
-      // Бонус зала и настроения новым дням не начисляется. Старые quest-day-boost остаются.
+      // Настроение по-прежнему не даёт второй зачёт. Тренировка с подходами — отдельный,
+      // один на день, и только если день ещё не зачтён залом.
+      await grantGymChestForDate(userId, date);
       const chestPayload = await buildChestResponse(userId);
       return NextResponse.json({
         newlyGranted: false,

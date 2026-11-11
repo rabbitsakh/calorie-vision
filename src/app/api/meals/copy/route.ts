@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth-session";
 import { requireDateKey } from "@/lib/dates";
 import { mealEntryCloneData } from "@/lib/meal-entry-clone";
 import { prisma } from "@/lib/prisma";
+import { grantGymChestForDate } from "@/lib/gym-reward-grant";
 
 const MEAL_TYPES = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"] as const;
 type MealType = (typeof MEAL_TYPES)[number];
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     await prisma.mealEntry.createMany({
       data: source.map((row) => mealEntryCloneData(row, { date: toDate })),
     });
+    await grantGymChestForDate(session.user.id, toDate);
 
     return NextResponse.json({ copied: source.length, mealType: mealType ?? null });
   } catch (error) {

@@ -5,6 +5,7 @@ import { useOptionalRationDay } from "@/components/RationDayProvider";
 import { flushPendingMetaChests, openChest } from "@/lib/chest-client";
 import { notifyChestQueueRefresh } from "@/lib/chest-queue-refresh";
 import { computeDailyQuests } from "@/lib/daily-quests";
+import { isComboDay } from "@/lib/gym-rewards";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { shouldDeferQuestChestForPostWorkout } from "@/lib/post-workout-nudge";
 import {
@@ -41,14 +42,17 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         );
         if (!resp.ok || cancelled) return;
         const payload = (await resp.json()) as {
-          sessions?: Array<{ endedAt?: string | null; setCount?: number; elapsedSec?: number }>;
+          sessions?: Array<{
+            endedAt?: string | null;
+            setCount?: number;
+            qualifiesForReward?: boolean;
+          }>;
         };
-        const count = (payload.sessions ?? []).filter(
-          (s) =>
-            Boolean(s.endedAt) ||
-            (Number(s.elapsedSec) || 0) > 0 ||
-            (Number(s.setCount) || 0) > 0,
-        ).length;
+        const count = (payload.sessions ?? []).filter((s) => {
+          if (!s.endedAt) return false;
+          if (typeof s.qualifiesForReward === "boolean") return s.qualifiesForReward;
+          return (Number(s.setCount) || 0) > 0;
+        }).length;
         if (!cancelled) setGymSessionCount(count);
       } catch {
         if (!cancelled) setGymSessionCount(0);
@@ -130,6 +134,11 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
 
   const requiredQuests = progress.quests.filter((q) => !q.bonus);
   const doneCount = requiredQuests.filter((q) => q.done).length;
+  const combo = isComboDay({
+    qualifyingWorkout: gymSessionCount > 0,
+    protein: day?.data?.meals?.totalProtein ?? 0,
+    proteinTarget: day?.data?.meals?.target?.protein ?? 0,
+  });
 
   return (
     <>
@@ -154,7 +163,7 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
                 {q.done ? "✓ " : "○ "}
                 {q.title}
                 {q.bonus && !q.done ? (
-                  <span className="ml-1 text-[10px] font-medium text-[var(--muted)]">бонус</span>
+                  <span className="ml-1 text-[10px] font-medium text-[var(--muted)]">в сундук</span>
                 ) : null}
               </span>
               {q.done ? (
@@ -173,6 +182,11 @@ export function DailyQuestsStrip({ selectedDate, today, refreshKey }: DailyQuest
         {isFirstWeekQuiet() && gymSessionCount === 0 ? (
           <p className="mt-1.5 text-xs text-[var(--muted)]">
             Бонус первой недели: короткая тренировка — и день ощущается полнее.
+          </p>
+        ) : null}
+        {combo ? (
+          <p className="mt-1.5 text-xs font-semibold text-[var(--accent-ink)]" role="status">
+            Комбо-день: тренировка и белок в цели. В сундук этот день идёт один раз.
           </p>
         ) : null}
         {hint ? <p className="mt-1.5 text-xs text-[var(--muted)]">{hint}</p> : null}

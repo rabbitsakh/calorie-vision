@@ -1,6 +1,8 @@
 /**
- * Chests 2.0 C4 — calm-day meter acceleration.
- * Gym session or evening check-in (mood) on the same day → +1 bonus quest-day credit.
+ * Chests 2.0 C4 — старый ускоритель шкалы.
+ * Зал или настроение давали второй quest_day в тот же день.
+ * С 3.6.13 новые бонусы выключены: шкала врала, а настроение ставилось одним тапом.
+ * Тренировка с подходами снова копится отдельно, см. grantGymChestForDate.
  */
 
 import { prisma } from "@/lib/prisma";

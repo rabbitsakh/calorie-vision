@@ -69,6 +69,14 @@ test("catalog includes F1 expansion keys", () => {
     "challenges_1",
     "challenges_4",
     "challenges_12",
+    "gym_first",
+    "gym_10",
+    "gym_30",
+    "gym_pr",
+    "gym_week_3",
+    "combo_first",
+    "combo_3",
+    "combo_7",
   ]) {
     assert.ok(keys.has(key), `missing ${key}`);
   }
