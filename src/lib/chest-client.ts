@@ -1,7 +1,7 @@
 import { withBasePath } from "@/lib/paths";
 import { notifyChestInbox } from "@/lib/chest-inbox";
 import { isLikelyOfflineError } from "@/lib/connectivity";
-import { trackChestOpenedGoal, trackMetaChestGoal } from "@/lib/metrika-funnel";
+import { trackChestOpenedGoal, trackGamChestOpenGoal, trackMetaChestGoal } from "@/lib/metrika-funnel";
 import type { ChestMeterModel } from "@/lib/chest-progress";
 import { enqueueRewardsDraft } from "@/lib/rewards-draft-queue";
 import type { ChestSource, RewardRarity } from "@/lib/rewards";
@@ -12,6 +12,8 @@ export type ChestRewardPayload = {
   description: string;
   rarity?: RewardRarity;
   rarityLabel?: string;
+  /** Grant identity. Used only to dedupe analytics, not sent as a parameter. */
+  sourceKey?: string | null;
 };
 
 export type OpenChestResult = {
@@ -124,9 +126,15 @@ export async function openChest(args: OpenChestArgs): Promise<OpenChestResult | 
     if (data.reward) {
       trackChestOpenedGoal();
     }
+    if (data.newlyGranted && data.reward?.key) {
+      trackGamChestOpenGoal(data.reward.sourceKey || data.reward.key, data.reward.key);
+    }
     const meta = normalizeMeta(data.metaRewards);
     if (meta.length > 0) {
       trackMetaChestGoal();
+      for (const item of meta) {
+        trackGamChestOpenGoal(item.sourceKey || item.key, item.key);
+      }
       pendingMeta = pendingMeta.concat(meta);
       persistPending();
     }

@@ -3,6 +3,7 @@
  */
 
 import { withBasePath } from "@/lib/paths";
+import { trackBadgeUnlockedGoal } from "@/lib/metrika-funnel";
 import type { BadgeDef } from "@/lib/badges";
 
 export type BadgeUnlockResult = {
@@ -15,7 +16,11 @@ export async function unlockPendingBadges(): Promise<BadgeUnlockResult> {
     const resp = await fetch(withBasePath("/api/badges"), { method: "POST" });
     if (!resp.ok) return { newlyUnlocked: [], ok: false };
     const data = (await resp.json()) as { newlyUnlocked?: BadgeDef[] };
-    return { newlyUnlocked: data.newlyUnlocked ?? [], ok: true };
+    const newlyUnlocked = data.newlyUnlocked ?? [];
+    for (const badge of newlyUnlocked) {
+      if (badge?.key) trackBadgeUnlockedGoal(badge.key);
+    }
+    return { newlyUnlocked, ok: true };
   } catch {
     return { newlyUnlocked: [], ok: false };
   }

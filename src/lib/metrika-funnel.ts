@@ -121,6 +121,127 @@ export function trackMetaChestGoal(now = Date.now()): void {
   trackOncePerDay("cv_metrika_meta_chest_day", METRIKA_GOALS.metaChest, now);
 }
 
+function trackOnceFlag(
+  storageKey: string,
+  goal: string,
+  params?: Record<string, unknown>,
+): void {
+  const store = localStore();
+  if (store?.getItem(storageKey) === "1") return;
+  trackMetrikaGoal(goal, params);
+  store?.setItem(storageKey, "1");
+}
+
+/**
+ * Distinct chest grant. `dedupeId` is the chest source key (kept on device only).
+ * `rewardKey` is the catalog id sent to Metrika — not food, weight, or email.
+ */
+export function trackGamChestOpenGoal(dedupeId: string, rewardKey: string): void {
+  const id = dedupeId.trim();
+  const reward = rewardKey.trim();
+  if (!/^[a-z0-9_:-]{1,80}$/i.test(id)) return;
+  if (!/^[a-z0-9_]{1,64}$/i.test(reward)) return;
+  trackOnceFlag(`cv_metrika_gam_chest:${id}`, METRIKA_GOALS.gamChestOpen, { reward });
+}
+
+/** Badge unlock once per badge type. */
+export function trackBadgeUnlockedGoal(badgeKey: string): void {
+  const badge = badgeKey.trim();
+  if (!/^[a-z0-9_]{1,40}$/i.test(badge)) return;
+  trackOnceFlag(`cv_metrika_gam_badge:${badge}`, METRIKA_GOALS.gamBadge, { badge });
+}
+
+/** Combo day once per calendar date. */
+export function trackComboDayGoal(date: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  trackOnceFlag(`cv_metrika_gam_combo:${date}`, METRIKA_GOALS.gamComboDay);
+}
+
+/** Daily quest completion once per date and quest id. */
+export function trackQuestDoneGoal(date: string, questId: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  if (!/^[a-z0-9_]{1,32}$/i.test(questId)) return;
+  trackOnceFlag(`cv_metrika_gam_quest:${date}:${questId}`, METRIKA_GOALS.gamQuestDone, {
+    quest: questId,
+  });
+}
+
+type ChallengeMark = { progress: number; completed: boolean };
+
+function readChallengeMark(raw: string | null): ChallengeMark | null {
+  if (!raw) return null;
+  const [progressRaw, completedRaw] = raw.split(":");
+  const progress = Number(progressRaw);
+  if (!Number.isFinite(progress) || progress < 0) return null;
+  return { progress: Math.floor(progress), completed: completedRaw === "1" };
+}
+
+/**
+ * Weekly challenge. The first snapshot on this device is a baseline and is not
+ * sent (so a reload of the current number is not a new event). Later increases
+ * and the incomplete → complete transition each fire once.
+ */
+export function trackChallengeSnapshot(input: {
+  weekStart: string;
+  challengeKey: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+}): void {
+  const store = localStore();
+  if (!store) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.weekStart)) return;
+  if (!/^[a-z0-9_]{1,40}$/i.test(input.challengeKey)) return;
+  const progress = Math.max(0, Math.floor(input.progress));
+  const target = Math.max(1, Math.floor(input.target) || 1);
+  const storageKey = `cv_metrika_gam_challenge:${input.weekStart}:${input.challengeKey}`;
+  const prev = readChallengeMark(store.getItem(storageKey));
+  const next = `${progress}:${input.completed ? "1" : "0"}`;
+  if (!prev) {
+    store.setItem(storageKey, next);
+    return;
+  }
+  if (progress > prev.progress) {
+    trackMetrikaGoal(METRIKA_GOALS.gamChallengeProgress, {
+      challenge: input.challengeKey,
+      progress,
+      target,
+    });
+  }
+  if (input.completed && !prev.completed) {
+    trackMetrikaGoal(METRIKA_GOALS.gamChallengeDone, { challenge: input.challengeKey });
+  }
+  if (progress !== prev.progress || input.completed !== prev.completed) {
+    store.setItem(storageKey, next);
+  }
+}
+
+/** Streak freeze once per frozen date. */
+export function trackStreakFreezeGoal(date: string): void {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+  trackOnceFlag(`cv_metrika_gam_freeze:${date}`, METRIKA_GOALS.gamStreakFreeze);
+}
+
+export function trackGamReviewShow(showIndex: number): void {
+  if (!Number.isInteger(showIndex) || showIndex < 1) return;
+  trackOnceFlag(`cv_metrika_gam_review_show:${showIndex}`, METRIKA_GOALS.gamReviewShow);
+}
+
+export function trackGamReviewRate(showIndex: number): void {
+  if (!Number.isInteger(showIndex) || showIndex < 1) return;
+  trackOnceFlag(`cv_metrika_gam_review_rate:${showIndex}`, METRIKA_GOALS.gamReviewRate);
+}
+
+export function trackGamReviewDismiss(
+  showIndex: number,
+  reason: "later" | "rated" | "never",
+): void {
+  if (!Number.isInteger(showIndex) || showIndex < 1) return;
+  trackOnceFlag(`cv_metrika_gam_review_dismiss:${showIndex}`, METRIKA_GOALS.gamReviewDismiss, {
+    reason,
+  });
+}
+
 /** Onboarding finished (or skipped) — once per browser. */
 export function trackOnboardingCompleteGoal(): void {
   const store = localStore();

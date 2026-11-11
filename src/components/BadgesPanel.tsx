@@ -19,6 +19,7 @@ import {
 import { unlockPendingBadges } from "@/lib/badge-unlock-client";
 import { withBasePath } from "@/lib/paths";
 import { toDateKey } from "@/lib/dates";
+import { getKnownSuccessDays, publishReviewMoment } from "@/lib/rustore-review-prompt";
 
 type BadgeItem = {
   key: string;
@@ -79,7 +80,13 @@ export function BadgesPanel() {
   const [unlock, setUnlock] = useState<BadgeItem | null>(null);
   const todayKey = toDateKey(new Date());
 
-  const closeUnlock = useCallback(() => setUnlock(null), []);
+  const closeUnlock = useCallback(() => {
+    setUnlock(null);
+    publishReviewMoment({
+      moment: "badge-unlocked",
+      successDays: getKnownSuccessDays() ?? -1,
+    });
+  }, []);
 
   useEffect(() => {
     void (async () => {

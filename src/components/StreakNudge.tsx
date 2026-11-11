@@ -11,6 +11,7 @@ import {
   streakAtRiskBody,
   streakAtRiskTitle,
 } from "@/lib/motivation-voice";
+import { trackStreakFreezeGoal } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 
@@ -114,6 +115,7 @@ export function StreakNudge({
         body: JSON.stringify({ date: yesterday, today }),
       });
       if (resp.ok) {
+        trackStreakFreezeGoal(yesterday);
         if (day?.refresh) {
           await day.refresh(true);
         } else {

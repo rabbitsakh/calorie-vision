@@ -6,6 +6,7 @@ import {
   isSoftCelebrationSeen,
   markSoftCelebrationSeen,
 } from "@/lib/soft-celebration";
+import { trackChallengeSnapshot } from "@/lib/metrika-funnel";
 import { withBasePath } from "@/lib/paths";
 import {
   hidePanelForWeek,
@@ -113,6 +114,18 @@ export function WeeklyChallenge({
   useEffect(() => {
     void load();
   }, [load, refreshKey, selectedDate]);
+
+  useEffect(() => {
+    const active = data?.active;
+    if (!active?.challengeKey || !active.weekStart) return;
+    trackChallengeSnapshot({
+      weekStart: active.weekStart,
+      challengeKey: active.challengeKey,
+      progress: active.progress,
+      target: active.target,
+      completed: active.completed,
+    });
+  }, [data]);
 
   useEffect(() => {
     if (mini) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FullscreenCelebration } from "@/components/FullscreenCelebration";
 import { LootRevealCard } from "@/components/LootRevealCard";
 import {
@@ -19,6 +19,11 @@ import {
   isSoftCelebrationsMutedToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
+import {
+  getKnownSuccessDays,
+  publishReviewMoment,
+  rememberSuccessDays,
+} from "@/lib/rustore-review-prompt";
 
 type ChestDockProps = {
   selectedDate: string;
@@ -42,6 +47,7 @@ export function ChestDock({
   const [offlineHint, setOfflineHint] = useState<string | null>(null);
   const [quietLoot, setQuietLoot] = useState<ChestRewardPayload | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const reviewDaysAfterChest = useRef<number | null>(null);
   const [loot, setLoot] = useState<{
     key?: string;
     title: string;
@@ -110,6 +116,7 @@ export function ChestDock({
       if (result.chest) setMeter(result.chest);
       else void reload();
 
+      let fullscreen = false;
       if (result.reward) {
         // Quiet: only in-dock LootRevealCard (no duplicate inbox for primary loot).
         if (quiet && !muted) {
@@ -123,6 +130,7 @@ export function ChestDock({
             fallbackTitle: "Сундук открыт",
             fallbackSubtitle: "Награда в коллекции",
             onFullscreen: (reward) => {
+              fullscreen = true;
               setLoot({
                 key: reward.key,
                 title: reward.title,
@@ -136,6 +144,15 @@ export function ChestDock({
         }
       } else {
         flushPendingMetaChests();
+      }
+
+      if (typeof result.questDayCount === "number") rememberSuccessDays(result.questDayCount);
+      const chestJustOpened =
+        Boolean(result.newlyGranted && result.reward) || (result.metaRewards?.length ?? 0) > 0;
+      if (chestJustOpened) {
+        const successDays = result.questDayCount ?? getKnownSuccessDays() ?? 0;
+        if (fullscreen) reviewDaysAfterChest.current = successDays;
+        else publishReviewMoment({ moment: "chest-opened", successDays });
       }
       onOpened?.();
     } finally {
@@ -246,6 +263,11 @@ export function ChestDock({
             setLoot(null);
             flushPendingMetaChests();
             void reload();
+            const successDays = reviewDaysAfterChest.current;
+            reviewDaysAfterChest.current = null;
+            if (successDays != null) {
+              publishReviewMoment({ moment: "chest-opened", successDays });
+            }
           }}
         />
       ) : null}

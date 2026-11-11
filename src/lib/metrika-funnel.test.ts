@@ -9,12 +9,21 @@ import {
 } from "./yandex-metrika.ts";
 import {
   resetMetrikaFunnelStorageForTests,
+  trackBadgeUnlockedGoal,
+  trackChallengeSnapshot,
+  trackComboDayGoal,
   trackD7ReturnGoal,
   trackFirstMealSaveGoal,
+  trackGamChestOpenGoal,
+  trackGamReviewDismiss,
+  trackGamReviewRate,
+  trackGamReviewShow,
   trackLoginGoal,
   trackMealSavedGoal,
   trackPhotoRecognizeGoal,
   trackPushEnabledGoal,
+  trackQuestDoneGoal,
+  trackStreakFreezeGoal,
   trackWaterLoggedGoal,
   trackWeightLoggedGoal,
 } from "./metrika-funnel.ts";
@@ -89,6 +98,83 @@ test("funnel goals fire once for first meal and d7", () => {
     "weight_logged",
     "push_enabled",
     "d7_return",
+  ]);
+
+  (globalThis as { window?: unknown }).window = previous;
+  setMetrikaClientId(null);
+});
+
+test("gamification goals fire once and drop personal params", () => {
+  const calls: Array<{ goal: string; params?: Record<string, string | number> }> = [];
+  const previous = (globalThis as { window?: unknown }).window;
+  (globalThis as {
+    window: {
+      ym: (...args: unknown[]) => void;
+      localStorage: Storage;
+      sessionStorage: Storage;
+    };
+  }).window = {
+    ym: (...args: unknown[]) => {
+      if (args[1] !== "reachGoal") return;
+      calls.push({
+        goal: String(args[2]),
+        ...(args[3] ? { params: args[3] as Record<string, string | number> } : {}),
+      });
+    },
+    localStorage: memoryStorage(),
+    sessionStorage: memoryStorage(),
+  };
+  setMetrikaClientId("111847071");
+
+  trackGamChestOpenGoal("quest-chest:1", "sticker_sprout");
+  trackGamChestOpenGoal("quest-chest:1", "sticker_sprout");
+  trackBadgeUnlockedGoal("gym_first");
+  trackBadgeUnlockedGoal("gym_first");
+  trackComboDayGoal("2026-11-11");
+  trackComboDayGoal("2026-11-11");
+  trackQuestDoneGoal("2026-11-11", "log_meal");
+  trackQuestDoneGoal("2026-11-11", "log_meal");
+  trackQuestDoneGoal("2026-11-12", "log_meal");
+  trackStreakFreezeGoal("2026-11-10");
+  trackStreakFreezeGoal("2026-11-10");
+  const challenge = {
+    weekStart: "2026-11-09",
+    challengeKey: "water_5",
+    target: 5,
+  };
+  trackChallengeSnapshot({ ...challenge, progress: 1, completed: false });
+  trackChallengeSnapshot({ ...challenge, progress: 1, completed: false });
+  trackChallengeSnapshot({ ...challenge, progress: 2, completed: false });
+  trackChallengeSnapshot({ ...challenge, progress: 2, completed: false });
+  trackChallengeSnapshot({ ...challenge, progress: 5, completed: true });
+  trackChallengeSnapshot({ ...challenge, progress: 5, completed: true });
+  trackGamReviewShow(1);
+  trackGamReviewShow(1);
+  trackGamReviewRate(1);
+  trackGamReviewRate(1);
+  trackGamReviewDismiss(1, "later");
+  trackGamReviewDismiss(1, "never");
+  trackMetrikaGoal(METRIKA_GOALS.gamBadge, {
+    badge: "combo_1",
+    email: "user@example.com",
+    food: "гречка с курицей",
+    weight: 82,
+  });
+
+  assert.deepEqual(calls, [
+    { goal: "gam_chest_open", params: { reward: "sticker_sprout" } },
+    { goal: "gam_badge", params: { badge: "gym_first" } },
+    { goal: "gam_combo_day" },
+    { goal: "gam_quest_done", params: { quest: "log_meal" } },
+    { goal: "gam_quest_done", params: { quest: "log_meal" } },
+    { goal: "gam_streak_freeze" },
+    { goal: "gam_challenge_progress", params: { challenge: "water_5", progress: 2, target: 5 } },
+    { goal: "gam_challenge_progress", params: { challenge: "water_5", progress: 5, target: 5 } },
+    { goal: "gam_challenge_done", params: { challenge: "water_5" } },
+    { goal: "gam_review_show" },
+    { goal: "gam_review_rate" },
+    { goal: "gam_review_dismiss", params: { reason: "later" } },
+    { goal: "gam_badge", params: { badge: "combo_1" } },
   ]);
 
   (globalThis as { window?: unknown }).window = previous;

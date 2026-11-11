@@ -12,6 +12,7 @@ import {
   muteSoftCelebrationsToday,
 } from "@/lib/soft-celebration";
 import { toDateKey } from "@/lib/dates";
+import { getKnownSuccessDays, publishReviewMoment } from "@/lib/rustore-review-prompt";
 
 type BadgeUnlockHostProps = {
   /** Bump after meals / water / day reload so unlocks land without opening Profile. */
@@ -26,7 +27,13 @@ export function BadgeUnlockHost({ refreshKey }: BadgeUnlockHostProps) {
   const [unlock, setUnlock] = useState<BadgeDef | null>(null);
   const todayKey = toDateKey(new Date());
 
-  const close = useCallback(() => setUnlock(null), []);
+  const close = useCallback(() => {
+    setUnlock(null);
+    publishReviewMoment({
+      moment: "badge-unlocked",
+      successDays: getKnownSuccessDays() ?? -1,
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
