@@ -1,0 +1,375 @@
+/* Превью карточки «Сегодня». На прод-экраны не влияет. */
+
+body:has(.today-shot) > p,
+body:has(.today-shot) .cookie-consent,
+body:has(.today-shot) nextjs-portal {
+  display: none !important;
+}
+
+.today-shot.cv-app-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  height: 100dvh;
+  max-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+.today-shot .ration-day-scene {
+  animation: none;
+}
+
+.today-shot__avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.today-shot .bottom-composer {
+  gap: 0.2rem;
+  padding-left: 0.7rem;
+}
+
+.today-shot .bottom-composer-btn,
+.today-shot .bottom-composer-ai {
+  width: 2.05rem;
+  height: 2.05rem;
+}
+
+.today-shot .bottom-composer-btn--camera {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.today-shot .mobile-tab-bar {
+  display: block;
+}
+
+.today-mock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0.35rem 0 0.15rem;
+  padding: 1rem 1rem 0.9rem;
+  border: 1px solid var(--border-quiet);
+  border-radius: 1.625rem;
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--foreground);
+}
+
+.today-mock__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.today-mock__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.today-mock__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-ink);
+}
+
+.today-mock__title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  margin: 0.35rem 0 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.today-mock__title span {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.today-mock__scale {
+  height: 10px;
+  margin-top: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.today-mock__scale i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.today-mock__mascot {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.today-mock__macros {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.today-mock__macro {
+  display: grid;
+  grid-template-columns: 5.4rem minmax(2.5rem, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.today-mock__macro-label {
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.today-mock__macro-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.today-mock__macro-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.today-mock__macro-value {
+  font-size: 0.82rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.today-mock__note {
+  margin: -0.25rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--accent-ink);
+}
+
+.today-mock__ideas-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.today-mock__ideas-hint {
+  margin: 0.15rem 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted-strong);
+}
+
+.today-mock__ideas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.today-mock__idea {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-quiet);
+  border-radius: 0.95rem;
+  background: var(--surface-mist);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-mock__idea b {
+  max-width: 100%;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.today-mock__idea span {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.today-mock__idea:active {
+  transform: scale(0.99);
+}
+
+.today-mock__ideas-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--muted-strong);
+}
+
+.today-mock__chips {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.today-mock__chip {
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.75rem;
+  border: 1px solid var(--border-quiet);
+  border-radius: 1rem;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-mock__chip:disabled {
+  cursor: default;
+}
+
+.today-mock__chip-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.today-mock__chip-copy b {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.today-mock__chip-copy span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.today-mock__chip-action {
+  flex-shrink: 0;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.today-mock__chip-action--quiet {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.today-mock__status {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--muted-strong);
+}
+
+.today-shot.today-hero-force-dark {
+  --foreground: #f3faf7;
+  --muted: #b7c7c0;
+  --muted-strong: #d7e7e1;
+  --card: #13211e;
+  --surface-mist: #1b2e2a;
+  --surface-chrome: rgba(19, 33, 30, 0.94);
+  --surface-warm: #101816;
+  --background: #101816;
+  --accent: #1aa6a6;
+  --accent-soft: #163e3c;
+  --accent-ink: #b7f3ec;
+  --accent-protein: #2ec4b6;
+  --accent-fat: #f0a202;
+  --accent-carbs: #3ec6e0;
+  --border-quiet: rgba(183, 243, 236, 0.18);
+  --border-hairline: rgba(255, 255, 255, 0.08);
+  --panel-wash:
+    radial-gradient(ellipse 90% 60% at 0% 0%, rgba(26, 166, 166, 0.2), transparent 55%),
+    #152420;
+  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.28);
+  color: var(--foreground);
+  background:
+    radial-gradient(ellipse 100% 55% at 8% -10%, rgba(26, 166, 166, 0.22), transparent 58%),
+    #101816;
+}
+
+.today-shot.today-hero-force-dark .moment-macro-track {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.today-shot.today-hero-force-dark .today-shot__avatar {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.today-shot.today-hero-force-dark .mobile-tab-bar__link--active .mobile-tab-bar__icon {
+  background: rgba(26, 166, 166, 0.22);
+}
+
+@media (max-width: 380px) {
+  .today-shot .bottom-composer {
+    gap: 0.12rem;
+    padding-left: 0.55rem;
+    padding-right: 0.35rem;
+  }
+
+  .today-shot .bottom-composer-btn,
+  .today-shot .bottom-composer-ai {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+
+  .today-shot .bottom-composer-btn--camera {
+    width: 2.2rem;
+    height: 2.2rem;
+  }
+
+  .today-shot .bottom-composer-input {
+    font-size: 14px;
+  }
+
+  .today-mock__title {
+    font-size: 0.98rem;
+  }
+}
