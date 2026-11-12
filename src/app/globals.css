@@ -10664,6 +10664,101 @@ html[data-gym-live] .app-chrome {
   flex-direction: column;
 }
 
+.gym-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.gym-week div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 6px;
+}
+
+.gym-week span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.gym-week b {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gym-week .is-today b {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gym-week i {
+  width: 5px;
+  height: 5px;
+  border-radius: 99px;
+  background: transparent;
+}
+
+.gym-week i.is-on {
+  background: var(--accent);
+}
+
+.gym-start {
+  display: flex;
+  width: 100%;
+  min-height: 72px;
+  align-items: center;
+  border-radius: 20px;
+  border: 1px solid var(--border-quiet);
+  background: var(--card);
+  padding: 12px 16px;
+  text-align: left;
+  box-shadow: var(--shadow-card);
+}
+
+.gym-start b,
+.gym-start span span {
+  display: block;
+}
+
+.gym-start b {
+  font-size: 16px;
+}
+
+.gym-start span span {
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.gym-start--primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+.gym-start--primary span span {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.gym-start--quiet {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+
 .gym-preview__main {
   flex: 1;
   min-height: 0;

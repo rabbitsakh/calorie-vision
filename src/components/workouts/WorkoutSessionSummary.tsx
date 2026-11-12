@@ -25,8 +25,6 @@ import {
   type SessionLeverOutcome,
 } from "@/lib/workouts/lever-set-feedback";
 import {
-  formatLeverStreakHint,
-  getLeverHitStreak,
   isEarlyGymUser,
   recordLeverOutcome,
 } from "@/lib/workouts/lever-outcome-history";
@@ -150,10 +148,7 @@ export function WorkoutSessionSummary({
     .sort()
     .join("|");
   const [tip, setTip] = useState<string | null>(null);
-  const [tipLever, setTipLever] = useState<ProgressionLever | null>(null);
-  const [tipExercise, setTipExercise] = useState<string | null>(null);
   /** Missed exercises that expanded the «сменить рычаг» list. */
-  const [changeOpen, setChangeOpen] = useState<Record<string, boolean>>({});
   /** Bump after J1 history write so streak labels include this session. */
   const [historyTick, setHistoryTick] = useState(0);
 
@@ -166,8 +161,13 @@ export function WorkoutSessionSummary({
     return out;
   }, [targetsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- targets snapshot
 
-  const anyHit = Object.values(leverOutcomes).some((o) => o === "hit");
-  const anyMiss = Object.values(leverOutcomes).some((o) => o === "miss");
+  const nextSentence = (() => {
+    const target = targets[0];
+    if (!target) return null;
+    const lever = chosen[target.name] ?? target.primaryLever;
+    const option = lever ? target.options.find((item) => item.lever === lever) : null;
+    return `${target.name}: ${option?.line ?? target.line}`;
+  })();
 
   // O: snapshot recovery+hit names before N clears the flag (tip needs it).
   const recoveryHitNamesRef = useRef<string[] | null>(null);
@@ -198,7 +198,6 @@ export function WorkoutSessionSummary({
 
   useEffect(() => {
     setChosen(initialChosen(targets));
-    setChangeOpen({});
     // eslint-disable-next-line react-hooks/exhaustive-deps -- finish summary is stable for a session
   }, [targetsKey]);
 
@@ -254,8 +253,6 @@ export function WorkoutSessionSummary({
   useEffect(() => {
     if (!targetsKey) {
       setTip(null);
-      setTipLever(null);
-      setTipExercise(null);
       return;
     }
     const snapshot = (nextTargets?.targets ?? []).map((t) => {
@@ -276,10 +273,6 @@ export function WorkoutSessionSummary({
     }
     const earlyUser = isEarlyGymUser();
     setTip(ruleNextSessionTip(snapshot, { recoveryHitNames, earlyUser }));
-    setTipLever(snapshot.find((t) => t.leverRemembered)?.primaryLever ?? snapshot[0]?.primaryLever ?? null);
-    setTipExercise(
-      snapshot.find((t) => t.leverRemembered)?.name ?? snapshot[0]?.name ?? null,
-    );
     let cancelled = false;
     void (async () => {
       try {
@@ -320,15 +313,6 @@ export function WorkoutSessionSummary({
         ) {
           setTip(data.tip.trim());
         }
-        if (
-          !cancelled &&
-          (data.lever === "weight" || data.lever === "volume" || data.lever === "reps")
-        ) {
-          setTipLever(data.lever);
-        }
-        if (!cancelled && typeof data.exerciseName === "string") {
-          setTipExercise(data.exerciseName);
-        }
       } catch {
         // keep rule tip
       }
@@ -339,30 +323,6 @@ export function WorkoutSessionSummary({
     // G3: refresh tip when user picks a different lever.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- snapshot from targets + chosen
   }, [targetsKey, chosenKey]);
-
-  const pickLever = (
-    name: string,
-    lever: ProgressionLever,
-    basisKg: number | null,
-    opt: { suggestedKg: number | null; suggestedReps: number | null },
-  ) => {
-    const prev = getLeverMemory(name);
-    // Keep armed recovery; switching lever after miss → «switch» (not a second deload).
-    let recovery = prev?.recovery ?? null;
-    if (recovery && prev && prev.lever !== lever) {
-      recovery = "switch";
-    }
-    setLeverMemory({
-      name,
-      lever,
-      basisKg,
-      targetKg: opt.suggestedKg,
-      targetReps: opt.suggestedReps,
-      at: date,
-      recovery,
-    });
-    setChosen((prevChosen) => ({ ...prevChosen, [name]: lever }));
-  };
 
   const metrics: StageMetric[] = [
     {
@@ -473,167 +433,28 @@ export function WorkoutSessionSummary({
         ))}
       </ul>
 
-      {targets.length > 0 ? (
-        <section
-          className="mt-5 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 px-3.5 py-3"
-          aria-label={nextTargets?.title ?? "Следующий раз"}
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--on-ink)]/80">
-            {nextTargets?.title ?? "Следующий раз"}
-          </p>
-          {anyHit ? (
-            <p className="mt-1.5 text-sm font-semibold text-[var(--accent-soft)]">
-              Цель взята — оставляем на следующий раз
-            </p>
-          ) : anyMiss ? (
-            <p className="mt-1.5 text-sm font-semibold text-amber-100">
-              Цель не добрана — можно сменить
-            </p>
-          ) : (
-            <p className="mt-1 text-[11px] leading-snug text-white/55">
-              От макс. рабочего веса (без дроп-сетов). Выберите цель — запомним до
-              следующей.
-            </p>
-          )}
-          <ul className="mt-2.5 space-y-3">
-            {targets.map((t) => {
-              const selected = chosen[t.name] ?? t.primaryLever;
-              const outcome = leverOutcomes[t.name];
-              const early = isEarlyGymUser();
-              const showChangeCta =
-                !changeOpen[t.name] &&
-                (outcome === "miss" || (early && t.options.length > 1));
-              // Early gym: one tip line; full picker after 3 days or via «Другая цель».
-              const showLevers =
-                t.options.length > 0 &&
-                (early
-                  ? Boolean(changeOpen[t.name])
-                  : outcome !== "miss" || changeOpen[t.name] || outcome == null);
-              const earlyLine =
-                early && !changeOpen[t.name]
-                  ? (t.options.find((o) => o.lever === selected)?.line ?? t.line)
-                  : null;
-              return (
-                <li key={`${t.name}-${t.line}`} className="text-sm leading-snug text-white/90">
-                  <p className="font-semibold">
-                    {t.name}
-                    {t.basisKg != null && t.basisKg > 0 ? (
-                      <span className="ml-1.5 font-medium text-white/50">
-                        макс {Number.isInteger(t.basisKg) ? t.basisKg : t.basisKg} кг
-                      </span>
-                    ) : null}
-                    {outcome === "hit" ? (
-                      <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
-                        цель
-                      </span>
-                    ) : null}
-                    {historyTick > 0
-                      ? (() => {
-                          const streakHint = formatLeverStreakHint(getLeverHitStreak(t.name));
-                          return streakHint ? (
-                            <span className="ml-1.5 text-[10px] font-medium text-white/45">
-                              {streakHint}
-                            </span>
-                          ) : null;
-                        })()
-                      : null}
-                  </p>
-                  {earlyLine ? (
-                    <p className="mt-1 text-[13px] text-white/75">{earlyLine}</p>
-                  ) : null}
-                  {showChangeCta ? (
-                    <button
-                      type="button"
-                      className="mt-1.5 w-full rounded-lg border border-amber-200/35 bg-amber-400/10 px-3 py-2 text-left text-[13px] font-semibold text-amber-50"
-                      onClick={() =>
-                        setChangeOpen((prev) => ({ ...prev, [t.name]: true }))
-                      }
-                    >
-                      Другая цель
-                    </button>
-                  ) : null}
-                  {showLevers ? (
-                    <ul className="mt-1.5 space-y-1" role="listbox" aria-label={`Цель для ${t.name}`}>
-                      {t.options.map((opt) => {
-                        const primary = opt.lever === selected;
-                        return (
-                          <li key={opt.lever}>
-                            <button
-                              type="button"
-                              role="option"
-                              aria-selected={primary}
-                              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition-colors ${
-                                primary
-                                  ? "bg-white/12 font-semibold text-white"
-                                  : "text-white/70 hover:bg-white/6"
-                              }`}
-                              onClick={() =>
-                                pickLever(t.name, opt.lever, t.basisKg, {
-                                  suggestedKg: opt.suggestedKg,
-                                  suggestedReps: opt.suggestedReps,
-                                })
-                              }
-                            >
-                              <span className="w-16 shrink-0 text-white/45">{opt.label}</span>
-                              <span className="min-w-0 flex-1">{opt.line}</span>
-                              {primary ? (
-                                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-soft)]">
-                                  {outcome === "hit" || t.leverRemembered || chosen[t.name]
-                                    ? "ваш"
-                                    : "фокус"}
-                                </span>
-                              ) : null}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : t.options.length === 0 ? (
-                    <p className="mt-1 text-[13px] text-white/75">{t.line}</p>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-          {tip ? (
-            <div className="mt-3 border-t border-white/10 pt-2.5">
-              {tipLever || tipExercise ? (
-                <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
-                  Совет
-                  {tipExercise ? ` · ${tipExercise}` : ""}
-                  {tipLever === "weight"
-                    ? " · вес"
-                    : tipLever === "volume"
-                      ? " · тоннаж"
-                      : tipLever === "reps"
-                        ? " · повторы"
-                        : ""}
-                </p>
-              ) : null}
-              <p className="text-xs leading-relaxed text-white/65">{tip}</p>
-            </div>
-          ) : null}
-          <div className={`${tip ? "mt-2.5" : "mt-3 border-t border-white/10 pt-2.5"}`}>
-            <Link
-              href={assistantGymLink({
-                prefill: tip
-                  ? [
-                      `После тренировки ${date}.`,
-                      tipExercise ? `Фокус: ${tipExercise}.` : null,
-                      tip,
-                      "Подскажи план на следующий раз.",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")
-                  : `После тренировки ${date}. Помоги с планом на следующий раз по целям сессии.`,
-              })}
-              className="inline-flex rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)]"
-            >
-              Разобрать с AI
-            </Link>
-          </div>
-        </section>
+      <section className="mt-4 rounded-2xl bg-white/10 px-3.5 py-3" aria-label="Зачёт сундука">
+        <p className="font-semibold">Зачёт сундука</p>
+        <p className="mt-1 text-sm leading-snug text-white/75">
+          Тренировка даёт один зачёт на день. Если белок тоже закрыт, это комбо — тот же один зачёт, не второй.
+        </p>
+      </section>
+      {nextSentence ? (
+        <p className="mt-4 text-sm leading-snug text-white/88">
+          В следующий раз {nextSentence}. Поменять цель можно в тренировке.
+        </p>
       ) : null}
+      {tip ? <p className="mt-2 text-sm leading-snug text-white/70">{tip}</p> : null}
+      <Link
+        href={assistantGymLink({
+          prefill: tip
+            ? `После тренировки ${date}. ${tip} Подскажи план на следующий раз.`
+            : `После тренировки ${date}. Помоги с планом на следующий раз.`,
+        })}
+        className="mt-3 inline-flex text-sm font-semibold text-[var(--accent-soft)]"
+      >
+        Разобрать с AI
+      </Link>
     </StageScreen>
   );
 }

@@ -10,18 +10,17 @@ function source(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
 }
 
-test("big Начать тренировку button always starts a free workout", () => {
+test("повтор прошлой — первая кнопка, пустая тренировка остаётся отдельной", () => {
   const src = source("components/workouts/WorkoutWeekPlan.tsx");
-  const marker = 'gymBigStartLabel(primary === "finished")';
-  const at = src.indexOf(marker);
-  assert.ok(at > 0, "big start label missing");
-  const button = src.slice(at - 500, at);
-  assert.match(button, /onClick=\{onStartBlank\}/);
-  assert.doesNotMatch(button, /onRepeatLast/);
-  assert.match(src, /const showBigStart = startChrome\.showBigStart/);
-  assert.match(src, /GYM_START_LABELS\.plan/);
   assert.match(src, /GYM_START_LABELS\.repeat/);
-  assert.doesNotMatch(src, /primary === "repeat" && lastRepeat && onRepeatLast/);
+  assert.match(src, /onRepeatLast\(lastRepeat\.id\)/);
+  assert.match(src, /onClick=\{onStartBlank\}/);
+  assert.match(src, /Пустая тренировка/);
+  assert.match(src, /По шаблону/);
+  assert.match(src, /const showBigStart = startChrome\.showBigStart/);
+  const repeatAt = src.indexOf("onRepeatLast(lastRepeat.id)");
+  const blankAt = src.indexOf("onClick={onStartBlank}");
+  assert.ok(repeatAt > 0 && blankAt > repeatAt);
 });
 
 test("create session defaults copy off and empty sessions skip repeat", () => {
