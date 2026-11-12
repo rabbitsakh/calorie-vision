@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  fieldNeedsScroll,
+  inputModeForColumn,
+  normalizeTypedField,
   pickEditorRowKey,
   stepNumericField,
   withPreviousValues,
@@ -104,6 +107,7 @@ export function SetTable({
             busy={busy}
             editor={row.key === editorKey}
             onFocus={() => setPreferred(row.key)}
+            onCloseEditor={() => setPreferred(null)}
             onFieldChange={onFieldChange}
             onCommit={onCommit}
             onLog={onLog}
@@ -147,6 +151,7 @@ function SetTableRow({
   busy,
   editor,
   onFocus,
+  onCloseEditor,
   onFieldChange,
   onCommit,
   onLog,
@@ -158,6 +163,7 @@ function SetTableRow({
   busy?: boolean;
   editor: boolean;
   onFocus: () => void;
+  onCloseEditor: () => void;
   onFieldChange: Props["onFieldChange"];
   onCommit: Props["onCommit"];
   onLog: Props["onLog"];
@@ -166,7 +172,18 @@ function SetTableRow({
 }) {
   const [fields, setFields] = useState<SetTableFields>(() => fieldsOf(row));
   const [pop, setPop] = useState(false);
+  const [typing, setTyping] = useState<FieldKey | null>(null);
+  const [typed, setTyped] = useState("");
+  const [typeError, setTypeError] = useState<{ key: FieldKey; text: string } | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const pending = useRef<SetTableFields | null>(null);
+
+  useEffect(() => {
+    if (!typing) return;
+    const field = inputRef.current;
+    if (!field) return;
+    return keepFieldVisible(field);
+  }, [typing]);
 
   useEffect(() => {
     const next = fieldsOf(row);
@@ -194,6 +211,20 @@ function SetTableRow({
     publish({ ...fields, [key]: stepNumericField(fields[key], delta) });
   };
 
+  const finishTyping = (key: FieldKey) => {
+    const normalized = normalizeTypedField(key, typed);
+    setTyping(null);
+    if (normalized == null) {
+      setTypeError({
+        key,
+        text: key === "reps" ? "Повторы — целое число больше нуля" : "Нужно число, запятая тоже подойдёт",
+      });
+      return;
+    }
+    setTypeError(null);
+    if (normalized !== fields[key]) publish({ ...fields, [key]: normalized });
+  };
+
   const summary = summaryOf(kind, fields);
   const label = typeLabel(row.setType);
 
@@ -203,7 +234,7 @@ function SetTableRow({
         <button
           type="button"
           className="gym-set-line__main"
-          disabled={busy || row.completed}
+          disabled={busy}
           onClick={onFocus}
         >
           <span className="gym-set-line__n">{row.number}</span>
@@ -293,7 +324,43 @@ function SetTableRow({
             >
               −
             </button>
-            <div className="gym-stepper__val">{fields[item.key] || "0"}</div>
+            <div className="gym-stepper__val">
+              {typing === item.key ? (
+                <input
+                  ref={inputRef}
+                  className="gym-stepper__input"
+                  inputMode={inputModeForColumn(item.key)}
+                  enterKeyHint="done"
+                  autoComplete="off"
+                  autoFocus
+                  aria-label={item.label}
+                  aria-invalid={typeError?.key === item.key ? true : undefined}
+                  value={typed}
+                  onChange={(event) => {
+                    setTyped(event.target.value);
+                    setTypeError(null);
+                  }}
+                  onBlur={() => finishTyping(item.key)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                  }}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="gym-stepper__edit"
+                  aria-label={`Ввести ${item.label.toLowerCase()}, подход ${row.number}`}
+                  disabled={busy}
+                  onClick={() => {
+                    setTyping(item.key);
+                    setTyped(fields[item.key] || "");
+                    setTypeError(null);
+                  }}
+                >
+                  {fields[item.key] || "0"}
+                </button>
+              )}
+            </div>
             <button
               type="button"
               aria-label={`Больше, ${item.label}`}
@@ -303,21 +370,58 @@ function SetTableRow({
               +
             </button>
           </div>
+          {typeError?.key === item.key ? <p className="gym-set-error">{typeError.text}</p> : null}
         </div>
       ))}
-      <button
-        type="button"
-        className="gym-set-log"
-        disabled={busy}
-        onClick={() => {
-          setPop(true);
-          onLog(row, fields);
-        }}
-      >
-        {summary === "—" ? "Записать подход" : `Записать ${summary}`}
-      </button>
+      {row.completed ? (
+        <button type="button" className="gym-set-log" disabled={busy} onClick={onCloseEditor}>
+          Готово
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="gym-set-log"
+          disabled={busy}
+          onClick={() => {
+            setPop(true);
+            onLog(row, fields);
+          }}
+        >
+          {summary === "—" ? "Записать подход" : `Записать ${summary}`}
+        </button>
+      )}
     </li>
   );
+}
+
+/** Держит поле в видимой части окна, а не у низа длинной страницы, когда клавиатура сжимает экран. */
+function keepFieldVisible(field: HTMLElement): () => void {
+  const place = () => {
+    const viewport = window.visualViewport;
+    const rect = field.getBoundingClientRect();
+    const visibleTop = viewport?.offsetTop ?? 0;
+    const visibleBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+    if (
+      fieldNeedsScroll({
+        fieldTop: rect.top,
+        fieldBottom: rect.bottom,
+        visibleTop,
+        visibleBottom,
+      })
+    ) {
+      field.scrollIntoView({ block: "center", inline: "nearest" });
+    }
+  };
+  const timer = window.setTimeout(place, 60);
+  window.visualViewport?.addEventListener("resize", place);
+  window.visualViewport?.addEventListener("scroll", place);
+  window.addEventListener("resize", place);
+  return () => {
+    window.clearTimeout(timer);
+    window.visualViewport?.removeEventListener("resize", place);
+    window.visualViewport?.removeEventListener("scroll", place);
+    window.removeEventListener("resize", place);
+  };
 }
 
 function SetMenu({

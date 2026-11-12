@@ -240,13 +240,49 @@ function rowFromValues(
   };
 }
 
-/** The open editor is the chosen unfinished row, otherwise the first unfinished one. */
+/**
+ * The open editor is the row the person tapped, including an already logged one.
+ * With no choice, it is the first unfinished row.
+ */
 export function pickEditorRowKey(
   rows: readonly { key: string; completed: boolean }[],
   preferred: string | null,
 ): string | null {
-  if (preferred && rows.some((row) => row.key === preferred && !row.completed)) return preferred;
+  if (preferred && rows.some((row) => row.key === preferred)) return preferred;
   return rows.find((row) => !row.completed)?.key ?? null;
+}
+
+/**
+ * Keyboard entry. Comma is a decimal mark. Reps stay a whole number above zero.
+ * Returns null when the text is not a usable value, so the field can be reverted.
+ */
+export function normalizeTypedField(key: "kg" | "reps" | "km" | "time", raw: string): string | null {
+  const trimmed = raw.trim().replace(",", ".");
+  if (!trimmed) return null;
+  if (key === "reps") {
+    if (!/^\d+$/.test(trimmed)) return null;
+    const reps = Number(trimmed);
+    if (!Number.isInteger(reps) || reps <= 0) return null;
+    return String(reps);
+  }
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return String(value);
+}
+
+/** The field sits under the keyboard or above the visible window, so it should move into view. */
+export function fieldNeedsScroll(input: {
+  fieldTop: number;
+  fieldBottom: number;
+  visibleTop: number;
+  visibleBottom: number;
+  margin?: number;
+}): boolean {
+  const margin = input.margin ?? 12;
+  return (
+    input.fieldBottom > input.visibleBottom - margin || input.fieldTop < input.visibleTop + margin
+  );
 }
 
 /** Step a numeric field. Empty counts as zero; the result never goes below zero. */
