@@ -504,7 +504,7 @@ export function WorkoutWeekPlan({
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-0.5">
                 <button
                   type="button"
-                  className="text-sm font-semibold text-[var(--muted-strong)] underline-offset-2 hover:underline"
+                  className="gym-hero-link min-h-11 text-sm font-semibold underline-offset-2 hover:underline"
                   onClick={() =>
                     onCreatePlanDay ? onCreatePlanDay(data?.weekday) : onGoTemplates()
                   }

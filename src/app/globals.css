@@ -9495,7 +9495,7 @@ button.profile-settings__door:disabled {
   overflow: auto;
   border-radius: 1.5rem 1.5rem 0 0;
   background: var(--card);
-  padding: 1rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  padding: 1rem 1rem calc(1.75rem + env(safe-area-inset-bottom, 0px));
   box-shadow: var(--shadow-card);
   color: var(--foreground);
 }
@@ -10190,7 +10190,8 @@ html[data-gym-live] .app-chrome {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 52px;
+  min-height: 56px;
+  padding: 4px 0 2px;
 }
 
 .gym-live-bar__back,
@@ -10226,9 +10227,10 @@ html[data-gym-live] .app-chrome {
 
 .gym-live-bar__clock span {
   max-width: 100%;
+  margin-top: 2px;
   overflow: hidden;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 650;
   color: var(--muted);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10239,10 +10241,10 @@ html[data-gym-live] .app-chrome {
   flex: 0 0 auto;
   border-radius: 14px;
   background: var(--accent-ink);
-  padding: 0 12px;
+  padding: 0 14px;
   color: #fff;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .gym-ss {
@@ -10259,9 +10261,9 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-ss__label {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--accent-ink);
 }
 
@@ -10275,16 +10277,16 @@ html[data-gym-live] .app-chrome {
 .gym-ex__count {
   display: flex;
   align-items: center;
-  padding-right: 2px;
+  padding-right: 4px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent-ink);
 }
 
 .gym-sets__list {
   margin: 0;
-  padding: 0 12px 4px;
+  padding: 0 12px 8px;
   list-style: none;
 }
 
@@ -10299,8 +10301,8 @@ html[data-gym-live] .app-chrome {
 .gym-set-line {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 48px;
+  gap: 8px;
+  min-height: 52px;
   border-top: 1px solid var(--border-hairline);
 }
 
@@ -10310,7 +10312,7 @@ html[data-gym-live] .app-chrome {
 
 .gym-set-line.is-pending,
 .gym-set-editor.is-pending {
-  background: rgba(255, 248, 230, 0.8);
+  background: color-mix(in srgb, var(--accent-streak) 14%, var(--card));
 }
 
 .gym-set-line__main {
@@ -10324,17 +10326,21 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-set-line__n {
-  width: 1.1rem;
+  width: 1.25rem;
   flex: 0 0 auto;
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
   color: var(--muted);
 }
 
 .gym-set-line__mid {
   min-width: 0;
   flex: 1;
-  font-weight: 800;
+  overflow: hidden;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gym-set-chip {
@@ -10347,7 +10353,7 @@ html[data-gym-live] .app-chrome {
   padding: 0 8px;
   color: var(--accent-ink);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .gym-set-chip--warm {
@@ -10377,11 +10383,15 @@ html[data-gym-live] .app-chrome {
   background: var(--accent);
 }
 
+.gym-set-check.is-pop {
+  animation: gym-check-pop 200ms ease-out;
+}
+
 .gym-set-editor {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 0 6px;
+  gap: 8px;
+  padding: 12px 0 8px;
   border-top: 1px solid var(--border-hairline);
 }
 
@@ -10408,7 +10418,8 @@ html[data-gym-live] .app-chrome {
   padding: 0 12px;
   color: var(--accent-ink);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .gym-set-prev span:last-child {
@@ -10417,9 +10428,9 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-set-label {
-  margin: 6px 0 4px;
+  margin: 0 0 4px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
 }
 
@@ -10464,12 +10475,13 @@ html[data-gym-live] .app-chrome {
 .gym-set-log {
   width: 100%;
   min-height: 52px;
-  margin-top: 6px;
+  margin-top: 2px;
   border-radius: 14px;
   background: var(--accent);
   color: #fff;
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 
 .gym-set-sheet__backdrop {
@@ -10477,6 +10489,7 @@ html[data-gym-live] .app-chrome {
   inset: 0;
   z-index: 51;
   background: rgba(7, 26, 23, 0.28);
+  animation: gym-fade-in 180ms ease-out;
 }
 
 .gym-set-sheet {
@@ -10491,9 +10504,10 @@ html[data-gym-live] .app-chrome {
   border-radius: 22px 22px 0 0;
   border-top: 1px solid var(--border-quiet);
   background: var(--card);
-  padding: 8px 8px 10px;
+  padding: 10px 8px 12px;
   color: var(--foreground);
   box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+  animation: gym-sheet-in 200ms ease-out;
 }
 
 .gym-set-sheet__handle {
@@ -10519,7 +10533,7 @@ html[data-gym-live] .app-chrome {
   padding: 0 12px;
   text-align: left;
   font-size: 16px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .gym-set-sheet button:disabled {
@@ -10532,7 +10546,7 @@ html[data-gym-live] .app-chrome {
 
 .gym-rest-slot {
   flex: 0 0 auto;
-  padding: 0 10px 6px;
+  padding: 0 12px 10px;
 }
 
 .gym-rest-bar {
@@ -10546,6 +10560,7 @@ html[data-gym-live] .app-chrome {
   padding: 0 8px 0 10px;
   box-shadow: var(--shadow-card);
   color: var(--foreground);
+  animation: gym-rest-in 200ms ease-out;
 }
 
 .gym-rest-bar__ring {
@@ -10585,19 +10600,18 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-rest-bar__time span {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--muted);
 }
 
 .gym-rest-bar button {
   min-height: 44px;
   border-radius: 12px;
-  padding: 0 12px;
+  padding: 0 14px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .gym-rest-bar__add {
@@ -10618,12 +10632,119 @@ html[data-gym-live] .app-chrome {
     width: min(32rem, calc(100% - 2rem));
     bottom: 1rem;
     transform: translateX(-50%);
+    animation-name: gym-sheet-in-wide;
   }
 
   .gym-rest-slot {
     width: min(40rem, 100%);
     margin-inline: auto;
   }
+}
+
+.gym-day .gym-start:not(.gym-start--primary) {
+  background: #fff;
+  color: #14181f;
+  border-color: rgba(44, 53, 48, 0.12);
+}
+
+.gym-day .gym-start:not(.gym-start--primary) span span {
+  color: #5a635c;
+}
+
+.gym-day .gym-start--quiet {
+  background: transparent;
+}
+
+.gym-day .gym-start--quiet,
+.gym-day .gym-start--quiet b {
+  color: #14181f;
+}
+
+.gym-day .gym-start--quiet span span {
+  color: #5a635c;
+}
+
+.gym-session-scene,
+.gym-hub-scene,
+.gym-day {
+  animation: gym-screen-in 200ms ease-out;
+}
+
+.gym-stepper button,
+.gym-set-log,
+.gym-set-check,
+.gym-finish,
+.gym-start {
+  transition: transform 150ms ease-out, opacity 150ms ease-out;
+}
+
+.gym-stepper button:active,
+.gym-set-log:active,
+.gym-set-check:active,
+.gym-finish:active,
+.gym-start:active {
+  transform: scale(0.97);
+}
+
+@keyframes gym-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gym-sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gym-sheet-in-wide {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+
+@keyframes gym-rest-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gym-check-pop {
+  0% { transform: scale(0.84); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes gym-screen-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gym-session-scene,
+  .gym-hub-scene,
+  .gym-day,
+  .gym-set-sheet,
+  .gym-set-sheet__backdrop,
+  .gym-rest-bar,
+  .gym-set-check.is-pop,
+  .gym-stepper button,
+  .gym-set-log,
+  .gym-set-check,
+  .gym-finish,
+  .gym-start {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .gym-set-chip--warm {
+    background: #3a2a12;
+    color: #f6d7a2;
+  }
+}
+
+.gym-force-dark .gym-set-chip--warm {
+  background: #3a2a12;
+  color: #f6d7a2;
 }
 
 .gym-force-dark {
@@ -10767,7 +10888,7 @@ html[data-gym-live] .app-chrome {
 }
 
 .gym-chart-switch button {
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 999px;
   padding: 0 12px;
   background: var(--accent-soft);

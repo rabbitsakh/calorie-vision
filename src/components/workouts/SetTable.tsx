@@ -165,6 +165,7 @@ function SetTableRow({
   onOpenMenu: (() => void) | null;
 }) {
   const [fields, setFields] = useState<SetTableFields>(() => fieldsOf(row));
+  const [pop, setPop] = useState(false);
   const pending = useRef<SetTableFields | null>(null);
 
   useEffect(() => {
@@ -222,10 +223,13 @@ function SetTableRow({
         ) : null}
         <button
           type="button"
-          className={`gym-set-check${row.completed ? " is-on" : ""}`}
+          className={`gym-set-check${row.completed ? " is-on" : ""}${pop ? " is-pop" : ""}`}
           disabled={busy}
           aria-label={row.completed ? `Снять подход ${row.number}` : `Записать подход ${row.number}`}
-          onClick={() => onLog(row, fields)}
+          onClick={() => {
+            if (!row.completed) setPop(true);
+            onLog(row, fields);
+          }}
         >
           {row.completed ? "✓" : ""}
         </button>
@@ -305,7 +309,10 @@ function SetTableRow({
         type="button"
         className="gym-set-log"
         disabled={busy}
-        onClick={() => onLog(row, fields)}
+        onClick={() => {
+          setPop(true);
+          onLog(row, fields);
+        }}
       >
         {summary === "—" ? "Записать подход" : `Записать ${summary}`}
       </button>
