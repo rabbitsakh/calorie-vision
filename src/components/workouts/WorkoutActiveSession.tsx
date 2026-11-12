@@ -13,14 +13,12 @@ import { SetTable, type SetTableFields } from "@/components/workouts/SetTable";
 import { WorkoutSessionSummary } from "@/components/workouts/WorkoutSessionSummary";
 import {
   dateKeyAndTimeToIso,
-  formatDateWords,
   toTimeInputValue,
 } from "@/lib/dates";
 import {
   buildSetTableRows,
   exerciseSetCounts,
   formatBestTarget,
-  formatLastTimePhrase,
   nextUnfinishedExerciseId,
   pickInitialExpandedId,
   shouldAutoExpandNext,
@@ -42,7 +40,6 @@ import {
   formatSessionEnergyCaption,
   formatSessionEnergyKcal,
 } from "@/lib/workouts/energy";
-import { formatWorkoutLoad } from "@/lib/workouts/format";
 import {
   BLOCK_MODE_LABELS,
   BLOCK_MODES,
@@ -63,6 +60,7 @@ import {
 import { validateSetDraft } from "@/lib/workouts/set-draft";
 import { getExerciseRestSec, REST_OPTIONS, setExerciseRestSec } from "@/lib/workouts/rest-timer";
 import { SET_TYPE_LABELS, type SetType } from "@/lib/workouts/set-meta";
+import { groupBySuperset } from "@/lib/workouts/supersets";
 
 type Progress = {
   previousSessionId: string | null;
@@ -184,12 +182,6 @@ type LibraryEntry = {
 };
 
 type HistoryBundle = ExerciseHistoryBundle;
-
-function formatPct(value: number | null | undefined): string | null {
-  if (value == null || !Number.isFinite(value)) return null;
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value}%`;
-}
 
 function toExpandInput(ex: SessionExercise): ExerciseExpandInput {
   return {
@@ -506,7 +498,6 @@ export function WorkoutActiveSession({
     if (detail.endedAt) setEditEndTime(toTimeInputValue(detail.endedAt));
   }, [detail.id, detail.startedAt, detail.endedAt]);
 
-  const delta = formatPct(progress?.deltaPctVsPrevious);
   const summaryExercises = detail.exercises.map((ex) => {
     const hist = historyByName[ex.name];
     return {
@@ -710,6 +701,13 @@ export function WorkoutActiveSession({
   };
 
   const clock = detail.clockStatus ?? "idle";
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.gymLive = "1";
+    return () => {
+      delete root.dataset.gymLive;
+    };
+  }, []);
   const noteExercise = detail.exercises.find((ex) => ex.id === noteExerciseId) ?? null;
   useEffect(() => {
     if (!noteExercise) return;
@@ -794,93 +792,53 @@ export function WorkoutActiveSession({
         />
       ) : null}
 
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          className="min-h-[44px] text-sm font-medium text-[var(--accent)]"
-          onClick={leave}
-        >
-          ← К списку
+      <div className="gym-live-bar">
+        <button type="button" className="gym-live-bar__back" aria-label="К списку" onClick={leave}>
+          ←
         </button>
-        <OverflowMenu label="Действия тренировки" items={workoutMenu} />
-      </div>
-      <div className="-mt-2 px-0.5">
-        <p className="truncate text-sm font-semibold text-[var(--foreground)]">
-          {formatDateWords(detail.date)}
-          {detail.muscleLabels.length ? ` · ${detail.muscleLabels.join(" · ")}` : ""}
-        </p>
-        <p className="truncate text-xs text-[var(--muted)]">
-          {detail.cardioOnly
-            ? progressLine
-            : [
-                detail.totalLoad > 0 ? `${formatWorkoutLoad(detail.totalLoad)} кг·повт` : null,
-                delta ? `к прошлой ${delta}` : null,
-                detail.date !== todayKey ? "задним числом" : null,
-              ]
-                .filter(Boolean)
-                .join(" · ") || progressLine}
-        </p>
-      </div>
-
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-2 rounded-xl border border-[var(--border-quiet)] bg-white/95 px-2 py-1 shadow-sm backdrop-blur">
         <button
           type="button"
-          className="min-h-[44px] min-w-[44px] px-1 text-left"
+          className="gym-live-bar__clock"
           aria-label={
-            liveEnergyLabel
-              ? `Время тренировки, расход ${liveEnergyLabel}`
-              : "Время тренировки"
+            liveEnergyLabel ? `Время тренировки, расход ${liveEnergyLabel}` : "Время тренировки"
           }
           onClick={() => {
             if (clock === "idle") void patchClock("start");
           }}
         >
-          <span className="block text-lg font-semibold tabular-nums leading-none text-[var(--foreground)]">
-            {liveElapsedLabel}
+          <strong>{liveElapsedLabel}</strong>
+          <span>
+            {CLOCK_HINT[clock].toLowerCase()}
+            {liveEnergyLabel ? ` · ${liveEnergyLabel}` : ""}
+            {detail.muscleLabels.length ? ` · ${detail.muscleLabels.join(" · ")}` : ""}
+            {detail.cardioOnly && progressLine ? ` · ${progressLine}` : ""}
+            {detail.date !== todayKey ? " · задним числом" : ""}
           </span>
-          <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            {CLOCK_HINT[clock]}
-          </span>
-          {liveEnergyLabel ? (
-            <span className="gym-energy-live" title={liveEnergyCaption ?? undefined}>
-              <span className="gym-energy-live__kcal">{liveEnergyLabel}</span>
-              {liveEnergyCaption ? <span className="gym-energy-live__note">{liveEnergyCaption}</span> : null}
-            </span>
-          ) : null}
         </button>
-        {!detail.cardioOnly && clock !== "finished" ? (
-          <RestTimer
-            restSeconds={restSeconds}
-            setRestSeconds={setRestSeconds}
-            restEndsAt={restEndsAt}
-            restLeft={restLeft}
-            restSound={restSound}
-            setRestSound={setRestSound}
-            startRest={startRest}
-            clearRest={clearRest}
-            options={restOptions}
-          />
-        ) : (
-          <span className="text-xs text-[var(--muted)]">{clock === "finished" ? "Завершена" : ""}</span>
-        )}
         {clock === "finished" ? (
-          <button
-            type="button"
-            className="min-h-[44px] rounded-xl bg-[var(--accent-ink)] px-3 text-sm font-semibold text-white"
-            onClick={() => setShowSummary(true)}
-          >
+          <button type="button" className="gym-finish" onClick={() => setShowSummary(true)}>
             Итог
           </button>
         ) : (
-          <button
-            type="button"
-            className="min-h-[44px] rounded-xl bg-[var(--accent-ink)] px-3 text-sm font-semibold text-white"
-            onClick={() => void patchClock("finish")}
-          >
+          <button type="button" className="gym-finish" onClick={() => void patchClock("finish")}>
             Завершить
           </button>
         )}
+        <OverflowMenu label="Действия тренировки" items={workoutMenu} />
       </div>
+      {!detail.cardioOnly && clock !== "finished" && !restEndsAt ? (
+        <RestTimer
+          restSeconds={restSeconds}
+          setRestSeconds={setRestSeconds}
+          restEndsAt={restEndsAt}
+          restLeft={restLeft}
+          restSound={restSound}
+          setRestSound={setRestSound}
+          startRest={startRest}
+          clearRest={clearRest}
+          options={restOptions}
+        />
+      ) : null}
 
       {prToast ? (
         <div
@@ -938,7 +896,14 @@ export function WorkoutActiveSession({
       ) : null}
 
       <div className="flex flex-col gap-2">
-        {detail.exercises.map((ex, exIndex) => {
+        {groupBySuperset(detail.exercises.map((ex, index) => ({ ...ex, sortOrder: index }))).map((block) => {
+          const multi = Boolean(block.group) && block.items.length > 1;
+          return (
+            <div key={block.items.map((item) => item.id).join(":")} className={multi ? "gym-ss" : "contents"}>
+              {multi ? <div className="gym-ss__rail" aria-hidden /> : null}
+              <div className={multi ? "flex min-w-0 flex-1 flex-col gap-2" : "contents"}>
+                {block.items.map((ex, indexInGroup) => {
+          const exIndex = detail.exercises.findIndex((item) => item.id === ex.id);
           const draft = setDrafts[ex.id] ?? EMPTY_DRAFT;
           const rows = buildSetTableRows({
             kind: ex.kind,
@@ -950,7 +915,6 @@ export function WorkoutActiveSession({
           const counts = exerciseSetCounts(ex.sets, ex.lastTime?.sets.length ?? 0);
           const goal = bestAndTarget(ex, detail.progressRate, historyByName[ex.name]);
           const bestTarget = formatBestTarget(goal.best, goal.target);
-          const lastLine = formatLastTimePhrase(ex.lastTime?.sets?.[0], ex.kind);
           const expanded = expandedId === ex.id;
           const prevEx = detail.exercises[exIndex - 1];
           const addLabel =
@@ -1055,6 +1019,13 @@ export function WorkoutActiveSession({
             },
           ];
           return (
+            <div key={ex.id}>
+              {multi ? (
+                <p className="gym-ss__label">
+                  Суперсет · {indexInGroup + 1} из {block.items.length}
+                  {indexInGroup > 0 ? " · следом" : ""}
+                </p>
+              ) : null}
             <ExerciseRow
               key={ex.id}
               name={ex.name}
@@ -1065,9 +1036,9 @@ export function WorkoutActiveSession({
                   : counts.label
               }
                 bestTarget={bestTarget}
-                lastLine={lastLine}
+                lastLine={null}
                 expanded={expanded}
-              superset={ex.supersetGroup ?? null}
+              superset={null}
               pending={ex.sets.some((s) => s.pendingLocal)}
               menu={menu}
               onToggle={() => {
@@ -1098,6 +1069,11 @@ export function WorkoutActiveSession({
                 </p>
               ) : null}
             </ExerciseRow>
+            </div>
+          );
+                })}
+              </div>
+            </div>
           );
         })}
       </div>

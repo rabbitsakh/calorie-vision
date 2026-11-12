@@ -2,16 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  SET_TABLE_COLUMN_LABEL,
-  inputModeForColumn,
-  setTableColumns,
-  setTableGridTemplate,
-  type SetTableColumn,
+  pickEditorRowKey,
+  stepNumericField,
+  withPreviousValues,
   type SetTableRowModel,
 } from "@/lib/workouts/active-set-table";
-import type { ExerciseKind } from "@/lib/workouts/exercise-kind";
-import { SET_TYPE_LABELS, SET_TYPE_SHORT, type SetType } from "@/lib/workouts/set-meta";
-import { OverflowMenu } from "@/components/workouts/OverflowMenu";
+import { fieldsForKind, type ExerciseKind } from "@/lib/workouts/exercise-kind";
+import { SET_TYPE_LABELS, type SetType } from "@/lib/workouts/set-meta";
 
 export type SetTableFields = {
   kg: string;
@@ -19,6 +16,8 @@ export type SetTableFields = {
   km: string;
   time: string;
 };
+
+type FieldKey = keyof SetTableFields;
 
 type Props = {
   kind: ExerciseKind;
@@ -34,8 +33,44 @@ type Props = {
   onDeleteSet?: (setId: string) => void;
 };
 
+type MenuActions = {
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  onDelete: () => void;
+};
+
 function fieldsOf(row: SetTableRowModel): SetTableFields {
   return { kg: row.kg, reps: row.reps, km: row.km, time: row.time };
+}
+
+function sameFields(a: SetTableFields, b: SetTableFields): boolean {
+  return a.kg === b.kg && a.reps === b.reps && a.km === b.km && a.time === b.time;
+}
+
+function chipClass(setType: string): string {
+  if (setType === "warmup") return "gym-set-chip gym-set-chip--warm";
+  if (setType === "working") return "gym-set-chip";
+  return "gym-set-chip gym-set-chip--other";
+}
+
+function typeLabel(setType: string): string {
+  return SET_TYPE_LABELS[setType as SetType] ?? "Рабочий";
+}
+
+function summaryOf(kind: ExerciseKind, fields: SetTableFields): string {
+  if (kind === "cardio") {
+    const parts = [fields.km ? `${fields.km} км` : null, fields.time ? `${fields.time} мин` : null].filter(
+      Boolean,
+    );
+    return parts.join(" · ") || "—";
+  }
+  if (kind === "duration") return fields.time ? `${fields.time} мин` : "—";
+  if (kind === "bodyweight") return fields.reps ? `${fields.reps} повт` : "—";
+  const prefix = kind === "assisted" ? "−" : kind === "weighted_bw" ? "+" : "";
+  if (!fields.kg && !fields.reps) return "—";
+  return `${prefix}${fields.kg || "0"} × ${fields.reps || "0"}`;
 }
 
 export function SetTable({
@@ -51,49 +86,30 @@ export function SetTable({
   onMoveSet,
   onDeleteSet,
 }: Props) {
-  const columns = setTableColumns(kind);
   const withMenu = Boolean(onMoveSet && onDeleteSet);
-  const template = withMenu
-    ? `${setTableGridTemplate(columns)} 40px`
-    : setTableGridTemplate(columns);
   const persisted = rows.filter((row) => row.source === "set" && row.setId);
+  const [preferred, setPreferred] = useState<string | null>(null);
+  const [menuKey, setMenuKey] = useState<string | null>(null);
+  const editorKey = pickEditorRowKey(rows, preferred);
+  const menuRow = rows.find((row) => row.key === menuKey && row.setId) ?? null;
 
   return (
-    <div className="border-t border-[var(--border-quiet)]">
-      <div
-        className="grid items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]"
-        style={{ gridTemplateColumns: template }}
-      >
-        {columns.map((col) => (
-          <span key={col} className={col === "check" ? "sr-only" : "px-0.5 text-center"}>
-            {col === "check" ? "Готово" : SET_TABLE_COLUMN_LABEL[col]}
-          </span>
-        ))}
-        {withMenu ? <span className="sr-only">Меню</span> : null}
-      </div>
-      <ul>
+    <div className="gym-sets">
+      <ul className="gym-sets__list">
         {rows.map((row) => (
           <SetTableRow
             key={row.key}
+            kind={kind}
             row={row}
-            columns={columns}
-            template={template}
             busy={busy}
+            editor={row.key === editorKey}
+            onFocus={() => setPreferred(row.key)}
             onFieldChange={onFieldChange}
             onCommit={onCommit}
             onLog={onLog}
             onCycleType={onCycleType}
-            reserveMenu={withMenu}
-            menu={
-              withMenu && row.source === "set" && row.setId
-                ? {
-                    canMoveUp: persisted[0]?.setId !== row.setId,
-                    canMoveDown: persisted.at(-1)?.setId !== row.setId,
-                    onUp: () => onMoveSet?.(row.setId!, "up"),
-                    onDown: () => onMoveSet?.(row.setId!, "down"),
-                    onDelete: () => onDeleteSet?.(row.setId!),
-                  }
-                : null
+            onOpenMenu={
+              withMenu && row.source === "set" && row.setId ? () => setMenuKey(row.key) : null
             }
           />
         ))}
@@ -101,176 +117,249 @@ export function SetTable({
       <button
         type="button"
         disabled={busy}
-        className="flex min-h-[44px] w-full items-center justify-center text-sm font-semibold text-[var(--accent-ink)] disabled:opacity-40"
+        className="gym-sets__add"
         onClick={onAddSet}
       >
         {addLabel}
       </button>
+      {menuRow && withMenu ? (
+        <SetMenu
+          row={menuRow}
+          busy={busy}
+          actions={{
+            canMoveUp: persisted[0]?.setId !== menuRow.setId,
+            canMoveDown: persisted.at(-1)?.setId !== menuRow.setId,
+            onUp: () => onMoveSet?.(menuRow.setId!, "up"),
+            onDown: () => onMoveSet?.(menuRow.setId!, "down"),
+            onDelete: () => onDeleteSet?.(menuRow.setId!),
+          }}
+          onCycleType={() => onCycleType(menuRow)}
+          onClose={() => setMenuKey(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
 function SetTableRow({
+  kind,
   row,
-  columns,
-  template,
   busy,
+  editor,
+  onFocus,
   onFieldChange,
   onCommit,
   onLog,
   onCycleType,
-  reserveMenu,
-  menu,
+  onOpenMenu,
 }: {
+  kind: ExerciseKind;
   row: SetTableRowModel;
-  columns: SetTableColumn[];
-  template: string;
   busy?: boolean;
+  editor: boolean;
+  onFocus: () => void;
   onFieldChange: Props["onFieldChange"];
   onCommit: Props["onCommit"];
   onLog: Props["onLog"];
   onCycleType: Props["onCycleType"];
-  reserveMenu: boolean;
-  menu: {
-    canMoveUp: boolean;
-    canMoveDown: boolean;
-    onUp: () => void;
-    onDown: () => void;
-    onDelete: () => void;
-  } | null;
+  onOpenMenu: (() => void) | null;
 }) {
   const [fields, setFields] = useState<SetTableFields>(() => fieldsOf(row));
-  const focused = useRef(false);
+  const pending = useRef<SetTableFields | null>(null);
 
   useEffect(() => {
-    if (focused.current) return;
     const next = fieldsOf(row);
-    setFields((prev) =>
-      prev.kg === next.kg &&
-      prev.reps === next.reps &&
-      prev.km === next.km &&
-      prev.time === next.time
-        ? prev
-        : next,
-    );
+    if (pending.current) {
+      if (sameFields(pending.current, next)) pending.current = null;
+      return;
+    }
+    setFields((prev) => (sameFields(prev, next) ? prev : next));
   }, [row]);
 
-  const patch = (key: keyof SetTableFields, value: string) => {
-    const next = { ...fields, [key]: value };
+  const publish = (next: SetTableFields) => {
+    pending.current = next;
     setFields(next);
-    if (row.source === "draft") onFieldChange(row, next);
+    if (row.source === "draft" || row.extraId) onFieldChange(row, next);
+    else if (row.setId) onCommit(row, next);
   };
 
-  const type = (SET_TYPE_SHORT[row.setType as SetType] ?? row.setType) || "";
+  const applyPrevious = () => {
+    const next = withPreviousValues(fields, row.previous);
+    if (!next) return;
+    publish(next);
+  };
+
+  const step = (key: FieldKey, delta: number) => {
+    publish({ ...fields, [key]: stepNumericField(fields[key], delta) });
+  };
+
+  const summary = summaryOf(kind, fields);
+  const label = typeLabel(row.setType);
+
+  if (!editor) {
+    return (
+      <li className={`gym-set-line${row.completed ? " is-done" : ""}${row.pendingLocal ? " is-pending" : ""}`}>
+        <button
+          type="button"
+          className="gym-set-line__main"
+          disabled={busy || row.completed}
+          onClick={onFocus}
+        >
+          <span className="gym-set-line__n">{row.number}</span>
+          <span className={chipClass(row.setType)}>{label}</span>
+          <span className="gym-set-line__mid">{summary}</span>
+        </button>
+        {onOpenMenu ? (
+          <button
+            type="button"
+            className="gym-set-more"
+            aria-label={`Действия подхода ${row.number}`}
+            disabled={busy}
+            onClick={onOpenMenu}
+          >
+            ⋮
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={`gym-set-check${row.completed ? " is-on" : ""}`}
+          disabled={busy}
+          aria-label={row.completed ? `Снять подход ${row.number}` : `Записать подход ${row.number}`}
+          onClick={() => onLog(row, fields)}
+        >
+          {row.completed ? "✓" : ""}
+        </button>
+      </li>
+    );
+  }
+
+  const spec = fieldsForKind(kind);
+  const steps: { key: FieldKey; label: string; delta: number }[] = [];
+  if (spec.usesWeight) steps.push({ key: "kg", label: "Килограммы", delta: 2.5 });
+  if (spec.usesReps) steps.push({ key: "reps", label: "Повторения", delta: 1 });
+  if (spec.usesDistance) steps.push({ key: "km", label: "Километры", delta: 0.1 });
+  if (spec.usesDuration) steps.push({ key: "time", label: "Минуты", delta: 1 });
+  const previousText =
+    row.previousLabel && row.previousLabel !== "—" ? row.previousLabel.replace("×", " × ") : null;
 
   return (
-    <li
-      className={`grid items-center gap-1 border-t border-[var(--border-quiet)] px-2 ${
-        row.pendingLocal ? "bg-amber-50/80" : row.completed ? "bg-[var(--surface-mist)]/70" : ""
-      }`}
-      style={{ gridTemplateColumns: template }}
-    >
-      {columns.map((col) => {
-        if (col === "index") {
-          return (
-            <button
-              key={col}
-              type="button"
-              disabled={busy}
-              title={SET_TYPE_LABELS[row.setType as SetType] ?? "Тип подхода"}
-              className="flex min-h-[44px] min-w-[44px] flex-col items-center justify-center text-[var(--muted-strong)] disabled:opacity-40"
-              onClick={() => onCycleType(row)}
-            >
-              <span className="text-sm font-semibold tabular-nums">{row.number}</span>
-              {type ? <span className="text-[10px] font-bold uppercase">{type}</span> : null}
-            </button>
-          );
-        }
-        if (col === "previous") {
-          return (
-            <span
-              key={col}
-              className="flex min-h-[44px] items-center justify-center px-1 text-center text-sm tabular-nums text-[var(--muted-strong)]"
-            >
-              {row.previousLabel}
-            </span>
-          );
-        }
-        if (col === "check") {
-          return (
-            <button
-              key={col}
-              type="button"
-              disabled={busy}
-              aria-label={
-                row.completed ? `Снять подход ${row.number}` : `Записать подход ${row.number}`
-              }
-              className={`gym-check mx-auto flex items-center justify-center rounded-full border-2 text-lg font-bold disabled:opacity-40 ${
-                row.completed
-                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                  : "border-[var(--border-quiet)] bg-white text-[var(--muted)]"
-              }`}
-              onClick={() => onLog(row, fields)}
-            >
-              {row.completed ? "✓" : ""}
-            </button>
-          );
-        }
-        const mode = inputModeForColumn(col);
-        const value = fields[col];
-        return (
-          <label key={col} className="relative block min-h-[44px]">
-            <span className="sr-only">{SET_TABLE_COLUMN_LABEL[col]}</span>
-            <input
-              inputMode={mode}
-              enterKeyHint="done"
-              autoComplete="off"
-              disabled={busy}
-              aria-label={
-                col === "kg" && row.progressionUp
-                  ? `${SET_TABLE_COLUMN_LABEL[col]}, прогрессия вверх`
-                  : SET_TABLE_COLUMN_LABEL[col]
-              }
-              className="h-11 w-full rounded-lg border border-[var(--border-quiet)] bg-white px-2 text-center text-base tabular-nums text-[var(--foreground)] disabled:opacity-50"
-              value={value}
-              onFocus={(event) => {
-                focused.current = true;
-                if (col !== "time") return;
-                const field = event.currentTarget;
-                window.setTimeout(() => {
-                  field.scrollIntoView({ block: "center", inline: "nearest" });
-                }, 50);
-              }}
-              onBlur={() => {
-                focused.current = false;
-                if (row.source === "set") onCommit(row, fields);
-              }}
-              onChange={(e) => patch(col, e.target.value)}
-            />
-            {col === "kg" && row.progressionUp ? (
-              <span
-                className="pointer-events-none absolute right-1 top-1 text-[11px] font-bold text-[var(--accent)]"
-                aria-hidden
-              >
-                ↑
-              </span>
-            ) : null}
-          </label>
-        );
-      })}
-      {menu ? (
-        <OverflowMenu
-          label={`Действия подхода ${row.number}`}
-          glyph="⋮"
-          items={[
-            { key: "up", label: "Выше", disabled: !menu.canMoveUp || busy, onClick: menu.onUp },
-            { key: "down", label: "Ниже", disabled: !menu.canMoveDown || busy, onClick: menu.onDown },
-            { key: "delete", label: "Удалить", danger: true, disabled: busy, onClick: menu.onDelete },
-          ]}
-        />
-      ) : reserveMenu ? (
-        <span />
+    <li className={`gym-set-editor${row.pendingLocal ? " is-pending" : ""}`}>
+      <div className="gym-set-editor__top">
+        <button
+          type="button"
+          className={chipClass(row.setType)}
+          disabled={busy}
+          title={label}
+          onClick={() => onCycleType(row)}
+        >
+          {label} · подход {row.number}
+        </button>
+        {onOpenMenu ? (
+          <button
+            type="button"
+            className="gym-set-more"
+            aria-label={`Действия подхода ${row.number}`}
+            disabled={busy}
+            onClick={onOpenMenu}
+          >
+            ⋮
+          </button>
+        ) : null}
+      </div>
+      {previousText ? (
+        <button type="button" className="gym-set-prev" disabled={busy} onClick={applyPrevious}>
+          <span>Прошлый {previousText}</span>
+          <span>подставить</span>
+        </button>
       ) : null}
+      {steps.map((item) => (
+        <div key={item.key}>
+          <p className="gym-set-label">
+            {item.label}
+            {item.key === "kg" && row.progressionUp ? (
+              <i className="gym-set-up">↑ к прошлому</i>
+            ) : null}
+          </p>
+          <div className="gym-stepper">
+            <button
+              type="button"
+              aria-label={`Меньше, ${item.label}`}
+              disabled={busy}
+              onClick={() => step(item.key, -item.delta)}
+            >
+              −
+            </button>
+            <div className="gym-stepper__val">{fields[item.key] || "0"}</div>
+            <button
+              type="button"
+              aria-label={`Больше, ${item.label}`}
+              disabled={busy}
+              onClick={() => step(item.key, item.delta)}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="gym-set-log"
+        disabled={busy}
+        onClick={() => onLog(row, fields)}
+      >
+        {summary === "—" ? "Записать подход" : `Записать ${summary}`}
+      </button>
     </li>
+  );
+}
+
+function SetMenu({
+  row,
+  busy,
+  actions,
+  onCycleType,
+  onClose,
+}: {
+  row: SetTableRowModel;
+  busy?: boolean;
+  actions: MenuActions;
+  onCycleType: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const run = (fn: () => void) => {
+    onClose();
+    fn();
+  };
+
+  return (
+    <>
+      <button type="button" className="gym-set-sheet__backdrop" aria-label="Закрыть меню" onClick={onClose} />
+      <div className="gym-set-sheet" role="dialog" aria-label={`Подход ${row.number}`}>
+        <div className="gym-set-sheet__handle" aria-hidden />
+        <p className="gym-set-sheet__title">
+          Подход {row.number} · {typeLabel(row.setType).toLowerCase()}
+        </p>
+        <button type="button" disabled={!actions.canMoveUp || busy} onClick={() => run(actions.onUp)}>
+          Выше
+        </button>
+        <button type="button" disabled={!actions.canMoveDown || busy} onClick={() => run(actions.onDown)}>
+          Ниже
+        </button>
+        <button type="button" disabled={busy} onClick={() => run(onCycleType)}>
+          Тип: {typeLabel(row.setType).toLowerCase()}
+        </button>
+        <button type="button" className="is-danger" disabled={busy} onClick={() => run(actions.onDelete)}>
+          Удалить подход
+        </button>
+      </div>
+    </>
   );
 }
