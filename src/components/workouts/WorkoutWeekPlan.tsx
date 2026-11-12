@@ -5,6 +5,7 @@ import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 import { LeverStreakStrip } from "@/components/workouts/LeverStreakStrip";
 import { LeverRecoveryStrip } from "@/components/workouts/LeverRecoveryStrip";
+import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
@@ -379,8 +380,32 @@ export function WorkoutWeekPlan({
     });
   })();
 
+  const weekDays = useMemo(() => {
+    const monday = mondayOfWeek(todayKey);
+    return WEEKDAY_LABELS_RU.map((label, weekday) => {
+      const key = shiftDateKey(monday, weekday);
+      const marked = (data?.week.find((day) => day.weekday === weekday)?.routines.length ?? 0) > 0;
+      return {
+        label,
+        key,
+        day: String(Number(key.slice(8, 10))),
+        today: key === todayKey,
+        marked,
+      };
+    });
+  }, [data, todayKey]);
+
   return (
     <div className="gym-day">
+      <div className="gym-week" aria-label="Неделя">
+        {weekDays.map((day) => (
+          <div key={day.key} className={day.today ? "is-today" : ""}>
+            <span>{day.label}</span>
+            <b>{day.day}</b>
+            <i className={day.marked ? "is-on" : ""} />
+          </div>
+        ))}
+      </div>
       {planUndo ? (
         <PlanUndoToast
           label={`«${planUndo.name}» · ${planUndo.dayLabel}`}
@@ -430,43 +455,45 @@ export function WorkoutWeekPlan({
 
           {showBigStart ? (
             <div className="flex flex-col gap-2">
+              {startChrome.showRepeat && lastRepeat && onRepeatLast ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  title={lastRepeat.hint}
+                  className="gym-start gym-start--primary"
+                  onClick={() => onRepeatLast(lastRepeat.id)}
+                >
+                  <span>
+                    <b>{GYM_START_LABELS.repeat}</b>
+                    <span>{lastRepeat.label}</span>
+                  </span>
+                </button>
+              ) : null}
+              {startChrome.showPlan && planned[0] ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  title={planned[0].planLabel?.trim() || planned[0].name}
+                  className={`gym-start${startChrome.showRepeat ? "" : " gym-start--primary"}`}
+                  onClick={() => onStartRoutine(planned[0]!.id)}
+                >
+                  <span>
+                    <b>По шаблону · сегодня</b>
+                    <span>{planned[0].name}</span>
+                  </span>
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-[1.15rem] bg-[var(--accent)] px-5 py-4 text-base font-bold text-white disabled:opacity-40"
+                className={`gym-start${startChrome.showRepeat || startChrome.showPlan ? " gym-start--quiet" : " gym-start--primary"}`}
                 onClick={onStartBlank}
               >
-                <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7 4v16l13-8z" />
-                </svg>
-                {gymBigStartLabel(primary === "finished")}
+                <span>
+                  <b>{primary === "finished" ? gymBigStartLabel(true) : "Пустая тренировка"}</b>
+                  <span>Без упражнений — вес введёте сами</span>
+                </span>
               </button>
-              {startChrome.showPlan || startChrome.showRepeat ? (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  {startChrome.showPlan && planned[0] ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      title={planned[0].planLabel?.trim() || planned[0].name}
-                      className="flex-1 rounded-[var(--radius-control)] border border-[var(--border-hairline)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] disabled:opacity-40"
-                      onClick={() => onStartRoutine(planned[0]!.id)}
-                    >
-                      {busy ? "…" : GYM_START_LABELS.plan}
-                    </button>
-                  ) : null}
-                  {startChrome.showRepeat && lastRepeat && onRepeatLast ? (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      title={lastRepeat.hint}
-                      className="flex-1 rounded-[var(--radius-control)] border border-[var(--border-hairline)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] disabled:opacity-40"
-                      onClick={() => onRepeatLast(lastRepeat.id)}
-                    >
-                      {busy ? "…" : GYM_START_LABELS.repeat}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
               {startChrome.showRepeat && onRepeatLast && recentRepeats.length > 0 ? (
                 <RepeatAlternatives
                   items={recentRepeats}
@@ -565,7 +592,7 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">Первая тренировка</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  «Начать тренировку» выше — и вы в зале. Подходы и кардио можно добавить сразу.
+                  Выберите старт выше. Подходы и кардио можно добавить сразу.
                 </p>
               </>
             ) : loading ? (
@@ -576,7 +603,7 @@ export function WorkoutWeekPlan({
               <>
                 <p className="text-sm font-semibold text-[var(--foreground)]">По плану на сегодня</p>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  Большая кнопка выше — свободная тренировка. Шаблон — «По плану» или «Старт» в строке.
+                  Шаблон на сегодня можно начать кнопкой выше или «Старт» в строке.
                 </p>
                 <ul className="mt-3 space-y-2">
                   {planned.map((r) => {

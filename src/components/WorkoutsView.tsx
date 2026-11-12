@@ -2728,61 +2728,41 @@ export function WorkoutsView({
         />
       ) : (
         <>
-      {/* D5: thin hub — Сегодня | Ещё (parity with stats period tabs). */}
-      <div className="cv-segment-tabs cv-segment-tabs--2" role="tablist" aria-label="Раздел зала">
+      <div className="cv-segment-tabs cv-segment-tabs--3" role="tablist" aria-label="Раздел зала">
         {(
           [
             ["today", "Сегодня"],
-            ["more", "Ещё"],
+            ["templates", "Шаблоны"],
+            ["history", "История"],
           ] as const
-        ).map(([id, label]) => {
-          const active =
-            id === "today" ? hubTab === "today" : hubTab !== "today";
-          return (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              data-tour={id === "today" ? "gym-today" : undefined}
-              aria-selected={active}
-              onClick={() => {
-                if (id === "today") {
-                  setHubTab("today");
-                  setFilterPeriod("all");
-                  setFilterDate(null);
-                } else if (hubTab === "today") {
-                  setHubTab("history");
-                }
-              }}
-              className={`chip min-h-9 ${active ? "chip-active" : ""}`}
-            >
-              {label}
-            </button>
-          );
-        })}
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            data-tour={id === "today" ? "gym-today" : undefined}
+            aria-selected={hubTab === id || (id === "templates" && hubTab === "library")}
+            onClick={() => {
+              setHubTab(id);
+              if (id === "today") {
+                setFilterPeriod("all");
+                setFilterDate(null);
+              }
+            }}
+            className={`chip min-h-9 ${hubTab === id || (id === "templates" && hubTab === "library") ? "chip-active" : ""}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-
-      {hubTab !== "today" ? (
-        <div className="cv-segment-tabs cv-segment-tabs--3" role="tablist" aria-label="Ещё в зале">
-          {(
-            [
-              ["history", "История"],
-              ["templates", "Шаблоны"],
-              ["library", "Библиотека"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={hubTab === id}
-              onClick={() => setHubTab(id)}
-              className={`chip min-h-9 ${hubTab === id ? "chip-active" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      {hubTab === "templates" || hubTab === "library" ? (
+        <button
+          type="button"
+          className="self-start text-sm font-semibold text-[var(--accent-ink)]"
+          onClick={() => setHubTab(hubTab === "library" ? "templates" : "library")}
+        >
+          {hubTab === "library" ? "К шаблонам" : "Библиотека упражнений"}
+        </button>
       ) : null}
 
       {creating ? (

@@ -30,6 +30,13 @@ export type SessionSummaryCard = {
   headline: string;
 };
 
+function recordWord(count: number): string {
+  const n = count % 100;
+  if (n % 10 === 1 && n !== 11) return "рекорд";
+  if (n % 10 >= 2 && n % 10 <= 4 && (n < 12 || n > 14)) return "рекорда";
+  return "рекордов";
+}
+
 export function buildSessionSummary(input: {
   date: string;
   elapsedSec: number;
@@ -48,7 +55,7 @@ export function buildSessionSummary(input: {
   const prCount = input.exercises.filter((e) => e.prLine).length;
 
   let headline = "Тренировка закрыта";
-  if (prCount > 0) headline = `Готово · ${prCount} PR`;
+  if (prCount > 0) headline = `Готово · ${prCount} ${recordWord(prCount)}`;
   else if (input.deltaPctVsPrevious != null && input.deltaPctVsPrevious >= 0) {
     headline = `Готово · +${input.deltaPctVsPrevious}% к прошлой`;
   } else if (input.cardioOnly && input.cardioDistanceKm > 0) {
