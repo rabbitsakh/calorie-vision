@@ -10,6 +10,21 @@ import { WorkoutRestTimerBanner } from "@/components/workouts/WorkoutRestTimer";
 import { buildSetTableRows, type SetTableRowModel } from "@/lib/workouts/active-set-table";
 import type { SetTableFields } from "@/components/workouts/SetTable";
 
+function movePreviewRow(
+  rows: SetTableRowModel[],
+  setId: string,
+  direction: "up" | "down",
+): SetTableRowModel[] {
+  const index = rows.findIndex((row) => row.setId === setId);
+  const target = direction === "up" ? index - 1 : index + 1;
+  if (index < 0 || target < 0 || target >= rows.length || !rows[target]?.setId) return rows;
+  const next = [...rows];
+  const current = next[index]!;
+  next[index] = next[target]!;
+  next[target] = current;
+  return next.map((row, number) => ({ ...row, number: number + 1 }));
+}
+
 const LAST = [
   { weightKg: 60, reps: 8 },
   { weightKg: 80, reps: 8 },
@@ -101,7 +116,9 @@ export function GymActivePreview() {
                 onLog={() => {}}
                 onCycleType={() => {}}
                 onAddSet={() => {}}
-                onMoveSet={() => {}}
+                onMoveSet={(setId, direction) => {
+                  setRows((current) => movePreviewRow(current, setId, direction));
+                }}
                 onDeleteSet={() => {}}
               />
             </ExerciseRow>

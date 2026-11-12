@@ -451,7 +451,7 @@ export function WorkoutSessionSummary({
             ? `После тренировки ${date}. ${tip} Подскажи план на следующий раз.`
             : `После тренировки ${date}. Помоги с планом на следующий раз.`,
         })}
-        className="mt-3 inline-flex text-sm font-semibold text-[var(--accent-soft)]"
+        className="mb-2 mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-[var(--accent-soft)]"
       >
         Разобрать с AI
       </Link>

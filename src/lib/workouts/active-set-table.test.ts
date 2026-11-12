@@ -7,6 +7,8 @@ import {
   formatPreviousSetLabel,
   isProgressionUp,
   nextUnfinishedExerciseId,
+  fieldNeedsScroll,
+  normalizeTypedField,
   pickEditorRowKey,
   pickInitialExpandedId,
   setTableColumns,
@@ -191,7 +193,7 @@ test("only one exercise is expanded; next unfinished opens after the last set", 
   ), null);
 });
 
-test("редактор — выбранный незакрытый подход, иначе первый незакрытый", () => {
+test("редактор открывает и записанный подход, иначе первый незакрытый", () => {
   const rows = [
     { key: "a", completed: true },
     { key: "b", completed: false },
@@ -199,8 +201,38 @@ test("редактор — выбранный незакрытый подход,
   ];
   assert.equal(pickEditorRowKey(rows, null), "b");
   assert.equal(pickEditorRowKey(rows, "c"), "c");
-  assert.equal(pickEditorRowKey(rows, "a"), "b");
+  assert.equal(pickEditorRowKey(rows, "a"), "a");
   assert.equal(pickEditorRowKey([{ key: "a", completed: true }], null), null);
+});
+
+test("ввод с клавиатуры принимает запятую и отвергает пустое и нечисло", () => {
+  assert.equal(normalizeTypedField("kg", "82,5"), "82.5");
+  assert.equal(normalizeTypedField("kg", " 80 "), "80");
+  assert.equal(normalizeTypedField("kg", "82.50"), "82.5");
+  assert.equal(normalizeTypedField("kg", ""), null);
+  assert.equal(normalizeTypedField("kg", "кг"), null);
+  assert.equal(normalizeTypedField("kg", "-1"), null);
+  assert.equal(normalizeTypedField("reps", "8"), "8");
+  assert.equal(normalizeTypedField("reps", "08"), "8");
+  assert.equal(normalizeTypedField("reps", "8,5"), null);
+  assert.equal(normalizeTypedField("reps", "0"), null);
+  assert.equal(normalizeTypedField("km", "5,25"), "5.25");
+  assert.equal(normalizeTypedField("time", "1,5"), "1.5");
+});
+
+test("поле уезжает в видимую область, а не к низу длинной страницы", () => {
+  assert.equal(
+    fieldNeedsScroll({ fieldTop: 700, fieldBottom: 748, visibleTop: 0, visibleBottom: 520 }),
+    true,
+  );
+  assert.equal(
+    fieldNeedsScroll({ fieldTop: 180, fieldBottom: 228, visibleTop: 0, visibleBottom: 520 }),
+    false,
+  );
+  assert.equal(
+    fieldNeedsScroll({ fieldTop: -20, fieldBottom: 28, visibleTop: 40, visibleBottom: 700 }),
+    true,
+  );
 });
 
 test("шаг веса не уходит ниже нуля и держит половину", () => {
