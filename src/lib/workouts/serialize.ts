@@ -58,6 +58,7 @@ export type DbSession = {
   endedAt?: Date | null;
   pausedAt?: Date | null;
   pausedMs?: number | null;
+  endedBy?: string | null;
   createdAt: Date;
   updatedAt: Date;
   muscles: Array<{ groupKey: string }>;
@@ -128,6 +129,7 @@ export function serializeSessionSummary(session: DbSession) {
     endedAt: clock.endedAt ? new Date(clock.endedAt).toISOString() : null,
     pausedAt: clock.pausedAt ? new Date(clock.pausedAt).toISOString() : null,
     pausedMs: clock.pausedMs,
+    endedBy: session.endedBy ?? null,
     elapsedSec,
     elapsedLabel: formatSessionClock(elapsedSec),
     clockStatus,

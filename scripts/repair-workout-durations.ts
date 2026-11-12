@@ -137,7 +137,8 @@ async function main(): Promise<void> {
           data: {
             startedAt: row.startedAt,
             endedAt: row.endedAt,
-            endedBy: "auto",
+            // Не «auto»: чтение зала за сутки снова открывает такие строки.
+            endedBy: "repair",
             pausedAt: null,
           },
         });

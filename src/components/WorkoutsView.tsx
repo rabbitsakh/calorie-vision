@@ -24,9 +24,17 @@ import {
   type ExerciseKind,
 } from "@/lib/workouts/exercise-kind";
 import {
+  applyResume,
   formatSessionClock,
   sessionElapsedSec,
 } from "@/lib/workouts/session-clock";
+import {
+  browserResumeStorage,
+  pickSessionToResume,
+  readWorkoutResumeId,
+  shouldAdoptRemoteFinish,
+  writeWorkoutResumeId,
+} from "@/lib/workouts/live-session";
 import { monthEndKey } from "@/lib/workouts/trends";
 import { DEFAULT_PROGRESS_RATE } from "@/lib/workouts/load";
 import {
@@ -205,6 +213,7 @@ type SessionSummary = {
   elapsedSec?: number;
   elapsedLabel?: string;
   clockStatus?: "idle" | "running" | "paused" | "finished";
+  endedBy?: string | null;
   /** Exercises that set a new PR in this session. */
   prCount?: number;
   prHits?: Array<{ name: string; label: string }>;
@@ -470,6 +479,14 @@ export function WorkoutsView({
     cardioDistanceKm: number;
   } | null>(null);
   const createFormRef = useRef<HTMLElement | null>(null);
+  const activeIdRef = useRef<string | null>(null);
+  const sessionsRef = useRef<SessionSummary[]>([]);
+  const loadingRef = useRef(true);
+  const dismissedLive = useRef(false);
+  const restoreLock = useRef(false);
+  activeIdRef.current = activeId;
+  sessionsRef.current = sessions;
+  loadingRef.current = loading;
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -730,9 +747,13 @@ export function WorkoutsView({
   const openSession = useCallback(
     async (id: string, opts?: { applyLever?: boolean }) => {
       setError(null);
+      dismissedLive.current = false;
       setActiveId(id);
       // Volume/goal mutations only on create·start·repeat — never on resume/reopen.
       const mutateLever = shouldMutateLeverOnOpen(opts);
+      const remember = (status: string | null | undefined) => {
+        writeWorkoutResumeId(browserResumeStorage(), status === "finished" ? null : id);
+      };
 
       if (isLocalSessionId(id)) {
         const local = getLocalWorkoutSession(id);
@@ -742,6 +763,7 @@ export function WorkoutsView({
           return;
         }
         const session = localSessionToDetail(local) as SessionDetail;
+        remember(session.clockStatus);
         setDetail(session);
         setProgress(null);
         setNewExerciseKind(defaultExerciseKind(session.muscleKeys));
@@ -765,6 +787,7 @@ export function WorkoutsView({
         const data = await readJson<{ session: SessionDetail; progress: Progress }>(
           await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
         );
+        remember(data.session.clockStatus);
         setDetail(data.session);
         setProgress(data.progress);
         setNewExerciseKind(defaultExerciseKind(data.session.muscleKeys));
@@ -783,10 +806,90 @@ export function WorkoutsView({
       } catch (err) {
         setError(err instanceof Error ? err.message : "Ошибка загрузки");
         setActiveId(null);
+        if (readWorkoutResumeId(browserResumeStorage()) === id) {
+          writeWorkoutResumeId(browserResumeStorage(), null);
+        }
       }
     },
     [applyLeverGoalsOnOpen, fillDraftsFromSession, quietGymNudgeForToday],
   );
+
+  const leaveLiveSession = useCallback(() => {
+    dismissedLive.current = true;
+    restoreLock.current = true;
+    writeWorkoutResumeId(browserResumeStorage(), null);
+  }, []);
+
+  const restoreLiveSession = useCallback(async () => {
+    if (restoreLock.current || dismissedLive.current || activeIdRef.current) return;
+    if (loadingRef.current) return;
+    if (searchParams.get("new") === "1") return;
+    const target = pickSessionToResume(
+      sessionsRef.current,
+      readWorkoutResumeId(browserResumeStorage()),
+    );
+    if (!target) return;
+    restoreLock.current = true;
+    await openSession(target.id);
+  }, [openSession, searchParams]);
+
+  const refreshLiveClock = useCallback(async (id: string) => {
+    setClockTick((n) => n + 1);
+    if (isLocalSessionId(id)) return;
+    try {
+      const data = await readJson<{ session: SessionDetail }>(
+        await fetch(withBasePath(`/api/workouts/${id}`), { cache: "no-store" }),
+      );
+      if (activeIdRef.current !== id) return;
+      if (data.session.clockStatus === "finished") {
+        if (!shouldAdoptRemoteFinish(data.session)) return;
+        setDetail(data.session);
+        setShowSummary(true);
+        writeWorkoutResumeId(browserResumeStorage(), null);
+        return;
+      }
+      setDetail((prev) =>
+        prev && prev.id === id
+          ? {
+              ...prev,
+              startedAt: data.session.startedAt,
+              endedAt: data.session.endedAt,
+              pausedAt: data.session.pausedAt,
+              pausedMs: data.session.pausedMs,
+              elapsedSec: data.session.elapsedSec,
+              elapsedLabel: data.session.elapsedLabel,
+              clockStatus: data.session.clockStatus,
+              endedBy: data.session.endedBy,
+            }
+          : prev,
+      );
+    } catch {
+      // офлайн — на экране остаются часы от startedAt
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loading || activeId || creating || dismissedLive.current) return;
+    void restoreLiveSession();
+  }, [loading, activeId, creating, sessions, restoreLiveSession]);
+
+  useEffect(() => {
+    const onShow = () => {
+      if (document.visibilityState === "hidden") return;
+      const id = activeIdRef.current;
+      if (id) {
+        void refreshLiveClock(id);
+        return;
+      }
+      if (!dismissedLive.current) void restoreLiveSession();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, [refreshLiveClock, restoreLiveSession]);
 
   useEffect(() => {
     void loadList();
@@ -918,32 +1021,37 @@ export function WorkoutsView({
     return () => ctrl.abort();
   }, [newGroups, progressRate]);
 
+  const liveClockId = detail?.id ?? null;
+  const liveClockRunning = detail?.clockStatus === "running";
   useEffect(() => {
-    if (!detail || detail.clockStatus !== "running") return;
-    const id = window.setInterval(() => setClockTick((n) => n + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [detail]);
-
-  useEffect(() => {
-    if (!detail || detail.clockStatus !== "running" || isLocalSessionId(detail.id)) return;
-    const sessionId = detail.id;
-    const id = window.setInterval(() => {
-      void (async () => {
-        try {
-          const data = await readJson<{ session: SessionDetail }>(
-            await fetch(withBasePath(`/api/workouts/${sessionId}`), { cache: "no-store" }),
-          );
-          if (data.session.clockStatus === "finished") {
-            setDetail(data.session);
-            setShowSummary(true);
-          }
-        } catch {
-          // офлайн — закроем на сервере при следующей загрузке
-        }
-      })();
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [detail]);
+    if (!liveClockRunning) return;
+    const bump = () => setClockTick((n) => n + 1);
+    let id = 0;
+    const arm = () => {
+      window.clearInterval(id);
+      if (document.visibilityState === "hidden") return;
+      id = window.setInterval(bump, 1000);
+    };
+    bump();
+    arm();
+    const onVisible = () => {
+      if (document.visibilityState === "hidden") {
+        window.clearInterval(id);
+        return;
+      }
+      bump();
+      arm();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [liveClockId, liveClockRunning]);
 
   const liveElapsedLabel = useMemo(() => {
     if (!detail?.startedAt) return detail?.elapsedLabel ?? "00:00";
@@ -1020,6 +1128,7 @@ export function WorkoutsView({
         setShowSummary(true);
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
+        writeWorkoutResumeId(browserResumeStorage(), null);
         setError("Итог на устройстве — отправим при связи");
         return;
       }
@@ -1046,11 +1155,23 @@ export function WorkoutsView({
         return;
       }
       if (clock === "resume") {
+        const resumed = applyResume({
+          startedAt: detail.startedAt ?? null,
+          endedAt: detail.endedAt ?? null,
+          pausedAt: detail.pausedAt ?? null,
+          pausedMs: detail.pausedMs ?? 0,
+        });
         updateLocalWorkoutSession(detail.id, {
           clockStatus: "running",
           pausedAt: null,
+          pausedMs: resumed.pausedMs,
         });
-        setDetail({ ...detail, clockStatus: "running", pausedAt: null });
+        setDetail({
+          ...detail,
+          clockStatus: "running",
+          pausedAt: null,
+          pausedMs: resumed.pausedMs,
+        });
         quietGymNudgeForToday();
       }
       return;
@@ -1072,6 +1193,7 @@ export function WorkoutsView({
       if (clock === "finish") {
         setShowSummary(true);
         markPostWorkoutNudge();
+        writeWorkoutResumeId(browserResumeStorage(), null);
       }
     } catch (err) {
       if (clock === "finish" && isLikelyOfflineError(err)) {
@@ -1085,6 +1207,7 @@ export function WorkoutsView({
         setShowSummary(true);
         markPostWorkoutNudge();
         quietGymNudgeForToday(false);
+        writeWorkoutResumeId(browserResumeStorage(), null);
         setError("Итог сохранён на устройстве — отправим при связи");
         return;
       }
@@ -1968,14 +2091,25 @@ export function WorkoutsView({
     if (detail?.clockStatus !== "running") return;
     let released = false;
     let handle: { release: () => Promise<void> } | null = null;
-    void (async () => {
-      handle = await requestScreenWakeLock();
-      if (released && handle) {
-        await handle.release();
-      }
-    })();
+    const acquire = () => {
+      void (async () => {
+        const next = await requestScreenWakeLock();
+        if (released) {
+          await next?.release();
+          return;
+        }
+        if (handle && handle !== next) await handle.release();
+        handle = next;
+      })();
+    };
+    acquire();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") acquire();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       released = true;
+      document.removeEventListener("visibilitychange", onVisible);
       void handle?.release();
     };
   }, [detail?.clockStatus, detail?.id]);
@@ -2418,6 +2552,7 @@ export function WorkoutsView({
     if (!confirm("Удалить эту тренировку?")) return;
     if (isLocalSessionId(detail.id)) {
       removeLocalWorkoutSession(detail.id);
+      leaveLiveSession();
       setDetail(null);
       setActiveId(null);
       setProgress(null);
@@ -2427,6 +2562,7 @@ export function WorkoutsView({
     }
     try {
       await readJson(await fetch(withBasePath(`/api/workouts/${detail.id}`), { method: "DELETE" }));
+      leaveLiveSession();
       setDetail(null);
       setActiveId(null);
       setProgress(null);
@@ -2503,8 +2639,10 @@ export function WorkoutsView({
         setDetail={setDetail}
         setProgress={setProgress}
         loadList={loadList}
+        onLeaveSession={leaveLiveSession}
         onSummaryBackToList={() => {
           setShowSummary(false);
+          leaveLiveSession();
           setActiveId(null);
           setDetail(null);
           setProgress(null);
@@ -2514,6 +2652,7 @@ export function WorkoutsView({
         onSummaryGoToRation={() => {
           // Nudge already marked on finish — just open ration.
           setShowSummary(false);
+          leaveLiveSession();
           setActiveId(null);
           setDetail(null);
           setProgress(null);

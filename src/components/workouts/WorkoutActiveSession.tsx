@@ -306,6 +306,7 @@ export type WorkoutActiveSessionProps = {
   setDetail: (d: SessionDetail | null) => void;
   setProgress: (p: Progress | null) => void;
   loadList: () => Promise<void>;
+  onLeaveSession: () => void;
   onSummaryBackToList: () => void;
   onSummaryGoToRation: () => void;
   onOpenRation: () => void;
@@ -400,6 +401,7 @@ export function WorkoutActiveSession({
   setDetail,
   setProgress,
   loadList,
+  onLeaveSession,
   onSummaryBackToList,
   onSummaryGoToRation,
   onOpenRation,
@@ -580,6 +582,7 @@ export function WorkoutActiveSession({
   );
 
   const leave = () => {
+    onLeaveSession();
     setActiveId(null);
     setDetail(null);
     setProgress(null);

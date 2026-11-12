@@ -192,20 +192,42 @@ export function useWorkoutRestTimer() {
       }
     };
     tick();
-    const id = window.setInterval(() => {
-      const nativeEnds = readNativeRestEndsAt();
-      if (nativeEnds && restEndsAt && Math.abs(nativeEnds - restEndsAt) > 1500) {
-        setRestEndsAt(nativeEnds);
-        try {
-          localStorage.setItem(STORAGE_KEY, String(nativeEnds));
-        } catch {
-          // ignore
+    let id = 0;
+    const arm = () => {
+      window.clearInterval(id);
+      if (document.visibilityState === "hidden") return;
+      id = window.setInterval(() => {
+        const nativeEnds = readNativeRestEndsAt();
+        if (nativeEnds && restEndsAt && Math.abs(nativeEnds - restEndsAt) > 1500) {
+          setRestEndsAt(nativeEnds);
+          try {
+            localStorage.setItem(STORAGE_KEY, String(nativeEnds));
+          } catch {
+            // ignore
+          }
+          return;
         }
+        tick();
+      }, 250);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "hidden") {
+        window.clearInterval(id);
         return;
       }
       tick();
-    }, 250);
-    return () => window.clearInterval(id);
+      arm();
+    };
+    arm();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [restEndsAt, restSound]);
 
   useEffect(() => {

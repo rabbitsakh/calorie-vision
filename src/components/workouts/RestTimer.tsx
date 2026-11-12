@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { menuAnchor } from "@/lib/workouts/menu-anchor";
 import { formatRestClock } from "@/lib/workouts/rest-timer";
 
 type Props = {
@@ -30,14 +32,49 @@ export function RestTimer({
   options,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [box, setBox] = useState<{ top: number; left: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const running = Boolean(restEndsAt && Number.isFinite(restEndsAt));
   const label = formatRestClock(running ? restLeft : restSeconds);
 
   useEffect(() => {
     if (!open) return;
+    const place = () => {
+      const button = buttonRef.current;
+      if (!button) return;
+      const rect = button.getBoundingClientRect();
+      const menuHeight = menuRef.current?.offsetHeight || 280;
+      const menuWidth = menuRef.current?.offsetWidth || 176;
+      setBox(
+        menuAnchor({
+          buttonTop: rect.top,
+          buttonBottom: rect.bottom,
+          buttonRight: rect.right,
+          viewportHeight: window.innerHeight,
+          viewportWidth: window.innerWidth,
+          menuWidth,
+          menuHeight,
+        }),
+      );
+    };
+    place();
+    const scroller = document.querySelector(".cv-app-main");
+    window.addEventListener("resize", place);
+    scroller?.addEventListener("scroll", place);
+    return () => {
+      window.removeEventListener("resize", place);
+      scroller?.removeEventListener("scroll", place);
+    };
+  }, [open, options, running]);
+
+  useEffect(() => {
+    if (!open) return;
     const onPointer = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener("pointerdown", onPointer);
     return () => document.removeEventListener("pointerdown", onPointer);
@@ -46,6 +83,7 @@ export function RestTimer({
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-xl px-3 text-sm font-semibold tabular-nums ${
           running
@@ -60,10 +98,13 @@ export function RestTimer({
         <span aria-hidden>⏱</span>
         {label}
       </button>
-      {open ? (
+      {open
+        ? createPortal(
         <div
+          ref={menuRef}
           role="menu"
-          className="cv-menu absolute right-0 z-40 mt-1 flex w-44 flex-col rounded-xl border border-[var(--border-quiet)] py-1 shadow-lg"
+          className="cv-menu fixed z-[80] flex w-44 flex-col rounded-xl border border-[var(--border-quiet)] py-1 shadow-lg"
+          style={{ top: box?.top ?? -9999, left: box?.left ?? 8, position: "fixed" }}
         >
           {options.map((sec) => (
             <button
@@ -117,8 +158,10 @@ export function RestTimer({
             />
             Звук в конце
           </label>
-        </div>
-      ) : null}
+        </div>,
+          document.documentElement,
+        )
+        : null}
     </div>
   );
 }

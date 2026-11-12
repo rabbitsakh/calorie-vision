@@ -233,8 +233,13 @@ function SetTableRow({
               }
               className="h-11 w-full rounded-lg border border-[var(--border-quiet)] bg-white px-2 text-center text-base tabular-nums text-[var(--foreground)] disabled:opacity-50"
               value={value}
-              onFocus={() => {
+              onFocus={(event) => {
                 focused.current = true;
+                if (col !== "time") return;
+                const field = event.currentTarget;
+                window.setTimeout(() => {
+                  field.scrollIntoView({ block: "center", inline: "nearest" });
+                }, 50);
               }}
               onBlur={() => {
                 focused.current = false;

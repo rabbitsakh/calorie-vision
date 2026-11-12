@@ -35,6 +35,16 @@ describe("sessionElapsedSec", () => {
     );
   });
 
+  it("после фона продолжает от startedAt, а не от числа тиков", () => {
+    const started = new Date("2026-11-12T06:00:00.000Z");
+    const clock = { startedAt: started, endedAt: null, pausedAt: null, pausedMs: 0 };
+    const frozenAt = started.getTime() + 20_000;
+    const returnedAt = started.getTime() + 8 * 60_000;
+    assert.equal(sessionElapsedSec(clock, frozenAt), 20);
+    assert.equal(sessionElapsedSec(clock, returnedAt), 8 * 60);
+    assert.equal(formatSessionClock(sessionElapsedSec(clock, returnedAt)), "08:00");
+  });
+
   it("uses endedAt when finished", () => {
     assert.equal(
       sessionElapsedSec({

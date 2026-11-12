@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { GymSheetFrame } from "@/components/workouts/SessionSheet";
 import {
   EXERCISE_KINDS,
   EXERCISE_KIND_LABELS,
@@ -71,16 +72,7 @@ export function ExerciseAddSheet({
   const exact = hits.some((hit) => hit.name.toLocaleLowerCase("ru") === name.trim().toLocaleLowerCase("ru"));
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-label="Добавить упражнение"
-        className="gym-sheet"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <GymSheetFrame label="Добавить упражнение" onClose={onClose}>
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="font-display text-lg font-semibold text-[var(--foreground)]">Упражнение</h3>
           <button type="button" className="gym-chip" onClick={onClose}>
@@ -187,7 +179,6 @@ export function ExerciseAddSheet({
         >
           {busy ? "Добавляем…" : exact ? "Добавить из справочника" : "Своё упражнение"}
         </button>
-      </div>
-    </div>
+    </GymSheetFrame>
   );
 }
