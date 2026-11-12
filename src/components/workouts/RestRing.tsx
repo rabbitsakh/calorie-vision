@@ -38,10 +38,10 @@ export function RestRing({ totalSec, leftSec, running, onAdd, onSkip }: Props) {
       </div>
       {running ? (
         <div className="gym-rest-ring__actions">
-          <button type="button" onClick={onAdd}>
+          <button type="button" onClick={() => onAdd?.()}>
             +30 с
           </button>
-          <button type="button" onClick={onSkip}>
+          <button type="button" onClick={() => onSkip?.()}>
             Пропустить
           </button>
         </div>

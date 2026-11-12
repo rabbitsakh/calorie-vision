@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RestRing } from "@/components/workouts/RestRing";
+import { createPortal } from "react-dom";
 import { playRestEndBeep } from "@/lib/workouts/session-clock";
 import {
   clearRestNotification,
@@ -252,7 +252,7 @@ export function useWorkoutRestTimer() {
   };
 }
 
-/** Fixed overlay so rest is visible even when scrolled into sets. */
+/** Полоска отдыха над таб-баром: не закрывает подходы и вкладки. */
 export function WorkoutRestTimerBanner({
   restEndsAt,
   restLeft,
@@ -266,20 +266,52 @@ export function WorkoutRestTimerBanner({
   onSkip: () => void;
   onAdd?: () => void;
 }) {
-  if (!restEndsAt || !Number.isFinite(restEndsAt)) return null;
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="gym-rest-dock pointer-events-auto w-full max-w-lg">
-        <RestRing
-          totalSec={restSeconds}
-          leftSec={restLeft}
-          running
-          onAdd={onAdd}
-          onSkip={onSkip}
+  const [slot, setSlot] = useState<HTMLElement | "inline" | null>(null);
+  useEffect(() => {
+    const frame = document.querySelector(".cv-app-frame");
+    const tab = frame?.querySelector(":scope > .mobile-tab-bar");
+    if (!frame || !tab) {
+      setSlot("inline");
+      return;
+    }
+    const host = document.createElement("div");
+    host.className = "gym-rest-slot";
+    frame.insertBefore(host, tab);
+    setSlot(host);
+    return () => host.remove();
+  }, []);
+  if (!restEndsAt || !Number.isFinite(restEndsAt) || slot === null) return null;
+  const total = Math.max(1, restSeconds);
+  const left = Math.max(0, restLeft);
+  const progress = Math.max(0, Math.min(1, left / total));
+  const radius = 16;
+  const circ = 2 * Math.PI * radius;
+  const dash = circ * progress;
+  const bar = (
+    <div className="gym-rest-bar" role="status" aria-label={`Отдых ${formatRestClock(left)}`}>
+      <svg className="gym-rest-bar__ring" viewBox="0 0 44 44" aria-hidden>
+        <circle className="gym-rest-bar__track" cx="22" cy="22" r={radius} />
+        <circle
+          className="gym-rest-bar__value"
+          cx="22"
+          cy="22"
+          r={radius}
+          strokeDasharray={`${dash} ${circ}`}
         />
+      </svg>
+      <div className="gym-rest-bar__time">
+        <strong>{formatRestClock(left)}</strong>
+        <span>Отдых</span>
       </div>
+      <button type="button" className="gym-rest-bar__add" onClick={() => onAdd?.()}>
+        +30
+      </button>
+      <button type="button" className="gym-rest-bar__skip" onClick={() => onSkip()}>
+        Дальше
+      </button>
     </div>
   );
+  return slot === "inline" ? bar : createPortal(bar, slot);
 }
 
 export function WorkoutRestTimerControls({

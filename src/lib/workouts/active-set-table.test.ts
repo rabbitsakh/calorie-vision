@@ -7,10 +7,13 @@ import {
   formatPreviousSetLabel,
   isProgressionUp,
   nextUnfinishedExerciseId,
+  pickEditorRowKey,
   pickInitialExpandedId,
   setTableColumns,
   shouldAutoExpandNext,
+  stepNumericField,
   toggleExpanded,
+  withPreviousValues,
 } from "./active-set-table.ts";
 
 test("strength table columns are number, last time, kg, reps, check", () => {
@@ -186,4 +189,40 @@ test("only one exercise is expanded; next unfinished opens after the last set", 
     [{ id: "bench", completed: 3, incomplete: 0, lastSetCount: 3 }],
     "bench",
   ), null);
+});
+
+test("редактор — выбранный незакрытый подход, иначе первый незакрытый", () => {
+  const rows = [
+    { key: "a", completed: true },
+    { key: "b", completed: false },
+    { key: "c", completed: false },
+  ];
+  assert.equal(pickEditorRowKey(rows, null), "b");
+  assert.equal(pickEditorRowKey(rows, "c"), "c");
+  assert.equal(pickEditorRowKey(rows, "a"), "b");
+  assert.equal(pickEditorRowKey([{ key: "a", completed: true }], null), null);
+});
+
+test("шаг веса не уходит ниже нуля и держит половину", () => {
+  assert.equal(stepNumericField("80", 2.5), "82.5");
+  assert.equal(stepNumericField("", 2.5), "2.5");
+  assert.equal(stepNumericField("1", -2.5), "0");
+  assert.equal(stepNumericField("8", -1), "7");
+});
+
+test("тап по прошлому подставляет вес и повторы", () => {
+  const rows = buildSetTableRows({
+    kind: "strength",
+    sets: [],
+    lastSets: [{ weightKg: 80, reps: 6 }],
+    draft: { kg: "82.5", reps: "8", km: "", time: "", setType: "working", rpe: "" },
+  });
+  const open = rows[0]!;
+  assert.equal(open.previousLabel, "80×6");
+  assert.deepEqual(open.previous, { kg: "80", reps: "6", km: "", time: "" });
+  assert.deepEqual(
+    withPreviousValues({ kg: "82.5", reps: "8", km: "", time: "" }, open.previous),
+    { kg: "80", reps: "6", km: "", time: "" },
+  );
+  assert.equal(withPreviousValues({ kg: "50", reps: "5", km: "", time: "" }, null), null);
 });

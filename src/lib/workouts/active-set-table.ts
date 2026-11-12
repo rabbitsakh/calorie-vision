@@ -71,6 +71,8 @@ export type SetTableRowModel = {
   setType: string;
   /** ↑ when this kg is a step up (or less assistance) vs the same-index last time. */
   progressionUp: boolean;
+  /** Same-index last time, ready to drop into the fields. Null when there is nothing to copy. */
+  previous: { kg: string; reps: string; km: string; time: string } | null;
 };
 
 export type ExtraDraftLike = TableDraftLike & { id: string };
@@ -205,8 +207,23 @@ function kmField(distanceKm: number | null | undefined): string {
   return String(distanceKm);
 }
 
+function previousSnapshot(
+  set: HistorySetLike | null | undefined,
+): SetTableRowModel["previous"] {
+  if (!set) return null;
+  const kg = set.weightKg != null && Number.isFinite(set.weightKg) ? String(set.weightKg) : "";
+  const reps = set.reps != null && Number.isFinite(set.reps) ? String(set.reps) : "";
+  const km = set.distanceKm != null && set.distanceKm > 0 ? String(set.distanceKm) : "";
+  const time = set.durationSec != null && set.durationSec > 0 ? minutesField(set.durationSec) : "";
+  if (!kg && !reps && !km && !time) return null;
+  return { kg, reps, km, time };
+}
+
 function rowFromValues(
-  partial: Omit<SetTableRowModel, "previousLabel" | "previousKg" | "progressionUp" | "number"> & {
+  partial: Omit<
+    SetTableRowModel,
+    "previousLabel" | "previousKg" | "previous" | "progressionUp" | "number"
+  > & {
     number: number;
   },
   kind: ExerciseKind,
@@ -218,7 +235,40 @@ function rowFromValues(
     ...partial,
     previousLabel: formatPreviousSetLabel(prev, kind),
     previousKg: prev?.weightKg ?? null,
+    previous: previousSnapshot(prev),
     progressionUp: isProgressionUp(kind, currentKg, prev?.weightKg ?? null),
+  };
+}
+
+/** The open editor is the chosen unfinished row, otherwise the first unfinished one. */
+export function pickEditorRowKey(
+  rows: readonly { key: string; completed: boolean }[],
+  preferred: string | null,
+): string | null {
+  if (preferred && rows.some((row) => row.key === preferred && !row.completed)) return preferred;
+  return rows.find((row) => !row.completed)?.key ?? null;
+}
+
+/** Step a numeric field. Empty counts as zero; the result never goes below zero. */
+export function stepNumericField(raw: string, delta: number): string {
+  const current = Number(raw.trim().replace(",", "."));
+  const base = Number.isFinite(current) ? current : 0;
+  const next = Math.round((base + delta) * 1000) / 1000;
+  return String(next < 0 ? 0 : next);
+}
+
+/** Copy last time into the open fields. Missing pieces of last time stay as they are. */
+export function withPreviousValues<T extends { kg: string; reps: string; km: string; time: string }>(
+  current: T,
+  previous: { kg: string; reps: string; km: string; time: string } | null,
+): T | null {
+  if (!previous) return null;
+  return {
+    ...current,
+    kg: previous.kg || current.kg,
+    reps: previous.reps || current.reps,
+    km: previous.km || current.km,
+    time: previous.time || current.time,
   };
 }
 
