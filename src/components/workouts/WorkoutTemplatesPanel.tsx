@@ -43,15 +43,10 @@ export function WorkoutTemplatesPanel({
       ) : (
         <ul className="flex flex-col gap-2">
           {routines.map((r) => (
-            <li
-              key={r.id}
-              className="gym-template"
-            >
+            <li key={r.id} className="gym-template">
               <div className="gym-template__body">
                 <p className="gym-template__name">
-                  {r.planLabel ? (
-                    <span className="gym-template__plan">{r.planLabel}</span>
-                  ) : null}
+                  {r.planLabel ? <span className="gym-template__plan">{r.planLabel}</span> : null}
                   {r.name}
                 </p>
                 <p className="gym-template__meta">
@@ -59,23 +54,22 @@ export function WorkoutTemplatesPanel({
                   {r.muscleLabels.length ? " · " : ""}
                   {r.exerciseCount} упр.
                 </p>
-              </div>
-              <div className="gym-template__actions">
-                <button type="button" disabled={busy} className="is-accent" onClick={() => onStart(r.id)}>
-                  Старт
-                </button>
-                <button type="button" disabled={busy} onClick={() => onEdit(r.id)}>
-                  Изменить
-                </button>
                 <button
                   type="button"
                   disabled={busy}
-                  className="is-danger"
-                  title="Удалить шаблон"
-                  onClick={() => onDelete(r.id)}
+                  className="gym-template__start"
+                  onClick={() => onStart(r.id)}
                 >
-                  Удалить
+                  Старт
                 </button>
+                <div className="gym-template__links">
+                  <button type="button" disabled={busy} onClick={() => onEdit(r.id)}>
+                    Изменить
+                  </button>
+                  <button type="button" disabled={busy} className="is-danger" onClick={() => onDelete(r.id)}>
+                    Удалить
+                  </button>
+                </div>
               </div>
             </li>
           ))}

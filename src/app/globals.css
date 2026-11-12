@@ -10759,6 +10759,84 @@ html[data-gym-live] .app-chrome {
   box-shadow: none;
 }
 
+.gym-chart-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.gym-chart-switch button {
+  min-height: 40px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--accent-soft);
+  color: var(--muted-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.gym-chart-switch button.is-on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.gym-axis-chart {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.gym-axis-chart__grid {
+  stroke: rgba(13, 115, 119, 0.18);
+}
+
+.gym-axis-chart__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.gym-axis-chart__dot {
+  fill: var(--accent);
+}
+
+.gym-axis-chart__label {
+  font-size: 10px;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 700;
+  fill: var(--muted);
+}
+
+.gym-template__start {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 10px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.gym-template__links {
+  display: flex;
+  gap: 12px;
+}
+
+.gym-template__links button {
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.gym-template__links button.is-danger {
+  color: #b42318;
+}
+
 .gym-preview__main {
   flex: 1;
   min-height: 0;

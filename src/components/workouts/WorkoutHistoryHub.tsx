@@ -123,9 +123,7 @@ export function WorkoutHistoryHub({
   return (
     <div className="gym-hub-scene">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-[var(--muted-strong)]">
-          Силовые: кг × повт (+5%). Кардио: км и минуты (темп).
-        </p>
+        <p className="text-sm text-[var(--muted-strong)]">Календарь и список тренировок.</p>
         <button
           type="button"
           className="gym-primary shrink-0"
@@ -205,13 +203,12 @@ export function WorkoutHistoryHub({
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Фильтр списка
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="gym-chart-switch">
           {(
             [
-              ["all", "Все"],
               ["week", "Неделя"],
               ["month", "Месяц"],
-              ["day", "День"],
+              ["all", "Всё"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -225,6 +222,12 @@ export function WorkoutHistoryHub({
               {label}
             </button>
           ))}
+        </div>
+        <details className="mt-2">
+          <summary className="min-h-11 cursor-pointer text-sm font-semibold text-[var(--muted-strong)]">
+            Группы и кардио
+          </summary>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             type="button"
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -252,6 +255,7 @@ export function WorkoutHistoryHub({
             );
           })}
         </div>
+        </details>
       </section>
 
       {insights ? (
