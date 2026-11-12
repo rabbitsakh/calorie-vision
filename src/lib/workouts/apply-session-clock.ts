@@ -1,5 +1,10 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
-import { planAutoClock, planClockOnLoggedSet } from "@/lib/workouts/session-autoclose";
+import {
+  planAutoClock,
+  planClockOnLoggedSet,
+  planUndoAutoClose,
+  AUTO_CLOSE_UNDO_MS,
+} from "@/lib/workouts/session-autoclose";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -16,8 +21,31 @@ function setTimesOf(
   return times;
 }
 
-/** Закрывает простаивающие тренировки пользователя. Возвращает число правок. */
+/**
+ * Проставляет начало с первого подхода.
+ * Не завершает тренировку. Свежее автозакрытие (endedBy = auto) снова открывает.
+ */
 export async function sweepIdleSessions(db: Db, userId: string, now = new Date()): Promise<number> {
+  let changed = 0;
+  const accidental = await db.workoutSession.findMany({
+    where: {
+      userId,
+      endedBy: "auto",
+      endedAt: { gte: new Date(now.getTime() - AUTO_CLOSE_UNDO_MS) },
+    },
+    select: { id: true, endedAt: true, endedBy: true },
+  });
+  for (const row of accidental) {
+    const patch = planUndoAutoClose({
+      endedAt: row.endedAt,
+      endedBy: row.endedBy,
+      now,
+    });
+    if (!patch) continue;
+    await db.workoutSession.update({ where: { id: row.id }, data: patch });
+    changed += 1;
+  }
+
   const open = await db.workoutSession.findMany({
     where: { userId, endedAt: null },
     select: {
@@ -28,7 +56,6 @@ export async function sweepIdleSessions(db: Db, userId: string, now = new Date()
       exercises: { select: { sets: { select: { createdAt: true, completed: true } } } },
     },
   });
-  let changed = 0;
   for (const row of open) {
     const patch = planAutoClock({
       startedAt: row.startedAt,

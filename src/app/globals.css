@@ -9477,19 +9477,35 @@ button.profile-settings__door:disabled {
   color: var(--foreground);
 }
 
+.cv-gym-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  overscroll-behavior: contain;
+}
+
 .gym-sheet {
-  max-height: 88vh;
+  max-height: min(88dvh, 88vh);
   width: 100%;
   max-width: 32rem;
   overflow: auto;
   border-radius: 1.5rem 1.5rem 0 0;
   background: var(--card);
-  padding: 1rem 1rem 1.25rem;
+  padding: 1rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
   box-shadow: var(--shadow-card);
   color: var(--foreground);
 }
 
 @media (min-width: 640px) {
+  .cv-gym-sheet-backdrop {
+    align-items: center;
+    padding: 1.5rem;
+  }
+
   .gym-sheet {
     border-radius: 1.5rem;
   }

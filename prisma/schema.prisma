@@ -572,7 +572,7 @@ model WorkoutSession {
   /** Live session clock (null = ещё нет подходов / backfill). */
   startedAt    DateTime?
   endedAt      DateTime?
-  /** auto — закрыто по простою; manual — кнопка или правка времени. Null — старые строки. */
+  /** manual — кнопка «Завершить» или правка времени. auto — устаревшее автозакрытие, новые так не пишутся. */
   endedBy      String?   @db.VarChar(16)
   /** When non-null, session clock is paused at this instant. */
   pausedAt     DateTime?
