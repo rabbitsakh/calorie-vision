@@ -2856,6 +2856,14 @@ export function WorkoutsView({
 
       {hubTab === "templates" ? (
         <>
+        <WorkoutTemplatesPanel
+          routines={routines}
+          busy={busy}
+          onCreateNew={() => setEditingRoutineId("new")}
+          onStart={(id) => void startRoutine(id)}
+          onEdit={(id) => setEditingRoutineId(id)}
+          onDelete={(id) => void deleteRoutine(id)}
+        />
         <WorkoutProgramsPanel
           existingNames={routines.map((routine) => routine.name)}
           busy={busy}
@@ -2889,14 +2897,6 @@ export function WorkoutsView({
             await loadRoutines();
             return { saved, skipped, firstId };
           }}
-        />
-        <WorkoutTemplatesPanel
-          routines={routines}
-          busy={busy}
-          onCreateNew={() => setEditingRoutineId("new")}
-          onStart={(id) => void startRoutine(id)}
-          onEdit={(id) => setEditingRoutineId(id)}
-          onDelete={(id) => void deleteRoutine(id)}
         />
         </>
       ) : null}

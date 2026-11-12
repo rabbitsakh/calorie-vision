@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { SessionSheet } from "@/components/workouts/SessionSheet";
 import { formatDateShort } from "@/lib/dates";
@@ -63,100 +64,109 @@ function sparklinePath(values: number[], width: number, height: number): string 
     .join(" ");
 }
 
-function SeriesSparkline({
+function StrengthProgressCharts({ points }: { points: HistoryChartPoint[] }) {
+  const [period, setPeriod] = useState<"4w" | "3m" | "year">("3m");
+  const [metric, setMetric] = useState<"weight" | "e1rm">("weight");
+  const days = period === "4w" ? 28 : period === "3m" ? 92 : 365;
+  const cut = Date.now() - days * 86_400_000;
+  const series = points.filter((point) => {
+    const at = Date.parse(point.date);
+    return Number.isFinite(at) && at >= cut;
+  });
+  const values = series.map((point) =>
+    metric === "e1rm" ? (point.estimated1Rm ?? 0) : (point.bestSetKg ?? point.weight),
+  );
+  return (
+    <div>
+      <div className="gym-chart-switch">
+        {(
+          [
+            ["4w", "4 нед"],
+            ["3m", "3 мес"],
+            ["year", "Год"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={period === id ? "is-on" : ""}
+            onClick={() => setPeriod(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="gym-chart-switch">
+        <button type="button" className={metric === "weight" ? "is-on" : ""} onClick={() => setMetric("weight")}>
+          Вес
+        </button>
+        <button type="button" className={metric === "e1rm" ? "is-on" : ""} onClick={() => setMetric("e1rm")}>
+          1ПМ
+        </button>
+      </div>
+      <ExerciseAxisChart points={series} values={values} unit="кг" />
+    </div>
+  );
+}
+
+function ExerciseAxisChart({
   points,
   values,
+  unit,
 }: {
   points: HistoryChartPoint[];
   values: number[];
+  unit: string;
 }) {
   const usable = values
     .map((value, index) => ({ value, index }))
     .filter((point) => Number.isFinite(point.value) && point.value > 0);
   if (usable.length < 2) {
-    return <p className="mt-1 text-xs text-[var(--muted)]">Мало точек для линии</p>;
+    return <p className="mt-2 text-xs text-[var(--muted)]">Мало точек для графика</p>;
   }
   const series = usable.map((point) => point.value);
-  const w = 240;
-  const h = 56;
-  const d = sparklinePath(series, w, h);
-  const last = series[series.length - 1]!;
   const min = Math.min(...series);
   const max = Math.max(...series);
-  const span = max - min || 1;
-  const lx = w;
-  const ly = h - ((last - min) / span) * (h - 4) - 2;
-  const firstDate = points[usable[0]!.index]?.date;
-  const lastDate = points[usable[usable.length - 1]!.index]?.date;
+  const pad = Math.max(2, (max - min) * 0.15);
+  const yMin = Math.max(0, min - pad);
+  const yMax = max + pad;
+  const span = yMax - yMin || 1;
+  const w = 320;
+  const h = 168;
+  const left = 36;
+  const right = 8;
+  const top = 12;
+  const bottom = 28;
+  const xOf = (index: number) =>
+    left + (usable.length === 1 ? 0 : (index / (usable.length - 1)) * (w - left - right));
+  const yOf = (value: number) => top + (1 - (value - yMin) / span) * (h - top - bottom);
+  const d = usable
+    .map((point, index) => `${index === 0 ? "M" : "L"}${xOf(index).toFixed(1)} ${yOf(point.value).toFixed(1)}`)
+    .join(" ");
+  const ticks = [yMax, (yMax + yMin) / 2, yMin];
+  const last = usable[usable.length - 1]!;
   return (
-    <div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="gym-spark mt-1 h-16 w-full" aria-hidden>
-        <path d={d} fill="none" stroke="var(--accent, #0f766e)" strokeWidth="2" />
-        <circle cx={lx} cy={ly} r="3.5" fill="#f59e0b" stroke="#0f172a" strokeWidth="1" />
-      </svg>
-      {firstDate && lastDate ? (
-        <p className="mt-1 flex justify-between text-[10px] text-[var(--muted)]">
-          <span>{formatDateShort(firstDate)}</span>
-          <span>{formatDateShort(lastDate)}</span>
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function latestPositive(values: number[]): number | null {
-  for (let i = values.length - 1; i >= 0; i -= 1) {
-    const value = values[i]!;
-    if (Number.isFinite(value) && value > 0) return value;
-  }
-  return null;
-}
-
-function StrengthProgressCharts({ points }: { points: HistoryChartPoint[] }) {
-  const e1rm = points.map((point) => point.estimated1Rm ?? 0);
-  const bestKg = points.map((point) => point.bestSetKg ?? point.weight);
-  const volume = points.map((point) => point.volume);
-  const latestBest = [...points].reverse().find((point) => (point.bestSetKg ?? point.weight) > 0);
-  const bestLabel = latestBest
-    ? `${latestBest.bestSetKg ?? latestBest.weight} кг × ${latestBest.bestSetReps ?? latestBest.reps}`
-    : "—";
-  const series = [
-    {
-      key: "e1rm",
-      label: "~1ПМ",
-      value: latestPositive(e1rm),
-      text: (value: number) => `${value} кг`,
-      values: e1rm,
-    },
-    {
-      key: "best",
-      label: "Лучший подход",
-      value: latestPositive(bestKg),
-      text: () => bestLabel,
-      values: bestKg,
-    },
-    {
-      key: "volume",
-      label: "Объём",
-      value: latestPositive(volume),
-      text: (value: number) => formatWorkoutLoad(value),
-      values: volume,
-    },
-  ];
-  return (
-    <div className="gym-progress-charts">
-      {series.map((item) => (
-        <div key={item.key} className="gym-progress-chart">
-          <p className="gym-progress-chart__label">
-            <span>{item.label}</span>
-            <span className="gym-progress-chart__value">
-              {item.value == null ? "—" : item.text(item.value)}
-            </span>
-          </p>
-          <SeriesSparkline points={points} values={item.values} />
-        </div>
+    <svg viewBox={`0 0 ${w} ${h}`} className="gym-axis-chart" role="img" aria-label={`График, ${unit}`}>
+      {ticks.map((tick) => (
+        <g key={tick}>
+          <line x1={left} x2={w - right} y1={yOf(tick)} y2={yOf(tick)} className="gym-axis-chart__grid" />
+          <text x={4} y={yOf(tick) + 3} className="gym-axis-chart__label">
+            {Math.round(tick)}
+          </text>
+        </g>
       ))}
-    </div>
+      <text x={4} y={h - 8} className="gym-axis-chart__label">
+        {unit}
+      </text>
+      <path d={d} className="gym-axis-chart__line" />
+      <circle cx={xOf(usable.length - 1)} cy={yOf(last.value)} r="4" className="gym-axis-chart__dot" />
+      <text x={xOf(0)} y={h - 6} className="gym-axis-chart__label">
+        {formatDateShort(points[usable[0]!.index]!.date)}
+      </text>
+      <text x={w - 70} y={h - 6} className="gym-axis-chart__label">
+        {formatDateShort(points[last.index]!.date)}
+      </text>
+    </svg>
   );
 }
 
