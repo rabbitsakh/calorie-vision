@@ -42,6 +42,7 @@ import {
 } from "@/lib/post-workout-nudge";
 import { inferMealTypeFromHour } from "@/lib/meal-type";
 import { buildQuickMealLogExtras } from "@/lib/quick-meal-log";
+import { fitsRemainingKcal } from "@/lib/suggestion-history";
 import { hydrateQuietHoursFromAccount, quietHoursLocalHour } from "@/lib/quiet-hours-prefs";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { dismissWeekNudge, isWeekNudgeDismissed } from "@/lib/week-nudge-dismiss";
@@ -99,6 +100,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   const [gymDone, setGymDone] = useState(false);
   const [gymLive, setGymLive] = useState<{ label: string | null } | null>(null);
   const [mealIdeas, setMealIdeas] = useState<MealIdea[]>([]);
+  const [ideasEmpty, setIdeasEmpty] = useState(false);
   const [addingIdea, setAddingIdea] = useState<number | null>(null);
   const [ideaError, setIdeaError] = useState<string | null>(null);
   const [hour, setHour] = useState(() => quietHoursLocalHour());
@@ -254,31 +256,43 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
   useEffect(() => {
     if (selectedDate !== today) {
       setMealIdeas([]);
+      setIdeasEmpty(false);
       return;
     }
     const target = day?.data?.meals?.target?.calories ?? 0;
     const eaten = day?.data?.meals?.totalCalories ?? 0;
-    if (!(target > 0) || target - eaten <= 50) {
+    const remaining = target - eaten;
+    if (!(target > 0) || remaining <= 50) {
       setMealIdeas([]);
+      setIdeasEmpty(false);
       return;
     }
     let cancelled = false;
     void (async () => {
       try {
-        const params = new URLSearchParams({ date: today });
+        const params = new URLSearchParams({ date: today, meal: inferMealTypeFromHour(hour) });
         if (hasFreshPostWorkoutNudge()) params.set("postWorkout", "1");
         const resp = await fetch(withBasePath(`/api/suggestions?${params}`));
         if (!resp.ok || cancelled) return;
         const json = (await resp.json()) as { suggestions?: MealIdea[] };
-        if (!cancelled) setMealIdeas((json.suggestions ?? []).slice(0, 3));
+        const fitting = (json.suggestions ?? [])
+          .filter((idea) => fitsRemainingKcal(idea.calories, remaining))
+          .slice(0, 3);
+        if (!cancelled) {
+          setMealIdeas(fitting);
+          setIdeasEmpty(fitting.length === 0);
+        }
       } catch {
-        if (!cancelled) setMealIdeas([]);
+        if (!cancelled) {
+          setMealIdeas([]);
+          setIdeasEmpty(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [selectedDate, today, day?.data?.meals?.totalCalories, day?.data?.meals?.target?.calories]);
+  }, [selectedDate, today, hour, day?.data?.meals?.totalCalories, day?.data?.meals?.target?.calories]);
 
   async function addMealIdea(idea: MealIdea, index: number) {
     setAddingIdea(index);
@@ -457,6 +471,7 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       onAction={runAction}
       mealIdeas={moment.phase === "day" ? mealIdeas : []}
       mealIdeasLabel={mealIdeasLabel}
+      ideasEmpty={moment.phase === "day" && ideasEmpty}
       addingIdea={addingIdea}
       ideaError={ideaError}
       onAddIdea={(idea, index) => void addMealIdea(idea, index)}
@@ -509,6 +524,7 @@ export function MomentHeroView({
   onAction,
   mealIdeas = [],
   mealIdeasLabel = "Идеи под остаток",
+  ideasEmpty = false,
   addingIdea = null,
   ideaError = null,
   onAddIdea,
@@ -518,11 +534,16 @@ export function MomentHeroView({
   onAction: (action: SoftStepAction) => void;
   mealIdeas?: MealIdea[];
   mealIdeasLabel?: string;
+  ideasEmpty?: boolean;
   addingIdea?: number | null;
   ideaError?: string | null;
   onAddIdea?: (idea: MealIdea, index: number) => void;
 }) {
   const dark = moment.tone === "dark";
+  const chipCoversCta =
+    moment.phase === "day" &&
+    moment.chips != null &&
+    (moment.cta?.action === "food" || moment.cta?.action === "water");
   const startsGym = moment.cta?.label === "Начать тренировку";
 
   const renderCta = (cta: MomentCta) => {
@@ -585,7 +606,32 @@ export function MomentHeroView({
               </div>
             ) : (
               <>
-                <p className="moment-hero-title">{moment.title}</p>
+                <p className="moment-hero-title">
+                  {moment.title.includes(" из ") ? (
+                    <>
+                      <span>{moment.title.slice(0, moment.title.indexOf(" из "))}</span>
+                      <span className="moment-hero-title-rest">из {moment.title.slice(moment.title.indexOf(" из ") + 4)}</span>
+                    </>
+                  ) : (
+                    moment.title
+                  )}
+                </p>
+                {moment.kcal ? (
+                  <div
+                    className="moment-kcal-scale"
+                    role="meter"
+                    aria-valuemin={0}
+                    aria-valuemax={moment.kcal.target}
+                    aria-valuenow={Math.max(0, moment.kcal.eaten)}
+                    aria-label={moment.title}
+                  >
+                    <i
+                      style={{
+                        width: `${Math.max(0, Math.min(100, Math.round((moment.kcal.eaten / moment.kcal.target) * 100)))}%`,
+                      }}
+                    />
+                  </div>
+                ) : null}
                 {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
               </>
             )}
@@ -602,31 +648,59 @@ export function MomentHeroView({
                         }}
                       />
                     </span>
-                    <span className="moment-macro-value" title={`${m.value} / ${m.target} г`}>
-                      {m.value}/{m.target}
+                    <span className="moment-macro-value">
+                      {m.value.toLocaleString("ru-RU")} из {m.target.toLocaleString("ru-RU")} г
                     </span>
                   </div>
                 ))}
               </div>
             ) : null}
-            {mealIdeas.length > 0 ? (
+            {moment.proteinNote ? <p className="moment-protein-note">{moment.proteinNote}</p> : null}
+            {mealIdeas.length > 0 || ideasEmpty ? (
               <div className="moment-meal-ideas" aria-label={mealIdeasLabel}>
                 <p className="moment-meal-ideas-label">{mealIdeasLabel}</p>
-                <div className="moment-meal-ideas-row">
-                  {mealIdeas.map((idea, i) => (
-                    <button
-                      key={`${idea.name}-${i}`}
-                      type="button"
-                      className="moment-meal-idea"
-                      disabled={addingIdea != null}
-                      onClick={() => onAddIdea?.(idea, i)}
-                    >
-                      <b>{addingIdea === i ? "…" : idea.name}</b>
-                      <span>{Math.round(idea.calories)} ккал</span>
-                    </button>
-                  ))}
-                </div>
+                {mealIdeas.length > 0 ? (
+                  <div className="moment-meal-ideas-row">
+                    {mealIdeas.map((idea, i) => (
+                      <button
+                        key={`${idea.name}-${i}`}
+                        type="button"
+                        className="moment-meal-idea"
+                        disabled={addingIdea != null}
+                        onClick={() => onAddIdea?.(idea, i)}
+                      >
+                        <b>{addingIdea === i ? "…" : idea.name}</b>
+                        <span>{Math.round(idea.calories)} ккал</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="moment-meal-ideas-empty">На этот приём в остаток ничего не подошло</p>
+                )}
                 {ideaError ? <p className="moment-meal-ideas-error">{ideaError}</p> : null}
+              </div>
+            ) : null}
+            {moment.chips ? (
+              <div className="moment-chips">
+                {moment.chips.map((chip) =>
+                  chip.kind === "gym" ? (
+                    <Link key={chip.kind} href={withDateQuery("/workouts", selectedDate)} className="moment-chip">
+                      <span className="moment-chip-copy">
+                        <b>{chip.title}</b>
+                        <span>{chip.detail}</span>
+                      </span>
+                      <span className="moment-chip-action moment-chip-action--quiet">{chip.actionLabel}</span>
+                    </Link>
+                  ) : (
+                    <button key={chip.kind} type="button" className="moment-chip" onClick={() => onAction("water")}>
+                      <span className="moment-chip-copy">
+                        <b>{chip.title}</b>
+                        <span>{chip.detail}</span>
+                      </span>
+                      <span className="moment-chip-action">{chip.actionLabel}</span>
+                    </button>
+                  ),
+                )}
               </div>
             ) : null}
             {moment.hint ? <p className="moment-hero-hint">{moment.hint}</p> : null}
@@ -639,7 +713,7 @@ export function MomentHeroView({
             aria-hidden
           />
         </div>
-        {moment.cta ? <div className="moment-hero-actions">{renderCta(moment.cta)}</div> : null}
+        {moment.cta && !chipCoversCta ? <div className="moment-hero-actions">{renderCta(moment.cta)}</div> : null}
       </section>
       {moment.checklist ? (
         <section className="moment-checklist" aria-label="Чек-лист дня">

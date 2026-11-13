@@ -5,6 +5,45 @@
 
 import { POST_WORKOUT_PROTEIN_RATIO } from "@/lib/post-workout-nudge";
 
+export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
+
+/**
+ * Fixed slack, not a share of the remainder.
+ * 50 kcal covers a rounded portion and a photo estimate.
+ * 1.35× of a 2 000 kcal remainder used to let a 2 700 kcal dish through.
+ */
+export const MEAL_KCAL_SLACK = 50;
+
+export function mealSlotFromType(mealType: string | null | undefined): MealSlot | null {
+  switch (mealType) {
+    case "BREAKFAST":
+      return "breakfast";
+    case "LUNCH":
+      return "lunch";
+    case "DINNER":
+      return "dinner";
+    case "SNACK":
+      return "snack";
+    default:
+      return null;
+  }
+}
+
+export function fitsRemainingKcal(
+  calories: number,
+  remainingKcal: number,
+  slack = MEAL_KCAL_SLACK,
+): boolean {
+  return calories > 0 && calories <= remainingKcal + slack;
+}
+
+/** Empty slots mean “any meal” (favorites, model). Known slots must include this one. */
+export function fitsMealSlot(slots: readonly MealSlot[] | undefined, mealSlot?: MealSlot | null): boolean {
+  if (!mealSlot) return true;
+  if (!slots || slots.length === 0) return true;
+  return slots.includes(mealSlot);
+}
+
 export type HistoryMealCandidate = {
   name: string;
   calories: number;
@@ -15,6 +54,8 @@ export type HistoryMealCandidate = {
   /** Times logged (history) or useCount (favorite). */
   count: number;
   source: "history" | "favorite";
+  /** Meal slots this dish was actually logged in. Empty = not known. */
+  slots?: MealSlot[];
 };
 
 export type MacroRemaining = {
@@ -33,6 +74,7 @@ export type RankedSuggestion = {
   portionGrams: number;
   why: string;
   category: "protein" | "carbs" | "fat" | "balanced" | "light";
+  slots?: MealSlot[];
 };
 
 function normalizeName(name: string): string {
@@ -43,11 +85,10 @@ function normalizeName(name: string): string {
 export function scoreHistoryForRemaining(
   candidate: HistoryMealCandidate,
   remaining: MacroRemaining,
+  mealSlot?: MealSlot | null,
 ): number {
-  if (!(candidate.calories > 0) || candidate.calories > remaining.calories + 80) {
-    // Still allow slightly over remaining for a protein-focused pick.
-    if (candidate.calories > remaining.calories * 1.35) return -1;
-  }
+  if (!fitsRemainingKcal(candidate.calories, remaining.calories)) return -1;
+  if (!fitsMealSlot(candidate.slots, mealSlot)) return -1;
   const proteinNeed = Math.max(0, remaining.protein);
   const proteinHit = Math.min(candidate.protein, proteinNeed);
   const kcalFit =
@@ -68,12 +109,14 @@ export function scoreHistoryForRemaining(
 export function pickHighProteinFromHistory(
   candidates: HistoryMealCandidate[],
   remaining: MacroRemaining,
+  mealSlot?: MealSlot | null,
 ): HistoryMealCandidate | null {
   let best: HistoryMealCandidate | null = null;
   let bestScore = -Infinity;
   for (const c of candidates) {
     if (c.protein < 8) continue;
-    if (c.calories > remaining.calories * 1.4 && remaining.calories < 400) continue;
+    if (!fitsRemainingKcal(c.calories, remaining.calories)) continue;
+    if (!fitsMealSlot(c.slots, mealSlot)) continue;
     const density = c.calories > 0 ? c.protein / c.calories : 0;
     const score = c.protein * 2 + density * 50 + Math.min(6, Math.log2(1 + c.count));
     if (score > bestScore) {
@@ -103,6 +146,7 @@ export function candidateToSuggestion(
     portionGrams: Math.round(candidate.portionGrams) || 0,
     why,
     category: proteinHeavy ? "protein" : "balanced",
+    slots: candidate.slots,
   };
 }
 
@@ -110,9 +154,10 @@ export function rankHistorySuggestions(
   candidates: HistoryMealCandidate[],
   remaining: MacroRemaining,
   limit = 3,
+  mealSlot?: MealSlot | null,
 ): RankedSuggestion[] {
   const scored = candidates
-    .map((c) => ({ c, score: scoreHistoryForRemaining(c, remaining) }))
+    .map((c) => ({ c, score: scoreHistoryForRemaining(c, remaining, mealSlot) }))
     .filter((row) => row.score >= 0)
     .sort((a, b) => b.score - a.score);
 
@@ -137,6 +182,7 @@ export function mergeSuggestions(input: {
   others: RankedSuggestion[];
   remaining: MacroRemaining;
   pinProteinFirst?: boolean;
+  mealSlot?: MealSlot | null;
   limit?: number;
 }): RankedSuggestion[] {
   const limit = input.limit ?? 3;
@@ -147,18 +193,20 @@ export function mergeSuggestions(input: {
     const key = normalizeName(s.name);
     if (!key || seen.has(key)) return;
     if (out.length >= limit) return;
+    if (!fitsRemainingKcal(s.calories, input.remaining.calories)) return;
+    if (!fitsMealSlot(s.slots, input.mealSlot)) return;
     seen.add(key);
     out.push(s);
   };
 
   if (input.pinProteinFirst) {
-    const pinned = pickHighProteinFromHistory(input.history, input.remaining);
+    const pinned = pickHighProteinFromHistory(input.history, input.remaining, input.mealSlot);
     if (pinned) {
       push(candidateToSuggestion(pinned, { postWorkout: true }));
     }
   }
 
-  for (const s of rankHistorySuggestions(input.history, input.remaining, limit)) {
+  for (const s of rankHistorySuggestions(input.history, input.remaining, limit, input.mealSlot)) {
     push(s);
   }
   for (const s of input.others) {
@@ -191,6 +239,7 @@ export function aggregateMealHistory(
     fat?: number | null;
     carbs?: number | null;
     portionGrams?: number | null;
+    mealType?: string | null;
   }>,
   minCount = 2,
 ): HistoryMealCandidate[] {
@@ -199,6 +248,7 @@ export function aggregateMealHistory(
     const name = row.dishName.trim();
     if (name.length < 2) continue;
     const key = normalizeName(name);
+    const slot = mealSlotFromType(row.mealType);
     const existing = map.get(key);
     if (!existing) {
       map.set(key, {
@@ -210,10 +260,12 @@ export function aggregateMealHistory(
         portionGrams: row.portionGrams ?? 0,
         count: 1,
         source: "history",
+        slots: slot ? [slot] : [],
       });
       continue;
     }
     existing.count += 1;
+    if (slot && existing.slots && !existing.slots.includes(slot)) existing.slots.push(slot);
     // Keep latest-ish macros (rows usually newest-first).
     if (existing.protein <= 0 && row.protein != null) existing.protein = row.protein;
     if (existing.fat <= 0 && row.fat != null) existing.fat = row.fat;

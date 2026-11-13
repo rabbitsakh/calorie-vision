@@ -8,9 +8,11 @@ import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import {
   aggregateMealHistory,
+  mealSlotFromType,
   mergeSuggestions,
   shouldPinPostWorkoutProtein,
   type HistoryMealCandidate,
+  type MealSlot,
   type RankedSuggestion,
 } from "@/lib/suggestion-history";
 import {
@@ -31,6 +33,7 @@ type Suggestion = {
   portionGrams: number;
   why: string;
   category: "protein" | "carbs" | "fat" | "balanced" | "light";
+  slots?: MealSlot[];
 };
 
 type SuggestionsResponse = {
@@ -97,6 +100,7 @@ function buildFallbackSuggestions(
       portionGrams: portion,
       why: `Закроет около ${Math.min(remaining.protein, Math.round(portion * 0.23))} г белка из остатка`,
       category: "protein",
+      slots: ["lunch", "dinner"],
     });
   }
 
@@ -112,6 +116,7 @@ function buildFallbackSuggestions(
       portionGrams: portion,
       why: "Углеводы и сытость без перегруза",
       category: "carbs",
+      slots: ["lunch", "dinner"],
     });
   }
 
@@ -127,6 +132,7 @@ function buildFallbackSuggestions(
         portionGrams: 150,
         why: "Белок и лёгкий перекус под остаток калорий",
         category: "protein",
+        slots: ["breakfast", "snack"],
       });
     } else {
       ideas.push({
@@ -138,6 +144,7 @@ function buildFallbackSuggestions(
         portionGrams: 120,
         why: "Быстро закрывает белок и часть калорий",
         category: "balanced",
+        slots: ["breakfast", "snack"],
       });
     }
   }
@@ -159,6 +166,7 @@ export async function GET(request: NextRequest) {
     }
 
     const date = request.nextUrl.searchParams.get("date") ?? "";
+    const mealSlot = mealSlotFromType(request.nextUrl.searchParams.get("meal"));
     const postWorkoutParam =
       request.nextUrl.searchParams.get("postWorkout") === "1" ||
       request.nextUrl.searchParams.get("postWorkout") === "true";
@@ -191,6 +199,7 @@ export async function GET(request: NextRequest) {
               fat: true,
               carbs: true,
               portionGrams: true,
+              mealType: true,
             },
             orderBy: { createdAt: "desc" },
             take: 500,
@@ -272,6 +281,7 @@ export async function GET(request: NextRequest) {
         fat: row.fat,
         carbs: row.carbs,
         portionGrams: row.portionGrams,
+        mealType: row.mealType,
       })),
       2,
     );
@@ -299,12 +309,13 @@ export async function GET(request: NextRequest) {
         others,
         remaining,
         pinProteinFirst: pinProtein,
+        mealSlot,
         limit: 3,
       });
 
     // Cache AI ideas by day + calorie bucket so eating one snack invalidates, but spam does not.
     const kcalBucket = Math.round(remaining.calories / 100);
-    const cacheKey = `suggestions:${session.user.id}:${date}:${kcalBucket}:${pinProtein ? 1 : 0}`;
+    const cacheKey = `suggestions:${session.user.id}:${date}:${kcalBucket}:${pinProtein ? 1 : 0}:${mealSlot ?? "any"}`;
     const cached = await readTipCache<SuggestionsResponse>(cacheKey);
     if (cached?.suggestions?.length) {
       return NextResponse.json({
@@ -332,7 +343,15 @@ export async function GET(request: NextRequest) {
 
     const goalRu = goal === "LOSE" ? "похудение" : goal === "GAIN" ? "набор мышечной массы" : "поддержание веса";
     const sexRu = sex === "FEMALE" ? "женщина" : sex === "MALE" ? "мужчина" : "";
-    const timeOfDay = getTimeOfDayRu();
+    const timeOfDay = mealSlot === "breakfast"
+      ? "завтрак"
+      : mealSlot === "lunch"
+        ? "обед"
+        : mealSlot === "dinner"
+          ? "ужин"
+          : mealSlot === "snack"
+            ? "перекус"
+            : getTimeOfDayRu();
 
     const eatenList = entries.length > 0
       ? entries.map((e) => {
