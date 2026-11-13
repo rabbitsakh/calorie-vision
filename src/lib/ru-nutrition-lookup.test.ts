@@ -240,6 +240,41 @@ test("scaleRuNutritionToGrams scales portion macros", () => {
   }
 });
 
+test("окорочок и куриное бедро: гриль с кожей и без", () => {
+  const grill = lookupRuNutritionTable("Окорочок гриль куриный");
+  assert.ok(grill);
+  assert.equal(grill!.dishName, "Окорочок куриный гриль");
+  assert.equal(grill!.portionGrams, 200);
+  assert.equal(grill!.calories, 470);
+  assert.equal(grill!.protein, 44);
+  assert.equal(grill!.fat, 30);
+  assert.equal(grill!.carbs, 0);
+  const per100 = scaleRuNutritionToGrams("окорочок гриль", 100);
+  assert.equal(per100?.calories, 235);
+  assert.equal(per100?.protein, 22);
+  assert.equal(per100?.fat, 15);
+  assert.equal(per100?.carbs, 0);
+  assert.equal(lookupRuNutritionTable("куриное бедро")?.calories, 470);
+  assert.equal(lookupRuNutritionTable("окорочок жареный")?.dishName, grill!.dishName);
+  assert.equal(lookupRuNutritionTable("бедро запеченное")?.calories, 470);
+  assert.equal(lookupRuNutritionTable("окорочок на гриле")?.dishName, grill!.dishName);
+
+  const skinless = lookupRuNutritionTable("окорочок без кожи");
+  assert.ok(skinless);
+  assert.equal(skinless!.dishName, "Окорочок куриный без кожи");
+  assert.equal(skinless!.portionGrams, 200);
+  assert.equal(skinless!.calories, 360);
+  assert.equal(skinless!.protein, 48);
+  assert.equal(skinless!.fat, 18);
+  assert.equal(skinless!.carbs, 0);
+  const skinless100 = scaleRuNutritionToGrams("куриное бедро без кожи", 100);
+  assert.equal(skinless100?.calories, 180);
+  assert.equal(skinless100?.protein, 24);
+  assert.equal(skinless100?.fat, 9);
+  assert.match(lookupRuNutritionTable("окорочок гриль без кожи")!.dishName, /без кожи/);
+  assert.doesNotMatch(lookupRuNutritionTable("окорочок гриль куриный")!.dishName, /без кожи/);
+});
+
 test("lookupRuNutritionTable matches peanut butter not pasta", () => {
   const hit = lookupRuNutritionTable("арахисовая паста 15г");
   assert.ok(hit);

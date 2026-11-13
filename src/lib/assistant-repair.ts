@@ -30,7 +30,13 @@ import {
   parseMealTypeKey,
 } from "@/lib/assistant-meal-time";
 import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
-import { referencePer100 } from "@/lib/assistant-meal-nutrition";
+import {
+  LEAN_FOOD_DENSITY_CAP,
+  looksEnergyDenseFood,
+  nutritionFiguresDiverge,
+  referencePer100,
+  replyKcalBreakdown,
+} from "@/lib/assistant-meal-nutrition";
 import { dishNameScore, splitQuickPortion } from "@/lib/quick-log";
 
 /** True when a patch would change something (not a bare match-only noop). */
@@ -120,15 +126,23 @@ export function replyEstimatesBareDish(
   return extractKcalFromReply(assistantReply) != null;
 }
 
-/** First plausible «250 ккал» / «~250 kcal» from the draft (ranges → midpoint). */
+/**
+ * Ккал порции или штуки. «на 100 г 240 ккал» само по себе не съеденная порция:
+ * если рядом есть «≈ 740 ккал» у куска, берём 740. Одна только плотность — запасной вариант.
+ */
 export function extractKcalFromReply(reply: string | null | undefined): number | null {
-  const t = (reply ?? "").replace(/\u00a0/g, " ");
-  const m = /(\d{2,4})(?:\s*[-–—]\s*(\d{2,4}))?\s*(?:ккал|kcal|калори)/i.exec(t);
-  if (!m) return null;
-  const a = Number(m[1]);
-  const b = m[2] ? Number(m[2]) : a;
-  const kcal = Math.round((a + b) / 2);
-  return kcal > 0 && kcal < 5000 ? kcal : null;
+  const { portionKcal, per100Kcal } = replyKcalBreakdown(reply);
+  return portionKcal ?? per100Kcal;
+}
+
+/** «на 100 г 240 ккал» — база плотности, не вес порции. */
+function stripPer100Basis(text: string): string {
+  return text
+    .replace(
+      /(?:на|за|\/)\s*100\s*(?:грамм(?:а|ов)?|гр|г|мл)\s*(?:[—–:\-]\s*)?(?:примерно|около|~|≈|∼)?\s*\d+(?:[.,]\d+)?\s*(?:ккал|kcal|калори)?/giu,
+      " ",
+    )
+    .replace(/(?:на|за|\/)\s*100\s*(?:грамм(?:а|ов)?|гр|г|мл)/giu, " ");
 }
 
 function macroFromReply(t: string, re: RegExp): number | undefined {
@@ -254,7 +268,7 @@ function withoutMacroAmounts(text: string): string {
  * «(Б 12 г)» не подходит: после скобки не число.
  */
 function portionGramsFromReply(reply: string): number | undefined {
-  const t = reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " ");
+  const t = stripPer100Basis(reply.toLowerCase().replace(/ё/g, "е").replace(/\u00a0/g, " "));
   const scoped = withoutMacroAmounts(t);
   // «(3 шт. ≈ 150 г)», «(≈ 30 г)», «порция около 180 г» — последняя названная порция.
   const marked = new RegExp(
@@ -290,14 +304,38 @@ export function heuristicRepairFromProseKcal(
   userMessage: string,
   assistantReply: string,
 ): AssistantActions | null {
-  const kcal = extractKcalFromReply(assistantReply);
+  const { portionKcal, per100Kcal } = replyKcalBreakdown(assistantReply);
+  let kcal = portionKcal ?? per100Kcal;
   if (kcal == null) return null;
   const name = dishNameFromUserLog(userMessage);
   if (!name) return null;
-  const { protein, fat, carbs } = macrosFromReply(assistantReply);
-  const grams =
-    parsePortionGramsFromMessage(userMessage) ?? portionGramsFromReply(assistantReply);
+  let { protein, fat, carbs } = macrosFromReply(assistantReply);
+  const userGrams = parsePortionGramsFromMessage(userMessage);
+  let grams = userGrams ?? portionGramsFromReply(assistantReply);
+  let fromTable = false;
+  // «(100 г) — 740 ккал» у нежирного продукта: 740 — ккал куска, 100 г подставлены отдельно.
+  if (
+    userGrams == null &&
+    grams != null &&
+    !looksEnergyDenseFood(name) &&
+    (kcal / grams) * 100 > LEAN_FOOD_DENSITY_CAP
+  ) {
+    const pack = lookupRuNutritionTable(name);
+    if (pack && pack.portionGrams > 0) {
+      grams = Math.round(pack.portionGrams);
+      kcal = Math.round(pack.calories);
+      fromTable = true;
+      if (protein == null && fat == null && carbs == null) {
+        protein = pack.protein;
+        fat = pack.fat;
+        carbs = pack.carbs;
+      }
+    } else {
+      grams = undefined;
+    }
+  }
   const { note, targetDate } = mealMetaFromMessage(userMessage, assistantReply);
+  const pack = fromTable ? lookupRuNutritionTable(name) : null;
   return {
     apply: true,
     targetDate,
@@ -310,6 +348,9 @@ export function heuristicRepairFromProseKcal(
         protein,
         fat,
         carbs,
+        ...(fromTable && pack
+          ? { nutritionBasis: "estimate" as const, per100: referencePer100(pack), grams }
+          : {}),
         note,
       },
     ],
@@ -822,7 +863,7 @@ function mealLineFromFragment(
 
   if (!rest || rest.length < 2) return null;
 
-  const forPortion = stripMacroGramLabels(rest);
+  const forPortion = stripPer100Basis(stripMacroGramLabels(rest));
   const portion = parsePortionGramsFromMessage(forPortion);
   const pieces = parsePieceCountFromMessage(forPortion);
   const drinkQ = drinkLookupQuery(rest);
@@ -1756,6 +1797,81 @@ export async function repairAssistantWriteActions(opts: {
   return salvageNutrientLabelMeals(actions, opts.userMessage, opts.assistantReply);
 }
 
+function typicalPortionGrams(meal: { name: string; kcal?: number }): number | null {
+  // «2 шт» уже порция. Типовые граммы одной штуки сюда не подставляем.
+  if (/\d+\s*шт/iu.test(meal.name)) return null;
+  const pack = lookupRuNutritionTable(splitQuickPortion(meal.name).base);
+  if (!pack || !(pack.portionGrams > 0)) return null;
+  if (typeof meal.kcal === "number" && nutritionFiguresDiverge(meal.kcal, pack.calories)) return null;
+  return Math.round(pack.portionGrams);
+}
+
+/**
+ * Справочник уже дал типовую штуку. Если черновик назвал правдоподобную порцию
+ * («~300 г ≈ 740 ккал» при плотности справочника), берём её. «(100 г) — 740 ккал»
+ * у нежирного продукта не берём: это ккал куска, приклеенные к 100 г.
+ */
+function applyReplyPortionIfPlausible(
+  tableActions: AssistantActions,
+  userMessage: string,
+  assistantReply: string,
+): AssistantActions {
+  const meals = tableActions.meals;
+  const meal = meals?.[0];
+  if (!meals || !meal || meals.length !== 1) return tableActions;
+  if (parsePortionGramsFromMessage(userMessage) != null) return tableActions;
+
+  const { portionKcal } = replyKcalBreakdown(assistantReply);
+  const replyGrams = portionGramsFromReply(assistantReply);
+  const refPer100 = meal.per100?.calories ?? 0;
+  const baseName = dishNameFromUserLog(userMessage) || splitQuickPortion(meal.name).base;
+  const dense = looksEnergyDenseFood(baseName);
+  const pieceDensity =
+    portionKcal != null && replyGrams != null && replyGrams > 0
+      ? (portionKcal / replyGrams) * 100
+      : null;
+  const piecePlausible =
+    pieceDensity != null &&
+    portionKcal != null &&
+    replyGrams != null &&
+    (dense || pieceDensity <= LEAN_FOOD_DENSITY_CAP) &&
+    (refPer100 <= 0 || !nutritionFiguresDiverge(pieceDensity, refPer100));
+
+  if (piecePlausible && portionKcal != null && replyGrams != null) {
+    const statedMacros = macrosFromReply(assistantReply);
+    const hasMacro =
+      statedMacros.protein != null || statedMacros.fat != null || statedMacros.carbs != null;
+    return {
+      ...tableActions,
+      meals: [
+        {
+          name: `${baseName} (${replyGrams} г)`.slice(0, 120),
+          kcal: portionKcal,
+          grams: replyGrams,
+          ...(hasMacro ? statedMacros : {}),
+          note: meal.note,
+        },
+      ],
+    };
+  }
+
+  const typical = typicalPortionGrams(meal);
+  if (typical == null) return tableActions;
+  const named = splitQuickPortion(meal.name);
+  const base = named.base.trim() || meal.name.trim();
+  if (named.grams != null) return tableActions;
+  return {
+    ...tableActions,
+    meals: [
+      {
+        ...meal,
+        grams: typical,
+        name: `${base} (${typical} г)`.slice(0, 120),
+      },
+    ],
+  };
+}
+
 async function repairAssistantWriteActionsInner(opts: {
   userMessage: string;
   assistantReply: string;
@@ -1791,7 +1907,9 @@ async function repairAssistantWriteActionsInner(opts: {
   if (fromDraft) return fromDraft;
 
   const heuristic = heuristicRepairWriteActions(opts.userMessage);
-  if (heuristic) return heuristic;
+  if (heuristic) {
+    return applyReplyPortionIfPlausible(heuristic, opts.userMessage, opts.assistantReply);
+  }
 
   const system = [
     "Ты извлекаешь действия записи для Calorie Vision.",
