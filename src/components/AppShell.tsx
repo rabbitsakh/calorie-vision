@@ -131,7 +131,7 @@ export function AppShell({
                 <BrandMark size={compact ? 44 : 52} className="hidden md:block" />
                 <span className="app-chrome__wordmark truncate">
                   Calorie Vision
-                  {compact && !hideTitleOnMobile && !theaterChrome ? (
+                  {compact ? (
                     <span className="app-chrome__wordmark-sub md:hidden">{title}</span>
                   ) : null}
                 </span>

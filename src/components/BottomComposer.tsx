@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { QuickLogSheet } from "@/components/QuickLogSheet";
 import { subscribeConnectivity } from "@/lib/connectivity";
 import {
   requestOpenFoodAddPicker,
-  requestOpenFoodBarcode,
   requestOpenFoodCamera,
   requestOpenFoodText,
 } from "@/lib/open-food-camera";
 import { withDateQuery } from "@/lib/use-selected-date";
-import {
-  createRuSpeechRecognition,
-  isSpeechRecognitionSupported,
-  type SpeechRecognitionLike,
-} from "@/lib/speech-recognition";
 
 type Props = {
   date?: string;
@@ -41,14 +35,9 @@ const ICON = {
 export function BottomComposer({ date, disabled = false }: Props) {
   const [text, setText] = useState("");
   const [online, setOnline] = useState(true);
-  const [voice, setVoice] = useState(false);
-  const [listening, setListening] = useState(false);
   const [sheetText, setSheetText] = useState<string | null>(null);
-  const speechRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => subscribeConnectivity(setOnline), []);
-  useEffect(() => setVoice(isSpeechRecognitionSupported()), []);
-  useEffect(() => () => speechRef.current?.stop(), []);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -65,34 +54,6 @@ export function BottomComposer({ date, disabled = false }: Props) {
   };
 
   const assistantHref = date ? withDateQuery("/assistant", date) : "/assistant";
-
-  const toggleVoice = () => {
-    if (listening) {
-      speechRef.current?.stop();
-      return;
-    }
-    const rec = createRuSpeechRecognition();
-    if (!rec) {
-      setVoice(false);
-      return;
-    }
-    speechRef.current = rec;
-    rec.onresult = (event) => {
-      const said = event.results[0]?.[0]?.transcript?.trim();
-      if (said) setText((prev) => (prev ? `${prev} ${said}` : said));
-    };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => {
-      setListening(false);
-      speechRef.current = null;
-    };
-    try {
-      rec.start();
-      setListening(true);
-    } catch {
-      setListening(false);
-    }
-  };
 
   const closeSheet = useCallback(() => setSheetText(null), []);
   const hasText = text.trim().length > 0;
@@ -115,9 +76,7 @@ export function BottomComposer({ date, disabled = false }: Props) {
           className="bottom-composer-input"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={
-            listening ? "Слушаю…" : online ? "Что съел? Напиши…" : "Нет сети — откроем ввод текстом"
-          }
+          placeholder={online ? "Что съел? Напиши…" : "Нет сети — откроем ввод текстом"}
           enterKeyHint="send"
           autoComplete="off"
           disabled={disabled}
@@ -136,32 +95,6 @@ export function BottomComposer({ date, disabled = false }: Props) {
           </button>
         ) : (
           <>
-            <button
-              type="button"
-              className="bottom-composer-btn"
-              aria-label="Штрихкод"
-              disabled={disabled}
-              onClick={() => requestOpenFoodBarcode()}
-            >
-              <svg {...ICON}>
-                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M14 8v8M17 8v8" />
-              </svg>
-            </button>
-            {voice ? (
-              <button
-                type="button"
-                className={`bottom-composer-btn${listening ? " bottom-composer-btn--live" : ""}`}
-                aria-label={listening ? "Остановить диктовку" : "Сказать голосом"}
-                aria-pressed={listening}
-                disabled={disabled}
-                onClick={toggleVoice}
-              >
-                <svg {...ICON}>
-                  <rect x="9" y="2" width="6" height="12" rx="3" />
-                  <path d="M5 10a7 7 0 0 0 14 0M12 17v4" />
-                </svg>
-              </button>
-            ) : null}
             <button
               type="button"
               className="bottom-composer-btn"

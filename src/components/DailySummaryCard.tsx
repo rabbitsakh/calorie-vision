@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useFoodAddUi } from "@/components/FoodAddHost";
-import { StageScreen, type StageMetric } from "@/components/StageScreen";
+import { Button } from "@/components/ds/ui";
 import { formatDateShort } from "@/lib/dates";
-import { formatCalorieVsTargetLabel } from "@/lib/diet";
 import { formatWaterLiters } from "@/lib/water-display";
 import { withBasePath } from "@/lib/paths";
 
@@ -23,7 +23,14 @@ type DailySummaryData = {
   totalSugar?: number;
   totalWaterMl: number;
   goal?: "LOSE" | "GAIN" | "MAINTAIN" | null;
-  target: { calories: number } | null;
+  target: {
+    calories: number;
+    protein?: number;
+    fat?: number;
+    carbs?: number;
+    fiber?: number;
+    sugar?: number;
+  } | null;
   comparison: { calories: { kind: "deficit" | "surplus" | "even" } } | null;
   tip: string;
   hasData: boolean;
@@ -38,6 +45,44 @@ function isSummarySeen(today: string): boolean {
   }
 }
 
+function onboardingStillOpen(): boolean {
+  try {
+    return localStorage.getItem("cv-onboarding-v1") !== "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Words for the old «К цели / дефицит» tile. Display only. */
+function explainDayCalories(data: DailySummaryData): string {
+  const target = data.target?.calories ?? 0;
+  if (!(target > 0) || data.totalCalories <= 0) {
+    return data.tip || "За этот день записей почти нет.";
+  }
+  const diff = Math.round(data.totalCalories - target);
+  const band = data.goal === "MAINTAIN" ? 0.1 : 0.05;
+  const amount = Math.abs(diff).toLocaleString("ru-RU");
+  if (Math.abs(diff) <= Math.max(1, Math.round(target * band))) {
+    return "В цели: съедено около нормы этого дня.";
+  }
+  if (diff < 0) {
+    if (data.goal === "LOSE") {
+      return `Дефицит ${amount} ккал: съедено меньше нормы. Для похудения это запас, а не долг добрать.`;
+    }
+    if (data.goal === "GAIN") {
+      return `До цели ещё ${amount} ккал — норма дня не закрыта.`;
+    }
+    return `Ниже коридора на ${amount} ккал.`;
+  }
+  if (data.goal === "GAIN") {
+    return `Профицит ${amount} ккал: съедено больше нормы. Для набора это плюс.`;
+  }
+  if (data.goal === "LOSE") {
+    return `Сверх цели на ${amount} ккал: съедено больше нормы дня.`;
+  }
+  return `Выше коридора на ${amount} ккал.`;
+}
+
 function markSummarySeen(today: string): void {
   if (typeof window === "undefined") return;
   try {
@@ -49,14 +94,18 @@ function markSummarySeen(today: string): void {
 
 type DailySummaryCardProps = {
   today: string;
+  /** Стенд: показать сводку без запроса к API. */
+  previewData?: DailySummaryData;
 };
 
-export function DailySummaryCard({ today }: DailySummaryCardProps) {
+export function DailySummaryCard({ today, previewData }: DailySummaryCardProps) {
   const { sheetOpen } = useFoodAddUi();
-  const [data, setData] = useState<DailySummaryData | null>(null);
-  const [visible, setVisible] = useState(false);
+  const [data, setData] = useState<DailySummaryData | null>(previewData ?? null);
+  const [visible, setVisible] = useState(Boolean(previewData));
 
   useEffect(() => {
+    if (previewData) return;
+    if (onboardingStillOpen()) return;
     if (isSummarySeen(today)) return;
 
     void (async () => {
@@ -71,7 +120,7 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
         // non-critical
       }
     })();
-  }, [today]);
+  }, [today, previewData]);
 
   // Don’t cover the «+» sheet / tab interactions while adding food.
   if (!visible || !data || sheetOpen) return null;
@@ -81,84 +130,53 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
     setVisible(false);
   }
 
-  const entryCount = data.entryCount ?? data.mealCount;
+  const calorieLine =
+    data.target && data.target.calories > 0
+      ? `${Math.round(data.totalCalories).toLocaleString("ru-RU")} из ${Math.round(data.target.calories).toLocaleString("ru-RU")} ккал`
+      : data.totalCalories > 0
+        ? `${Math.round(data.totalCalories).toLocaleString("ru-RU")} ккал`
+        : "Нет записей еды";
 
-  const calorieLabel =
-    data.totalCalories > 0 ? `${data.totalCalories} ккал` : "нет записей";
-
-  const vsTarget =
-    data.target && data.totalCalories > 0
-      ? formatCalorieVsTargetLabel(data.totalCalories, data.target.calories, data.goal)
-      : "";
-
-  const waterLabel = data.totalWaterMl > 0 ? `${formatWaterLiters(data.totalWaterMl)} л` : "—";
-
-  const deltaLabel =
-    data.comparison?.calories.kind === "deficit"
-      ? "дефицит"
-      : data.comparison?.calories.kind === "surplus"
-        ? "профицит"
-        : data.comparison?.calories.kind === "even"
-          ? "в норме"
-          : vsTarget || "—";
-
-  const metrics: StageMetric[] = [
-    {
-      key: "kcal",
-      label: "Калории",
-      value: (
-        <>
-          {calorieLabel}
-          {vsTarget ? (
-            <span className="mt-0.5 block text-xs font-normal text-white/70">{vsTarget}</span>
-          ) : null}
-        </>
-      ),
-    },
-    {
-      key: "macro",
-      label: "БЖУ",
-      value:
-        entryCount > 0 ? (
-          <span className="flex flex-col gap-0.5 text-base leading-snug">
-            <span>Б {Math.round(data.totalProtein)} г</span>
-            <span>Ж {Math.round(data.totalFat)} г</span>
-            <span>У {Math.round(data.totalCarbs)} г</span>
-          </span>
-        ) : (
-          "—"
-        ),
-    },
-    { key: "delta", label: "К цели", value: deltaLabel },
-    {
-      key: "water",
-      label: "Вода",
-      value: waterLabel,
-      accent: data.totalWaterMl > 0,
-    },
-  ];
-
-  const fiberSugar = [
-    data.totalFiber != null && data.totalFiber > 0
-      ? `клетчатка ${Math.round(data.totalFiber)} г`
+  const macroLine = [
+    data.target?.protein
+      ? `белки ${Math.round(data.totalProtein)} из ${Math.round(data.target.protein)} г`
       : null,
-    data.totalSugar != null && data.totalSugar > 0
-      ? `сахар ${Math.round(data.totalSugar)} г`
+    data.target?.fat ? `жиры ${Math.round(data.totalFat)} из ${Math.round(data.target.fat)} г` : null,
+    data.target?.carbs
+      ? `углеводы ${Math.round(data.totalCarbs)} из ${Math.round(data.target.carbs)} г`
       : null,
-  ].filter(Boolean);
+    data.target?.fiber
+      ? `клетчатка ${Math.round(data.totalFiber ?? 0)} из ${Math.round(data.target.fiber)} г`
+      : data.totalFiber
+        ? `клетчатка ${Math.round(data.totalFiber)} г`
+        : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  return (
-    <StageScreen
-      eyebrow="Итог дня"
-      headline={formatDateShort(data.date)}
-      subline={data.tip}
-      metrics={metrics}
-      primaryAction={{ label: "К рациону", onClick: dismiss }}
-      onDismiss={dismiss}
-    >
-      {entryCount > 0 && fiberSugar.length > 0 ? (
-        <p className="text-sm text-[var(--muted)]">{fiberSugar.join(" · ")}</p>
-      ) : null}
-    </StageScreen>
+  const waterLine =
+    data.totalWaterMl > 0 ? `Вода ${formatWaterLiters(data.totalWaterMl)} л` : null;
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="day-summary-sheet" role="dialog" aria-modal="true" aria-labelledby="day-summary-title">
+      <button type="button" className="day-summary-sheet__scrim" aria-label="Закрыть итог дня" onClick={dismiss} />
+      <div className="day-summary-sheet__panel">
+        <p className="ds-eyebrow">Итог дня</p>
+        <h2 id="day-summary-title" className="mt-2 font-display text-xl font-semibold tracking-tight">
+          {formatDateShort(data.date)}
+        </h2>
+        <p className="ds-num mt-3 text-[1.2rem] font-extrabold leading-tight">{calorieLine}</p>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">{explainDayCalories(data)}</p>
+        {macroLine ? <p className="ds-num mt-3 text-sm text-[var(--foreground)]">{macroLine}</p> : null}
+        {waterLine ? <p className="ds-num mt-1 text-sm text-[var(--muted-strong)]">{waterLine}</p> : null}
+        {data.tip ? <p className="mt-3 text-sm text-[var(--muted)]">{data.tip}</p> : null}
+        <Button className="mt-4 w-full" onClick={dismiss}>
+          К рациону
+        </Button>
+      </div>
+    </div>,
+    document.documentElement,
   );
 }
