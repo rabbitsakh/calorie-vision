@@ -2,7 +2,8 @@ import { undereatSuggestionTip } from "@/lib/motivation-voice";
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
-import { DIET_PROFILE_SELECT, isSex, isWeightGoal, recommendDietForProfile, round1 } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT, isSex, isWeightGoal, round1 } from "@/lib/diet";
 import { shiftDateKey } from "@/lib/dates";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
@@ -228,7 +229,8 @@ export async function GET(request: NextRequest) {
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
     const sex = isSex(user?.sex) ? user!.sex : null;
-    const target = recommendDietForProfile(weight?.weightKg, user);
+    const norm = date ? await loadDayNorm(session.user.id, date) : null;
+    const target = norm?.target ?? null;
 
     if (!goal || !weight || !target) {
       return NextResponse.json({

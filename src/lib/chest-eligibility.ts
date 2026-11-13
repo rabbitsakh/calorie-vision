@@ -3,6 +3,7 @@ import { toDateKeyTz } from "@/lib/dates";
 import { computeDailyQuests } from "@/lib/daily-quests";
 import { buildStreakPayload } from "@/lib/streak-payload";
 import { CELEBRATION_STREAK_MILESTONES } from "@/lib/streak-chest";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import { resolveWaterTargetMl } from "@/lib/water-target";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -110,7 +111,8 @@ export async function assertQuestDayEligible(
       _sum: { ml: true },
     }),
   ]);
-  const waterTarget = resolveWaterTargetMl(user?.waterTargetMl);
+  const norm = await loadDayNorm(userId, date);
+  const waterTarget = norm?.target.waterMl ?? resolveWaterTargetMl(user?.waterTargetMl);
   const waterMl = waterAgg._sum.ml ?? 0;
   const { allDone } = computeDailyQuests({
     mealCount,

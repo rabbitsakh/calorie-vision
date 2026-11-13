@@ -4,9 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
 import { sendPushNotification } from "@/lib/push";
 import { describePushDeliveryFailure } from "@/lib/push-delivery-error";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import {
   buildReminderPayload,
-  computeCalorieTarget,
   computeLastWeekStats,
   computeStreakStats,
   localHour,
@@ -20,8 +20,6 @@ import {
 import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { isInGymQuietWindow } from "@/lib/push-gym-reminder";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
-
 export const dynamic = "force-dynamic";
 
 async function loadUserReminderContext(
@@ -29,7 +27,7 @@ async function loadUserReminderContext(
   today: string,
   timezone: string,
 ): Promise<UserReminderContext> {
-  const [meals, waterTotal, diary, user, latestWeight, recentMeals, freezes, workoutSessions] =
+  const [meals, waterTotal, diary, user, recentMeals, freezes, workoutSessions] =
     await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId, date: today },
@@ -46,11 +44,6 @@ async function loadUserReminderContext(
       prisma.user.findUnique({
         where: { id: userId },
         select: { ...DIET_PROFILE_SELECT, waterTargetMl: true },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId },
-        orderBy: weightEntryOrderNewestFirst,
-        select: { weightKg: true },
       }),
       prisma.mealEntry.findMany({
         where: { userId },
@@ -82,10 +75,8 @@ async function loadUserReminderContext(
   const weekStats = computeLastWeekStats(mealDates, today, timezone);
 
   const totalCalories = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const calorieTarget = computeCalorieTarget({
-    ...user,
-    latestWeightKg: latestWeight?.weightKg ?? null,
-  });
+  const dayNorm = await loadDayNorm(userId, today);
+  const calorieTarget = dayNorm?.target.calories ?? null;
 
   const lastMealDate = mealDates[0] ?? null;
   let daysSinceLastMeal: number | null = null;

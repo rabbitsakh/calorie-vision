@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { completeChat } from "@/lib/ai/gigachat";
 import { mondayOfWeek, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT, round1 } from "@/lib/diet";
 import {
   checkTipRateLimit,
   readTipCache,
@@ -12,7 +13,6 @@ import {
 } from "@/lib/gigachat-tip-guard";
 import { prisma } from "@/lib/prisma";
 import { buildStreakPayload } from "@/lib/streak-payload";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import {
   buildWeeklyGymRationDigest,
   ruleWeeklyDigestTip,
@@ -84,17 +84,13 @@ export async function GET(request: NextRequest) {
     const prevWeekEnd = shiftDateKey(weekStart, -1);
     const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(weekStart, i));
 
-    const [meals, weight, history, streakPayload] = await Promise.all([
+    const [meals, history, streakPayload] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
           date: { gte: weekStart, lte: weekEnd },
         },
         select: { date: true, calories: true, protein: true },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderNewestFirst,
       }),
       prisma.workoutSession.findMany({
         where: {
@@ -122,7 +118,8 @@ export async function GET(request: NextRequest) {
     const avgProtein =
       daysWithMeals.length > 0 ? round1(totalProtein / daysWithMeals.length) : 0;
 
-    const target = recommendDietForProfile(weight?.weightKg, user);
+    const norm = await loadDayNorm(session.user.id, today);
+    const target = norm?.target ?? null;
 
     const summaries = history.map(serializeSessionSummary);
     const periodSessions = summaries.map((s) => ({

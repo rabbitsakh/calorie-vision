@@ -1,6 +1,7 @@
 import type { PushPayload } from "@/lib/push";
 import { rationMealLink, reminderDeepLink, workoutsDeepLink } from "@/lib/push-deeplink";
-import { recommendDietForProfile, type DietProfileFields } from "@/lib/diet";
+import { resolvePlanNorm } from "@/lib/day-norm";
+import { type DietProfileFields } from "@/lib/diet";
 import { computeStreakFromSet, shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 import {
   effectiveReminderSchedule,
@@ -140,7 +141,7 @@ function waterProgressLine(waterMl: number, targetMl: number): string {
 export function computeCalorieTarget(
   input: DietProfileFields & { latestWeightKg: number | null | undefined },
 ): number | null {
-  return recommendDietForProfile(input.latestWeightKg, input)?.calories ?? null;
+  return resolvePlanNorm(input.latestWeightKg, input)?.target.calories ?? null;
 }
 
 export function computeStreakStats(mealDates: string[], frozenDates: string[], today: string) {

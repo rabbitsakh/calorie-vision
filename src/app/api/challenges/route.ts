@@ -9,13 +9,12 @@ import {
   recommendChallengeKey,
   weekStartMonday,
 } from "@/lib/challenges";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import {
   DIET_PROFILE_SELECT,
   isCalorieGoalCorridor,
   isWeightGoal,
-  recommendDietForProfile,
 } from "@/lib/diet";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { computeChallengeProgress } from "@/lib/challenge-progress";
 
 export const dynamic = "force-dynamic";
@@ -38,12 +37,8 @@ async function weekHabitSnapshot(userId: string, weekStart: string, today: strin
     select: { ...DIET_PROFILE_SELECT },
   });
   const goal = user?.goal && isWeightGoal(user.goal) ? user.goal : null;
-  const weight = await prisma.weightEntry.findFirst({
-    where: { userId },
-    orderBy: weightEntryOrderNewestFirst,
-  });
-  const diet = recommendDietForProfile(weight?.weightKg, user);
-  const calorieTarget = diet?.calories ?? null;
+  const norm = await loadDayNorm(userId, today);
+  const calorieTarget = norm?.target.calories ?? null;
 
   const [breakfast, dinner, logDays, water, weigh, corridor, gym] = await Promise.all([
     computeProgress(userId, "breakfast_7", weekStart),
@@ -189,12 +184,8 @@ export async function POST(request: NextRequest) {
     const today = toDateKeyTz(new Date(), timezone);
     const weekStart = weekStartMonday(today, timezone);
     const goal = user?.goal && isWeightGoal(user.goal) ? user.goal : null;
-    const weight = await prisma.weightEntry.findFirst({
-      where: { userId: session.user.id },
-      orderBy: weightEntryOrderNewestFirst,
-    });
-    const diet = recommendDietForProfile(weight?.weightKg, user);
-    const progressOpts = { calorieTarget: diet?.calories ?? null, goal };
+    const norm = await loadDayNorm(session.user.id, today);
+    const progressOpts = { calorieTarget: norm?.target.calories ?? null, goal };
 
     const existing = await prisma.userChallenge.findUnique({
       where: { userId_weekStart: { userId: session.user.id, weekStart } },

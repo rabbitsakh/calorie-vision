@@ -2,17 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import {
-  applyFiberSugarOverrides,
   DIET_PROFILE_SELECT,
   isWeightGoal,
-  recommendDietForProfile,
   round1,
   compareNutrient,
   buildGoalAwareCalorieTip,
 } from "@/lib/diet";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
-
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
@@ -36,14 +33,10 @@ export async function GET(request: NextRequest) {
     const dateParam = request.nextUrl.searchParams.get("date");
     const summaryDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : yesterday;
 
-    const [entries, weight, waterEntries] = await Promise.all([
+    const [entries, waterEntries] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: summaryDate },
         select: { calories: true, protein: true, fat: true, carbs: true, fiber: true, sugar: true },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id, date: { lte: summaryDate } },
-        orderBy: weightEntryOrderNewestFirst,
       }),
       prisma.waterEntry.findMany({
         where: { userId: session.user.id, date: summaryDate },
@@ -60,13 +53,8 @@ export async function GET(request: NextRequest) {
     const totalWaterMl = waterEntries.reduce((sum, e) => sum + e.ml, 0);
 
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const rawTarget = recommendDietForProfile(weight?.weightKg, user);
-    const target = rawTarget
-      ? applyFiberSugarOverrides(rawTarget, {
-          fiberTargetG: user?.fiberTargetG,
-          sugarTargetG: user?.sugarTargetG,
-        })
-      : null;
+    const norm = await loadDayNorm(session.user.id, summaryDate);
+    const target = norm?.target ?? null;
 
     let tip: string;
     if (entries.length === 0) {

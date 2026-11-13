@@ -10,11 +10,13 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
 import { clearCapacitorResumeToken } from "@/lib/capacitor-resume";
 import { isLikelyOfflineError } from "@/lib/connectivity";
+import { resolvePlanNorm } from "@/lib/day-norm";
 import {
   ACTIVITY_OPTIONS,
   SEX_OPTIONS,
   isActivityLevel,
   isSex,
+  isWeightGoal,
   type ActivityLevel,
   type Sex,
 } from "@/lib/diet";
@@ -212,6 +214,47 @@ export function ProfileForm() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(withBasePath("/api/profile"));
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          goal?: string | null;
+          goalPace?: string | null;
+          currentWeightKg?: number | null;
+        };
+        if (cancelled) return;
+        if (!isWeightGoal(data.goal) || data.currentWeightKg == null) {
+          setPlanNormText(null);
+          return;
+        }
+        const norm = resolvePlanNorm(data.currentWeightKg, {
+          goal: data.goal,
+          goalPace: data.goalPace,
+          sex: sex || null,
+          heightCm: heightCm.trim() ? Number(heightCm) : null,
+          birthYear: birthYear.trim() ? Number(birthYear) : null,
+          activityLevel: activityLevel || null,
+          fiberTargetG: fiberTargetG.trim() ? Number(fiberTargetG) : null,
+          sugarTargetG: sugarTargetG.trim() ? Number(sugarTargetG) : null,
+          waterTargetMl: waterTargetMl.trim() ? Number(waterTargetMl) : null,
+        });
+        setPlanNormText(
+          norm
+            ? `${norm.target.calories} ккал · белок ${norm.target.protein} г · вода ${norm.target.waterMl} мл`
+            : null,
+        );
+      } catch {
+        if (!cancelled) setPlanNormText(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sex, heightCm, birthYear, activityLevel, fiberTargetG, sugarTargetG, waterTargetMl]);
+
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
     if (offlineView) {
@@ -366,6 +409,7 @@ export function ProfileForm() {
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || "Пользователь";
   const [openContacts, setOpenContacts] = useState(false);
   const [openNorm, setOpenNorm] = useState(false);
+  const [planNormText, setPlanNormText] = useState<string | null>(null);
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openTimezone, setOpenTimezone] = useState(false);
   const [openExport, setOpenExport] = useState(false);
@@ -567,6 +611,11 @@ export function ProfileForm() {
                   ))}
                 </select>
               </div>
+              {planNormText ? (
+                <p className="sm:col-span-2 text-sm font-semibold text-[var(--accent-ink)]" data-testid="profile-day-norm">
+                  Норма дня: {planNormText}
+                </p>
+              ) : null}
               <div className="sm:col-span-2">
                 <MedicalDisclaimerNote />
               </div>

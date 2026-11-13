@@ -5,13 +5,15 @@
 
 import { prisma } from "@/lib/prisma";
 import { toDateKeyTz } from "@/lib/dates";
+import { resolveDayNorm } from "@/lib/day-norm";
 import {
   DIET_PROFILE_SELECT,
+  isGoalPace,
+  isActivityLevel,
   isSex,
-  recommendDietForProfile,
-  round1,
+  isWeightGoal,
 } from "@/lib/diet";
-import { isNotableTrainingSession, trainingProteinBonusG } from "@/lib/training-day";
+import { isNotableTrainingSession } from "@/lib/training-day";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import {
   decideGymChestGrant,
@@ -209,13 +211,20 @@ export async function loadGymBadgeSnapshot(userId: string): Promise<GymRewardSum
     exercises: session.exercises,
   }));
 
-  const diet = recommendDietForProfile(weight?.weightKg, user);
-  const baseProtein = diet?.protein ?? 0;
   const sex = isSex(user?.sex) ? user.sex : null;
-  const bonus =
-    weight?.weightKg && weight.weightKg > 0
-      ? trainingProteinBonusG(weight.weightKg, sex, user?.heightCm)
-      : 0;
+  const goal = user?.goal && isWeightGoal(user.goal) ? user.goal : null;
+  const plan =
+    goal && weight?.weightKg
+      ? resolveDayNorm({
+          weightKg: weight.weightKg,
+          goal,
+          pace: isGoalPace(user?.goalPace) ? user.goalPace : null,
+          sex,
+          heightCm: user?.heightCm,
+          birthYear: user?.birthYear,
+          activity: isActivityLevel(user?.activityLevel) ? user.activityLevel : null,
+        })
+      : null;
 
   const byDate = new Map<string, GymRewardSession[]>();
   for (const session of rewardSessions) {
@@ -226,7 +235,7 @@ export async function loadGymBadgeSnapshot(userId: string): Promise<GymRewardSum
 
   const proteinTargetByDate: Record<string, number> = {};
   for (const [date, daySessions] of byDate) {
-    if (!(baseProtein > 0)) {
+    if (!plan) {
       proteinTargetByDate[date] = 0;
       continue;
     }
@@ -243,7 +252,18 @@ export async function loadGymBadgeSnapshot(userId: string): Promise<GymRewardSum
         })),
       }),
     );
-    proteinTargetByDate[date] = notable ? round1(baseProtein + bonus) : baseProtein;
+    proteinTargetByDate[date] = notable
+      ? resolveDayNorm({
+          weightKg: weight!.weightKg,
+          goal: goal!,
+          pace: isGoalPace(user?.goalPace) ? user.goalPace : null,
+          sex,
+          heightCm: user?.heightCm,
+          birthYear: user?.birthYear,
+          activity: isActivityLevel(user?.activityLevel) ? user.activityLevel : null,
+          trainingDay: true,
+        }).target.protein
+      : plan.target.protein;
   }
 
   const proteinByDate: Record<string, number> = {};

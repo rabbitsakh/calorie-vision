@@ -1,9 +1,9 @@
 import { createTransport } from "nodemailer";
 import { prisma } from "@/lib/prisma";
 import { dateRangeEnding, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, recommendDietForProfile } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT } from "@/lib/diet";
 import { resolveEmailServer } from "@/lib/email-auth";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export type WeeklyDigestSummary = {
@@ -37,7 +37,7 @@ export async function loadWeeklyDigestSummary(
   const dates = dateRangeEnding(end, 7);
   const start = dates[0]!;
 
-  const [meals, waterEntries, weight] = await Promise.all([
+  const [meals, waterEntries] = await Promise.all([
     prisma.mealEntry.findMany({
       where: { userId, date: { gte: start, lte: end } },
       select: { date: true, calories: true },
@@ -45,10 +45,6 @@ export async function loadWeeklyDigestSummary(
     prisma.waterEntry.findMany({
       where: { userId, date: { gte: start, lte: end } },
       select: { date: true, ml: true },
-    }),
-    prisma.weightEntry.findFirst({
-      where: { userId },
-      orderBy: weightEntryOrderNewestFirst,
     }),
   ]);
 
@@ -72,7 +68,8 @@ export async function loadWeeklyDigestSummary(
       ? Math.round(waterDays.reduce((s, d) => s + (waterByDate.get(d) ?? 0), 0) / waterDays.length)
       : 0;
 
-  const target = recommendDietForProfile(weight?.weightKg, user);
+  const norm = await loadDayNorm(userId, end);
+  const target = norm?.target ?? null;
 
   const insights: string[] = [];
   if (daysWithMeals.length >= 5) {

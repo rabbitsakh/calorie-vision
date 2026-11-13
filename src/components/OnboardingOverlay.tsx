@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Mascot } from "@/components/Mascot";
 import { setPwaOnboardingSeen } from "@/components/PwaInstallWizard";
+import { resolveDayNorm } from "@/lib/day-norm";
 import {
+  ACTIVITY_OPTIONS,
   GOAL_OPTIONS,
   SEX_OPTIONS,
-  recommendDiet,
+  type ActivityLevel,
   type Sex,
   type WeightGoal,
 } from "@/lib/diet";
@@ -32,7 +34,7 @@ const STEPS: Array<{ id: StepId; title: string; body: string; pose: "tip" | "che
   {
     id: "params",
     title: "Параметры и норма",
-    body: "Пол, вес и возраст — сразу посчитаем калории на день.",
+    body: "Пол, рост, вес, возраст и активность — сразу посчитаем ту же норму, что будет в профиле.",
     pose: "tip",
   },
   {
@@ -67,7 +69,9 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
   const [goal, setGoal] = useState<WeightGoal>("LOSE");
   const [sex, setSex] = useState<Sex>("FEMALE");
   const [weightKg, setWeightKg] = useState("70");
+  const [heightCm, setHeightCm] = useState("165");
   const [age, setAge] = useState("30");
+  const [activity, setActivity] = useState<ActivityLevel>("LIGHT");
   const [saving, setSaving] = useState(false);
 
   const steps = STEPS;
@@ -77,10 +81,24 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
     return new Date().getFullYear() - Math.round(a);
   }, [age]);
   const weightNum = Number(weightKg);
+  const heightNum = Number(heightCm);
   const liveTarget = useMemo(() => {
     if (!Number.isFinite(weightNum) || weightNum < 30 || weightNum > 250) return null;
-    return recommendDiet(weightNum, goal, "HEALTHY", sex, null, birthYear, "LIGHT");
-  }, [weightNum, goal, sex, birthYear]);
+    if (!Number.isFinite(heightNum) || heightNum < 100 || heightNum > 250) return null;
+    return resolveDayNorm({
+      weightKg: weightNum,
+      goal,
+      pace: goal === "MAINTAIN" ? null : "HEALTHY",
+      sex,
+      heightCm: heightNum,
+      birthYear,
+      activity,
+    });
+  }, [weightNum, heightNum, goal, sex, birthYear, activity]);
+
+  useEffect(() => {
+    setHeightCm((prev) => (prev === "165" || prev === "175" || prev === "" ? (sex === "MALE" ? "175" : "165") : prev));
+  }, [sex]);
 
   useEffect(() => {
     setMounted(true);
@@ -121,7 +139,8 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
         body: JSON.stringify({
           sex,
           birthYear,
-          activityLevel: "LIGHT",
+          heightCm: Number.isFinite(heightNum) ? Math.round(heightNum) : null,
+          activityLevel: activity,
         }),
       });
       if (Number.isFinite(weightNum) && weightNum >= 30 && weightNum <= 250) {
@@ -137,7 +156,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
     } finally {
       setSaving(false);
     }
-  }, [goal, sex, birthYear, weightNum]);
+  }, [goal, sex, birthYear, weightNum, heightNum, activity]);
 
   const next = useCallback(async () => {
     const current = steps[step];
@@ -232,22 +251,52 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                 );
               })}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-2" aria-label="Активность">
+              {ACTIVITY_OPTIONS.map((opt) => {
+                const on = activity === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`min-h-10 rounded-full px-3 text-sm font-semibold ${
+                      on
+                        ? "bg-[var(--accent)] text-white"
+                        : "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+                    }`}
+                    aria-pressed={on}
+                    onClick={() => setActivity(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               <label className="field">
                 <span className="text-sm font-semibold text-[var(--muted-strong)]">Вес, кг</span>
                 <input
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-3 py-2 text-base font-semibold"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
                   value={weightKg}
                   onChange={(e) => setWeightKg(e.target.value)}
                   aria-label="Вес в килограммах"
                 />
               </label>
               <label className="field">
+                <span className="text-sm font-semibold text-[var(--muted-strong)]">Рост, см</span>
+                <input
+                  inputMode="numeric"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  aria-label="Рост в сантиметрах"
+                />
+              </label>
+              <label className="field">
                 <span className="text-sm font-semibold text-[var(--muted-strong)]">Возраст</span>
                 <input
                   inputMode="numeric"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-3 py-2 text-base font-semibold"
+                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   aria-label="Возраст"
@@ -255,11 +304,11 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
               </label>
             </div>
             {liveTarget ? (
-              <p className="rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-[0.975rem] font-semibold text-[var(--accent-ink)]">
-                Норма ≈ {liveTarget.calories} ккал · белок {liveTarget.protein} г
+              <p className="rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-[0.975rem] font-semibold text-[var(--accent-ink)]" data-testid="onboarding-norm">
+                Норма {liveTarget.target.calories} ккал · белок {liveTarget.target.protein} г · вода {liveTarget.target.waterMl} мл
               </p>
             ) : (
-              <p className="text-sm text-[var(--muted)]">Укажите вес 30–250 кг и возраст 14–90.</p>
+              <p className="text-sm text-[var(--muted)]">Укажите вес 30–250 кг, рост 100–250 см и возраст 14–90.</p>
             )}
           </div>
         ) : null}

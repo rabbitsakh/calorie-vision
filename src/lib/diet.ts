@@ -5,12 +5,6 @@ export type GoalPace = "SIMPLE" | "HEALTHY" | "FAST";
 export type Sex = "FEMALE" | "MALE";
 export type ActivityLevel = "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE";
 
-type DietCoeff = {
-  calorieRatio: number;
-  protein: number;
-  fat: number;
-};
-
 export const GOAL_OPTIONS: Array<{ value: WeightGoal; label: string; hint: string }> = [
   { value: "LOSE", label: "Похудеть", hint: "Дефицит калорий" },
   { value: "GAIN", label: "Набрать вес", hint: "Профицит калорий" },
@@ -24,8 +18,8 @@ export const ACTIVITY_OPTIONS: Array<{
   factor: number;
 }> = [
   { value: "SEDENTARY", label: "Сидячий", hint: "Офис, мало ходьбы", factor: 1.2 },
-  { value: "LIGHT", label: "Лёгкая активность", hint: "Ходьба в течение дня", factor: 1.25 },
-  { value: "MODERATE", label: "Умеренная", hint: "Тренировки 3–4 раза в неделю", factor: 1.55 },
+  { value: "LIGHT", label: "Лёгкая активность", hint: "Ходьба и быт", factor: 1.375 },
+  { value: "MODERATE", label: "Умеренная", hint: "Физтруд или спорт почти каждый день", factor: 1.55 },
   { value: "ACTIVE", label: "Высокая", hint: "Ежедневный спорт или физтруд", factor: 1.725 },
 ];
 
@@ -60,20 +54,22 @@ const DEFAULT_AGE = 35;
 const HEIGHT_CM: Record<Sex, number> = { FEMALE: 165, MALE: 175 };
 const MIN_CALORIES: Record<Sex, number> = { FEMALE: 1200, MALE: 1500 };
 
-const MAINTAIN_COEFF: DietCoeff = { calorieRatio: 1, protein: 1.4, fat: 0.8 };
-
-const GOAL_PACE_COEFF: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, DietCoeff>> = {
-  LOSE: {
-    SIMPLE: { calorieRatio: 0.9, protein: 1.5, fat: 0.8 },
-    HEALTHY: { calorieRatio: 0.8, protein: 1.7, fat: 0.75 },
-    FAST: { calorieRatio: 0.72, protein: 1.9, fat: 0.7 },
-  },
-  GAIN: {
-    SIMPLE: { calorieRatio: 1.08, protein: 1.5, fat: 0.9 },
-    HEALTHY: { calorieRatio: 1.15, protein: 1.7, fat: 0.9 },
-    FAST: { calorieRatio: 1.2, protein: 1.8, fat: 1 },
-  },
+/** Доля энергии от поддержания. Белок задаётся целью, не темпом. */
+const CALORIE_RATIO: Record<Exclude<WeightGoal, "MAINTAIN">, Record<GoalPace, number>> = {
+  LOSE: { SIMPLE: 0.9, HEALTHY: 0.85, FAST: 0.8 },
+  GAIN: { SIMPLE: 1.05, HEALTHY: 1.1, FAST: 1.15 },
 };
+
+/** г/кг с потолком ИМТ 30. Похудение и набор — одна вилка. */
+export const PROTEIN_G_PER_KG: Record<WeightGoal, number> = {
+  LOSE: 1.6,
+  GAIN: 1.6,
+  MAINTAIN: 1.4,
+};
+
+/** Жир не ниже этого г/кг и не ниже 25% энергии цели. */
+export const FAT_G_PER_KG_MIN = 0.8;
+export const FAT_ENERGY_SHARE = 0.25;
 
 export function goalNeedsPace(goal: WeightGoal): goal is Exclude<WeightGoal, "MAINTAIN"> {
   return goal === "LOSE" || goal === "GAIN";
@@ -174,14 +170,7 @@ export function activityLabel(level: ActivityLevel | null | undefined): string |
 
 export function activityFactor(level: ActivityLevel | null | undefined): number {
   const resolved = isActivityLevel(level) ? level : DEFAULT_ACTIVITY_LEVEL;
-  return ACTIVITY_OPTIONS.find((option) => option.value === resolved)?.factor ?? 1.25;
-}
-
-function dietCoeff(goal: WeightGoal, pace: GoalPace | null | undefined): DietCoeff {
-  if (goal === "MAINTAIN") {
-    return MAINTAIN_COEFF;
-  }
-  return GOAL_PACE_COEFF[goal][pace ?? "HEALTHY"];
+  return ACTIVITY_OPTIONS.find((option) => option.value === resolved)?.factor ?? 1.375;
 }
 
 function mifflinBmr(weightKg: number, sex: Sex, heightCm?: number | null, age?: number | null): number {
@@ -189,16 +178,6 @@ function mifflinBmr(weightKg: number, sex: Sex, heightCm?: number | null, age?: 
   const a = age && age > 0 ? age : DEFAULT_AGE;
   const base = 10 * weightKg + 6.25 * h - 5 * a;
   return sex === "MALE" ? base + 5 : base - 161;
-}
-
-function maintainCalories(
-  weightKg: number,
-  sex: Sex,
-  heightCm?: number | null,
-  age?: number | null,
-  activity?: ActivityLevel | null,
-): number {
-  return Math.round(mifflinBmr(weightKg, sex, heightCm, age) * activityFactor(activity));
 }
 
 /**
@@ -224,10 +203,87 @@ export function macroWeightKg(
   return weightForMacros(weightKg, isSex(sex) ? sex : "FEMALE", heightCm);
 }
 
+export type DietEnergy = {
+  /** Сырой Mifflin–St Jeor, без округления. */
+  bmrRaw: number;
+  /** BMR для текста, целое. */
+  bmr: number;
+  activityFactor: number;
+  /** Поддержание: round(сырой BMR × активность). Эту же цифру берёт цель. */
+  maintainCalories: number;
+};
+
+/** Один путь округления для нормы и для текста «BMR × коэффициент». */
+export function dietEnergy(
+  weightKg: number,
+  sex: Sex,
+  heightCm?: number | null,
+  age?: number | null,
+  activity?: ActivityLevel | null,
+): DietEnergy {
+  const bmrRaw = mifflinBmr(weightKg, sex, heightCm, age);
+  const factor = activityFactor(activity);
+  return {
+    bmrRaw,
+    bmr: Math.round(bmrRaw),
+    activityFactor: factor,
+    maintainCalories: Math.round(bmrRaw * factor),
+  };
+}
+
+/** Клетчатка ≈ 14 г на 1000 ккал, не ниже 25 г. */
+export function fiberForCalories(calories: number): number {
+  if (!(calories > 0)) return 25;
+  return Math.max(25, Math.round((calories * 14) / 1000));
+}
+
+/** Потолок свободных сахаров: 10% энергии, не ниже 25 г. */
+export function sugarForCalories(calories: number): number {
+  if (!(calories > 0)) return 25;
+  return Math.max(25, Math.round((calories * 0.1) / 4));
+}
+
+/**
+ * Жир не ниже 0,8 г/кг и не ниже 25% энергии.
+ * Углеводы — остаток, чтобы БЖУ сходились с калориями.
+ */
+export function fatAndCarbsForCalories(
+  calories: number,
+  protein: number,
+  macroWeightKg: number,
+): { fat: number; carbs: number } {
+  const fatFloorG = Math.max(0, macroWeightKg) * FAT_G_PER_KG_MIN;
+  const fatFloorPct = calories > 0 ? (calories * FAT_ENERGY_SHARE) / 9 : 0;
+  let fat = round1(Math.max(fatFloorG, fatFloorPct));
+  let carbKcal = calories - protein * 4 - fat * 9;
+  if (carbKcal < 0) {
+    fat = round1(Math.max(0, (calories - protein * 4) / 9));
+    carbKcal = calories - protein * 4 - fat * 9;
+  }
+  const carbs = round1(Math.max(0, carbKcal / 4));
+  return { fat, carbs };
+}
+
+function calorieTargetFromEnergy(
+  energy: DietEnergy,
+  goal: WeightGoal,
+  pace: GoalPace | null | undefined,
+  sex: Sex,
+): number {
+  const resolvedPace = goal === "MAINTAIN" ? null : (pace ?? "HEALTHY");
+  const ratio = goal === "MAINTAIN" ? 1 : CALORIE_RATIO[goal][resolvedPace ?? "HEALTHY"];
+  let calories = Math.round(energy.maintainCalories * ratio);
+  if (goal === "LOSE" && resolvedPace === "FAST") {
+    calories = Math.max(calories, energy.bmr);
+  }
+  return Math.max(MIN_CALORIES[sex], calories);
+}
+
 /**
  * Daily target from Mifflin–St Jeor × activity level.
  * Sex defaults to female when unknown so calories are not overestimated.
- * Activity defaults to LIGHT (1.25) — same as the previous hardcoded factor.
+ * Activity defaults to LIGHT (1.375) — ходьба и быт.
+ * Быстрое похудение не опускается ниже BMR.
  */
 export function recommendDiet(
   weightKg: number,
@@ -240,22 +296,19 @@ export function recommendDiet(
 ): DietTarget {
   const resolvedSex = isSex(sex) ? sex : "FEMALE";
   const age = birthYear ? new Date().getFullYear() - birthYear : null;
-  const coeff = dietCoeff(goal, pace);
-  const calories = Math.max(
-    MIN_CALORIES[resolvedSex],
-    Math.round(
-      maintainCalories(weightKg, resolvedSex, heightCm, age, activity) * coeff.calorieRatio,
-    ),
-  );
+  const energy = dietEnergy(weightKg, resolvedSex, heightCm, age, activity);
+  const calories = calorieTargetFromEnergy(energy, goal, pace, resolvedSex);
   const macroWeight = weightForMacros(weightKg, resolvedSex, heightCm);
-  const protein = round1(macroWeight * coeff.protein);
-  const fat = round1(macroWeight * coeff.fat);
-  const carbs = Math.max(0, round1((calories - protein * 4 - fat * 9) / 4));
-  // WHO/EFSA-style soft targets: ~25–30 g fiber; free sugars ≤10% energy (~50 g at 2000 kcal).
-  const fiber = 28;
-  const sugar = Math.max(25, Math.round((calories * 0.1) / 4));
-
-  return { calories, protein, fat, carbs, fiber, sugar };
+  const protein = round1(macroWeight * PROTEIN_G_PER_KG[goal]);
+  const { fat, carbs } = fatAndCarbsForCalories(calories, protein, macroWeight);
+  return {
+    calories,
+    protein,
+    fat,
+    carbs,
+    fiber: fiberForCalories(calories),
+    sugar: sugarForCalories(calories),
+  };
 }
 
 /** Prisma `select` fields needed for the same calorie target as Рацион. */
@@ -323,9 +376,10 @@ export function explainDiet(
   const resolvedSex = isSex(sex) ? sex : "FEMALE";
   const resolvedActivity = isActivityLevel(activity) ? activity : DEFAULT_ACTIVITY_LEVEL;
   const age = birthYear ? new Date().getFullYear() - birthYear : null;
-  const bmr = Math.round(mifflinBmr(weightKg, resolvedSex, heightCm, age));
-  const factor = activityFactor(resolvedActivity);
-  const maintain = Math.round(bmr * factor);
+  const energy = dietEnergy(weightKg, resolvedSex, heightCm, age, resolvedActivity);
+  const bmr = energy.bmr;
+  const factor = energy.activityFactor;
+  const maintain = energy.maintainCalories;
   const target = recommendDiet(
     weightKg,
     goal,

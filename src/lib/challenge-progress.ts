@@ -9,15 +9,14 @@ import {
   shiftChallengeDate,
   weekStartMonday,
 } from "@/lib/challenges";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import {
   DIET_PROFILE_SELECT,
   isCalorieGoalCorridor,
   isWeightGoal,
-  recommendDietForProfile,
   type WeightGoal,
 } from "@/lib/diet";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { toDateKeyTz } from "@/lib/dates";
 import { setQualifiesForGymReward } from "@/lib/gym-rewards";
 
@@ -160,13 +159,9 @@ export async function loadActiveChallengeForUser(
     select: { ...DIET_PROFILE_SELECT },
   });
   const goal = user?.goal && isWeightGoal(user.goal) ? user.goal : null;
-  const weight = await prisma.weightEntry.findFirst({
-    where: { userId },
-    orderBy: weightEntryOrderNewestFirst,
-  });
-  const diet = recommendDietForProfile(weight?.weightKg, user);
+  const norm = await loadDayNorm(userId, today);
   const progress = await computeChallengeProgress(userId, active.challengeKey, weekStart, {
-    calorieTarget: diet?.calories ?? null,
+    calorieTarget: norm?.target.calories ?? null,
     goal,
   });
   const def = challengeDef(active.challengeKey);

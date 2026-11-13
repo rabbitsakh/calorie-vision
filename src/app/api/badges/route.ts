@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
+import { loadDayNorm } from "@/lib/day-norm-load";
 import {
   DIET_PROFILE_SELECT,
   isCalorieGoalCorridor,
   isWeightGoal,
-  recommendDietForProfile,
 } from "@/lib/diet";
 import {
   BADGE_DEFS,
@@ -14,7 +14,6 @@ import {
   type BadgeDef,
   type BadgeStatsSnapshot,
 } from "@/lib/badges";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 import { computeStreakFromSet, shiftDateKeyUtc } from "@/lib/streak-utils";
 import { grantGymChestForDate, loadGymBadgeSnapshot } from "@/lib/gym-reward-grant";
@@ -43,7 +42,6 @@ async function loadBadgeStats(userId: string): Promise<{
     mealCount,
     waterEntries,
     existing,
-    weight,
     freezes,
     weightLogCount,
     challengesCompleted,
@@ -63,10 +61,6 @@ async function loadBadgeStats(userId: string): Promise<{
       _sum: { ml: true },
     }),
     prisma.userBadge.findMany({ where: { userId } }),
-    prisma.weightEntry.findFirst({
-      where: { userId },
-      orderBy: weightEntryOrderNewestFirst,
-    }),
     prisma.streakFreeze.findMany({
       where: { userId },
       select: { date: true },
@@ -107,7 +101,8 @@ async function loadBadgeStats(userId: string): Promise<{
   for (const m of monthMeals) {
     calByDate.set(m.date, (calByDate.get(m.date) ?? 0) + m.calories);
   }
-  const target = recommendDietForProfile(weight?.weightKg, user);
+  const norm = await loadDayNorm(userId, today);
+  const target = norm?.target ?? null;
   let onTargetDays = 0;
   let monthOnTargetDays = 0;
   if (target) {

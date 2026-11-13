@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, isWeightGoal, recommendDietForProfile, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT, isWeightGoal, buildGoalAwareCalorieTip, type WeightGoal } from "@/lib/diet";
 import { completeChat } from "@/lib/ai/gigachat";
 import {
   checkTipRateLimit,
@@ -11,7 +12,6 @@ import {
   tipRateLimitBody,
   writeTipCache,
 } from "@/lib/gigachat-tip-guard";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { decodeHtmlEntities } from "@/lib/html-text";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +72,7 @@ export async function GET() {
     const yesterday = shiftDateKey(today, -1);
     const weekStart = shiftDateKey(today, -6);
 
-    const [yesterdayMeals, mealDates, weight, topFoods] = await Promise.all([
+    const [yesterdayMeals, mealDates, topFoods] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: yesterday },
         select: { calories: true },
@@ -83,10 +83,6 @@ export async function GET() {
         distinct: ["date"],
         take: 60,
         orderBy: { date: "desc" },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderNewestFirst,
       }),
       prisma.mealEntry.groupBy({
         by: ["dishName"],
@@ -107,7 +103,8 @@ export async function GET() {
 
     const yesterdayCalories = yesterdayMeals.reduce((s, m) => s + m.calories, 0);
     const goal = isWeightGoal(user?.goal) ? user!.goal : null;
-    const target = recommendDietForProfile(weight?.weightKg, user);
+    const norm = await loadDayNorm(session.user.id, yesterday);
+    const target = norm?.target ?? null;
     const topFood = topFoods[0] ? decodeHtmlEntities(topFoods[0].dishName) : null;
 
     const ctx = {
