@@ -308,3 +308,71 @@ test("названные в тексте калории важнее справ�
   assert.equal(chicken?.carbs, 0);
   assert.equal(chicken?.nutritionBasis, undefined);
 });
+
+test("окорочок с ккал и пустым БЖУ берёт справочник, если плотность разъехалась", () => {
+  const [bare] = enrichUnsetMealNutrition(
+    [{ name: "Окорочок гриль куриный", kcal: 740, protein: 0, fat: 0, carbs: 0 }],
+    "Окорочок гриль куриный",
+  );
+  assert.equal(bare?.grams, 200);
+  assert.equal(bare?.kcal, 470);
+  assert.equal(bare?.protein, 44);
+  assert.equal(bare?.fat, 30);
+  assert.equal(bare?.carbs, 0);
+  assert.equal(bare?.per100?.calories, 235);
+
+  const [mixed] = enrichUnsetMealNutrition(
+    [{ name: "Окорочок гриль куриный (100 г)", kcal: 740, protein: 0, fat: 0, carbs: 0 }],
+    "Окорочок гриль куриный\n(100 г) — 740 ккал. Кожу лучше снять.",
+  );
+  assert.equal(mixed?.grams, 200);
+  assert.equal(mixed?.kcal, 470);
+  assert.equal(mixed?.protein, 44);
+  assert.equal(mixed?.fat, 30);
+  assert.notEqual(mixed?.grams, 100);
+
+  const [piece] = enrichUnsetMealNutrition(
+    [{ name: "Окорочок гриль куриный (300 г)", kcal: 740, protein: 0, fat: 0, carbs: 0 }],
+    "Окорочок гриль куриный\nНа 100 г 240 ккал, окорочок ~300 г ≈ 740 ккал.",
+  );
+  assert.equal(piece?.grams, 300);
+  assert.equal(piece?.kcal, 740);
+  assert.equal(piece?.protein, 66);
+  assert.equal(piece?.fat, 45);
+  assert.equal(piece?.carbs, 0);
+});
+
+test("напиток с ккал и пустым БЖУ не обогащается справочником", () => {
+  const [tea] = enrichUnsetMealNutrition(
+    [{ name: "Чай", grams: 250, unit: "мл", kcal: 40, protein: 0, fat: 0, carbs: 0 }],
+    "чай",
+  );
+  assert.equal(tea?.kcal, 40);
+  assert.equal(tea?.protein, 0);
+  assert.equal(tea?.fat, 0);
+  assert.equal(tea?.carbs, 0);
+  assert.equal(tea?.grams, 250);
+  assert.equal(tea?.nutritionBasis, undefined);
+
+  const [vodka] = enrichUnsetMealNutrition(
+    [{ name: "Водка", grams: 50, unit: "мл", kcal: 110, protein: 0, fat: 0, carbs: 0 }],
+    "водка 50 мл",
+  );
+  assert.equal(vodka?.kcal, 110);
+  assert.equal(vodka?.protein, 0);
+  assert.equal(vodka?.fat, 0);
+  assert.equal(vodka?.carbs, 0);
+  assert.equal(vodka?.nutritionBasis, undefined);
+});
+
+test("жирный продукт не теряет 100 г из-за плотности выше 500", () => {
+  const [paste] = enrichUnsetMealNutrition(
+    [{ name: "Арахисовая паста (100 г)", kcal: 588, protein: 0, fat: 0, carbs: 0 }],
+    "Арахисовая паста",
+  );
+  assert.equal(paste?.grams, 100);
+  assert.equal(paste?.kcal, 588);
+  assert.equal(paste?.protein, 25);
+  assert.equal(paste?.fat, 50);
+  assert.equal(paste?.carbs, 20);
+});

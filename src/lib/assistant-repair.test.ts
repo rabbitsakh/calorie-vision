@@ -17,6 +17,7 @@ import {
   messageLogsNewEatenFood,
   messageLooksLikeMultiDish,
   needsWriteRepair,
+  extractKcalFromReply,
   heuristicRepairFromProseKcal,
   replyEstimatesBareDish,
   parsePortionGramsFromMessage,
@@ -678,6 +679,41 @@ test("bare dish + kcal estimate needs repair; questions stay read-only", () => {
   assert.equal(replyEstimatesBareDish(CHEB_USER, "Чебурек — около 250 ккал."), true);
   assert.equal(needsWriteRepair(CHEB_USER, null, "Чебурек — около 250 ккал."), true);
   assert.equal(needsWriteRepair("Сколько калорий в чебуреке?", null, "Около 250 ккал."), false);
+});
+
+test("extractKcalFromReply отличает «на 100 г» от ккал порции", () => {
+  assert.equal(
+    extractKcalFromReply("На 100 г 240 ккал, окорочок ~300 г ≈ 740 ккал."),
+    740,
+  );
+  assert.equal(extractKcalFromReply("Окорочок гриль (100 г) — 740 ккал. Кожу лучше снять."), 740);
+  assert.equal(extractKcalFromReply("примерно 250 ккал"), 250);
+  assert.equal(extractKcalFromReply("Мороженое — около 200 ккал на 100 г."), 200);
+});
+
+test("проза «(100 г) — 740 ккал» у окорочка становится типовой штукой", () => {
+  const actions = heuristicRepairFromProseKcal(
+    "Окорочок гриль куриный",
+    "Окорочок гриль куриный (100 г) — 740 ккал. С кожей жирнее.",
+  );
+  const meal = actions?.meals?.[0];
+  assert.ok(meal);
+  assert.equal(splitQuickPortion(meal.name).grams, 200);
+  assert.equal(meal.kcal, 470);
+  assert.equal(meal.protein, 44);
+  assert.equal(meal.fat, 30);
+  assert.equal(meal.carbs, 0);
+});
+
+test("проза с плотностью и весом куска берёт ккал куска, не «на 100 г»", () => {
+  const actions = heuristicRepairFromProseKcal(
+    "Окорочок гриль куриный",
+    "На 100 г 240 ккал, окорочок ~300 г ≈ 740 ккал.",
+  );
+  const meal = actions?.meals?.[0];
+  assert.ok(meal);
+  assert.equal(splitQuickPortion(meal.name).grams, 300);
+  assert.equal(meal.kcal, 740);
 });
 
 test("offline prose fallback extracts kcal + БЖУ into a meal", () => {

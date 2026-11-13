@@ -578,3 +578,50 @@ test("правка веса протеина не превращается в н
   assert.equal(out.actions?.meals, undefined);
   assert.equal(out.actions?.patchMeals?.[0]?.portionGrams, 50);
 });
+
+test("окорочок гриль без граммов: типовые 200 г и БЖУ, не 740 на 100 г", async () => {
+  const out = await runAssistantMealFixture({
+    userMessage: "Окорочок гриль куриный",
+    rawReply: "Окорочок гриль куриный — примерно 740 ккал.",
+  });
+  assert.equal(out.card.length, 1);
+  const meal = out.card[0]!;
+  assert.equal(gramsOf(meal.name), 200);
+  assert.equal(meal.kcal, 470);
+  assert.equal(meal.protein, 44);
+  assert.equal(meal.fat, 30);
+  assert.equal(meal.carbs, 0);
+  assert.equal(meal.per100?.calories, 235);
+  assert.notEqual(meal.kcal, 740);
+});
+
+test("«(100 г) — 740 ккал» у окорочка не клеит ккал куска к 100 г", async () => {
+  const out = await runAssistantMealFixture({
+    userMessage: "Окорочок гриль куриный",
+    rawReply:
+      "Окорочок гриль куриный (100 г) — 740 ккал. С кожей калорийнее, без кожи легче.",
+  });
+  assert.equal(out.card.length, 1);
+  const meal = out.card[0]!;
+  assert.equal(gramsOf(meal.name), 200);
+  assert.equal(meal.kcal, 470);
+  assert.equal(meal.protein, 44);
+  assert.equal(meal.fat, 30);
+  assert.equal(meal.carbs, 0);
+  assert.notEqual(gramsOf(meal.name), 100);
+});
+
+test("окорочок: «на 100 г 240» не затирает порцию ~300 г ≈ 740 ккал", async () => {
+  const out = await runAssistantMealFixture({
+    userMessage: "Окорочок гриль куриный",
+    rawReply: "На 100 г 240 ккал, окорочок ~300 г ≈ 740 ккал.",
+  });
+  assert.equal(out.card.length, 1);
+  const meal = out.card[0]!;
+  assert.equal(gramsOf(meal.name), 300);
+  assert.equal(meal.kcal, 740);
+  assert.equal(meal.protein, 66);
+  assert.equal(meal.fat, 45);
+  assert.equal(meal.carbs, 0);
+  assert.notEqual(meal.kcal, 240);
+});
