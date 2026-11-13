@@ -127,36 +127,35 @@ test("buildMomentHero: daytime over target", () => {
   assert.equal(buildMomentHero({ ...base, calories: 2080 })?.title, "Калории в норме");
 });
 
-test("buildMomentHero: evening ring + checklist", () => {
+test("buildMomentHero: evening uses the same remaining card, without a percent ring", () => {
   const m = buildMomentHero({
     ...base,
     hour: 21,
     calories: 2020,
     protein: 118,
+    fat: 30,
+    fatTarget: 70,
+    carbs: 90,
+    carbsTarget: 250,
     mealCount: 4,
     gymDoneToday: true,
-    tomorrowPlanLabel: "Ноги",
   });
-  assert.equal(m?.phase, "evening");
-  assert.equal(m?.title, "Записано 96% цели");
-  assert.equal(m?.ringPct, 96);
-  assert.equal(m?.line, "2\u00a0020 из 2\u00a0100 ккал · серия 5 дн.");
-  assert.equal(m?.hint, "Завтра: Ноги");
-  assert.deepEqual(m?.cta, { label: "Долить воду до нормы", action: "water" });
-  assert.equal(
-    m?.checklistNote,
-    "Еда и вода — один зачёт. Тренировка с подходами — ещё один, один раз за день.",
-  );
+  assert.equal(m?.phase, "day");
+  assert.equal(m?.eyebrow, "Сейчас · вечер");
+  assert.equal(m?.title, "Осталось 80 из 2\u00a0100 ккал");
+  assert.equal(m?.ringPct, null);
+  assert.equal(m?.checklist, null);
   assert.deepEqual(
-    m?.checklist?.map((c) => [c.label, c.done, c.value]),
+    m?.macros?.map((row) => [row.label, row.value, row.target]),
     [
-      ["Еда", true, "4 приёма записано"],
-      ["Белок", true, "118 / 120 г"],
-      ["Вода", false, "0,9 из 2 л"],
-      ["Зал", true, "комбо-день"],
+      ["Белки", 118, 120],
+      ["Жиры", 30, 70],
+      ["Углеводы", 90, 250],
     ],
   );
-  assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "Записано 71% цели");
+  assert.equal(m?.kcal?.eaten, 2020);
+  assert.equal(m?.kcal?.target, 2100);
+  assert.equal(buildMomentHero({ ...base, hour: 21, calories: 1500 })?.title, "Осталось 600 из 2\u00a0100 ккал");
 });
 
 test("buildMomentHero: empty day asks for one entry", () => {

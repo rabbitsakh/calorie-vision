@@ -35,6 +35,7 @@ import { FirstShareNudge } from "@/components/FirstShareNudge";
 import { SevenDayAhaCard } from "@/components/SevenDayAhaCard";
 import { MascotSaveReaction } from "@/components/MascotSaveReaction";
 import { BadgeUnlockHost } from "@/components/BadgeUnlockHost";
+import { formatDateWords } from "@/lib/dates";
 import { DIET_TARGETS_CHANGED_EVENT } from "@/lib/diet-refresh";
 import { cacheLoggedDaysTotal, claimOpenCameraAfterOnboarding, shouldShowFirstShareNudge } from "@/lib/first-hour-trust";
 import { isCapacitorNative } from "@/lib/capacitor-bridge";
@@ -616,7 +617,7 @@ function RationShell({
   );
 
   return (
-    <AppShell title="Сегодня" compact date={date}>
+    <AppShell title={date === today ? "Сегодня" : formatDateWords(date)} compact date={date}>
       <RationBody
         date={date}
         today={today}

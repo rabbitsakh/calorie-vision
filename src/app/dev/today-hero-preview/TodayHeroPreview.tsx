@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { DateNavBar } from "@/components/DateNavBar";
+import { DailySummaryCard } from "@/components/DailySummaryCard";
 import { MomentHeroView } from "@/components/MomentHeroCard";
 import { NavIcon } from "@/components/NavIcons";
 import { buildMomentHero } from "@/lib/moment-hero";
@@ -47,6 +48,12 @@ export function TodayHeroPreview() {
   const params = useSearchParams();
   const dark = params.get("theme") === "dark";
   const ideasEmpty = params.get("ideas") === "empty";
+  const hourRaw = params.get("hour");
+  const hourParam = hourRaw == null ? Number.NaN : Number(hourRaw);
+  const hour = Number.isFinite(hourParam) && hourParam >= 0 && hourParam <= 23 ? hourParam : FIXTURE_HOUR;
+  const past = params.get("past") === "1";
+  const viewDate = past ? "2026-11-01" : FIXTURE_DATE;
+  const headerTitle = past ? "1 ноября 2026 г." : "Сегодня";
 
   useEffect(() => {
     setMetrikaConsent("declined");
@@ -56,7 +63,7 @@ export function TodayHeroPreview() {
     () =>
       buildMomentHero({
         selectedIsToday: true,
-        hour: FIXTURE_HOUR,
+        hour,
         gymLive: false,
         gymLiveLabel: null,
         gymDoneToday: true,
@@ -79,8 +86,9 @@ export function TodayHeroPreview() {
           action: "food",
         },
       }),
-    [],
+    [hour],
   );
+  const showSummary = params.get("summary") === "1";
 
   return (
     <div className={`cv-app-frame today-shot${dark ? " today-hero-force-dark" : ""}`} data-today-hero-shot="live">
@@ -89,7 +97,10 @@ export function TodayHeroPreview() {
           <div className="flex h-10 items-center justify-between gap-3">
             <div className="app-chrome__brand">
               <BrandMark size={36} />
-              <span className="app-chrome__wordmark truncate">Calorie Vision</span>
+              <span className="app-chrome__wordmark truncate">
+                Calorie Vision
+                <span className="app-chrome__wordmark-sub md:hidden">{headerTitle}</span>
+              </span>
             </div>
             <span className="today-shot__avatar" aria-hidden>
               <svg viewBox="0 0 24 24" width="20" height="20">
@@ -102,7 +113,7 @@ export function TodayHeroPreview() {
 
         <div className="ration-day-scene">
           <div className="ration-day-band">
-            <DateNavBar date={FIXTURE_DATE} today={FIXTURE_DATE} onDateChange={() => {}} />
+            <DateNavBar date={viewDate} today={FIXTURE_DATE} onDateChange={() => {}} />
           </div>
           {moment ? (
             <MomentHeroView
@@ -134,17 +145,6 @@ export function TodayHeroPreview() {
           </span>
           <input className="bottom-composer-input" placeholder="Что съел? Напиши…" aria-label="Что съели" readOnly />
           <span className="bottom-composer-btn" aria-hidden>
-            <svg {...ICON}>
-              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M14 8v8M17 8v8" />
-            </svg>
-          </span>
-          <span className="bottom-composer-btn" aria-hidden>
-            <svg {...ICON}>
-              <rect x="9" y="2" width="6" height="12" rx="3" />
-              <path d="M5 10a7 7 0 0 0 14 0M12 17v4" />
-            </svg>
-          </span>
-          <span className="bottom-composer-btn" aria-hidden>
             <svg {...ICON} strokeWidth={2.4}>
               <path d="M12 5v14M5 12h14" />
             </svg>
@@ -170,6 +170,28 @@ export function TodayHeroPreview() {
           })}
         </div>
       </nav>
+      {showSummary ? (
+        <DailySummaryCard
+          today={FIXTURE_DATE}
+          previewData={{
+            date: "2026-11-12",
+            today: FIXTURE_DATE,
+            mealCount: 3,
+            totalCalories: 1330,
+            totalProtein: 78,
+            totalFat: 42,
+            totalCarbs: 140,
+            totalFiber: 11,
+            totalSugar: 18,
+            totalWaterMl: 700,
+            goal: "LOSE",
+            target: { calories: 1808 },
+            comparison: { calories: { kind: "deficit" } },
+            tip: "Вчера день закрыт спокойно.",
+            hasData: true,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

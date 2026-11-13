@@ -19,6 +19,7 @@ import { trackOnboardingCompleteGoal, trackOnboardingPhotoCtaGoal } from "@/lib/
 import { requestOpenFoodCamera } from "@/lib/open-food-camera";
 import { withBasePath } from "@/lib/paths";
 import { toDateKeyTz } from "@/lib/dates";
+import { formatWaterLiters } from "@/lib/water-display";
 
 const STORAGE_KEY = "cv-onboarding-v1";
 
@@ -178,13 +179,8 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
   const isGoal = current.id === "goal";
 
   const overlay = (
-    <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--scrim)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cv-onboarding-title"
-    >
-      <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border-quiet)] bg-[var(--card)] p-5 text-[var(--foreground)] shadow-[var(--shadow-card)] sm:p-6">
+    <div className="onboarding-screen" role="dialog" aria-modal="true" aria-labelledby="cv-onboarding-title">
+      <div className="onboarding-screen__body">
         <div className="flex items-start gap-3">
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">
@@ -276,7 +272,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                 <span className="text-sm font-semibold text-[var(--muted-strong)]">Вес, кг</span>
                 <input
                   inputMode="decimal"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
+                  className="ds-field mt-1"
                   value={weightKg}
                   onChange={(e) => setWeightKg(e.target.value)}
                   aria-label="Вес в килограммах"
@@ -286,7 +282,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                 <span className="text-sm font-semibold text-[var(--muted-strong)]">Рост, см</span>
                 <input
                   inputMode="numeric"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
+                  className="ds-field mt-1"
                   value={heightCm}
                   onChange={(e) => setHeightCm(e.target.value)}
                   aria-label="Рост в сантиметрах"
@@ -296,7 +292,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
                 <span className="text-sm font-semibold text-[var(--muted-strong)]">Возраст</span>
                 <input
                   inputMode="numeric"
-                  className="mt-1 w-full rounded-xl border border-[var(--border-quiet)] bg-white px-2 py-2 text-base font-semibold"
+                  className="ds-field mt-1"
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   aria-label="Возраст"
@@ -305,7 +301,7 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
             </div>
             {liveTarget ? (
               <p className="rounded-2xl bg-[var(--accent-soft)] px-3 py-2.5 text-[0.975rem] font-semibold text-[var(--accent-ink)]" data-testid="onboarding-norm">
-                Норма {liveTarget.target.calories} ккал · белок {liveTarget.target.protein} г · вода {liveTarget.target.waterMl} мл
+                Норма {liveTarget.target.calories} ккал · белок {liveTarget.target.protein} г · вода {formatWaterLiters(liveTarget.target.waterMl)} л
               </p>
             ) : (
               <p className="text-sm text-[var(--muted)]">Укажите вес 30–250 кг, рост 100–250 см и возраст 14–90.</p>
@@ -313,40 +309,34 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
           </div>
         ) : null}
 
-        <div className="mt-5 flex items-center justify-between gap-3">
-          <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={() => finish()}>
-            Пропустить
+      </div>
+      <div className="onboarding-screen__actions">
+        {isPhoto ? (
+          <>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => finish({ openCamera: true })}
+            >
+              Сфотографировать
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => finish()}>
+              Позже
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving || (isParams && !liveTarget)}
+            onClick={() => void next()}
+          >
+            {saving ? "Сохраняем…" : "Дальше"}
           </button>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {isPhoto ? (
-              <>
-                <button
-                  type="button"
-                  className="btn-quiet text-sm text-[var(--accent-ink)]"
-                  onClick={() => finish()}
-                >
-                  Позже
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary text-sm"
-                  onClick={() => finish({ openCamera: true })}
-                >
-                  Сфотографировать
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-primary text-sm"
-                disabled={saving || (isParams && !liveTarget)}
-                onClick={() => void next()}
-              >
-                {saving ? "Сохраняем…" : "Дальше"}
-              </button>
-            )}
-          </div>
-        </div>
+        )}
+        <button type="button" className="btn-quiet text-sm text-[var(--muted)]" onClick={() => finish()}>
+          Пропустить
+        </button>
       </div>
     </div>
   );

@@ -929,8 +929,9 @@ select {
 }
 
 .bottom-composer-input::placeholder {
-  color: #8b938d;
+  color: var(--muted);
   font-weight: 600;
+  opacity: 1;
 }
 
 .bottom-composer-btn {
@@ -6004,6 +6005,10 @@ button.profile-settings__door:disabled {
   font-size: 1.08rem;
   font-weight: 800;
   line-height: 1.25;
+}
+
+.moment-hero--day .moment-hero-title span {
+  white-space: nowrap;
 }
 
 .moment-hero-title-rest {
@@ -11690,6 +11695,77 @@ html[data-gym-live] .app-chrome {
 
 .ds-num {
   font-variant-numeric: tabular-nums;
+}
+
+.onboarding-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  padding:
+    max(var(--space-4), env(safe-area-inset-top))
+    var(--space-4)
+    max(3.25rem, env(safe-area-inset-bottom));
+}
+
+.onboarding-screen__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  max-width: 32rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.onboarding-screen__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(32rem, 100%);
+  margin: 0 auto;
+  padding-top: var(--space-3);
+}
+
+.onboarding-screen__actions .btn,
+.onboarding-screen__actions .ds-btn {
+  width: 100%;
+}
+
+html:has(.onboarding-screen) .mobile-tab-bar,
+html:has(.onboarding-screen) .bottom-composer {
+  visibility: hidden;
+}
+
+.day-summary-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.day-summary-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--scrim);
+}
+
+.day-summary-sheet__panel {
+  position: relative;
+  width: min(32rem, 100%);
+  max-height: min(78dvh, 78vh);
+  overflow: auto;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  background: var(--card);
+  color: var(--foreground);
+  padding: var(--space-5) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-sheet);
 }
 
 /* White label on an accent fill must stay the darker teal (AA). Bars keep --accent. */

@@ -174,9 +174,6 @@ export type MomentHeroInput = {
   chest?: EveningChestSnapshot | null;
 };
 
-export const CHEST_CHECKLIST_NOTE =
-  "Еда и вода — один зачёт. Тренировка с подходами — ещё один, один раз за день.";
-
 export type EveningChestHead = {
   source: ReadyChestSource;
   detail: string;
@@ -356,14 +353,6 @@ function softCta(step: SoftStep | null): MomentCta | null {
   return step ? { label: step.actionLabel, action: step.action } : null;
 }
 
-function mealWord(n: number): string {
-  const n10 = n % 10;
-  const n100 = n % 100;
-  if (n10 === 1 && n100 !== 11) return "приём";
-  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return "приёма";
-  return "приёмов";
-}
-
 function exerciseWord(n: number): string {
   const n10 = n % 10;
   const n100 = n % 100;
@@ -376,6 +365,7 @@ function exerciseWord(n: number): string {
 function dayEyebrow(hour: number): string {
   if (hour >= 11 && hour < 15) return "Сейчас · обед";
   if (hour >= 15 && hour < 18) return "Сейчас · день";
+  if (hour >= 22 || hour < 5) return "Сейчас · ночь";
   return "Сейчас · вечер";
 }
 
@@ -460,12 +450,6 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     };
   }
 
-  const isEvening = part === "evening" || part === "night";
-
-  if (isEvening) {
-    return buildEveningHero(input);
-  }
-
   if (!input.logged) {
     return {
       phase: part === "morning" ? "morning" : "day",
@@ -542,88 +526,4 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
 function waterDetail(input: MomentHeroInput): string | null {
   if (!(input.waterTarget > 0)) return null;
   return formatWaterOf(input.waterMl, input.waterTarget);
-}
-
-function buildEveningChecklist(input: MomentHeroInput): MomentCheck[] {
-  const pt = input.proteinTarget ?? 0;
-  const mealCount = input.mealCount ?? 0;
-  const checklist: MomentCheck[] = [
-    {
-      label: "Еда",
-      done: input.logged && mealCount > 0,
-      value: mealCount > 0 ? `${mealCount} ${mealWord(mealCount)} записано` : "пока пусто",
-    },
-  ];
-  if (pt > 0) {
-    checklist.push({
-      label: "Белок",
-      done: input.protein >= pt * 0.9,
-      value: `${Math.round(input.protein)} / ${Math.round(pt)} г`,
-    });
-  }
-  if (input.waterTarget > 0) {
-    checklist.push({
-      label: "Вода",
-      done: waterMeetsChest(input.waterMl, input.waterTarget),
-      value: formatWaterProgress(input.waterMl, input.waterTarget),
-    });
-  }
-  const combo = isComboDay({
-    qualifyingWorkout: input.gymDoneToday,
-    protein: input.protein,
-    proteinTarget: pt,
-  });
-  checklist.push({
-    label: "Зал",
-    done: input.gymDoneToday,
-    value: combo ? "комбо-день" : input.gymDoneToday ? "сделан" : "сегодня без зала",
-  });
-  return checklist;
-}
-
-function buildEveningHero(input: MomentHeroInput): MomentHero {
-  const kcal = Math.round(input.calories);
-  const target = input.calorieTarget && input.calorieTarget > 0 ? input.calorieTarget : null;
-  const pct = target ? Math.round((kcal / target) * 100) : null;
-  const resolved = resolveEveningDay({
-    logged: input.logged,
-    waterMl: input.waterMl,
-    waterTarget: input.waterTarget,
-    calories: input.calories,
-    calorieTarget: input.calorieTarget,
-    chest: input.chest,
-  });
-  const tomorrow = input.tomorrowPlanLabel?.trim() || null;
-  const softHint = resolved.sourceHint ? null : input.softStep?.label ?? null;
-  const hintParts = [
-    resolved.sourceHint,
-    softHint,
-    tomorrow ? `Завтра: ${tomorrow}` : null,
-  ].filter((part): part is string => Boolean(part));
-  const empty = !input.logged && input.waterMl <= 0;
-  return {
-    phase: "evening",
-    tone: empty ? "soft" : "dark",
-    mascot: empty ? "idle" : "streak",
-    eyebrow: empty ? (input.hour >= 5 && input.hour < 11 ? "Сейчас · утро" : "Сейчас · вечер") : "Итог дня",
-    title: resolved.title,
-    line: empty
-      ? target
-        ? `цель ${formatKcal(target)} ккал`
-        : "Одна запись — и день открыт"
-      : target
-        ? `${formatKcal(kcal)} из ${formatKcal(target)} ккал${input.streak >= 2 ? ` · серия ${input.streak} дн.` : ""}`
-        : input.streak >= 2
-          ? `серия ${input.streak} дн.`
-          : null,
-    hint: hintParts.join(" · ") || null,
-    cta: resolved.cta,
-    macros: null,
-    ringPct: empty ? null : pct,
-    checklist: empty ? null : buildEveningChecklist(input),
-    checklistNote: empty ? null : CHEST_CHECKLIST_NOTE,
-    kcal: null,
-    proteinNote: null,
-    chips: null,
-  };
 }
