@@ -122,6 +122,36 @@ test("buildMomentHero: protein hint is not repeated under the gym note", () => {
   assert.equal(m?.title, "Осталось 1\u00a0240 из 2\u00a0100 ккал");
 });
 
+test("buildMomentHero: training day shows base plus gym under the remaining line", () => {
+  const m = buildMomentHero({
+    ...base,
+    calories: 800,
+    calorieTarget: 2721,
+    calorieBase: 2466,
+    calorieBonus: 255,
+  });
+  assert.equal(m?.title, "Осталось 1\u00a0921 из 2\u00a0721 ккал");
+  assert.equal(m?.normSplit, "2\u00a0466 база + 255 за зал");
+  assert.equal(buildMomentHero(base)?.normSplit, null);
+  assert.equal(
+    buildMomentHero({
+      ...base,
+      calorieTarget: 1900,
+      calorieBase: 2466,
+      calorieBonus: 255,
+    })?.normSplit,
+    null,
+  );
+  const maintain = buildMomentHero({
+    ...base,
+    calories: 800,
+    calorieTarget: 3592,
+    calorieBase: 3083,
+    calorieBonus: 509,
+  });
+  assert.equal(maintain?.normSplit, "3\u00a0083 база + 509 за зал");
+});
+
 test("buildMomentHero: daytime over target", () => {
   assert.equal(buildMomentHero({ ...base, calories: 2300 })?.title, "+200 ккал сверх цели");
   assert.equal(buildMomentHero({ ...base, calories: 2080 })?.title, "Калории в норме");

@@ -68,7 +68,7 @@ export function resolveDayNorm(input: {
   heightCm?: number | null;
   birthYear?: number | null;
   activity?: ActivityLevel | null;
-  /** Расход тренировок сверх покоя. Прибавляется в день сессии и к короткому кардио. */
+  /** Расход тренировок сверх покоя. В день сессии и к короткому кардио. При похудении — половина. */
   burnKcal?: number;
   trainingDay?: boolean;
   burnApproximate?: boolean;
@@ -102,6 +102,7 @@ export function resolveDayNorm(input: {
     sex,
     heightCm: input.heightCm,
     activityLevel: activity,
+    goal: input.goal,
   });
   const auto = adjusted.target;
   const manualCalories = positive(input.manual?.calories);
@@ -130,7 +131,7 @@ export function resolveDayNorm(input: {
   const waterMl =
     lockedWater(input.waterTargetMl) ??
     lockedWater(input.manual?.waterMl) ??
-    recommendWaterMl(input.weightKg, sex, trainingDay);
+    recommendWaterMl(input.weightKg, sex, trainingDay, input.heightCm);
 
   return {
     target: {

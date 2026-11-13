@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useFoodAddUi } from "@/components/FoodAddHost";
 import { Button } from "@/components/ds/ui";
 import { formatDateShort } from "@/lib/dates";
+import { formatTrainingNormSplit } from "@/lib/training-day";
 import { formatWaterLiters } from "@/lib/water-display";
 import { withBasePath } from "@/lib/paths";
 
@@ -34,6 +35,11 @@ type DailySummaryData = {
   comparison: { calories: { kind: "deficit" | "surplus" | "even" } } | null;
   tip: string;
   hasData: boolean;
+  training?: {
+    trainingDay: boolean;
+    baseCalories: number;
+    calorieBonusKcal: number;
+  } | null;
 };
 
 function isSummarySeen(today: string): boolean {
@@ -156,6 +162,7 @@ export function DailySummaryCard({ today, previewData }: DailySummaryCardProps) 
 
   const waterLine =
     data.totalWaterMl > 0 ? `Вода ${formatWaterLiters(data.totalWaterMl)} л` : null;
+  const normSplit = formatTrainingNormSplit(data.training, data.target?.calories);
 
   if (typeof document === "undefined") return null;
 
@@ -168,6 +175,9 @@ export function DailySummaryCard({ today, previewData }: DailySummaryCardProps) 
           {formatDateShort(data.date)}
         </h2>
         <p className="ds-num mt-3 text-[1.2rem] font-extrabold leading-tight">{calorieLine}</p>
+        {normSplit ? (
+          <p className="ds-num mt-1 text-xs font-semibold text-[var(--muted)]">{normSplit}</p>
+        ) : null}
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted-strong)]">{explainDayCalories(data)}</p>
         {macroLine ? <p className="ds-num mt-3 text-sm text-[var(--foreground)]">{macroLine}</p> : null}
         {waterLine ? <p className="ds-num mt-1 text-sm text-[var(--muted-strong)]">{waterLine}</p> : null}

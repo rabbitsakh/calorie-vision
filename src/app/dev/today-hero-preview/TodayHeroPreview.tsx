@@ -52,6 +52,10 @@ export function TodayHeroPreview() {
   const hourParam = hourRaw == null ? Number.NaN : Number(hourRaw);
   const hour = Number.isFinite(hourParam) && hourParam >= 0 && hourParam <= 23 ? hourParam : FIXTURE_HOUR;
   const past = params.get("past") === "1";
+  const baseRaw = Number(params.get("base"));
+  const bonusRaw = Number(params.get("bonus"));
+  const calorieBase = Number.isFinite(baseRaw) && baseRaw > 0 ? Math.round(baseRaw) : null;
+  const calorieBonus = Number.isFinite(bonusRaw) && bonusRaw > 0 ? Math.round(bonusRaw) : null;
   const viewDate = past ? "2026-11-01" : FIXTURE_DATE;
   const headerTitle = past ? "1 ноября 2026 г." : "Сегодня";
 
@@ -70,7 +74,10 @@ export function TodayHeroPreview() {
         morning: null,
         logged: true,
         calories: EATEN_KCAL,
-        calorieTarget: TARGET_KCAL,
+        calorieTarget:
+          calorieBase != null && calorieBonus != null ? calorieBase + calorieBonus : TARGET_KCAL,
+        calorieBase,
+        calorieBonus,
         protein: PROTEIN,
         proteinTarget: PROTEIN_TARGET,
         fat: FAT,
@@ -86,7 +93,7 @@ export function TodayHeroPreview() {
           action: "food",
         },
       }),
-    [hour],
+    [hour, calorieBase, calorieBonus],
   );
   const showSummary = params.get("summary") === "1";
 

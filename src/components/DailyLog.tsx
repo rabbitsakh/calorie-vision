@@ -51,6 +51,7 @@ import { groupMealEntries } from "@/lib/meal-groups";
 import { MealListRow, MealSectionHeader } from "@/components/DailyLogMealCards";
 import type { EditPatch } from "@/components/DailyLogInlineEdit";
 import { isLikelyOfflineError } from "@/lib/connectivity";
+import { formatTrainingNormSplit } from "@/lib/training-day";
 import {
   enqueueFailedDelete,
   enqueueFailedPatch,
@@ -892,6 +893,11 @@ export function DailyLog({
     return () => window.clearInterval(intervalId);
   }, [pendingDeletes.length]);
 
+  const normSplit = formatTrainingNormSplit(
+    daySummary.trainingDay,
+    daySummary.comparison?.calories.target,
+  );
+
   return (
     <section
       className={
@@ -932,8 +938,11 @@ export function DailyLog({
           )}
           {sceneFeed && daySummary.comparison?.calories.target ? (
             <span className="feed-head-kcal">
-              {Math.round(totals.calories).toLocaleString("ru-RU")} из{" "}
-              {Math.round(daySummary.comparison.calories.target).toLocaleString("ru-RU")} ккал
+              <span>
+                {Math.round(totals.calories).toLocaleString("ru-RU")} из{" "}
+                {Math.round(daySummary.comparison.calories.target).toLocaleString("ru-RU")} ккал
+              </span>
+              {normSplit ? <span className="feed-head-kcal-split">{normSplit}</span> : null}
             </span>
           ) : null}
           {daySummary.trainingDay?.label ? (

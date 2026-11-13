@@ -97,6 +97,13 @@ export async function GET(request: NextRequest) {
             sugar: target.sugar,
           }
         : null,
+      training: norm?.training
+        ? {
+            trainingDay: norm.training.trainingDay,
+            baseCalories: norm.training.baseCalories,
+            calorieBonusKcal: norm.training.calorieBonusKcal,
+          }
+        : null,
       comparison: target
         ? {
             calories: compareNutrient(totalCalories, target.calories),
