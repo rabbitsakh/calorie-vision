@@ -9,6 +9,7 @@ import type { ReadyChestSource } from "@/lib/chest-ready-queue";
 import { isComboDay } from "@/lib/gym-rewards";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { dayPartFromHour } from "@/lib/splash-tips";
+import { formatTrainingNormSplit } from "@/lib/training-day";
 import { formatWaterOf } from "@/lib/water-display";
 
 export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera" | "chest";
@@ -136,6 +137,8 @@ export type MomentHero = {
   proteinNote: string | null;
   /** Water and gym rows on the day card. */
   chips: MomentChip[] | null;
+  /** «2 466 база + 255 за зал» under the day's calorie line. */
+  normSplit: string | null;
 };
 
 export type MomentRoutine = {
@@ -170,6 +173,9 @@ export type MomentHeroInput = {
   waterTarget: number;
   streak: number;
   softStep: SoftStep | null;
+  /** База и бонус из resolveDayNorm. Карточка их не пересчитывает. */
+  calorieBase?: number | null;
+  calorieBonus?: number | null;
   /** Evening chest meter. Null while /api/rewards has not loaded. */
   chest?: EveningChestSnapshot | null;
 };
@@ -393,7 +399,21 @@ const EMPTY_EXTRAS = {
   kcal: null,
   proteinNote: null,
   chips: null,
+  normSplit: null,
 } as const;
+
+function trainingNormSplit(input: MomentHeroInput): string | null {
+  if (input.calorieBase == null || input.calorieBonus == null) return null;
+  if (!(input.calorieTarget && input.calorieTarget > 0)) return null;
+  return formatTrainingNormSplit(
+    {
+      trainingDay: true,
+      baseCalories: input.calorieBase,
+      calorieBonusKcal: input.calorieBonus,
+    },
+    input.calorieTarget,
+  );
+}
 
 export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
   if (!input.selectedIsToday) return null;
@@ -462,6 +482,7 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
       // Camera-first — matches bottom composer; avoids a second «добавить» that fights the dock.
       cta: { label: "Сфоткать еду", action: "camera" },
       ...EMPTY_EXTRAS,
+      normSplit: trainingNormSplit(input),
     };
   }
 
@@ -520,6 +541,7 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     kcal: target ? { eaten: Math.round(input.calories), target: Math.round(target) } : null,
     proteinNote,
     chips: chips.length ? chips : null,
+    normSplit: trainingNormSplit(input),
   };
 }
 

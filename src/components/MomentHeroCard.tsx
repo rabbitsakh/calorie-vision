@@ -443,6 +443,8 @@ export function MomentHeroCard({ selectedDate, today }: Props) {
       streak: streak?.streak ?? 0,
       softStep,
       chest,
+      calorieBase: meals?.trainingDay?.baseCalories ?? null,
+      calorieBonus: meals?.trainingDay?.trainingDay ? meals.trainingDay.calorieBonusKcal : null,
     });
   }, [selectedDate, today, day, hour, gymDone, gymLive, routines, routine, tomorrowPlanLabel, chest]);
 
@@ -601,6 +603,7 @@ export function MomentHeroView({
                 </span>
                 <div className="min-w-0">
                   <p className="moment-hero-title moment-hero-title--sm">{moment.title}</p>
+                  {moment.normSplit ? <p className="moment-hero-split">{moment.normSplit}</p> : null}
                   {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
                 </div>
               </div>
@@ -616,6 +619,9 @@ export function MomentHeroView({
                     moment.title
                   )}
                 </p>
+                {moment.kcal && moment.normSplit ? (
+                  <p className="moment-hero-split">{moment.normSplit}</p>
+                ) : null}
                 {moment.kcal ? (
                   <div
                     className="moment-kcal-scale"
@@ -633,6 +639,9 @@ export function MomentHeroView({
                   </div>
                 ) : null}
                 {moment.line ? <p className="moment-hero-line">{moment.line}</p> : null}
+                {!moment.kcal && moment.normSplit ? (
+                  <p className="moment-hero-split">{moment.normSplit}</p>
+                ) : null}
               </>
             )}
             {moment.macros ? (

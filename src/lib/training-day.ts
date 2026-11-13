@@ -1,7 +1,8 @@
 /**
  * Цели дня тренировки поверх базового рациона.
  * База (цель, темп, пол, активность, ручные клетчатка и сахар) не переписывается.
- * Силовая или заметное кардио поднимают калории на расход тренировки и белок.
+ * Силовая или заметное кардио поднимают белок.
+ * К калориям при похудении добавляется половина расхода сессии, при удержании и наборе — весь.
  * Удаление тренировки — снова пустой список сессий, и надбавка исчезает.
  */
 
@@ -12,11 +13,17 @@ import {
   type ActivityLevel,
   type DietTarget,
   type Sex,
+  type WeightGoal,
 } from "@/lib/diet";
 import type { SessionEnergy } from "@/lib/workouts/energy";
 
 /** +0,2 г/кг к белковой цели в день заметной тренировки. */
 export const TRAINING_PROTEIN_G_PER_KG = 0.2;
+/**
+ * Доля оценки расхода сессии, которую добавляем к калориям при цели «похудеть».
+ * Удержание и набор оставляют 100%.
+ */
+export const LOSE_TRAINING_KCAL_SHARE = 0.5;
 /** Кардио короче этого не считается «днём тренировки» и не поднимает белок. */
 export const NOTABLE_CARDIO_SEC = 15 * 60;
 export const NOTABLE_CARDIO_KM = 2;
@@ -51,6 +58,31 @@ export type TrainingExerciseLike = {
     distanceKm?: number | null;
   }> | null;
 };
+
+/** Сколько ккал расхода сессии попадает в норму дня. Похудение — половина, остальное — целиком. */
+export function trainingCalorieBonus(burnKcal: number, goal?: WeightGoal | null): number {
+  const burn = Math.max(0, Math.round(Number(burnKcal) || 0));
+  const share = goal === "LOSE" ? LOSE_TRAINING_KCAL_SHARE : 1;
+  return Math.round(burn * share);
+}
+
+/**
+ * «2 466 база + 255 за зал». Числа берутся из нормы дня, доля зала здесь не пересчитывается.
+ * Если показанная цель не равна базе и бонусу (ручная цель), строку не показываем.
+ */
+export function formatTrainingNormSplit(
+  training: Pick<TrainingDayInfo, "trainingDay" | "baseCalories" | "calorieBonusKcal"> | null | undefined,
+  shownCalories?: number | null,
+): string | null {
+  if (!training?.trainingDay) return null;
+  const base = Math.round(training.baseCalories);
+  const bonus = Math.round(training.calorieBonusKcal);
+  if (!(base > 0) || !(bonus > 0)) return null;
+  if (shownCalories != null && Number.isFinite(shownCalories) && Math.round(shownCalories) !== base + bonus) {
+    return null;
+  }
+  return `${base.toLocaleString("ru-RU")} база + ${bonus.toLocaleString("ru-RU")} за зал`;
+}
 
 function formatG(value: number): string {
   const rounded = Math.round(value * 10) / 10;
@@ -151,11 +183,12 @@ export function applyTrainingDayGoals(
     sex?: Sex | null;
     heightCm?: number | null;
     activityLevel?: ActivityLevel | null;
+    goal?: WeightGoal | null;
   },
 ): { target: DietTarget; training: TrainingDayInfo | null } {
   const burnKcal = Math.max(0, Math.round(Number(input.burnKcal) || 0));
   const trainingDay = Boolean(input.trainingDay);
-  const calorieBonusKcal = burnKcal;
+  const calorieBonusKcal = trainingCalorieBonus(burnKcal, input.goal);
   if (!trainingDay && calorieBonusKcal <= 0) {
     return { target: base, training: null };
   }
@@ -199,6 +232,7 @@ export function dayTrainingFromSessions(
     sex?: Sex | null;
     heightCm?: number | null;
     activityLevel?: ActivityLevel | null;
+    goal?: WeightGoal | null;
   },
 ): { target: DietTarget | null; training: TrainingDayInfo | null } {
   if (!base) return { target: null, training: null };
@@ -216,5 +250,6 @@ export function dayTrainingFromSessions(
     sex: profile.sex,
     heightCm: profile.heightCm,
     activityLevel: profile.activityLevel,
+    goal: profile.goal,
   });
 }

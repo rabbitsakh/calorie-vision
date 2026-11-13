@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { resolveDayNorm, resolvePlanNorm } from "./day-norm.ts";
-import { recommendDietForProfile } from "./diet.ts";
+import { macroWeightKg, recommendDietForProfile } from "./diet.ts";
 
 const YEAR = 2026;
 
@@ -43,11 +43,13 @@ test("тот же мужчина в день зала: расход прибав
     burnKcal: 439,
     trainingDay: true,
   });
-  assert.equal(norm.target.calories, 2549);
+  assert.equal(norm.target.calories, 2330);
+  assert.equal(norm.training?.baseCalories, 2110);
+  assert.equal(norm.training?.calorieBonusKcal, 220);
   assert.equal(norm.target.protein, 153);
-  assert.equal(norm.target.fat, 70.8);
-  assert.equal(norm.target.carbs, 325);
-  assert.equal(norm.target.fiber, 36);
+  assert.equal(norm.target.fat, 68);
+  assert.equal(norm.target.carbs, 276.5);
+  assert.equal(norm.target.fiber, 33);
   assert.equal(norm.target.waterMl, 3536);
   assert.ok(Math.abs(macrosSum(norm.target) - norm.target.calories) <= norm.target.calories * 0.02);
 });
@@ -155,6 +157,87 @@ test("ручные калории и вода не перезаписывают�
   assert.equal(manual.target.fiber, 40);
   assert.equal(manual.manual, true);
   assert.ok(Math.abs(macrosSum(manual.target) - manual.target.calories) <= manual.target.calories * 0.02);
+});
+
+test("мужчина 37 лет 126,6 кг 185 см, похудение FAST: половина велотренировки", () => {
+  const profile = {
+    weightKg: 126.6,
+    sex: "MALE" as const,
+    heightCm: 185,
+    birthYear: YEAR - 37,
+    goal: "LOSE" as const,
+    pace: "FAST" as const,
+  };
+  assert.equal(macroWeightKg(profile.weightKg, profile.sex, profile.heightCm), 102.7);
+  const rest = resolveDayNorm(profile);
+  const gym = resolveDayNorm({ ...profile, burnKcal: 509, trainingDay: true });
+  assert.equal(rest.bmr, 2242);
+  assert.equal(rest.maintainCalories, 3083);
+  assert.equal(rest.target.calories, 2466);
+  assert.equal(rest.target.protein, 164.3);
+  assert.equal(rest.target.fat, 82.2);
+  assert.equal(rest.target.carbs, 267.3);
+  assert.equal(rest.target.fiber, 35);
+  assert.equal(rest.target.sugar, 62);
+  assert.equal(rest.target.waterMl, 3668);
+  assert.equal(rest.training, null);
+
+  assert.equal(gym.target.calories, 2721);
+  assert.equal(gym.training?.baseCalories, 2466);
+  assert.equal(gym.training?.calorieBonusKcal, 255);
+  assert.equal(gym.training?.burnKcal, 509);
+  assert.equal(gym.target.protein, 184.8);
+  assert.equal(gym.target.fat, 82.2);
+  assert.equal(gym.target.carbs, 310.5);
+  assert.equal(gym.target.fiber, 38);
+  assert.equal(gym.target.sugar, 68);
+  assert.equal(gym.target.waterMl, 4168);
+  assert.ok(Math.abs(macrosSum(gym.target) - gym.target.calories) <= 1);
+  assert.ok(Math.abs(macrosSum(rest.target) - rest.target.calories) <= 1);
+
+  const holdRest = resolveDayNorm({ ...profile, goal: "MAINTAIN", pace: null });
+  const holdGym = resolveDayNorm({
+    ...profile,
+    goal: "MAINTAIN",
+    pace: null,
+    burnKcal: 509,
+    trainingDay: true,
+  });
+  assert.equal(holdRest.target.calories, 3083);
+  assert.equal(holdGym.training?.calorieBonusKcal, 509);
+  assert.equal(holdGym.training?.baseCalories, 3083);
+  assert.equal(holdGym.target.calories, 3592);
+  assert.equal(holdGym.target.waterMl, 4168);
+
+  const gainRest = resolveDayNorm({ ...profile, goal: "GAIN", pace: "HEALTHY" });
+  const gainGym = resolveDayNorm({
+    ...profile,
+    goal: "GAIN",
+    pace: "HEALTHY",
+    burnKcal: 509,
+    trainingDay: true,
+  });
+  assert.equal(gainGym.training?.calorieBonusKcal, 509);
+  assert.equal(gainGym.target.calories, gainRest.target.calories + 509);
+
+  for (const pace of ["SIMPLE", "HEALTHY", "FAST"] as const) {
+    const base = resolveDayNorm({ ...profile, pace });
+    const day = resolveDayNorm({ ...profile, pace, burnKcal: 509, trainingDay: true });
+    assert.equal(day.training?.calorieBonusKcal, 255, pace);
+    assert.equal(day.target.calories, base.target.calories + 255, pace);
+    assert.ok(day.target.protein > base.target.protein, pace);
+  }
+
+  const manual = resolveDayNorm({
+    ...profile,
+    burnKcal: 509,
+    trainingDay: true,
+    waterTargetMl: 1800,
+    manual: { calories: 1900 },
+  });
+  assert.equal(manual.target.calories, 1900);
+  assert.equal(manual.target.waterMl, 1800);
+  assert.equal(manual.manual, true);
 });
 
 test("план профиля и день без зала — одно значение", () => {

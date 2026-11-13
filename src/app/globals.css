@@ -5754,9 +5754,21 @@ button.profile-settings__door:disabled {
 /* Hybrid H1/H4 — «Лента дня»: time · rail · card */
 .feed-head-kcal {
   margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-head-kcal-split {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -6044,6 +6056,19 @@ button.profile-settings__door:disabled {
   font-weight: 600;
   opacity: 0.95;
   font-variant-numeric: tabular-nums;
+}
+
+.moment-hero-split {
+  margin: var(--space-1) 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.moment-hero--dark .moment-hero-split {
+  color: var(--on-accent);
 }
 
 .moment-ring-row .moment-hero-line {

@@ -3,8 +3,10 @@ import { test } from "node:test";
 import { applyFiberSugarOverrides, recommendDiet } from "./diet.ts";
 import { FALLBACK_BODY_WEIGHT_KG, estimateSessionEnergy, type SessionEnergy } from "./workouts/energy.ts";
 import {
+  LOSE_TRAINING_KCAL_SHARE,
   TRAINING_PROTEIN_G_PER_KG,
   dayTrainingFromSessions,
+  formatTrainingNormSplit,
   isNotableTrainingSession,
 } from "./training-day.ts";
 
@@ -32,18 +34,18 @@ test("день тренировки поднимает калории на ра�
   const { target, training } = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: burn, strengthKcal: burn }) }],
-    { weightKg: 80, sex: "FEMALE" },
+    { weightKg: 80, sex: "FEMALE", goal: "LOSE" },
   );
   assert.ok(training);
   assert.equal(training.trainingDay, true);
-  assert.equal(target.calories, base.calories + burn);
+  assert.equal(target.calories, base.calories + Math.round(burn * LOSE_TRAINING_KCAL_SHARE));
   assert.equal(training.proteinBonusG, 80 * TRAINING_PROTEIN_G_PER_KG);
   assert.equal(target.protein, base.protein + 16);
   assert.ok(Math.abs(target.protein * 4 + target.fat * 9 + target.carbs * 4 - target.calories) <= target.calories * 0.02);
   assert.equal(target.fiber, base.fiber);
   assert.equal(base.calories !== target.calories, true);
   assert.match(training.label ?? "", /День тренировки/);
-  assert.match(training.label ?? "", /280 ккал сверх покоя/);
+  assert.match(training.label ?? "", /140 ккал сверх покоя/);
   assert.match(training.label ?? "", /белок \+16 г/);
   assert.match(training.detail ?? "", /Обычная цель/);
   assert.ok((training.detail ?? "").includes(String(base.calories)));
@@ -56,7 +58,7 @@ test("ручные клетчатка и сахар остаются, база �
   const { target } = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: 200 }) }],
-    { weightKg: 80, sex: "FEMALE" },
+    { weightKg: 80, sex: "FEMALE", goal: "MAINTAIN" },
   );
   assert.equal(base.fiber, 35);
   assert.equal(base.sugar, 40);
@@ -72,10 +74,10 @@ test("без тренировки и после удаления цели воз
   const withGym = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: 150 }) }],
-    { weightKg: 70, sex: "MALE" },
+    { weightKg: 70, sex: "MALE", goal: "MAINTAIN" },
   );
   assert.equal(withGym.target.calories, base.calories + 150);
-  const rest = dayTrainingFromSessions(base, [], { weightKg: 70, sex: "MALE" });
+  const rest = dayTrainingFromSessions(base, [], { weightKg: 70, sex: "MALE", goal: "MAINTAIN" });
   assert.equal(rest.target, base);
   assert.equal(rest.training, null);
   assert.equal(rest.target.calories, base.calories);
@@ -108,7 +110,7 @@ test("короткое кардио добавляет калории, но не
   const { target, training } = dayTrainingFromSessions(
     base,
     [{ notable: false, energy: burn }],
-    { weightKg: 70, sex: "FEMALE" },
+    { weightKg: 70, sex: "FEMALE", goal: "MAINTAIN" },
   );
   assert.ok(training);
   assert.equal(training.trainingDay, false);
@@ -142,13 +144,13 @@ test("расход тренировки прибавляется и при ум�
   const added = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: 317, grossKcal: 443 }) }],
-    { weightKg: 80, sex: "MALE", activityLevel: "LIGHT" },
+    { weightKg: 80, sex: "MALE", activityLevel: "LIGHT", goal: "MAINTAIN" },
   );
   assert.equal(added.target.calories, base.calories + 317);
   const also = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: 317, grossKcal: 443 }) }],
-    { weightKg: 80, sex: "MALE", activityLevel: "MODERATE" },
+    { weightKg: 80, sex: "MALE", activityLevel: "MODERATE", goal: "MAINTAIN" },
   );
   assert.equal(also.target.calories, base.calories + 317);
   assert.equal(also.target.protein, added.target.protein);
@@ -156,6 +158,59 @@ test("расход тренировки прибавляется и при ум�
   assert.equal(also.training?.activityAlreadyCountsTraining, false);
   assert.match(also.training?.label ?? "", /317 ккал/);
   assert.doesNotMatch(also.training?.label ?? "", /не добавляем второй раз/);
+});
+
+test("похудение берёт половину расхода, удержание и набор — весь", () => {
+  const burn = 509;
+  const sessions = [{ notable: true, energy: energy({ kcal: burn }) }];
+  const loseBase = recommendDiet(80, "LOSE", "FAST", "MALE");
+  const lose = dayTrainingFromSessions(loseBase, sessions, { weightKg: 80, sex: "MALE", goal: "LOSE" });
+  assert.equal(lose.training?.calorieBonusKcal, Math.round(burn * LOSE_TRAINING_KCAL_SHARE));
+  assert.equal(lose.training?.calorieBonusKcal, 255);
+  assert.equal(lose.training?.burnKcal, burn);
+  assert.equal(lose.target?.calories, loseBase.calories + 255);
+  assert.equal(lose.target?.protein, loseBase.protein + lose.training!.proteinBonusG);
+
+  const holdBase = recommendDiet(80, "MAINTAIN", null, "MALE");
+  const hold = dayTrainingFromSessions(holdBase, sessions, { weightKg: 80, sex: "MALE", goal: "MAINTAIN" });
+  assert.equal(hold.training?.calorieBonusKcal, burn);
+  assert.equal(hold.target?.calories, holdBase.calories + burn);
+
+  const gainBase = recommendDiet(80, "GAIN", "HEALTHY", "MALE");
+  const gain = dayTrainingFromSessions(gainBase, sessions, { weightKg: 80, sex: "MALE", goal: "GAIN" });
+  assert.equal(gain.training?.calorieBonusKcal, burn);
+  assert.equal(gain.target?.calories, gainBase.calories + burn);
+});
+
+test("строка базы и зала берёт уже посчитанные числа и молчит на ручной цели", () => {
+  assert.equal(
+    formatTrainingNormSplit(
+      { trainingDay: true, baseCalories: 2466, calorieBonusKcal: 255 },
+      2721,
+    ),
+    "2\u00a0466 база + 255 за зал",
+  );
+  assert.equal(
+    formatTrainingNormSplit(
+      { trainingDay: true, baseCalories: 3083, calorieBonusKcal: 509 },
+      3592,
+    ),
+    "3\u00a0083 база + 509 за зал",
+  );
+  assert.equal(
+    formatTrainingNormSplit(
+      { trainingDay: true, baseCalories: 2466, calorieBonusKcal: 255 },
+      1900,
+    ),
+    null,
+  );
+  assert.equal(
+    formatTrainingNormSplit(
+      { trainingDay: false, baseCalories: 2466, calorieBonusKcal: 255 },
+      2721,
+    ),
+    null,
+  );
 });
 
 test("без нормы дня надбавка не придумывается, запасной вес остаётся только в расходе", () => {

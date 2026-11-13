@@ -103,7 +103,7 @@ export async function buildDayMealsPayload(userId: string, date: string) {
     norm?.target.waterMl ??
     (user?.waterTargetMl != null
       ? resolveWaterTargetMl(user.waterTargetMl)
-      : recommendWaterMl(burnWeightKg ?? 0, sex, notable.length > 0));
+      : recommendWaterMl(burnWeightKg ?? 0, sex, notable.length > 0, user?.heightCm));
   const qualifyingWorkout = sessions.some((row) =>
     sessionQualifiesForGymReward(
       row.endedAt != null,

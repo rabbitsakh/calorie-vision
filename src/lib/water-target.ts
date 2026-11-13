@@ -1,3 +1,5 @@
+import { macroWeightKg } from "@/lib/diet";
+
 /** Запасной объём, если нет ни веса, ни ручной цели. */
 export const WATER_DAILY_TARGET_ML = 2000;
 
@@ -18,16 +20,20 @@ export const WATER_ANCHOR_KG: Record<"MALE" | "FEMALE", number> = {
 export const TRAINING_WATER_BONUS_ML = 500;
 
 /**
- * Вода от веса. Ручную цель сюда не передают — её не перезаписываем.
+ * Вода от того же расчётного веса, что и белок: фактический вес с потолком ИМТ 30.
+ * Ручную цель сюда не передают — её не перезаписываем.
+ * В день тренировки +0,5 л. Потолок 6 л.
  */
 export function recommendWaterMl(
   weightKg: number,
   sex?: "MALE" | "FEMALE" | null,
   trainingDay = false,
+  heightCm?: number | null,
 ): number {
   const resolved = sex === "MALE" ? "MALE" : "FEMALE";
   const mlPerKg = WATER_ANCHOR_ML[resolved] / WATER_ANCHOR_KG[resolved];
-  const raw = weightKg > 0 ? weightKg * mlPerKg : WATER_DAILY_TARGET_ML;
+  const basisKg = macroWeightKg(weightKg, resolved, heightCm);
+  const raw = basisKg > 0 ? basisKg * mlPerKg : WATER_DAILY_TARGET_ML;
   const withTraining = raw + (trainingDay ? TRAINING_WATER_BONUS_ML : 0);
   return Math.min(WATER_TARGET_MAX_ML, Math.max(WATER_TARGET_MIN_ML, Math.round(withTraining)));
 }
