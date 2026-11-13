@@ -77,28 +77,49 @@ test("buildMomentHero: morning with a plan → routine name big, start CTA", () 
 test("buildMomentHero: today always has a hero (morning brief hidden → food card)", () => {
   const m = buildMomentHero({ ...base, hour: 7, morning: null });
   assert.equal(m?.tone, "soft");
-  assert.equal(m?.title, "Осталось 1\u00a0240 ккал");
+  assert.equal(m?.title, "Осталось 1\u00a0240 из 2\u00a0100 ккал");
 });
 
-test("buildMomentHero: daytime shows remaining kcal and Б/Ж/У bars", () => {
+test("buildMomentHero: daytime shows remaining of the target and full macro names", () => {
   const m = buildMomentHero({ ...base, fat: 30, fatTarget: 70, carbs: 90, carbsTarget: 250 });
   assert.equal(m?.phase, "day");
   assert.equal(m?.eyebrow, "Сейчас · обед");
-  assert.equal(m?.title, "Осталось 1\u00a0240 ккал");
-  assert.equal(m?.line, "вода 0,9 из 2 л");
+  assert.equal(m?.title, "Осталось 1\u00a0240 из 2\u00a0100 ккал");
+  assert.deepEqual(m?.kcal, { eaten: 860, target: 2100 });
+  assert.equal(m?.line, null);
+  assert.equal(m?.proteinNote, null);
+  assert.deepEqual(m?.chips, [{ kind: "water", title: "Вода", detail: "0,9 из 2 л", actionLabel: "Стакан" }]);
   assert.deepEqual(
     m?.macros?.map((r) => [r.label, r.value, r.target]),
-    [["Б", 72, 120], ["Ж", 30, 70], ["У", 90, 250]],
+    [
+      ["Белки", 72, 120],
+      ["Жиры", 30, 70],
+      ["Углеводы", 90, 250],
+    ],
   );
   assert.deepEqual(m?.cta, { label: "Добавить еду", action: "food" });
-  assert.equal(
-    buildMomentHero({ ...base, gymDoneToday: true })?.line,
-    "после зала добери ~48 г белка · вода 0,9 из 2 л · зал ✓",
+  const afterGym = buildMomentHero({ ...base, gymDoneToday: true });
+  assert.equal(afterGym?.proteinNote, "После зала ещё 48 г белка");
+  assert.equal(afterGym?.line, null);
+  assert.deepEqual(
+    afterGym?.chips?.map((c) => c.kind),
+    ["water", "gym"],
   );
   assert.equal(
     buildMomentHero({ ...base, gymDoneToday: true, protein: 118 })?.line,
-    "комбо-день · тренировка и белок · вода 0,9 из 2 л",
+    "комбо-день · тренировка и белок",
   );
+});
+
+test("buildMomentHero: protein hint is not repeated under the gym note", () => {
+  const m = buildMomentHero({
+    ...base,
+    gymDoneToday: true,
+    softStep: { label: "После тренировки — доберите белок", actionLabel: "Добавить", action: "food" },
+  });
+  assert.equal(m?.proteinNote, "После зала ещё 48 г белка");
+  assert.equal(m?.hint, null);
+  assert.equal(m?.title, "Осталось 1\u00a0240 из 2\u00a0100 ккал");
 });
 
 test("buildMomentHero: daytime over target", () => {

@@ -7,6 +7,7 @@ import {
   rankHistorySuggestions,
   scoreHistoryForRemaining,
   shouldPinPostWorkoutProtein,
+  fitsRemainingKcal,
   type HistoryMealCandidate,
 } from "./suggestion-history.ts";
 
@@ -170,4 +171,76 @@ test("rankHistorySuggestions dedupes and limits", () => {
   assert.equal(ranked.length, 2);
   const names = ranked.map((s) => s.name.toLowerCase());
   assert.equal(new Set(names).size, 2);
+});
+
+const cheburek: HistoryMealCandidate = {
+  name: "Чебурек с индейкой",
+  calories: 2130,
+  protein: 46,
+  fat: 90,
+  carbs: 180,
+  portionGrams: 400,
+  count: 4,
+  source: "history",
+  slots: ["lunch", "dinner"],
+};
+
+test("чебурек 2130 не предлагается после тренировки при малом остатке", () => {
+  const small = { calories: 350, protein: 40, fat: 12, carbs: 20 };
+  const merged = mergeSuggestions({
+    history: [cheburek, cottage],
+    others: [
+      {
+        name: "Омлет из 2 яиц с зеленью",
+        calories: 220,
+        protein: 14,
+        fat: 12,
+        carbs: 2,
+        portionGrams: 120,
+        why: "fallback",
+        category: "balanced",
+        slots: ["breakfast"],
+      },
+    ],
+    remaining: small,
+    pinProteinFirst: true,
+    mealSlot: "breakfast",
+  });
+  assert.equal(merged.some((s) => /чебурек/i.test(s.name)), false);
+  assert.equal(pickHighProteinFromHistory([cheburek, cottage], small, "breakfast")?.name, "Творог 5%");
+  assert.equal(merged[0]?.name, "Творог 5%");
+  assert.ok(merged.some((s) => /Омлет/i.test(s.name)));
+});
+
+test("чебурек 2130 не проходит и при остатке 1997: запас 50 ккал, не 1.35×", () => {
+  const day = { calories: 1997, protein: 183, fat: 34, carbs: 143 };
+  assert.equal(fitsRemainingKcal(2130, 1997), false);
+  assert.equal(fitsRemainingKcal(2030, 1997), true);
+  const merged = mergeSuggestions({
+    history: [cheburek],
+    others: [],
+    remaining: day,
+    pinProteinFirst: true,
+    mealSlot: "lunch",
+  });
+  assert.equal(merged.length, 0);
+  assert.equal(scoreHistoryForRemaining(cheburek, day, "lunch"), -1);
+});
+
+test("блюдо другого приёма не попадает в завтрак, даже если влезает в остаток", () => {
+  const lunchOnly: HistoryMealCandidate = {
+    ...porridge,
+    name: "Гречка с маслом",
+    calories: 320,
+    slots: ["lunch"],
+  };
+  const merged = mergeSuggestions({
+    history: [lunchOnly, cottage],
+    others: [],
+    remaining,
+    pinProteinFirst: false,
+    mealSlot: "breakfast",
+  });
+  assert.equal(merged.some((s) => /Гречка/i.test(s.name)), false);
+  assert.equal(merged[0]?.name, "Творог 5%");
 });

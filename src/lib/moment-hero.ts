@@ -96,6 +96,16 @@ export type MomentMascot = "cheer" | "tip" | "streak" | "goal" | "idle";
 
 export type MomentMacro = { key: "protein" | "fat" | "carbs"; label: string; value: number; target: number };
 
+/** Day card: water and gym as their own rows, not glued into the protein sentence. */
+export type MomentChip = {
+  kind: "water" | "gym";
+  title: string;
+  detail: string;
+  actionLabel: string;
+};
+
+export type MomentKcal = { eaten: number; target: number };
+
 export type MomentCheck = { label: string; done: boolean; value: string };
 
 export type MomentHero = {
@@ -119,6 +129,12 @@ export type MomentHero = {
   checklist: MomentCheck[] | null;
   /** One line under the evening checklist. */
   checklistNote: string | null;
+  /** Eaten and target for the day scale. Null outside the logged day card. */
+  kcal: MomentKcal | null;
+  /** One protein sentence. Not repeated in hint. */
+  proteinNote: string | null;
+  /** Water and gym rows on the day card. */
+  chips: MomentChip[] | null;
 };
 
 export type MomentRoutine = {
@@ -377,13 +393,26 @@ function macroBars(input: MomentHeroInput): MomentMacro[] | null {
   const push = (key: MomentMacro["key"], label: string, value?: number, target?: number | null) => {
     if (target && target > 0) rows.push({ key, label, value: Math.round(value ?? 0), target: Math.round(target) });
   };
-  push("protein", "Б", input.protein, input.proteinTarget);
-  push("fat", "Ж", input.fat, input.fatTarget);
-  push("carbs", "У", input.carbs, input.carbsTarget);
+  push("protein", "Белки", input.protein, input.proteinTarget);
+  push("fat", "Жиры", input.fat, input.fatTarget);
+  push("carbs", "Углеводы", input.carbs, input.carbsTarget);
   return rows.length ? rows : null;
 }
 
-const EMPTY_EXTRAS = { macros: null, ringPct: null, checklist: null, checklistNote: null } as const;
+const PROTEIN_HINTS = new Set([
+  "После тренировки — доберите белок",
+  "После тренировки — приём с белком",
+]);
+
+const EMPTY_EXTRAS = {
+  macros: null,
+  ringPct: null,
+  checklist: null,
+  checklistNote: null,
+  kcal: null,
+  proteinNote: null,
+  chips: null,
+} as const;
 
 export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
   if (!input.selectedIsToday) return null;
@@ -463,12 +492,14 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
 
   const pt = input.proteinTarget ?? 0;
 
+  const target = input.calorieTarget && input.calorieTarget > 0 ? input.calorieTarget : null;
   let title: string;
-  if (input.calorieTarget && input.calorieTarget > 0) {
-    const left = Math.round(input.calorieTarget - input.calories);
+  let left = 0;
+  if (target) {
+    left = Math.round(target - input.calories);
     title =
       left > 50
-        ? `Осталось ${formatKcal(left)} ккал`
+        ? `Осталось ${formatKcal(left)} из ${formatKcal(target)} ккал`
         : left >= -50
           ? "Калории в норме"
           : `+${formatKcal(Math.abs(left))} ккал сверх цели`;
@@ -481,14 +512,20 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     protein: input.protein,
     proteinTarget: pt,
   });
-  const parts = [
-    combo ? "комбо-день · тренировка и белок" : null,
+  const proteinNote =
     !combo && input.gymDoneToday && proteinLeft > 5
-      ? `после зала добери ~${proteinLeft} г белка`
-      : null,
-    waterPart(input),
-    !combo && input.gymDoneToday ? "зал ✓" : null,
-  ].filter((p): p is string => Boolean(p));
+      ? `После зала ещё ${formatKcal(proteinLeft)} г белка`
+      : null;
+  const water = input.waterTarget > 0 ? waterDetail(input) : null;
+  const chips: MomentChip[] = [];
+  if (water) {
+    chips.push({ kind: "water", title: "Вода", detail: water, actionLabel: "Стакан" });
+  }
+  if (input.gymDoneToday) {
+    chips.push({ kind: "gym", title: "Зал", detail: "сегодня сделан", actionLabel: "Открыть" });
+  }
+  const soft = input.softStep;
+  const proteinRepeated = proteinNote != null && soft != null && PROTEIN_HINTS.has(soft.label);
 
   return {
     phase: "day",
@@ -496,14 +533,24 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
     mascot: "tip",
     eyebrow: part === "morning" ? "Сейчас · утро" : dayEyebrow(input.hour),
     title,
-    line: parts.length ? parts.join(" · ") : null,
-    hint: input.softStep?.label ?? null,
-    cta: softCta(input.softStep) ?? { label: "Добавить еду", action: "food" },
+    line: combo ? "комбо-день · тренировка и белок" : null,
+    hint: proteinRepeated ? null : soft?.label ?? null,
+    cta: proteinRepeated
+      ? { label: "Добавить еду", action: "food" }
+      : softCta(soft) ?? { label: "Добавить еду", action: "food" },
     macros: macroBars(input),
     ringPct: null,
     checklist: null,
     checklistNote: null,
+    kcal: target ? { eaten: Math.round(input.calories), target: Math.round(target) } : null,
+    proteinNote,
+    chips: chips.length ? chips : null,
   };
+}
+
+function waterDetail(input: MomentHeroInput): string | null {
+  if (!(input.waterTarget > 0)) return null;
+  return `${formatLiters(input.waterMl)} из ${formatLiters(input.waterTarget)} л`;
 }
 
 function buildEveningChecklist(input: MomentHeroInput): MomentCheck[] {
@@ -584,5 +631,8 @@ function buildEveningHero(input: MomentHeroInput): MomentHero {
     ringPct: empty ? null : pct,
     checklist: empty ? null : buildEveningChecklist(input),
     checklistNote: empty ? null : CHEST_CHECKLIST_NOTE,
+    kcal: null,
+    proteinNote: null,
+    chips: null,
   };
 }

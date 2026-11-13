@@ -9,7 +9,6 @@ import { NavIcon } from "@/components/NavIcons";
 import { buildMomentHero } from "@/lib/moment-hero";
 import { setMetrikaConsent } from "@/lib/metrika-consent";
 import { APP_NAV } from "@/lib/navigation";
-import { TodayHeroMock } from "./TodayHeroMock";
 import {
   CARBS,
   CARBS_TARGET,
@@ -20,10 +19,12 @@ import {
   FIXTURE_HOUR,
   PROTEIN,
   PROTEIN_TARGET,
+  REMAINING_KCAL,
   SCREEN_IDEAS,
   TARGET_KCAL,
   WATER_ML,
   WATER_TARGET_ML,
+  ideasForMoment,
 } from "./fixture";
 
 const ICON = {
@@ -39,13 +40,13 @@ const ICON = {
 };
 
 /**
- * Стенд карточки «Сегодня»: ?variant=before|after&theme=light|dark.
- * Компоненты дневника с тестовыми данными, без записи в базу.
+ * Стенд живой карточки «Сегодня» для скриншотов: ?theme=light|dark&ideas=empty.
+ * Цифры считает buildMomentHero из переданных съеденного и цели, в дневник не пишет.
  */
 export function TodayHeroPreview() {
   const params = useSearchParams();
-  const variant = params.get("variant") === "before" ? "before" : "after";
   const dark = params.get("theme") === "dark";
+  const ideasEmpty = params.get("ideas") === "empty";
 
   useEffect(() => {
     setMetrikaConsent("declined");
@@ -82,7 +83,7 @@ export function TodayHeroPreview() {
   );
 
   return (
-    <div className={`cv-app-frame today-shot${dark ? " today-hero-force-dark" : ""}`} data-today-hero-shot={variant}>
+    <div className={`cv-app-frame today-shot${dark ? " today-hero-force-dark" : ""}`} data-today-hero-shot="live">
       <main className="app-shell cv-app-main mx-auto flex w-full max-w-6xl flex-1 flex-col gap-1.5 px-2.5 py-1.5">
         <header className="app-chrome app-chrome--theater">
           <div className="flex h-10 items-center justify-between gap-3">
@@ -103,17 +104,23 @@ export function TodayHeroPreview() {
           <div className="ration-day-band">
             <DateNavBar date={FIXTURE_DATE} today={FIXTURE_DATE} onDateChange={() => {}} />
           </div>
-          {variant === "before" && moment ? (
+          {moment ? (
             <MomentHeroView
               moment={moment}
               selectedDate={FIXTURE_DATE}
               onAction={() => {}}
-              mealIdeas={SCREEN_IDEAS.map((idea) => ({ name: idea.name, calories: idea.calories }))}
+              mealIdeas={
+                ideasEmpty
+                  ? []
+                  : ideasForMoment(SCREEN_IDEAS, REMAINING_KCAL, FIXTURE_HOUR).map((idea) => ({
+                      name: idea.name,
+                      calories: idea.calories,
+                    }))
+              }
               mealIdeasLabel="Идеи на завтрак"
+              ideasEmpty={ideasEmpty}
             />
-          ) : (
-            <TodayHeroMock />
-          )}
+          ) : null}
         </div>
       </main>
 
