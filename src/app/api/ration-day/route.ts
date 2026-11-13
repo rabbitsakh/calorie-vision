@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    const waterTarget = resolveWaterTargetMl(account?.waterTargetMl);
+    const waterTarget = meals.waterTargetMl ?? resolveWaterTargetMl(account?.waterTargetMl);
     const weekStart = weekStartMonday(date, account?.timezone ?? null);
     const caloriesByDate = new Map(
       weekRows.map((row) => [row.date, row._sum.calories ?? 0]),

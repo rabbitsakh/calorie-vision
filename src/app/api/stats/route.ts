@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { dateRangeEnding, requireDateKey, shiftDateKey } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, applyFiberSugarOverrides, recommendDietForProfile, round1 } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { hourInTimezone } from "@/lib/meal-type";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     const dates = dateRangeEnding(end, dayCount);
     const start = dates[0];
 
-    const [meals, weights, user, latestWeight, topFoods, firstWeight, lastWeight, allMealsForTiming, diaryNotes, waterEntries] = await Promise.all([
+    const [meals, weights, user, topFoods, firstWeight, lastWeight, allMealsForTiming, diaryNotes, waterEntries] = await Promise.all([
       prisma.mealEntry.findMany({
         where: {
           userId: session.user.id,
@@ -79,10 +80,6 @@ export async function GET(request: NextRequest) {
           sugarTargetG: true,
           waterTargetMl: true,
         },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderNewestFirst,
       }),
       prisma.mealEntry.groupBy({
         by: ["dishName"],
@@ -161,28 +158,16 @@ export async function GET(request: NextRequest) {
         ? Math.round(daysWithMeals.reduce((sum, day) => sum + day.calories, 0) / daysWithMeals.length)
         : 0;
 
-    const diet = recommendDietForProfile(latestWeight?.weightKg, user);
-    const withFiberSugar = diet
-      ? applyFiberSugarOverrides(diet, {
-          fiberTargetG: user?.fiberTargetG,
-          sugarTargetG: user?.sugarTargetG,
-        })
-      : null;
-    const calorieTarget = withFiberSugar?.calories ?? null;
-    const proteinTarget = withFiberSugar?.protein ?? null;
+    const norm = await loadDayNorm(session.user.id, end);
+    const calorieTarget = norm?.target.calories ?? null;
+    const proteinTarget = norm?.target.protein ?? null;
     const avgProtein =
       daysWithMeals.length > 0
         ? round1(daysWithMeals.reduce((sum, day) => sum + day.protein, 0) / daysWithMeals.length)
         : 0;
-    const fiberTarget =
-      user?.fiberTargetG != null && Number.isFinite(user.fiberTargetG)
-        ? round1(user.fiberTargetG)
-        : null;
-    const sugarTarget =
-      user?.sugarTargetG != null && Number.isFinite(user.sugarTargetG)
-        ? round1(user.sugarTargetG)
-        : null;
-    const waterTarget = resolveWaterTargetMl(user?.waterTargetMl);
+    const fiberTarget = norm?.target.fiber ?? null;
+    const sugarTarget = norm?.target.sugar ?? null;
+    const waterTarget = norm?.target.waterMl ?? resolveWaterTargetMl(user?.waterTargetMl);
 
     const waterByDate = new Map<string, number>();
     for (const entry of waterEntries) {

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth-session";
 import { prisma } from "@/lib/prisma";
 import { mondayOfWeek, requireDateKey, shiftDateKey, toDateKeyTz } from "@/lib/dates";
-import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet";
+import { loadDayNorm } from "@/lib/day-norm-load";
+import { DIET_PROFILE_SELECT, round1 } from "@/lib/diet";
 import { mergeDecodedFoodStats } from "@/lib/html-text";
-import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const end = shiftDateKey(start, 6);
     const dates = Array.from({ length: 7 }, (_, i) => shiftDateKey(start, i));
 
-    const [meals, waterEntries, weight, topFoods] = await Promise.all([
+    const [meals, waterEntries, topFoods] = await Promise.all([
       prisma.mealEntry.findMany({
         where: { userId: session.user.id, date: { gte: start, lte: end } },
         select: {
@@ -51,10 +51,6 @@ export async function GET(request: NextRequest) {
       prisma.waterEntry.findMany({
         where: { userId: session.user.id, date: { gte: start, lte: end } },
         select: { date: true, ml: true },
-      }),
-      prisma.weightEntry.findFirst({
-        where: { userId: session.user.id },
-        orderBy: weightEntryOrderNewestFirst,
       }),
       prisma.mealEntry.groupBy({
         by: ["dishName"],
@@ -83,7 +79,8 @@ export async function GET(request: NextRequest) {
     const totalCalories = meals.reduce((s, m) => s + m.calories, 0);
     const avgCalories = daysWithMeals.length > 0 ? Math.round(totalCalories / daysWithMeals.length) : 0;
 
-    const target = recommendDietForProfile(weight?.weightKg, user);
+    const norm = await loadDayNorm(session.user.id, end);
+    const target = norm?.target ?? null;
 
     let bestDay: { date: string; calories: number } | null = null;
     let lightestDay: { date: string; calories: number } | null = null;

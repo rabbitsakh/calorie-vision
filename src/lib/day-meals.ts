@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { resolveDayNorm } from "@/lib/day-norm";
 import {
-  applyFiberSugarOverrides,
   calorieTone,
   compareNutrient,
   DIET_PROFILE_SELECT,
-  explainDiet,
   formatGoalChoice,
   isActivityLevel,
   isGoalPace,
@@ -13,7 +12,8 @@ import {
   round1,
 } from "@/lib/diet";
 import { decodeHtmlEntities } from "@/lib/html-text";
-import { dayTrainingFromSessions, isNotableTrainingSession } from "@/lib/training-day";
+import { isNotableTrainingSession } from "@/lib/training-day";
+import { recommendWaterMl, resolveWaterTargetMl } from "@/lib/water-target";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { estimateDbSessionEnergy } from "@/lib/workouts/energy";
 import { serializeSessionSummary, sessionInclude } from "@/lib/workouts/serialize";
@@ -31,6 +31,7 @@ export async function buildDayMealsPayload(userId: string, date: string) {
         ...DIET_PROFILE_SELECT,
         fiberTargetG: true,
         sugarTargetG: true,
+        waterTargetMl: true,
       },
     }),
     prisma.weightEntry.findFirst({
@@ -57,24 +58,6 @@ export async function buildDayMealsPayload(userId: string, date: string) {
   const goalPace = isGoalPace(user?.goalPace) ? user.goalPace : null;
   const sex = isSex(user?.sex) ? user!.sex : null;
   const activity = isActivityLevel(user?.activityLevel) ? user!.activityLevel : null;
-  const breakdown =
-    goal && weight
-      ? explainDiet(
-          weight.weightKg,
-          goal,
-          goalPace,
-          sex,
-          user?.heightCm,
-          user?.birthYear,
-          activity,
-        )
-      : null;
-  const baseTarget = breakdown
-    ? applyFiberSugarOverrides(breakdown.target, {
-        fiberTargetG: user?.fiberTargetG,
-        sugarTargetG: user?.sugarTargetG,
-      })
-    : null;
   const burnWeightKg = latestWeight?.weightKg ?? weight?.weightKg ?? null;
   const trained = sessions.map((row) => {
     const summary = serializeSessionSummary(row);
@@ -92,14 +75,35 @@ export async function buildDayMealsPayload(userId: string, date: string) {
       energy: sessionEnergy,
     };
   });
-  const adjusted = dayTrainingFromSessions(baseTarget, trained, {
-    weightKg: weight?.weightKg ?? burnWeightKg ?? 0,
-    sex,
-    heightCm: user?.heightCm,
-    activityLevel: activity,
-  });
-  const target = adjusted.target;
-  const trainingDay = adjusted.training;
+  const burnKcal = trained.reduce((sum, session) => sum + Math.max(0, session.energy.kcal), 0);
+  const burnApproximate = trained.some((session) => session.energy.kcal > 0 && session.energy.approximate);
+  const notable = trained.filter((session) => session.notable);
+  const norm =
+    goal && weight
+      ? resolveDayNorm({
+          weightKg: weight.weightKg,
+          goal,
+          pace: goalPace,
+          sex,
+          heightCm: user?.heightCm,
+          birthYear: user?.birthYear,
+          activity,
+          burnKcal,
+          trainingDay: notable.length > 0,
+          burnApproximate,
+          sessionCount: notable.length,
+          fiberTargetG: user?.fiberTargetG,
+          sugarTargetG: user?.sugarTargetG,
+          waterTargetMl: user?.waterTargetMl,
+        })
+      : null;
+  const target = norm?.target ?? null;
+  const trainingDay = norm?.training ?? null;
+  const waterTargetMl =
+    norm?.target.waterMl ??
+    (user?.waterTargetMl != null
+      ? resolveWaterTargetMl(user.waterTargetMl)
+      : recommendWaterMl(burnWeightKg ?? 0, sex, notable.length > 0));
   const qualifyingWorkout = sessions.some((row) =>
     sessionQualifiesForGymReward(
       row.endedAt != null,
@@ -142,7 +146,8 @@ export async function buildDayMealsPayload(userId: string, date: string) {
     target,
     trainingDay,
     comboDay,
-    calorieExplanation: breakdown?.explanation ?? null,
+    calorieExplanation: norm?.explanation ?? null,
+    waterTargetMl,
     comparison,
     calorieTone: goal && comparison ? calorieTone(comparison.calories, goal) : null,
   };

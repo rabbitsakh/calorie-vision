@@ -26,7 +26,7 @@ function energy(partial: Partial<SessionEnergy> & { kcal: number }): SessionEner
   };
 }
 
-test("день тренировки поднимает калории на расход и белок на 0,25 г/кг", () => {
+test("день тренировки поднимает калории на расход и белок на 0,2 г/кг", () => {
   const base = recommendDiet(80, "LOSE", "HEALTHY", "FEMALE");
   const burn = 280;
   const { target, training } = dayTrainingFromSessions(
@@ -38,13 +38,13 @@ test("день тренировки поднимает калории на ра�
   assert.equal(training.trainingDay, true);
   assert.equal(target.calories, base.calories + burn);
   assert.equal(training.proteinBonusG, 80 * TRAINING_PROTEIN_G_PER_KG);
-  assert.equal(target.protein, base.protein + 20);
-  assert.equal(target.fat, base.fat);
+  assert.equal(target.protein, base.protein + 16);
+  assert.ok(Math.abs(target.protein * 4 + target.fat * 9 + target.carbs * 4 - target.calories) <= target.calories * 0.02);
   assert.equal(target.fiber, base.fiber);
   assert.equal(base.calories !== target.calories, true);
   assert.match(training.label ?? "", /День тренировки/);
   assert.match(training.label ?? "", /280 ккал сверх покоя/);
-  assert.match(training.label ?? "", /белок \+20 г/);
+  assert.match(training.label ?? "", /белок \+16 г/);
   assert.match(training.detail ?? "", /Обычная цель/);
   assert.ok((training.detail ?? "").includes(String(base.calories)));
 });
@@ -137,7 +137,7 @@ test("силовая с рабочими подходами — день тре�
   );
 });
 
-test("умеренная активность уже включает тренировки — расход не прибавляем второй раз", () => {
+test("расход тренировки прибавляется и при умеренной активности", () => {
   const base = recommendDiet(80, "MAINTAIN", null, "MALE");
   const added = dayTrainingFromSessions(
     base,
@@ -145,17 +145,17 @@ test("умеренная активность уже включает трени
     { weightKg: 80, sex: "MALE", activityLevel: "LIGHT" },
   );
   assert.equal(added.target.calories, base.calories + 317);
-  const kept = dayTrainingFromSessions(
+  const also = dayTrainingFromSessions(
     base,
     [{ notable: true, energy: energy({ kcal: 317, grossKcal: 443 }) }],
     { weightKg: 80, sex: "MALE", activityLevel: "MODERATE" },
   );
-  assert.equal(kept.target.calories, base.calories);
-  assert.equal(kept.target.protein, added.target.protein);
-  assert.equal(kept.training?.calorieBonusKcal, 0);
-  assert.equal(kept.training?.activityAlreadyCountsTraining, true);
-  assert.match(kept.training?.label ?? "", /не добавляем второй раз/);
-  assert.match(kept.training?.detail ?? "", /оценка/);
+  assert.equal(also.target.calories, base.calories + 317);
+  assert.equal(also.target.protein, added.target.protein);
+  assert.equal(also.training?.calorieBonusKcal, 317);
+  assert.equal(also.training?.activityAlreadyCountsTraining, false);
+  assert.match(also.training?.label ?? "", /317 ккал/);
+  assert.doesNotMatch(also.training?.label ?? "", /не добавляем второй раз/);
 });
 
 test("без нормы дня надбавка не придумывается, запасной вес остаётся только в расходе", () => {
