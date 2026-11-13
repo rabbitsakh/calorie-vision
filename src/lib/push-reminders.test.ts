@@ -182,8 +182,8 @@ test("water midday skipped when half target reached", () => {
 test("water midday includes progress", () => {
   const payload = buildReminderPayload("water_midday", { ...baseCtx, waterMl: 400 });
   assert.ok(payload);
-  assert.match(payload.body, /400 мл/);
-  assert.match(payload.body, new RegExp(String(WATER_DAILY_TARGET_ML)));
+  assert.match(payload.body, /0,4 из 2 л/);
+  assert.match(payload.body, /0,6 л/);
 });
 
 test("water reminders use personal waterTargetMl", () => {
@@ -193,8 +193,8 @@ test("water reminders use personal waterTargetMl", () => {
     waterTargetMl: 1500,
   });
   assert.ok(payload);
-  assert.match(payload.body, /900 мл из 1500/);
-  assert.match(payload.body, /600 мл/);
+  assert.match(payload.body, /0,9 из 1,5 л/);
+  assert.match(payload.body, /0,6 л/);
 });
 
 test("water evening skipped when personal target reached", () => {

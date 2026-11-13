@@ -122,9 +122,9 @@ export function ChromePreviewClient() {
             aria-label="Вода (превью)"
           >
             <p className="text-sm font-semibold text-[var(--accent-ink)]">
-              Вода <span className="font-medium text-[var(--muted-strong)]">750 / 2000 мл</span>
+              Вода <span className="font-medium text-[var(--muted-strong)]">0,7 из 2 л</span>
             </p>
-            <p className="text-[11px] text-[var(--muted)]">Осталось 1250 мл</p>
+            <p className="text-[11px] text-[var(--muted)]">Осталось 1,25 л</p>
           </section>
           <details className="group rounded-[var(--radius-lg)] border border-[var(--border-quiet)] bg-[var(--surface-mist)]/40">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left [&::-webkit-details-marker]:hidden">
@@ -275,7 +275,7 @@ export function ChromePreviewClient() {
         <div className="food-add-utility-row food-add-utility-row--three mt-3" role="list">
           {(
             [
-              ["water", "Вода", "+250 мл"],
+              ["water", "Вода", "+0,25 л"],
               ["weight", "Вес", "сегодня"],
               ["workout", "Тренировка", "зал"],
             ] as const

@@ -126,7 +126,7 @@ export function FoodAddModePicker({
 
   const overlay = (
     <div
-      className="food-add-overlay food-add-overlay--in fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
+      className="food-add-overlay food-add-overlay--in fixed inset-0 z-[60] flex items-end justify-center bg-[var(--scrim)] p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

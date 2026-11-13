@@ -9,6 +9,7 @@ import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { formatWaterDelta, formatWaterLiters, formatWaterOf } from "@/lib/water-display";
 
 type WaterResponse = {
   totalMl: number;
@@ -143,7 +144,7 @@ export function WaterTracker({
         }}
       >
         <span>
-          Вода — {totalMl} / {target} мл
+          Вода — {formatWaterOf(totalMl, target)}
         </span>
         <span className="text-xs">Показать</span>
       </button>
@@ -169,7 +170,7 @@ export function WaterTracker({
           disabled={loading}
           onClick={() => void add(ml)}
         >
-          +{ml} мл
+          {formatWaterDelta(ml)}
         </button>
       ))}
     </div>
@@ -187,14 +188,14 @@ export function WaterTracker({
             <p className="text-sm font-semibold text-[var(--foreground)]">
               Вода{" "}
               <span className="font-medium text-[var(--muted-strong)]">
-                {totalMl} / {target} мл
+                {formatWaterOf(totalMl, target)}
               </span>
             </p>
             <p className="text-[11px] text-[var(--muted)]">
               {done
                 ? "Норма выполнена"
                 : remaining > 0
-                  ? `Осталось ${remaining} мл`
+                  ? `Осталось ${formatWaterLiters(remaining)} л`
                   : "Быстрые кнопки"}
               {glasses > 0 ? ` · ≈ ${glasses} ст.` : ""}
             </p>
@@ -233,8 +234,8 @@ export function WaterTracker({
               </h2>
             </div>
             <p className="mt-0.5 text-sm text-[var(--muted-strong)]">
-              {totalMl} / {target} мл
-              {remaining > 0 ? ` · осталось ${remaining} мл` : " · норма выполнена"}
+              {formatWaterOf(totalMl, target)}
+              {remaining > 0 ? ` · осталось ${formatWaterLiters(remaining)} л` : " · норма выполнена"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -269,7 +270,7 @@ export function WaterTracker({
         {showTip ? (
           <div className="mb-3 rounded-xl border border-[var(--border-quiet)] bg-[var(--accent-water-soft)]/80 px-3 py-2.5 text-sm text-[var(--accent-ink)]">
             <p className="font-medium">
-              Норма воды — {target} мл в день
+              Норма воды — {formatWaterLiters(target)} л в день
               {target !== WATER_DAILY_TARGET_ML ? " (ваша цель из профиля)" : ""}.
             </p>
             <p className="mt-1 text-xs text-[var(--muted-strong)]">

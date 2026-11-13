@@ -9,6 +9,7 @@ import type { ReadyChestSource } from "@/lib/chest-ready-queue";
 import { isComboDay } from "@/lib/gym-rewards";
 import { QUEST_DAYS_PER_CHEST } from "@/lib/rewards";
 import { dayPartFromHour } from "@/lib/splash-tips";
+import { formatWaterOf } from "@/lib/water-display";
 
 export type SoftStepAction = "weight" | "food" | "water" | "week" | "camera" | "chest";
 
@@ -203,12 +204,7 @@ export function waterMeetsChest(waterMl: number, waterTarget: number): boolean {
  * never renders as the same number as the goal.
  */
 export function formatWaterProgress(ml: number, target: number): string {
-  const format = (liters: number) =>
-    liters.toLocaleString("ru-RU", { maximumFractionDigits: 1, minimumFractionDigits: 0 });
-  const targetL = Math.max(0, target) / 1000;
-  const actualL = Math.max(0, ml) / 1000;
-  const shown = ml < target ? Math.floor(actualL * 10) / 10 : actualL;
-  return `${format(shown)} / ${format(targetL)} л`;
+  return formatWaterOf(ml, target);
 }
 
 function recordedPctTitle(calories: number, calorieTarget: number | null): string {
@@ -347,18 +343,13 @@ export function resolveEveningDay(input: {
   };
 }
 
-function formatLiters(ml: number): string {
-  const l = Math.round(ml / 100) / 10;
-  return l.toLocaleString("ru-RU", { maximumFractionDigits: 1 });
-}
-
 function formatKcal(n: number): string {
   return Math.round(n).toLocaleString("ru-RU");
 }
 
 function waterPart(input: MomentHeroInput): string | null {
   if (!(input.waterTarget > 0)) return null;
-  return `вода ${formatLiters(input.waterMl)} из ${formatLiters(input.waterTarget)} л`;
+  return `вода ${formatWaterOf(input.waterMl, input.waterTarget)}`;
 }
 
 function softCta(step: SoftStep | null): MomentCta | null {
@@ -550,7 +541,7 @@ export function buildMomentHero(input: MomentHeroInput): MomentHero | null {
 
 function waterDetail(input: MomentHeroInput): string | null {
   if (!(input.waterTarget > 0)) return null;
-  return `${formatLiters(input.waterMl)} из ${formatLiters(input.waterTarget)} л`;
+  return formatWaterOf(input.waterMl, input.waterTarget);
 }
 
 function buildEveningChecklist(input: MomentHeroInput): MomentCheck[] {

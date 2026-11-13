@@ -55,7 +55,7 @@ export function StageScreen({
 
   const stage = (
     <div
-          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-[var(--accent-ink)] to-[#0a1f1e] text-white"
+          className="stage-screen-root fixed inset-0 z-[55] flex flex-col overflow-auto bg-gradient-to-b from-[var(--stage-from)] to-[var(--stage-to)] text-[var(--on-accent)]"
       role="dialog"
       aria-modal="true"
       aria-label={eyebrow}
@@ -107,7 +107,7 @@ export function StageScreen({
             {primaryAction ? (
               <button
                 type="button"
-                className="rounded-2xl bg-[var(--accent)] py-3.5 text-base font-bold text-white"
+                className="rounded-2xl bg-[var(--accent-fill)] py-3.5 text-base font-bold text-[var(--on-accent)]"
                 onClick={primaryAction.onClick}
               >
                 {primaryAction.label}

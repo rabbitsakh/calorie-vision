@@ -5,6 +5,7 @@ import { useFoodAddUi } from "@/components/FoodAddHost";
 import { StageScreen, type StageMetric } from "@/components/StageScreen";
 import { formatDateShort } from "@/lib/dates";
 import { formatCalorieVsTargetLabel } from "@/lib/diet";
+import { formatWaterLiters } from "@/lib/water-display";
 import { withBasePath } from "@/lib/paths";
 
 const SEEN_KEY_PREFIX = "summary-seen-";
@@ -90,7 +91,7 @@ export function DailySummaryCard({ today }: DailySummaryCardProps) {
       ? formatCalorieVsTargetLabel(data.totalCalories, data.target.calories, data.goal)
       : "";
 
-  const waterLabel = data.totalWaterMl > 0 ? `${data.totalWaterMl} мл` : "—";
+  const waterLabel = data.totalWaterMl > 0 ? `${formatWaterLiters(data.totalWaterMl)} л` : "—";
 
   const deltaLabel =
     data.comparison?.calories.kind === "deficit"

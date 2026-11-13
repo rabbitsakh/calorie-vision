@@ -6,6 +6,7 @@ import type { DayFeedEvent, PlannedSlot } from "@/lib/day-feed-events";
 import { requestOpenFoodAddPicker } from "@/lib/open-food-camera";
 import { requestOpenWaterQuick } from "@/lib/open-water-quick";
 import { requestOpenWeightQuick } from "@/lib/open-weight-quick";
+import { formatWaterDelta, formatWaterLiters } from "@/lib/water-display";
 
 export type FeedDot = "meal" | "gym" | "weight" | "water" | "empty";
 
@@ -51,10 +52,10 @@ export function DayEventRow({ event, timezone }: { event: DayFeedEvent; timezone
             <button
               type="button"
               className="feed-mini-btn"
-              aria-label={`Добавить ${event.waterAddMl ?? 250} миллилитров воды`}
+              aria-label={`Добавить ${formatWaterLiters(event.waterAddMl ?? 250)} л воды`}
               onClick={() => requestOpenWaterQuick()}
             >
-              +{event.waterAddMl ?? 250} мл
+              {formatWaterDelta(event.waterAddMl ?? 250)}
             </button>
           </span>
           {event.detail ? <span className="feed-card-t2">{event.detail}</span> : null}

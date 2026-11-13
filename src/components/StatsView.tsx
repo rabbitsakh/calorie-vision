@@ -11,6 +11,7 @@ import { assistantWeekLink } from "@/lib/push-deeplink";
 import { withDateQuery } from "@/lib/use-selected-date";
 import { pluralDays } from "@/lib/russian-text";
 import { axisLabelIndices, chartRange, sparseValueLabelIndices, yAxisTicks } from "@/lib/stats-chart-layout";
+import { formatWaterOf } from "@/lib/water-display";
 import { HEATMAP_TONE_CLASS, heatmapCellTone } from "@/lib/stats-heatmap";
 import {
   buildPrimaryStatsInsight,
@@ -912,7 +913,7 @@ export function StatsView({ endDate }: StatsViewProps) {
               meta={
                 data.waterTarget != null && (data.avgWaterMl ?? 0) > 0 ? (
                   <span>
-                    вода ср. {Math.round(data.avgWaterMl ?? 0)} / {Math.round(data.waterTarget)} мл
+                    вода ср. {formatWaterOf(data.avgWaterMl ?? 0, data.waterTarget)}
                   </span>
                 ) : null
               }

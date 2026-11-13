@@ -17,6 +17,7 @@ import {
   type ReminderKind,
 } from "@/lib/push-reminder-schedule";
 import { pickGymReminderCopy } from "@/lib/push-gym-reminder";
+import { formatWaterLiters, formatWaterOf } from "@/lib/water-display";
 import { isInQuietHours } from "@/lib/quiet-hours";
 import { getQuietHoursPrefs } from "@/lib/quiet-hours-prefs";
 import { readRationDayCache } from "@/lib/ration-day-cache";
@@ -264,12 +265,12 @@ export function localReminderCopy(
         if (s.waterMl >= half) {
           return {
             title: "Вода",
-            body: `${s.waterMl} из ${s.waterTargetMl} мл — половина цели уже есть.`,
+            body: `${formatWaterOf(s.waterMl, s.waterTargetMl)} — половина цели уже есть.`,
           };
         }
         return {
           title: "Вода",
-          body: `${s.waterMl} из ${s.waterTargetMl} мл. До половины цели ~${Math.max(0, half - s.waterMl)} мл.`,
+          body: `${formatWaterOf(s.waterMl, s.waterTargetMl)}. До половины цели ~${formatWaterLiters(Math.max(0, half - s.waterMl))} л.`,
         };
       }
       return { title: "Вода", body: "Стакан воды? Отметьте в приложении." };
@@ -279,12 +280,12 @@ export function localReminderCopy(
         if (s.waterMl >= s.waterTargetMl) {
           return {
             title: "Вода вечером",
-            body: `${s.waterMl} мл — цель по воде на сегодня закрыта.`,
+            body: `${formatWaterLiters(s.waterMl)} л — цель по воде на сегодня закрыта.`,
           };
         }
         return {
           title: "Вода вечером",
-          body: `${s.waterMl} из ${s.waterTargetMl} мл. До цели ещё ${Math.max(0, s.waterTargetMl - s.waterMl)} мл.`,
+          body: `${formatWaterOf(s.waterMl, s.waterTargetMl)}. До цели ещё ${formatWaterLiters(Math.max(0, s.waterTargetMl - s.waterMl))} л.`,
         };
       }
       return { title: "Вода вечером", body: "Допить до цели по воде?" };

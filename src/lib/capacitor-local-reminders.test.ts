@@ -68,8 +68,7 @@ test("localReminderCopy uses diary snapshot for lunch and water", () => {
   const lunch = localReminderCopy("lunch", snap);
   assert.match(lunch.body, /420/);
   const water = localReminderCopy("water_midday", snap);
-  assert.match(water.body, /400/);
-  assert.match(water.body, /2000/);
+  assert.match(water.body, /0,4 из 2 л/);
 });
 
 test("buildCapacitorReminderSchedule uses quiet defaults and stable ids", () => {

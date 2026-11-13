@@ -9,6 +9,7 @@ import { setOptimisticWaterTotal } from "@/lib/ration-day-cache-optimistic";
 import { useTimezone } from "@/lib/use-timezone";
 import { enqueueWaterDraft } from "@/lib/water-draft-queue";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { formatWaterDelta, formatWaterLiters, formatWaterOf } from "@/lib/water-display";
 
 const QUICK_AMOUNTS = [200, 250, 350, 500];
 
@@ -79,7 +80,7 @@ export function WaterQuickSheet() {
         setOptimisticWaterTotal(dateKey, data.totalMl, { target: data.target });
         trackWaterLoggedGoal();
         notifyWaterLogged();
-        setDoneMsg(`+${ml} мл`);
+        setDoneMsg(formatWaterDelta(ml));
         window.setTimeout(() => setOpen(false), 650);
         return;
       }
@@ -109,7 +110,7 @@ export function WaterQuickSheet() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--scrim)] p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="water-quick-title"
@@ -137,13 +138,13 @@ export function WaterQuickSheet() {
         <div className="flex flex-col gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
           <div className="rounded-2xl border border-[var(--border-quiet)] bg-[var(--accent-water-soft)] px-4 py-3">
             <p className="text-sm font-semibold text-[var(--accent-ink)]">
-              {totalMl} / {target} мл
+              {formatWaterOf(totalMl, target)}
               <span className="ml-2 text-xs font-bold text-[var(--accent-ink)]">
                 {done ? "✓ норма" : `${pct}%`}
               </span>
             </p>
             <p className="mt-0.5 text-xs text-[var(--muted-strong)]">
-              {done ? "Норма выполнена" : remaining > 0 ? `Осталось ${remaining} мл` : "Быстрые кнопки"}
+              {done ? "Норма выполнена" : remaining > 0 ? `Осталось ${formatWaterLiters(remaining)} л` : "Быстрые кнопки"}
             </p>
           </div>
 
@@ -156,7 +157,7 @@ export function WaterQuickSheet() {
                 disabled={loading}
                 onClick={() => void add(ml)}
               >
-                +{ml} мл
+                {formatWaterDelta(ml)}
               </button>
             ))}
           </div>

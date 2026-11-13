@@ -86,7 +86,7 @@ export const FOOD_ADD_UTILITY_OPTIONS: FoodAddUtilityOption[] = [
   {
     id: "water",
     label: "Вода",
-    hint: "+200…500 мл",
+    hint: "+0,2…0,5 л",
     icon: "water",
   },
   {

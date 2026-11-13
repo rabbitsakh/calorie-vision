@@ -8,6 +8,7 @@ import { withBasePath } from "@/lib/paths";
 import { hidePanelToday, isPanelHiddenToday, showPanelToday } from "@/lib/panel-visibility";
 import { localHour, localWeekday } from "@/lib/push-reminders";
 import { useTimezone } from "@/lib/use-timezone";
+import { formatWaterLiters } from "@/lib/water-display";
 
 const PANEL_ID = "weekly-report";
 
@@ -163,7 +164,7 @@ export function WeeklyReportCard({ endDate, today, embedded = false }: WeeklyRep
         <div className="rounded-xl bg-[var(--surface-mist)]/70 px-3 py-2 text-center">
           <p className="text-xs text-[var(--muted)]">Вода/день</p>
           <p className="text-lg font-bold text-[var(--accent-ink)]">
-            {data.avgWaterMl > 0 ? `${data.avgWaterMl} мл` : "—"}
+            {data.avgWaterMl > 0 ? `${formatWaterLiters(data.avgWaterMl)} л` : "—"}
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@
  */
 
 import type { MealListItem } from "@/lib/meal-groups";
+import { formatWaterOf } from "@/lib/water-display";
 
 export type DayFeedEvent = {
   key: string;
@@ -122,8 +123,8 @@ export function waterFeedEvent(input: {
     key: "water",
     kind: "water",
     atMs: null,
-    title: `Вода · ${total.toLocaleString("ru-RU")} мл`,
-    detail: `цель ${target.toLocaleString("ru-RU")} мл`,
+    title: `Вода · ${formatWaterOf(total, target)}`,
+    detail: "",
     href: "/ration",
     waterAddMl: 250,
   };

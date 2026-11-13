@@ -50,7 +50,7 @@ function AppPreview({ className = "" }: { className?: string }) {
           </div>
           <div className="landing-phone-water">
             <span>Вода</span>
-            <span>1 200 / 2 000 мл</span>
+            <span>1,2 из 2 л</span>
           </div>
           <div className="landing-phone-meals">
             <div className="landing-phone-meal">

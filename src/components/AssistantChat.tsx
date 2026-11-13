@@ -10,6 +10,7 @@ import type {
   AssistantMode,
 } from "@/lib/admin-assistant";
 import { buildAssistantHistory, parseAssistantMode } from "@/lib/admin-assistant";
+import { formatWaterLiters } from "@/lib/water-display";
 import {
   ASSISTANT_MODE_PILLS,
   ASSISTANT_ONBOARD_KEY,
@@ -951,7 +952,7 @@ function ActionCard({
       ) : null}
       {needsWater ? (
         <p className="mt-1.5 text-[12px] font-medium text-[var(--muted-strong)]">
-          Вода · {actions.waterMl} мл
+          Вода · {formatWaterLiters(actions.waterMl ?? 0)} л
         </p>
       ) : null}
       {needsWeight ? (

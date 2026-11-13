@@ -85,7 +85,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <section className="boot-enter rounded-[var(--radius-panel)] border border-[var(--border-quiet)] bg-[var(--panel-wash)] p-8 text-center shadow-[var(--shadow-card)]">
+    <section className="boot-enter rounded-[var(--radius-card)] border border-[var(--border-quiet)] bg-[var(--card)] p-8 text-center text-[var(--foreground)] shadow-[var(--shadow-card)]">
       <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
         Calorie Vision
       </p>
