@@ -311,14 +311,6 @@ function RationBody({
             <DayHero selectedDate={date} today={today} refreshKey={refreshKey} />
           )}
 
-          {/* Chests 2.0 — meter / ready open under the day scene */}
-          <ChestDock
-            selectedDate={date}
-            today={today}
-            refreshKey={refreshKey}
-            onOpened={bump}
-          />
-
           {/* First viewport ops: pending ∪ offline ∪ queue — one strip, then meal feed */}
           <div className="ration-day-ops">
             <PendingConfirmBanner selectedDate={date} compact />
@@ -370,14 +362,6 @@ function RationBody({
             />
           </div>
 
-          {/* D32 — «Как вчера» + избранное above the meal feed */}
-          <QuickLogStrip
-            selectedDate={date}
-            refreshKey={refreshKey}
-            mealCount={mealCount}
-            onSaved={bump}
-          />
-
           {/* D1 — meal timeline on the same plane */}
           <div className="ration-day-feed ration-meal-feed">
             <DailyLog
@@ -394,6 +378,20 @@ function RationBody({
               plannedSlots={plannedSlots}
             />
           </div>
+
+          {/* Сундук и «Повторить вчера» ниже ленты, чтобы не закрывать приёмы. */}
+          <ChestDock
+            selectedDate={date}
+            today={today}
+            refreshKey={refreshKey}
+            onOpened={bump}
+          />
+          <QuickLogStrip
+            selectedDate={date}
+            refreshKey={refreshKey}
+            mealCount={mealCount}
+            onSaved={bump}
+          />
         </DaySwipeRegion>
 
         {/* Layer 3 — soft day voice + water + «Ещё» after the diary composition */}

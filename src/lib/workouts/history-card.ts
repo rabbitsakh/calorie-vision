@@ -17,5 +17,5 @@ export function historySessionLoad(session: HistoryLoadInput): { value: string; 
     const minutes = formatDurationMinutes(session.cardioDurationSec);
     return { value: minutes.replace(/\s*мин$/u, ""), unit: "мин" };
   }
-  return { value: formatWorkoutLoad(session.totalLoad), unit: "кг·повт" };
+  return { value: formatWorkoutLoad(session.totalLoad), unit: "кг × повторы" };
 }

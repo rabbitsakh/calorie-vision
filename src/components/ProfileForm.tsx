@@ -17,6 +17,8 @@ import {
   SEX_OPTIONS,
   isActivityLevel,
   isSex,
+  formatGoalChoice,
+  isGoalPace,
   isWeightGoal,
   type ActivityLevel,
   type Sex,
@@ -230,8 +232,10 @@ export function ProfileForm() {
         if (cancelled) return;
         if (!isWeightGoal(data.goal) || data.currentWeightKg == null) {
           setPlanNormText(null);
+          setGoalLine(null);
           return;
         }
+        setGoalLine(formatGoalChoice(data.goal, isGoalPace(data.goalPace) ? data.goalPace : null));
         const norm = resolvePlanNorm(data.currentWeightKg, {
           goal: data.goal,
           goalPace: data.goalPace,
@@ -245,11 +249,14 @@ export function ProfileForm() {
         });
         setPlanNormText(
           norm
-            ? `${norm.target.calories} ккал · белок ${norm.target.protein} г · вода ${norm.target.waterMl} мл`
+            ? `${norm.target.calories} ккал · белок ${norm.target.protein} г · вода ${formatWaterLiters(norm.target.waterMl)} л`
             : null,
         );
       } catch {
-        if (!cancelled) setPlanNormText(null);
+        if (!cancelled) {
+          setPlanNormText(null);
+          setGoalLine(null);
+        }
       }
     })();
     return () => {
@@ -412,6 +419,7 @@ export function ProfileForm() {
   const [openContacts, setOpenContacts] = useState(false);
   const [openNorm, setOpenNorm] = useState(false);
   const [planNormText, setPlanNormText] = useState<string | null>(null);
+  const [goalLine, setGoalLine] = useState<string | null>(null);
   const [openNutrients, setOpenNutrients] = useState(false);
   const [openTimezone, setOpenTimezone] = useState(false);
   const [openExport, setOpenExport] = useState(false);
@@ -451,6 +459,13 @@ export function ProfileForm() {
 
       {!loading ? (
         <form className="flex flex-col gap-3 md:gap-4" onSubmit={handleSave}>
+          {planNormText ? (
+            <section className="ds-card" data-testid="profile-day-norm">
+              <p className="ds-eyebrow">Норма и цель</p>
+              <p className="ds-num mt-2 text-[1.15rem] font-extrabold leading-snug">{planNormText}</p>
+              {goalLine ? <p className="mt-1 text-sm text-[var(--muted-strong)]">{goalLine}</p> : null}
+            </section>
+          ) : null}
           <section className="profile-settings__identity">
             <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
               <label className={`relative ${offlineView ? "pointer-events-none opacity-80" : "cursor-pointer"}`}>
@@ -614,8 +629,8 @@ export function ProfileForm() {
                 </select>
               </div>
               {planNormText ? (
-                <p className="sm:col-span-2 text-sm font-semibold text-[var(--accent-ink)]" data-testid="profile-day-norm">
-                  Норма дня: {planNormText}
+                <p className="sm:col-span-2 text-sm text-[var(--muted)]">
+                  Та же норма, что в карточке сверху. Ниже можно поменять параметры.
                 </p>
               ) : null}
               <div className="sm:col-span-2">

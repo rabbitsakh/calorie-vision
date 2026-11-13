@@ -28,5 +28,5 @@ test("buildSessionSummary counts PR and sets", () => {
   assert.equal(card.prCount, 1);
   assert.equal(card.completedSets, 5);
   assert.equal(card.headline, "Готово · 1 рекорд");
-  assert.equal(formatSummaryLoadLine(card), "5000 кг·повт");
+  assert.equal(formatSummaryLoadLine(card), "5000 кг × повторы");
 });

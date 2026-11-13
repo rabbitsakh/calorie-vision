@@ -65,7 +65,7 @@ export function buildWeeklyGymRationDigest(
   } else if (hasGym) {
     headline = "Зал и рацион в одном ритме";
     steps.push(
-      `${ctx.sessionCount} ${sessionWord(ctx.sessionCount)} · ${Math.round(ctx.weeklyTonnage)} кг·повт — зафиксируйте следующий день тренировки в плане.`,
+      `${ctx.sessionCount} ${sessionWord(ctx.sessionCount)} · ${Math.round(ctx.weeklyTonnage)} кг × повторы — зафиксируйте следующий день тренировки в плане.`,
     );
   } else if (ctx.daysLogged >= 1 && ctx.daysLogged < 4) {
     headline = "Сначала регулярность лога";

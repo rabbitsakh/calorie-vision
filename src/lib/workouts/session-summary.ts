@@ -91,5 +91,5 @@ export function formatSummaryLoadLine(card: SessionSummaryCard): string {
     ].filter(Boolean);
     return parts.join(" · ") || "—";
   }
-  return `${Math.round(card.totalLoad)} кг·повт`;
+  return `${Math.round(card.totalLoad)} кг × повторы`;
 }

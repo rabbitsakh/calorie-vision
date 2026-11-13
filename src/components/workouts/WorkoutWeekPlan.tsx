@@ -5,7 +5,6 @@ import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { GymCollectionWear } from "@/components/workouts/GymCollectionWear";
 import { LeverStreakStrip } from "@/components/workouts/LeverStreakStrip";
 import { LeverRecoveryStrip } from "@/components/workouts/LeverRecoveryStrip";
-import { mondayOfWeek, shiftDateKey } from "@/lib/dates";
 import { dayHeroAtmosphereClass } from "@/lib/day-atmosphere";
 import { hourInTimezone } from "@/lib/meal-type";
 import { withBasePath } from "@/lib/paths";
@@ -138,7 +137,7 @@ function sessionMetric(s: TodaySessionCard): string {
     if (s.cardioDurationSec > 0) return formatDurationMinutes(s.cardioDurationSec);
     return "—";
   }
-  return s.totalLoad > 0 ? `${formatLoad(s.totalLoad)} кг·повт` : "—";
+  return s.totalLoad > 0 ? `${formatLoad(s.totalLoad)} кг × повторы` : "—";
 }
 
 function RepeatAlternatives({
@@ -380,32 +379,9 @@ export function WorkoutWeekPlan({
     });
   })();
 
-  const weekDays = useMemo(() => {
-    const monday = mondayOfWeek(todayKey);
-    return WEEKDAY_LABELS_RU.map((label, weekday) => {
-      const key = shiftDateKey(monday, weekday);
-      const marked = (data?.week.find((day) => day.weekday === weekday)?.routines.length ?? 0) > 0;
-      return {
-        label,
-        key,
-        day: String(Number(key.slice(8, 10))),
-        today: key === todayKey,
-        marked,
-      };
-    });
-  }, [data, todayKey]);
-
   return (
     <div className="gym-day">
-      <div className="gym-week" aria-label="Неделя">
-        {weekDays.map((day) => (
-          <div key={day.key} className={day.today ? "is-today" : ""}>
-            <span>{day.label}</span>
-            <b>{day.day}</b>
-            <i className={day.marked ? "is-on" : ""} />
-          </div>
-        ))}
-      </div>
+      {/* Неделя уже есть в шапке DateNavBar — вторую сетку не рисуем. */}
       {planUndo ? (
         <PlanUndoToast
           label={`«${planUndo.name}» · ${planUndo.dayLabel}`}
@@ -780,7 +756,7 @@ export function WorkoutWeekPlan({
                 >
                   + Ещё одна сегодня
                 </button>
-                {showRepeatInFinished && lastRepeat && onRepeatLast ? (
+                {showRepeatInFinished && !startChrome.showRepeat && lastRepeat && onRepeatLast ? (
                   <div>
                     <button
                       type="button"

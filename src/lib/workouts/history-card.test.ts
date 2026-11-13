@@ -7,7 +7,7 @@ import { historySessionLoad } from "./history-card.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
-test("силовая карточка показывает кг·повт отдельно от числа", () => {
+test("силовая карточка показывает кг × повторы отдельно от числа", () => {
   assert.deepEqual(
     historySessionLoad({
       cardioOnly: false,
@@ -15,7 +15,7 @@ test("силовая карточка показывает кг·повт отд
       cardioDurationSec: 0,
       totalLoad: 11682,
     }),
-    { value: "11\u00a0682", unit: "кг·повт" },
+    { value: "11\u00a0682", unit: "кг × повторы" },
   );
 });
 

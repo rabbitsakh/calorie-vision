@@ -55,7 +55,7 @@ export function ChromePreviewClient() {
           >
             Фильтры
           </button>
-          <p className="text-xs font-medium text-[var(--muted-strong)]">Клетч. 2.3 г · Сахар 18.5 г</p>
+          <p className="text-xs font-medium text-[var(--muted-strong)]">клетчатка 2,3 из 28 г · сахар 18,5 г</p>
         </div>
 
         <div className="ration-meal-feed">
@@ -152,7 +152,7 @@ export function ChromePreviewClient() {
                 Верх тела · в зале
               </p>
               <p className="mt-2.5 text-[0.95rem] font-medium text-white/85">
-                24:10 · 3 упр. · 4 820 кг·повт
+                24:10 · 3 упр. · 4 820 кг × повторы
               </p>
             </div>
             <button

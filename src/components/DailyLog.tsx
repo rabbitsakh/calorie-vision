@@ -980,9 +980,17 @@ export function DailyLog({
             </div>
           ) : (totals.fiber > 0 || totals.sugar > 0) ? (
             <p className="text-xs font-medium text-[var(--muted-strong)]">
-              {totals.fiber > 0 ? `Клетч. ${totals.fiber} г` : null}
+              {totals.fiber > 0
+                ? daySummary.comparison?.fiber && daySummary.comparison.fiber.target > 0
+                  ? `клетчатка ${Math.round(daySummary.comparison.fiber.actual)} из ${Math.round(daySummary.comparison.fiber.target)} г`
+                  : `клетчатка ${totals.fiber} г`
+                : null}
               {totals.fiber > 0 && totals.sugar > 0 ? " · " : null}
-              {totals.sugar > 0 ? `Сахар ${totals.sugar} г` : null}
+              {totals.sugar > 0
+                ? daySummary.comparison?.sugar && daySummary.comparison.sugar.target > 0
+                  ? `сахар ${Math.round(daySummary.comparison.sugar.actual)} из ${Math.round(daySummary.comparison.sugar.target)} г`
+                  : `сахар ${totals.sugar} г`
+                : null}
             </p>
           ) : null}
         </div>
