@@ -275,7 +275,7 @@ export function WorkoutLiveStage({
                 Упражнение {focusIndex + 1} из {exercises.length}
               </p>
             ) : null}
-            <h2 className="font-display truncate text-[1.65rem] font-bold leading-tight">{focus.name}</h2>
+            <h2 className="font-display whitespace-normal text-[1.35rem] font-bold leading-tight">{focus.name}</h2>
             <p className="mt-1 text-sm text-[var(--muted)]">
               Подход {Math.min(doneCount + 1, focus.sets.length || 1)}/
               {focus.sets.length || "—"}

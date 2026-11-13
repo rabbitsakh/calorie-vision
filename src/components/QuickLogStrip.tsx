@@ -18,6 +18,14 @@ type QuickAddResponse = {
   yesterdayCount: number;
 };
 
+function intakeWord(n: number): string {
+  const n10 = n % 10;
+  const n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return "приём";
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return "приёма";
+  return "приёмов";
+}
+
 type FavoriteFood = {
   id: string;
   name: string;
@@ -214,10 +222,11 @@ export function QuickLogStrip({
 
   return (
     <div className="quick-log-strip" aria-label="Быстрый лог">
-      <div className="quick-log-strip__head">
-        <p className="quick-log-strip__label">Быстрый лог</p>
-        {notice ? <p className="quick-log-strip__notice">{notice}</p> : null}
-      </div>
+      {notice ? (
+        <div className="quick-log-strip__head">
+          <p className="quick-log-strip__notice">{notice}</p>
+        </div>
+      ) : null}
       <div className="quick-log-strip__chips">
         {showYesterday ? (
           <button
@@ -226,7 +235,7 @@ export function QuickLogStrip({
             disabled={busy !== null}
             onClick={() => void copyYesterday()}
           >
-            {busy === "yesterday" ? "Копируем…" : `Как вчера · ${yesterdayCount}`}
+            {busy === "yesterday" ? "Копируем…" : `Повторить вчера · ${yesterdayCount} ${intakeWord(yesterdayCount)}`}
           </button>
         ) : null}
         {topFavs.map((food) => (

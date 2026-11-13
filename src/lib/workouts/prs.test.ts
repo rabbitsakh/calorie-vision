@@ -159,7 +159,7 @@ describe("countPrsBySessionId", () => {
     assert.equal(hits.get("s1")?.length, 1);
     assert.equal(hits.get("s2")?.length, 0);
     assert.equal(hits.get("s3")?.length, 1);
-    assert.match(formatSessionPrLabel(hits.get("s3")![0]!), /Жим штанги лёжа · 90 кг/);
+    assert.match(formatSessionPrLabel(hits.get("s3")![0]!), /Жим штанги лёжа · рекорд 90 кг/);
   });
 });
 

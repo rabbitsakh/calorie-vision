@@ -29,10 +29,10 @@ function inShownWeek(date: string | null, map: MuscleRecoveryMap): boolean {
 function WeekLines({ row }: { row: MuscleRecoveryRow }) {
   const lines: string[] = [];
   if (row.directTonnage > 0) {
-    lines.push(`силовая ${formatWorkoutLoad(row.directTonnage)} кг·повт`);
+    lines.push(`силовая ${formatWorkoutLoad(row.directTonnage)} кг × повторы`);
   }
   if (row.indirectTonnage > 0) {
-    lines.push(`косвенно ${formatWorkoutLoad(row.indirectTonnage)} кг·повт`);
+    lines.push(`через другие упражнения ${formatWorkoutLoad(row.indirectTonnage)} кг × повторы`);
   }
   if (row.directDurationSec > 0) {
     lines.push(
@@ -42,7 +42,7 @@ function WeekLines({ row }: { row: MuscleRecoveryRow }) {
     );
   }
   if (row.indirectDurationSec > 0) {
-    lines.push(`косвенно кардио ${formatDurationMinutes(row.indirectDurationSec)}`);
+    lines.push(`кардио через другие упражнения ${formatDurationMinutes(row.indirectDurationSec)}`);
   }
   if (lines.length === 0 && row.directSets > 0) {
     lines.push(row.key === "cardio" ? "без времени" : "без отягощения");
@@ -89,7 +89,7 @@ export function MuscleRecoveryCard({
                 const directThisWeek = inShownWeek(row.lastDirectDate, map);
                 const thenLoad =
                   row.lastDirectTonnage > 0
-                    ? `${formatWorkoutLoad(row.lastDirectTonnage)} кг·повт`
+                    ? `${formatWorkoutLoad(row.lastDirectTonnage)} кг × повторы`
                     : row.lastDirectDurationSec > 0
                       ? formatDurationMinutes(row.lastDirectDurationSec)
                       : null;

@@ -228,7 +228,7 @@ export function formatPrSummary(prs: ExercisePrs): string | null {
     case "strength":
     case "weighted_bw":
       if (prs.heaviestKg <= 0) return null;
-      return `PR ${prs.heaviestKg} кг × ${prs.heaviestReps} · ~1ПМ ${prs.estimated1Rm} кг`;
+      return `рекорд ${prs.heaviestKg} кг × ${prs.heaviestReps} · расчётный максимум ${prs.estimated1Rm} кг на 1 повтор`;
     case "bodyweight":
       return prs.bestReps > 0 ? `PR ${prs.bestReps} повт` : null;
     case "duration":
@@ -336,7 +336,7 @@ export function exerciseProgressKey(exercise: {
   return name ? `name:${name}` : "";
 }
 
-/** «Жим штанги лёжа · 90 кг × 5 · ~1ПМ 105 кг» для ленты и итога. */
+/** «Жим штанги лёжа · рекорд 90 кг × 5 · расчётный максимум 105 кг на 1 повтор». */
 export function formatSessionPrLabel(hit: SessionPrHit): string {
   const rest = hit.label.replace(/^PR\s+/, "");
   return `${hit.name} · ${rest}`;

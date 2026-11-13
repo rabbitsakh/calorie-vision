@@ -100,8 +100,13 @@ function StrengthProgressCharts({ points }: { points: HistoryChartPoint[] }) {
         <button type="button" className={metric === "weight" ? "is-on" : ""} onClick={() => setMetric("weight")}>
           Вес
         </button>
-        <button type="button" className={metric === "e1rm" ? "is-on" : ""} onClick={() => setMetric("e1rm")}>
-          1ПМ
+        <button
+          type="button"
+          className={metric === "e1rm" ? "is-on" : ""}
+          title="Расчётный максимум на один повтор"
+          onClick={() => setMetric("e1rm")}
+        >
+          На 1 повтор
         </button>
       </div>
       <ExerciseAxisChart points={series} values={values} unit="кг" />

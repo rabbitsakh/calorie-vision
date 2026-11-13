@@ -10034,6 +10034,8 @@ button.profile-settings__door:disabled {
   font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .training-day-note__title {

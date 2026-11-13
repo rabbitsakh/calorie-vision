@@ -159,7 +159,7 @@ export function WorkoutHistoryHub({
         </div>
         {monthSummary ? (
           <p className="mb-2 text-xs text-[var(--muted)]">
-            {monthSummary.sessionCount} трен. · {formatWorkoutLoad(monthSummary.tonnage)} кг·повт
+            {monthSummary.sessionCount} трен. · {formatWorkoutLoad(monthSummary.tonnage)} кг × повторы
             {monthSummary.cardioDistanceKm > 0
               ? ` · ${formatDistanceKm(monthSummary.cardioDistanceKm)} км`
               : ""}
@@ -265,7 +265,7 @@ export function WorkoutHistoryHub({
           </p>
           <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--foreground)]">
             {formatWorkoutLoad(insights.weeklyTotal)}{" "}
-            <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
+            <span className="text-sm font-normal text-[var(--muted)]">кг × повторы</span>
             {formatWorkoutTrend(insights.weekTrendPct) ? (
               <span className="ml-2 text-sm font-medium text-[var(--accent-ink)]">
                 {formatWorkoutTrend(insights.weekTrendPct)} к пред.
@@ -306,7 +306,7 @@ export function WorkoutHistoryHub({
               </p>
               <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
                 {formatWorkoutLoad(insights.monthlyTotal ?? 0)}{" "}
-                <span className="text-sm font-normal text-[var(--muted)]">кг·повт</span>
+                <span className="text-sm font-normal text-[var(--muted)]">кг × повторы</span>
                 {formatWorkoutTrend(insights.monthTrendPct) ? (
                   <span className="ml-2 text-sm font-medium text-[var(--accent-ink)]">
                     {formatWorkoutTrend(insights.monthTrendPct)}
