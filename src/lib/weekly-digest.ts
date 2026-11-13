@@ -5,6 +5,7 @@ import { DIET_PROFILE_SELECT, recommendDietForProfile } from "@/lib/diet";
 import { resolveEmailServer } from "@/lib/email-auth";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+import { formatWaterLiters } from "@/lib/water-display";
 
 export type WeeklyDigestSummary = {
   weekLabel: string;
@@ -97,9 +98,9 @@ export async function loadWeeklyDigestSummary(
   }
 
   if (avgWaterMl >= WATER_HABIT_DAY_ML) {
-    insights.push(`Вода: в среднем ${avgWaterMl} мл/день — хороший результат.`);
+    insights.push(`Вода: в среднем ${formatWaterLiters(avgWaterMl)} л/день — хороший результат.`);
   } else if (avgWaterMl > 0) {
-    insights.push(`Вода: в среднем ${avgWaterMl} мл/день.`);
+    insights.push(`Вода: в среднем ${formatWaterLiters(avgWaterMl)} л/день.`);
   }
 
   return {
@@ -122,7 +123,7 @@ export function formatWeeklyDigestText(summary: WeeklyDigestSummary, name?: stri
     `Дней с записями: ${summary.daysLogged}`,
     `Средние калории: ${summary.avgCalories || "—"}`,
     summary.calorieTarget != null ? `Цель: ${summary.calorieTarget} ккал` : null,
-    summary.avgWaterMl > 0 ? `Средняя вода: ${summary.avgWaterMl} мл` : null,
+    summary.avgWaterMl > 0 ? `Средняя вода: ${formatWaterLiters(summary.avgWaterMl)} л` : null,
     "",
     ...summary.insights,
     "",
@@ -156,7 +157,7 @@ export function formatWeeklyDigestHtml(summary: WeeklyDigestSummary, name?: stri
         Дней с записями: <strong>${summary.daysLogged}</strong><br/>
         Средние калории: <strong>${summary.avgCalories || "—"}</strong>
         ${summary.calorieTarget != null ? `<br/>Цель: <strong>${summary.calorieTarget}</strong> ккал` : ""}
-        ${summary.avgWaterMl > 0 ? `<br/>Средняя вода: <strong>${summary.avgWaterMl}</strong> мл` : ""}
+        ${summary.avgWaterMl > 0 ? `<br/>Средняя вода: <strong>${formatWaterLiters(summary.avgWaterMl)}</strong> л` : ""}
       </p>
       <ul style="margin:16px 0 0;padding-left:18px;">${insights}</ul>
       <p style="margin:24px 0;">

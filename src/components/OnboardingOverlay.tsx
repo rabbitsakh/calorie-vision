@@ -160,12 +160,12 @@ export function OnboardingOverlay({ forceOpen = false }: { forceOpen?: boolean }
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--accent-ink)]/45 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--scrim)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cv-onboarding-title"
     >
-      <div className="w-full max-w-md rounded-3xl border border-[var(--border-quiet)] bg-[var(--panel-wash)] p-5 shadow-[0_12px_28px_rgba(13,115,119,0.12)] sm:p-6">
+      <div className="w-full max-w-md rounded-[var(--radius-card)] border border-[var(--border-quiet)] bg-[var(--card)] p-5 text-[var(--foreground)] shadow-[var(--shadow-card)] sm:p-6">
         <div className="flex items-start gap-3">
           <Mascot pose={current.pose} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1">

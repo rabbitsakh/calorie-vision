@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { formatWaterLiters } from "@/lib/water-display";
 
 type ShareDayCardProps = {
   date: string;
@@ -223,7 +224,7 @@ async function renderSharePng(date: string, totals: DayTotals): Promise<Blob> {
     );
   }
   if ((totals.waterMl ?? 0) > 0) {
-    fiberSugarParts.push(`вода ${Math.round(totals.waterMl ?? 0)} мл`);
+    fiberSugarParts.push(`вода ${formatWaterLiters(totals.waterMl ?? 0)} л`);
   }
   if (fiberSugarParts.length > 0) {
     ctx.fillStyle = "rgba(236,253,245,0.85)";

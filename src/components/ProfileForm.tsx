@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvatarFrame } from "@/components/AvatarFrame";
 import { BugReportSheet } from "@/components/BugReportSheet";
+import { ListRow } from "@/components/ds/ui";
 import { SceneSkeleton } from "@/components/SceneSkeleton";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ACCOUNT_DELETE_CONFIRM } from "@/lib/account-delete-confirm";
@@ -19,6 +20,7 @@ import {
   type Sex,
 } from "@/lib/diet";
 import { WATER_DAILY_TARGET_ML } from "@/lib/water-target";
+import { formatWaterLiters } from "@/lib/water-display";
 import { detectDeviceTimezone } from "@/lib/device-timezone";
 import {
   clearOfflineAccountCache,
@@ -593,6 +595,9 @@ export function ProfileForm() {
                   value={waterTargetMl}
                   onChange={(event) => setWaterTargetMl(event.target.value)}
                 />
+                <p className="text-xs text-[var(--muted)]">
+                  На экранах: {formatWaterLiters(Number(waterTargetMl) || WATER_DAILY_TARGET_ML)} л
+                </p>
               </div>
               <div className="field">
                 <label htmlFor="fiberTargetG">Цель по клетчатке, г/день</label>
@@ -728,21 +733,11 @@ export function ProfileForm() {
 
       {!loading ? (
         <div className="profile-bug-report">
-          <button
-            type="button"
-            className="profile-bug-report__btn"
+          <ListRow
+            title="Сообщить об ошибке"
+            hint="Описание и скриншот на support@calorievision.ru"
             onClick={() => setBugReportOpen(true)}
-          >
-            <span className="min-w-0 text-left">
-              <span className="block font-semibold">Сообщить об ошибке</span>
-              <span className="mt-0.5 block text-xs opacity-80">
-                Описание и скриншот на support@calorievision.ru
-              </span>
-            </span>
-            <span className="profile-bug-report__chev" aria-hidden>
-              →
-            </span>
-          </button>
+          />
         </div>
       ) : null}
 

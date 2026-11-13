@@ -117,7 +117,7 @@ export function BugReportSheet({ open, onClose }: Props) {
 
   const overlay = (
     <div
-      className="fixed inset-0 z-[70] flex flex-col justify-end bg-[var(--accent-ink)]/45"
+      className="fixed inset-0 z-[70] flex flex-col justify-end bg-[var(--scrim)]"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) close();

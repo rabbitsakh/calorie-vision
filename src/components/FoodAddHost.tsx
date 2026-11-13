@@ -161,7 +161,7 @@ export function FoodAddHost({ date, enabled = true, children }: FoodAddHostProps
     <div
       className={
         sheetVisible
-          ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-[var(--accent-ink)]/40 p-0 sm:items-center sm:p-4"
+          ? "food-add-overlay fixed inset-0 z-[60] flex items-end justify-center bg-[var(--scrim)] p-0 sm:items-center sm:p-4"
           : "hidden"
       }
       role={sheetVisible ? "dialog" : undefined}

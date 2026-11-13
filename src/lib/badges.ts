@@ -1,4 +1,5 @@
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+import { formatWaterLiters } from "@/lib/water-display";
 
 export type BadgeDef = {
   key: string;
@@ -131,22 +132,22 @@ export const BADGE_DEFS: BadgeDef[] = [
   {
     key: "water_3",
     title: "Три дня воды",
-    description: `Вода ≥${WATER_HABIT_DAY_ML} мл три дня подряд`,
+    description: `Вода ≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л три дня подряд`,
   },
   {
     key: "water_7",
     title: "Неделя воды",
-    description: `Вода ≥${WATER_HABIT_DAY_ML} мл семь дней подряд`,
+    description: `Вода ≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л семь дней подряд`,
   },
   {
     key: "water_14",
     title: "Две недели воды",
-    description: `Вода ≥${WATER_HABIT_DAY_ML} мл четырнадцать дней подряд`,
+    description: `Вода ≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л четырнадцать дней подряд`,
   },
   {
     key: "water_30",
     title: "Месяц воды",
-    description: `Вода ≥${WATER_HABIT_DAY_ML} мл тридцать дней подряд`,
+    description: `Вода ≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л тридцать дней подряд`,
   },
   {
     key: "week_on_target",

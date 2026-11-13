@@ -10,6 +10,7 @@ import {
   removeMealDraft,
   subscribeMealDraftQueue,
 } from "@/lib/meal-draft-queue";
+import { formatWaterDelta } from "@/lib/water-display";
 import {
   listWaterDrafts,
   removeWaterDraft,
@@ -238,7 +239,7 @@ function buildRows(onChanged: () => void): QueueRow[] {
     rows.push({
       id: item.id,
       kind: "water",
-      label: `Вода · ${item.ml} мл`,
+      label: `Вода · ${formatWaterDelta(item.ml)}`,
       detail: item.selectedDate,
       status: rowStatus(item.id, "waiting"),
       onDiscard: () => {
@@ -412,7 +413,7 @@ export function OfflineQueueSheet({ flushing, onClose, onFlush, onChanged }: Pro
    * page bottom (far from the top banner). Same pattern as FoodAddModePicker. */
   const overlay = (
     <div
-      className="offline-queue-overlay fixed inset-0 z-[70] flex flex-col justify-end bg-[var(--accent-ink)]/45"
+      className="offline-queue-overlay fixed inset-0 z-[70] flex flex-col justify-end bg-[var(--scrim)]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="offline-queue-title"

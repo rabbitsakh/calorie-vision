@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { withBasePath } from "@/lib/paths";
+import { formatWaterLiters } from "@/lib/water-display";
 
 type ShareWeekButtonProps = {
   endDate: string;
@@ -153,7 +154,7 @@ async function renderWeekPng(data: WeekShareData): Promise<Blob> {
 
   const cards = [
     ["Дней с едой", String(data.daysLogged)],
-    ["Вода ср.", `${Math.round(data.avgWaterMl || 0)} мл`],
+    ["Вода ср.", `${formatWaterLiters(data.avgWaterMl || 0)} л`],
   ] as const;
   let x = 48;
   for (const [label, value] of cards) {

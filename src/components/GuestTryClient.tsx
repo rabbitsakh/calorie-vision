@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/BrandMark";
+import { Button } from "@/components/ds/ui";
 import { formatCalorieEstimate } from "@/lib/calorie-estimate-range";
 import type { FoodRecognitionResult } from "@/lib/food-types";
 import {
@@ -173,23 +174,23 @@ export function GuestTryClient() {
           onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
         />
 
-        <button
-          type="button"
-          className="btn btn-primary guest-try-camera"
+        <Button
+          variant="primary"
+          className="guest-try-camera"
           disabled={busy || blocked}
           onClick={() => inputRef.current?.click()}
         >
           {busy ? "Распознаём…" : blocked ? "Лимит на сегодня" : "Сфотографировать"}
-        </button>
+        </Button>
         {!blocked ? (
-          <button
-            type="button"
-            className="btn btn-secondary guest-try-gallery"
+          <Button
+            variant="secondary"
+            className="guest-try-gallery"
             disabled={busy}
             onClick={() => galleryRef.current?.click()}
           >
             Выбрать снимок
-          </button>
+          </Button>
         ) : null}
 
         {blocked ? (

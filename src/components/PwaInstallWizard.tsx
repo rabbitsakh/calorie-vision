@@ -96,7 +96,7 @@ export function PwaInstallWizard({
   // Portal above MobileTabBar (sibling of .cv-app-main; z-index alone inside main loses).
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--accent-ink)]/45 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-3"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[var(--scrim)] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:items-center sm:pb-3"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pwa-wizard-title"

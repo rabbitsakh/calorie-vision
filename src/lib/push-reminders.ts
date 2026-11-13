@@ -16,6 +16,7 @@ import {
   pickGymReminderCopy,
   shouldSkipGymReminder,
 } from "@/lib/push-gym-reminder";
+import { formatWaterLiters, formatWaterOf } from "@/lib/water-display";
 
 export {
   REMINDER_SCHEDULE,
@@ -133,8 +134,7 @@ function waterTargetOf(ctx: UserReminderContext): number {
 }
 
 function waterProgressLine(waterMl: number, targetMl: number): string {
-  const pct = Math.round((waterMl / targetMl) * 100);
-  return `${waterMl} мл из ${targetMl} (${pct}%)`;
+  return formatWaterOf(waterMl, targetMl);
 }
 
 export function computeCalorieTarget(
@@ -306,8 +306,8 @@ export function buildReminderPayload(
       return {
         title: isB ? "Напомните себе про воду" : "Стакан воды?",
         body: isB
-          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. До середины цели осталось ~${waterTarget / 2 - ctx.waterMl} мл.`
-          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До половины цели ~${waterTarget / 2 - ctx.waterMl} мл.`,
+          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. До середины цели осталось ~${formatWaterLiters(waterTarget / 2 - ctx.waterMl)} л.`
+          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До половины цели ~${formatWaterLiters(waterTarget / 2 - ctx.waterMl)} л.`,
         url: rationUrl,
         tag: "cv-water-mid",
       };
@@ -319,8 +319,8 @@ export function buildReminderPayload(
       return {
         title: isB ? "Допить до цели?" : "Вечерняя вода",
         body: isB
-          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. Ещё ${waterTarget - ctx.waterMl} мл — и день по воде закрыт.`
-          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До цели ещё ${waterTarget - ctx.waterMl} мл.`,
+          ? `${waterProgressLine(ctx.waterMl, waterTarget)}. Ещё ${formatWaterLiters(waterTarget - ctx.waterMl)} л — и день по воде закрыт.`
+          : `${waterProgressLine(ctx.waterMl, waterTarget)}. До цели ещё ${formatWaterLiters(waterTarget - ctx.waterMl)} л.`,
         url: rationUrl,
         tag: "cv-water-eve",
       };

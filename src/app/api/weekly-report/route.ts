@@ -6,6 +6,7 @@ import { DIET_PROFILE_SELECT, recommendDietForProfile, round1 } from "@/lib/diet
 import { mergeDecodedFoodStats } from "@/lib/html-text";
 import { weightEntryOrderNewestFirst } from "@/lib/weight-entries";
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+import { formatWaterLiters } from "@/lib/water-display";
 
 export const dynamic = "force-dynamic";
 
@@ -133,9 +134,9 @@ export async function GET(request: NextRequest) {
 
     // Keep unique lines only (logging / water / top food). Closest & hardest stay as cards.
     if (avgWaterMl >= WATER_HABIT_DAY_ML) {
-      insights.push(`Средняя вода ${avgWaterMl} мл/день — хороший результат.`);
+      insights.push(`Средняя вода ${formatWaterLiters(avgWaterMl)} л/день — хороший результат.`);
     } else if (avgWaterMl > 0) {
-      insights.push(`Вода: в среднем ${avgWaterMl} мл/день — можно больше.`);
+      insights.push(`Вода: в среднем ${formatWaterLiters(avgWaterMl)} л/день — можно больше.`);
     }
 
     const top = mergeDecodedFoodStats(

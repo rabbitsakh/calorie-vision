@@ -1,4 +1,5 @@
 import { WATER_HABIT_DAY_ML } from "@/lib/water-target";
+import { formatWaterLiters } from "@/lib/water-display";
 import { shiftDateKeyUtc, weekStartMonday } from "@/lib/streak-utils";
 
 export type ChallengeDef = {
@@ -30,7 +31,7 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
   {
     key: "water_5",
     title: "Пять дней с водой",
-    description: `≥${WATER_HABIT_DAY_ML} мл воды в 5 днях этой недели`,
+    description: `≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л воды в 5 днях этой недели`,
     target: 5,
   },
   {
@@ -48,7 +49,7 @@ export const CHALLENGE_DEFS: ChallengeDef[] = [
   {
     key: "water_week_7",
     title: "Неделя воды",
-    description: `≥${WATER_HABIT_DAY_ML} мл воды все 7 дней недели`,
+    description: `≥${formatWaterLiters(WATER_HABIT_DAY_ML)} л воды все 7 дней недели`,
     target: 7,
   },
   {

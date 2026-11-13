@@ -130,7 +130,7 @@ export function DiaryNoteWidget({ selectedDate }: { selectedDate: string }) {
         </div>
 
         <textarea
-          className="min-h-[80px] w-full resize-none rounded-xl border border-[rgba(13,115,119,0.14)] bg-[var(--panel-wash)] px-3 py-2 text-sm focus:border-[var(--accent)] focus:outline-none"
+          className="min-h-[80px] w-full resize-none rounded-xl border border-[var(--border-quiet)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none"
           placeholder="Как прошёл день? Что повлияло на питание?"
           maxLength={500}
           value={note}

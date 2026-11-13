@@ -152,7 +152,7 @@ test("buildMomentHero: evening ring + checklist", () => {
     [
       ["Еда", true, "4 приёма записано"],
       ["Белок", true, "118 / 120 г"],
-      ["Вода", false, "0,9 / 2 л"],
+      ["Вода", false, "0,9 из 2 л"],
       ["Зал", true, "комбо-день"],
     ],
   );
@@ -210,8 +210,8 @@ test("вечер: еда без воды — честный процент и к
   assert.equal(day.title, "Записано 20% цели");
   assert.deepEqual(day.cta, { label: "Долить воду до нормы", action: "water" });
   assert.equal(waterMeetsChest(1990, 2000), false);
-  assert.equal(formatWaterProgress(1990, 2000), "1,9 / 2 л");
-  assert.equal(formatWaterProgress(2000, 2000), "2 / 2 л");
+  assert.equal(formatWaterProgress(1990, 2000), "1,9 из 2 л");
+  assert.equal(formatWaterProgress(2000, 2000), "2 из 2 л");
 });
 
 test("вечер: вода без еды", () => {
