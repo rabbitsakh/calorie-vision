@@ -40,7 +40,6 @@ const TRUSTED_SOURCES = new Set([
   "barcode-user",
   "custom-food",
   "off-staple-average",
-  "correction-memory",
   "label",
 ]);
 

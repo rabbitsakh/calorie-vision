@@ -13,6 +13,7 @@ import { explainWhyTheseCalories } from "@/lib/confirm-why-explanation";
 import { formatConfidencePercent } from "@/lib/recognition-confidence-ui";
 import { describeNutritionBasis } from "@/lib/recognition-nutrition";
 import { dishLooksLikeAlcohol } from "@/lib/ru-nutrition-lookup";
+import { macrosDivergeFromCalories, scaleMacrosToCalories } from "@/lib/macro-scale";
 
 type DishDraft = ConfirmDishDraft;
 
@@ -335,8 +336,55 @@ export function DishFields({
               review.missingCalories ? " border-amber-300 ring-1 ring-amber-200" : ""
             }`}
             value={dish.calories}
-            onChange={(event) => onBaselineChange({ calories: event.target.value })}
+            onChange={(event) => {
+              const nextCalories = event.target.value;
+              if (dish.macrosEdited) {
+                onBaselineChange({ calories: nextCalories });
+                return;
+              }
+              const previous = Number(dish.calories);
+              const next = Number(nextCalories);
+              const scaled =
+                previous > 0 && next > 0
+                  ? scaleMacrosToCalories(previous, next, {
+                      protein: Number(dish.protein),
+                      fat: Number(dish.fat),
+                      carbs: Number(dish.carbs),
+                      fiber: dish.fiber.trim() ? Number(dish.fiber) : undefined,
+                      sugar: dish.sugar.trim() ? Number(dish.sugar) : undefined,
+                    })
+                  : null;
+              const text = (value: number | null | undefined, previousText: string) =>
+                value == null || !Number.isFinite(value) || !previousText.trim()
+                  ? previousText
+                  : String(value);
+              onBaselineChange({
+                calories: nextCalories,
+                ...(scaled
+                  ? {
+                      protein: text(scaled.protein, dish.protein),
+                      fat: text(scaled.fat, dish.fat),
+                      carbs: text(scaled.carbs, dish.carbs),
+                      fiber: text(scaled.fiber, dish.fiber),
+                      sugar: text(scaled.sugar, dish.sugar),
+                    }
+                  : {}),
+              });
+            }}
           />
+          {dish.macrosEdited &&
+          macrosDivergeFromCalories({
+            name: dish.dishName,
+            kcal: Number(dish.calories),
+            protein: Number(dish.protein),
+            fat: Number(dish.fat),
+            carbs: Number(dish.carbs),
+            portionGrams: Number(dish.portionGrams),
+          }) ? (
+            <p className="mt-1 text-xs font-semibold text-amber-800">
+              Ккал не сходятся с БЖУ. Проверьте цифры.
+            </p>
+          ) : null}
         </div>
 
         {/* Full-width under the pair — chips / fiber no longer orphan under one column */}
@@ -420,7 +468,9 @@ export function DishFields({
                 min="0"
                 step="0.1"
                 value={dish.protein}
-                onChange={(event) => onBaselineChange({ protein: event.target.value })}
+                onChange={(event) =>
+                  onBaselineChange({ protein: event.target.value, macrosEdited: true })
+                }
               />
             </div>
 
@@ -432,7 +482,7 @@ export function DishFields({
                 min="0"
                 step="0.1"
                 value={dish.fat}
-                onChange={(event) => onBaselineChange({ fat: event.target.value })}
+                onChange={(event) => onBaselineChange({ fat: event.target.value, macrosEdited: true })}
               />
             </div>
 
@@ -444,7 +494,9 @@ export function DishFields({
                 min="0"
                 step="0.1"
                 value={dish.carbs}
-                onChange={(event) => onBaselineChange({ carbs: event.target.value })}
+                onChange={(event) =>
+                  onBaselineChange({ carbs: event.target.value, macrosEdited: true })
+                }
               />
             </div>
 

@@ -2,11 +2,13 @@
  * Map assistant cv-actions → meal saves / workout routine drafts.
  */
 
-import type { AssistantActions } from "@/lib/admin-assistant";
+import { sanitizeAssistantMealName, type AssistantActions } from "@/lib/admin-assistant";
 import { knownCalories } from "@/lib/known-calories";
-import { splitQuickPortion } from "@/lib/quick-log";
+import { splitQuickPortion, type QuickMeal } from "@/lib/quick-log";
 import { parseMealTimeHHMM } from "@/lib/assistant-meal-time";
 import { dateKeyAndTimeToIso } from "@/lib/dates";
+import { looksLikeDrinkName } from "@/lib/portion-unit";
+import { lookupRuNutritionTable } from "@/lib/ru-nutrition-lookup";
 import { isMuscleGroupKey, type MuscleGroupKey } from "@/lib/workouts/muscle-groups";
 
 const FOCUS_HINTS: Array<{ re: RegExp; key: MuscleGroupKey }> = [
@@ -126,6 +128,70 @@ export function buildRoutinePayloadFromActions(
   };
 }
 
+function figuresDiverge(model: number, reference: number): boolean {
+  if (!(model > 0) || !(reference > 0)) return false;
+  const ratio = model / reference;
+  return ratio > 1.5 || ratio < 1 / 1.5;
+}
+
+function scaleMeal<T extends QuickMeal>(meal: T, fromGrams: number, toGrams: number): T {
+  const scale = toGrams / fromGrams;
+  const macro = (value: number | undefined) =>
+    value == null || !Number.isFinite(value) ? value : Math.round(value * scale * 10) / 10;
+  return {
+    ...meal,
+    grams: toGrams,
+    kcal: meal.kcal != null ? Math.round(meal.kcal * scale) : meal.kcal,
+    protein: macro(meal.protein),
+    fat: macro(meal.fat),
+    carbs: macro(meal.carbs),
+  };
+}
+
+/**
+ * «100 г», которых не было в сообщении, — не порция.
+ * Если в справочнике есть типовая, берём её. «мл» остаётся только у напитков.
+ */
+export function alignAssistantMealUnits(meals: QuickMeal[], userMessage: string): QuickMeal[] {
+  const userSaid100 = /(?:^|[^\d])100\s*(?:г|гр|грамм(?:а|ов)?|мл)/iu.test(userMessage);
+  return meals.map((meal) => {
+    const named = splitQuickPortion(sanitizeAssistantMealName(meal.name));
+    const base = (named.base || meal.name).trim();
+    const drink = looksLikeDrinkName(base, meal.name);
+    let unit: "г" | "мл" | "шт" =
+      meal.unit === "шт" ? "шт" : drink && (meal.unit === "мл" || named.unit === "мл") ? "мл" : "г";
+    if (!drink && unit === "мл") unit = "г";
+    let grams =
+      typeof meal.grams === "number" && meal.grams > 0
+        ? Math.round(meal.grams)
+        : named.grams != null && named.grams > 0
+          ? named.grams
+          : undefined;
+    let next = meal;
+    if (grams === 100 && !userSaid100 && unit !== "шт") {
+      const pack = lookupRuNutritionTable(base);
+      if (pack && pack.portionGrams > 0 && pack.portionGrams !== 100) {
+        const tablePer100 = (pack.calories * 100) / pack.portionGrams;
+        if (meal.kcal != null && !figuresDiverge(meal.kcal, pack.calories)) {
+          grams = Math.round(pack.portionGrams);
+        } else if (meal.kcal != null && !figuresDiverge(meal.kcal, tablePer100)) {
+          next = scaleMeal(meal, 100, Math.round(pack.portionGrams));
+          grams = Math.round(pack.portionGrams);
+        } else {
+          grams = Math.round(pack.portionGrams);
+        }
+      } else if (!pack) {
+        grams = undefined;
+      }
+    }
+    const name =
+      grams != null && unit !== "шт"
+        ? `${base} (${grams} ${unit})`.slice(0, 120)
+        : base.slice(0, 120);
+    return { ...next, name, ...(grams != null ? { grams } : { grams: undefined }), unit };
+  });
+}
+
 export function mealsPayloadFromActions(
   actions: AssistantActions,
   date: string,
@@ -151,7 +217,9 @@ export function mealsPayloadFromActions(
     .map((m) => {
       const time = parseMealTimeHHMM(m.time);
       const eatenAt = time ? dateKeyAndTimeToIso(date, time, timezone) : null;
-      const named = splitQuickPortion(m.name);
+      const named = splitQuickPortion(sanitizeAssistantMealName(m.name));
+      const base = (named.base || m.name).trim();
+      const drink = looksLikeDrinkName(base, m.name);
       const grams =
         typeof m.grams === "number" && Number.isFinite(m.grams) && m.grams > 0
           ? Math.round(m.grams)
@@ -159,15 +227,15 @@ export function mealsPayloadFromActions(
             ? named.grams
             : undefined;
       const unit =
-        m.unit === "мл" || m.unit === "шт"
-          ? m.unit
-          : named.unit === "мл" && m.grams == null
+        m.unit === "шт"
+          ? "шт"
+          : drink && (m.unit === "мл" || named.unit === "мл")
             ? "мл"
             : "г";
       const dishName =
-        grams != null && named.grams == null
-          ? `${named.base.trim() || m.name.trim()} (${grams} ${unit})`.slice(0, 200)
-          : m.name.trim().slice(0, 200);
+        grams != null && unit !== "шт"
+          ? `${base} (${grams} ${unit})`.slice(0, 200)
+          : base.slice(0, 200);
       return {
         date,
         dishName,

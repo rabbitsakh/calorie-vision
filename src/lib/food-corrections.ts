@@ -1,6 +1,8 @@
 import type { FoodRecognitionResult } from "./food-types";
+import { macrosDivergeFromCalories } from "./macro-scale";
 import { looksLikeGrainPackName, looksLikeSoupName } from "./package-name-guard";
 import { looksLikeDrinkName } from "./portion-unit";
+import { dishLooksLikeAlcohol } from "./ru-nutrition-lookup";
 
 export type FoodCorrectionRecord = {
   correctedName: string;
@@ -264,6 +266,65 @@ export function applyFoodCorrection(
     source: "correction-memory",
     alternatives: undefined,
   };
+}
+
+function foldFoodToken(token: string): string {
+  let next = token;
+  if (next.length >= 4 && next.endsWith("у")) next = next.slice(0, -1) + "а";
+  else if (next.length >= 4 && next.endsWith("ю")) next = next.slice(0, -1) + "я";
+  if (next.length >= 4 && /[ая]$/.test(next)) next = next.slice(0, -1);
+  return next;
+}
+
+function foodNamesCloseEnough(original: string, corrected: string): boolean {
+  if (foodCorrectionKey(original) === foodCorrectionKey(corrected)) return true;
+  if (correctionTokenOverlap(original, corrected) >= 0.34) return true;
+  const left = correctionTokens(original).map(foldFoodToken);
+  const right = correctionTokens(corrected).map(foldFoodToken);
+  return left.some((token) =>
+    right.some((other) => {
+      const stem = token.slice(0, 4);
+      return stem.length >= 4 && other.startsWith(stem);
+    }),
+  );
+}
+
+function foodCategory(name: string): string {
+  if (dishLooksLikeAlcohol(name)) return "alcohol";
+  if (looksLikeDrinkName(name)) return "drink";
+  if (looksLikeSoupName(name) || looksLikeSeafoodSoupName(name)) return "soup";
+  if (/салат/i.test(name)) return "salad";
+  if (/каша|греч|рис|макарон|паста/i.test(name)) return "grain";
+  return "food";
+}
+
+/**
+ * Не учим память на паре, где ккал и БЖУ разъехались, и на подмене совсем другого блюда.
+ */
+export function shouldRememberFoodCorrection(input: {
+  originalDish: string;
+  dishName: string;
+  calories: number;
+  protein?: number | null;
+  fat?: number | null;
+  carbs?: number | null;
+  portionGrams?: number | null;
+}): boolean {
+  if (!foodNamesCloseEnough(input.originalDish, input.dishName)) return false;
+  if (foodCategory(input.originalDish) !== foodCategory(input.dishName)) return false;
+  if (
+    macrosDivergeFromCalories({
+      name: input.dishName,
+      kcal: input.calories,
+      protein: input.protein,
+      fat: input.fat,
+      carbs: input.carbs,
+      portionGrams: input.portionGrams,
+    })
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function mergeRememberedCorrection(

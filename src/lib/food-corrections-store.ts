@@ -3,9 +3,11 @@ import {
   foodCorrectionKey,
   mergeRememberedCorrection,
   pickFoodCorrection,
+  shouldRememberFoodCorrection,
   type RememberFoodCorrectionInput,
 } from "@/lib/food-corrections";
 import type { FoodRecognitionResult } from "@/lib/food-types";
+import { applyNutritionConsistency } from "@/lib/nutrition-consistency";
 import { prisma } from "@/lib/prisma";
 
 /** Legacy/global corrections use empty userId so they remain shareable. */
@@ -78,7 +80,7 @@ export async function applyStoredFoodCorrection(
   const next = correction ? applyFoodCorrection(result, correction) : result;
 
   if (!next.items?.length) {
-    return next;
+    return applyNutritionConsistency(next);
   }
 
   const items = next.items.map((item) => {
@@ -86,7 +88,7 @@ export async function applyStoredFoodCorrection(
     return itemCorrection ? applyFoodCorrection(item, itemCorrection) : item;
   });
 
-  return { ...next, items };
+  return applyNutritionConsistency({ ...next, items });
 }
 
 export async function lookupStoredFoodCorrection(
@@ -99,14 +101,16 @@ export async function lookupStoredFoodCorrection(
     return null;
   }
 
-  return applyFoodCorrection(
-    {
-      dishName,
-      calories: 0,
-      confidence: 0.5,
-      photoKind: "meal",
-    },
-    correction,
+  return applyNutritionConsistency(
+    applyFoodCorrection(
+      {
+        dishName,
+        calories: 0,
+        confidence: 0.5,
+        photoKind: "meal",
+      },
+      correction,
+    ),
   );
 }
 
@@ -116,6 +120,9 @@ export async function rememberFoodCorrection(
   const originalKey = foodCorrectionKey(input.originalDish);
   const correctedKey = foodCorrectionKey(input.dishName);
   if (!originalKey || !correctedKey) {
+    return;
+  }
+  if (!shouldRememberFoodCorrection(input)) {
     return;
   }
 

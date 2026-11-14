@@ -6,6 +6,7 @@ import {
   foodCorrectionKey,
   mergeRememberedCorrection,
   pickFoodCorrection,
+  shouldRememberFoodCorrection,
 } from "./food-corrections.ts";
 
 test("normalizes dish names for correction lookup", () => {
@@ -283,4 +284,55 @@ test("milk 2,5% is not remapped to lactose-free 1,5% via bare-milk memory", () =
   ]);
   assert.ok(branded);
   assert.match(branded!.correctedName, /2[,.]5%/);
+});
+
+test("не запоминает разъезд Атуотера и подмену другого блюда", () => {
+  assert.equal(
+    shouldRememberFoodCorrection({
+      originalDish: "Лазанья",
+      dishName: "Том Ям",
+      calories: 280,
+      protein: 14,
+      fat: 10,
+      carbs: 28,
+      portionGrams: 300,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRememberFoodCorrection({
+      originalDish: "Латте",
+      dishName: "Квас",
+      calories: 90,
+      protein: 0,
+      fat: 0,
+      carbs: 22,
+      portionGrams: 330,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRememberFoodCorrection({
+      originalDish: "Гречка",
+      dishName: "Гречка",
+      calories: 500,
+      protein: 6,
+      fat: 2,
+      carbs: 30,
+      portionGrams: 200,
+    }),
+    false,
+  );
+  assert.equal(
+    shouldRememberFoodCorrection({
+      originalDish: "Гречка",
+      dishName: "Гречневая каша",
+      calories: 180,
+      protein: 6,
+      fat: 2,
+      carbs: 36,
+      portionGrams: 200,
+    }),
+    true,
+  );
 });

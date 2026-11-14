@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  alignAssistantMealUnits,
   buildRoutinePayloadFromActions,
   exercisesFromWorkoutDay,
   mealsPayloadFromActions,
@@ -24,6 +25,29 @@ test("buildRoutinePayloadFromActions builds exercises", () => {
   assert.match(payload!.name, /Пн/);
   assert.ok(payload!.exercises.some((e) => /Жим/.test(e.name)));
   assert.ok(payload!.muscleGroups.includes("chest"));
+});
+
+test("мл только у напитка, выдуманные 100 г становятся типовой порцией", () => {
+  const [pizza] = alignAssistantMealUnits(
+    [{ name: "Пицца (100 мл)", kcal: 680, protein: 28, fat: 26, carbs: 78, grams: 100, unit: "мл" }],
+    "съел пиццу",
+  );
+  assert.equal(pizza?.unit, "г");
+  assert.equal(pizza?.grams, 250);
+  assert.match(pizza?.name ?? "", /250 г/);
+
+  const [named] = mealsPayloadFromActions(
+    { meals: [{ name: "Омлет: примерно", kcal: 260, protein: 16, fat: 20, carbs: 3 }] },
+    "2026-11-04",
+  );
+  assert.equal(named?.dishName, "Омлет");
+
+  const [buckwheat] = alignAssistantMealUnits(
+    [{ name: "Гречка (100 г)", kcal: 180, protein: 6, fat: 2, carbs: 36, grams: 100 }],
+    "съел гречку",
+  );
+  assert.equal(buckwheat?.grams, 200);
+  assert.equal(buckwheat?.kcal, 180);
 });
 
 test("mealsPayloadFromActions maps kcal and macros", () => {

@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 import { splitAssistantReply, type AssistantActions } from "@/lib/admin-assistant";
-import { mealsPayloadFromActions } from "@/lib/assistant-apply";
+import { alignAssistantMealUnits, mealsPayloadFromActions } from "@/lib/assistant-apply";
 import { resolveAssistantDate } from "@/lib/assistant-date";
 import { enrichAssistantActionsMealMeta } from "@/lib/assistant-meal-time";
 import {
@@ -273,7 +273,7 @@ export async function resolveAssistantTurnActions(opts: {
     if (sanity.codes.length) {
       logAssistantMealSignal("nutrition-sanity", hashMealPhrase(opts.userMessage), sanity.codes);
     }
-    actions = { ...actions, meals: sanity.meals };
+    actions = { ...actions, meals: alignAssistantMealUnits(sanity.meals, opts.userMessage) };
   }
 
   if (actions?.meals?.length) {

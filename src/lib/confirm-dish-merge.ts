@@ -21,6 +21,8 @@ export type ConfirmDishDraft = {
   sugar: string;
   portionGrams: string;
   baseline: NutritionValues | null;
+  /** Пользователь сам менял БЖУ — ккал больше не тянут их за собой. */
+  macrosEdited?: boolean;
 };
 
 export function draftFromRecognition(item: FoodRecognitionResult, id: string): ConfirmDishDraft {

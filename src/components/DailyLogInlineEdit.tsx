@@ -11,6 +11,7 @@ import {
 import { withBasePath } from "@/lib/paths";
 import { decodeHtmlEntities } from "@/lib/html-text";
 import { caloriesFromField, macroFromField } from "@/lib/known-calories";
+import { macrosDivergeFromCalories, scaleMacrosToCalories } from "@/lib/macro-scale";
 import {
   formatMacro,
   nutritionBaseline,
@@ -76,6 +77,7 @@ export function InlineEdit({
   );
   const [dishName, setDishName] = useState(decodeHtmlEntities(entry.dishName));
   const [calories, setCalories] = useState(String(entry.calories));
+  const [macrosEdited, setMacrosEdited] = useState(false);
   const [protein, setProtein] = useState(entry.protein != null ? String(entry.protein) : "");
   const [fat, setFat] = useState(entry.fat != null ? String(entry.fat) : "");
   const [carbs, setCarbs] = useState(entry.carbs != null ? String(entry.carbs) : "");
@@ -90,6 +92,29 @@ export function InlineEdit({
   const [historyPortions, setHistoryPortions] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleCaloriesChange(value: string) {
+    if (macrosEdited) {
+      setCalories(value);
+      return;
+    }
+    const previous = Number(calories);
+    const next = Number(value);
+    setCalories(value);
+    if (!(previous > 0) || !(next > 0) || previous === next) return;
+    const scaled = scaleMacrosToCalories(previous, next, {
+      protein: macroFromField(protein),
+      fat: macroFromField(fat),
+      carbs: macroFromField(carbs),
+      fiber: macroFromField(fiber),
+      sugar: macroFromField(sugar),
+    });
+    if (scaled.protein != null) setProtein(formatMacro(scaled.protein));
+    if (scaled.fat != null) setFat(formatMacro(scaled.fat));
+    if (scaled.carbs != null) setCarbs(formatMacro(scaled.carbs));
+    if (scaled.fiber != null) setFiber(formatMacro(scaled.fiber));
+    if (scaled.sugar != null) setSugar(formatMacro(scaled.sugar));
+  }
 
   function handlePortionChange(value: string) {
     setPortionGrams(value);
@@ -182,7 +207,20 @@ export function InlineEdit({
         </div>
         <div className="field">
           <label className="text-xs">Калории, ккал</label>
-          <input type="number" min="0" inputMode="decimal" className="text-base" value={calories} onChange={(e) => setCalories(e.target.value)} required />
+          <input type="number" min="0" inputMode="decimal" className="text-base" value={calories} onChange={(e) => handleCaloriesChange(e.target.value)} required />
+          {macrosEdited &&
+          macrosDivergeFromCalories({
+            name: dishName,
+            kcal: Number(calories),
+            protein: macroFromField(protein),
+            fat: macroFromField(fat),
+            carbs: macroFromField(carbs),
+            portionGrams: Number(portionGrams),
+          }) ? (
+            <p className="mt-1 text-xs font-semibold text-amber-800">
+              Ккал не сходятся с БЖУ. Проверьте цифры.
+            </p>
+          ) : null}
         </div>
         <div className="field">
           <label className="text-xs">Порция, г</label>
@@ -231,15 +269,15 @@ export function InlineEdit({
         </div>
         <div className="field">
           <label className="text-xs">Белки, г</label>
-          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={protein} onChange={(e) => setProtein(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={protein} onChange={(e) => { setMacrosEdited(true); setProtein(e.target.value); }} />
         </div>
         <div className="field">
           <label className="text-xs">Жиры, г</label>
-          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={fat} onChange={(e) => setFat(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={fat} onChange={(e) => { setMacrosEdited(true); setFat(e.target.value); }} />
         </div>
         <div className="field">
           <label className="text-xs">Углеводы, г</label>
-          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={carbs} onChange={(e) => setCarbs(e.target.value)} />
+          <input type="number" min="0" step="0.1" inputMode="decimal" className="text-base" value={carbs} onChange={(e) => { setMacrosEdited(true); setCarbs(e.target.value); }} />
         </div>
         <div className="field">
           <label className="text-xs">Клетчатка, г</label>
